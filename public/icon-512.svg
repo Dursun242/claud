@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 192 192">
+  <rect width="192" height="192" rx="32" fill="#1E3A5F"/>
+  <text x="96" y="75" text-anchor="middle" font-family="Arial,sans-serif" font-weight="bold" font-size="48" fill="#fff">ID</text>
+  <text x="96" y="130" text-anchor="middle" font-family="Arial,sans-serif" font-weight="600" font-size="22" fill="#60A5FA">MAÎTRISE</text>
+</svg>

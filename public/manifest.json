@@ -1,0 +1,22 @@
+{
+  "name": "ID Maîtrise - Dashboard",
+  "short_name": "ID Maîtrise",
+  "description": "Gestion de chantiers BTP - Maîtrise d'œuvre Le Havre",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F1F5F9",
+  "theme_color": "#1E3A5F",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
