@@ -1091,7 +1091,7 @@ DONNÉES: ${JSON.stringify(data,null,0)}
 GOOGLE CALENDAR: ${JSON.stringify(gcalEvents,null,0)}
 INSTRUCTIONS: Réponds en français, concis. Tu connais tout. Pour les actions, utilise <<<ACTION>>>{"type":"add_chantier|add_task|add_contact|add_cr","data":{...}}<<<END_ACTION>>>. IDs existants: ch1-ch6.`;
 
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
+      const response = await fetch("/api/claude", {
         method:"POST", headers:{"Content-Type":"application/json"},
         body: JSON.stringify({ model:"claude-sonnet-4-20250514", max_tokens:1000, system:sys,
           messages:messages.filter((m,i)=>m.role!=="assistant"||i>0).concat([{role:"user",content:userMsg}]).map(m=>({role:m.role,content:m.content})),
