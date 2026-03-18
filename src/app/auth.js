@@ -11,7 +11,7 @@ export function useAuth() {
 
 // ─── EMAILS AUTORISÉS (ajoute tes collaborateurs ici) ───
 const ALLOWED_EMAILS = [
-  'dursunozkan88@gmail.com',
+  'idconseil76@gmail.com',
   // Ajoute ici les emails de tes collaborateurs :
   // 'collaborateur1@gmail.com',
   // 'collaborateur2@gmail.com',
