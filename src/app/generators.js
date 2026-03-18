@@ -65,18 +65,30 @@ export function generateOSPdf(data) {
   const w = doc.internal.pageSize.getWidth()
   const margin = 18
   const usable = w - margin * 2
-  let y = entete(doc, w, margin)
 
-  // Titre
-  doc.setFontSize(18)
+  // Logo (left side)
+  let y = 12
+  try { doc.addImage(LOGO_B64, 'JPEG', margin, y - 5, 48, 14) } catch(e) {}
+  
+  // Titre ORDRE DE SERVICE (right side, same height as logo)
+  doc.setFontSize(16)
   doc.setFont("helvetica", "bold")
   doc.setTextColor(...BLEU)
-  doc.text("ORDRE DE SERVICE", w - margin, 18, { align: "right" })
-  doc.setFontSize(13)
+  doc.text("ORDRE DE SERVICE", w - margin, y, { align: "right" })
+  doc.setFontSize(12)
   doc.setTextColor(...BLEU_CLAIR)
-  doc.text(data.numero || "OS-XXXX", w - margin, 25, { align: "right" })
+  doc.text(data.numero || "OS-XXXX", w - margin, y + 6, { align: "right" })
 
-  y = 34
+  // Infos entreprise sous le logo
+  y = 24
+  doc.setFontSize(7)
+  doc.setFont("helvetica", "normal")
+  doc.setTextColor(...GRIS)
+  doc.text(`${ENT.adresse}, ${ENT.cpVille} — SIRET: ${ENT.siret}`, margin, y)
+  doc.text(`${ENT.email} — ${ENT.assurance}`, margin, y + 3.5)
+
+  // Ligne séparatrice
+  y = 31
   doc.setDrawColor(...BLEU); doc.setLineWidth(0.7)
   doc.line(margin, y, w - margin, y); y += 5
 
@@ -201,15 +213,24 @@ export function generateCRPdf(cr, chantier) {
   const w = doc.internal.pageSize.getWidth()
   const margin = 18
   const usable = w - margin * 2
-  let y = entete(doc, w, margin)
 
-  // Titre
-  doc.setFontSize(16); doc.setFont("helvetica", "bold"); doc.setTextColor(...BLEU)
-  doc.text("COMPTE RENDU DE CHANTIER", w - margin, 18, { align: "right" })
-  doc.setFontSize(12); doc.setTextColor(...BLEU_CLAIR)
-  doc.text(`N°${cr.numero || "—"}`, w - margin, 25, { align: "right" })
+  // Logo (left)
+  let y = 12
+  try { doc.addImage(LOGO_B64, 'JPEG', margin, y - 5, 48, 14) } catch(e) {}
 
-  y = 34
+  // Titre (right, aligned with logo)
+  doc.setFontSize(14); doc.setFont("helvetica", "bold"); doc.setTextColor(...BLEU)
+  doc.text("COMPTE RENDU", w - margin, y, { align: "right" })
+  doc.setFontSize(11); doc.setTextColor(...BLEU_CLAIR)
+  doc.text(`DE CHANTIER N°${cr.numero || "—"}`, w - margin, y + 6, { align: "right" })
+
+  // Infos sous logo
+  y = 24
+  doc.setFontSize(7); doc.setFont("helvetica", "normal"); doc.setTextColor(...GRIS)
+  doc.text(`${ENT.adresse}, ${ENT.cpVille} — SIRET: ${ENT.siret}`, margin, y)
+  doc.text(`${ENT.email} — ${ENT.assurance}`, margin, y + 3.5)
+
+  y = 31
   doc.setDrawColor(...BLEU); doc.setLineWidth(0.7); doc.line(margin, y, w - margin, y); y += 5
 
   // Infos chantier
