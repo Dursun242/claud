@@ -515,15 +515,15 @@ export default function App() {
 
   const tabs = [
     {key:"dashboard",label:"Tableau de bord",icon:I.dashboard},
-    {key:"gcal",label:"Agenda Google",icon:null,isGcal:true},
-    {key:"qonto",label:"Qonto",icon:null,isQonto:true},
     {key:"projects",label:"Chantiers",icon:I.projects},
-    {key:"planning",label:"Planning",icon:I.planning},
-    {key:"budget",label:"Budget / OS",icon:I.budget},
-    {key:"tasks",label:"Tâches",icon:I.tasks},
-    {key:"contacts",label:"Annuaire",icon:I.contacts},
-    {key:"reports",label:"Comptes Rendus",icon:I.reports},
     {key:"os",label:"Ordres de Service",icon:I.reports},
+    {key:"reports",label:"Comptes Rendus",icon:I.reports},
+    {key:"tasks",label:"Tâches",icon:I.tasks},
+    {key:"planning",label:"Planning",icon:I.planning},
+    {key:"budget",label:"Budget",icon:I.budget},
+    {key:"contacts",label:"Annuaire",icon:I.contacts},
+    {key:"qonto",label:"Qonto",icon:null,isQonto:true},
+    {key:"gcal",label:"Agenda Google",icon:null,isGcal:true},
     {key:"ai",label:"Assistant IA",icon:I.ai},
   ];
 
@@ -1392,10 +1392,11 @@ function OrdresServiceV({data,m,reload}) {
 // AI ASSISTANT
 // ═══════════════════════════════════════════
 function AIV({data,save,m,externalTranscript,clearExternal,reload}) {
-  const [messages,setMessages]=useState([{role:"assistant",content:"Bonjour Dursun ! Je suis l'assistant IA d'**ID Maîtrise**. Parlez-moi ou tapez vos instructions.\n\n• **Dites** ou tapez vos demandes\n• J'accède à vos chantiers, tâches, contacts et **Google Calendar**\n• Je peux créer des tâches, contacts, CR par simple demande vocale"}]);
+  const [messages,setMessages]=useState([{role:"assistant",content:"Bonjour Dursun ! Je suis l'assistant IA d'**ID Maîtrise**.\n\nJe peux tout faire :\n• **\"Crée un OS pour le chantier Friboulet, artisan Lefèvre...\"** → Ordre de Service\n• **\"Rédige un CR pour Les Voiles, présents : Lefèvre, Costa...\"** → Compte Rendu\n• **\"Nouveau chantier Villa Dupont, budget 200 000€...\"** → Chantier\n• **\"Ajoute une tâche urgente...\"** → Tâche\n• **\"RDV demain 14h réunion de chantier...\"** → Google Calendar\n• **\"Résumé avancement du chantier Les Voiles\"** → Analyse\n\nParlez ou tapez !"}]);
   const [input,setInput]=useState("");
   const [loading,setLoading]=useState(false);
   const [listening,setListening]=useState(false);
+  const [gcalAction,setGcalAction]=useState(null);
   const recognRef = useRef(null);
   const endRef=useRef(null);
   const inputRef=useRef(null);
@@ -1466,20 +1467,38 @@ function AIV({data,save,m,externalTranscript,clearExternal,reload}) {
     setMessages(prev=>[...prev,{role:"user",content:userMsg}]); setLoading(true);
 
     try {
-      const sys = `Tu es l'assistant IA d'ID Maîtrise, maîtrise d'œuvre au Havre (9 Rue Henry Genestal, 76600). Le gérant est Dursun.
-DONNÉES ACTUELLES (depuis Supabase): ${JSON.stringify(data,null,0)}
+      const sys = `Tu es l'assistant IA d'ID Maîtrise, maîtrise d'œuvre BTP au Havre (9 Rue Henry Genestal, 76600). Le gérant est Dursun. Tu gères le quotidien des chantiers.
+
+DONNÉES ACTUELLES (Supabase): ${JSON.stringify(data,null,0)}
 GOOGLE CALENDAR: ${JSON.stringify(gcalEvents,null,0)}
-INSTRUCTIONS:
-- Réponds en français, concis et professionnel.
-- Pour CRÉER des données, utilise un bloc JSON entre <<<ACTION>>> et <<<END_ACTION>>>
-- Formats d'action :
-  add_chantier: {"type":"add_chantier","data":{"nom":"...","client":"...","adresse":"...","phase":"...","statut":"Planifié","budget":0,"dateDebut":"YYYY-MM-DD","dateFin":"YYYY-MM-DD","lots":["..."]}}
-  add_task: {"type":"add_task","data":{"chantier_id":"UUID_DU_CHANTIER","titre":"...","priorite":"Urgent|En cours|En attente","statut":"Planifié|En cours|Terminé","echeance":"YYYY-MM-DD","lot":"..."}}
-  add_contact: {"type":"add_contact","data":{"nom":"...","type":"Artisan|Client|Fournisseur","specialite":"...","tel":"...","email":"..."}}
-  add_cr: {"type":"add_cr","data":{"chantier_id":"UUID_DU_CHANTIER","date":"YYYY-MM-DD","numero":1,"resume":"...","participants":"...","decisions":"..."}}
-- Pour les chantier_id, utilise les vrais UUID depuis les données actuelles.
-- Phase libre : utilise "Hors d'air", "Technique", "Finitions", "Avant-projet", "Études", "Gros œuvre" ou toute phase pertinente.
-- Statut : "Planifié", "En cours", "En attente", "Terminé".`;
+
+TU PEUX TOUT FAIRE :
+1. Créer des chantiers, tâches, contacts, comptes rendus, ordres de service
+2. Résumer l'avancement d'un chantier (budget consommé, tâches en cours, prochains RDV)
+3. Créer des RDV dans Google Calendar (utilise l'action add_gcal_event)
+4. Lister, rechercher et analyser toutes les données
+
+ACTIONS — utilise un bloc JSON entre <<<ACTION>>> et <<<END_ACTION>>>
+
+add_chantier: {"type":"add_chantier","data":{"nom":"...","client":"...","adresse":"...","phase":"...","statut":"Planifié","budget":0,"dateDebut":"YYYY-MM-DD","dateFin":"YYYY-MM-DD","lots":["..."]}}
+
+add_task: {"type":"add_task","data":{"chantier_id":"UUID","titre":"...","priorite":"Urgent|En cours|En attente","statut":"Planifié|En cours|Terminé","echeance":"YYYY-MM-DD","lot":"..."}}
+
+add_contact: {"type":"add_contact","data":{"nom":"...","type":"Artisan|Client|Fournisseur","specialite":"...","tel":"...","email":"..."}}
+
+add_cr: {"type":"add_cr","data":{"chantier_id":"UUID","date":"YYYY-MM-DD","numero":1,"resume":"...","participants":"...","decisions":"..."}}
+
+add_os: {"type":"add_os","data":{"numero":"OS-2026-XXX","chantier_id":"UUID","client_nom":"...","client_adresse":"...","artisan_nom":"...","artisan_specialite":"...","artisan_tel":"...","artisan_email":"...","artisan_siret":"...","date_emission":"YYYY-MM-DD","date_intervention":"YYYY-MM-DD","date_fin_prevue":"YYYY-MM-DD","prestations":[{"description":"...","unite":"m²","quantite":10,"prix_unitaire":45.00,"tva_taux":20}],"observations":"...","conditions":"Paiement à 30 jours.","statut":"Émis"}}
+
+add_gcal_event: {"type":"add_gcal_event","data":{"title":"...","date":"YYYY-MM-DD","startTime":"HH:MM","endTime":"HH:MM","location":"...","description":"..."}}
+
+RÈGLES :
+- Réponds TOUJOURS en français, concis et professionnel
+- Utilise les vrais UUID des chantiers/contacts depuis les données
+- Pour les OS, calcule les montants : montant_ht = somme(qte×pu), montant_tva = somme(qte×pu×tva/100), montant_ttc = ht+tva
+- Phase libre (pas de contrainte)
+- Quand on te demande un résumé/avancement, analyse les données et donne un point clair`;
+
 
       const response = await fetch("/api/claude", {
         method:"POST", headers:{"Content-Type":"application/json"},
@@ -1494,13 +1513,32 @@ INSTRUCTIONS:
       if (act) {
         try {
           const a=JSON.parse(act[1].trim());
-          if(a.type==="add_chantier") await SB.upsertChantier(a.data);
-          else if(a.type==="add_task") await SB.upsertTask(a.data);
-          else if(a.type==="add_contact") await SB.upsertContact(a.data);
-          else if(a.type==="add_cr") await SB.upsertCR(a.data);
+          let actionLabel = "";
+          
+          if(a.type==="add_chantier") { await SB.upsertChantier(a.data); actionLabel="Chantier créé"; }
+          else if(a.type==="add_task") { await SB.upsertTask(a.data); actionLabel="Tâche créée"; }
+          else if(a.type==="add_contact") { await SB.upsertContact(a.data); actionLabel="Contact créé"; }
+          else if(a.type==="add_cr") { await SB.upsertCR(a.data); actionLabel="Compte rendu créé"; }
+          else if(a.type==="add_os") {
+            // Calculate totals for OS
+            const prests = a.data.prestations || [];
+            let ht=0, tva=0;
+            prests.forEach(p => { const l=(parseFloat(p.quantite)||0)*(parseFloat(p.prix_unitaire)||0); ht+=l; tva+=l*(parseFloat(p.tva_taux)||20)/100; });
+            await SB.upsertOS({ ...a.data, montant_ht:ht, montant_tva:tva, montant_ttc:ht+tva });
+            actionLabel="Ordre de Service créé";
+          }
+          else if(a.type==="add_gcal_event") {
+            // Flag for GCal — will be handled by the parent
+            setGcalAction(a.data);
+            actionLabel="RDV Google Calendar à créer";
+          }
+          
           if(reload) reload();
-          text=text.replace(/<<<ACTION>>>[\s\S]*?<<<END_ACTION>>>/,"").trim()+"\n\n✅ **Action exécutée et sauvegardée dans Supabase !**";
-        } catch { text=text.replace(/<<<ACTION>>>[\s\S]*?<<<END_ACTION>>>/,"").trim(); }
+          text=text.replace(/<<<ACTION>>>[\s\S]*?<<<END_ACTION>>>/,"").trim()+`\n\n✅ **${actionLabel} dans Supabase !**`;
+        } catch(err) { 
+          console.error("❌ Action error:", err);
+          text=text.replace(/<<<ACTION>>>[\s\S]*?<<<END_ACTION>>>/,"").trim(); 
+        }
       }
       setMessages(prev=>[...prev,{role:"assistant",content:text}]);
     } catch {
@@ -1550,7 +1588,7 @@ INSTRUCTIONS:
 
       {/* QUICK ACTIONS */}
       <div style={{display:"flex",gap:6,marginTop:8,flexWrap:"wrap"}}>
-        {["Mes RDV de la semaine","Tâches urgentes","Résumé chantiers","Liste artisans"].map(q=>(
+        {["Crée un OS pour...", "Rédige un CR pour...", "Résumé avancement chantiers", "Tâches urgentes", "Crée un RDV demain", "Liste artisans actifs"].map(q=>(
           <button key={q} onClick={()=>setInput(q)} style={{padding:"5px 12px",borderRadius:16,border:"1px solid #E2E8F0",background:"#fff",color:"#64748B",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>{q}</button>
         ))}
       </div>
