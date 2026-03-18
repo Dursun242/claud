@@ -785,10 +785,8 @@ function QontoV({m}) {
   };
 
   const fetchQonto = async (endpoint, tk) => {
-    const res = await fetch(`https://thirdparty.qonto.com/v2/${endpoint}`, {
-      headers: { "Authorization": `Bearer ${tk}` }
-    });
-    if (!res.ok) throw new Error(`Qonto API ${res.status}: ${res.statusText}`);
+    const res = await fetch(`/api/qonto?endpoint=${encodeURIComponent(endpoint)}&token=${encodeURIComponent(tk)}`);
+    if (!res.ok) { const err = await res.json().catch(()=>({})); throw new Error(err.error || `Qonto ${res.status}`); }
     return res.json();
   };
 
