@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from './supabaseClient'
 import { generateOSPdf, generateCRPdf, generateOSExcel, generateCRExcel } from './generators'
+import { logout } from './auth'
 
 const LocalDB = {
   get(key) { try { if (typeof window === 'undefined') return null; const v = localStorage.getItem(key); return v ? JSON.parse(v) : null; } catch { return null; } },
@@ -372,7 +373,7 @@ function MicButtonInline({ listening, onClick }) {
 // ═══════════════════════════════════════════
 // MAIN APP (Responsive)
 // ═══════════════════════════════════════════
-export default function App() {
+export default function App({ user }) {
   const [data, setData] = useState(null);
   const [tab, setTab] = useState("dashboard");
   const [loading, setLoading] = useState(true);
@@ -578,8 +579,21 @@ export default function App() {
             </button>
           ))}
         </div>
-        <div style={{padding:"12px 16px",borderTop:"1px solid rgba(255,255,255,0.08)",fontSize:10,color:"#64748B"}}>
-          SARL ID MAITRISE<br/>9 Rue Henry Genestal, 76600 Le Havre
+        {/* User info + Logout */}
+        <div style={{padding:"12px 16px",borderTop:"1px solid rgba(255,255,255,0.08)"}}>
+          {user && (
+            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+              {user.user_metadata?.avatar_url && <img src={user.user_metadata.avatar_url} style={{width:28,height:28,borderRadius:"50%",border:"2px solid rgba(255,255,255,0.15)"}} alt=""/>}
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontSize:11,fontWeight:600,color:"#fff",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{user.user_metadata?.full_name || user.email}</div>
+                <div style={{fontSize:9,color:"#64748B",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{user.email}</div>
+              </div>
+            </div>
+          )}
+          <button onClick={logout} style={{width:"100%",padding:"6px 10px",borderRadius:6,border:"1px solid rgba(255,255,255,0.1)",background:"rgba(255,255,255,0.05)",color:"#94A3B8",fontSize:10,cursor:"pointer",fontFamily:"inherit",fontWeight:500}}>
+            Déconnexion
+          </button>
+          <div style={{fontSize:9,color:"#475569",marginTop:6}}>SARL ID MAITRISE<br/>9 Rue Henry Genestal, 76600 Le Havre</div>
         </div>
       </nav>
 
@@ -594,7 +608,7 @@ export default function App() {
           </div>
         )}
         <div style={{animation:"fadeIn .3s ease",maxWidth:1200}}>
-          {tab==="dashboard"&&<DashboardV data={data} setTab={switchTab} m={isMobile}/>}
+          {tab==="dashboard"&&<DashboardV data={data} setTab={switchTab} m={isMobile} user={user}/>}
           {tab==="gcal"&&<GCalV m={isMobile}/>}
           {tab==="qonto"&&<QontoV m={isMobile}/>}
           {tab==="projects"&&<ProjectsV data={data} save={save} m={isMobile} reload={reload}/>}
@@ -626,7 +640,7 @@ export default function App() {
 // ═══════════════════════════════════════════
 // DASHBOARD
 // ═══════════════════════════════════════════
-function DashboardV({data,setTab,m}) {
+function DashboardV({data,setTab,m,user}) {
   const today = new Date().toISOString().split("T")[0];
   const todayGcal = gcalEvents.filter(e=>e.start.split("T")[0]===today);
   const urgent = data.tasks.filter(t=>t.priorite==="Urgent"&&t.statut!=="Terminé");
@@ -636,7 +650,7 @@ function DashboardV({data,setTab,m}) {
   const Card = ({children,style:s}) => <div style={{background:"#fff",borderRadius:12,padding:m?14:20,boxShadow:"0 1px 3px rgba(0,0,0,0.06)",...s}}>{children}</div>;
 
   return (<div>
-    <h1 style={{margin:0,fontSize:m?20:26,fontWeight:700,color:"#0F172A"}}>Bonjour Dursun</h1>
+    <h1 style={{margin:0,fontSize:m?20:26,fontWeight:700,color:"#0F172A"}}>Bonjour {user?.user_metadata?.full_name?.split(" ")[0] || "Dursun"}</h1>
     <p style={{margin:"4px 0 20px",color:"#64748B",fontSize:m?12:14}}>{new Date().toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"})} — {enCours.length} chantiers actifs</p>
 
     <div style={{display:"grid",gridTemplateColumns:m?"repeat(2,1fr)":"repeat(4,1fr)",gap:m?10:16,marginBottom:20}}>
