@@ -399,17 +399,54 @@ export default function App() {
     (async () => {
       try {
         const sbData = await SB.loadAll();
-        if (sbData.chantiers.length > 0 || sbData.contacts.length > 0 || sbData.tasks.length > 0) {
+        const hasData = sbData.chantiers.length > 0 || sbData.contacts.length > 0 || sbData.tasks.length > 0;
+        
+        if (hasData) {
+          // Supabase has data — use it
           setData(sbData);
         } else {
-          // Base Supabase vide — charger les données par défaut en local
-          setData(defaultData);
+          // First launch — seed Supabase with default data
+          console.log("Supabase vide, insertion des données initiales...");
+          const seeded = LocalDB.get("idm-seeded");
+          if (!seeded) {
+            // Insert default chantiers
+            for (const ch of defaultData.chantiers) {
+              const { id, ...row } = ch;
+              await SB.upsertChantier({ ...row, dateDebut: row.dateDebut, dateFin: row.dateFin });
+            }
+            // Insert default contacts
+            for (const co of defaultData.contacts) {
+              const { id, chantiers, ...row } = co;
+              await SB.upsertContact(row);
+            }
+            // Insert default tasks
+            for (const ta of defaultData.tasks) {
+              const { id, chantierId, ...row } = ta;
+              // We need to find the real Supabase UUID for this chantier
+              const freshData = await SB.loadAll();
+              const matchCh = freshData.chantiers.find(c => defaultData.chantiers.find(d => d.id === chantierId)?.nom === c.nom);
+              if (matchCh) {
+                await SB.upsertTask({ ...row, chantierId: matchCh.id });
+              }
+            }
+            // Insert default CRs
+            for (const cr of defaultData.compteRendus) {
+              const { id, chantierId, ...row } = cr;
+              const freshData2 = await SB.loadAll();
+              const matchCh2 = freshData2.chantiers.find(c => defaultData.chantiers.find(d => d.id === chantierId)?.nom === c.nom);
+              if (matchCh2) {
+                await SB.upsertCR({ ...row, chantierId: matchCh2.id });
+              }
+            }
+            LocalDB.set("idm-seeded", true);
+          }
+          // Now reload from Supabase
+          const freshFinal = await SB.loadAll();
+          setData(freshFinal.chantiers.length > 0 ? freshFinal : defaultData);
         }
       } catch (e) {
         console.error("Supabase load error:", e);
-        // Fallback localStorage
-        const stored = LocalDB.get("idm-v4");
-        if (stored?.chantiers) setData(stored); else setData(defaultData);
+        setData(defaultData);
       }
       setLoading(false);
     })();
