@@ -1,6 +1,7 @@
 'use client'
 import jsPDF from 'jspdf'
 import 'jspdf-autotable'
+import { LOGO_B64 } from './logo'
 
 // ═══════════════════════════════════════════
 // CONSTANTES ID MAÎTRISE
@@ -13,7 +14,7 @@ const NOIR = [15,23,42]
 
 const ENT = {
   nom: "SARL ID MAÎTRISE",
-  activite: "Maîtrise d'œuvre - Ingénierie BTP",
+  activite: "Ingénierie de la construction",
   adresse: "9 Rue Henry Genestal",
   cpVille: "76600 LE HAVRE",
   email: "contact@id-maitrise.com",
@@ -27,22 +28,23 @@ const fmtD = (d) => {
   catch { return d }
 }
 
-const fmtM = (n) => new Intl.NumberFormat("fr-FR", { style:"currency", currency:"EUR" }).format(n)
+const fmtM = (n) => {
+  const num = Number(n) || 0
+  return num.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €"
+}
 
 function entete(doc, w, margin) {
-  let y = 15
-  doc.setFontSize(14)
-  doc.setFont("helvetica", "bold")
-  doc.setTextColor(...BLEU)
-  doc.text(ENT.nom, margin, y)
-  y += 4.5
+  let y = 12
+  // Logo ID Maîtrise
+  try { doc.addImage(LOGO_B64, 'JPEG', margin, y - 5, 48, 14) } catch(e) { console.warn("Logo error:", e) }
+  // Infos entreprise à droite du logo
   doc.setFontSize(7.5)
   doc.setFont("helvetica", "normal")
   doc.setTextColor(...GRIS)
-  doc.text(`${ENT.activite} — ${ENT.adresse}, ${ENT.cpVille}`, margin, y)
-  y += 3
-  doc.text(`SIRET: ${ENT.siret} — ${ENT.email}`, margin, y)
-  return y + 2
+  doc.text(`${ENT.adresse}, ${ENT.cpVille}`, margin + 52, y + 1)
+  doc.text(`SIRET: ${ENT.siret} — ${ENT.email}`, margin + 52, y + 5)
+  doc.text(`${ENT.assurance}`, margin + 52, y + 9)
+  return y + 12
 }
 
 function pied(doc, w, margin, y) {
