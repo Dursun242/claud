@@ -1,10 +1,102 @@
 'use client'
 import { useState, useEffect, useRef, useCallback } from "react";
 
-// ─── STORAGE HELPERS (localStorage for deployed version) ───
-const DB = {
-  async get(key) { try { if (typeof window === 'undefined') return null; const v = localStorage.getItem(key); return v ? JSON.parse(v) : null; } catch { return null; } },
-  async set(key, val) { try { if (typeof window !== 'undefined') localStorage.setItem(key, JSON.stringify(val)); } catch (e) { console.error(e); } },
+// ─── STORAGE HELPERS ───
+// Supabase for main data, localStorage for tokens/settings
+import { supabase } from './supabaseClient'
+
+const LocalDB = {
+  get(key) { try { if (typeof window === 'undefined') return null; const v = localStorage.getItem(key); return v ? JSON.parse(v) : null; } catch { return null; } },
+  set(key, val) { try { if (typeof window !== 'undefined') localStorage.setItem(key, JSON.stringify(val)); } catch (e) { console.error(e); } },
+};
+
+// ─── SUPABASE CRUD HELPERS ───
+const SB = {
+  async loadAll() {
+    const [ch, co, ta, pl, rv, cr, os] = await Promise.all([
+      supabase.from('chantiers').select('*').order('created_at', { ascending: false }),
+      supabase.from('contacts').select('*').order('nom'),
+      supabase.from('taches').select('*').order('created_at', { ascending: false }),
+      supabase.from('planning').select('*').order('debut'),
+      supabase.from('rdv').select('*').order('date'),
+      supabase.from('compte_rendus').select('*').order('date', { ascending: false }),
+      supabase.from('ordres_service').select('*').order('created_at', { ascending: false }),
+    ]);
+    return {
+      chantiers: (ch.data || []).map(c => ({ ...c, lots: c.lots || [] })),
+      contacts: (co.data || []).map(c => ({ ...c, chantiers: [] })),
+      tasks: (ta.data || []).map(t => ({ ...t, chantierId: t.chantier_id })),
+      planning: (pl.data || []).map(p => ({ ...p, chantierId: p.chantier_id })),
+      rdv: (rv.data || []).map(r => ({ ...r, chantierId: r.chantier_id, participants: r.participants || [] })),
+      compteRendus: (cr.data || []).map(c => ({ ...c, chantierId: c.chantier_id })),
+      ordresService: os.data || [],
+    };
+  },
+
+  // Chantiers
+  async upsertChantier(ch) {
+    const row = { nom: ch.nom, client: ch.client, adresse: ch.adresse, phase: ch.phase, statut: ch.statut, budget: Number(ch.budget)||0, depenses: Number(ch.depenses)||0, date_debut: ch.dateDebut||ch.date_debut||null, date_fin: ch.dateFin||ch.date_fin||null, lots: ch.lots||[] };
+    if (ch.id && ch.id.length > 10) {
+      const { data } = await supabase.from('chantiers').update(row).eq('id', ch.id).select().single();
+      return data;
+    } else {
+      const { data } = await supabase.from('chantiers').insert(row).select().single();
+      return data;
+    }
+  },
+  async deleteChantier(id) { await supabase.from('chantiers').delete().eq('id', id); },
+
+  // Contacts
+  async upsertContact(c) {
+    const row = { nom: c.nom, type: c.type, specialite: c.specialite, tel: c.tel, email: c.email, adresse: c.adresse||null, siret: c.siret||null };
+    if (c.id && c.id.length > 10) {
+      const { data } = await supabase.from('contacts').update(row).eq('id', c.id).select().single();
+      return data;
+    } else {
+      const { data } = await supabase.from('contacts').insert(row).select().single();
+      return data;
+    }
+  },
+  async deleteContact(id) { await supabase.from('contacts').delete().eq('id', id); },
+
+  // Tâches
+  async upsertTask(t) {
+    const row = { chantier_id: t.chantierId||t.chantier_id, titre: t.titre, priorite: t.priorite, statut: t.statut, echeance: t.echeance||null, lot: t.lot };
+    if (t.id && t.id.length > 10) {
+      const { data } = await supabase.from('taches').update(row).eq('id', t.id).select().single();
+      return data;
+    } else {
+      const { data } = await supabase.from('taches').insert(row).select().single();
+      return data;
+    }
+  },
+  async deleteTask(id) { await supabase.from('taches').delete().eq('id', id); },
+
+  // Comptes Rendus
+  async upsertCR(cr) {
+    const row = { chantier_id: cr.chantierId||cr.chantier_id, date: cr.date, numero: Number(cr.numero), resume: cr.resume, participants: cr.participants, decisions: cr.decisions };
+    if (cr.id && cr.id.length > 10) {
+      const { data } = await supabase.from('compte_rendus').update(row).eq('id', cr.id).select().single();
+      return data;
+    } else {
+      const { data } = await supabase.from('compte_rendus').insert(row).select().single();
+      return data;
+    }
+  },
+  async deleteCR(id) { await supabase.from('compte_rendus').delete().eq('id', id); },
+
+  // Ordres de Service
+  async upsertOS(os) {
+    const row = { numero: os.numero, chantier_id: os.chantier_id, client_nom: os.client_nom, client_adresse: os.client_adresse, artisan_nom: os.artisan_nom, artisan_specialite: os.artisan_specialite, artisan_tel: os.artisan_tel, artisan_email: os.artisan_email, artisan_siret: os.artisan_siret, date_emission: os.date_emission, date_intervention: os.date_intervention, date_fin_prevue: os.date_fin_prevue, prestations: os.prestations||[], montant_ht: os.montant_ht||0, montant_tva: os.montant_tva||0, montant_ttc: os.montant_ttc||0, statut: os.statut||'Brouillon', observations: os.observations, conditions: os.conditions };
+    if (os.id && os.id.length > 10) {
+      const { data } = await supabase.from('ordres_service').update(row).eq('id', os.id).select().single();
+      return data;
+    } else {
+      const { data } = await supabase.from('ordres_service').insert(row).select().single();
+      return data;
+    }
+  },
+  async deleteOS(id) { await supabase.from('ordres_service').delete().eq('id', id); },
 };
 
 // ─── ICONS ───
@@ -305,13 +397,36 @@ export default function App() {
 
   useEffect(() => {
     (async () => {
-      const stored = await DB.get("idm-v4");
-      if (stored?.chantiers) setData(stored); else { setData(defaultData); await DB.set("idm-v4", defaultData); }
+      try {
+        const sbData = await SB.loadAll();
+        if (sbData.chantiers.length > 0 || sbData.contacts.length > 0 || sbData.tasks.length > 0) {
+          setData(sbData);
+        } else {
+          // Base Supabase vide — charger les données par défaut en local
+          setData(defaultData);
+        }
+      } catch (e) {
+        console.error("Supabase load error:", e);
+        // Fallback localStorage
+        const stored = LocalDB.get("idm-v4");
+        if (stored?.chantiers) setData(stored); else setData(defaultData);
+      }
       setLoading(false);
     })();
   }, []);
 
-  const save = useCallback(async (d) => { setData(d); await DB.set("idm-v4", d); }, []);
+  // Reload data from Supabase
+  const reload = useCallback(async () => {
+    try {
+      const sbData = await SB.loadAll();
+      setData(sbData);
+    } catch (e) {
+      console.error("Reload error:", e);
+    }
+  }, []);
+
+  // Legacy save (kept for components that use the old pattern — will be migrated)
+  const save = useCallback(async (d) => { setData(d); }, []);
 
   if (loading || !data) return (
     <div style={{height:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"#F8FAFC",fontFamily:"'DM Sans',sans-serif"}}>
@@ -402,13 +517,13 @@ export default function App() {
           {tab==="dashboard"&&<DashboardV data={data} setTab={switchTab} m={isMobile}/>}
           {tab==="gcal"&&<GCalV m={isMobile}/>}
           {tab==="qonto"&&<QontoV m={isMobile}/>}
-          {tab==="projects"&&<ProjectsV data={data} save={save} m={isMobile}/>}
+          {tab==="projects"&&<ProjectsV data={data} save={save} m={isMobile} reload={reload}/>}
           {tab==="planning"&&<PlanningV data={data} m={isMobile}/>}
           {tab==="budget"&&<BudgetV data={data} m={isMobile}/>}
-          {tab==="tasks"&&<TasksV data={data} save={save} m={isMobile}/>}
-          {tab==="contacts"&&<ContactsV data={data} save={save} m={isMobile}/>}
-          {tab==="reports"&&<ReportsV data={data} save={save} m={isMobile}/>}
-          {tab==="ai"&&<AIV data={data} save={save} m={isMobile} externalTranscript={floatTranscript} clearExternal={()=>setFloatTranscript("")}/>}
+          {tab==="tasks"&&<TasksV data={data} save={save} m={isMobile} reload={reload}/>}
+          {tab==="contacts"&&<ContactsV data={data} save={save} m={isMobile} reload={reload}/>}
+          {tab==="reports"&&<ReportsV data={data} save={save} m={isMobile} reload={reload}/>}
+          {tab==="ai"&&<AIV data={data} save={save} m={isMobile} externalTranscript={floatTranscript} clearExternal={()=>setFloatTranscript("")} reload={reload}/>}
         </div>
       </main>
 
@@ -570,20 +685,20 @@ function QontoV({m}) {
   // Load saved token
   useEffect(() => {
     (async () => {
-      const t = await DB.get("qonto-token");
+      const t = LocalDB.get("qonto-token");
       if (t) { setSavedToken(t); setToken(t); }
     })();
   }, []);
 
   const saveToken = async () => {
     if (!token.trim()) return;
-    await DB.set("qonto-token", token.trim());
+    LocalDB.set("qonto-token", token.trim());
     setSavedToken(token.trim());
     fetchAll(token.trim());
   };
 
   const disconnect = async () => {
-    await DB.set("qonto-token", "");
+    LocalDB.set("qonto-token", "");
     setSavedToken(""); setToken(""); setConnected(false);
     setInvoices([]); setQuotes([]); setClients([]);
   };
@@ -773,10 +888,11 @@ function QontoV({m}) {
 // ═══════════════════════════════════════════
 // PROJECTS
 // ═══════════════════════════════════════════
-function ProjectsV({data,save,m}) {
+function ProjectsV({data,save,m,reload}) {
   const [modal,setModal]=useState(null);const [form,setForm]=useState({});
   const openNew=()=>{setForm({nom:"",client:"",adresse:"",phase:"Hors d'air",statut:"Planifié",budget:"",depenses:0,dateDebut:"",dateFin:"",lots:""});setModal("new");};
-  const handleSave=()=>{const e={...form,id:form.id||uid(),budget:Number(form.budget)||0,depenses:Number(form.depenses)||0,lots:(form.lots||"").split(",").map(l=>l.trim()).filter(Boolean)};save({...data,chantiers:modal==="new"?[...data.chantiers,e]:data.chantiers.map(c=>c.id===e.id?e:c)});setModal(null);};
+  const handleSave=async()=>{const e={...form,budget:Number(form.budget)||0,depenses:Number(form.depenses)||0,lots:typeof form.lots==="string"?(form.lots||"").split(",").map(l=>l.trim()).filter(Boolean):form.lots||[]};await SB.upsertChantier(e);setModal(null);reload();};
+  const handleDelete=async(id)=>{await SB.deleteChantier(id);reload();};
 
   return (<div>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20,flexWrap:"wrap",gap:10}}>
@@ -794,7 +910,7 @@ function ProjectsV({data,save,m}) {
             </div>
             <div style={{display:"flex",gap:4}}>
               <button onClick={()=>{setForm({...ch,lots:ch.lots.join(", "),budget:String(ch.budget),depenses:String(ch.depenses)});setModal("edit");}} style={{background:"#F8FAFC",border:"1px solid #E2E8F0",borderRadius:6,padding:5,cursor:"pointer"}}><Icon d={I.edit} size={14} color="#64748B"/></button>
-              <button onClick={()=>save({...data,chantiers:data.chantiers.filter(c=>c.id!==ch.id)})} style={{background:"#FEF2F2",border:"1px solid #FECACA",borderRadius:6,padding:5,cursor:"pointer"}}><Icon d={I.trash} size={14} color="#EF4444"/></button>
+              <button onClick={()=>handleDelete(ch.id)} style={{background:"#FEF2F2",border:"1px solid #FECACA",borderRadius:6,padding:5,cursor:"pointer"}}><Icon d={I.trash} size={14} color="#EF4444"/></button>
             </div>
           </div>
           <div style={{marginTop:10}}><PBar value={ch.depenses} max={ch.budget} color={phase[ch.phase]||"#3B82F6"}/><div style={{display:"flex",justifyContent:"space-between",marginTop:4,fontSize:11,color:"#94A3B8"}}><span>{fmtMoney(ch.depenses)} / {fmtMoney(ch.budget)}</span><span>{pct(ch.depenses,ch.budget)}%</span></div></div>
@@ -877,12 +993,13 @@ function BudgetV({data,m}) {
 // ═══════════════════════════════════════════
 // TASKS
 // ═══════════════════════════════════════════
-function TasksV({data,save,m}) {
+function TasksV({data,save,m,reload}) {
   const [modal,setModal]=useState(null);const [form,setForm]=useState({});const [filter,setFilter]=useState("all");
   const tasks = filter==="all"?data.tasks:data.tasks.filter(t=>t.statut===filter);
   const openNew=()=>{setForm({chantierId:data.chantiers[0]?.id||"",titre:"",priorite:"En cours",statut:"Planifié",echeance:"",lot:""});setModal("new");};
-  const handleSave=()=>{const e={...form,id:form.id||uid()};save({...data,tasks:modal==="new"?[...data.tasks,e]:data.tasks.map(t=>t.id===e.id?e:t)});setModal(null);};
-  const toggle=(t)=>{const cy=["Planifié","En cours","Terminé"];save({...data,tasks:data.tasks.map(x=>x.id===t.id?{...x,statut:cy[(cy.indexOf(x.statut)+1)%3]}:x)});};
+  const handleSave=async()=>{await SB.upsertTask(form);setModal(null);reload();};
+  const toggle=async(t)=>{const cy=["Planifié","En cours","Terminé"];const next=cy[(cy.indexOf(t.statut)+1)%3];await SB.upsertTask({...t,statut:next});reload();};
+  const handleDelete=async(id)=>{await SB.deleteTask(id);reload();};
 
   return (<div>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,flexWrap:"wrap",gap:8}}>
@@ -899,7 +1016,7 @@ function TasksV({data,save,m}) {
           <div style={{flex:1,opacity:t.statut==="Terminé"?.5:1}}><div style={{fontSize:13,fontWeight:600,color:"#0F172A"}}>{t.titre}</div><div style={{fontSize:10,color:"#94A3B8"}}>{ch?.nom} • {t.lot}</div></div>
           <Badge text={t.priorite} color={status[t.priorite]||"#64748B"}/>{!m&&<span style={{fontSize:11,color:"#94A3B8"}}>{fmtDate(t.echeance)}</span>}
           <button onClick={()=>{setForm(t);setModal("edit");}} style={{background:"none",border:"none",cursor:"pointer",padding:2}}><Icon d={I.edit} size={13} color="#94A3B8"/></button>
-          <button onClick={()=>save({...data,tasks:data.tasks.filter(x=>x.id!==t.id)})} style={{background:"none",border:"none",cursor:"pointer",padding:2}}><Icon d={I.trash} size={13} color="#CBD5E1"/></button>
+          <button onClick={()=>handleDelete(t.id)} style={{background:"none",border:"none",cursor:"pointer",padding:2}}><Icon d={I.trash} size={13} color="#CBD5E1"/></button>
         </div>
       );})}
     </div>
@@ -920,12 +1037,13 @@ function TasksV({data,save,m}) {
 // ═══════════════════════════════════════════
 // CONTACTS
 // ═══════════════════════════════════════════
-function ContactsV({data,save,m}) {
+function ContactsV({data,save,m,reload}) {
   const [modal,setModal]=useState(null);const [form,setForm]=useState({});const [tf,setTf]=useState("all");const [q,setQ]=useState("");
   const tc={Artisan:"#F59E0B",Client:"#3B82F6",Fournisseur:"#10B981"};
-  const list=data.contacts.filter(c=>(tf==="all"||c.type===tf)&&(!q||c.nom.toLowerCase().includes(q.toLowerCase())||c.specialite.toLowerCase().includes(q.toLowerCase())));
+  const list=data.contacts.filter(c=>(tf==="all"||c.type===tf)&&(!q||c.nom.toLowerCase().includes(q.toLowerCase())||(c.specialite||"").toLowerCase().includes(q.toLowerCase())));
   const openNew=()=>{setForm({nom:"",type:"Artisan",specialite:"",tel:"",email:"",chantiers:""});setModal("new");};
-  const handleSave=()=>{const e={...form,id:form.id||uid(),chantiers:typeof form.chantiers==="string"?form.chantiers.split(",").map(s=>s.trim()).filter(Boolean):form.chantiers};save({...data,contacts:modal==="new"?[...data.contacts,e]:data.contacts.map(c=>c.id===e.id?e:c)});setModal(null);};
+  const handleSave=async()=>{await SB.upsertContact(form);setModal(null);reload();};
+  const handleDelete=async(id)=>{await SB.deleteContact(id);reload();};
 
   return (<div>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,flexWrap:"wrap",gap:8}}>
@@ -948,7 +1066,7 @@ function ContactsV({data,save,m}) {
             </div>
             <div style={{display:"flex",gap:3}}>
               <button onClick={()=>{setForm({...c,chantiers:c.chantiers.join(", ")});setModal("edit");}} style={{background:"none",border:"none",cursor:"pointer"}}><Icon d={I.edit} size={13} color="#94A3B8"/></button>
-              <button onClick={()=>save({...data,contacts:data.contacts.filter(x=>x.id!==c.id)})} style={{background:"none",border:"none",cursor:"pointer"}}><Icon d={I.trash} size={13} color="#CBD5E1"/></button>
+              <button onClick={()=>handleDelete(c.id)} style={{background:"none",border:"none",cursor:"pointer"}}><Icon d={I.trash} size={13} color="#CBD5E1"/></button>
             </div>
           </div>
         </div>
@@ -970,23 +1088,24 @@ function ContactsV({data,save,m}) {
 // ═══════════════════════════════════════════
 // REPORTS
 // ═══════════════════════════════════════════
-function ReportsV({data,save,m}) {
+function ReportsV({data,save,m,reload}) {
   const [modal,setModal]=useState(null);const [form,setForm]=useState({});
-  const openNew=()=>{setForm({chantierId:data.chantiers[0]?.id||"",date:new Date().toISOString().split("T")[0],numero:data.compteRendus.length+1,resume:"",participants:"",decisions:""});setModal("new");};
-  const handleSave=()=>{const e={...form,id:form.id||uid(),numero:Number(form.numero)};save({...data,compteRendus:modal==="new"?[...data.compteRendus,e]:data.compteRendus.map(c=>c.id===e.id?e:c)});setModal(null);};
+  const openNew=()=>{setForm({chantierId:data.chantiers[0]?.id||"",date:new Date().toISOString().split("T")[0],numero:(data.compteRendus||[]).length+1,resume:"",participants:"",decisions:""});setModal("new");};
+  const handleSave=async()=>{await SB.upsertCR(form);setModal(null);reload();};
+  const handleDelete=async(id)=>{await SB.deleteCR(id);reload();};
 
   return (<div>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20,flexWrap:"wrap",gap:8}}>
       <h1 style={{margin:0,fontSize:m?18:24,fontWeight:700}}>Comptes Rendus</h1>
       <button onClick={openNew} style={{...btnP,fontSize:12}}>+ CR</button>
     </div>
-    {data.compteRendus.sort((a,b)=>new Date(b.date)-new Date(a.date)).map(cr=>{const ch=data.chantiers.find(c=>c.id===cr.chantierId);return(
+    {(data.compteRendus||[]).sort((a,b)=>new Date(b.date)-new Date(a.date)).map(cr=>{const ch=data.chantiers.find(c=>c.id===(cr.chantierId||cr.chantier_id));return(
       <div key={cr.id} style={{background:"#fff",borderRadius:12,padding:m?14:20,boxShadow:"0 1px 3px rgba(0,0,0,0.06)",marginBottom:12}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10,flexWrap:"wrap",gap:6}}>
           <div style={{display:"flex",alignItems:"center",gap:8}}><span style={{background:"#1E3A5F",color:"#fff",borderRadius:6,padding:"3px 8px",fontSize:12,fontWeight:700}}>CR n°{cr.numero}</span><span style={{fontWeight:700,fontSize:14}}>{ch?.nom}</span><span style={{fontSize:11,color:"#94A3B8"}}>{fmtDate(cr.date)}</span></div>
           <div style={{display:"flex",gap:4}}>
             <button onClick={()=>{setForm(cr);setModal("edit");}} style={{background:"none",border:"none",cursor:"pointer"}}><Icon d={I.edit} size={14} color="#94A3B8"/></button>
-            <button onClick={()=>save({...data,compteRendus:data.compteRendus.filter(x=>x.id!==cr.id)})} style={{background:"none",border:"none",cursor:"pointer"}}><Icon d={I.trash} size={14} color="#CBD5E1"/></button>
+            <button onClick={()=>handleDelete(cr.id)} style={{background:"none",border:"none",cursor:"pointer"}}><Icon d={I.trash} size={14} color="#CBD5E1"/></button>
           </div>
         </div>
         <div style={{fontSize:13,color:"#334155",lineHeight:1.6,marginBottom:8}}>{cr.resume}</div>
@@ -1011,7 +1130,7 @@ function ReportsV({data,save,m}) {
 // ═══════════════════════════════════════════
 // AI ASSISTANT + SPEECH-TO-TEXT MIC
 // ═══════════════════════════════════════════
-function AIV({data,save,m,externalTranscript,clearExternal}) {
+function AIV({data,save,m,externalTranscript,clearExternal,reload}) {
   const [messages,setMessages]=useState([{role:"assistant",content:"Bonjour Dursun ! Je suis l'assistant IA d'**ID Maîtrise**. Parlez-moi ou tapez vos instructions.\n\n• **Dites** ou tapez vos demandes\n• J'accède à vos chantiers, tâches, contacts et **Google Calendar**\n• Je peux créer des tâches, contacts, CR par simple demande vocale"}]);
   const [input,setInput]=useState("");
   const [loading,setLoading]=useState(false);
@@ -1087,9 +1206,11 @@ function AIV({data,save,m,externalTranscript,clearExternal}) {
 
     try {
       const sys = `Tu es l'assistant IA d'ID Maîtrise, maîtrise d'œuvre au Havre. Le gérant est Dursun.
-DONNÉES: ${JSON.stringify(data,null,0)}
+DONNÉES ACTUELLES (depuis Supabase): ${JSON.stringify(data,null,0)}
 GOOGLE CALENDAR: ${JSON.stringify(gcalEvents,null,0)}
-INSTRUCTIONS: Réponds en français, concis. Tu connais tout. Pour les actions, utilise <<<ACTION>>>{"type":"add_chantier|add_task|add_contact|add_cr","data":{...}}<<<END_ACTION>>>. IDs existants: ch1-ch6.`;
+INSTRUCTIONS: Réponds en français, concis. Tu connais tout. Pour les actions, utilise <<<ACTION>>>{"type":"add_chantier|add_task|add_contact|add_cr","data":{...}}<<<END_ACTION>>>.
+Pour add_task, utilise "chantier_id" avec le vrai UUID du chantier depuis les données.
+Pour add_cr, utilise "chantier_id" avec le vrai UUID.`;
 
       const response = await fetch("/api/claude", {
         method:"POST", headers:{"Content-Type":"application/json"},
@@ -1103,13 +1224,13 @@ INSTRUCTIONS: Réponds en français, concis. Tu connais tout. Pour les actions, 
       const act = text.match(/<<<ACTION>>>([\s\S]*?)<<<END_ACTION>>>/);
       if (act) {
         try {
-          const a=JSON.parse(act[1].trim()); let nd={...data};
-          if(a.type==="add_chantier") nd.chantiers=[...nd.chantiers,{...a.data,id:uid()}];
-          else if(a.type==="add_task") nd.tasks=[...nd.tasks,{...a.data,id:uid()}];
-          else if(a.type==="add_contact") nd.contacts=[...nd.contacts,{...a.data,id:uid()}];
-          else if(a.type==="add_cr") nd.compteRendus=[...nd.compteRendus,{...a.data,id:uid()}];
-          await save(nd);
-          text=text.replace(/<<<ACTION>>>[\s\S]*?<<<END_ACTION>>>/,"").trim()+"\n\n✅ **Action exécutée !**";
+          const a=JSON.parse(act[1].trim());
+          if(a.type==="add_chantier") await SB.upsertChantier(a.data);
+          else if(a.type==="add_task") await SB.upsertTask(a.data);
+          else if(a.type==="add_contact") await SB.upsertContact(a.data);
+          else if(a.type==="add_cr") await SB.upsertCR(a.data);
+          if(reload) reload();
+          text=text.replace(/<<<ACTION>>>[\s\S]*?<<<END_ACTION>>>/,"").trim()+"\n\n✅ **Action exécutée et sauvegardée dans Supabase !**";
         } catch { text=text.replace(/<<<ACTION>>>[\s\S]*?<<<END_ACTION>>>/,"").trim(); }
       }
       setMessages(prev=>[...prev,{role:"assistant",content:text}]);
