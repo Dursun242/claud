@@ -36,11 +36,15 @@ const SB = {
   // Chantiers
   async upsertChantier(ch) {
     const row = { nom: ch.nom, client: ch.client, adresse: ch.adresse, phase: ch.phase, statut: ch.statut, budget: Number(ch.budget)||0, depenses: Number(ch.depenses)||0, date_debut: ch.dateDebut||ch.date_debut||null, date_fin: ch.dateFin||ch.date_fin||null, lots: ch.lots||[] };
-    if (ch.id && ch.id.length > 10) {
-      const { data } = await supabase.from('chantiers').update(row).eq('id', ch.id).select().single();
+    if (ch.id && String(ch.id).length > 10) {
+      const { data, error } = await supabase.from('chantiers').update(row).eq('id', ch.id).select().single();
+      if (error) console.error("❌ Update chantier:", error.message);
+      else console.log("✅ Chantier mis à jour:", data?.nom);
       return data;
     } else {
-      const { data } = await supabase.from('chantiers').insert(row).select().single();
+      const { data, error } = await supabase.from('chantiers').insert(row).select().single();
+      if (error) console.error("❌ Insert chantier:", error.message);
+      else console.log("✅ Chantier créé:", data?.nom);
       return data;
     }
   },
@@ -49,11 +53,13 @@ const SB = {
   // Contacts
   async upsertContact(c) {
     const row = { nom: c.nom, type: c.type, specialite: c.specialite, tel: c.tel, email: c.email, adresse: c.adresse||null, siret: c.siret||null };
-    if (c.id && c.id.length > 10) {
-      const { data } = await supabase.from('contacts').update(row).eq('id', c.id).select().single();
+    if (c.id && String(c.id).length > 10) {
+      const { data, error } = await supabase.from('contacts').update(row).eq('id', c.id).select().single();
+      if (error) console.error("❌ Update contact:", error.message);
       return data;
     } else {
-      const { data } = await supabase.from('contacts').insert(row).select().single();
+      const { data, error } = await supabase.from('contacts').insert(row).select().single();
+      if (error) console.error("❌ Insert contact:", error.message);
       return data;
     }
   },
@@ -62,11 +68,14 @@ const SB = {
   // Tâches
   async upsertTask(t) {
     const row = { chantier_id: t.chantierId||t.chantier_id, titre: t.titre, priorite: t.priorite, statut: t.statut, echeance: t.echeance||null, lot: t.lot };
-    if (t.id && t.id.length > 10) {
-      const { data } = await supabase.from('taches').update(row).eq('id', t.id).select().single();
+    if (t.id && String(t.id).length > 10) {
+      const { data, error } = await supabase.from('taches').update(row).eq('id', t.id).select().single();
+      if (error) console.error("❌ Update tâche:", error.message);
       return data;
     } else {
-      const { data } = await supabase.from('taches').insert(row).select().single();
+      const { data, error } = await supabase.from('taches').insert(row).select().single();
+      if (error) console.error("❌ Insert tâche:", error.message);
+      else console.log("✅ Tâche créée:", data?.titre);
       return data;
     }
   },
@@ -398,54 +407,80 @@ export default function App() {
   useEffect(() => {
     (async () => {
       try {
-        const sbData = await SB.loadAll();
-        const hasData = sbData.chantiers.length > 0 || sbData.contacts.length > 0 || sbData.tasks.length > 0;
+        // Test Supabase connection
+        const { data: testData, error: testError } = await supabase.from('chantiers').select('id').limit(1);
         
+        if (testError) {
+          console.error("❌ Supabase connection error:", testError.message);
+          console.log("Fallback sur données locales");
+          setData(defaultData);
+          setLoading(false);
+          return;
+        }
+
+        console.log("✅ Supabase connecté");
+
+        // Load all data
+        const sbData = await SB.loadAll();
+        const hasData = sbData.chantiers.length > 0;
+
         if (hasData) {
-          // Supabase has data — use it
+          console.log(`✅ Données Supabase chargées: ${sbData.chantiers.length} chantiers, ${sbData.contacts.length} contacts, ${sbData.tasks.length} tâches`);
           setData(sbData);
         } else {
-          // First launch — seed Supabase with default data
-          console.log("Supabase vide, insertion des données initiales...");
-          const seeded = LocalDB.get("idm-seeded");
-          if (!seeded) {
-            // Insert default chantiers
-            for (const ch of defaultData.chantiers) {
-              const { id, ...row } = ch;
-              await SB.upsertChantier({ ...row, dateDebut: row.dateDebut, dateFin: row.dateFin });
-            }
-            // Insert default contacts
-            for (const co of defaultData.contacts) {
-              const { id, chantiers, ...row } = co;
-              await SB.upsertContact(row);
-            }
-            // Insert default tasks
-            for (const ta of defaultData.tasks) {
-              const { id, chantierId, ...row } = ta;
-              // We need to find the real Supabase UUID for this chantier
-              const freshData = await SB.loadAll();
-              const matchCh = freshData.chantiers.find(c => defaultData.chantiers.find(d => d.id === chantierId)?.nom === c.nom);
-              if (matchCh) {
-                await SB.upsertTask({ ...row, chantierId: matchCh.id });
-              }
-            }
-            // Insert default CRs
-            for (const cr of defaultData.compteRendus) {
-              const { id, chantierId, ...row } = cr;
-              const freshData2 = await SB.loadAll();
-              const matchCh2 = freshData2.chantiers.find(c => defaultData.chantiers.find(d => d.id === chantierId)?.nom === c.nom);
-              if (matchCh2) {
-                await SB.upsertCR({ ...row, chantierId: matchCh2.id });
-              }
-            }
-            LocalDB.set("idm-seeded", true);
+          console.log("📦 Base vide — insertion des données initiales...");
+          
+          // Seed chantiers
+          const chantierRows = defaultData.chantiers.map(({ id, dateDebut, dateFin, ...rest }) => ({
+            ...rest, date_debut: dateDebut || null, date_fin: dateFin || null
+          }));
+          const { data: insertedCh, error: errCh } = await supabase.from('chantiers').insert(chantierRows).select();
+          if (errCh) console.error("❌ Erreur insert chantiers:", errCh.message);
+          else console.log(`✅ ${insertedCh.length} chantiers insérés`);
+
+          // Seed contacts
+          const contactRows = defaultData.contacts.map(({ id, chantiers, ...rest }) => rest);
+          const { data: insertedCo, error: errCo } = await supabase.from('contacts').insert(contactRows).select();
+          if (errCo) console.error("❌ Erreur insert contacts:", errCo.message);
+          else console.log(`✅ ${insertedCo.length} contacts insérés`);
+
+          // Build name→UUID map for linking tasks
+          const chMap = {};
+          if (insertedCh) {
+            defaultData.chantiers.forEach((defCh, i) => {
+              if (insertedCh[i]) chMap[defCh.id] = insertedCh[i].id;
+            });
           }
-          // Now reload from Supabase
-          const freshFinal = await SB.loadAll();
-          setData(freshFinal.chantiers.length > 0 ? freshFinal : defaultData);
+
+          // Seed tasks
+          const taskRows = defaultData.tasks.map(({ id, chantierId, ...rest }) => ({
+            ...rest, chantier_id: chMap[chantierId] || null
+          })).filter(t => t.chantier_id);
+          if (taskRows.length > 0) {
+            const { error: errTa } = await supabase.from('taches').insert(taskRows);
+            if (errTa) console.error("❌ Erreur insert tâches:", errTa.message);
+            else console.log(`✅ ${taskRows.length} tâches insérées`);
+          }
+
+          // Seed CRs
+          if (defaultData.compteRendus) {
+            const crRows = defaultData.compteRendus.map(({ id, chantierId, ...rest }) => ({
+              ...rest, chantier_id: chMap[chantierId] || null
+            })).filter(c => c.chantier_id);
+            if (crRows.length > 0) {
+              const { error: errCr } = await supabase.from('compte_rendus').insert(crRows);
+              if (errCr) console.error("❌ Erreur insert CR:", errCr.message);
+              else console.log(`✅ ${crRows.length} CR insérés`);
+            }
+          }
+
+          // Reload fresh from Supabase
+          const freshData = await SB.loadAll();
+          console.log(`✅ Reload: ${freshData.chantiers.length} chantiers depuis Supabase`);
+          setData(freshData.chantiers.length > 0 ? freshData : defaultData);
         }
       } catch (e) {
-        console.error("Supabase load error:", e);
+        console.error("❌ Erreur globale:", e);
         setData(defaultData);
       }
       setLoading(false);
@@ -456,13 +491,14 @@ export default function App() {
   const reload = useCallback(async () => {
     try {
       const sbData = await SB.loadAll();
+      console.log(`🔄 Reload: ${sbData.chantiers.length} chantiers, ${sbData.tasks.length} tâches`);
       setData(sbData);
     } catch (e) {
       console.error("Reload error:", e);
     }
   }, []);
 
-  // Legacy save (kept for components that use the old pattern — will be migrated)
+  // Legacy save
   const save = useCallback(async (d) => { setData(d); }, []);
 
   if (loading || !data) return (
