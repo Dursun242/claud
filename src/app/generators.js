@@ -30,7 +30,12 @@ const fmtD = (d) => {
 
 const fmtM = (n) => {
   const num = Number(n) || 0
-  return num.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €"
+  // Format manually to avoid non-breaking spaces that jsPDF renders as "/"
+  const fixed = Math.abs(num).toFixed(2)
+  const [whole, dec] = fixed.split(".")
+  // Add thousand separators with regular spaces
+  const withSep = whole.replace(/\B(?=(\d{3})+(?!\d))/g, " ")
+  return (num < 0 ? "-" : "") + withSep + "," + dec + " \u20AC"
 }
 
 function entete(doc, w, margin) {
