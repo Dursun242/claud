@@ -81,29 +81,37 @@ const SB = {
 
   // Comptes Rendus
   async upsertCR(cr) {
-    const row = { chantier_id: cr.chantierId||cr.chantier_id, date: cr.date, numero: Number(cr.numero), resume: cr.resume, participants: cr.participants, decisions: cr.decisions };
-    if (cr.id && cr.id.length > 10) {
-      const { data } = await supabase.from('compte_rendus').update(row).eq('id', cr.id).select().single();
+    const row = { chantier_id: cr.chantierId||cr.chantier_id||null, date: cr.date||null, numero: Number(cr.numero)||1, resume: cr.resume||"", participants: cr.participants||"", decisions: cr.decisions||"" };
+    if (cr.id && String(cr.id).length > 10) {
+      const { data, error } = await supabase.from('compte_rendus').update(row).eq('id', cr.id).select().single();
+      if (error) console.error("❌ Update CR:", error.message);
+      else console.log("✅ CR mis à jour:", data?.numero);
       return data;
     } else {
-      const { data } = await supabase.from('compte_rendus').insert(row).select().single();
+      const { data, error } = await supabase.from('compte_rendus').insert(row).select().single();
+      if (error) console.error("❌ Insert CR:", error.message);
+      else console.log("✅ CR créé n°", data?.numero);
       return data;
     }
   },
-  async deleteCR(id) { await supabase.from('compte_rendus').delete().eq('id', id); },
+  async deleteCR(id) { const { error } = await supabase.from('compte_rendus').delete().eq('id', id); if (error) console.error("❌ Delete CR:", error.message); },
 
   // Ordres de Service
   async upsertOS(os) {
-    const row = { numero: os.numero, chantier_id: os.chantier_id, client_nom: os.client_nom, client_adresse: os.client_adresse, artisan_nom: os.artisan_nom, artisan_specialite: os.artisan_specialite, artisan_tel: os.artisan_tel, artisan_email: os.artisan_email, artisan_siret: os.artisan_siret, date_emission: os.date_emission, date_intervention: os.date_intervention, date_fin_prevue: os.date_fin_prevue, prestations: os.prestations||[], montant_ht: os.montant_ht||0, montant_tva: os.montant_tva||0, montant_ttc: os.montant_ttc||0, statut: os.statut||'Brouillon', observations: os.observations, conditions: os.conditions };
-    if (os.id && os.id.length > 10) {
-      const { data } = await supabase.from('ordres_service').update(row).eq('id', os.id).select().single();
+    const row = { numero: os.numero||"OS-XXXX", chantier_id: os.chantier_id||null, client_nom: os.client_nom||"", client_adresse: os.client_adresse||"", artisan_nom: os.artisan_nom||"", artisan_specialite: os.artisan_specialite||"", artisan_tel: os.artisan_tel||"", artisan_email: os.artisan_email||"", artisan_siret: os.artisan_siret||"", date_emission: os.date_emission||null, date_intervention: os.date_intervention||null, date_fin_prevue: os.date_fin_prevue||null, prestations: os.prestations||[], montant_ht: Number(os.montant_ht)||0, montant_tva: Number(os.montant_tva)||0, montant_ttc: Number(os.montant_ttc)||0, statut: os.statut||'Brouillon', observations: os.observations||"", conditions: os.conditions||"" };
+    if (os.id && String(os.id).length > 10) {
+      const { data, error } = await supabase.from('ordres_service').update(row).eq('id', os.id).select().single();
+      if (error) console.error("❌ Update OS:", error.message);
+      else console.log("✅ OS mis à jour:", data?.numero);
       return data;
     } else {
-      const { data } = await supabase.from('ordres_service').insert(row).select().single();
+      const { data, error } = await supabase.from('ordres_service').insert(row).select().single();
+      if (error) console.error("❌ Insert OS:", error.message, JSON.stringify(row));
+      else console.log("✅ OS créé:", data?.numero);
       return data;
     }
   },
-  async deleteOS(id) { await supabase.from('ordres_service').delete().eq('id', id); },
+  async deleteOS(id) { const { error } = await supabase.from('ordres_service').delete().eq('id', id); if (error) console.error("❌ Delete OS:", error.message); },
 };
 
 // ─── ICONS ───
