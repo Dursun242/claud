@@ -286,19 +286,9 @@ export function generateCRPdf(cr, chantier) {
   doc.text("DIFFUSION", margin, y); y += 4
   doc.setFontSize(7.5); doc.setFont("helvetica", "normal"); doc.setTextColor(...GRIS)
   doc.text("Ce compte rendu est diffusé aux participants et au maître d'ouvrage.", margin, y); y += 3.5
-  doc.text("En l'absence de remarque dans un délai de 8 jours, il est réputé approuvé.", margin, y); y += 8
+  doc.text("En l'absence de remarque dans un délai de 8 jours, il est réputé approuvé.", margin, y); y += 3.5
+  doc.text(`Établi par ${ENT.nom}, le ${fmtD(cr.date)}.`, margin, y); y += 10
 
-  // Signatures
-  if (y > 240) { doc.addPage(); y = 20 }
-  doc.setDrawColor(226,232,240); doc.setLineWidth(0.3); doc.line(margin, y, w - margin, y); y += 5
-  const sw = (usable - 4) / 2
-  ;[{ t:"Le Maître d'œuvre", n:ENT.nom }, { t:"Le Maître d'ouvrage", n:chantier?.client||"" }].forEach((s, i) => {
-    const sx = margin + i * (sw + 4); doc.rect(sx, y, sw, 22)
-    doc.setFontSize(7.5); doc.setFont("helvetica", "bold"); doc.setTextColor(...NOIR); doc.text(s.t, sx + 3, y + 4)
-    doc.setFont("helvetica", "normal"); doc.setTextColor(...GRIS); doc.text(s.n, sx + 3, y + 9)
-    doc.setFontSize(6.5); doc.text("Date et signature :", sx + 3, y + 19)
-  })
-  y += 28
   pied(doc, w, margin, y)
   doc.save(`CR-${cr.numero || "X"}-${(chantier?.nom || "chantier").replace(/\s+/g, "_")}.pdf`)
 }
