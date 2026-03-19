@@ -10,12 +10,13 @@ export function useAuth() {
 }
 
 // ─── EMAILS AUTORISÉS (ajoute tes collaborateurs ici) ───
-const ALLOWED_EMAILS = [
-  'idconseil76@gmail.com', 'feyyazbatir29@gmail.com'
-  // Ajoute ici les emails de tes collaborateurs :
-  // 'collaborateur1@gmail.com',
-  // 'collaborateur2@gmail.com',
-]
+// Pour l'instant on accepte tous les comptes Google
+// Décommente et remplis pour restreindre l'accès :
+// const ALLOWED_EMAILS = [
+//   'dursunozkan88@gmail.com',
+//   'collaborateur@gmail.com',
+// ]
+const RESTRICT_EMAILS = false  // Mettre à true pour activer la liste blanche
 
 // ─── AUTH PROVIDER ───
 export function AuthProvider({ children }) {
@@ -27,15 +28,9 @@ export function AuthProvider({ children }) {
     // Check current session
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
-        const email = session.user.email?.toLowerCase()
-        if (ALLOWED_EMAILS.includes(email)) {
-          setUser(session.user)
-          setDenied(false)
-        } else {
-          // Email not in whitelist
-          setDenied(true)
-          supabase.auth.signOut()
-        }
+        console.log("✅ Connecté:", session.user.email, session.user.user_metadata?.full_name)
+        setUser(session.user)
+        setDenied(false)
       }
       setLoading(false)
     })
@@ -43,14 +38,9 @@ export function AuthProvider({ children }) {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
-        const email = session.user.email?.toLowerCase()
-        if (ALLOWED_EMAILS.includes(email)) {
-          setUser(session.user)
-          setDenied(false)
-        } else {
-          setDenied(true)
-          supabase.auth.signOut()
-        }
+        console.log("✅ Auth change:", session.user.email)
+        setUser(session.user)
+        setDenied(false)
       } else {
         setUser(null)
       }

@@ -51,14 +51,26 @@ const SB = {
 
   // Contacts
   async upsertContact(c) {
-    const row = { nom: c.nom, type: c.type, specialite: c.specialite, tel: c.tel, email: c.email, adresse: c.adresse||null, siret: c.siret||null };
+    const row = {
+      nom: c.nom, type: c.type, specialite: c.specialite, tel: c.tel, email: c.email,
+      societe: c.societe||null, fonction: c.fonction||null,
+      adresse: c.adresse||null, code_postal: c.code_postal||null, ville: c.ville||null,
+      tel_fixe: c.tel_fixe||null, site_web: c.site_web||null,
+      siret: c.siret||null, tva_intra: c.tva_intra||null,
+      assurance_decennale: c.assurance_decennale||null, assurance_validite: c.assurance_validite||null,
+      iban: c.iban||null, qualifications: c.qualifications||null,
+      note: Number(c.note)||0, actif: c.actif !== false,
+      notes: c.notes||null,
+    };
     if (c.id && String(c.id).length > 10) {
       const { data, error } = await supabase.from('contacts').update(row).eq('id', c.id).select().single();
       if (error) console.error("❌ Update contact:", error.message);
+      else console.log("✅ Contact mis à jour:", data?.nom);
       return data;
     } else {
       const { data, error } = await supabase.from('contacts').insert(row).select().single();
       if (error) console.error("❌ Insert contact:", error.message);
+      else console.log("✅ Contact créé:", data?.nom);
       return data;
     }
   },
@@ -1132,51 +1144,146 @@ function TasksV({data,save,m,reload}) {
 // ═══════════════════════════════════════════
 function ContactsV({data,save,m,reload}) {
   const [modal,setModal]=useState(null);const [form,setForm]=useState({});const [tf,setTf]=useState("all");const [q,setQ]=useState("");
-  const tc={Artisan:"#F59E0B",Client:"#3B82F6",Fournisseur:"#10B981"};
-  const list=data.contacts.filter(c=>(tf==="all"||c.type===tf)&&(!q||c.nom.toLowerCase().includes(q.toLowerCase())||(c.specialite||"").toLowerCase().includes(q.toLowerCase())));
-  const openNew=()=>{setForm({nom:"",type:"Artisan",specialite:"",tel:"",email:"",chantiers:""});setModal("new");};
+  const tc={Artisan:"#F59E0B",Client:"#3B82F6",Fournisseur:"#10B981","Sous-traitant":"#8B5CF6",Prestataire:"#EC4899",MOA:"#0EA5E9",Architecte:"#6366F1",BET:"#14B8A6"};
+  const types = ["Artisan","Sous-traitant","Prestataire","Client","Fournisseur","MOA","Architecte","BET"];
+  const list=data.contacts.filter(c=>{
+    if(tf!=="all"&&c.type!==tf) return false;
+    if(!q) return true;
+    const search=q.toLowerCase();
+    return (c.nom||"").toLowerCase().includes(search)||(c.specialite||"").toLowerCase().includes(search)||(c.societe||"").toLowerCase().includes(search)||(c.ville||"").toLowerCase().includes(search)||(c.email||"").toLowerCase().includes(search);
+  });
+  const openNew=()=>{setForm({nom:"",type:"Artisan",specialite:"",societe:"",fonction:"",tel:"",tel_fixe:"",email:"",adresse:"",code_postal:"",ville:"",siret:"",tva_intra:"",assurance_decennale:"",assurance_validite:"",iban:"",qualifications:"",site_web:"",note:0,actif:true,notes:""});setModal("new");};
   const handleSave=async()=>{await SB.upsertContact(form);setModal(null);reload();};
   const handleDelete=async(id)=>{await SB.deleteContact(id);reload();};
 
+  // Stats par type
+  const stats = {};
+  types.forEach(t => { const c = data.contacts.filter(x=>x.type===t).length; if(c>0) stats[t]=c; });
+
   return (<div>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,flexWrap:"wrap",gap:8}}>
-      <h1 style={{margin:0,fontSize:m?18:24,fontWeight:700}}>Annuaire</h1>
-      <button onClick={openNew} style={{...btnP,fontSize:12}}>+ Contact</button>
+      <div>
+        <h1 style={{margin:0,fontSize:m?18:24,fontWeight:700}}>Annuaire</h1>
+        <p style={{margin:"2px 0 0",fontSize:12,color:"#94A3B8"}}>{data.contacts.length} contacts</p>
+      </div>
+      <button onClick={openNew} style={{...btnP,fontSize:12}}>+ Nouveau contact</button>
     </div>
+
+    {/* Search + Filters */}
     <div style={{display:"flex",gap:8,marginBottom:14,flexWrap:"wrap"}}>
-      <div style={{position:"relative",flex:1,minWidth:180}}><span style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)"}}><Icon d={I.search} size={14} color="#94A3B8"/></span><input placeholder="Rechercher..." style={{...inp,paddingLeft:30,fontSize:13}} value={q} onChange={e=>setQ(e.target.value)}/></div>
-      {["all","Artisan","Client","Fournisseur"].map(t=><button key={t} onClick={()=>setTf(t)} style={{padding:"6px 12px",borderRadius:16,border:"1.5px solid",borderColor:tf===t?"#1E3A5F":"#E2E8F0",background:tf===t?"#1E3A5F":"#fff",color:tf===t?"#fff":"#64748B",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>{t==="all"?"Tous":t+"s"}</button>)}
+      <div style={{position:"relative",flex:1,minWidth:200}}><span style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)"}}><Icon d={I.search} size={14} color="#94A3B8"/></span><input placeholder="Rechercher nom, société, ville, email..." style={{...inp,paddingLeft:30,fontSize:13}} value={q} onChange={e=>setQ(e.target.value)}/></div>
     </div>
+    <div style={{display:"flex",gap:6,marginBottom:16,flexWrap:"wrap"}}>
+      <button onClick={()=>setTf("all")} style={{padding:"5px 12px",borderRadius:16,border:"1.5px solid",borderColor:tf==="all"?"#1E3A5F":"#E2E8F0",background:tf==="all"?"#1E3A5F":"#fff",color:tf==="all"?"#fff":"#64748B",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>Tous ({data.contacts.length})</button>
+      {Object.entries(stats).map(([type,count])=>(
+        <button key={type} onClick={()=>setTf(type)} style={{padding:"5px 12px",borderRadius:16,border:"1.5px solid",borderColor:tf===type?tc[type]||"#1E3A5F":"#E2E8F0",background:tf===type?tc[type]||"#1E3A5F":"#fff",color:tf===type?"#fff":"#64748B",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>{type}s ({count})</button>
+      ))}
+    </div>
+
+    {/* Contact Cards */}
     <div style={{display:"grid",gridTemplateColumns:m?"1fr":"1fr 1fr",gap:10}}>
       {list.map(c=>(
-        <div key={c.id} style={{background:"#fff",borderRadius:10,padding:m?12:16,boxShadow:"0 1px 2px rgba(0,0,0,0.04)",borderLeft:`4px solid ${tc[c.type]||"#94A3B8"}`}}>
+        <div key={c.id} style={{background:"#fff",borderRadius:12,padding:m?14:18,boxShadow:"0 1px 3px rgba(0,0,0,0.04)",borderLeft:`4px solid ${tc[c.type]||"#94A3B8"}`,opacity:c.actif===false?0.5:1}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-            <div>
-              <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:3}}><span style={{fontSize:14,fontWeight:700}}>{c.nom}</span><Badge text={c.type} color={tc[c.type]}/></div>
-              <div style={{fontSize:11,color:"#64748B",marginBottom:4}}>{c.specialite}</div>
-              <div style={{fontSize:11,color:"#94A3B8"}}>{c.tel} • {c.email}</div>
-              <div style={{fontSize:10,color:"#CBD5E1",marginTop:3}}>{c.chantiers.map(id=>data.chantiers.find(x=>x.id===id)?.nom).filter(Boolean).join(", ")||"—"}</div>
+            <div style={{flex:1}}>
+              <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:3,flexWrap:"wrap"}}>
+                <span style={{fontSize:15,fontWeight:700,color:"#0F172A"}}>{c.nom}</span>
+                <Badge text={c.type} color={tc[c.type]||"#94A3B8"}/>
+                {c.actif===false && <Badge text="Inactif" color="#94A3B8"/>}
+                {c.note>0 && <span style={{fontSize:11,color:"#F59E0B"}}>{"★".repeat(c.note)}{"☆".repeat(5-c.note)}</span>}
+              </div>
+              {c.societe && <div style={{fontSize:12,fontWeight:600,color:"#334155",marginBottom:2}}>{c.societe}</div>}
+              {c.specialite && <div style={{fontSize:11,color:"#64748B",marginBottom:3}}>{c.specialite}{c.fonction?` — ${c.fonction}`:""}</div>}
+              <div style={{fontSize:11,color:"#94A3B8"}}>
+                {c.tel && <span>{c.tel}</span>}
+                {c.tel_fixe && <span> • {c.tel_fixe}</span>}
+                {c.email && <span> • {c.email}</span>}
+              </div>
+              {(c.ville||c.adresse) && <div style={{fontSize:10,color:"#CBD5E1",marginTop:2}}>{[c.adresse,c.code_postal,c.ville].filter(Boolean).join(", ")}</div>}
+              {c.siret && <div style={{fontSize:10,color:"#CBD5E1"}}>SIRET: {c.siret}</div>}
+              {c.qualifications && <div style={{fontSize:10,color:"#3B82F6",marginTop:2}}>{c.qualifications}</div>}
             </div>
-            <div style={{display:"flex",gap:3}}>
-              <button onClick={()=>{setForm({...c,chantiers:c.chantiers.join(", ")});setModal("edit");}} style={{background:"none",border:"none",cursor:"pointer"}}><Icon d={I.edit} size={13} color="#94A3B8"/></button>
-              <button onClick={()=>handleDelete(c.id)} style={{background:"none",border:"none",cursor:"pointer"}}><Icon d={I.trash} size={13} color="#CBD5E1"/></button>
+            <div style={{display:"flex",gap:3,flexShrink:0}}>
+              <button onClick={()=>{setForm({...c});setModal("edit");}} style={{background:"none",border:"none",cursor:"pointer"}}><Icon d={I.edit} size={14} color="#94A3B8"/></button>
+              <button onClick={()=>handleDelete(c.id)} style={{background:"none",border:"none",cursor:"pointer"}}><Icon d={I.trash} size={14} color="#CBD5E1"/></button>
             </div>
           </div>
         </div>
       ))}
     </div>
-    <Modal open={!!modal} onClose={()=>setModal(null)} title={modal==="new"?"Nouveau contact":"Modifier"}>
-      <div style={{display:"grid",gridTemplateColumns:m?"1fr":"1fr 1fr",gap:"0 14px"}}>
-        <FF label="Nom"><input style={inp} value={form.nom||""} onChange={e=>setForm({...form,nom:e.target.value})}/></FF>
-        <FF label="Type"><select style={sel} value={form.type||""} onChange={e=>setForm({...form,type:e.target.value})}><option>Artisan</option><option>Client</option><option>Fournisseur</option></select></FF>
-        <FF label="Spécialité"><input style={inp} value={form.specialite||""} onChange={e=>setForm({...form,specialite:e.target.value})}/></FF>
-        <FF label="Tél"><input style={inp} value={form.tel||""} onChange={e=>setForm({...form,tel:e.target.value})}/></FF>
-        <FF label="Email"><input style={inp} value={form.email||""} onChange={e=>setForm({...form,email:e.target.value})}/></FF>
+
+    {/* MODAL — Formulaire enrichi */}
+    <Modal open={!!modal} onClose={()=>setModal(null)} title={modal==="new"?"Nouveau contact":"Modifier le contact"} wide>
+      {/* Identité */}
+      <div style={{fontSize:11,fontWeight:700,color:"#1E3A5F",textTransform:"uppercase",marginBottom:8,marginTop:4}}>Identité</div>
+      <div style={{display:"grid",gridTemplateColumns:m?"1fr":"1fr 1fr 1fr",gap:"0 12px"}}>
+        <FF label="Nom / Prénom *"><input style={inp} value={form.nom||""} onChange={e=>setForm({...form,nom:e.target.value})}/></FF>
+        <FF label="Société / Raison sociale"><input style={inp} value={form.societe||""} onChange={e=>setForm({...form,societe:e.target.value})}/></FF>
+        <FF label="Type"><select style={sel} value={form.type||""} onChange={e=>setForm({...form,type:e.target.value})}>
+          {types.map(t=><option key={t} value={t}>{t}</option>)}
+        </select></FF>
       </div>
-      <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginTop:12}}><button onClick={()=>setModal(null)} style={btnS}>Annuler</button><button onClick={handleSave} style={btnP}>OK</button></div>
+      <div style={{display:"grid",gridTemplateColumns:m?"1fr":"1fr 1fr",gap:"0 12px"}}>
+        <FF label="Spécialité / Métier"><input style={inp} value={form.specialite||""} onChange={e=>setForm({...form,specialite:e.target.value})} placeholder="Ex: Électricité CFO/CFA, Gros œuvre..."/></FF>
+        <FF label="Fonction"><input style={inp} value={form.fonction||""} onChange={e=>setForm({...form,fonction:e.target.value})} placeholder="Ex: Gérant, Conducteur de travaux..."/></FF>
+      </div>
+
+      {/* Coordonnées */}
+      <div style={{fontSize:11,fontWeight:700,color:"#1E3A5F",textTransform:"uppercase",marginBottom:8,marginTop:12}}>Coordonnées</div>
+      <div style={{display:"grid",gridTemplateColumns:m?"1fr":"1fr 1fr 1fr",gap:"0 12px"}}>
+        <FF label="Tél. mobile"><input style={inp} value={form.tel||""} onChange={e=>setForm({...form,tel:e.target.value})} placeholder="06 ..."/></FF>
+        <FF label="Tél. fixe"><input style={inp} value={form.tel_fixe||""} onChange={e=>setForm({...form,tel_fixe:e.target.value})} placeholder="02 35 ..."/></FF>
+        <FF label="Email"><input type="email" style={inp} value={form.email||""} onChange={e=>setForm({...form,email:e.target.value})}/></FF>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:m?"1fr":"2fr 1fr 1fr",gap:"0 12px"}}>
+        <FF label="Adresse"><input style={inp} value={form.adresse||""} onChange={e=>setForm({...form,adresse:e.target.value})}/></FF>
+        <FF label="Code postal"><input style={inp} value={form.code_postal||""} onChange={e=>setForm({...form,code_postal:e.target.value})}/></FF>
+        <FF label="Ville"><input style={inp} value={form.ville||""} onChange={e=>setForm({...form,ville:e.target.value})}/></FF>
+      </div>
+      <FF label="Site web"><input style={inp} value={form.site_web||""} onChange={e=>setForm({...form,site_web:e.target.value})} placeholder="https://..."/></FF>
+
+      {/* Administratif */}
+      <div style={{fontSize:11,fontWeight:700,color:"#1E3A5F",textTransform:"uppercase",marginBottom:8,marginTop:12}}>Administratif</div>
+      <div style={{display:"grid",gridTemplateColumns:m?"1fr":"1fr 1fr",gap:"0 12px"}}>
+        <FF label="SIRET"><input style={inp} value={form.siret||""} onChange={e=>setForm({...form,siret:e.target.value})} placeholder="XXX XXX XXX XXXXX"/></FF>
+        <FF label="TVA intracommunautaire"><input style={inp} value={form.tva_intra||""} onChange={e=>setForm({...form,tva_intra:e.target.value})} placeholder="FR XX XXXXXXXXX"/></FF>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:m?"1fr":"1fr 1fr",gap:"0 12px"}}>
+        <FF label="Assurance décennale"><input style={inp} value={form.assurance_decennale||""} onChange={e=>setForm({...form,assurance_decennale:e.target.value})} placeholder="N° police + assureur"/></FF>
+        <FF label="Validité assurance"><input type="date" style={inp} value={form.assurance_validite||""} onChange={e=>setForm({...form,assurance_validite:e.target.value})}/></FF>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:m?"1fr":"1fr 1fr",gap:"0 12px"}}>
+        <FF label="IBAN"><input style={inp} value={form.iban||""} onChange={e=>setForm({...form,iban:e.target.value})} placeholder="FR76 XXXX ..."/></FF>
+        <FF label="Qualifications (Qualibat, RGE...)"><input style={inp} value={form.qualifications||""} onChange={e=>setForm({...form,qualifications:e.target.value})}/></FF>
+      </div>
+
+      {/* Évaluation */}
+      <div style={{fontSize:11,fontWeight:700,color:"#1E3A5F",textTransform:"uppercase",marginBottom:8,marginTop:12}}>Évaluation</div>
+      <div style={{display:"grid",gridTemplateColumns:m?"1fr":"1fr 1fr 1fr",gap:"0 12px"}}>
+        <FF label="Note (étoiles)">
+          <div style={{display:"flex",gap:4}}>
+            {[1,2,3,4,5].map(n=>(
+              <button key={n} onClick={()=>setForm({...form,note:form.note===n?0:n})} style={{background:"none",border:"none",cursor:"pointer",fontSize:22,color:n<=(form.note||0)?"#F59E0B":"#E2E8F0"}}>★</button>
+            ))}
+          </div>
+        </FF>
+        <FF label="Statut">
+          <label style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",fontSize:13}}>
+            <input type="checkbox" checked={form.actif!==false} onChange={e=>setForm({...form,actif:e.target.checked})}/>
+            {form.actif!==false?"Actif":"Inactif"}
+          </label>
+        </FF>
+      </div>
+      <FF label="Notes / Remarques"><textarea style={{...inp,minHeight:50,resize:"vertical"}} value={form.notes||""} onChange={e=>setForm({...form,notes:e.target.value})} placeholder="Notes internes..."/></FF>
+
+      <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginTop:14}}>
+        <button onClick={()=>setModal(null)} style={btnS}>Annuler</button>
+        <button onClick={handleSave} style={btnP}>Enregistrer</button>
+      </div>
     </Modal>
   </div>);
 }
+
 
 // ═══════════════════════════════════════════
 // REPORTS
