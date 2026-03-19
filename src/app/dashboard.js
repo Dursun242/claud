@@ -1069,15 +1069,27 @@ function ProjectsV({data,save,m,reload}) {
       <Section title="Ordres de Service" count={chOS.length} color="#8B5CF6">
         {chOS.length===0 ? <p style={{color:"#94A3B8",fontSize:12}}>Aucun OS pour ce chantier</p> :
           chOS.map(os=>(
-            <div key={os.id} style={{background:"#fff",borderRadius:10,padding:14,marginBottom:8,boxShadow:"0 1px 2px rgba(0,0,0,0.04)",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
-              <div>
-                <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2}}>
-                  <span style={{fontWeight:700,fontSize:13,color:"#0F172A"}}>{os.numero}</span>
-                  <Badge text={os.statut||"Brouillon"} color={{"Brouillon":"#94A3B8","Émis":"#3B82F6","Signé":"#8B5CF6","En cours":"#F59E0B","Terminé":"#10B981","Annulé":"#EF4444"}[os.statut]||"#94A3B8"}/>
+            <div key={os.id} style={{background:"#fff",borderRadius:10,padding:14,marginBottom:8,boxShadow:"0 1px 2px rgba(0,0,0,0.04)"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
+                <div style={{flex:1}}>
+                  <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2}}>
+                    <span style={{fontWeight:700,fontSize:13,color:"#0F172A"}}>{os.numero}</span>
+                    <Badge text={os.statut||"Brouillon"} color={{"Brouillon":"#94A3B8","Émis":"#3B82F6","Signé":"#8B5CF6","En cours":"#F59E0B","Terminé":"#10B981","Annulé":"#EF4444"}[os.statut]||"#94A3B8"}/>
+                  </div>
+                  <div style={{fontSize:11,color:"#64748B"}}>{os.artisan_nom} • {(os.prestations||[]).length} prestation(s) • {fmtDate(os.date_emission)}</div>
                 </div>
-                <div style={{fontSize:11,color:"#64748B"}}>{os.artisan_nom} • {(os.prestations||[]).length} prestation(s) • {fmtDate(os.date_emission)}</div>
+                <div style={{fontSize:16,fontWeight:700,color:"#1E3A5F"}}>{fmtMoney(os.montant_ttc||0)}</div>
               </div>
-              <div style={{fontSize:16,fontWeight:700,color:"#1E3A5F"}}>{fmtMoney(os.montant_ttc||0)}</div>
+              <div style={{display:"flex",gap:6,marginTop:8}}>
+                <button onClick={()=>generateOSPdf({...os,chantier:ch.nom,adresse_chantier:ch.adresse})} style={{background:"#EF4444",border:"none",borderRadius:5,padding:"4px 12px",cursor:"pointer",fontSize:10,fontWeight:700,color:"#fff",display:"flex",alignItems:"center",gap:4}}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+                  PDF
+                </button>
+                <button onClick={()=>generateOSExcel({...os,chantier:ch.nom,adresse_chantier:ch.adresse})} style={{background:"#10B981",border:"none",borderRadius:5,padding:"4px 12px",cursor:"pointer",fontSize:10,fontWeight:700,color:"#fff",display:"flex",alignItems:"center",gap:4}}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+                  Excel
+                </button>
+              </div>
             </div>
           ))
         }
@@ -1094,6 +1106,16 @@ function ProjectsV({data,save,m,reload}) {
               </div>
               <div style={{fontSize:12,color:"#334155",lineHeight:1.5}}>{(cr.resume||"").substring(0,150)}{(cr.resume||"").length>150?"...":""}</div>
               {cr.decisions && <div style={{marginTop:6,background:"#FEF3C7",borderRadius:5,padding:"6px 10px",fontSize:11,color:"#92400E"}}><b>Décisions:</b> {cr.decisions}</div>}
+              <div style={{display:"flex",gap:6,marginTop:8}}>
+                <button onClick={()=>generateCRPdf(cr,ch)} style={{background:"#EF4444",border:"none",borderRadius:5,padding:"4px 12px",cursor:"pointer",fontSize:10,fontWeight:700,color:"#fff",display:"flex",alignItems:"center",gap:4}}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+                  PDF
+                </button>
+                <button onClick={()=>generateCRExcel(cr,ch)} style={{background:"#10B981",border:"none",borderRadius:5,padding:"4px 12px",cursor:"pointer",fontSize:10,fontWeight:700,color:"#fff",display:"flex",alignItems:"center",gap:4}}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+                  Excel
+                </button>
+              </div>
             </div>
           ))
         }
