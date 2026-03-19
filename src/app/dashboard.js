@@ -998,7 +998,7 @@ function ProjectsV({data,save,m,reload}) {
   const [selected,setSelected]=useState(null); // Selected chantier for detail view
   const openNew=()=>{setForm({nom:"",client:"",adresse:"",phase:"Hors d'air",statut:"Planifié",budget:"",depenses:0,dateDebut:"",dateFin:"",lots:""});setModal("new");};
   const handleSave=async()=>{const e={...form,budget:Number(form.budget)||0,depenses:Number(form.depenses)||0,lots:typeof form.lots==="string"?(form.lots||"").split(",").map(l=>l.trim()).filter(Boolean):form.lots||[]};await SB.upsertChantier(e);setModal(null);reload();};
-  const handleDelete=async(id)=>{await SB.deleteChantier(id);setSelected(null);reload();};
+  const handleDelete=async(id)=>{if(!window.confirm("Supprimer ce chantier ? Cette action est irréversible.")) return;await SB.deleteChantier(id);setSelected(null);reload();};
 
   // If a chantier is selected, show detail view
   if (selected) {
@@ -1284,7 +1284,7 @@ function TasksV({data,save,m,reload}) {
   const openNew=()=>{setForm({chantierId:data.chantiers[0]?.id||"",titre:"",priorite:"En cours",statut:"Planifié",echeance:"",lot:""});setModal("new");};
   const handleSave=async()=>{await SB.upsertTask(form);setModal(null);reload();};
   const toggle=async(t)=>{const cy=["Planifié","En cours","Terminé"];const next=cy[(cy.indexOf(t.statut)+1)%3];await SB.upsertTask({...t,statut:next});reload();};
-  const handleDelete=async(id)=>{await SB.deleteTask(id);reload();};
+  const handleDelete=async(id)=>{if(!window.confirm("Supprimer cette tâche ?")) return;await SB.deleteTask(id);reload();};
 
   return (<div>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,flexWrap:"wrap",gap:8}}>
@@ -1334,7 +1334,7 @@ function ContactsV({data,save,m,reload}) {
   });
   const openNew=()=>{setForm({nom:"",type:"Artisan",specialite:"",societe:"",fonction:"",tel:"",tel_fixe:"",email:"",adresse:"",code_postal:"",ville:"",siret:"",tva_intra:"",assurance_decennale:"",assurance_validite:"",iban:"",qualifications:"",site_web:"",note:0,actif:true,notes:""});setModal("new");};
   const handleSave=async()=>{await SB.upsertContact(form);setModal(null);reload();};
-  const handleDelete=async(id)=>{await SB.deleteContact(id);reload();};
+  const handleDelete=async(id)=>{if(!window.confirm("Supprimer ce contact ? Cette action est irréversible.")) return;await SB.deleteContact(id);reload();};
 
   // Stats par type
   const stats = {};
@@ -1472,7 +1472,7 @@ function ReportsV({data,save,m,reload}) {
   const [modal,setModal]=useState(null);const [form,setForm]=useState({});
   const openNew=()=>{setForm({chantierId:data.chantiers[0]?.id||"",date:new Date().toISOString().split("T")[0],numero:(data.compteRendus||[]).length+1,resume:"",participants:"",decisions:""});setModal("new");};
   const handleSave=async()=>{await SB.upsertCR(form);setModal(null);reload();};
-  const handleDelete=async(id)=>{await SB.deleteCR(id);reload();};
+  const handleDelete=async(id)=>{if(!window.confirm("Supprimer ce compte rendu ?")) return;await SB.deleteCR(id);reload();};
 
   return (<div>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20,flexWrap:"wrap",gap:8}}>
@@ -1581,7 +1581,7 @@ function OrdresServiceV({data,m,reload}) {
     generateOSExcel({ ...os, chantier: ch?.nom||"", adresse_chantier: ch?.adresse||"" });
   };
 
-  const handleDelete = async (id) => { await SB.deleteOS(id); reload(); };
+  const handleDelete = async (id) => { if(!window.confirm("Supprimer cet ordre de service ?")) return; await SB.deleteOS(id); reload(); };
 
   const osStatusColor = { "Brouillon":"#94A3B8", "Émis":"#3B82F6", "Signé":"#8B5CF6", "En cours":"#F59E0B", "Terminé":"#10B981", "Annulé":"#EF4444" };
   const totals = calcTotals();
