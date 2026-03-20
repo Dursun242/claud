@@ -93,14 +93,15 @@ export function LoginPage() {
         boxShadow: '0 25px 80px rgba(0,0,0,0.4)', animation: 'fadeIn 0.5s ease',
         textAlign: 'center',
       }}>
-        {/* Logo area */}
+        {/* Logo ampoule */}
         <div style={{
-          width: 72, height: 72, borderRadius: 18,
-          background: 'linear-gradient(135deg, #1E3A5F, #3B82F6)',
+          width: 80, height: 80, borderRadius: 20,
+          background: '#F8FAFC',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          margin: '0 auto 20px', boxShadow: '0 8px 24px rgba(30,58,95,0.3)',
+          margin: '0 auto 20px', boxShadow: '0 4px 16px rgba(0,0,0,0.08)',
+          overflow: 'hidden',
         }}>
-          <span style={{ fontSize: 28, fontWeight: 800, color: '#fff' }}>ID</span>
+          <img src="/icon-192.png" alt="ID Maîtrise" style={{ width: 60, height: 60, objectFit: 'contain' }} />
         </div>
 
         <h1 style={{ margin: '0 0 4px', fontSize: 26, fontWeight: 700, color: '#0F172A' }}>

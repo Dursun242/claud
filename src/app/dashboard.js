@@ -304,30 +304,15 @@ function FloatingMic({ listening, onClick, transcript, onSend, onClear, isMobile
         transition: "all .4s cubic-bezier(0.4,0,0.2,1)",
         animation: listening ? "none" : "neonBreathing 3s ease-in-out infinite",
       }}>
-        {/* 4-branch cross SVG with heartbeat */}
-        <svg width="30" height="30" viewBox="0 0 30 30" style={{ animation: listening ? "heartbeat 0.8s ease-in-out infinite" : "none", filter: listening ? "drop-shadow(0 0 4px rgba(255,200,200,0.8))" : "drop-shadow(0 0 3px rgba(0,255,136,0.6))" }}>
-          {/* Top branch */}
-          <rect x="12.5" y="1" width="5" height="11" rx="2.5" fill={listening ? "#fff" : "#00FF88"}>
-            {listening && <animate attributeName="height" values="11;14;11;9;11" dur="0.8s" repeatCount="indefinite" />}
-            {listening && <animate attributeName="y" values="1;-1;1;2;1" dur="0.8s" repeatCount="indefinite" />}
-          </rect>
-          {/* Right branch */}
-          <rect x="18" y="12.5" width="11" height="5" rx="2.5" fill={listening ? "#fff" : "#00FF88"}>
-            {listening && <animate attributeName="width" values="11;14;11;9;11" dur="0.8s" repeatCount="indefinite" begin="0.1s" />}
-          </rect>
-          {/* Bottom branch */}
-          <rect x="12.5" y="18" width="5" height="11" rx="2.5" fill={listening ? "#fff" : "#00FF88"}>
-            {listening && <animate attributeName="height" values="11;14;11;9;11" dur="0.8s" repeatCount="indefinite" begin="0.2s" />}
-          </rect>
-          {/* Left branch */}
-          <rect x="1" y="12.5" width="11" height="5" rx="2.5" fill={listening ? "#fff" : "#00FF88"}>
-            {listening && <animate attributeName="width" values="11;14;11;9;11" dur="0.8s" repeatCount="indefinite" begin="0.3s" />}
-          </rect>
-          {/* Center circle */}
-          <circle cx="15" cy="15" r="4" fill={listening ? "#fff" : "#00FF88"} opacity="0.95">
-            {listening && <animate attributeName="r" values="4;5;4;3.5;4" dur="0.8s" repeatCount="indefinite" />}
-          </circle>
-        </svg>
+        {/* IA text with heartbeat */}
+        <span style={{
+          fontSize: 20, fontWeight: 900, letterSpacing: "-0.5px",
+          color: listening ? "#fff" : "#00FF88",
+          fontFamily: "'DM Sans', sans-serif",
+          animation: listening ? "heartbeat 0.8s ease-in-out infinite" : "none",
+          filter: listening ? "drop-shadow(0 0 4px rgba(255,200,200,0.8))" : "drop-shadow(0 0 3px rgba(0,255,136,0.6))",
+          userSelect: "none",
+        }}>IA</span>
 
         {/* Neon glow rings */}
         <span style={{
@@ -361,23 +346,11 @@ function MicButtonInline({ listening, onClick }) {
       boxShadow: listening ? "0 0 12px rgba(239,68,68,0.5)" : "0 0 8px rgba(0,255,136,0.2)",
       transition: "all .3s", flexShrink: 0,
     }}>
-      <svg width="22" height="22" viewBox="0 0 30 30" style={{ animation: listening ? "heartbeat 0.8s ease-in-out infinite" : "none" }}>
-        <rect x="12.5" y="2" width="5" height="10" rx="2.5" fill="#fff" opacity={listening?1:0.9}>
-          {listening && <animate attributeName="height" values="10;13;10;8;10" dur="0.8s" repeatCount="indefinite" />}
-        </rect>
-        <rect x="18" y="12.5" width="10" height="5" rx="2.5" fill="#fff" opacity={listening?1:0.9}>
-          {listening && <animate attributeName="width" values="10;13;10;8;10" dur="0.8s" repeatCount="indefinite" begin="0.1s" />}
-        </rect>
-        <rect x="12.5" y="18" width="5" height="10" rx="2.5" fill="#fff" opacity={listening?1:0.9}>
-          {listening && <animate attributeName="height" values="10;13;10;8;10" dur="0.8s" repeatCount="indefinite" begin="0.2s" />}
-        </rect>
-        <rect x="2" y="12.5" width="10" height="5" rx="2.5" fill="#fff" opacity={listening?1:0.9}>
-          {listening && <animate attributeName="width" values="10;13;10;8;10" dur="0.8s" repeatCount="indefinite" begin="0.3s" />}
-        </rect>
-        <circle cx="15" cy="15" r="3.5" fill="#fff" opacity="0.95">
-          {listening && <animate attributeName="r" values="3.5;4.5;3.5;3;3.5" dur="0.8s" repeatCount="indefinite" />}
-        </circle>
-      </svg>
+      <span style={{
+        fontSize: 16, fontWeight: 900, color: "#fff", fontFamily: "'DM Sans', sans-serif",
+        animation: listening ? "heartbeat 0.8s ease-in-out infinite" : "none",
+        userSelect: "none",
+      }}>IA</span>
     </button>
   );
 }
