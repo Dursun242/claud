@@ -159,13 +159,8 @@ const status = { "En cours": "#3B82F6", "Planifié": "#8B5CF6", "Terminé": "#10
 const GC = { primary: "#EA4335", light: "#FEF2F2", border: "#FECACA", gradient: "linear-gradient(135deg, #EA4335 0%, #FBBC04 50%, #34A853 75%, #4285F4 100%)" };
 
 // ─── GCAL EVENTS ───
-const gcalEvents = [
-  { id: "gc1", summary: "RDV MARYAM", start: "2026-03-17T12:00:00+01:00", end: "2026-03-17T13:00:00+01:00", location: "", description: "" },
-  { id: "gc2", summary: "Garage Lucas", start: "2026-03-18T16:00:00+01:00", end: "2026-03-18T17:00:00+01:00", location: "Mairie - Oudalle", description: "" },
-  { id: "gc3", summary: "FRIBOULET - Finaliser PC modificatif", start: "2026-03-19T14:00:00+01:00", end: "2026-03-19T16:00:00+01:00", location: "", description: "Dernière vérification dossier PC modificatif garage." },
-  { id: "gc4", summary: "Eurofins LABORATOIRE", start: "2026-03-20T11:00:00+01:00", end: "2026-03-20T12:00:00+01:00", location: "Gonneville-la-Mallet", description: "" },
-  { id: "gc5", summary: "FRIBOULET - Dépôt PC modificatif", start: "2026-03-20T14:00:00+01:00", end: "2026-03-20T15:00:00+01:00", location: "Mairie de Riville", description: "Dépôt permis modificatif pour ajout garage." },
-];
+// Google Calendar events loaded dynamically via /api/gcal
+// (no more hardcoded events)
 
 // ─── DEFAULT DATA ───
 const defaultData = {
@@ -367,6 +362,7 @@ export default function App({ user }) {
   // Floating mic state
   const [floatListening, setFloatListening] = useState(false);
   const [floatTranscript, setFloatTranscript] = useState("");
+  const [gcalEvents, setGcalEvents] = useState([]);
   const floatRecogRef = useRef(null);
 
   const toggleFloatMic = useCallback(() => {
@@ -490,6 +486,31 @@ export default function App({ user }) {
     }
   }, []);
 
+  // Load Google Calendar events dynamically
+  const loadGcalEvents = useCallback(async () => {
+    try {
+      const res = await fetch('/api/gcal');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.events && data.events.length > 0) {
+          setGcalEvents(data.events);
+          console.log(`📅 Google Calendar: ${data.events.length} événements chargés`);
+        } else if (data.error) {
+          console.warn("📅 GCal:", data.error);
+        }
+      }
+    } catch (e) {
+      console.warn("📅 GCal fetch error:", e.message);
+    }
+  }, []);
+
+  // Fetch gcal events on mount and every 5 minutes
+  useEffect(() => {
+    loadGcalEvents();
+    const interval = setInterval(loadGcalEvents, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [loadGcalEvents]);
+
   // Legacy save
   const save = useCallback(async (d) => { setData(d); }, []);
 
@@ -593,8 +614,8 @@ export default function App({ user }) {
           </div>
         )}
         <div style={{animation:"fadeIn .3s ease",maxWidth:1200}}>
-          {tab==="dashboard"&&<DashboardV data={data} setTab={switchTab} m={isMobile} user={user}/>}
-          {tab==="gcal"&&<GCalV m={isMobile}/>}
+          {tab==="dashboard"&&<DashboardV data={data} setTab={switchTab} m={isMobile} user={user} gcalEvents={gcalEvents}/>}
+          {tab==="gcal"&&<GCalV m={isMobile} gcalEvents={gcalEvents} onRefresh={loadGcalEvents}/>}
           {tab==="qonto"&&<QontoV m={isMobile}/>}
           {tab==="projects"&&<ProjectsV data={data} save={save} m={isMobile} reload={reload}/>}
           {tab==="planning"&&<PlanningV data={data} m={isMobile}/>}
@@ -625,7 +646,7 @@ export default function App({ user }) {
 // ═══════════════════════════════════════════
 // DASHBOARD
 // ═══════════════════════════════════════════
-function DashboardV({data,setTab,m,user}) {
+function DashboardV({data,setTab,m,user,gcalEvents}) {
   const today = new Date().toISOString().split("T")[0];
   const todayGcal = gcalEvents.filter(e=>e.start.split("T")[0]===today);
   const urgent = data.tasks.filter(t=>t.priorite==="Urgent"&&t.statut!=="Terminé");
@@ -703,22 +724,35 @@ function DashboardV({data,setTab,m,user}) {
 // ═══════════════════════════════════════════
 // GOOGLE CALENDAR VIEW
 // ═══════════════════════════════════════════
-function GCalV({m}) {
+function GCalV({m,gcalEvents,onRefresh}) {
   const today = new Date().toISOString().split("T")[0];
-  const byDay = {}; gcalEvents.forEach(e=>{const d=e.start.split("T")[0];(byDay[d]=byDay[d]||[]).push(e);});
+  const events = gcalEvents || [];
+  const byDay = {}; events.forEach(e=>{const d=(e.start||"").split("T")[0];if(d)(byDay[d]=byDay[d]||[]).push(e);});
 
   return (<div>
-    <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:20}}>
+    <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:20,flexWrap:"wrap"}}>
       <div style={{width:40,height:40,borderRadius:10,background:GC.gradient,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 3px 10px rgba(234,67,53,0.3)"}}>
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="#fff" strokeWidth="2"/><path d="M3 10h18" stroke="#fff" strokeWidth="2"/></svg>
       </div>
-      <div><h1 style={{margin:0,fontSize:m?18:24,fontWeight:700}}>Google Calendar <ApiBadge/></h1><p style={{margin:0,fontSize:12,color:"#64748B"}}>Suivi Pro ID MAITRISE</p></div>
+      <div style={{flex:1}}><h1 style={{margin:0,fontSize:m?18:24,fontWeight:700}}>Google Calendar <ApiBadge/></h1><p style={{margin:0,fontSize:12,color:"#64748B"}}>Suivi Pro ID MAITRISE — Mis à jour en temps réel</p></div>
+      <button onClick={onRefresh} style={{padding:"8px 14px",borderRadius:8,background:"#fff",border:"1.5px solid #E2E8F0",cursor:"pointer",fontSize:12,fontWeight:600,color:"#64748B",fontFamily:"inherit"}}>🔄 Rafraîchir</button>
     </div>
 
-    <div style={{background:"#F0FDF4",border:"1.5px solid #BBF7D0",borderRadius:10,padding:"10px 14px",marginBottom:16,display:"flex",alignItems:"center",gap:8,fontSize:12}}>
-      <div style={{width:8,height:8,borderRadius:"50%",background:"#22C55E",animation:"pulseGlow 2s infinite"}}/><span style={{fontWeight:600,color:"#166534"}}>Connecté</span><span style={{color:"#64748B"}}>• dursunozkan88@gmail.com</span>
+    <div style={{background:events.length>0?"#F0FDF4":"#FEF3C7",border:`1.5px solid ${events.length>0?"#BBF7D0":"#FDE68A"}`,borderRadius:10,padding:"10px 14px",marginBottom:16,display:"flex",alignItems:"center",gap:8,fontSize:12}}>
+      <div style={{width:8,height:8,borderRadius:"50%",background:events.length>0?"#22C55E":"#F59E0B"}}/><span style={{fontWeight:600,color:events.length>0?"#166534":"#92400E"}}>{events.length>0?"Connecté":"En attente"}</span>
+      <span style={{color:"#64748B"}}>{events.length>0?`• ${events.length} événements chargés`:"• Configurez GOOGLE_API_KEY et GOOGLE_CALENDAR_ID dans Vercel"}</span>
     </div>
 
+    {events.length===0 ? (
+      <div style={{background:"#fff",borderRadius:14,padding:30,textAlign:"center",boxShadow:"0 1px 3px rgba(0,0,0,0.06)"}}>
+        <p style={{fontSize:14,color:"#64748B",marginBottom:16}}>Pour activer l'agenda en temps réel, ajoutez ces variables dans <b>Vercel → Settings → Environment Variables</b> :</p>
+        <div style={{background:"#F8FAFC",borderRadius:8,padding:16,textAlign:"left",fontSize:12,fontFamily:"monospace",color:"#334155"}}>
+          <div><b>GOOGLE_API_KEY</b> = votre clé API Google</div>
+          <div style={{marginTop:4}}><b>GOOGLE_CALENDAR_ID</b> = l'ID de votre calendrier</div>
+          <div style={{marginTop:8,fontSize:11,color:"#94A3B8"}}>L'ID du calendrier est :<br/>f2f67f63d8c9594225340a23de9abfa6d6e6151f1475edaa90e3604f0c1e5c9a@group.calendar.google.com</div>
+        </div>
+      </div>
+    ) : (
     <div style={{background:"#fff",borderRadius:14,padding:m?14:20,boxShadow:"0 1px 3px rgba(0,0,0,0.06)",border:`1px solid ${GC.border}`}}>
       {Object.keys(byDay).sort().map(day=>{const isT=day===today; return(
         <div key={day} style={{marginBottom:16}}>
@@ -739,6 +773,7 @@ function GCalV({m}) {
         </div>
       );})}
     </div>
+    )}
   </div>);
 }
 
