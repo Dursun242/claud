@@ -1388,8 +1388,9 @@ function ProjectsV({data,save,m,reload}) {
 
       {/* ORDRES DE SERVICE */}
       <Section title="Ordres de Service" count={chOS.length} color="#8B5CF6">
-        <div style={{display:"flex",gap:8,marginBottom:12}}>
+        <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap"}}>
           <button onClick={()=>{const nextNum=`OS-2026-${String(chOS.length+1).padStart(3,"0")}`;setDetailForm({numero:nextNum,chantier_id:ch.id,date_emission:new Date().toISOString().split("T")[0],statut:"Brouillon",montant_ttc:0});setDetailModal("newOS");}} style={{background:"#8B5CF6",color:"#fff",border:"none",borderRadius:6,padding:"6px 12px",fontSize:11,fontWeight:700,cursor:"pointer"}}>+ Nouvel OS</button>
+          <button onClick={()=>setDetailModal("useTemplate")} style={{background:"#8B5CF6",color:"#fff",border:"none",borderRadius:6,padding:"6px 12px",fontSize:11,fontWeight:700,cursor:"pointer",opacity:0.7}}>📋 Template</button>
         </div>
         {chOS.length===0 ? <p style={{color:"#94A3B8",fontSize:12}}>Aucun OS pour ce chantier</p> :
           chOS.map(os=>(
@@ -1405,6 +1406,7 @@ function ProjectsV({data,save,m,reload}) {
               <div style={{display:"flex",gap:4,flexShrink:0}}>
                 <button onClick={()=>generateOSPdf({...os,chantier:ch.nom,adresse_chantier:ch.adresse})} style={{background:"#EF4444",border:"none",borderRadius:5,padding:"4px 10px",cursor:"pointer",fontSize:9,fontWeight:700,color:"#fff"}}>PDF</button>
                 <button onClick={()=>generateOSExcel({...os,chantier:ch.nom,adresse_chantier:ch.adresse})} style={{background:"#10B981",border:"none",borderRadius:5,padding:"4px 10px",cursor:"pointer",fontSize:9,fontWeight:700,color:"#fff"}}>XLS</button>
+                <button onClick={async()=>{await SB.saveTemplate('os',`Template ${os.artisan_nom}`,`Template d'OS pour ${os.artisan_nom}`,{...os});alert("✅ Template créé!");}} title="Créer un template à partir de cet OS" style={{background:"#6366F1",border:"none",borderRadius:5,padding:"4px 10px",cursor:"pointer",fontSize:9,fontWeight:700,color:"#fff"}}>💾</button>
                 <button onClick={()=>{setDetailForm(os);setDetailModal("editOS");}} style={{background:"#3B82F6",border:"none",borderRadius:5,padding:"4px 10px",cursor:"pointer",fontSize:9,fontWeight:700,color:"#fff"}}>✎</button>
               </div>
             </div>
@@ -1563,6 +1565,38 @@ function ProjectsV({data,save,m,reload}) {
           <FF label="Statut"><select style={sel} value={detailForm.statut||"En attente"} onChange={e=>setDetailForm({...detailForm,statut:e.target.value})}><option>En attente</option><option>En cours</option><option>Terminé</option></select></FF>
         </div>
         <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginTop:12}}><button onClick={()=>setDetailModal(null)} style={btnS}>Annuler</button><button onClick={async()=>{await SB.upsertTask({...detailForm,chantierId:ch.id});setDetailModal(null);reload();}} style={btnP}>Enregistrer</button></div>
+      </Modal>
+
+      <Modal open={detailModal==="useTemplate"} onClose={()=>setDetailModal(null)} title="Utiliser un template d'OS">
+        {(() => {
+          const [templates, setTemplates] = useState([]);
+          useEffect(() => {
+            (async () => {
+              const tpl = await SB.getTemplates('os');
+              setTemplates(tpl);
+            })();
+          }, []);
+          return (
+            <div>
+              {templates.length === 0 ? (
+                <p style={{color:"#94A3B8",fontSize:12}}>Aucun template. Créez-en un en cliquant sur 💾 sur un OS.</p>
+              ) : (
+                <div style={{display:"grid",gridTemplateColumns:"1fr",gap:8}}>
+                  {templates.map(tpl => (
+                    <button key={tpl.id} onClick={() => {
+                      const nextNum = `OS-2026-${String(chOS.length+1).padStart(3,"0")}`;
+                      setDetailForm({...tpl.data, numero: nextNum, chantier_id: ch.id});
+                      setDetailModal("editOS");
+                    }} style={{background:"#F0F4F8",border:"1px solid #E2E8F0",borderRadius:8,padding:12,cursor:"pointer",textAlign:"left"}}>
+                      <div style={{fontWeight:700,fontSize:13,color:"#0F172A"}}>{tpl.name}</div>
+                      <div style={{fontSize:11,color:"#64748B"}}>{tpl.description}</div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })()}
       </Modal>
     </div>);
   }
