@@ -15,9 +15,10 @@ export async function GET(request) {
       return Response.json({ error: "Endpoint not allowed" }, { status: 403 })
     }
 
+    // Qonto API v2 uses "login:secret-key" directly (not Bearer)
     const response = await fetch(`https://thirdparty.qonto.com/v2/${endpoint}`, {
       headers: {
-        'Authorization': `Bearer ${token}`,
+        'Authorization': token,
         'Content-Type': 'application/json',
       },
     })

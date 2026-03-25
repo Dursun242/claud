@@ -853,11 +853,12 @@ function QontoV({m}) {
   const quoStatusColor = { pending_approval:"#F59E0B", approved:"#10B981", canceled:"#EF4444", draft:"#94A3B8" };
   const quoStatusFr = { pending_approval:"En attente", approved:"Approuvé", canceled:"Annulé", draft:"Brouillon" };
 
-  const totalInvoices = invoices.reduce((s,i) => s + (i.total_amount_cents||0), 0) / 100;
+  // Qonto renvoie total_amount.value (string) ou total_amount_cents (int) selon la version
+  const getAmt = (inv) => parseFloat(inv.total_amount?.value ?? (inv.total_amount_cents||0)/100) || 0;
   const paidInvoices = invoices.filter(i => i.status==="paid");
   const unpaidInvoices = invoices.filter(i => ["sent","finalized","unpaid","pending"].includes(i.status));
-  const totalPaid = paidInvoices.reduce((s,i) => s + (i.total_amount_cents||0), 0) / 100;
-  const totalUnpaid = unpaidInvoices.reduce((s,i) => s + (i.total_amount_cents||0), 0) / 100;
+  const totalPaid = paidInvoices.reduce((s,i) => s + getAmt(i), 0);
+  const totalUnpaid = unpaidInvoices.reduce((s,i) => s + getAmt(i), 0);
 
   return (<div>
     {/* HEADER */}
@@ -879,9 +880,11 @@ function QontoV({m}) {
           <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" stroke="#7C3AED" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
         </div>
         <h3 style={{margin:"0 0 6px",fontSize:17,fontWeight:700}}>Connecter Qonto</h3>
-        <p style={{margin:"0 0 16px",fontSize:13,color:"#64748B"}}>Entrez votre Bearer Token ou votre clé API Qonto.<br/>Trouvez-la dans Qonto → Paramètres → Intégrations → API</p>
-        <input value={token} onChange={e=>setToken(e.target.value)} placeholder="Votre token API Qonto..." type="password"
-          style={{...inp,maxWidth:400,margin:"0 auto 12px",display:"block",textAlign:"center",fontSize:13,borderColor:QT.border}} />
+        <p style={{margin:"0 0 4px",fontSize:13,color:"#64748B"}}>Entrez votre clé API Qonto au format :</p>
+        <p style={{margin:"0 0 12px",fontSize:13,fontWeight:700,color:"#7C3AED",fontFamily:"monospace"}}>login:secret-key</p>
+        <p style={{margin:"0 0 16px",fontSize:11,color:"#94A3B8"}}>Trouvez-la dans Qonto → Paramètres → Intégrations → API</p>
+        <input value={token} onChange={e=>setToken(e.target.value)} placeholder="exemple: mon-login:xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" type="password"
+          style={{...inp,maxWidth:420,margin:"0 auto 12px",display:"block",textAlign:"center",fontSize:12,borderColor:QT.border}} />
         <button onClick={saveToken} style={{padding:"10px 28px",borderRadius:8,background:QT.gradient,color:"#fff",border:"none",fontSize:14,fontWeight:600,cursor:"pointer",fontFamily:"inherit",boxShadow:"0 2px 8px rgba(124,58,237,0.3)"}}>Connecter</button>
         <p style={{margin:"12px 0 0",fontSize:11,color:"#94A3B8"}}>Le token est stocké localement sur votre appareil uniquement.</p>
       </div>
@@ -909,7 +912,7 @@ function QontoV({m}) {
                 {l:"Factures",v:invoices.length,c:QT.primary},
                 {l:"Devis",v:quotes.length,c:"#A855F7"},
                 {l:"Encaissé",v:fmtMoney(totalPaid),c:"#10B981"},
-                {l:"Impayé",v:fmtMoney(totalUnpaid),c:totalUnpaid>0?"#EF4444":"#10B981"},
+                {l:"À encaisser",v:fmtMoney(totalUnpaid),c:totalUnpaid>0?"#EF4444":"#10B981"},
               ].map((k,i)=>(
                 <div key={i} style={{background:"#fff",borderRadius:12,padding:m?12:16,boxShadow:"0 1px 3px rgba(0,0,0,0.06)",borderTop:`3px solid ${k.c}`}}>
                   <div style={{fontSize:10,fontWeight:600,color:"#94A3B8",textTransform:"uppercase",marginBottom:4}}>{k.l}</div>
@@ -940,8 +943,8 @@ function QontoV({m}) {
                       <div style={{fontSize:11,color:"#64748B"}}>{inv.contact_email||"—"} {inv.issue_date ? `• ${fmtDate(inv.issue_date)}` : ""} {inv.due_date ? `• Éch. ${fmtDate(inv.due_date)}` : ""}</div>
                     </div>
                     <div style={{textAlign:"right"}}>
-                      <div style={{fontSize:16,fontWeight:700,color:inv.status==="paid"?"#10B981":"#0F172A"}}>{inv.total_amount ? `${inv.total_amount.value} €` : "—"}</div>
-                      {inv.vat_amount && <div style={{fontSize:10,color:"#94A3B8"}}>TVA: {inv.vat_amount.value} €</div>}
+                      <div style={{fontSize:16,fontWeight:700,color:inv.status==="paid"?"#10B981":"#0F172A"}}>{fmtMoney(getAmt(inv))}</div>
+                      {(inv.vat_amount?.value||inv.vat_amount_cents) && <div style={{fontSize:10,color:"#94A3B8"}}>TVA: {fmtMoney(parseFloat(inv.vat_amount?.value??(inv.vat_amount_cents||0)/100))}</div>}
                     </div>
                   </div>
                 ))}
@@ -963,7 +966,7 @@ function QontoV({m}) {
                       <div style={{fontSize:11,color:"#64748B"}}>{q.contact_email||"—"} {q.issue_date ? `• Émis ${fmtDate(q.issue_date)}` : ""} {q.expiry_date ? `• Expire ${fmtDate(q.expiry_date)}` : ""}</div>
                     </div>
                     <div style={{textAlign:"right"}}>
-                      <div style={{fontSize:16,fontWeight:700,color:"#0F172A"}}>{q.total_amount ? `${q.total_amount.value} €` : "—"}</div>
+                      <div style={{fontSize:16,fontWeight:700,color:"#0F172A"}}>{fmtMoney(parseFloat(q.total_amount?.value??(q.total_amount_cents||0)/100)||0)}</div>
                     </div>
                   </div>
                 ))}
