@@ -50,15 +50,16 @@ const SB = {
   // Contacts
   async upsertContact(c) {
     const row = {
-      nom: c.nom, type: c.type, specialite: c.specialite, tel: c.tel, email: c.email,
+      nom: c.nom, type: c.type||"Artisan", specialite: c.specialite||null,
+      tel: c.tel||null, email: c.email||null,
+      adresse: c.adresse||null, siret: c.siret||null, notes: c.notes||null,
+      // Champs étendus (nécessitent la migration SQL contacts_v2)
       societe: c.societe||null, fonction: c.fonction||null,
-      adresse: c.adresse||null, code_postal: c.code_postal||null, ville: c.ville||null,
-      tel_fixe: c.tel_fixe||null, site_web: c.site_web||null,
-      siret: c.siret||null, tva_intra: c.tva_intra||null,
+      tel_fixe: c.tel_fixe||null, code_postal: c.code_postal||null, ville: c.ville||null,
+      site_web: c.site_web||null, tva_intra: c.tva_intra||null,
       assurance_decennale: c.assurance_decennale||null, assurance_validite: c.assurance_validite||null,
       iban: c.iban||null, qualifications: c.qualifications||null,
       note: Number(c.note)||0, actif: c.actif !== false,
-      notes: c.notes||null,
     };
     if (c.id && String(c.id).length > 10) {
       const { data, error } = await supabase.from('contacts').update(row).eq('id', c.id).select().single();
@@ -74,7 +75,8 @@ const SB = {
 
   // Tâches
   async upsertTask(t) {
-    const row = { chantier_id: t.chantierId||t.chantier_id||null, titre: t.titre, priorite: t.priorite, statut: t.statut, echeance: t.echeance||null, lot: t.lot };
+    const chId = t.chantierId||t.chantier_id||null;
+    const row = { chantier_id: chId||null, titre: t.titre, priorite: t.priorite, statut: t.statut, echeance: t.echeance||null, lot: t.lot||null };
     if (t.id && String(t.id).length > 10) {
       const { data, error } = await supabase.from('taches').update(row).eq('id', t.id).select().single();
       if (error) throw new Error("Erreur mise à jour tâche : " + error.message);
@@ -89,7 +91,8 @@ const SB = {
 
   // Comptes Rendus
   async upsertCR(cr) {
-    const row = { chantier_id: cr.chantierId||cr.chantier_id||null, date: cr.date||null, numero: Number(cr.numero)||1, resume: cr.resume||"", participants: cr.participants||"", decisions: cr.decisions||"" };
+    const chId = cr.chantierId||cr.chantier_id||null;
+    const row = { chantier_id: chId||null, date: cr.date||null, numero: Number(cr.numero)||1, resume: cr.resume||"", participants: cr.participants||"", decisions: cr.decisions||"" };
     if (cr.id && String(cr.id).length > 10) {
       const { data, error } = await supabase.from('compte_rendus').update(row).eq('id', cr.id).select().single();
       if (error) throw new Error("Erreur mise à jour CR : " + error.message);
@@ -1187,10 +1190,24 @@ function ProjectsV({data,save,m,reload}) {
 // ═══════════════════════════════════════════
 function PlanningV({data,m}) {
   const [filter,setFilter]=useState("all");
-  const items = filter==="all"?data.planning:data.planning.filter(p=>p.chantierId===filter);
-  const min=new Date(Math.min(...data.planning.map(p=>new Date(p.debut).getTime())));
-  const max=new Date(Math.max(...data.planning.map(p=>new Date(p.fin).getTime())));
-  const total=Math.ceil((max-min)/864e5)+1;
+  const items = filter==="all"?data.planning:data.planning.filter(p=>p.chantierId===filter||p.chantier_id===filter);
+
+  if (!data.planning || data.planning.length === 0) {
+    return (<div>
+      <h1 style={{margin:"0 0 20px",fontSize:m?18:24,fontWeight:700}}>Planning</h1>
+      <div style={{background:"#fff",borderRadius:12,padding:30,textAlign:"center",color:"#94A3B8",fontSize:13,boxShadow:"0 1px 3px rgba(0,0,0,0.06)"}}>
+        Aucune entrée de planning. Ajoutez des tâches planifiées depuis l'onglet Chantiers.
+      </div>
+    </div>);
+  }
+
+  const timestamps = data.planning.map(p=>new Date(p.debut).getTime()).filter(t=>!isNaN(t));
+  const endTimestamps = data.planning.map(p=>new Date(p.fin).getTime()).filter(t=>!isNaN(t));
+  if (timestamps.length === 0 || endTimestamps.length === 0) return null;
+
+  const min=new Date(Math.min(...timestamps));
+  const max=new Date(Math.max(...endTimestamps));
+  const total=Math.max(Math.ceil((max-min)/864e5)+1, 1);
 
   return (<div>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20,flexWrap:"wrap",gap:10}}>
@@ -1198,16 +1215,19 @@ function PlanningV({data,m}) {
       <select style={{...sel,width:"auto"}} value={filter} onChange={e=>setFilter(e.target.value)}><option value="all">Tous</option>{data.chantiers.map(c=><option key={c.id} value={c.id}>{c.nom}</option>)}</select>
     </div>
     <div style={{background:"#fff",borderRadius:12,padding:m?12:18,boxShadow:"0 1px 3px rgba(0,0,0,0.06)",overflowX:"auto"}}>
-      {items.map(p=>{const ch=data.chantiers.find(c=>c.id===p.chantierId);const s=Math.ceil((new Date(p.debut)-min)/864e5);const d=Math.ceil((new Date(p.fin)-new Date(p.debut))/864e5)+1;const c=phase[ch?.phase]||"#3B82F6";
-        return(<div key={p.id} style={{display:"flex",alignItems:"center",padding:"7px 0",borderBottom:"1px solid #F8FAFC",minWidth:m?500:"auto"}}>
-          <div style={{width:m?150:200,flexShrink:0,paddingRight:12}}><div style={{fontSize:12,fontWeight:600,color:"#0F172A"}}>{p.tache}</div><div style={{fontSize:10,color:"#94A3B8"}}>{ch?.nom} • {p.lot}</div></div>
-          <div style={{flex:1,position:"relative",height:24}}>
-            <div style={{position:"absolute",left:`${s/total*100}%`,width:`${d/total*100}%`,top:3,height:18,background:c+"22",borderRadius:5,border:`1.5px solid ${c}`}}>
-              <div style={{width:`${p.avancement}%`,height:"100%",background:c+"55",borderRadius:4}}/><span style={{position:"absolute",right:4,top:1,fontSize:9,fontWeight:700,color:c}}>{p.avancement}%</span>
+      {items.length === 0
+        ? <div style={{textAlign:"center",color:"#94A3B8",padding:20,fontSize:13}}>Aucune tâche pour ce chantier.</div>
+        : items.map(p=>{const ch=data.chantiers.find(c=>c.id===(p.chantierId||p.chantier_id));const s=Math.max(0,Math.ceil((new Date(p.debut)-min)/864e5));const d=Math.max(1,Math.ceil((new Date(p.fin)-new Date(p.debut))/864e5)+1);const c=phase[ch?.phase]||"#3B82F6";
+          return(<div key={p.id} style={{display:"flex",alignItems:"center",padding:"7px 0",borderBottom:"1px solid #F8FAFC",minWidth:m?500:"auto"}}>
+            <div style={{width:m?150:200,flexShrink:0,paddingRight:12}}><div style={{fontSize:12,fontWeight:600,color:"#0F172A"}}>{p.tache}</div><div style={{fontSize:10,color:"#94A3B8"}}>{ch?.nom} • {p.lot}</div></div>
+            <div style={{flex:1,position:"relative",height:24}}>
+              <div style={{position:"absolute",left:`${s/total*100}%`,width:`${d/total*100}%`,top:3,height:18,background:c+"22",borderRadius:5,border:`1.5px solid ${c}`}}>
+                <div style={{width:`${p.avancement}%`,height:"100%",background:c+"55",borderRadius:4}}/><span style={{position:"absolute",right:4,top:1,fontSize:9,fontWeight:700,color:c}}>{p.avancement}%</span>
+              </div>
             </div>
-          </div>
-        </div>);
-      })}
+          </div>);
+        })
+      }
     </div>
   </div>);
 }
@@ -1739,11 +1759,17 @@ add_chantier: {"type":"add_chantier","data":{"nom":"...","client":"...","adresse
 
 add_task: {"type":"add_task","data":{"chantier_id":"UUID","titre":"...","priorite":"Urgent|En cours|En attente","statut":"Planifié|En cours|Terminé","echeance":"YYYY-MM-DD","lot":"..."}}
 
-add_contact: {"type":"add_contact","data":{"nom":"...","type":"Artisan|Client|Fournisseur","specialite":"...","tel":"...","email":"..."}}
+add_contact: {"type":"add_contact","data":{"nom":"...","type":"Artisan|Client|Fournisseur","specialite":"...","tel":"...","email":"...","adresse":"...","siret":"...","notes":"..."}}
+
+update_contact: {"type":"update_contact","data":{"id":"UUID-EXISTANT","nom":"...","type":"...","specialite":"...","tel":"...","email":"...","adresse":"...","siret":"...","notes":"..."}}
 
 add_cr: {"type":"add_cr","data":{"chantier_id":"UUID","date":"YYYY-MM-DD","numero":1,"resume":"...","participants":"...","decisions":"..."}}
 
+update_cr: {"type":"update_cr","data":{"id":"UUID-EXISTANT","chantier_id":"UUID","date":"YYYY-MM-DD","numero":1,"resume":"...","participants":"...","decisions":"..."}}
+
 add_os: {"type":"add_os","data":{"numero":"OS-2026-XXX","chantier_id":"UUID","client_nom":"...","client_adresse":"...","artisan_nom":"...","artisan_specialite":"...","artisan_tel":"...","artisan_email":"...","artisan_siret":"...","date_emission":"YYYY-MM-DD","date_intervention":"YYYY-MM-DD","date_fin_prevue":"YYYY-MM-DD","prestations":[{"description":"...","unite":"m²","quantite":10,"prix_unitaire":45.00,"tva_taux":20}],"observations":"...","conditions":"Paiement à 30 jours.","statut":"Émis"}}
+
+update_os: {"type":"update_os","data":{"id":"UUID-EXISTANT","numero":"OS-2026-XXX","chantier_id":"UUID","client_nom":"...","artisan_nom":"...","artisan_specialite":"...","artisan_tel":"...","artisan_email":"...","artisan_siret":"...","date_emission":"YYYY-MM-DD","date_intervention":"YYYY-MM-DD","date_fin_prevue":"YYYY-MM-DD","prestations":[{"description":"...","unite":"m²","quantite":10,"prix_unitaire":45.00,"tva_taux":20}],"observations":"...","conditions":"...","statut":"..."}}
 
 add_gcal_event: {"type":"add_gcal_event","data":{"title":"...","date":"YYYY-MM-DD","startTime":"HH:MM","endTime":"HH:MM","location":"...","description":"..."}}
 
@@ -1757,10 +1783,14 @@ RÈGLES :
 
       const response = await fetch("/api/claude", {
         method:"POST", headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({ model:"claude-haiku-4-5-20251001", max_tokens:1000, system:sys,
+        body: JSON.stringify({ model:"claude-haiku-4-5-20251001", max_tokens:2000, system:sys,
           messages:messages.filter((m,i)=>m.role!=="assistant"||i>0).concat([{role:"user",content:userMsg}]).map(m=>({role:m.role,content:m.content})),
         }),
       });
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`Erreur API (${response.status}) : ${errText.slice(0,200)}`);
+      }
       const result = await response.json();
       let text = result.content?.map(c=>c.text||"").join("\n") || "Désolé, erreur.";
 
@@ -1773,22 +1803,22 @@ RÈGLES :
           if(a.type==="add_chantier") { await SB.upsertChantier(a.data); actionLabel="Chantier créé"; }
           else if(a.type==="add_task") { await SB.upsertTask(a.data); actionLabel="Tâche créée"; }
           else if(a.type==="add_contact") { await SB.upsertContact(a.data); actionLabel="Contact créé"; }
+          else if(a.type==="update_contact") { await SB.upsertContact(a.data); actionLabel="Contact mis à jour"; }
           else if(a.type==="add_cr") { await SB.upsertCR(a.data); actionLabel="Compte rendu créé"; }
-          else if(a.type==="add_os") {
-            // Calculate totals for OS
+          else if(a.type==="update_cr") { await SB.upsertCR(a.data); actionLabel="Compte rendu mis à jour"; }
+          else if(a.type==="add_os" || a.type==="update_os") {
             const prests = a.data.prestations || [];
             let ht=0, tva=0;
             prests.forEach(p => { const l=(parseFloat(p.quantite)||0)*(parseFloat(p.prix_unitaire)||0); ht+=l; tva+=l*(parseFloat(p.tva_taux)||20)/100; });
             await SB.upsertOS({ ...a.data, montant_ht:ht, montant_tva:tva, montant_ttc:ht+tva });
-            actionLabel="Ordre de Service créé";
+            actionLabel = a.type==="update_os" ? "Ordre de Service mis à jour" : "Ordre de Service créé";
           }
           else if(a.type==="add_gcal_event") {
-            // Flag for GCal — will be handled by the parent
             setGcalAction(a.data);
             actionLabel="RDV Google Calendar à créer";
           }
           
-          if(reload) reload();
+          if(reload) await reload();
           text=text.replace(/<<<ACTION>>>[\s\S]*?<<<END_ACTION>>>/,"").trim()+`\n\n✅ **${actionLabel} dans Supabase !**`;
         } catch(err) {
           console.error("❌ Action error:", err);
