@@ -620,6 +620,7 @@ export default function App({ user }) {
 function DashboardV({data,setTab,m,user}) {
   const today = new Date().toISOString().split("T")[0];
   const todayGcal = gcalEvents.filter(e=>e.start.split("T")[0]===today);
+  const urgentTasks = data.tasks.filter(t=>t.priorite==="Urgent"&&t.statut!=="Terminé");
   const allActiveTasks = data.tasks
     .filter(t=>t.statut!=="Terminé")
     .sort((a,b)=>{
@@ -627,113 +628,130 @@ function DashboardV({data,setTab,m,user}) {
       if ((pri[a.priorite]??9) !== (pri[b.priorite]??9)) return (pri[a.priorite]??9)-(pri[b.priorite]??9);
       return new Date(a.echeance||"9999")-new Date(b.echeance||"9999");
     });
+  const chantiersEnCours = data.chantiers.filter(c=>c.statut==="En cours").sort((a,b)=>new Date(b.date_debut||0)-new Date(a.date_debut||0)).slice(0,3);
   const totalB = data.chantiers.reduce((s,c)=>s+(Number(c.budget)||0),0);
   const totalD = data.chantiers.reduce((s,c)=>s+(Number(c.depenses)||0),0);
   const enCours = data.chantiers.filter(c=>c.statut==="En cours").length;
-  const Card = ({children,style:s,onClick}) => <div onClick={onClick} style={{background:"#fff",borderRadius:12,padding:m?14:20,boxShadow:"0 1px 3px rgba(0,0,0,0.06)",cursor:onClick?"pointer":"default",...s}}>{children}</div>;
-
-  const kpis = [
-    {l:"Chantiers actifs", v:enCours,              c:"#3B82F6", tab:"projects"},
-    {l:"Tâches en cours",  v:allActiveTasks.length, c:"#8B5CF6", tab:"tasks"},
-    {l:"Budget total",     v:fmtMoney(totalB),      c:"#10B981", tab:"projects"},
-    {l:"Dépensé",          v:pct(totalD,totalB)+"%",c:pct(totalD,totalB)>85?"#EF4444":pct(totalD,totalB)>60?"#F59E0B":"#10B981", tab:"projects"},
-  ];
 
   return (<div>
-    <h1 style={{margin:0,fontSize:m?20:26,fontWeight:700,color:"#0F172A"}}>Bonjour {user?.user_metadata?.full_name?.split(" ")[0] || "Dursun"}</h1>
-    <p style={{margin:"4px 0 20px",color:"#64748B",fontSize:m?12:14}}>{new Date().toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"})} — {enCours} chantier{enCours>1?"s":""} actif{enCours>1?"s":""}</p>
+    {/* HEADER */}
+    <div style={{marginBottom:24}}>
+      <h1 style={{margin:0,fontSize:m?22:28,fontWeight:700,color:"#0F172A"}}>Bonjour {user?.user_metadata?.full_name?.split(" ")[0] || "Dursun"}</h1>
+      <p style={{margin:"6px 0 0",color:"#64748B",fontSize:m?12:13}}>{new Date().toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"})}</p>
+    </div>
 
-    {/* KPIs — cliquables */}
-    <div style={{display:"grid",gridTemplateColumns:m?"repeat(2,1fr)":"repeat(4,1fr)",gap:m?10:16,marginBottom:20}}>
-      {kpis.map((k,i)=>(
-        <Card key={i} onClick={()=>setTab(k.tab)} style={{transition:"box-shadow .15s",":hover":{boxShadow:"0 4px 12px rgba(0,0,0,0.1)"}}}>
-          <div style={{fontSize:10,fontWeight:600,color:"#94A3B8",textTransform:"uppercase",marginBottom:4}}>{k.l}</div>
-          <div style={{fontSize:m?20:28,fontWeight:700,color:k.c}}>{k.v}</div>
-          <div style={{fontSize:10,color:"#CBD5E1",marginTop:4}}>Voir →</div>
-        </Card>
+    {/* ACTIONS RAPIDES */}
+    <div style={{display:"grid",gridTemplateColumns:m?"repeat(2,1fr)":"repeat(4,1fr)",gap:10,marginBottom:24}}>
+      {[
+        {label:"Nouvel OS",icon:"📋",tab:"orders"},
+        {label:"Nouveau CR",icon:"📝",tab:"reports"},
+        {label:"Nouvelle tâche",icon:"✓",tab:"tasks"},
+        {label:"Nouveau chantier",icon:"🏗️",tab:"projects"},
+      ].map((a,i)=>(
+        <button key={i} onClick={()=>setTab(a.tab)} style={{background:"#fff",border:"1.5px solid #E2E8F0",borderRadius:10,padding:12,cursor:"pointer",transition:"all .15s",textAlign:"center",fontWeight:600,fontSize:12,color:"#0F172A",display:"flex",flexDirection:"column",alignItems:"center",gap:6}}>
+          <span style={{fontSize:20}}>{a.icon}</span>{a.label}
+        </button>
       ))}
     </div>
 
-    <div style={{display:"grid",gridTemplateColumns:m?"1fr":"1fr 1fr",gap:16}}>
-      {/* GCAL */}
-      <Card style={{borderTop:`3px solid ${GC.primary}`,background:GC.light}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-          <div style={{display:"flex",alignItems:"center",gap:6}}><span style={{fontWeight:700,fontSize:15}}>Agenda</span><ApiBadge/></div>
-          <button onClick={()=>setTab("gcal")} style={{fontSize:11,color:GC.primary,background:"none",border:"none",cursor:"pointer",fontWeight:600}}>Tout voir →</button>
-        </div>
-        {todayGcal.length===0?<p style={{color:"#94A3B8",fontSize:12}}>Aucun RDV aujourd'hui</p>:todayGcal.map(ev=>(
-          <div key={ev.id} style={{display:"flex",gap:10,padding:"8px 0",borderBottom:`1px solid ${GC.border}`}}>
-            <span style={{background:GC.primary,borderRadius:6,padding:"4px 8px",fontSize:12,fontWeight:700,color:"#fff",whiteSpace:"nowrap"}}>{fmtTime(ev.start)}</span>
-            <div><div style={{fontSize:13,fontWeight:600,color:"#0F172A"}}>{ev.summary}</div>{ev.location&&<div style={{fontSize:11,color:"#64748B"}}>{ev.location}</div>}</div>
-          </div>
-        ))}
-        {gcalEvents.filter(e=>e.start.split("T")[0]>today).slice(0,2).map(ev=>(
-          <div key={ev.id} style={{display:"flex",gap:8,padding:"6px 0",opacity:.6}}>
-            <span style={{fontSize:10,fontWeight:600,color:"#94A3B8",whiteSpace:"nowrap"}}>{fmtDayFr(ev.start)}</span>
-            <span style={{fontSize:12,color:"#64748B"}}>{ev.summary}</span>
-          </div>
-        ))}
-      </Card>
-
-      {/* TOUTES LES TÂCHES */}
-      <Card>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-          <span style={{fontWeight:700,fontSize:15}}>Tâches <span style={{fontSize:12,color:"#94A3B8",fontWeight:400}}>({allActiveTasks.length})</span></span>
-          <button onClick={()=>setTab("tasks")} style={{fontSize:11,color:"#3B82F6",background:"none",border:"none",cursor:"pointer",fontWeight:600}}>Tout voir →</button>
-        </div>
-        <div style={{maxHeight:m?220:280,overflow:"auto"}}>
-          {allActiveTasks.length===0
-            ? <p style={{color:"#94A3B8",fontSize:12}}>Aucune tâche en cours</p>
-            : allActiveTasks.map(t=>{
-                const ch=data.chantiers.find(c=>c.id===(t.chantierId||t.chantier_id));
-                const isUrgent=t.priorite==="Urgent";
-                return(
-                  <div key={t.id} onClick={()=>setTab("tasks")} style={{padding:"8px 0",borderBottom:"1px solid #F1F5F9",display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer",gap:8}}>
-                    <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontSize:12,fontWeight:600,color:isUrgent?"#EF4444":"#0F172A",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{isUrgent?"⚠ ":""}{t.titre}</div>
-                      <div style={{fontSize:10,color:"#94A3B8"}}>{ch?.nom}{t.lot?` • ${t.lot}`:""}</div>
-                    </div>
-                    <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:2,flexShrink:0}}>
-                      <Badge text={t.priorite} color={status[t.priorite]||"#64748B"}/>
-                      {t.echeance&&<span style={{fontSize:9,color:"#94A3B8"}}>{fmtDate(t.echeance)}</span>}
-                    </div>
-                  </div>
-                );
-              })
-          }
-        </div>
-      </Card>
-
-      {/* TOUS LES CHANTIERS */}
-      <Card style={{gridColumn:m?"1":"1/-1"}}>
+    {/* CHANTIERS EN COURS */}
+    {chantiersEnCours.length>0&&(
+      <div style={{background:"#fff",borderRadius:14,padding:m?14:18,boxShadow:"0 1px 3px rgba(0,0,0,0.06)",marginBottom:20}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-          <h3 style={{margin:0,fontSize:15,fontWeight:700}}>Chantiers <span style={{fontSize:12,color:"#94A3B8",fontWeight:400}}>({data.chantiers.length})</span></h3>
-          <button onClick={()=>setTab("projects")} style={{fontSize:11,color:"#3B82F6",background:"none",border:"none",cursor:"pointer",fontWeight:600}}>Tout voir →</button>
+          <h2 style={{margin:0,fontSize:16,fontWeight:700,color:"#0F172A"}}>Chantiers en cours</h2>
+          <button onClick={()=>setTab("projects")} style={{fontSize:11,color:"#3B82F6",background:"none",border:"none",cursor:"pointer",fontWeight:600}}>Voir tous →</button>
         </div>
         <div style={{display:"grid",gridTemplateColumns:m?"1fr":"repeat(3,1fr)",gap:12}}>
-          {data.chantiers.map(ch=>{
+          {chantiersEnCours.map(ch=>{
             const ratio=pct(ch.depenses,ch.budget);
             const budgetColor=ratio>85?"#EF4444":ratio>60?"#F59E0B":"#10B981";
             return(
-              <div key={ch.id} onClick={()=>setTab("projects")} style={{border:`1.5px solid ${phase[ch.phase]||"#E2E8F0"}`,borderRadius:10,padding:12,cursor:"pointer",transition:"box-shadow .15s",opacity:ch.statut==="Planifié"?0.75:1}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:4,gap:6}}>
-                  <span style={{fontWeight:700,fontSize:12,color:"#0F172A",flex:1}}>{ch.nom}</span>
-                  <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:3}}>
-                    <Badge text={ch.phase} color={phase[ch.phase]||"#64748B"}/>
-                    <Badge text={ch.statut} color={status[ch.statut]||"#94A3B8"}/>
-                  </div>
+              <div key={ch.id} onClick={()=>setTab("projects")} style={{border:`2px solid ${phase[ch.phase]||"#E2E8F0"}`,borderRadius:10,padding:12,cursor:"pointer",background:"#FAFAFA",transition:"all .15s",":hover":{boxShadow:"0 4px 12px rgba(0,0,0,0.1)"}}}>
+                <div style={{marginBottom:8}}>
+                  <div style={{fontWeight:700,fontSize:13,color:"#0F172A",marginBottom:2}}>{ch.nom}</div>
+                  <div style={{fontSize:11,color:"#64748B"}}>{ch.client}</div>
                 </div>
-                <div style={{fontSize:10,color:"#64748B",marginBottom:6}}>{ch.client}</div>
                 <PBar value={ch.depenses} max={ch.budget} color={budgetColor}/>
-                <div style={{display:"flex",justifyContent:"space-between",marginTop:4,fontSize:9,color:"#94A3B8"}}>
+                <div style={{display:"flex",justifyContent:"space-between",marginTop:8,fontSize:10,color:"#94A3B8"}}>
+                  <span><span style={{fontWeight:600,color:budgetColor}}>{ratio}%</span> dépensé</span>
                   <span>{fmtMoney(ch.depenses)} / {fmtMoney(ch.budget)}</span>
-                  <span style={{color:budgetColor,fontWeight:600}}>{ratio}%</span>
                 </div>
               </div>
             );
           })}
         </div>
-      </Card>
+      </div>
+    )}
+
+    {/* À FAIRE AUJOURD'HUI */}
+    <div style={{display:"grid",gridTemplateColumns:m?"1fr":"1fr 1fr",gap:16,marginBottom:20}}>
+      {/* AGENDA */}
+      <div style={{background:"#fff",borderRadius:14,padding:m?14:18,boxShadow:"0 1px 3px rgba(0,0,0,0.06)",borderTop:`3px solid ${GC.primary}`}}>
+        <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:12}}>
+          <span style={{fontWeight:700,fontSize:15,color:"#0F172A"}}>📅 Agenda</span>
+          <ApiBadge/>
+        </div>
+        {todayGcal.length===0
+          ? <p style={{color:"#94A3B8",fontSize:12,margin:0}}>Aucun RDV aujourd'hui</p>
+          : <div style={{display:"flex",flexDirection:"column",gap:10}}>
+              {todayGcal.map(ev=>(
+                <div key={ev.id} style={{borderLeft:`3px solid ${GC.primary}`,paddingLeft:10,borderRadius:4}}>
+                  <div style={{fontSize:12,fontWeight:700,color:"#0F172A"}}>{fmtTime(ev.start)} — {ev.summary}</div>
+                  {ev.location&&<div style={{fontSize:11,color:"#64748B",marginTop:2}}>{ev.location}</div>}
+                </div>
+              ))}
+            </div>
+        }
+      </div>
+
+      {/* TÂCHES URGENTES */}
+      <div style={{background:"#FEF2F2",borderRadius:14,padding:m?14:18,border:"1.5px solid #FECACA"}}>
+        <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:12}}>
+          <span style={{fontWeight:700,fontSize:15,color:"#0F172A"}}>⚡ À faire</span>
+          {urgentTasks.length>0&&<span style={{background:"#EF4444",color:"#fff",borderRadius:6,padding:"2px 8px",fontSize:11,fontWeight:700}}>{urgentTasks.length}</span>}
+        </div>
+        {allActiveTasks.length===0
+          ? <p style={{color:"#94A3B8",fontSize:12,margin:0}}>Aucune tâche</p>
+          : <div style={{display:"flex",flexDirection:"column",gap:8}}>
+              {allActiveTasks.slice(0,5).map(t=>{
+                const ch=data.chantiers.find(c=>c.id===(t.chantierId||t.chantier_id));
+                const isUrgent=t.priorite==="Urgent";
+                return(
+                  <div key={t.id} onClick={()=>setTab("tasks")} style={{cursor:"pointer",paddingBottom:8,borderBottom:"1px solid #F1F5F9"}}>
+                    <div style={{fontSize:12,fontWeight:isUrgent?700:600,color:isUrgent?"#EF4444":"#0F172A"}}>{isUrgent?"⚠ ":""}{t.titre}</div>
+                    <div style={{fontSize:10,color:"#94A3B8",marginTop:2}}>{ch?.nom}</div>
+                  </div>
+                );
+              })}
+              {allActiveTasks.length>5&&<button onClick={()=>setTab("tasks")} style={{fontSize:11,color:"#3B82F6",background:"none",border:"none",cursor:"pointer",fontWeight:600,marginTop:4}}>Voir les {allActiveTasks.length-5} autres →</button>}
+            </div>
+        }
+      </div>
+    </div>
+
+    {/* STATISTIQUES */}
+    <div style={{background:"#fff",borderRadius:14,padding:m?14:18,boxShadow:"0 1px 3px rgba(0,0,0,0.06)"}}>
+      <h3 style={{margin:"0 0 14px",fontSize:15,fontWeight:700,color:"#0F172A"}}>Vue d'ensemble</h3>
+      <div style={{display:"grid",gridTemplateColumns:m?"1fr":"repeat(2,1fr)",gap:16}}>
+        <div style={{paddingRight:m?0:16,borderRight:m?"none":"1px solid #E2E8F0"}}>
+          <div style={{fontSize:11,color:"#94A3B8",fontWeight:600,marginBottom:6,textTransform:"uppercase"}}>Chantiers actifs</div>
+          <div style={{fontSize:m?28:32,fontWeight:700,color:"#3B82F6",marginBottom:8}}>{enCours}</div>
+          <div style={{display:"flex",alignItems:"center",gap:8}}>
+            <div style={{flex:1,height:6,background:"#E2E8F0",borderRadius:3,overflow:"hidden"}}>
+              <div style={{height:"100%",background:"#3B82F6",width:enCours/(data.chantiers.length||1)*100+"%"}}/>
+            </div>
+            <span style={{fontSize:10,color:"#64748B"}}>{enCours}/{data.chantiers.length}</span>
+          </div>
+        </div>
+        <div>
+          <div style={{fontSize:11,color:"#94A3B8",fontWeight:600,marginBottom:6,textTransform:"uppercase"}}>Budget</div>
+          <div style={{fontSize:m?24:28,fontWeight:700,color:"#10B981",marginBottom:8}}>{fmtMoney(totalB)}</div>
+          <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:"#64748B"}}>
+            <span>Dépensé: <span style={{fontWeight:600}}>{fmtMoney(totalD)}</span></span>
+            <span style={{color:pct(totalD,totalB)>85?"#EF4444":pct(totalD,totalB)>60?"#F59E0B":"#10B981",fontWeight:600}}>{pct(totalD,totalB)}%</span>
+          </div>
+        </div>
+      </div>
     </div>
   </div>);
 }
@@ -1699,15 +1717,17 @@ function ReportsV({data,save,m,reload}) {
   const handleSave=async()=>{await SB.upsertCR(form);setModal(null);reload();};
   const handleDelete=async(id)=>{if(!window.confirm("Supprimer ce compte rendu ?")) return;await SB.deleteCR(id);reload();};
 
+  const filterCR=(cr)=>{const s=searchCR.toLowerCase();const ch=data.chantiers.find(c=>c.id===(cr.chantierId||cr.chantier_id));return String(cr.numero).toLowerCase().includes(s)||(ch?.nom||"").toLowerCase().includes(s)||(ch?.client||"").toLowerCase().includes(s)||(ch?.commune||"").toLowerCase().includes(s);};
+
   return (<div>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20,flexWrap:"wrap",gap:8}}>
       <h1 style={{margin:0,fontSize:m?18:24,fontWeight:700}}>Comptes Rendus</h1>
       <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
-        <input type="text" placeholder="Rechercher par référence..." value={searchCR} onChange={e=>setSearchCR(e.target.value)} style={{padding:"6px 10px",borderRadius:6,border:"1px solid #E2E8F0",fontSize:12,width:m?"100%":"180px"}}/>
+        <input type="text" placeholder="Rechercher par n°, chantier, client ou commune..." value={searchCR} onChange={e=>setSearchCR(e.target.value)} style={{padding:"6px 10px",borderRadius:6,border:"1px solid #E2E8F0",fontSize:12,width:m?"100%":"220px"}}/>
         <button onClick={openNew} style={{...btnP,fontSize:12}}>+ CR</button>
       </div>
     </div>
-    {(data.compteRendus||[]).filter(cr=>String(cr.numero).includes(searchCR)).sort((a,b)=>new Date(b.date)-new Date(a.date)).map(cr=>{const ch=data.chantiers.find(c=>c.id===(cr.chantierId||cr.chantier_id));return(
+    {(data.compteRendus||[]).filter(filterCR).sort((a,b)=>new Date(b.date)-new Date(a.date)).map(cr=>{const ch=data.chantiers.find(c=>c.id===(cr.chantierId||cr.chantier_id));return(
       <div key={cr.id} style={{background:"#fff",borderRadius:12,padding:m?14:20,boxShadow:"0 1px 3px rgba(0,0,0,0.06)",marginBottom:12}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10,flexWrap:"wrap",gap:6}}>
           <div style={{display:"flex",alignItems:"center",gap:8}}><span style={{background:"#1E3A5F",color:"#fff",borderRadius:6,padding:"3px 8px",fontSize:12,fontWeight:700}}>CR n°{cr.numero}</span><span style={{fontWeight:700,fontSize:14}}>{ch?.nom}</span><span style={{fontSize:11,color:"#94A3B8"}}>{fmtDate(cr.date)}</span></div>
@@ -1829,22 +1849,24 @@ function OrdresServiceV({data,m,reload}) {
   const osStatusColor = { "Brouillon":"#94A3B8", "Émis":"#3B82F6", "Signé":"#8B5CF6", "En cours":"#F59E0B", "Terminé":"#10B981", "Annulé":"#EF4444" };
   const totals = calcTotals();
 
+  const filterOS=(os)=>{const s=searchOS.toLowerCase();const ch=data.chantiers.find(c=>c.id===os.chantier_id);return String(os.numero).toLowerCase().includes(s)||(ch?.nom||"").toLowerCase().includes(s)||(os.client_nom||"").toLowerCase().includes(s)||(ch?.commune||"").toLowerCase().includes(s);};
+
   const artisans = data.contacts.filter(c=>c.type==="Artisan");
 
   return (<div>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20,flexWrap:"wrap",gap:8}}>
       <h1 style={{margin:0,fontSize:m?18:24,fontWeight:700,color:"#0F172A"}}>Ordres de Service</h1>
       <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
-        <input type="text" placeholder="Rechercher par référence..." value={searchOS} onChange={e=>setSearchOS(e.target.value)} style={{padding:"6px 10px",borderRadius:6,border:"1px solid #E2E8F0",fontSize:12,width:m?"100%":"180px"}}/>
+        <input type="text" placeholder="Rechercher par n°, chantier, client ou commune..." value={searchOS} onChange={e=>setSearchOS(e.target.value)} style={{padding:"6px 10px",borderRadius:6,border:"1px solid #E2E8F0",fontSize:12,width:m?"100%":"220px"}}/>
         <button onClick={openNew} style={{...btnP,fontSize:12}}>+ Nouvel OS</button>
       </div>
     </div>
 
     {/* LISTE DES OS */}
     <div style={{display:"grid",gap:12}}>
-      {(data.ordresService||[]).filter(os=>String(os.numero).includes(searchOS)).length===0 ?
+      {(data.ordresService||[]).filter(filterOS).length===0 ?
         <div style={{background:"#fff",borderRadius:12,padding:30,textAlign:"center",color:"#94A3B8",fontSize:13}}>Aucun ordre de service. Cliquez "+ Nouvel OS" pour en créer un.</div>
-      : (data.ordresService||[]).filter(os=>String(os.numero).includes(searchOS)).sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0)).map(os=>{
+      : (data.ordresService||[]).filter(filterOS).sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0)).map(os=>{
         const ch = data.chantiers.find(c=>c.id===os.chantier_id);
         return (
           <div key={os.id} style={{background:"#fff",borderRadius:12,padding:m?14:18,boxShadow:"0 1px 3px rgba(0,0,0,0.06)",borderLeft:`4px solid ${osStatusColor[os.statut]||"#94A3B8"}`}}>
