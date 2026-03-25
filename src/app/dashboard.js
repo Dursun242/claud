@@ -1277,6 +1277,39 @@ function QontoV({m, data, reload}) {
   </div>);
 }
 
+// Template selector component (extracted to root level to avoid conditional hooks)
+function TemplateSelector({chOS, setDetailForm, setDetailModal, ch}) {
+  const [templates, setTemplates] = useState([]);
+
+  useEffect(() => {
+    (async () => {
+      const tpl = await SB.getTemplates('os');
+      setTemplates(tpl);
+    })();
+  }, []);
+
+  return (
+    <div>
+      {templates.length === 0 ? (
+        <p style={{color:"#94A3B8",fontSize:12}}>Aucun template. Créez-en un en cliquant sur 💾 sur un OS.</p>
+      ) : (
+        <div style={{display:"grid",gridTemplateColumns:"1fr",gap:8}}>
+          {templates.map(tpl => (
+            <button key={tpl.id} onClick={() => {
+              const nextNum = `OS-2026-${String(chOS.length+1).padStart(3,"0")}`;
+              setDetailForm({...tpl.data, numero: nextNum, chantier_id: ch.id});
+              setDetailModal("editOS");
+            }} style={{background:"#F0F4F8",border:"1px solid #E2E8F0",borderRadius:8,padding:12,cursor:"pointer",textAlign:"left"}}>
+              <div style={{fontWeight:700,fontSize:13,color:"#0F172A"}}>{tpl.name}</div>
+              <div style={{fontSize:11,color:"#64748B"}}>{tpl.description}</div>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ═══════════════════════════════════════════
 // PROJECTS
 // ═══════════════════════════════════════════
@@ -1575,35 +1608,7 @@ function ProjectsV({data,save,m,reload}) {
       </Modal>
 
       <Modal open={detailModal==="useTemplate"} onClose={()=>setDetailModal(null)} title="Utiliser un template d'OS">
-        {(() => {
-          const [templates, setTemplates] = useState([]);
-          useEffect(() => {
-            (async () => {
-              const tpl = await SB.getTemplates('os');
-              setTemplates(tpl);
-            })();
-          }, []);
-          return (
-            <div>
-              {templates.length === 0 ? (
-                <p style={{color:"#94A3B8",fontSize:12}}>Aucun template. Créez-en un en cliquant sur 💾 sur un OS.</p>
-              ) : (
-                <div style={{display:"grid",gridTemplateColumns:"1fr",gap:8}}>
-                  {templates.map(tpl => (
-                    <button key={tpl.id} onClick={() => {
-                      const nextNum = `OS-2026-${String(chOS.length+1).padStart(3,"0")}`;
-                      setDetailForm({...tpl.data, numero: nextNum, chantier_id: ch.id});
-                      setDetailModal("editOS");
-                    }} style={{background:"#F0F4F8",border:"1px solid #E2E8F0",borderRadius:8,padding:12,cursor:"pointer",textAlign:"left"}}>
-                      <div style={{fontWeight:700,fontSize:13,color:"#0F172A"}}>{tpl.name}</div>
-                      <div style={{fontSize:11,color:"#64748B"}}>{tpl.description}</div>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          );
-        })()}
+        <TemplateSelector chOS={chOS} setDetailForm={setDetailForm} setDetailModal={setDetailModal} ch={ch} />
       </Modal>
     </div>);
   }
