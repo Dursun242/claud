@@ -119,6 +119,94 @@ const SB = {
     }
   },
   async deleteOS(id) { const { error } = await supabase.from('ordres_service').delete().eq('id', id); if (error) console.error("❌ Delete OS:", error.message); },
+
+  // Attachments
+  async uploadAttachment(file, type, itemId) {
+    const fileName = `${Date.now()}-${file.name}`;
+    const filePath = `${type}/${itemId}/${fileName}`;
+    const { error } = await supabase.storage.from('attachments').upload(filePath, file);
+    if (error) throw new Error("Upload échoué: " + error.message);
+    const { data: attachData, error: attachError } = await supabase.from('attachments').insert({
+      [type === 'chantier' ? 'chantier_id' : type === 'os' ? 'os_id' : type === 'cr' ? 'cr_id' : 'task_id']: itemId,
+      file_path: filePath,
+      file_name: file.name,
+      file_type: file.type,
+      file_size: file.size,
+    }).select().single();
+    if (attachError) throw new Error("Erreur enregistrement: " + attachError.message);
+    return attachData;
+  },
+  async getAttachments(type, itemId) {
+    const { data, error } = await supabase.from('attachments').select('*').eq(
+      type === 'chantier' ? 'chantier_id' : type === 'os' ? 'os_id' : type === 'cr' ? 'cr_id' : 'task_id',
+      itemId
+    ).order('uploaded_at', { ascending: false });
+    if (error) throw new Error("Erreur chargement attachments: " + error.message);
+    return data || [];
+  },
+  async deleteAttachment(id, filePath) {
+    await supabase.storage.from('attachments').remove([filePath]);
+    await supabase.from('attachments').delete().eq('id', id);
+  },
+  async getAttachmentUrl(filePath) {
+    const { data } = supabase.storage.from('attachments').getPublicUrl(filePath);
+    return data?.publicUrl;
+  },
+
+  // Templates
+  async getTemplates(type) {
+    const { data, error } = await supabase.from('templates').select('*').eq('type', type).order('name');
+    if (error) throw new Error("Erreur chargement templates: " + error.message);
+    return data || [];
+  },
+  async saveTemplate(type, name, description, data) {
+    const { error } = await supabase.from('templates').insert({ type, name, description, data });
+    if (error) throw new Error("Erreur sauvegarde template: " + error.message);
+  },
+  async deleteTemplate(id) {
+    await supabase.from('templates').delete().eq('id', id);
+  },
+  async duplicateChantier(chantier) {
+    const newCh = { ...chantier };
+    delete newCh.id;
+    delete newCh.created_at;
+    newCh.nom = newCh.nom + " (copie)";
+    return this.upsertChantier(newCh);
+  },
+
+  // Comments
+  async addComment(type, itemId, author, content) {
+    const data = { author_email: author, author_name: author.split('@')[0], content };
+    if (type === 'chantier') data.chantier_id = itemId;
+    else if (type === 'os') data.os_id = itemId;
+    else if (type === 'cr') data.cr_id = itemId;
+    else if (type === 'task') data.task_id = itemId;
+    const { error } = await supabase.from('comments').insert(data);
+    if (error) throw new Error("Erreur ajout commentaire: " + error.message);
+  },
+  async getComments(type, itemId) {
+    const col = type === 'chantier' ? 'chantier_id' : type === 'os' ? 'os_id' : type === 'cr' ? 'cr_id' : 'task_id';
+    const { data, error } = await supabase.from('comments').select('*').eq(col, itemId).order('created_at', { ascending: false });
+    if (error) throw new Error("Erreur chargement commentaires: " + error.message);
+    return data || [];
+  },
+  async deleteComment(id) {
+    await supabase.from('comments').delete().eq('id', id);
+  },
+
+  // Sharing
+  async shareChantier(chantierId, email, permission = 'view') {
+    const { error } = await supabase.from('sharing').insert({ chantier_id: chantierId, shared_with_email: email, permission });
+    if (error) throw new Error("Erreur partage: " + error.message);
+  },
+  async getShares(chantierId) {
+    const { data, error } = await supabase.from('sharing').select('*').eq('chantier_id', chantierId);
+    if (error) throw new Error("Erreur chargement partages: " + error.message);
+    return data || [];
+  },
+  async deleteShare(id) {
+    await supabase.from('sharing').delete().eq('id', id);
+  },
 };
 
 // ─── ICONS ───
@@ -250,6 +338,52 @@ function Badge({text,color}) {
 
 function ApiBadge() {
   return <span style={{display:"inline-flex",alignItems:"center",gap:3,padding:"2px 7px",borderRadius:5,background:GC.gradient,color:"#fff",fontSize:8,fontWeight:800,letterSpacing:"0.1em"}}>API</span>;
+}
+
+function AttachmentsSection({attachments=[], type, itemId, onUpload, onDelete, loading}) {
+  const fileInputRef = useRef(null);
+  const handleFileSelect = async(e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      try {
+        await onUpload(file);
+        e.target.value = '';
+      } catch (err) {
+        console.error("Upload failed:", err);
+      }
+    }
+  };
+  const isImage = (fileName) => /\.(jpg|jpeg|png|gif|webp)$/i.test(fileName);
+  const getFileIcon = (fileName) => /\.pdf$/i.test(fileName) ? '📄' : /\.(xls|xlsx|csv)$/i.test(fileName) ? '📊' : /\.(doc|docx)$/i.test(fileName) ? '📝' : '📎';
+  const getFileUrl = (filePath) => {
+    const { data } = supabase.storage.from('attachments').getPublicUrl(filePath);
+    return data?.publicUrl;
+  };
+
+  return (
+    <div style={{marginTop:12,paddingTop:12,borderTop:"1px solid #E2E8F0"}}>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
+        <span style={{fontSize:12,fontWeight:700,color:"#64748B"}}>📎 Attachments ({attachments.length})</span>
+        <button onClick={()=>fileInputRef.current?.click()} disabled={loading} style={{background:"#3B82F6",color:"#fff",border:"none",borderRadius:4,padding:"4px 10px",fontSize:10,fontWeight:700,cursor:"pointer",opacity:loading?0.6:1}}>
+          {loading ? '⏳' : '+ Ajouter'}
+        </button>
+        <input ref={fileInputRef} type="file" onChange={handleFileSelect} style={{display:"none"}}/>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(80px,1fr))",gap:8}}>
+        {attachments.map(att=>(
+          <div key={att.id} style={{position:"relative",background:"#F8FAFC",borderRadius:6,padding:6,textAlign:"center"}}>
+            {isImage(att.file_name) ? (
+              <img src={getFileUrl(att.file_path)} style={{width:"100%",height:60,objectFit:"cover",borderRadius:4}} alt={att.file_name}/>
+            ) : (
+              <div style={{fontSize:24,textAlign:"center"}}>{getFileIcon(att.file_name)}</div>
+            )}
+            <button onClick={()=>onDelete(att.id,att.file_path)} style={{position:"absolute",top:-4,right:-4,background:"#EF4444",color:"#fff",border:"none",borderRadius:"50%",width:20,height:20,cursor:"pointer",fontSize:12,display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
+            <div style={{fontSize:8,color:"#94A3B8",marginTop:4,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{att.file_name}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 // ═══════════════════════════════════════════
@@ -1161,6 +1295,26 @@ function ProjectsV({data,save,m,reload}) {
     const ch = data.chantiers.find(c=>c.id===selected);
     if (!ch) { setSelected(null); return null; }
 
+    const [attachments, setAttachments] = useState([]);
+    const [comments, setComments] = useState([]);
+    const [shares, setShares] = useState([]);
+    const [newComment, setNewComment] = useState("");
+    const [shareEmail, setShareEmail] = useState("");
+    const [sharePerm, setSharePerm] = useState("view");
+
+    useEffect(() => {
+      (async () => {
+        try {
+          const att = await SB.getAttachments('chantier', ch.id);
+          const com = await SB.getComments('chantier', ch.id);
+          const shr = await SB.getShares(ch.id);
+          setAttachments(att);
+          setComments(com);
+          setShares(shr);
+        } catch (e) { console.error(e); }
+      })();
+    }, [ch.id]);
+
     // Get related data for this chantier
     const chTasks = (data.tasks||[]).filter(t=>(t.chantierId||t.chantier_id)===ch.id);
     const chOS = (data.ordresService||[]).filter(o=>o.chantier_id===ch.id);
@@ -1205,8 +1359,10 @@ function ProjectsV({data,save,m,reload}) {
             <div style={{fontSize:12,color:"#94A3B8",marginTop:4}}>Du {fmtDate(ch.date_debut||ch.dateDebut)} au {fmtDate(ch.date_fin||ch.dateFin)}</div>
             {ch.lots?.length>0 && <div style={{fontSize:11,color:"#CBD5E1",marginTop:4}}>Lots : {ch.lots.join(", ")}</div>}
           </div>
-          <div style={{display:"flex",gap:6}}>
+          <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+            <button onClick={async()=>{await SB.duplicateChantier(ch);reload();}} style={{...btnS,fontSize:12,padding:"8px 14px"}}>Dupliquer</button>
             <button onClick={()=>{setForm({...ch,lots:ch.lots?.join(", ")||"",budget:String(ch.budget),depenses:String(ch.depenses),dateDebut:ch.date_debut||ch.dateDebut||"",dateFin:ch.date_fin||ch.dateFin||""});setModal("edit");}} style={{...btnS,fontSize:12,padding:"8px 14px"}}>Modifier</button>
+            <button onClick={()=>setDetailModal("share")} style={{...btnS,fontSize:12,padding:"8px 14px"}}>👥 Partager</button>
           </div>
         </div>
         {/* Budget bar */}
@@ -1221,10 +1377,20 @@ function ProjectsV({data,save,m,reload}) {
         </div>
       </div>
 
+      {/* ATTACHMENTS DU CHANTIER */}
+      <AttachmentsSection
+        attachments={attachments}
+        type="chantier"
+        itemId={ch.id}
+        onUpload={async(file)=>{await SB.uploadAttachment(file,'chantier',ch.id);const att=await SB.getAttachments('chantier',ch.id);setAttachments(att);}}
+        onDelete={async(id,path)=>{await SB.deleteAttachment(id,path);const att=await SB.getAttachments('chantier',ch.id);setAttachments(att);}}
+      />
+
       {/* ORDRES DE SERVICE */}
       <Section title="Ordres de Service" count={chOS.length} color="#8B5CF6">
-        <div style={{display:"flex",gap:8,marginBottom:12}}>
+        <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap"}}>
           <button onClick={()=>{const nextNum=`OS-2026-${String(chOS.length+1).padStart(3,"0")}`;setDetailForm({numero:nextNum,chantier_id:ch.id,date_emission:new Date().toISOString().split("T")[0],statut:"Brouillon",montant_ttc:0});setDetailModal("newOS");}} style={{background:"#8B5CF6",color:"#fff",border:"none",borderRadius:6,padding:"6px 12px",fontSize:11,fontWeight:700,cursor:"pointer"}}>+ Nouvel OS</button>
+          <button onClick={()=>setDetailModal("useTemplate")} style={{background:"#8B5CF6",color:"#fff",border:"none",borderRadius:6,padding:"6px 12px",fontSize:11,fontWeight:700,cursor:"pointer",opacity:0.7}}>📋 Template</button>
         </div>
         {chOS.length===0 ? <p style={{color:"#94A3B8",fontSize:12}}>Aucun OS pour ce chantier</p> :
           chOS.map(os=>(
@@ -1240,6 +1406,7 @@ function ProjectsV({data,save,m,reload}) {
               <div style={{display:"flex",gap:4,flexShrink:0}}>
                 <button onClick={()=>generateOSPdf({...os,chantier:ch.nom,adresse_chantier:ch.adresse})} style={{background:"#EF4444",border:"none",borderRadius:5,padding:"4px 10px",cursor:"pointer",fontSize:9,fontWeight:700,color:"#fff"}}>PDF</button>
                 <button onClick={()=>generateOSExcel({...os,chantier:ch.nom,adresse_chantier:ch.adresse})} style={{background:"#10B981",border:"none",borderRadius:5,padding:"4px 10px",cursor:"pointer",fontSize:9,fontWeight:700,color:"#fff"}}>XLS</button>
+                <button onClick={async()=>{await SB.saveTemplate('os',`Template ${os.artisan_nom}`,`Template d'OS pour ${os.artisan_nom}`,{...os});alert("✅ Template créé!");}} title="Créer un template à partir de cet OS" style={{background:"#6366F1",border:"none",borderRadius:5,padding:"4px 10px",cursor:"pointer",fontSize:9,fontWeight:700,color:"#fff"}}>💾</button>
                 <button onClick={()=>{setDetailForm(os);setDetailModal("editOS");}} style={{background:"#3B82F6",border:"none",borderRadius:5,padding:"4px 10px",cursor:"pointer",fontSize:9,fontWeight:700,color:"#fff"}}>✎</button>
               </div>
             </div>
@@ -1325,6 +1492,47 @@ function ProjectsV({data,save,m,reload}) {
         </Section>
       )}
 
+      {/* COMMENTAIRES */}
+      <Section title="Commentaires" count={comments.length} color="#EC4899">
+        <div style={{display:"flex",gap:8,marginBottom:12}}>
+          <input type="text" placeholder="Ajouter un commentaire..." value={newComment} onChange={e=>setNewComment(e.target.value)} style={{...inp,flex:1}}/>
+          <button onClick={async()=>{await SB.addComment('chantier',ch.id,user?.email||'Anonyme',newComment);setNewComment("");const com=await SB.getComments('chantier',ch.id);setComments(com);}} style={{background:"#EC4899",color:"#fff",border:"none",borderRadius:6,padding:"6px 12px",fontSize:11,fontWeight:700,cursor:"pointer"}}>Ajouter</button>
+        </div>
+        <div style={{display:"flex",flexDirection:"column",gap:8}}>
+          {comments.map(c=>(
+            <div key={c.id} style={{background:"#FEF1F7",borderRadius:8,padding:12,borderLeft:"3px solid #EC4899"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+                <span style={{fontWeight:700,fontSize:12,color:"#0F172A"}}>{c.author_name}</span>
+                <button onClick={async()=>{await SB.deleteComment(c.id);const com=await SB.getComments('chantier',ch.id);setComments(com);}} style={{background:"none",border:"none",color:"#94A3B8",cursor:"pointer",fontSize:10}}>✕</button>
+              </div>
+              <div style={{fontSize:12,color:"#334155",marginBottom:4}}>{c.content}</div>
+              <div style={{fontSize:10,color:"#94A3B8"}}>{new Date(c.created_at).toLocaleDateString("fr-FR")}</div>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      {/* PARTAGE */}
+      <Section title="Accès & Partage" count={shares.length} color="#06B6D4">
+        <div style={{display:"flex",gap:8,marginBottom:12}}>
+          <input type="email" placeholder="Email..." value={shareEmail} onChange={e=>setShareEmail(e.target.value)} style={{...inp,flex:1}}/>
+          <select value={sharePerm} onChange={e=>setSharePerm(e.target.value)} style={{...sel,width:"120px"}}>
+            <option value="view">Lecture</option>
+            <option value="edit">Édition</option>
+            <option value="admin">Admin</option>
+          </select>
+          <button onClick={async()=>{await SB.shareChantier(ch.id,shareEmail,sharePerm);setShareEmail("");const shr=await SB.getShares(ch.id);setShares(shr);}} style={{background:"#06B6D4",color:"#fff",border:"none",borderRadius:6,padding:"6px 12px",fontSize:11,fontWeight:700,cursor:"pointer"}}>Partager</button>
+        </div>
+        <div style={{display:"flex",flexDirection:"column",gap:6}}>
+          {shares.map(s=>(
+            <div key={s.id} style={{background:"#ECFDF5",borderRadius:6,padding:10,display:"flex",justifyContent:"space-between",alignItems:"center",border:"1px solid #BBEFB9"}}>
+              <div><div style={{fontWeight:600,fontSize:12,color:"#0F172A"}}>{s.shared_with_email}</div><div style={{fontSize:10,color:"#64748B"}}>{s.permission}</div></div>
+              <button onClick={async()=>{await SB.deleteShare(s.id);const shr=await SB.getShares(ch.id);setShares(shr);}} style={{background:"none",border:"none",color:"#10B981",cursor:"pointer",fontSize:10}}>✕</button>
+            </div>
+          ))}
+        </div>
+      </Section>
+
       {/* MODALES POUR OS/CR/TÂCHES */}
       <Modal open={detailModal==="newOS"||detailModal==="editOS"} onClose={()=>setDetailModal(null)} title={detailModal==="newOS"?"Nouvel Ordre de Service":"Modifier l'OS"}>
         <div style={{display:"grid",gridTemplateColumns:m?"1fr":"1fr 1fr",gap:"0 12px"}}>
@@ -1357,6 +1565,38 @@ function ProjectsV({data,save,m,reload}) {
           <FF label="Statut"><select style={sel} value={detailForm.statut||"En attente"} onChange={e=>setDetailForm({...detailForm,statut:e.target.value})}><option>En attente</option><option>En cours</option><option>Terminé</option></select></FF>
         </div>
         <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginTop:12}}><button onClick={()=>setDetailModal(null)} style={btnS}>Annuler</button><button onClick={async()=>{await SB.upsertTask({...detailForm,chantierId:ch.id});setDetailModal(null);reload();}} style={btnP}>Enregistrer</button></div>
+      </Modal>
+
+      <Modal open={detailModal==="useTemplate"} onClose={()=>setDetailModal(null)} title="Utiliser un template d'OS">
+        {(() => {
+          const [templates, setTemplates] = useState([]);
+          useEffect(() => {
+            (async () => {
+              const tpl = await SB.getTemplates('os');
+              setTemplates(tpl);
+            })();
+          }, []);
+          return (
+            <div>
+              {templates.length === 0 ? (
+                <p style={{color:"#94A3B8",fontSize:12}}>Aucun template. Créez-en un en cliquant sur 💾 sur un OS.</p>
+              ) : (
+                <div style={{display:"grid",gridTemplateColumns:"1fr",gap:8}}>
+                  {templates.map(tpl => (
+                    <button key={tpl.id} onClick={() => {
+                      const nextNum = `OS-2026-${String(chOS.length+1).padStart(3,"0")}`;
+                      setDetailForm({...tpl.data, numero: nextNum, chantier_id: ch.id});
+                      setDetailModal("editOS");
+                    }} style={{background:"#F0F4F8",border:"1px solid #E2E8F0",borderRadius:8,padding:12,cursor:"pointer",textAlign:"left"}}>
+                      <div style={{fontWeight:700,fontSize:13,color:"#0F172A"}}>{tpl.name}</div>
+                      <div style={{fontSize:11,color:"#64748B"}}>{tpl.description}</div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })()}
       </Modal>
     </div>);
   }
