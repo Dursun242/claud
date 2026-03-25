@@ -620,19 +620,37 @@ export default function App({ user }) {
 function DashboardV({data,setTab,m,user}) {
   const today = new Date().toISOString().split("T")[0];
   const todayGcal = gcalEvents.filter(e=>e.start.split("T")[0]===today);
-  const urgent = data.tasks.filter(t=>t.priorite==="Urgent"&&t.statut!=="Terminé");
-  const enCours = data.chantiers.filter(c=>c.statut==="En cours");
-  const totalB = data.chantiers.reduce((s,c)=>s+c.budget,0);
-  const totalD = data.chantiers.reduce((s,c)=>s+c.depenses,0);
-  const Card = ({children,style:s}) => <div style={{background:"#fff",borderRadius:12,padding:m?14:20,boxShadow:"0 1px 3px rgba(0,0,0,0.06)",...s}}>{children}</div>;
+  const allActiveTasks = data.tasks
+    .filter(t=>t.statut!=="Terminé")
+    .sort((a,b)=>{
+      const pri = {Urgent:0,"En cours":1,"En attente":2};
+      if ((pri[a.priorite]??9) !== (pri[b.priorite]??9)) return (pri[a.priorite]??9)-(pri[b.priorite]??9);
+      return new Date(a.echeance||"9999")-new Date(b.echeance||"9999");
+    });
+  const totalB = data.chantiers.reduce((s,c)=>s+(Number(c.budget)||0),0);
+  const totalD = data.chantiers.reduce((s,c)=>s+(Number(c.depenses)||0),0);
+  const enCours = data.chantiers.filter(c=>c.statut==="En cours").length;
+  const Card = ({children,style:s,onClick}) => <div onClick={onClick} style={{background:"#fff",borderRadius:12,padding:m?14:20,boxShadow:"0 1px 3px rgba(0,0,0,0.06)",cursor:onClick?"pointer":"default",...s}}>{children}</div>;
+
+  const kpis = [
+    {l:"Chantiers actifs", v:enCours,              c:"#3B82F6", tab:"projects"},
+    {l:"Tâches en cours",  v:allActiveTasks.length, c:"#8B5CF6", tab:"tasks"},
+    {l:"Budget total",     v:fmtMoney(totalB),      c:"#10B981", tab:"projects"},
+    {l:"Dépensé",          v:pct(totalD,totalB)+"%",c:pct(totalD,totalB)>85?"#EF4444":pct(totalD,totalB)>60?"#F59E0B":"#10B981", tab:"projects"},
+  ];
 
   return (<div>
     <h1 style={{margin:0,fontSize:m?20:26,fontWeight:700,color:"#0F172A"}}>Bonjour {user?.user_metadata?.full_name?.split(" ")[0] || "Dursun"}</h1>
-    <p style={{margin:"4px 0 20px",color:"#64748B",fontSize:m?12:14}}>{new Date().toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"})} — {enCours.length} chantiers actifs</p>
+    <p style={{margin:"4px 0 20px",color:"#64748B",fontSize:m?12:14}}>{new Date().toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"})} — {enCours} chantier{enCours>1?"s":""} actif{enCours>1?"s":""}</p>
 
+    {/* KPIs — cliquables */}
     <div style={{display:"grid",gridTemplateColumns:m?"repeat(2,1fr)":"repeat(4,1fr)",gap:m?10:16,marginBottom:20}}>
-      {[{l:"Chantiers",v:enCours.length,c:"#3B82F6"},{l:"Tâches",v:data.tasks.filter(t=>t.statut!=="Terminé").length,c:"#8B5CF6"},{l:"Budget",v:fmtMoney(totalB),c:"#10B981"},{l:"Dépensé",v:pct(totalD,totalB)+"%",c:"#F59E0B"}].map((k,i)=>(
-        <Card key={i}><div style={{fontSize:10,fontWeight:600,color:"#94A3B8",textTransform:"uppercase",marginBottom:4}}>{k.l}</div><div style={{fontSize:m?20:28,fontWeight:700,color:k.c}}>{k.v}</div></Card>
+      {kpis.map((k,i)=>(
+        <Card key={i} onClick={()=>setTab(k.tab)} style={{transition:"box-shadow .15s",":hover":{boxShadow:"0 4px 12px rgba(0,0,0,0.1)"}}}>
+          <div style={{fontSize:10,fontWeight:600,color:"#94A3B8",textTransform:"uppercase",marginBottom:4}}>{k.l}</div>
+          <div style={{fontSize:m?20:28,fontWeight:700,color:k.c}}>{k.v}</div>
+          <div style={{fontSize:10,color:"#CBD5E1",marginTop:4}}>Voir →</div>
+        </Card>
       ))}
     </div>
 
@@ -641,9 +659,9 @@ function DashboardV({data,setTab,m,user}) {
       <Card style={{borderTop:`3px solid ${GC.primary}`,background:GC.light}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
           <div style={{display:"flex",alignItems:"center",gap:6}}><span style={{fontWeight:700,fontSize:15}}>Agenda</span><ApiBadge/></div>
-          <button onClick={()=>setTab("gcal")} style={{fontSize:11,color:GC.primary,background:"none",border:"none",cursor:"pointer",fontWeight:600}}>→</button>
+          <button onClick={()=>setTab("gcal")} style={{fontSize:11,color:GC.primary,background:"none",border:"none",cursor:"pointer",fontWeight:600}}>Tout voir →</button>
         </div>
-        {todayGcal.length===0?<p style={{color:"#94A3B8",fontSize:12}}>Aucun RDV GCal aujourd'hui</p>:todayGcal.map(ev=>(
+        {todayGcal.length===0?<p style={{color:"#94A3B8",fontSize:12}}>Aucun RDV aujourd'hui</p>:todayGcal.map(ev=>(
           <div key={ev.id} style={{display:"flex",gap:10,padding:"8px 0",borderBottom:`1px solid ${GC.border}`}}>
             <span style={{background:GC.primary,borderRadius:6,padding:"4px 8px",fontSize:12,fontWeight:700,color:"#fff",whiteSpace:"nowrap"}}>{fmtTime(ev.start)}</span>
             <div><div style={{fontSize:13,fontWeight:600,color:"#0F172A"}}>{ev.summary}</div>{ev.location&&<div style={{fontSize:11,color:"#64748B"}}>{ev.location}</div>}</div>
@@ -657,35 +675,63 @@ function DashboardV({data,setTab,m,user}) {
         ))}
       </Card>
 
-      {/* URGENT */}
+      {/* TOUTES LES TÂCHES */}
       <Card>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-          <span style={{fontWeight:700,fontSize:15}}>Tâches urgentes</span>
-          <button onClick={()=>setTab("tasks")} style={{fontSize:11,color:"#3B82F6",background:"none",border:"none",cursor:"pointer",fontWeight:600}}>→</button>
+          <span style={{fontWeight:700,fontSize:15}}>Tâches <span style={{fontSize:12,color:"#94A3B8",fontWeight:400}}>({allActiveTasks.length})</span></span>
+          <button onClick={()=>setTab("tasks")} style={{fontSize:11,color:"#3B82F6",background:"none",border:"none",cursor:"pointer",fontWeight:600}}>Tout voir →</button>
         </div>
-        {urgent.length===0?<p style={{color:"#94A3B8",fontSize:12}}>RAS</p>:urgent.map(t=>{const ch=data.chantiers.find(c=>c.id===t.chantierId);return(
-          <div key={t.id} style={{padding:"8px 0",borderBottom:"1px solid #F1F5F9",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-            <div><div style={{fontSize:12,fontWeight:600,color:"#0F172A"}}>{t.titre}</div><div style={{fontSize:10,color:"#94A3B8"}}>{ch?.nom}</div></div>
-            <Badge text={fmtDate(t.echeance)} color="#EF4444"/>
-          </div>
-        );})}
+        <div style={{maxHeight:m?220:280,overflow:"auto"}}>
+          {allActiveTasks.length===0
+            ? <p style={{color:"#94A3B8",fontSize:12}}>Aucune tâche en cours</p>
+            : allActiveTasks.map(t=>{
+                const ch=data.chantiers.find(c=>c.id===(t.chantierId||t.chantier_id));
+                const isUrgent=t.priorite==="Urgent";
+                return(
+                  <div key={t.id} onClick={()=>setTab("tasks")} style={{padding:"8px 0",borderBottom:"1px solid #F1F5F9",display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer",gap:8}}>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontSize:12,fontWeight:600,color:isUrgent?"#EF4444":"#0F172A",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{isUrgent?"⚠ ":""}{t.titre}</div>
+                      <div style={{fontSize:10,color:"#94A3B8"}}>{ch?.nom}{t.lot?` • ${t.lot}`:""}</div>
+                    </div>
+                    <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:2,flexShrink:0}}>
+                      <Badge text={t.priorite} color={status[t.priorite]||"#64748B"}/>
+                      {t.echeance&&<span style={{fontSize:9,color:"#94A3B8"}}>{fmtDate(t.echeance)}</span>}
+                    </div>
+                  </div>
+                );
+              })
+          }
+        </div>
       </Card>
 
-      {/* CHANTIERS */}
+      {/* TOUS LES CHANTIERS */}
       <Card style={{gridColumn:m?"1":"1/-1"}}>
-        <h3 style={{margin:"0 0 14px",fontSize:15,fontWeight:700}}>Chantiers actifs</h3>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+          <h3 style={{margin:0,fontSize:15,fontWeight:700}}>Chantiers <span style={{fontSize:12,color:"#94A3B8",fontWeight:400}}>({data.chantiers.length})</span></h3>
+          <button onClick={()=>setTab("projects")} style={{fontSize:11,color:"#3B82F6",background:"none",border:"none",cursor:"pointer",fontWeight:600}}>Tout voir →</button>
+        </div>
         <div style={{display:"grid",gridTemplateColumns:m?"1fr":"repeat(3,1fr)",gap:12}}>
-          {enCours.map(ch=>(
-            <div key={ch.id} style={{border:`1.5px solid ${phase[ch.phase]||"#E2E8F0"}`,borderRadius:10,padding:12}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
-                <span style={{fontWeight:700,fontSize:12,color:"#0F172A"}}>{ch.nom}</span>
-                <Badge text={ch.phase} color={phase[ch.phase]||"#64748B"}/>
+          {data.chantiers.map(ch=>{
+            const ratio=pct(ch.depenses,ch.budget);
+            const budgetColor=ratio>85?"#EF4444":ratio>60?"#F59E0B":"#10B981";
+            return(
+              <div key={ch.id} onClick={()=>setTab("projects")} style={{border:`1.5px solid ${phase[ch.phase]||"#E2E8F0"}`,borderRadius:10,padding:12,cursor:"pointer",transition:"box-shadow .15s",opacity:ch.statut==="Planifié"?0.75:1}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:4,gap:6}}>
+                  <span style={{fontWeight:700,fontSize:12,color:"#0F172A",flex:1}}>{ch.nom}</span>
+                  <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:3}}>
+                    <Badge text={ch.phase} color={phase[ch.phase]||"#64748B"}/>
+                    <Badge text={ch.statut} color={status[ch.statut]||"#94A3B8"}/>
+                  </div>
+                </div>
+                <div style={{fontSize:10,color:"#64748B",marginBottom:6}}>{ch.client}</div>
+                <PBar value={ch.depenses} max={ch.budget} color={budgetColor}/>
+                <div style={{display:"flex",justifyContent:"space-between",marginTop:4,fontSize:9,color:"#94A3B8"}}>
+                  <span>{fmtMoney(ch.depenses)} / {fmtMoney(ch.budget)}</span>
+                  <span style={{color:budgetColor,fontWeight:600}}>{ratio}%</span>
+                </div>
               </div>
-              <div style={{fontSize:10,color:"#64748B",marginBottom:6}}>{ch.client}</div>
-              <PBar value={ch.depenses} max={ch.budget} color={phase[ch.phase]||"#3B82F6"}/>
-              <div style={{display:"flex",justifyContent:"space-between",marginTop:4,fontSize:9,color:"#94A3B8"}}><span>{fmtMoney(ch.depenses)}</span><span>{pct(ch.depenses,ch.budget)}%</span></div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </Card>
     </div>
