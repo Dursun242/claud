@@ -207,6 +207,24 @@ const SB = {
   async deleteShare(id) {
     await supabase.from('sharing').delete().eq('id', id);
   },
+
+  // ─── AUTHORIZED USERS MANAGEMENT ───
+  async getAuthorizedUsers() {
+    const { data, error } = await supabase.from('authorized_users').select('*').order('prenom');
+    if (error) throw new Error("Erreur chargement utilisateurs: " + error.message);
+    return data || [];
+  },
+  async addAuthorizedUser(email, prenom, nom, role = 'salarié') {
+    const { data, error } = await supabase.from('authorized_users').insert({
+      email, prenom, nom, role, actif: true
+    }).select().single();
+    if (error) throw new Error("Erreur ajout utilisateur: " + error.message);
+    return data;
+  },
+  async removeAuthorizedUser(id) {
+    const { error } = await supabase.from('authorized_users').delete().eq('id', id);
+    if (error) throw new Error("Erreur suppression utilisateur: " + error.message);
+  },
 };
 
 // ─── ICONS ───
@@ -227,6 +245,7 @@ const I = {
   edit: "M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7 M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z",
   trash: "M3 6h18 M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2",
   check: "M20 6L9 17l-5-5",
+  settings: "M12 2c5.523 0 10 4.477 10 10s-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2z M12 6v12M6 12h12",
   x: "M18 6L6 18 M6 6l12 12",
   search: "M11 17.25a6.25 6.25 0 1 1 0-12.5 6.25 6.25 0 0 1 0 12.5z M16 16l4.5 4.5",
   link: "M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71 M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71",
@@ -486,6 +505,104 @@ function MicButtonInline({ listening, onClick }) {
 // ═══════════════════════════════════════════
 // MAIN APP (Responsive)
 // ═══════════════════════════════════════════
+// ADMIN PANEL
+// ═══════════════════════════════════════════
+function AdminV({m, reload}) {
+  const [users, setUsers] = useState([]);
+  const [newEmail, setNewEmail] = useState("");
+  const [newPrenom, setNewPrenom] = useState("");
+  const [newNom, setNewNom] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    loadUsers();
+  }, []);
+
+  const loadUsers = async () => {
+    try {
+      const data = await SB.getAuthorizedUsers();
+      setUsers(data);
+    } catch (err) {
+      console.error("Erreur chargement utilisateurs:", err);
+    }
+  };
+
+  const handleAdd = async () => {
+    if (!newEmail || !newPrenom) {
+      alert("Email et prénom requis");
+      return;
+    }
+    setLoading(true);
+    try {
+      await SB.addAuthorizedUser(newEmail, newPrenom, newNom);
+      setNewEmail("");
+      setNewPrenom("");
+      setNewNom("");
+      loadUsers();
+      alert("✅ Salarié ajouté!");
+    } catch (err) {
+      alert("❌ Erreur: " + err.message);
+    }
+    setLoading(false);
+  };
+
+  const handleRemove = async (id) => {
+    if (!window.confirm("Retirer cet accès?")) return;
+    try {
+      await SB.removeAuthorizedUser(id);
+      loadUsers();
+      alert("✅ Accès retiré");
+    } catch (err) {
+      alert("❌ Erreur: " + err.message);
+    }
+  };
+
+  return (
+    <div>
+      <h1 style={{margin:"0 0 20px",fontSize:m?18:24,fontWeight:700}}>🔒 Gestion des accès</h1>
+
+      {/* AJOUTER UN SALARIÉ */}
+      <div style={{background:"#fff",borderRadius:14,padding:m?14:18,boxShadow:"0 1px 3px rgba(0,0,0,0.06)",marginBottom:20}}>
+        <h2 style={{margin:"0 0 14px",fontSize:15,fontWeight:700}}>➕ Ajouter un salarié</h2>
+        <div style={{display:"grid",gridTemplateColumns:m?"1fr":"repeat(3,1fr)",gap:12,marginBottom:12}}>
+          <input type="email" placeholder="email@gmail.com" value={newEmail} onChange={e=>setNewEmail(e.target.value)} style={{padding:"10px 12px",border:"1.5px solid #E2E8F0",borderRadius:8,fontSize:13,fontFamily:"inherit"}}/>
+          <input type="text" placeholder="Prénom" value={newPrenom} onChange={e=>setNewPrenom(e.target.value)} style={{padding:"10px 12px",border:"1.5px solid #E2E8F0",borderRadius:8,fontSize:13,fontFamily:"inherit"}}/>
+          <input type="text" placeholder="Nom (optionnel)" value={newNom} onChange={e=>setNewNom(e.target.value)} style={{padding:"10px 12px",border:"1.5px solid #E2E8F0",borderRadius:8,fontSize:13,fontFamily:"inherit"}}/>
+        </div>
+        <button onClick={handleAdd} disabled={loading} style={{...btnP,fontSize:12}}>
+          {loading ? "⏳ Ajout..." : "✓ Ajouter"}
+        </button>
+      </div>
+
+      {/* LISTE DES SALARIÉS */}
+      <div style={{background:"#fff",borderRadius:14,padding:m?14:18,boxShadow:"0 1px 3px rgba(0,0,0,0.06)"}}>
+        <h2 style={{margin:"0 0 14px",fontSize:15,fontWeight:700}}>👥 Utilisateurs autorisés ({users.length})</h2>
+        <div style={{display:"grid",gap:10}}>
+          {users.length===0 ? (
+            <p style={{color:"#94A3B8",fontSize:13}}>Aucun utilisateur</p>
+          ) : (
+            users.map(u=>(
+              <div key={u.id} style={{background:"#F8FAFC",borderRadius:10,padding:12,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <div>
+                  <div style={{fontWeight:700,fontSize:13,color:"#0F172A"}}>{u.prenom} {u.nom||""}</div>
+                  <div style={{fontSize:11,color:"#64748B"}}>{u.email}</div>
+                  <div style={{fontSize:10,color:"#94A3B8",marginTop:2}}>
+                    {u.role==="admin"?"🔑 Admin":"👤 Salarié"}
+                  </div>
+                </div>
+                <button onClick={()=>handleRemove(u.id)} style={{background:"#FEF2F2",border:"1px solid #FECACA",borderRadius:6,padding:"6px 12px",color:"#EF4444",fontSize:12,cursor:"pointer",fontWeight:600}}>
+                  Retirer
+                </button>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════
 export default function App({ user }) {
   const [data, setData] = useState(null);
   const [tab, setTab] = useState("dashboard");
@@ -637,6 +754,7 @@ export default function App({ user }) {
     {key:"contacts",label:"Annuaire",icon:I.contacts},
     {key:"qonto",label:"Qonto",icon:null,isQonto:true},
     {key:"gcal",label:"Agenda Google",icon:null,isGcal:true},
+    {key:"admin",label:"🔒 Admin",icon:I.settings},
     {key:"ai",label:"Assistant IA",icon:I.ai},
   ];
 
@@ -729,6 +847,7 @@ export default function App({ user }) {
           {tab==="contacts"&&<ContactsV data={data} save={save} m={isMobile} reload={reload}/>}
           {tab==="reports"&&<ReportsV data={data} save={save} m={isMobile} reload={reload}/>}
           {tab==="os"&&<OrdresServiceV data={data} m={isMobile} reload={reload}/>}
+          {tab==="admin"&&<AdminV m={isMobile} reload={reload}/>}
           {tab==="ai"&&<AIV data={data} save={save} m={isMobile} externalTranscript={floatTranscript} clearExternal={()=>setFloatTranscript("")} reload={reload}/>}
         </div>
       </main>
