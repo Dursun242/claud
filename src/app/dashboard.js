@@ -800,24 +800,34 @@ function QontoV({m}) {
   const [error, setError] = useState("");
   const [connected, setConnected] = useState(false);
 
-  // Load saved token
+  // Load saved token — vérifie le format login:secret-key
   useEffect(() => {
-    (async () => {
-      const t = LocalDB.get("qonto-token");
-      if (t) { setSavedToken(t); setToken(t); }
-    })();
+    const t = LocalDB.get("qonto-token");
+    if (t && t.includes(":")) {
+      setSavedToken(t); setToken(t);
+    } else if (t) {
+      // Ancien format invalide → on efface pour forcer re-saisie
+      LocalDB.set("qonto-token", "");
+    }
   }, []);
 
   const saveToken = async () => {
-    if (!token.trim()) return;
-    LocalDB.set("qonto-token", token.trim());
-    setSavedToken(token.trim());
-    fetchAll(token.trim());
+    const t = token.trim();
+    if (!t) return;
+    // Vérifie le format login:secret-key
+    if (!t.includes(":")) {
+      setError("Format invalide. Le token doit être au format login:secret-key (avec un deux-points).");
+      return;
+    }
+    setError("");
+    LocalDB.set("qonto-token", t);
+    setSavedToken(t);
+    fetchAll(t);
   };
 
   const disconnect = async () => {
     LocalDB.set("qonto-token", "");
-    setSavedToken(""); setToken(""); setConnected(false);
+    setSavedToken(""); setToken(""); setConnected(false); setError("");
     setInvoices([]); setQuotes([]); setClients([]);
   };
 
@@ -891,12 +901,27 @@ function QontoV({m}) {
     ) : (
       <>
         {/* CONNECTION STATUS */}
-        <div style={{background:connected?"#F0FDF4":"#FEF2F2",border:`1.5px solid ${connected?"#BBF7D0":"#FECACA"}`,borderRadius:10,padding:"10px 14px",marginBottom:16,display:"flex",alignItems:"center",gap:8,fontSize:12,flexWrap:"wrap"}}>
-          <div style={{width:8,height:8,borderRadius:"50%",background:connected?"#22C55E":"#EF4444",animation:connected?"pulseGlow 2s infinite":"none"}}/>
-          <span style={{fontWeight:600,color:connected?"#166534":"#991B1B"}}>{connected?"Connecté":"Déconnecté"}</span>
-          {error && <span style={{color:"#DC2626",fontSize:11}}>{error}</span>}
-          <span style={{marginLeft:"auto",color:QT.primary,cursor:"pointer",fontWeight:600,fontSize:11}} onClick={()=>fetchAll(savedToken)}>Rafraîchir</span>
-          <span style={{color:"#94A3B8",cursor:"pointer",fontSize:11}} onClick={disconnect}>Déconnecter</span>
+        <div style={{background:connected?"#F0FDF4":"#FEF2F2",border:`1.5px solid ${connected?"#BBF7D0":"#FECACA"}`,borderRadius:10,padding:"10px 14px",marginBottom:16,fontSize:12}}>
+          <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+            <div style={{width:8,height:8,borderRadius:"50%",background:connected?"#22C55E":"#EF4444",animation:connected?"pulseGlow 2s infinite":"none",flexShrink:0}}/>
+            <span style={{fontWeight:600,color:connected?"#166534":"#991B1B"}}>{connected?"Connecté":"Échec de connexion"}</span>
+            {connected && <span style={{color:"#64748B"}}>• {savedToken.split(":")[0]}</span>}
+            <span style={{marginLeft:"auto",color:QT.primary,cursor:"pointer",fontWeight:600,fontSize:11}} onClick={()=>fetchAll(savedToken)}>Rafraîchir</span>
+            <span style={{color:"#94A3B8",cursor:"pointer",fontSize:11}} onClick={disconnect}>Changer de compte</span>
+          </div>
+          {error && (
+            <div style={{marginTop:8,background:"#FEF2F2",border:"1px solid #FECACA",borderRadius:6,padding:"8px 10px"}}>
+              <div style={{color:"#DC2626",fontWeight:600,marginBottom:4}}>❌ {error}</div>
+              {error.includes("401") && (
+                <div style={{color:"#64748B",fontSize:11,lineHeight:1.6}}>
+                  <b>Vérifiez vos identifiants Qonto :</b><br/>
+                  1. Allez dans <b>Qonto → Paramètres → Intégrations → API</b><br/>
+                  2. Copiez le <b>Login</b> et la <b>Secret key</b><br/>
+                  3. Cliquez <b>"Changer de compte"</b> et entrez : <code style={{background:"#F1F5F9",padding:"1px 4px",borderRadius:3}}>votre-login:votre-secret-key</code>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {qLoading ? (
