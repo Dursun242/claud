@@ -1331,17 +1331,67 @@ function TasksV({data,save,m,reload}) {
 // ═══════════════════════════════════════════
 function ContactsV({data,save,m,reload}) {
   const [modal,setModal]=useState(null);const [form,setForm]=useState({});const [tf,setTf]=useState("all");const [q,setQ]=useState("");
+  const [pSearch,setPSearch]=useState("");const [pLoading,setPLoading]=useState(false);const [pResults,setPResults]=useState(null);const [pError,setPError]=useState("");
   const tc={Artisan:"#F59E0B",Client:"#3B82F6",Fournisseur:"#10B981","Sous-traitant":"#8B5CF6",Prestataire:"#EC4899",MOA:"#0EA5E9",Architecte:"#6366F1",BET:"#14B8A6"};
   const types = ["Artisan","Sous-traitant","Prestataire","Client","Fournisseur","MOA","Architecte","BET"];
   const list=data.contacts.filter(c=>{
     if(tf!=="all"&&c.type!==tf) return false;
     if(!q) return true;
     const search=q.toLowerCase();
-    return (c.nom||"").toLowerCase().includes(search)||(c.specialite||"").toLowerCase().includes(search)||(c.societe||"").toLowerCase().includes(search)||(c.ville||"").toLowerCase().includes(search)||(c.email||"").toLowerCase().includes(search);
+    return (c.nom||"").toLowerCase().includes(search)||(c.specialite||"").toLowerCase().includes(search)||(c.societe||"").toLowerCase().includes(search)||(c.ville||"").toLowerCase().includes(search)||(c.email||"").toLowerCase().includes(search)||(c.siret||"").includes(search);
   });
-  const openNew=()=>{setForm({nom:"",type:"Artisan",specialite:"",societe:"",fonction:"",tel:"",tel_fixe:"",email:"",adresse:"",code_postal:"",ville:"",siret:"",tva_intra:"",assurance_decennale:"",assurance_validite:"",iban:"",qualifications:"",site_web:"",note:0,actif:true,notes:""});setModal("new");};
+
+  const emptyForm = {nom:"",type:"Artisan",specialite:"",societe:"",fonction:"",tel:"",tel_fixe:"",email:"",adresse:"",code_postal:"",ville:"",siret:"",tva_intra:"",assurance_decennale:"",assurance_validite:"",iban:"",qualifications:"",site_web:"",note:0,actif:true,notes:""};
+
+  const openNew=()=>{setForm(emptyForm);setPSearch("");setPResults(null);setPError("");setModal("new");};
   const handleSave=async()=>{await SB.upsertContact(form);setModal(null);reload();};
   const handleDelete=async(id)=>{if(!window.confirm("Supprimer ce contact ? Cette action est irréversible.")) return;await SB.deleteContact(id);reload();};
+
+  // ── Pappers : mapping réponse → formulaire ──
+  const fillFromPappers = (entreprise) => {
+    const siege = entreprise.siege || {};
+    setForm(f => ({
+      ...f,
+      nom: entreprise.denomination || f.nom,
+      societe: entreprise.denomination || f.societe,
+      siret: entreprise.siret || siege.siret || f.siret,
+      tva_intra: entreprise.num_tva_intracommunautaire || f.tva_intra,
+      adresse: siege.adresse_ligne_1 || siege.adresse || f.adresse,
+      code_postal: siege.code_postal || f.code_postal,
+      ville: siege.ville || f.ville,
+      tel: entreprise.telephone || f.tel,
+      email: entreprise.email || f.email,
+      site_web: entreprise.site_internet || f.site_web,
+      specialite: entreprise.libelle_activite_principale || f.specialite,
+    }));
+    setPResults(null);
+    setPSearch("");
+    setPError("");
+  };
+
+  const searchPappers = async () => {
+    const v = pSearch.trim();
+    if (!v) return;
+    setPLoading(true); setPError(""); setPResults(null);
+    try {
+      const isSiret = /^\d{14}$/.test(v.replace(/\s/g,""));
+      const cleanSiret = v.replace(/\s/g,"");
+      const url = isSiret ? `/api/pappers?siret=${cleanSiret}` : `/api/pappers?q=${encodeURIComponent(v)}`;
+      const res = await fetch(url);
+      const json = await res.json();
+      if (!res.ok) { setPError(json.error || "Erreur Pappers"); return; }
+      if (isSiret) {
+        // Résultat direct → on remplit le form
+        fillFromPappers(json);
+      } else {
+        // Liste de résultats → on affiche pour choisir
+        const results = json.resultats || [];
+        if (results.length === 0) { setPError("Aucune entreprise trouvée."); return; }
+        setPResults(results);
+      }
+    } catch(e) { setPError("Erreur réseau : " + e.message); }
+    finally { setPLoading(false); }
+  };
 
   // Stats par type
   const stats = {};
@@ -1401,6 +1451,50 @@ function ContactsV({data,save,m,reload}) {
 
     {/* MODAL — Formulaire enrichi */}
     <Modal open={!!modal} onClose={()=>setModal(null)} title={modal==="new"?"Nouveau contact":"Modifier le contact"} wide>
+
+      {/* ── RECHERCHE PAPPERS ── */}
+      <div style={{background:"#EFF6FF",border:"1.5px solid #BFDBFE",borderRadius:10,padding:"12px 14px",marginBottom:16}}>
+        <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+          <span style={{fontSize:12,fontWeight:700,color:"#1E40AF"}}>Recherche Pappers</span>
+          <span style={{fontSize:10,color:"#60A5FA"}}>SIRET (14 chiffres) ou nom de l'entreprise</span>
+        </div>
+        <div style={{display:"flex",gap:8}}>
+          <input
+            style={{...inp,flex:1,fontSize:13}}
+            placeholder="Ex: 12345678901234 ou Lefèvre Électricité..."
+            value={pSearch}
+            onChange={e=>setPSearch(e.target.value)}
+            onKeyDown={e=>e.key==="Enter"&&searchPappers()}
+          />
+          <button
+            onClick={searchPappers}
+            disabled={pLoading||!pSearch.trim()}
+            style={{...btnP,background:"#3B82F6",padding:"8px 16px",fontSize:12,opacity:pLoading||!pSearch.trim()?0.6:1,whiteSpace:"nowrap"}}
+          >{pLoading?"Recherche...":"Rechercher"}</button>
+        </div>
+        {pError && <div style={{marginTop:8,fontSize:11,color:"#EF4444"}}>{pError}</div>}
+        {pResults && (
+          <div style={{marginTop:10,display:"flex",flexDirection:"column",gap:6}}>
+            <div style={{fontSize:11,color:"#64748B",fontWeight:600}}>Sélectionnez une entreprise :</div>
+            {pResults.map((r,i)=>{
+              const siege = r.siege||{};
+              return (
+                <button key={i} onClick={()=>fillFromPappers(r)}
+                  style={{background:"#fff",border:"1.5px solid #BFDBFE",borderRadius:8,padding:"8px 12px",cursor:"pointer",textAlign:"left",display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,fontFamily:"inherit"}}>
+                  <div>
+                    <div style={{fontSize:13,fontWeight:700,color:"#0F172A"}}>{r.denomination}</div>
+                    <div style={{fontSize:10,color:"#64748B"}}>{siege.code_postal} {siege.ville} — SIRET {r.siret}</div>
+                    {r.libelle_activite_principale&&<div style={{fontSize:10,color:"#94A3B8"}}>{r.libelle_activite_principale}</div>}
+                  </div>
+                  <span style={{fontSize:11,color:"#3B82F6",fontWeight:600,flexShrink:0}}>Importer →</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
       {/* Identité */}
       <div style={{fontSize:11,fontWeight:700,color:"#1E3A5F",textTransform:"uppercase",marginBottom:8,marginTop:4}}>Identité</div>
       <div style={{display:"grid",gridTemplateColumns:m?"1fr":"1fr 1fr 1fr",gap:"0 12px"}}>
