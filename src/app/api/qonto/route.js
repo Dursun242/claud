@@ -9,7 +9,7 @@ export async function GET(request) {
     }
 
     // Whitelist allowed endpoints (read-only)
-    const allowed = ['client_invoices', 'quotes', 'clients']
+    const allowed = ['client_invoices', 'quotes', 'clients', 'attachments']
     const base = endpoint.split('?')[0]
     if (!allowed.some(a => base.includes(a))) {
       return Response.json({ error: "Endpoint not allowed" }, { status: 403 })

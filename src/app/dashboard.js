@@ -867,17 +867,32 @@ function QontoV({m, data, reload}) {
 
   // ── Téléchargement PDF ──
   const downloadPdf = async (item, type) => {
-    // Qonto renvoie pdf_url, file_url ou attachment selon la version
-    const url = item.pdf_url || item.file_url || item.attachment?.url || item.pdf_download_url;
-    if (url) { window.open(url, "_blank"); return; }
-    // Sinon appel API pour récupérer l'URL
+    // 1. Champs directs possibles selon la version de l'API Qonto
+    const directUrl = item.pdf_url || item.file_url || item.pdf_download_url
+      || item.attachment?.url || item.file?.url || item.document_url
+      || item.attachments?.[0]?.url;
+    if (directUrl) { window.open(directUrl, "_blank"); return; }
+
     try {
+      // 2. Récupération du détail complet
       const endpoint = type === "invoice" ? `client_invoices/${item.id}` : `quotes/${item.id}`;
       const detail = await fetchQonto(endpoint, savedToken);
       const doc = detail.client_invoice || detail.quote || detail;
-      const docUrl = doc.pdf_url || doc.file_url || doc.attachment?.url;
-      if (docUrl) { window.open(docUrl, "_blank"); }
-      else { alert("PDF non disponible via l'API Qonto pour ce document."); }
+
+      const docUrl = doc.pdf_url || doc.file_url || doc.pdf_download_url
+        || doc.attachment?.url || doc.file?.url || doc.document_url
+        || doc.attachments?.[0]?.url;
+      if (docUrl) { window.open(docUrl, "_blank"); return; }
+
+      // 3. Qonto stocke parfois le PDF dans un attachment séparé via attachment_ids
+      const attId = doc.attachment_ids?.[0] || doc.attachment_id;
+      if (attId) {
+        const att = await fetchQonto(`attachments/${attId}`, savedToken);
+        const attUrl = att.attachment?.url || att.url || att.file_url || att.file?.url;
+        if (attUrl) { window.open(attUrl, "_blank"); return; }
+      }
+
+      alert("PDF non disponible via l'API Qonto pour ce document.");
     } catch(e) { alert("Erreur récupération PDF : " + e.message); }
   };
 
