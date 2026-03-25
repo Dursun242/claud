@@ -1285,35 +1285,42 @@ function ProjectsV({data,save,m,reload}) {
   const [selected,setSelected]=useState(null); // Selected chantier for detail view
   const [detailModal,setDetailModal]=useState(null); // Modal for OS/CR/Tasks within chantier
   const [detailForm,setDetailForm]=useState({});
+  // Detail view states (moved to root level to fix React hook rules)
+  const [attachments, setAttachments] = useState([]);
+  const [comments, setComments] = useState([]);
+  const [shares, setShares] = useState([]);
+  const [newComment, setNewComment] = useState("");
+  const [shareEmail, setShareEmail] = useState("");
+  const [sharePerm, setSharePerm] = useState("view");
 
   const openNew=()=>{setForm({nom:"",client:"",adresse:"",phase:"Hors d'air",statut:"Planifié",budget:"",depenses:0,dateDebut:"",dateFin:"",lots:""});setModal("new");};
   const handleSave=async()=>{const e={...form,budget:Number(form.budget)||0,depenses:Number(form.depenses)||0,lots:typeof form.lots==="string"?(form.lots||"").split(",").map(l=>l.trim()).filter(Boolean):form.lots||[]};await SB.upsertChantier(e);setModal(null);reload();};
   const handleDelete=async(id)=>{if(!window.confirm("Supprimer ce chantier ? Cette action est irréversible.")) return;await SB.deleteChantier(id);setSelected(null);reload();};
 
+  // Load detail data when selected changes
+  useEffect(() => {
+    if (!selected) {
+      setAttachments([]);
+      setComments([]);
+      setShares([]);
+      return;
+    }
+    (async () => {
+      try {
+        const att = await SB.getAttachments('chantier', selected);
+        const com = await SB.getComments('chantier', selected);
+        const shr = await SB.getShares(selected);
+        setAttachments(att);
+        setComments(com);
+        setShares(shr);
+      } catch (e) { console.error(e); }
+    })();
+  }, [selected]);
+
   // If a chantier is selected, show detail view
   if (selected) {
     const ch = data.chantiers.find(c=>c.id===selected);
     if (!ch) { setSelected(null); return null; }
-
-    const [attachments, setAttachments] = useState([]);
-    const [comments, setComments] = useState([]);
-    const [shares, setShares] = useState([]);
-    const [newComment, setNewComment] = useState("");
-    const [shareEmail, setShareEmail] = useState("");
-    const [sharePerm, setSharePerm] = useState("view");
-
-    useEffect(() => {
-      (async () => {
-        try {
-          const att = await SB.getAttachments('chantier', ch.id);
-          const com = await SB.getComments('chantier', ch.id);
-          const shr = await SB.getShares(ch.id);
-          setAttachments(att);
-          setComments(com);
-          setShares(shr);
-        } catch (e) { console.error(e); }
-      })();
-    }, [ch.id]);
 
     // Get related data for this chantier
     const chTasks = (data.tasks||[]).filter(t=>(t.chantierId||t.chantier_id)===ch.id);
