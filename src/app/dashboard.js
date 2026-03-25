@@ -1699,15 +1699,17 @@ function ReportsV({data,save,m,reload}) {
   const handleSave=async()=>{await SB.upsertCR(form);setModal(null);reload();};
   const handleDelete=async(id)=>{if(!window.confirm("Supprimer ce compte rendu ?")) return;await SB.deleteCR(id);reload();};
 
+  const filterCR=(cr)=>{const s=searchCR.toLowerCase();const ch=data.chantiers.find(c=>c.id===(cr.chantierId||cr.chantier_id));return String(cr.numero).toLowerCase().includes(s)||(ch?.nom||"").toLowerCase().includes(s)||(ch?.client||"").toLowerCase().includes(s)||(ch?.commune||"").toLowerCase().includes(s);};
+
   return (<div>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20,flexWrap:"wrap",gap:8}}>
       <h1 style={{margin:0,fontSize:m?18:24,fontWeight:700}}>Comptes Rendus</h1>
       <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
-        <input type="text" placeholder="Rechercher par référence..." value={searchCR} onChange={e=>setSearchCR(e.target.value)} style={{padding:"6px 10px",borderRadius:6,border:"1px solid #E2E8F0",fontSize:12,width:m?"100%":"180px"}}/>
+        <input type="text" placeholder="Rechercher par n°, chantier, client ou commune..." value={searchCR} onChange={e=>setSearchCR(e.target.value)} style={{padding:"6px 10px",borderRadius:6,border:"1px solid #E2E8F0",fontSize:12,width:m?"100%":"220px"}}/>
         <button onClick={openNew} style={{...btnP,fontSize:12}}>+ CR</button>
       </div>
     </div>
-    {(data.compteRendus||[]).filter(cr=>String(cr.numero).includes(searchCR)).sort((a,b)=>new Date(b.date)-new Date(a.date)).map(cr=>{const ch=data.chantiers.find(c=>c.id===(cr.chantierId||cr.chantier_id));return(
+    {(data.compteRendus||[]).filter(filterCR).sort((a,b)=>new Date(b.date)-new Date(a.date)).map(cr=>{const ch=data.chantiers.find(c=>c.id===(cr.chantierId||cr.chantier_id));return(
       <div key={cr.id} style={{background:"#fff",borderRadius:12,padding:m?14:20,boxShadow:"0 1px 3px rgba(0,0,0,0.06)",marginBottom:12}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10,flexWrap:"wrap",gap:6}}>
           <div style={{display:"flex",alignItems:"center",gap:8}}><span style={{background:"#1E3A5F",color:"#fff",borderRadius:6,padding:"3px 8px",fontSize:12,fontWeight:700}}>CR n°{cr.numero}</span><span style={{fontWeight:700,fontSize:14}}>{ch?.nom}</span><span style={{fontSize:11,color:"#94A3B8"}}>{fmtDate(cr.date)}</span></div>
@@ -1829,22 +1831,24 @@ function OrdresServiceV({data,m,reload}) {
   const osStatusColor = { "Brouillon":"#94A3B8", "Émis":"#3B82F6", "Signé":"#8B5CF6", "En cours":"#F59E0B", "Terminé":"#10B981", "Annulé":"#EF4444" };
   const totals = calcTotals();
 
+  const filterOS=(os)=>{const s=searchOS.toLowerCase();const ch=data.chantiers.find(c=>c.id===os.chantier_id);return String(os.numero).toLowerCase().includes(s)||(ch?.nom||"").toLowerCase().includes(s)||(os.client_nom||"").toLowerCase().includes(s)||(ch?.commune||"").toLowerCase().includes(s);};
+
   const artisans = data.contacts.filter(c=>c.type==="Artisan");
 
   return (<div>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20,flexWrap:"wrap",gap:8}}>
       <h1 style={{margin:0,fontSize:m?18:24,fontWeight:700,color:"#0F172A"}}>Ordres de Service</h1>
       <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
-        <input type="text" placeholder="Rechercher par référence..." value={searchOS} onChange={e=>setSearchOS(e.target.value)} style={{padding:"6px 10px",borderRadius:6,border:"1px solid #E2E8F0",fontSize:12,width:m?"100%":"180px"}}/>
+        <input type="text" placeholder="Rechercher par n°, chantier, client ou commune..." value={searchOS} onChange={e=>setSearchOS(e.target.value)} style={{padding:"6px 10px",borderRadius:6,border:"1px solid #E2E8F0",fontSize:12,width:m?"100%":"220px"}}/>
         <button onClick={openNew} style={{...btnP,fontSize:12}}>+ Nouvel OS</button>
       </div>
     </div>
 
     {/* LISTE DES OS */}
     <div style={{display:"grid",gap:12}}>
-      {(data.ordresService||[]).filter(os=>String(os.numero).includes(searchOS)).length===0 ?
+      {(data.ordresService||[]).filter(filterOS).length===0 ?
         <div style={{background:"#fff",borderRadius:12,padding:30,textAlign:"center",color:"#94A3B8",fontSize:13}}>Aucun ordre de service. Cliquez "+ Nouvel OS" pour en créer un.</div>
-      : (data.ordresService||[]).filter(os=>String(os.numero).includes(searchOS)).sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0)).map(os=>{
+      : (data.ordresService||[]).filter(filterOS).sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0)).map(os=>{
         const ch = data.chantiers.find(c=>c.id===os.chantier_id);
         return (
           <div key={os.id} style={{background:"#fff",borderRadius:12,padding:m?14:18,boxShadow:"0 1px 3px rgba(0,0,0,0.06)",borderLeft:`4px solid ${osStatusColor[os.statut]||"#94A3B8"}`}}>
