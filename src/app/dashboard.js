@@ -1387,7 +1387,27 @@ function ProjectsV({data,save,m,reload}) {
               <button onClick={()=>handleDelete(ch.id)} style={{background:"#FEF2F2",border:"1px solid #FECACA",borderRadius:6,padding:5,cursor:"pointer"}}><Icon d={I.trash} size={14} color="#EF4444"/></button>
             </div>
           </div>
-          <div style={{marginTop:10}}><PBar value={ch.depenses} max={ch.budget} color={phase[ch.phase]||"#3B82F6"}/><div style={{display:"flex",justifyContent:"space-between",marginTop:4,fontSize:11,color:"#94A3B8"}}><span>{fmtMoney(ch.depenses)} / {fmtMoney(ch.budget)}</span><span>{pct(ch.depenses,ch.budget)}%</span></div></div>
+          <div style={{marginTop:10}}>
+            {(() => {
+              const start = new Date(ch.date_debut || ch.dateDebut);
+              const end = new Date(ch.date_fin || ch.dateFin);
+              const now = new Date();
+              const total = end.getTime() - start.getTime();
+              const elapsed = Math.max(0, Math.min(total, now.getTime() - start.getTime()));
+              const progress = total > 0 ? Math.round((elapsed / total) * 100) : 0;
+              const isDone = ch.statut === "Terminé";
+              const color = isDone ? "#10B981" : phase[ch.phase] || "#3B82F6";
+              return (
+                <>
+                  <PBar value={isDone ? 100 : Math.min(progress, 100)} max={100} color={color}/>
+                  <div style={{display:"flex",justifyContent:"space-between",marginTop:4,fontSize:11,color:"#94A3B8"}}>
+                    <span>{fmtDate(start)} → {fmtDate(end)}</span>
+                    <span style={{color, fontWeight:600}}>{isDone ? "Terminé" : progress + "%"}</span>
+                  </div>
+                </>
+              );
+            })()}
+          </div>
         </div>
       ))}
     </div>
