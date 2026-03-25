@@ -588,7 +588,7 @@ export default function App({ user }) {
         <div style={{animation:"fadeIn .3s ease",maxWidth:1200}}>
           {tab==="dashboard"&&<DashboardV data={data} setTab={switchTab} m={isMobile} user={user}/>}
           {tab==="gcal"&&<GCalV m={isMobile}/>}
-          {tab==="qonto"&&<QontoV m={isMobile}/>}
+          {tab==="qonto"&&<QontoV m={isMobile} data={data} reload={reload}/>}
           {tab==="projects"&&<ProjectsV data={data} save={save} m={isMobile} reload={reload}/>}
           {tab==="planning"&&<PlanningV data={data} m={isMobile}/>}
           {tab==="tasks"&&<TasksV data={data} save={save} m={isMobile} reload={reload}/>}
@@ -789,7 +789,7 @@ function QontoBadge() {
   return <span style={{display:"inline-flex",alignItems:"center",gap:3,padding:"2px 7px",borderRadius:5,background:QT.gradient,color:"#fff",fontSize:8,fontWeight:800,letterSpacing:"0.1em"}}>API</span>;
 }
 
-function QontoV({m}) {
+function QontoV({m, data, reload}) {
   const [token, setToken] = useState("");
   const [savedToken, setSavedToken] = useState("");
   const [activeTab, setActiveTab] = useState("factures");
@@ -799,33 +799,40 @@ function QontoV({m}) {
   const [qLoading, setQLoading] = useState(false);
   const [error, setError] = useState("");
   const [connected, setConnected] = useState(false);
+  const [importing, setImporting] = useState({});
+  const [importMsg, setImportMsg] = useState({});
 
-  // Load saved token — vérifie le format login:secret-key
+  // Charge le token depuis Supabase (cross-device), fallback localStorage
   useEffect(() => {
-    const t = LocalDB.get("qonto-token");
-    if (t && t.includes(":")) {
-      setSavedToken(t); setToken(t);
-    } else if (t) {
-      // Ancien format invalide → on efface pour forcer re-saisie
-      LocalDB.set("qonto-token", "");
-    }
+    (async () => {
+      try {
+        const { data: row } = await supabase.from('settings').select('value').eq('key','qonto-token').single();
+        const t = row?.value;
+        if (t && t.includes(":")) { setSavedToken(t); setToken(t); return; }
+      } catch {}
+      // Fallback localStorage
+      const t = LocalDB.get("qonto-token");
+      if (t && t.includes(":")) { setSavedToken(t); setToken(t); }
+    })();
   }, []);
 
   const saveToken = async () => {
     const t = token.trim();
     if (!t) return;
-    // Vérifie le format login:secret-key
     if (!t.includes(":")) {
-      setError("Format invalide. Le token doit être au format login:secret-key (avec un deux-points).");
+      setError("Format invalide — doit être login:secret-key (avec deux-points).");
       return;
     }
     setError("");
+    // Sauvegarde dans Supabase ET localStorage
+    await supabase.from('settings').upsert({ key: 'qonto-token', value: t });
     LocalDB.set("qonto-token", t);
     setSavedToken(t);
     fetchAll(t);
   };
 
   const disconnect = async () => {
+    await supabase.from('settings').delete().eq('key','qonto-token');
     LocalDB.set("qonto-token", "");
     setSavedToken(""); setToken(""); setConnected(false); setError("");
     setInvoices([]); setQuotes([]); setClients([]);
@@ -857,6 +864,57 @@ function QontoV({m}) {
   };
 
   useEffect(() => { if (savedToken) fetchAll(savedToken); }, [savedToken]);
+
+  // ── Téléchargement PDF ──
+  const downloadPdf = async (item, type) => {
+    // Qonto renvoie pdf_url, file_url ou attachment selon la version
+    const url = item.pdf_url || item.file_url || item.attachment?.url || item.pdf_download_url;
+    if (url) { window.open(url, "_blank"); return; }
+    // Sinon appel API pour récupérer l'URL
+    try {
+      const endpoint = type === "invoice" ? `client_invoices/${item.id}` : `quotes/${item.id}`;
+      const detail = await fetchQonto(endpoint, savedToken);
+      const doc = detail.client_invoice || detail.quote || detail;
+      const docUrl = doc.pdf_url || doc.file_url || doc.attachment?.url;
+      if (docUrl) { window.open(docUrl, "_blank"); }
+      else { alert("PDF non disponible via l'API Qonto pour ce document."); }
+    } catch(e) { alert("Erreur récupération PDF : " + e.message); }
+  };
+
+  // ── Import client Qonto → Annuaire ──
+  const importClient = async (c) => {
+    const id = c.id;
+    setImporting(p=>({...p,[id]:true})); setImportMsg(p=>({...p,[id]:""}));
+    try {
+      const siret = c.siret || c.vat_number?.replace(/^FR\d{2}/,"") || null;
+      // Recherche si contact existant par SIRET ou nom
+      const existBySiret = siret && (data?.contacts||[]).find(x=>x.siret===siret);
+      const existByName = (data?.contacts||[]).find(x=>(x.nom||"").toLowerCase()===(c.name||"").toLowerCase());
+      const existing = existBySiret || existByName;
+      const nom = c.name || `${c.first_name||""} ${c.last_name||""}`.trim() || "—";
+      const addr = c.billing_address || {};
+      const contactData = {
+        id: existing?.id,
+        nom,
+        societe: nom,
+        type: existing?.type || (c.kind==="company"?"Client":"Client"),
+        email: c.email || existing?.email || null,
+        tel: c.phone_number || existing?.tel || null,
+        adresse: addr.street_address || existing?.adresse || null,
+        code_postal: addr.zip_code || existing?.code_postal || null,
+        ville: addr.city || existing?.ville || null,
+        siret: siret || existing?.siret || null,
+        tva_intra: c.vat_number || existing?.tva_intra || null,
+        actif: true,
+      };
+      await SB.upsertContact(contactData);
+      await reload();
+      setImportMsg(p=>({...p,[id]: existing ? "✅ Mis à jour" : "✅ Importé"}));
+    } catch(e) {
+      setImportMsg(p=>({...p,[id]:"❌ " + e.message}));
+    }
+    setImporting(p=>({...p,[id]:false}));
+  };
 
   const invStatusColor = { draft:"#94A3B8", finalized:"#3B82F6", sent:"#8B5CF6", paid:"#10B981", canceled:"#EF4444", unpaid:"#F59E0B", pending:"#F59E0B" };
   const invStatusFr = { draft:"Brouillon", finalized:"Finalisée", sent:"Envoyée", paid:"Payée", canceled:"Annulée", unpaid:"Impayée", pending:"En attente" };
@@ -967,9 +1025,10 @@ function QontoV({m}) {
                       </div>
                       <div style={{fontSize:11,color:"#64748B"}}>{inv.contact_email||"—"} {inv.issue_date ? `• ${fmtDate(inv.issue_date)}` : ""} {inv.due_date ? `• Éch. ${fmtDate(inv.due_date)}` : ""}</div>
                     </div>
-                    <div style={{textAlign:"right"}}>
+                    <div style={{textAlign:"right",display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4}}>
                       <div style={{fontSize:16,fontWeight:700,color:inv.status==="paid"?"#10B981":"#0F172A"}}>{fmtMoney(getAmt(inv))}</div>
                       {(inv.vat_amount?.value||inv.vat_amount_cents) && <div style={{fontSize:10,color:"#94A3B8"}}>TVA: {fmtMoney(parseFloat(inv.vat_amount?.value??(inv.vat_amount_cents||0)/100))}</div>}
+                      <button onClick={()=>downloadPdf(inv,"invoice")} style={{background:"#EF4444",border:"none",borderRadius:5,padding:"3px 10px",cursor:"pointer",fontSize:10,fontWeight:700,color:"#fff"}}>⬇ PDF</button>
                     </div>
                   </div>
                 ))}
@@ -992,6 +1051,7 @@ function QontoV({m}) {
                     </div>
                     <div style={{textAlign:"right"}}>
                       <div style={{fontSize:16,fontWeight:700,color:"#0F172A"}}>{fmtMoney(parseFloat(q.total_amount?.value??(q.total_amount_cents||0)/100)||0)}</div>
+                      <button onClick={()=>downloadPdf(q,"quote")} style={{background:"#EF4444",border:"none",borderRadius:5,padding:"3px 10px",cursor:"pointer",fontSize:10,fontWeight:700,color:"#fff",marginTop:4}}>⬇ PDF</button>
                     </div>
                   </div>
                 ))}
@@ -1002,17 +1062,38 @@ function QontoV({m}) {
             {activeTab==="clients" && (
               <div style={{display:"grid",gridTemplateColumns:m?"1fr":"1fr 1fr",gap:10}}>
                 {clients.length===0 ? <p style={{color:"#94A3B8",fontSize:13,textAlign:"center",padding:20,gridColumn:"1/-1"}}>Aucun client trouvé</p> :
-                clients.map(c=>(
-                  <div key={c.id} style={{background:"#fff",borderRadius:10,padding:14,boxShadow:"0 1px 2px rgba(0,0,0,0.04)",borderLeft:`4px solid ${c.kind==="company"?"#7C3AED":"#3B82F6"}`}}>
-                    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
-                      <span style={{fontSize:14,fontWeight:700,color:"#0F172A"}}>{c.name||`${c.first_name||""} ${c.last_name||""}`}</span>
-                      <Badge text={c.kind==="company"?"Entreprise":"Particulier"} color={c.kind==="company"?"#7C3AED":"#3B82F6"}/>
+                clients.map(c=>{
+                  const nom = c.name||`${c.first_name||""} ${c.last_name||""}`.trim();
+                  const siret = c.siret || null;
+                  const existBySiret = siret && (data?.contacts||[]).find(x=>x.siret===siret);
+                  const existByName = (data?.contacts||[]).find(x=>(x.nom||"").toLowerCase()===nom.toLowerCase());
+                  const existing = existBySiret || existByName;
+                  return (
+                  <div key={c.id} style={{background:"#fff",borderRadius:10,padding:14,boxShadow:"0 1px 2px rgba(0,0,0,0.04)",borderLeft:`4px solid ${existing?"#10B981":c.kind==="company"?"#7C3AED":"#3B82F6"}`}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8}}>
+                      <div style={{flex:1}}>
+                        <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:4,flexWrap:"wrap"}}>
+                          <span style={{fontSize:14,fontWeight:700,color:"#0F172A"}}>{nom}</span>
+                          <Badge text={c.kind==="company"?"Entreprise":"Particulier"} color={c.kind==="company"?"#7C3AED":"#3B82F6"}/>
+                          {existing && <Badge text="Dans l'annuaire" color="#10B981"/>}
+                        </div>
+                        {c.email && <div style={{fontSize:11,color:"#64748B"}}>{c.email}</div>}
+                        {c.phone_number && <div style={{fontSize:11,color:"#94A3B8"}}>{c.phone_number}</div>}
+                        {c.billing_address?.street_address && <div style={{fontSize:10,color:"#CBD5E1",marginTop:2}}>{c.billing_address.street_address} {c.billing_address.zip_code} {c.billing_address.city}</div>}
+                        {siret && <div style={{fontSize:10,color:"#94A3B8",marginTop:2}}>SIRET : {siret}</div>}
+                        {existBySiret && <div style={{fontSize:10,color:"#10B981",marginTop:2}}>✓ SIRET identique à : {existBySiret.nom}</div>}
+                      </div>
+                      <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4}}>
+                        <button
+                          onClick={()=>importClient(c)}
+                          disabled={!!importing[c.id]}
+                          style={{background:existing?"#10B981":"#7C3AED",border:"none",borderRadius:6,padding:"5px 12px",cursor:"pointer",fontSize:11,fontWeight:700,color:"#fff",whiteSpace:"nowrap",opacity:importing[c.id]?0.6:1}}
+                        >{importing[c.id]?"...":(existing?"Mettre à jour":"Importer →")}</button>
+                        {importMsg[c.id] && <span style={{fontSize:10,color:importMsg[c.id].startsWith("✅")?"#10B981":"#EF4444"}}>{importMsg[c.id]}</span>}
+                      </div>
                     </div>
-                    {c.email && <div style={{fontSize:11,color:"#64748B"}}>{c.email}</div>}
-                    {c.phone_number && <div style={{fontSize:11,color:"#94A3B8"}}>{c.phone_number}</div>}
-                    {(c.address||c.billing_address?.street_address) && <div style={{fontSize:10,color:"#CBD5E1",marginTop:3}}>{c.billing_address?.street_address||c.address} {c.billing_address?.city||c.city} {c.billing_address?.zip_code||c.zip_code}</div>}
                   </div>
-                ))}
+                );})}
               </div>
             )}
           </>
