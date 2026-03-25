@@ -37,13 +37,11 @@ const SB = {
     const row = { nom: ch.nom, client: ch.client, adresse: ch.adresse, phase: ch.phase, statut: ch.statut, budget: Number(ch.budget)||0, depenses: Number(ch.depenses)||0, date_debut: ch.dateDebut||ch.date_debut||null, date_fin: ch.dateFin||ch.date_fin||null, lots: ch.lots||[] };
     if (ch.id && String(ch.id).length > 10) {
       const { data, error } = await supabase.from('chantiers').update(row).eq('id', ch.id).select().single();
-      if (error) console.error("❌ Update chantier:", error.message);
-      else console.log("✅ Chantier mis à jour:", data?.nom);
+      if (error) throw new Error("Erreur mise à jour chantier : " + error.message);
       return data;
     } else {
       const { data, error } = await supabase.from('chantiers').insert(row).select().single();
-      if (error) console.error("❌ Insert chantier:", error.message);
-      else console.log("✅ Chantier créé:", data?.nom);
+      if (error) throw new Error("Erreur création chantier : " + error.message);
       return data;
     }
   },
@@ -64,13 +62,11 @@ const SB = {
     };
     if (c.id && String(c.id).length > 10) {
       const { data, error } = await supabase.from('contacts').update(row).eq('id', c.id).select().single();
-      if (error) console.error("❌ Update contact:", error.message);
-      else console.log("✅ Contact mis à jour:", data?.nom);
+      if (error) throw new Error("Erreur mise à jour contact : " + error.message);
       return data;
     } else {
       const { data, error } = await supabase.from('contacts').insert(row).select().single();
-      if (error) console.error("❌ Insert contact:", error.message);
-      else console.log("✅ Contact créé:", data?.nom);
+      if (error) throw new Error("Erreur création contact : " + error.message);
       return data;
     }
   },
@@ -78,15 +74,14 @@ const SB = {
 
   // Tâches
   async upsertTask(t) {
-    const row = { chantier_id: t.chantierId||t.chantier_id, titre: t.titre, priorite: t.priorite, statut: t.statut, echeance: t.echeance||null, lot: t.lot };
+    const row = { chantier_id: t.chantierId||t.chantier_id||null, titre: t.titre, priorite: t.priorite, statut: t.statut, echeance: t.echeance||null, lot: t.lot };
     if (t.id && String(t.id).length > 10) {
       const { data, error } = await supabase.from('taches').update(row).eq('id', t.id).select().single();
-      if (error) console.error("❌ Update tâche:", error.message);
+      if (error) throw new Error("Erreur mise à jour tâche : " + error.message);
       return data;
     } else {
       const { data, error } = await supabase.from('taches').insert(row).select().single();
-      if (error) console.error("❌ Insert tâche:", error.message);
-      else console.log("✅ Tâche créée:", data?.titre);
+      if (error) throw new Error("Erreur création tâche : " + error.message);
       return data;
     }
   },
@@ -97,13 +92,11 @@ const SB = {
     const row = { chantier_id: cr.chantierId||cr.chantier_id||null, date: cr.date||null, numero: Number(cr.numero)||1, resume: cr.resume||"", participants: cr.participants||"", decisions: cr.decisions||"" };
     if (cr.id && String(cr.id).length > 10) {
       const { data, error } = await supabase.from('compte_rendus').update(row).eq('id', cr.id).select().single();
-      if (error) console.error("❌ Update CR:", error.message);
-      else console.log("✅ CR mis à jour:", data?.numero);
+      if (error) throw new Error("Erreur mise à jour CR : " + error.message);
       return data;
     } else {
       const { data, error } = await supabase.from('compte_rendus').insert(row).select().single();
-      if (error) console.error("❌ Insert CR:", error.message);
-      else console.log("✅ CR créé n°", data?.numero);
+      if (error) throw new Error("Erreur création CR : " + error.message);
       return data;
     }
   },
@@ -114,13 +107,11 @@ const SB = {
     const row = { numero: os.numero||"OS-XXXX", chantier_id: os.chantier_id||null, client_nom: os.client_nom||"", client_adresse: os.client_adresse||"", artisan_nom: os.artisan_nom||"", artisan_specialite: os.artisan_specialite||"", artisan_tel: os.artisan_tel||"", artisan_email: os.artisan_email||"", artisan_siret: os.artisan_siret||"", date_emission: os.date_emission||null, date_intervention: os.date_intervention||null, date_fin_prevue: os.date_fin_prevue||null, prestations: os.prestations||[], montant_ht: Number(os.montant_ht)||0, montant_tva: Number(os.montant_tva)||0, montant_ttc: Number(os.montant_ttc)||0, statut: os.statut||'Brouillon', observations: os.observations||"", conditions: os.conditions||"" };
     if (os.id && String(os.id).length > 10) {
       const { data, error } = await supabase.from('ordres_service').update(row).eq('id', os.id).select().single();
-      if (error) console.error("❌ Update OS:", error.message);
-      else console.log("✅ OS mis à jour:", data?.numero);
+      if (error) throw new Error("Erreur mise à jour OS : " + error.message);
       return data;
     } else {
       const { data, error } = await supabase.from('ordres_service').insert(row).select().single();
-      if (error) console.error("❌ Insert OS:", error.message, JSON.stringify(row));
-      else console.log("✅ OS créé:", data?.numero);
+      if (error) throw new Error("Erreur création OS : " + error.message);
       return data;
     }
   },
@@ -506,7 +497,6 @@ export default function App({ user }) {
     {key:"reports",label:"Comptes Rendus",icon:I.reports},
     {key:"tasks",label:"Tâches",icon:I.tasks},
     {key:"planning",label:"Planning",icon:I.planning},
-    {key:"budget",label:"Budget",icon:I.budget},
     {key:"contacts",label:"Annuaire",icon:I.contacts},
     {key:"qonto",label:"Qonto",icon:null,isQonto:true},
     {key:"gcal",label:"Agenda Google",icon:null,isGcal:true},
@@ -598,7 +588,6 @@ export default function App({ user }) {
           {tab==="qonto"&&<QontoV m={isMobile}/>}
           {tab==="projects"&&<ProjectsV data={data} save={save} m={isMobile} reload={reload}/>}
           {tab==="planning"&&<PlanningV data={data} m={isMobile}/>}
-          {tab==="budget"&&<BudgetV data={data} m={isMobile}/>}
           {tab==="tasks"&&<TasksV data={data} save={save} m={isMobile} reload={reload}/>}
           {tab==="contacts"&&<ContactsV data={data} save={save} m={isMobile} reload={reload}/>}
           {tab==="reports"&&<ReportsV data={data} save={save} m={isMobile} reload={reload}/>}
@@ -1226,27 +1215,6 @@ function PlanningV({data,m}) {
 // ═══════════════════════════════════════════
 // BUDGET
 // ═══════════════════════════════════════════
-function BudgetV({data,m}) {
-  return (<div>
-    <h1 style={{margin:"0 0 20px",fontSize:m?18:24,fontWeight:700}}>Budget / OS</h1>
-    <div style={{display:"grid",gap:16}}>
-      {data.chantiers.map(ch=>{const r=pct(ch.depenses,ch.budget);const c=r>85?"#EF4444":r>60?"#F59E0B":"#10B981";return(
-        <div key={ch.id} style={{background:"#fff",borderRadius:12,padding:m?14:20,boxShadow:"0 1px 3px rgba(0,0,0,0.06)"}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,flexWrap:"wrap",gap:8}}>
-            <div><h3 style={{margin:0,fontSize:m?14:16,fontWeight:700}}>{ch.nom}</h3><span style={{fontSize:11,color:"#64748B"}}>{ch.client}</span></div>
-            <Badge text={ch.phase} color={phase[ch.phase]||"#64748B"}/>
-          </div>
-          <div style={{display:"grid",gridTemplateColumns:m?"repeat(2,1fr)":"repeat(4,1fr)",gap:10,marginBottom:14}}>
-            {[["Budget",fmtMoney(ch.budget),"#0F172A"],["Dépensé",fmtMoney(ch.depenses),c],["Reste",fmtMoney(ch.budget-ch.depenses),"#0F172A"],["Lots",ch.lots.length,"#0F172A"]].map(([l,v,cl],i)=>(
-              <div key={i} style={{background:"#F8FAFC",borderRadius:8,padding:10}}><div style={{fontSize:10,color:"#94A3B8",fontWeight:600,textTransform:"uppercase"}}>{l}</div><div style={{fontSize:m?16:20,fontWeight:700,color:cl}}>{v}</div></div>
-            ))}
-          </div>
-          <PBar value={ch.depenses} max={ch.budget} color={c} h={10}/><div style={{textAlign:"right",fontSize:11,fontWeight:600,color:c,marginTop:3}}>{r}%</div>
-        </div>
-      );})}
-    </div>
-  </div>);
-}
 
 // ═══════════════════════════════════════════
 // TASKS
@@ -1512,6 +1480,20 @@ function OrdresServiceV({data,m,reload}) {
     setModal("new");
   };
 
+  const openEdit = (os) => {
+    const ch = data.chantiers.find(c=>c.id===os.chantier_id);
+    setForm({
+      ...os,
+      chantier: ch?.nom||"",
+      adresse_chantier: ch?.adresse||"",
+    });
+    setPrestations((os.prestations||[]).length > 0
+      ? os.prestations.map(p=>({...p, quantite:String(p.quantite||""), prix_unitaire:String(p.prix_unitaire||""), tva_taux:String(p.tva_taux||"20")}))
+      : [{ description:"", unite:"m²", quantite:"", prix_unitaire:"", tva_taux:"20" }]
+    );
+    setModal("edit");
+  };
+
   const updateChantier = (chId) => {
     const ch = data.chantiers.find(c=>c.id===chId);
     setForm(f=>({...f, chantier_id: chId, chantier: ch?.nom||"", adresse_chantier: ch?.adresse||"", client_nom: ch?.client||""}));
@@ -1593,6 +1575,7 @@ function OrdresServiceV({data,m,reload}) {
             <div style={{display:"flex",gap:6,marginTop:10,flexWrap:"wrap"}}>
               <button onClick={()=>handlePdf(os)} style={{background:"#EF4444",border:"none",borderRadius:6,padding:"5px 14px",cursor:"pointer",fontSize:11,fontWeight:700,color:"#fff"}}>Télécharger PDF</button>
               <button onClick={()=>handleExcel(os)} style={{background:"#10B981",border:"none",borderRadius:6,padding:"5px 14px",cursor:"pointer",fontSize:11,fontWeight:700,color:"#fff"}}>Exporter Excel</button>
+              <button onClick={()=>openEdit(os)} style={{background:"#3B82F6",border:"none",borderRadius:6,padding:"5px 14px",cursor:"pointer",fontSize:11,fontWeight:700,color:"#fff"}}>Modifier</button>
               <button onClick={()=>handleDelete(os.id)} style={{background:"none",border:"1px solid #FECACA",borderRadius:6,padding:"4px 10px",cursor:"pointer",fontSize:11,color:"#EF4444"}}>Supprimer</button>
             </div>
           </div>
@@ -1601,7 +1584,7 @@ function OrdresServiceV({data,m,reload}) {
     </div>
 
     {/* MODAL CRÉATION OS */}
-    <Modal open={!!modal} onClose={()=>setModal(null)} title="Nouvel Ordre de Service" wide>
+    <Modal open={!!modal} onClose={()=>setModal(null)} title={modal==="edit"?"Modifier l'Ordre de Service":"Nouvel Ordre de Service"} wide>
       <div style={{display:"grid",gridTemplateColumns:m?"1fr":"1fr 1fr 1fr",gap:"0 12px"}}>
         <FF label="N° OS"><input style={inp} value={form.numero||""} onChange={e=>setForm({...form,numero:e.target.value})}/></FF>
         <FF label="Chantier"><select style={sel} value={form.chantier_id||""} onChange={e=>updateChantier(e.target.value)}>{data.chantiers.map(c=><option key={c.id} value={c.id}>{c.nom}</option>)}</select></FF>
@@ -1807,9 +1790,9 @@ RÈGLES :
           
           if(reload) reload();
           text=text.replace(/<<<ACTION>>>[\s\S]*?<<<END_ACTION>>>/,"").trim()+`\n\n✅ **${actionLabel} dans Supabase !**`;
-        } catch(err) { 
+        } catch(err) {
           console.error("❌ Action error:", err);
-          text=text.replace(/<<<ACTION>>>[\s\S]*?<<<END_ACTION>>>/,"").trim(); 
+          text=text.replace(/<<<ACTION>>>[\s\S]*?<<<END_ACTION>>>/,"").trim()+`\n\n❌ **Erreur Supabase :** ${err.message}`;
         }
       }
       setMessages(prev=>[...prev,{role:"assistant",content:text}]);
