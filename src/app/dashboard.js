@@ -1,8 +1,26 @@
 'use client'
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { supabase } from './supabaseClient'
-import { generateOSPdf, generateCRPdf, generateOSExcel, generateCRExcel } from './generators'
 import { logout } from './auth'
+
+// Lazy load PDF/Excel generators only when needed
+const lazyGenerators = {
+  generateOSPdf: null,
+  generateCRPdf: null,
+  generateOSExcel: null,
+  generateCRExcel: null,
+};
+
+async function loadGenerators() {
+  if (!lazyGenerators.generateOSPdf) {
+    const gen = await import('./generators');
+    lazyGenerators.generateOSPdf = gen.generateOSPdf;
+    lazyGenerators.generateCRPdf = gen.generateCRPdf;
+    lazyGenerators.generateOSExcel = gen.generateOSExcel;
+    lazyGenerators.generateCRExcel = gen.generateCRExcel;
+  }
+  return lazyGenerators;
+}
 
 const LocalDB = {
   get(key) { try { if (typeof window === 'undefined') return null; const v = localStorage.getItem(key); return v ? JSON.parse(v) : null; } catch { return null; } },
@@ -260,13 +278,8 @@ const status = { "En cours": "#3B82F6", "Planifié": "#8B5CF6", "Terminé": "#10
 const GC = { primary: "#EA4335", light: "#FEF2F2", border: "#FECACA", gradient: "linear-gradient(135deg, #EA4335 0%, #FBBC04 50%, #34A853 75%, #4285F4 100%)" };
 
 // ─── GCAL EVENTS ───
-const gcalEvents = [
-  { id: "gc1", summary: "RDV MARYAM", start: "2026-03-17T12:00:00+01:00", end: "2026-03-17T13:00:00+01:00", location: "", description: "" },
-  { id: "gc2", summary: "Garage Lucas", start: "2026-03-18T16:00:00+01:00", end: "2026-03-18T17:00:00+01:00", location: "Mairie - Oudalle", description: "" },
-  { id: "gc3", summary: "FRIBOULET - Finaliser PC modificatif", start: "2026-03-19T14:00:00+01:00", end: "2026-03-19T16:00:00+01:00", location: "", description: "Dernière vérification dossier PC modificatif garage." },
-  { id: "gc4", summary: "Eurofins LABORATOIRE", start: "2026-03-20T11:00:00+01:00", end: "2026-03-20T12:00:00+01:00", location: "Gonneville-la-Mallet", description: "" },
-  { id: "gc5", summary: "FRIBOULET - Dépôt PC modificatif", start: "2026-03-20T14:00:00+01:00", end: "2026-03-20T15:00:00+01:00", location: "Mairie de Riville", description: "Dépôt permis modificatif pour ajout garage." },
-];
+// Google Calendar events - now fetched from real API (GCalV component)
+const gcalEvents = [];
 
 // ─── DEFAULT DATA ───
 const defaultData = {
@@ -600,6 +613,25 @@ function AdminV({m, reload}) {
       </div>
     </div>
   );
+}
+
+// ═══════════════════════════════════════════
+// EXPORT HELPERS (lazy loaded)
+async function exportOSPdf(data) {
+  const { generateOSPdf } = await loadGenerators();
+  generateOSPdf(data);
+}
+async function exportOSExcel(data) {
+  const { generateOSExcel } = await loadGenerators();
+  generateOSExcel(data);
+}
+async function exportCRPdf(data) {
+  const { generateCRPdf } = await loadGenerators();
+  generateCRPdf(data);
+}
+async function exportCRExcel(data) {
+  const { generateCRExcel } = await loadGenerators();
+  generateCRExcel(data);
 }
 
 // ═══════════════════════════════════════════
@@ -1588,8 +1620,8 @@ function ProjectsV({data,save,m,reload}) {
                 <div style={{fontSize:16,fontWeight:700,color:"#1E3A5F",marginTop:4}}>{fmtMoney(os.montant_ttc||0)}</div>
               </div>
               <div style={{display:"flex",gap:4,flexShrink:0}}>
-                <button onClick={()=>generateOSPdf({...os,chantier:ch.nom,adresse_chantier:ch.adresse})} style={{background:"#EF4444",border:"none",borderRadius:5,padding:"4px 10px",cursor:"pointer",fontSize:9,fontWeight:700,color:"#fff"}}>PDF</button>
-                <button onClick={()=>generateOSExcel({...os,chantier:ch.nom,adresse_chantier:ch.adresse})} style={{background:"#10B981",border:"none",borderRadius:5,padding:"4px 10px",cursor:"pointer",fontSize:9,fontWeight:700,color:"#fff"}}>XLS</button>
+                <button onClick={async()=>await exportOSPdf({...os,chantier:ch.nom,adresse_chantier:ch.adresse})} style={{background:"#EF4444",border:"none",borderRadius:5,padding:"4px 10px",cursor:"pointer",fontSize:9,fontWeight:700,color:"#fff"}}>PDF</button>
+                <button onClick={async()=>await exportOSExcel({...os,chantier:ch.nom,adresse_chantier:ch.adresse})} style={{background:"#10B981",border:"none",borderRadius:5,padding:"4px 10px",cursor:"pointer",fontSize:9,fontWeight:700,color:"#fff"}}>XLS</button>
                 <button onClick={async()=>{await SB.saveTemplate('os',`Template ${os.artisan_nom}`,`Template d'OS pour ${os.artisan_nom}`,{...os});alert("✅ Template créé!");}} title="Créer un template à partir de cet OS" style={{background:"#6366F1",border:"none",borderRadius:5,padding:"4px 10px",cursor:"pointer",fontSize:9,fontWeight:700,color:"#fff"}}>💾</button>
                 <button onClick={()=>{setDetailForm(os);setDetailModal("editOS");}} style={{background:"#3B82F6",border:"none",borderRadius:5,padding:"4px 10px",cursor:"pointer",fontSize:9,fontWeight:700,color:"#fff"}}>✎</button>
               </div>
@@ -1614,8 +1646,8 @@ function ProjectsV({data,save,m,reload}) {
                 <div style={{fontSize:12,color:"#334155",lineHeight:1.5}}>{(cr.resume||"").substring(0,100)}{(cr.resume||"").length>100?"...":""}</div>
               </div>
               <div style={{display:"flex",gap:4,flexShrink:0}}>
-                <button onClick={()=>generateCRPdf(cr,ch)} style={{background:"#EF4444",border:"none",borderRadius:5,padding:"4px 10px",cursor:"pointer",fontSize:9,fontWeight:700,color:"#fff"}}>PDF</button>
-                <button onClick={()=>generateCRExcel(cr,ch)} style={{background:"#10B981",border:"none",borderRadius:5,padding:"4px 10px",cursor:"pointer",fontSize:9,fontWeight:700,color:"#fff"}}>XLS</button>
+                <button onClick={async()=>await exportCRPdf(cr,ch)} style={{background:"#EF4444",border:"none",borderRadius:5,padding:"4px 10px",cursor:"pointer",fontSize:9,fontWeight:700,color:"#fff"}}>PDF</button>
+                <button onClick={async()=>await exportCRExcel(cr,ch)} style={{background:"#10B981",border:"none",borderRadius:5,padding:"4px 10px",cursor:"pointer",fontSize:9,fontWeight:700,color:"#fff"}}>XLS</button>
                 <button onClick={()=>{setDetailForm(cr);setDetailModal("editCR");}} style={{background:"#3B82F6",border:"none",borderRadius:5,padding:"4px 10px",cursor:"pointer",fontSize:9,fontWeight:700,color:"#fff"}}>✎</button>
               </div>
             </div>
@@ -2184,8 +2216,8 @@ function ReportsV({data,save,m,reload}) {
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10,flexWrap:"wrap",gap:6}}>
           <div style={{display:"flex",alignItems:"center",gap:8}}><span style={{background:"#1E3A5F",color:"#fff",borderRadius:6,padding:"3px 8px",fontSize:12,fontWeight:700}}>CR n°{cr.numero}</span><span style={{fontWeight:700,fontSize:14}}>{ch?.nom}</span><span style={{fontSize:11,color:"#94A3B8"}}>{fmtDate(cr.date)}</span></div>
           <div style={{display:"flex",gap:4}}>
-            <button onClick={()=>generateCRPdf(cr,ch)} title="PDF" style={{background:"#EF4444",border:"none",borderRadius:5,padding:"3px 8px",cursor:"pointer",fontSize:10,fontWeight:700,color:"#fff"}}>PDF</button>
-            <button onClick={()=>generateCRExcel(cr,ch)} title="Excel" style={{background:"#10B981",border:"none",borderRadius:5,padding:"3px 8px",cursor:"pointer",fontSize:10,fontWeight:700,color:"#fff"}}>XLS</button>
+            <button onClick={async()=>await exportCRPdf(cr,ch)} title="PDF" style={{background:"#EF4444",border:"none",borderRadius:5,padding:"3px 8px",cursor:"pointer",fontSize:10,fontWeight:700,color:"#fff"}}>PDF</button>
+            <button onClick={async()=>await exportCRExcel(cr,ch)} title="Excel" style={{background:"#10B981",border:"none",borderRadius:5,padding:"3px 8px",cursor:"pointer",fontSize:10,fontWeight:700,color:"#fff"}}>XLS</button>
             <button onClick={()=>{setForm(cr);setModal("edit");}} style={{background:"none",border:"none",cursor:"pointer"}}><Icon d={I.edit} size={14} color="#94A3B8"/></button>
             <button onClick={()=>handleDelete(cr.id)} style={{background:"none",border:"none",cursor:"pointer"}}><Icon d={I.trash} size={14} color="#CBD5E1"/></button>
           </div>
@@ -2286,14 +2318,14 @@ function OrdresServiceV({data,m,reload}) {
     reload();
   };
 
-  const handlePdf = (os) => {
+  const handlePdf = async (os) => {
     const ch = data.chantiers.find(c=>c.id===os.chantier_id);
-    generateOSPdf({ ...os, chantier: ch?.nom||"", adresse_chantier: ch?.adresse||"" });
+    await exportOSPdf({ ...os, chantier: ch?.nom||"", adresse_chantier: ch?.adresse||"" });
   };
 
-  const handleExcel = (os) => {
+  const handleExcel = async (os) => {
     const ch = data.chantiers.find(c=>c.id===os.chantier_id);
-    generateOSExcel({ ...os, chantier: ch?.nom||"", adresse_chantier: ch?.adresse||"" });
+    await exportOSExcel({ ...os, chantier: ch?.nom||"", adresse_chantier: ch?.adresse||"" });
   };
 
   const handleDelete = async (id) => { if(!window.confirm("Supprimer cet ordre de service ?")) return; await SB.deleteOS(id); reload(); };
