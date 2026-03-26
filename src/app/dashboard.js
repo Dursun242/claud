@@ -2262,11 +2262,15 @@ function OrdresServiceV({data,m,reload}) {
   };
 
   const handleSave = async () => {
-    const t = calcTotals();
-    const osData = { ...form, prestations, montant_ht:t.ht, montant_tva:t.tva, montant_ttc:t.ttc };
-    await SB.upsertOS(osData);
-    setModal(null);
-    reload();
+    try {
+      const t = calcTotals();
+      const osData = { ...form, prestations, montant_ht:t.ht, montant_tva:t.tva, montant_ttc:t.ttc };
+      await SB.upsertOS(osData);
+      setModal(null);
+      reload();
+    } catch (err) {
+      alert("❌ Erreur: " + err.message);
+    }
   };
 
   const handlePdf = async (os) => {
