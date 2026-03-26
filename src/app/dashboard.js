@@ -1,5 +1,7 @@
 'use client'
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useQueryClient } from '@tanstack/react-query';
+import { useChantiers, useContacts, useTasks, usePlanning, useRDVs, useCompteRendus, useOrdresService } from './hooks';
 import { supabase } from './supabaseClient'
 import { logout } from './auth'
 
@@ -636,9 +638,35 @@ async function exportCRExcel(data) {
 
 // ═══════════════════════════════════════════
 export default function App({ user }) {
-  const [data, setData] = useState(null);
+  // React Query hooks
+  const chantiersQuery = useChantiers();
+  const contactsQuery = useContacts();
+  const tasksQuery = useTasks();
+  const planningQuery = usePlanning();
+  const rdvQuery = useRDVs();
+  const compteRendusQuery = useCompteRendus();
+  const ordresServiceQuery = useOrdresService();
+  const queryClient = useQueryClient();
+
+  // Combine all queries into single data object (for backward compatibility)
+  const data = useMemo(() => {
+    if (chantiersQuery.isLoading || contactsQuery.isLoading || tasksQuery.isLoading) return null;
+    return {
+      chantiers: chantiersQuery.data || [],
+      contacts: contactsQuery.data || [],
+      tasks: tasksQuery.data || [],
+      planning: planningQuery.data || [],
+      rdv: rdvQuery.data || [],
+      compteRendus: compteRendusQuery.data || [],
+      ordresService: ordresServiceQuery.data || [],
+    };
+  }, [chantiersQuery.data, chantiersQuery.isLoading, contactsQuery.data, contactsQuery.isLoading,
+      tasksQuery.data, tasksQuery.isLoading, planningQuery.data, rdvQuery.data, compteRendusQuery.data, ordresServiceQuery.data]);
+
+  const loading = chantiersQuery.isLoading || contactsQuery.isLoading || tasksQuery.isLoading;
+
+  // State
   const [tab, setTab] = useState("dashboard");
-  const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   // Floating mic state
@@ -673,102 +701,23 @@ export default function App({ user }) {
     check(); window.addEventListener("resize", check); return () => window.removeEventListener("resize", check);
   }, []);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        // Test Supabase connection
-        const { data: testData, error: testError } = await supabase.from('chantiers').select('id').limit(1);
-        
-        if (testError) {
-          console.error("❌ Supabase connection error:", testError.message);
-          console.log("Fallback sur données locales");
-          setData(defaultData);
-          setLoading(false);
-          return;
-        }
-
-        console.log("✅ Supabase connecté");
-
-        // Load all data
-        const sbData = await SB.loadAll();
-        const hasData = sbData.chantiers.length > 0;
-
-        if (hasData) {
-          console.log(`✅ Données Supabase chargées: ${sbData.chantiers.length} chantiers, ${sbData.contacts.length} contacts, ${sbData.tasks.length} tâches`);
-          setData(sbData);
-        } else {
-          console.log("📦 Base vide — insertion des données initiales...");
-          
-          // Seed chantiers
-          const chantierRows = defaultData.chantiers.map(({ id, dateDebut, dateFin, ...rest }) => ({
-            ...rest, date_debut: dateDebut || null, date_fin: dateFin || null
-          }));
-          const { data: insertedCh, error: errCh } = await supabase.from('chantiers').insert(chantierRows).select();
-          if (errCh) console.error("❌ Erreur insert chantiers:", errCh.message);
-          else console.log(`✅ ${insertedCh.length} chantiers insérés`);
-
-          // Seed contacts
-          const contactRows = defaultData.contacts.map(({ id, chantiers, ...rest }) => rest);
-          const { data: insertedCo, error: errCo } = await supabase.from('contacts').insert(contactRows).select();
-          if (errCo) console.error("❌ Erreur insert contacts:", errCo.message);
-          else console.log(`✅ ${insertedCo.length} contacts insérés`);
-
-          // Build name→UUID map for linking tasks
-          const chMap = {};
-          if (insertedCh) {
-            defaultData.chantiers.forEach((defCh, i) => {
-              if (insertedCh[i]) chMap[defCh.id] = insertedCh[i].id;
-            });
-          }
-
-          // Seed tasks
-          const taskRows = defaultData.tasks.map(({ id, chantierId, ...rest }) => ({
-            ...rest, chantier_id: chMap[chantierId] || null
-          })).filter(t => t.chantier_id);
-          if (taskRows.length > 0) {
-            const { error: errTa } = await supabase.from('taches').insert(taskRows);
-            if (errTa) console.error("❌ Erreur insert tâches:", errTa.message);
-            else console.log(`✅ ${taskRows.length} tâches insérées`);
-          }
-
-          // Seed CRs
-          if (defaultData.compteRendus) {
-            const crRows = defaultData.compteRendus.map(({ id, chantierId, ...rest }) => ({
-              ...rest, chantier_id: chMap[chantierId] || null
-            })).filter(c => c.chantier_id);
-            if (crRows.length > 0) {
-              const { error: errCr } = await supabase.from('compte_rendus').insert(crRows);
-              if (errCr) console.error("❌ Erreur insert CR:", errCr.message);
-              else console.log(`✅ ${crRows.length} CR insérés`);
-            }
-          }
-
-          // Reload fresh from Supabase
-          const freshData = await SB.loadAll();
-          console.log(`✅ Reload: ${freshData.chantiers.length} chantiers depuis Supabase`);
-          setData(freshData.chantiers.length > 0 ? freshData : defaultData);
-        }
-      } catch (e) {
-        console.error("❌ Erreur globale:", e);
-        setData(defaultData);
-      }
-      setLoading(false);
-    })();
-  }, []);
-
-  // Reload data from Supabase
+  // Reload data using React Query invalidation
   const reload = useCallback(async () => {
-    try {
-      const sbData = await SB.loadAll();
-      console.log(`🔄 Reload: ${sbData.chantiers.length} chantiers, ${sbData.tasks.length} tâches`);
-      setData(sbData);
-    } catch (e) {
-      console.error("Reload error:", e);
-    }
-  }, []);
+    console.log("🔄 Invalidating all queries...");
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['chantiers'] }),
+      queryClient.invalidateQueries({ queryKey: ['contacts'] }),
+      queryClient.invalidateQueries({ queryKey: ['tasks'] }),
+      queryClient.invalidateQueries({ queryKey: ['planning'] }),
+      queryClient.invalidateQueries({ queryKey: ['rdv'] }),
+      queryClient.invalidateQueries({ queryKey: ['compteRendus'] }),
+      queryClient.invalidateQueries({ queryKey: ['ordresService'] }),
+    ]);
+    console.log("✅ Reload complete");
+  }, [queryClient]);
 
-  // Legacy save
-  const save = useCallback(async (d) => { setData(d); }, []);
+  // Legacy save (no longer needed with React Query)
+  const save = useCallback(async (d) => { console.log("Save called (React Query manages state now)"); }, []);
 
   if (loading || !data) return (
     <div style={{height:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"#F8FAFC",fontFamily:"'DM Sans',sans-serif"}}>
