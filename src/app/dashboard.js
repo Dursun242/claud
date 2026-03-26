@@ -2497,9 +2497,13 @@ function AIV({data,save,m,externalTranscript,clearExternal,reload}) {
   const [loading,setLoading]=useState(false);
   const [listening,setListening]=useState(false);
   const [gcalAction,setGcalAction]=useState(null);
+  const [cameraMode,setCameraMode]=useState(false);
+  const [cameraStream,setCameraStream]=useState(null);
   const recognRef = useRef(null);
   const endRef=useRef(null);
   const inputRef=useRef(null);
+  const videoRef=useRef(null);
+  const canvasRef=useRef(null);
 
   useEffect(()=>{endRef.current?.scrollIntoView({behavior:"smooth"});},[messages]);
 
@@ -2559,6 +2563,71 @@ function AIV({data,save,m,externalTranscript,clearExternal,reload}) {
 
     recognition.start();
   }, [listening]);
+
+  // ─── CAMERA CAPTURE FOR OS ───
+  const startCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        setCameraStream(stream);
+        setCameraMode(true);
+      }
+    } catch (err) {
+      alert("❌ Impossible d'accéder à la caméra: " + err.message);
+    }
+  };
+
+  const capturePhoto = async () => {
+    if (!videoRef.current || !canvasRef.current) return;
+    const ctx = canvasRef.current.getContext("2d");
+    canvasRef.current.width = videoRef.current.videoWidth;
+    canvasRef.current.height = videoRef.current.videoHeight;
+    ctx.drawImage(videoRef.current, 0, 0);
+
+    // Arrêter la caméra
+    if (cameraStream) {
+      cameraStream.getTracks().forEach(t => t.stop());
+      setCameraStream(null);
+    }
+    setCameraMode(false);
+
+    // Extraire l'image et envoyer à l'API
+    const imageBase64 = canvasRef.current.toDataURL("image/jpeg").split(",")[1];
+    try {
+      setLoading(true);
+      const response = await fetch("/api/extract-os-data", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imageBase64, fileName: "camera-capture.jpg" }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error);
+
+      // Envoyer un message pour créer l'OS
+      const osMsg = `Crée un Ordre de Service avec ces données extraites:
+- Artisan: ${result.data.artisan_nom}
+- Spécialité: ${result.data.artisan_specialite}
+- Téléphone: ${result.data.artisan_tel}
+- Email: ${result.data.artisan_email}
+- SIRET: ${result.data.artisan_siret}
+- Prestations: ${JSON.stringify(result.data.prestations)}
+- Montant HT: ${result.data.montant_ht}`;
+      setInput(osMsg);
+    } catch (err) {
+      alert("❌ Erreur extraction: " + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const closeCamera = () => {
+    if (cameraStream) {
+      cameraStream.getTracks().forEach(t => t.stop());
+      setCameraStream(null);
+    }
+    setCameraMode(false);
+  };
 
   const sendMessage = async () => {
     if (!input.trim()||loading) return;
@@ -2685,9 +2754,21 @@ RÈGLES :
         <div ref={endRef}/>
       </div>
 
-      {/* INPUT + MIC */}
+      {/* CAMERA MODE */}
+      {cameraMode && (
+        <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"#000",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",zIndex:9999}}>
+          <video ref={videoRef} autoPlay playsInline style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+          <div style={{position:"absolute",bottom:30,left:0,right:0,display:"flex",gap:12,justifyContent:"center"}}>
+            <button onClick={capturePhoto} style={{...btnP,padding:"12px 24px",borderRadius:12}}>📸 Capturer</button>
+            <button onClick={closeCamera} style={{...btnS,padding:"12px 24px",borderRadius:12}}>Fermer</button>
+          </div>
+        </div>
+      )}
+
+      {/* INPUT + MIC + CAMERA */}
       <div style={{display:"flex",gap:8,alignItems:"center"}}>
         <MicButtonInline listening={listening} onClick={startListening} />
+        <button onClick={startCamera} title="Capturer une photo pour extraire un OS" style={{background:"none",border:"none",cursor:"pointer",fontSize:20,padding:8}}>📷</button>
         <input ref={inputRef} value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&sendMessage()}
           placeholder={listening?"🎙️ Je vous écoute...":"Tapez ou appuyez sur le micro..."}
           style={{...inp,flex:1,padding:"12px 16px",fontSize:14,borderRadius:12,background:listening?"#FEF2F2":"#fff",borderColor:listening?"#FECACA":"#E2E8F0",boxShadow:"0 1px 3px rgba(0,0,0,0.06)"}}/>
@@ -2695,6 +2776,9 @@ RÈGLES :
           <Icon d={I.send} size={16} color="#fff"/>{!m&&"Envoyer"}
         </button>
       </div>
+
+      {/* HIDDEN CANVAS FOR PHOTO CAPTURE */}
+      <canvas ref={canvasRef} style={{display:"none"}}/>
 
       {/* QUICK ACTIONS */}
       <div style={{display:"flex",gap:6,marginTop:8,flexWrap:"wrap"}}>
