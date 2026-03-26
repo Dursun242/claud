@@ -1,20 +1,8 @@
 'use client'
-import { useState, useEffect, useRef, useCallback, Suspense, useMemo } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from './supabaseClient'
 import { generateOSPdf, generateCRPdf, generateOSExcel, generateCRExcel } from './generators'
 import { logout } from './auth'
-
-// Loader fallback pour les tabs
-function TabLoader({m}) {
-  return (
-    <div style={{display:"flex",alignItems:"center",justifyContent:"center",minHeight:"400px",animation:"fadeIn .3s ease"}}>
-      <div style={{textAlign:"center"}}>
-        <div style={{fontSize:32,marginBottom:16}}>⏳</div>
-        <p style={{color:"#64748B",fontSize:14}}>Chargement...</p>
-      </div>
-    </div>
-  );
-}
 
 const LocalDB = {
   get(key) { try { if (typeof window === 'undefined') return null; const v = localStorage.getItem(key); return v ? JSON.parse(v) : null; } catch { return null; } },
@@ -25,13 +13,13 @@ const LocalDB = {
 const SB = {
   async loadAll() {
     const [ch, co, ta, pl, rv, cr, os] = await Promise.all([
-      supabase.from('chantiers').select('*').order('created_at', { ascending: false }).limit(50),
-      supabase.from('contacts').select('*').order('nom').limit(100),
-      supabase.from('taches').select('*').order('created_at', { ascending: false }).limit(100),
-      supabase.from('planning').select('*').order('debut').limit(50),
-      supabase.from('rdv').select('*').order('date').limit(50),
-      supabase.from('compte_rendus').select('*').order('date', { ascending: false }).limit(50),
-      supabase.from('ordres_service').select('*').order('created_at', { ascending: false }).limit(50),
+      supabase.from('chantiers').select('*').order('created_at', { ascending: false }),
+      supabase.from('contacts').select('*').order('nom'),
+      supabase.from('taches').select('*').order('created_at', { ascending: false }),
+      supabase.from('planning').select('*').order('debut'),
+      supabase.from('rdv').select('*').order('date'),
+      supabase.from('compte_rendus').select('*').order('date', { ascending: false }),
+      supabase.from('ordres_service').select('*').order('created_at', { ascending: false }),
     ]);
     return {
       chantiers: (ch.data || []).map(c => ({ ...c, lots: c.lots || [] })),
@@ -860,19 +848,17 @@ export default function App({ user }) {
           </div>
         )}
         <div style={{animation:"fadeIn .3s ease",maxWidth:1200}}>
-          <Suspense fallback={<TabLoader m={isMobile}/>}>
-            {tab==="dashboard"&&<DashboardV data={data} setTab={switchTab} m={isMobile} user={user}/>}
-            {tab==="gcal"&&<GCalV m={isMobile}/>}
-            {tab==="qonto"&&<QontoV m={isMobile} data={data} reload={reload}/>}
-            {tab==="projects"&&<ProjectsV data={data} save={save} m={isMobile} reload={reload}/>}
-            {tab==="planning"&&<PlanningV data={data} m={isMobile}/>}
-            {tab==="tasks"&&<TasksV data={data} save={save} m={isMobile} reload={reload}/>}
-            {tab==="contacts"&&<ContactsV data={data} save={save} m={isMobile} reload={reload}/>}
-            {tab==="reports"&&<ReportsV data={data} save={save} m={isMobile} reload={reload}/>}
-            {tab==="os"&&<OrdresServiceV data={data} m={isMobile} reload={reload}/>}
-            {tab==="admin"&&<AdminV m={isMobile} reload={reload} profile={profile}/>}
-            {tab==="ai"&&<AIV data={data} save={save} m={isMobile} externalTranscript={floatTranscript} clearExternal={()=>setFloatTranscript("")} reload={reload}/>}
-          </Suspense>
+          {tab==="dashboard"&&<DashboardV data={data} setTab={switchTab} m={isMobile} user={user}/>}
+          {tab==="gcal"&&<GCalV m={isMobile}/>}
+          {tab==="qonto"&&<QontoV m={isMobile} data={data} reload={reload}/>}
+          {tab==="projects"&&<ProjectsV data={data} save={save} m={isMobile} reload={reload}/>}
+          {tab==="planning"&&<PlanningV data={data} m={isMobile}/>}
+          {tab==="tasks"&&<TasksV data={data} save={save} m={isMobile} reload={reload}/>}
+          {tab==="contacts"&&<ContactsV data={data} save={save} m={isMobile} reload={reload}/>}
+          {tab==="reports"&&<ReportsV data={data} save={save} m={isMobile} reload={reload}/>}
+          {tab==="os"&&<OrdresServiceV data={data} m={isMobile} reload={reload}/>}
+          {tab==="admin"&&<AdminV m={isMobile} reload={reload} profile={profile}/>}
+          {tab==="ai"&&<AIV data={data} save={save} m={isMobile} externalTranscript={floatTranscript} clearExternal={()=>setFloatTranscript("")} reload={reload}/>}
         </div>
       </main>
 
@@ -896,44 +882,19 @@ export default function App({ user }) {
 // ═══════════════════════════════════════════
 function DashboardV({data,setTab,m,user}) {
   const today = new Date().toISOString().split("T")[0];
-
-  const todayGcal = useMemo(() => gcalEvents.filter(e=>e.start.split("T")[0]===today), [today]);
-
-  const urgentTasks = useMemo(() =>
-    data.tasks.filter(t=>t.priorite==="Urgent"&&t.statut!=="Terminé"),
-    [data.tasks]
-  );
-
-  const allActiveTasks = useMemo(() =>
-    data.tasks
-      .filter(t=>t.statut!=="Terminé")
-      .sort((a,b)=>{
-        const pri = {Urgent:0,"En cours":1,"En attente":2};
-        if ((pri[a.priorite]??9) !== (pri[b.priorite]??9)) return (pri[a.priorite]??9)-(pri[b.priorite]??9);
-        return new Date(a.echeance||"9999")-new Date(b.echeance||"9999");
-      }),
-    [data.tasks]
-  );
-
-  const chantiersEnCours = useMemo(() =>
-    data.chantiers.filter(c=>c.statut==="En cours").sort((a,b)=>new Date(b.date_debut||0)-new Date(a.date_debut||0)).slice(0,3),
-    [data.chantiers]
-  );
-
-  const totalB = useMemo(() =>
-    data.chantiers.reduce((s,c)=>s+(Number(c.budget)||0),0),
-    [data.chantiers]
-  );
-
-  const totalD = useMemo(() =>
-    data.chantiers.reduce((s,c)=>s+(Number(c.depenses)||0),0),
-    [data.chantiers]
-  );
-
-  const enCours = useMemo(() =>
-    data.chantiers.filter(c=>c.statut==="En cours").length,
-    [data.chantiers]
-  );
+  const todayGcal = gcalEvents.filter(e=>e.start.split("T")[0]===today);
+  const urgentTasks = data.tasks.filter(t=>t.priorite==="Urgent"&&t.statut!=="Terminé");
+  const allActiveTasks = data.tasks
+    .filter(t=>t.statut!=="Terminé")
+    .sort((a,b)=>{
+      const pri = {Urgent:0,"En cours":1,"En attente":2};
+      if ((pri[a.priorite]??9) !== (pri[b.priorite]??9)) return (pri[a.priorite]??9)-(pri[b.priorite]??9);
+      return new Date(a.echeance||"9999")-new Date(b.echeance||"9999");
+    });
+  const chantiersEnCours = data.chantiers.filter(c=>c.statut==="En cours").sort((a,b)=>new Date(b.date_debut||0)-new Date(a.date_debut||0)).slice(0,3);
+  const totalB = data.chantiers.reduce((s,c)=>s+(Number(c.budget)||0),0);
+  const totalD = data.chantiers.reduce((s,c)=>s+(Number(c.depenses)||0),0);
+  const enCours = data.chantiers.filter(c=>c.statut==="En cours").length;
 
   return (<div>
     {/* HEADER */}
