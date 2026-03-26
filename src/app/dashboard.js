@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo, Suspense } from "react";
 import { useQueryClient } from '@tanstack/react-query';
 import { useChantiers, useContacts, useTasks, usePlanning, useRDVs, useCompteRendus, useOrdresService } from './hooks';
 import { supabase } from './supabaseClient'
@@ -819,17 +819,19 @@ export default function App({ user }) {
           </div>
         )}
         <div style={{animation:"fadeIn .3s ease",maxWidth:1200}}>
-          {tab==="dashboard"&&<DashboardV data={data} setTab={switchTab} m={isMobile} user={user}/>}
-          {tab==="gcal"&&<GCalV m={isMobile}/>}
-          {tab==="qonto"&&<QontoV m={isMobile} data={data} reload={reload}/>}
-          {tab==="projects"&&<ProjectsV data={data} save={save} m={isMobile} reload={reload}/>}
-          {tab==="planning"&&<PlanningV data={data} m={isMobile}/>}
-          {tab==="tasks"&&<TasksV data={data} save={save} m={isMobile} reload={reload}/>}
-          {tab==="contacts"&&<ContactsV data={data} save={save} m={isMobile} reload={reload}/>}
-          {tab==="reports"&&<ReportsV data={data} save={save} m={isMobile} reload={reload}/>}
-          {tab==="os"&&<OrdresServiceV data={data} m={isMobile} reload={reload}/>}
-          {tab==="admin"&&<AdminV m={isMobile} reload={reload}/>}
-          {tab==="ai"&&<AIV data={data} save={save} m={isMobile} externalTranscript={floatTranscript} clearExternal={()=>setFloatTranscript("")} reload={reload}/>}
+          <Suspense fallback={<div style={{padding:40,textAlign:"center",color:"#94A3B8"}}>⏳ Chargement...</div>}>
+            {tab==="dashboard"&&<DashboardV data={data} setTab={switchTab} m={isMobile} user={user}/>}
+            {tab==="gcal"&&<GCalV m={isMobile}/>}
+            {tab==="qonto"&&<QontoV m={isMobile} data={data} reload={reload}/>}
+            {tab==="projects"&&<ProjectsV data={data} save={save} m={isMobile} reload={reload}/>}
+            {tab==="planning"&&<PlanningV data={data} m={isMobile}/>}
+            {tab==="tasks"&&<TasksV data={data} save={save} m={isMobile} reload={reload}/>}
+            {tab==="contacts"&&<ContactsV data={data} save={save} m={isMobile} reload={reload}/>}
+            {tab==="reports"&&<ReportsV data={data} save={save} m={isMobile} reload={reload}/>}
+            {tab==="os"&&<OrdresServiceV data={data} m={isMobile} reload={reload}/>}
+            {tab==="admin"&&<AdminV m={isMobile} reload={reload}/>}
+            {tab==="ai"&&<AIV data={data} save={save} m={isMobile} externalTranscript={floatTranscript} clearExternal={()=>setFloatTranscript("")} reload={reload}/>}
+          </Suspense>
         </div>
       </main>
 
