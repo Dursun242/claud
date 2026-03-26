@@ -2263,12 +2263,21 @@ function OrdresServiceV({data,m,reload}) {
 
   const handleSave = async () => {
     try {
+      console.log("📝 Tentative d'enregistrement OS...");
+      if (!form.numero) throw new Error("Numéro d'OS manquant");
+      if (!form.chantier_id) throw new Error("Chantier manquant");
+      if (prestations.length === 0) throw new Error("Au moins une prestation requise");
+
       const t = calcTotals();
       const osData = { ...form, prestations, montant_ht:t.ht, montant_tva:t.tva, montant_ttc:t.ttc };
+      console.log("📦 Données à envoyer:", osData);
+
       await SB.upsertOS(osData);
+      console.log("✅ OS enregistré avec succès");
       setModal(null);
       reload();
     } catch (err) {
+      console.error("❌ Erreur:", err);
       alert("❌ Erreur: " + err.message);
     }
   };
