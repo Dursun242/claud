@@ -129,7 +129,7 @@ export function generateOSPdf(data) {
   doc.setFontSize(7); doc.setFont("helvetica", "normal"); doc.setTextColor(...GRIS)
   doc.text(data.client_adresse || "", margin + 3, y + 15)
 
-  const ax = margin + halfW + 4
+  const ax = margin + halfW + 3.5
   doc.rect(ax, y, halfW, 26)
   doc.setFontSize(7.5); doc.setFont("helvetica", "bold"); doc.setTextColor(...BLEU)
   doc.text("ENTREPRISE", ax + 3, y + 5)
