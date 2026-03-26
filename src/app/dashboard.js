@@ -13,13 +13,13 @@ const LocalDB = {
 const SB = {
   async loadAll() {
     const [ch, co, ta, pl, rv, cr, os] = await Promise.all([
-      supabase.from('chantiers').select('*').order('created_at', { ascending: false }),
-      supabase.from('contacts').select('*').order('nom'),
-      supabase.from('taches').select('*').order('created_at', { ascending: false }),
-      supabase.from('planning').select('*').order('debut'),
-      supabase.from('rdv').select('*').order('date'),
-      supabase.from('compte_rendus').select('*').order('date', { ascending: false }),
-      supabase.from('ordres_service').select('*').order('created_at', { ascending: false }),
+      supabase.from('chantiers').select('*').order('created_at', { ascending: false }).limit(50),
+      supabase.from('contacts').select('*').order('nom').limit(100),
+      supabase.from('taches').select('*').order('created_at', { ascending: false }).limit(100),
+      supabase.from('planning').select('*').order('debut').limit(50),
+      supabase.from('rdv').select('*').order('date').limit(50),
+      supabase.from('compte_rendus').select('*').order('date', { ascending: false }).limit(50),
+      supabase.from('ordres_service').select('*').order('created_at', { ascending: false }).limit(50),
     ]);
     return {
       chantiers: (ch.data || []).map(c => ({ ...c, lots: c.lots || [] })),
