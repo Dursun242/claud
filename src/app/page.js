@@ -1,6 +1,8 @@
 'use client'
+import { QueryClientProvider } from '@tanstack/react-query'
 import { AuthProvider, useAuth, LoginPage } from './auth'
 import Dashboard from './dashboard'
+import { queryClient } from './queryClient'
 
 function ProtectedApp() {
   const { user, loading } = useAuth()
@@ -30,8 +32,10 @@ function ProtectedApp() {
 
 export default function Page() {
   return (
-    <AuthProvider>
-      <ProtectedApp />
-    </AuthProvider>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <ProtectedApp />
+      </AuthProvider>
+    </QueryClientProvider>
   )
 }
