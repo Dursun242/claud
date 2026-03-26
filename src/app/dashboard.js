@@ -2398,7 +2398,7 @@ function OrdresServiceV({data,m,reload}) {
 
       <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginTop:12}}>
         <button onClick={()=>setModal(null)} style={btnS}>Annuler</button>
-        <button onClick={handleSave} style={btnP}>Enregistrer l'OS</button>
+        <button onClick={() => { console.log("🔘 BOUTON CLIQUÉ"); handleSave(); }} style={btnP}>Enregistrer l'OS</button>
       </div>
     </Modal>
   </div>);
