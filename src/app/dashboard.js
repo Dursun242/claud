@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { supabase } from './supabaseClient'
 import { generateOSPdf, generateCRPdf, generateOSExcel, generateCRExcel } from './generators'
 import { logout } from './auth'
@@ -872,19 +872,44 @@ export default function App({ user }) {
 // ═══════════════════════════════════════════
 function DashboardV({data,setTab,m,user}) {
   const today = new Date().toISOString().split("T")[0];
-  const todayGcal = gcalEvents.filter(e=>e.start.split("T")[0]===today);
-  const urgentTasks = data.tasks.filter(t=>t.priorite==="Urgent"&&t.statut!=="Terminé");
-  const allActiveTasks = data.tasks
-    .filter(t=>t.statut!=="Terminé")
-    .sort((a,b)=>{
-      const pri = {Urgent:0,"En cours":1,"En attente":2};
-      if ((pri[a.priorite]??9) !== (pri[b.priorite]??9)) return (pri[a.priorite]??9)-(pri[b.priorite]??9);
-      return new Date(a.echeance||"9999")-new Date(b.echeance||"9999");
-    });
-  const chantiersEnCours = data.chantiers.filter(c=>c.statut==="En cours").sort((a,b)=>new Date(b.date_debut||0)-new Date(a.date_debut||0)).slice(0,3);
-  const totalB = data.chantiers.reduce((s,c)=>s+(Number(c.budget)||0),0);
-  const totalD = data.chantiers.reduce((s,c)=>s+(Number(c.depenses)||0),0);
-  const enCours = data.chantiers.filter(c=>c.statut==="En cours").length;
+
+  const todayGcal = useMemo(() => gcalEvents.filter(e=>e.start.split("T")[0]===today), [today]);
+
+  const urgentTasks = useMemo(() =>
+    data.tasks.filter(t=>t.priorite==="Urgent"&&t.statut!=="Terminé"),
+    [data.tasks]
+  );
+
+  const allActiveTasks = useMemo(() =>
+    data.tasks
+      .filter(t=>t.statut!=="Terminé")
+      .sort((a,b)=>{
+        const pri = {Urgent:0,"En cours":1,"En attente":2};
+        if ((pri[a.priorite]??9) !== (pri[b.priorite]??9)) return (pri[a.priorite]??9)-(pri[b.priorite]??9);
+        return new Date(a.echeance||"9999")-new Date(b.echeance||"9999");
+      }),
+    [data.tasks]
+  );
+
+  const chantiersEnCours = useMemo(() =>
+    data.chantiers.filter(c=>c.statut==="En cours").sort((a,b)=>new Date(b.date_debut||0)-new Date(a.date_debut||0)).slice(0,3),
+    [data.chantiers]
+  );
+
+  const totalB = useMemo(() =>
+    data.chantiers.reduce((s,c)=>s+(Number(c.budget)||0),0),
+    [data.chantiers]
+  );
+
+  const totalD = useMemo(() =>
+    data.chantiers.reduce((s,c)=>s+(Number(c.depenses)||0),0),
+    [data.chantiers]
+  );
+
+  const enCours = useMemo(() =>
+    data.chantiers.filter(c=>c.statut==="En cours").length,
+    [data.chantiers]
+  );
 
   return (<div>
     {/* HEADER */}
