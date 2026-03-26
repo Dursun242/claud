@@ -161,7 +161,7 @@ export function generateOSPdf(data) {
     headStyles: { fillColor: BLEU, textColor: [255,255,255], fontStyle: 'bold', fontSize: 7.5 },
     bodyStyles: { fontSize: 7.5, textColor: NOIR },
     alternateRowStyles: { fillColor: GRIS_CLAIR },
-    columnStyles: { 0:{cellWidth:usable*0.34}, 1:{cellWidth:usable*0.09,halign:'center'}, 2:{cellWidth:usable*0.07,halign:'center'}, 3:{cellWidth:usable*0.14,halign:'right'}, 4:{cellWidth:usable*0.09,halign:'center'}, 5:{cellWidth:usable*0.17,halign:'right'} },
+    columnStyles: { 0:{cellWidth:usable*0.44}, 1:{cellWidth:usable*0.09,halign:'center'}, 2:{cellWidth:usable*0.07,halign:'center'}, 3:{cellWidth:usable*0.14,halign:'right'}, 4:{cellWidth:usable*0.09,halign:'center'}, 5:{cellWidth:usable*0.17,halign:'right'} },
     styles: { lineWidth: 0.2, lineColor: [226,232,240] },
   })
   y = doc.lastAutoTable.finalY + 3
