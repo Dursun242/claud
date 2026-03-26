@@ -507,7 +507,17 @@ function MicButtonInline({ listening, onClick }) {
 // ═══════════════════════════════════════════
 // ADMIN PANEL
 // ═══════════════════════════════════════════
-function AdminV({m, reload}) {
+function AdminV({m, reload, profile}) {
+  // Vérifier si admin
+  if (!profile || profile.role !== 'admin') {
+    return (
+      <div style={{background:"#FEF2F2",borderRadius:14,padding:40,textAlign:"center",border:"1.5px solid #FECACA"}}>
+        <h1 style={{margin:"0 0 10px",fontSize:20,fontWeight:700,color:"#DC2626"}}>🔒 Accès refusé</h1>
+        <p style={{margin:0,color:"#94A3B8",fontSize:14}}>Seuls les administrateurs peuvent accéder à cette section.</p>
+      </div>
+    );
+  }
+
   const [users, setUsers] = useState([]);
   const [newEmail, setNewEmail] = useState("");
   const [newPrenom, setNewPrenom] = useState("");
@@ -754,7 +764,7 @@ export default function App({ user }) {
     {key:"contacts",label:"Annuaire",icon:I.contacts},
     {key:"qonto",label:"Qonto",icon:null,isQonto:true},
     {key:"gcal",label:"Agenda Google",icon:null,isGcal:true},
-    {key:"admin",label:"🔒 Admin",icon:I.settings},
+    ...(profile?.role === 'admin' ? [{key:"admin",label:"🔒 Admin",icon:I.settings}] : []),
     {key:"ai",label:"Assistant IA",icon:I.ai},
   ];
 
@@ -847,7 +857,7 @@ export default function App({ user }) {
           {tab==="contacts"&&<ContactsV data={data} save={save} m={isMobile} reload={reload}/>}
           {tab==="reports"&&<ReportsV data={data} save={save} m={isMobile} reload={reload}/>}
           {tab==="os"&&<OrdresServiceV data={data} m={isMobile} reload={reload}/>}
-          {tab==="admin"&&<AdminV m={isMobile} reload={reload}/>}
+          {tab==="admin"&&<AdminV m={isMobile} reload={reload} profile={profile}/>}
           {tab==="ai"&&<AIV data={data} save={save} m={isMobile} externalTranscript={floatTranscript} clearExternal={()=>setFloatTranscript("")} reload={reload}/>}
         </div>
       </main>
