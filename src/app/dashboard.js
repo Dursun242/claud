@@ -2203,6 +2203,10 @@ function OrdresServiceV({data,m,reload}) {
   const [form,setForm]=useState({});
   const [prestations,setPrestations]=useState([]);
   const [searchOS,setSearchOS]=useState("");
+  const [importModal,setImportModal]=useState(false);
+  const [importFile,setImportFile]=useState(null);
+  const [importPreview,setImportPreview]=useState(null);
+  const [importLoading,setImportLoading]=useState(false);
 
   const nextNum = () => {
     const existing = (data.ordresService||[]).length;
@@ -2301,11 +2305,74 @@ function OrdresServiceV({data,m,reload}) {
 
   const artisans = data.contacts.filter(c=>c.type==="Artisan");
 
+  const handleImportFile = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImportFile(file);
+
+    // Preview pour image
+    if (file.type.startsWith("image/")) {
+      const reader = new FileReader();
+      reader.onload = (evt) => setImportPreview(evt.target.result);
+      reader.readAsDataURL(file);
+    } else {
+      setImportPreview(null);
+    }
+  };
+
+  const handleExtractOS = async () => {
+    if (!importFile) return;
+    setImportLoading(true);
+    try {
+      const reader = new FileReader();
+      reader.onload = async (evt) => {
+        const base64 = evt.target.result.split(",")[1];
+        const response = await fetch("/api/extract-os-data", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ imageBase64: base64, fileName: importFile.name }),
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error);
+
+        // Pré-remplir le formulaire OS
+        const ch = data.chantiers[0];
+        setForm({
+          numero: `OS-2026-${String((data.ordresService||[]).length+1).padStart(3,"0")}`,
+          chantier_id: ch?.id||"",
+          chantier: ch?.nom||"",
+          adresse_chantier: ch?.adresse||"",
+          client_nom: ch?.client||"",
+          artisan_nom: result.data.artisan_nom||"",
+          artisan_specialite: result.data.artisan_specialite||"",
+          artisan_tel: result.data.artisan_tel||"",
+          artisan_email: result.data.artisan_email||"",
+          artisan_siret: result.data.artisan_siret||"",
+          date_emission: new Date().toISOString().split("T")[0],
+          date_intervention: "",
+          date_fin_prevue: "",
+          observations: result.data.observations||"",
+          conditions: "Paiement à 30 jours à compter de la réception de la facture.",
+          statut: "Brouillon",
+        });
+        setPrestations(result.data.prestations||[]);
+        setImportModal(false);
+        setModal("new");
+      };
+      reader.readAsDataURL(importFile);
+    } catch (err) {
+      alert("❌ Erreur extraction: " + err.message);
+    } finally {
+      setImportLoading(false);
+    }
+  };
+
   return (<div>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20,flexWrap:"wrap",gap:8}}>
       <h1 style={{margin:0,fontSize:m?18:24,fontWeight:700,color:"#0F172A"}}>Ordres de Service</h1>
       <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
         <input type="text" placeholder="Rechercher par n°, chantier, client ou commune..." value={searchOS} onChange={e=>setSearchOS(e.target.value)} style={{padding:"6px 10px",borderRadius:6,border:"1px solid #E2E8F0",fontSize:12,width:m?"100%":"220px"}}/>
+        <button onClick={()=>setImportModal(true)} style={{...btnP,fontSize:12}}>📸 Importer PDF/Photo</button>
         <button onClick={openNew} style={{...btnP,fontSize:12}}>+ Nouvel OS</button>
       </div>
     </div>
@@ -2343,6 +2410,23 @@ function OrdresServiceV({data,m,reload}) {
         );
       })}
     </div>
+
+    {/* MODAL IMPORT PDF/PHOTO */}
+    <Modal open={importModal} onClose={()=>{setImportModal(false);setImportFile(null);setImportPreview(null);}} title="Importer depuis PDF/Photo" wide>
+      <div style={{textAlign:"center",marginBottom:20}}>
+        <p style={{color:"#64748B",marginBottom:12}}>Téléchargez une photo de devis ou un PDF pour générer automatiquement un Ordre de Service</p>
+        <label style={{display:"inline-block",cursor:"pointer",background:"#3B82F6",color:"#fff",padding:"10px 20px",borderRadius:6,fontWeight:600}}>
+          📁 Choisir un fichier
+          <input type="file" accept="image/*,.pdf" onChange={handleImportFile} style={{display:"none"}}/>
+        </label>
+      </div>
+      {importPreview && <div style={{marginBottom:20,textAlign:"center"}}><img src={importPreview} style={{maxWidth:"100%",maxHeight:"300px",borderRadius:8}} alt="Preview"/></div>}
+      {importFile && <div style={{marginBottom:12,padding:12,background:"#F8FAFC",borderRadius:6,fontSize:12,color:"#64748B"}}>📄 {importFile.name}</div>}
+      <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
+        <button onClick={()=>setImportModal(false)} style={{...btnS}}>Annuler</button>
+        <button onClick={handleExtractOS} disabled={!importFile||importLoading} style={{...btnP,opacity:!importFile||importLoading?0.5:1,cursor:!importFile||importLoading?"not-allowed":"pointer"}}>{importLoading?"⏳ Extraction...":"✨ Extraire les données"}</button>
+      </div>
+    </Modal>
 
     {/* MODAL CRÉATION OS */}
     <Modal open={!!modal} onClose={()=>setModal(null)} title={modal==="edit"?"Modifier l'Ordre de Service":"Nouvel Ordre de Service"} wide>
