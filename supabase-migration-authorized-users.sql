@@ -24,12 +24,30 @@ ALTER TABLE authorized_users ENABLE ROW LEVEL SECURITY;
 -- Tous les utilisateurs authentifiés peuvent voir la liste
 CREATE POLICY "authorized_users_select" ON authorized_users FOR SELECT USING (true);
 
--- Seulement l'admin peut modifier
-CREATE POLICY "authorized_users_admin_only" ON authorized_users
+-- Admins can insert new users
+CREATE POLICY "authorized_users_insert" ON authorized_users
 FOR INSERT WITH CHECK (
   EXISTS (
     SELECT 1 FROM authorized_users
-    WHERE email = current_user AND role = 'admin' AND actif = true
+    WHERE email = auth.jwt()->>'email' AND role = 'admin' AND actif = true
+  )
+);
+
+-- Admins can update users
+CREATE POLICY "authorized_users_update" ON authorized_users
+FOR UPDATE WITH CHECK (
+  EXISTS (
+    SELECT 1 FROM authorized_users
+    WHERE email = auth.jwt()->>'email' AND role = 'admin' AND actif = true
+  )
+);
+
+-- Admins can delete users
+CREATE POLICY "authorized_users_delete" ON authorized_users
+FOR DELETE USING (
+  EXISTS (
+    SELECT 1 FROM authorized_users
+    WHERE email = auth.jwt()->>'email' AND role = 'admin' AND actif = true
   )
 );
 
