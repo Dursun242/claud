@@ -638,14 +638,19 @@ async function exportCRExcel(data) {
 
 // ═══════════════════════════════════════════
 export default function App({ user }) {
-  // React Query hooks
+  // State for tab selection (declared early for lazy loading)
+  const [tab, setTab] = useState("dashboard");
+
+  // React Query hooks - ESSENTIAL ONLY
   const chantiersQuery = useChantiers();
   const contactsQuery = useContacts();
   const tasksQuery = useTasks();
-  const planningQuery = usePlanning();
-  const rdvQuery = useRDVs();
-  const compteRendusQuery = useCompteRendus();
-  const ordresServiceQuery = useOrdresService();
+
+  // LAZY LOAD non-essential queries (only when needed)
+  const planningQuery = tab === "planning" ? usePlanning() : { data: [], isLoading: false };
+  const rdvQuery = tab === "rdv" ? useRDVs() : { data: [], isLoading: false };
+  const compteRendusQuery = tab === "cr" ? useCompteRendus() : { data: [], isLoading: false };
+  const ordresServiceQuery = tab === "os" ? useOrdresService() : { data: [], isLoading: false };
   const queryClient = useQueryClient();
 
   // Combine all queries into single data object (for backward compatibility)
@@ -666,7 +671,6 @@ export default function App({ user }) {
   const loading = chantiersQuery.isLoading || contactsQuery.isLoading || tasksQuery.isLoading;
 
   // State
-  const [tab, setTab] = useState("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   // Floating mic state
