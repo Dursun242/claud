@@ -3,6 +3,8 @@
  * Exchanges auth code for access token and stores it
  */
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(req) {
   try {
     const { searchParams } = new URL(req.url);
