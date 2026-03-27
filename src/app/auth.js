@@ -34,49 +34,46 @@ export function AuthProvider({ children }) {
   const [denied, setDenied] = useState(false)
 
   useEffect(() => {
-    // Check current session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session?.user) {
-        const profile = await loadUserProfile(session.user.email)
-        if (profile) {
-          console.log("✅ Connecté:", profile.prenom, "(" + profile.role + ")")
-          setUser(session.user)
-          setProfile(profile)
-          setDenied(false)
-        } else {
-          console.log("⚠️ Utilisateur non autorisé:", session.user.email)
-          setDenied(true)
-          setUser(null)
-          await supabase.auth.signOut()
-        }
-      }
-      setLoading(false)
-    })
+    let isMounted = true
 
-    // Listen for auth changes
+    // OPTIMIZED: Only use onAuthStateChange (it handles both initial and changes)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (!isMounted) return
+
       if (session?.user) {
-        const profile = await loadUserProfile(session.user.email)
-        if (profile) {
-          console.log("✅ Auth change:", profile.prenom)
-          setUser(session.user)
-          setProfile(profile)
-          setDenied(false)
-        } else {
-          console.log("❌ Non autorisé:", session.user.email)
-          setDenied(true)
-          setUser(null)
-          setProfile(null)
-          await supabase.auth.signOut()
+        try {
+          const profile = await loadUserProfile(session.user.email)
+          if (isMounted) {
+            if (profile) {
+              console.log("✅ Connecté:", profile.prenom, "(" + profile.role + ")")
+              setUser(session.user)
+              setProfile(profile)
+              setDenied(false)
+            } else {
+              console.log("⚠️ Utilisateur non autorisé:", session.user.email)
+              setDenied(true)
+              setUser(null)
+              setProfile(null)
+              await supabase.auth.signOut()
+            }
+          }
+        } catch (err) {
+          console.error("Auth error:", err)
+          if (isMounted) setLoading(false)
         }
       } else {
-        setUser(null)
-        setProfile(null)
+        if (isMounted) {
+          setUser(null)
+          setProfile(null)
+        }
       }
-      setLoading(false)
+      if (isMounted) setLoading(false)
     })
 
-    return () => subscription.unsubscribe()
+    return () => {
+      isMounted = false
+      subscription?.unsubscribe()
+    }
   }, [])
 
   return (
