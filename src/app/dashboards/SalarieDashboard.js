@@ -19,15 +19,14 @@ export default function SalarieDashboard({ user, profile }) {
   const [floatTranscript, setFloatTranscript] = useState('')
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 900
 
-  // Charger seulement les chantiers assignés au salarié
+  // Charger TOUS les chantiers pour le salarié
   useEffect(() => {
     const loadData = async () => {
       try {
-        // Récupérer les chantiers où l'utilisateur est dans salarie_ids
+        // Récupérer TOUS les chantiers
         const { data: chantiers } = await supabase
           .from('chantiers')
           .select('*')
-          .contains('salarie_ids', [user.id])
           .order('created_at', { ascending: false })
 
         const chantiersIds = (chantiers || []).map(c => c.id)
@@ -62,7 +61,6 @@ export default function SalarieDashboard({ user, profile }) {
     const { data: chantiers } = await supabase
       .from('chantiers')
       .select('*')
-      .contains('salarie_ids', [user.id])
       .order('created_at', { ascending: false })
 
     const chantiersIds = (chantiers || []).map(c => c.id)
