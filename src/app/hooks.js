@@ -50,7 +50,7 @@ export function useTasks() {
   });
 }
 
-export function usePlanning() {
+export function usePlanning(enabled = true) {
   return useQuery({
     queryKey: ['planning'],
     queryFn: async () => {
@@ -62,10 +62,11 @@ export function usePlanning() {
       if (error) throw error;
       return (data || []).map(p => ({ ...p, chantierId: p.chantier_id }));
     },
+    enabled,
   });
 }
 
-export function useRDVs() {
+export function useRDVs(enabled = true) {
   return useQuery({
     queryKey: ['rdv'],
     queryFn: async () => {
@@ -77,10 +78,11 @@ export function useRDVs() {
       if (error) throw error;
       return (data || []).map(r => ({ ...r, chantierId: r.chantier_id, participants: r.participants || [] }));
     },
+    enabled,
   });
 }
 
-export function useCompteRendus() {
+export function useCompteRendus(enabled = true) {
   return useQuery({
     queryKey: ['compteRendus'],
     queryFn: async () => {
@@ -92,10 +94,11 @@ export function useCompteRendus() {
       if (error) throw error;
       return (data || []).map(c => ({ ...c, chantierId: c.chantier_id }));
     },
+    enabled,
   });
 }
 
-export function useOrdresService() {
+export function useOrdresService(enabled = true) {
   return useQuery({
     queryKey: ['ordresService'],
     queryFn: async () => {
@@ -107,6 +110,7 @@ export function useOrdresService() {
       if (error) throw error;
       return data || [];
     },
+    enabled,
   });
 }
 
