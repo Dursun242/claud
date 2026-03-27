@@ -1040,6 +1040,10 @@ function GCalV({m}) {
   }, []);
 
   const handleGoogleLogin = () => {
+    if (!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID) {
+      alert("❌ Google Client ID non configuré. Vérifiez vos variables d'environnement.");
+      return;
+    }
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID}&redirect_uri=${encodeURIComponent(window.location.origin+'/api/auth/google/callback')}&response_type=code&scope=https://www.googleapis.com/auth/calendar&access_type=offline`;
     window.location.href = authUrl;
   };
