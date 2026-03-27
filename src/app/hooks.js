@@ -11,11 +11,11 @@ export function useChantiers() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('chantiers')
-        .select('id,nom,adresse,commune,client,budget,created_at,updated_at')
+        .select('*')
         .order('created_at', { ascending: false })
-        .limit(30);
+        .limit(50);
       if (error) throw error;
-      return (data || []).map(c => ({ ...c, lots: [] }));
+      return (data || []).map(c => ({ ...c, lots: c.lots || [] }));
     },
   });
 }
@@ -26,9 +26,9 @@ export function useContacts() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('contacts')
-        .select('id,nom,type,specialite,tel,email,siret')
+        .select('*')
         .order('nom')
-        .limit(50);
+        .limit(100);
       if (error) throw error;
       return (data || []).map(c => ({ ...c, chantiers: [] }));
     },
@@ -41,9 +41,9 @@ export function useTasks() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('taches')
-        .select('id,chantier_id,titre,description,urgence,created_at')
+        .select('*')
         .order('created_at', { ascending: false })
-        .limit(30);
+        .limit(100);
       if (error) throw error;
       return (data || []).map(t => ({ ...t, chantierId: t.chantier_id }));
     },
