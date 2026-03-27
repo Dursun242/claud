@@ -12,7 +12,7 @@ import PhotoReportsV from '../pages/PhotoReportsV'
 import AIV from '../pages/AIV'
 import { logout } from '../auth'
 
-export default function SalarieDashboard({ user, profile }) {
+export default function SalarieDashboard({ user, profile = null }) {
   const [tab, setTab] = useState('dashboard')
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)

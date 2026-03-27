@@ -5,7 +5,7 @@ import AdminDashboard from './dashboards/AdminDashboard'
 import ClientDashboard from './dashboards/ClientDashboard'
 import SalarieDashboard from './dashboards/SalarieDashboard'
 
-export default function RoleBasedDashboard({ user, profile }) {
+export default function RoleBasedDashboard({ user, profile = null }) {
   const [userRole, setUserRole] = useState(null)
   const [loading, setLoading] = useState(true)
 

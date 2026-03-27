@@ -12,7 +12,7 @@ import PlansV from '../pages/PlansV'
 import PhotoReportsV from '../pages/PhotoReportsV'
 import { logout } from '../auth'
 
-export default function ClientDashboard({ user, profile }) {
+export default function ClientDashboard({ user, profile = null }) {
   const [tab, setTab] = useState('dashboard')
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
