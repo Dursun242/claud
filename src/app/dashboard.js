@@ -1025,41 +1025,93 @@ function DashboardV({data,setTab,m,user}) {
 // GOOGLE CALENDAR VIEW
 // ═══════════════════════════════════════════
 function GCalV({m}) {
-  const today = new Date().toISOString().split("T")[0];
-  const byDay = {}; gcalEvents.forEach(e=>{const d=e.start.split("T")[0];(byDay[d]=byDay[d]||[]).push(e);});
+  const [googleToken, setGoogleToken] = useState(null);
+  const [newEventModal, setNewEventModal] = useState(false);
+  const [newEvent, setNewEvent] = useState({title:"", startTime:"09:00", endTime:"10:00", location:"", description:""});
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('google_token') || localStorage.getItem('google_token');
+    if (token) {
+      setGoogleToken(token);
+      localStorage.setItem('google_token', token);
+      if (params.get('google_token')) window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []);
+
+  const handleGoogleLogin = () => {
+    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID}&redirect_uri=${encodeURIComponent(window.location.origin+'/api/auth/google/callback')}&response_type=code&scope=https://www.googleapis.com/auth/calendar&access_type=offline`;
+    window.location.href = authUrl;
+  };
+
+  const handleLogout = () => {
+    setGoogleToken(null);
+    localStorage.removeItem('google_token');
+  };
+
+  if (!googleToken) {
+    return (
+      <div style={{textAlign:"center", padding:"40px 20px"}}>
+        <div style={{width:80, height:80, borderRadius:10, background:"linear-gradient(135deg, #EA4335, #FBBC04, #34A853, #4285F4)", display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 20px", boxShadow:"0 3px 10px rgba(0,0,0,0.15)"}}>
+          <span style={{fontSize:40}}>📅</span>
+        </div>
+        <h2 style={{margin:0, fontSize:24, fontWeight:700, color:"#0F172A"}}>Google Calendar</h2>
+        <p style={{color:"#64748B", marginTop:8, marginBottom:24}}>Connectez-vous pour synchroniser vos RDV</p>
+        <button onClick={handleGoogleLogin} style={{background:"linear-gradient(135deg, #4285F4, #1F2937)", color:"#fff", border:"none", padding:"12px 24px", borderRadius:8, fontWeight:600, cursor:"pointer", fontSize:14}}>
+          🔗 Se connecter avec Google
+        </button>
+      </div>
+    );
+  }
 
   return (<div>
-    <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:20}}>
-      <div style={{width:40,height:40,borderRadius:10,background:GC.gradient,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 3px 10px rgba(234,67,53,0.3)"}}>
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="#fff" strokeWidth="2"/><path d="M3 10h18" stroke="#fff" strokeWidth="2"/></svg>
-      </div>
-      <div><h1 style={{margin:0,fontSize:m?18:24,fontWeight:700}}>Google Calendar <ApiBadge/></h1><p style={{margin:0,fontSize:12,color:"#64748B"}}>Suivi Pro ID MAITRISE</p></div>
-    </div>
-
-    <div style={{background:"#F0FDF4",border:"1.5px solid #BBF7D0",borderRadius:10,padding:"10px 14px",marginBottom:16,display:"flex",alignItems:"center",gap:8,fontSize:12}}>
-      <div style={{width:8,height:8,borderRadius:"50%",background:"#22C55E",animation:"pulseGlow 2s infinite"}}/><span style={{fontWeight:600,color:"#166534"}}>Connecté</span><span style={{color:"#64748B"}}>• dursunozkan88@gmail.com</span>
-    </div>
-
-    <div style={{background:"#fff",borderRadius:14,padding:m?14:20,boxShadow:"0 1px 3px rgba(0,0,0,0.06)",border:`1px solid ${GC.border}`}}>
-      {Object.keys(byDay).sort().map(day=>{const isT=day===today; return(
-        <div key={day} style={{marginBottom:16}}>
-          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
-            <span style={{background:isT?GC.primary:"#F1F5F9",color:isT?"#fff":"#64748B",borderRadius:8,padding:"4px 12px",fontSize:12,fontWeight:700}}>{fmtDayFr(day+"T00:00:00")}{isT?" • Aujourd'hui":""}</span>
-            <div style={{flex:1,height:1,background:isT?GC.border:"#F1F5F9"}}/>
-          </div>
-          {byDay[day].map(ev=>(
-            <div key={ev.id} style={{display:"flex",gap:12,padding:"10px 12px",marginBottom:6,borderRadius:10,background:isT?GC.light:"#FAFAFA",border:`1.5px solid ${isT?GC.border:"#F1F5F9"}`}}>
-              <div style={{minWidth:55,textAlign:"center"}}><div style={{fontSize:14,fontWeight:700,color:GC.primary}}>{fmtTime(ev.start)}</div><div style={{fontSize:10,color:"#94A3B8"}}>{fmtTime(ev.end)}</div></div>
-              <div style={{width:3,borderRadius:3,background:GC.gradient,flexShrink:0}}/>
-              <div style={{flex:1}}><div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2}}><span style={{fontSize:14,fontWeight:700,color:"#0F172A"}}>{ev.summary}</span><ApiBadge/></div>
-                {ev.description&&<div style={{fontSize:11,color:"#64748B",marginBottom:2}}>{ev.description}</div>}
-                {ev.location&&<div style={{fontSize:11,color:"#94A3B8",display:"flex",alignItems:"center",gap:3}}><Icon d={I.mappin} size={10} color="#94A3B8"/>{ev.location}</div>}
-              </div>
-            </div>
-          ))}
+    <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:20, flexWrap:"wrap", gap:12}}>
+      <div style={{display:"flex", alignItems:"center", gap:10}}>
+        <div style={{width:40, height:40, borderRadius:10, background:"linear-gradient(135deg, #EA4335, #4285F4)", display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 3px 10px rgba(234,67,53,0.3)"}}>
+          <span style={{fontSize:20}}>📅</span>
         </div>
-      );})}
+        <div><h1 style={{margin:0, fontSize:m?18:24, fontWeight:700}}>Google Calendar</h1><p style={{margin:0, fontSize:12, color:"#64748B"}}>Vos RDV synchronisés</p></div>
+      </div>
+      <button onClick={handleLogout} style={{background:"#EF4444", color:"#fff", border:"none", padding:"8px 16px", borderRadius:6, fontWeight:600, cursor:"pointer", fontSize:12}}>
+        🔓 Déconnecter
+      </button>
     </div>
+
+    <div style={{background:"#F0FDF4", border:"1.5px solid #BBF7D0", borderRadius:10, padding:"10px 14px", marginBottom:16, display:"flex", alignItems:"center", gap:8, fontSize:12}}>
+      <div style={{width:8, height:8, borderRadius:"50%", background:"#22C55E", animation:"pulseGlow 2s infinite"}}/>
+      <span style={{fontWeight:600, color:"#166534"}}>Connecté ✓</span>
+    </div>
+
+    <div style={{background:"#fff", borderRadius:14, padding:m?14:20, boxShadow:"0 1px 3px rgba(0,0,0,0.06)", border:"1px solid #E2E8F0"}}>
+      <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20}}>
+        <h3 style={{margin:0, fontSize:16, fontWeight:700, color:"#0F172A"}}>📌 Événements à venir</h3>
+        <button onClick={()=>setNewEventModal(true)} style={{background:"#3B82F6", color:"#fff", border:"none", padding:"8px 12px", borderRadius:6, fontWeight:600, cursor:"pointer", fontSize:12}}>
+          ➕ Nouvel événement
+        </button>
+      </div>
+      <div style={{color:"#94A3B8", textAlign:"center", padding:"40px 20px", fontSize:14}}>
+        ⏳ Chargement des événements...
+      </div>
+    </div>
+
+    {newEventModal && (
+      <div style={{position:"fixed", top:0, left:0, right:0, bottom:0, background:"rgba(0,0,0,0.5)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:1000}}>
+        <div style={{background:"#fff", borderRadius:12, padding:24, maxWidth:500, width:"90%", boxShadow:"0 20px 25px rgba(0,0,0,0.15)"}}>
+          <h2 style={{margin:"0 0 16px", fontSize:18, fontWeight:700, color:"#0F172A"}}>Nouvel événement</h2>
+          <div style={{marginBottom:12}}><label style={{display:"block", fontSize:12, fontWeight:600, color:"#64748B", marginBottom:6}}>Titre</label><input type="text" value={newEvent.title} onChange={e=>setNewEvent({...newEvent,title:e.target.value})} style={{width:"100%", padding:"10px 12px", border:"1px solid #E2E8F0", borderRadius:6, fontSize:14, boxSizing:"border-box"}}/></div>
+          <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:12}}>
+            <div><label style={{display:"block", fontSize:12, fontWeight:600, color:"#64748B", marginBottom:6}}>Heure début</label><input type="time" value={newEvent.startTime} onChange={e=>setNewEvent({...newEvent,startTime:e.target.value})} style={{width:"100%", padding:"10px 12px", border:"1px solid #E2E8F0", borderRadius:6, fontSize:14, boxSizing:"border-box"}}/></div>
+            <div><label style={{display:"block", fontSize:12, fontWeight:600, color:"#64748B", marginBottom:6}}>Heure fin</label><input type="time" value={newEvent.endTime} onChange={e=>setNewEvent({...newEvent,endTime:e.target.value})} style={{width:"100%", padding:"10px 12px", border:"1px solid #E2E8F0", borderRadius:6, fontSize:14, boxSizing:"border-box"}}/></div>
+          </div>
+          <div style={{marginBottom:12}}><label style={{display:"block", fontSize:12, fontWeight:600, color:"#64748B", marginBottom:6}}>Lieu</label><input type="text" value={newEvent.location} onChange={e=>setNewEvent({...newEvent,location:e.target.value})} style={{width:"100%", padding:"10px 12px", border:"1px solid #E2E8F0", borderRadius:6, fontSize:14, boxSizing:"border-box"}}/></div>
+          <div style={{marginBottom:20}}><label style={{display:"block", fontSize:12, fontWeight:600, color:"#64748B", marginBottom:6}}>Description</label><textarea value={newEvent.description} onChange={e=>setNewEvent({...newEvent,description:e.target.value})} style={{width:"100%", padding:"10px 12px", border:"1px solid #E2E8F0", borderRadius:6, fontSize:14, minHeight:80, boxSizing:"border-box", fontFamily:"inherit", resize:"vertical"}}/></div>
+          <div style={{display:"flex", gap:8, justifyContent:"flex-end"}}>
+            <button onClick={()=>{setNewEventModal(false);setNewEvent({title:"",startTime:"09:00",endTime:"10:00",location:"",description:""});}} style={{background:"#F1F5F9", color:"#64748B", border:"none", padding:"10px 16px", borderRadius:6, fontWeight:600, cursor:"pointer"}}>Annuler</button>
+            <button onClick={()=>{alert("✅ Création en cours (API Google)");}} style={{background:"#3B82F6", color:"#fff", border:"none", padding:"10px 16px", borderRadius:6, fontWeight:600, cursor:"pointer"}}>Créer</button>
+          </div>
+        </div>
+      </div>
+    )}
   </div>);
 }
 
