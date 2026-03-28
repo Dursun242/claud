@@ -899,20 +899,20 @@ function DashboardV({data,setTab,m,user}) {
 
   return (<div>
     {/* HEADER */}
-    <div style={{marginBottom:24}}>
-      <h1 style={{margin:0,fontSize:m?22:28,fontWeight:700,color:"#0F172A"}}>Bonjour {user?.user_metadata?.full_name?.split(" ")[0] || "Dursun"}</h1>
-      <p style={{margin:"6px 0 0",color:"#64748B",fontSize:m?12:13}}>{new Date().toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"})}</p>
+    <div style={{marginBottom:spacing.xl}}>
+      <h1 style={{...typography.h2, margin:0,color:colors.gray[900]}}>Bonjour {user?.user_metadata?.full_name?.split(" ")[0] || "Dursun"}</h1>
+      <p style={{...typography.body.sm, margin:`${spacing.xs} 0 0`,color:colors.gray[500]}}>{new Date().toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"})}</p>
     </div>
 
     {/* ACTIONS RAPIDES */}
-    <div style={{display:"grid",gridTemplateColumns:m?"repeat(2,1fr)":"repeat(4,1fr)",gap:10,marginBottom:24}}>
+    <div style={{display:"grid",gridTemplateColumns:m?"repeat(2,1fr)":"repeat(4,1fr)",gap:spacing.sm,marginBottom:spacing.xl}}>
       {[
         {label:"Nouvel OS",icon:"📋",tab:"orders"},
         {label:"Nouveau CR",icon:"📝",tab:"reports"},
         {label:"Nouvelle tâche",icon:"✓",tab:"tasks"},
         {label:"Nouveau chantier",icon:"🏗️",tab:"projects"},
       ].map((a,i)=>(
-        <button key={i} onClick={()=>setTab(a.tab)} style={{background:"#fff",border:"1.5px solid #E2E8F0",borderRadius:10,padding:12,cursor:"pointer",transition:"all .15s",textAlign:"center",fontWeight:600,fontSize:12,color:"#0F172A",display:"flex",flexDirection:"column",alignItems:"center",gap:6}}>
+        <button key={i} onClick={()=>setTab(a.tab)} style={{background:colors.gray[100],border:`1.5px solid ${colors.gray[200]}`,borderRadius:10,padding:spacing.md,cursor:"pointer",transition:"all .15s",textAlign:"center",fontWeight:600,fontSize:12,color:colors.gray[900],display:"flex",flexDirection:"column",alignItems:"center",gap:spacing.sm}}>
           <span style={{fontSize:20}}>{a.icon}</span>{a.label}
         </button>
       ))}
@@ -920,12 +920,12 @@ function DashboardV({data,setTab,m,user}) {
 
     {/* CHANTIERS EN COURS */}
     {chantiersEnCours.length>0&&(
-      <div style={{background:"#fff",borderRadius:14,padding:m?14:18,boxShadow:"0 1px 3px rgba(0,0,0,0.06)",marginBottom:20}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-          <h2 style={{margin:0,fontSize:16,fontWeight:700,color:"#0F172A"}}>Chantiers en cours</h2>
-          <button onClick={()=>setTab("projects")} style={{fontSize:11,color:"#3B82F6",background:"none",border:"none",cursor:"pointer",fontWeight:600}}>Voir tous →</button>
+      <div style={{background:colors.gray[100],borderRadius:14,padding:m?spacing.md:spacing.lg,boxShadow:"0 1px 3px rgba(0,0,0,0.06)",marginBottom:spacing.lg}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:spacing.lg}}>
+          <h2 style={{...typography.h3, margin:0,color:colors.gray[900]}}>Chantiers en cours</h2>
+          <button onClick={()=>setTab("projects")} style={{fontSize:11,color:colors.primary[600],background:"none",border:"none",cursor:"pointer",fontWeight:600}}>Voir tous →</button>
         </div>
-        <div style={{display:"grid",gridTemplateColumns:m?"1fr":"repeat(3,1fr)",gap:12}}>
+        <div style={{display:"grid",gridTemplateColumns:m?"1fr":"repeat(3,1fr)",gap:spacing.md}}>
           {chantiersEnCours.map(ch=>{
             const ratio=pct(ch.depenses,ch.budget);
             const budgetColor=ratio>85?"#EF4444":ratio>60?"#F59E0B":"#10B981";
@@ -948,15 +948,15 @@ function DashboardV({data,setTab,m,user}) {
     )}
 
     {/* À FAIRE AUJOURD'HUI */}
-    <div style={{display:"grid",gridTemplateColumns:m?"1fr":"1fr 1fr",gap:16,marginBottom:20}}>
+    <div style={{display:"grid",gridTemplateColumns:m?"1fr":"1fr 1fr",gap:spacing.lg,marginBottom:spacing.lg}}>
       {/* AGENDA */}
-      <div style={{background:"#fff",borderRadius:14,padding:m?14:18,boxShadow:"0 1px 3px rgba(0,0,0,0.06)",borderTop:`3px solid ${GC.primary}`}}>
-        <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:12}}>
-          <span style={{fontWeight:700,fontSize:15,color:"#0F172A"}}>📅 Agenda</span>
+      <div style={{background:colors.gray[100],borderRadius:14,padding:m?spacing.md:spacing.lg,boxShadow:"0 1px 3px rgba(0,0,0,0.06)",borderTop:`3px solid ${GC.primary}`}}>
+        <div style={{display:"flex",alignItems:"center",gap:spacing.xs,marginBottom:spacing.md}}>
+          <span style={{fontWeight:700,fontSize:15,color:colors.gray[900]}}>📅 Agenda</span>
           <ApiBadge/>
         </div>
         {todayGcal.length===0
-          ? <p style={{color:"#94A3B8",fontSize:12,margin:0}}>Aucun RDV aujourd'hui</p>
+          ? <p style={{color:colors.gray[400],fontSize:12,margin:0}}>Aucun RDV aujourd'hui</p>
           : <div style={{display:"flex",flexDirection:"column",gap:10}}>
               {todayGcal.map(ev=>(
                 <div key={ev.id} style={{borderLeft:`3px solid ${GC.primary}`,paddingLeft:10,borderRadius:4}}>
@@ -969,13 +969,13 @@ function DashboardV({data,setTab,m,user}) {
       </div>
 
       {/* TÂCHES URGENTES */}
-      <div style={{background:"#FEF2F2",borderRadius:14,padding:m?14:18,border:"1.5px solid #FECACA"}}>
-        <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:12}}>
-          <span style={{fontWeight:700,fontSize:15,color:"#0F172A"}}>⚡ À faire</span>
-          {urgentTasks.length>0&&<span style={{background:"#EF4444",color:"#fff",borderRadius:6,padding:"2px 8px",fontSize:11,fontWeight:700}}>{urgentTasks.length}</span>}
+      <div style={{background:"#FEF2F2",borderRadius:14,padding:m?spacing.md:spacing.lg,border:`1.5px solid #FECACA`}}>
+        <div style={{display:"flex",alignItems:"center",gap:spacing.xs,marginBottom:spacing.md}}>
+          <span style={{fontWeight:700,fontSize:15,color:colors.gray[900]}}>⚡ À faire</span>
+          {urgentTasks.length>0&&<span style={{background:colors.danger,color:colors.gray[100],borderRadius:6,padding:"2px 8px",fontSize:11,fontWeight:700}}>{urgentTasks.length}</span>}
         </div>
         {allActiveTasks.length===0
-          ? <p style={{color:"#94A3B8",fontSize:12,margin:0}}>Aucune tâche</p>
+          ? <p style={{color:colors.gray[400],fontSize:12,margin:0}}>Aucune tâche</p>
           : <div style={{display:"flex",flexDirection:"column",gap:8}}>
               {allActiveTasks.slice(0,5).map(t=>{
                 const ch=data.chantiers.find(c=>c.id===(t.chantierId||t.chantier_id));
@@ -994,25 +994,25 @@ function DashboardV({data,setTab,m,user}) {
     </div>
 
     {/* STATISTIQUES */}
-    <div style={{background:"#fff",borderRadius:14,padding:m?14:18,boxShadow:"0 1px 3px rgba(0,0,0,0.06)"}}>
-      <h3 style={{margin:"0 0 14px",fontSize:15,fontWeight:700,color:"#0F172A"}}>Vue d'ensemble</h3>
-      <div style={{display:"grid",gridTemplateColumns:m?"1fr":"repeat(2,1fr)",gap:16}}>
-        <div style={{paddingRight:m?0:16,borderRight:m?"none":"1px solid #E2E8F0"}}>
-          <div style={{fontSize:11,color:"#94A3B8",fontWeight:600,marginBottom:6,textTransform:"uppercase"}}>Chantiers actifs</div>
-          <div style={{fontSize:m?28:32,fontWeight:700,color:"#3B82F6",marginBottom:8}}>{enCours}</div>
-          <div style={{display:"flex",alignItems:"center",gap:8}}>
-            <div style={{flex:1,height:6,background:"#E2E8F0",borderRadius:3,overflow:"hidden"}}>
-              <div style={{height:"100%",background:"#3B82F6",width:enCours/(data.chantiers.length||1)*100+"%"}}/>
+    <div style={{background:colors.gray[100],borderRadius:14,padding:m?spacing.md:spacing.lg,boxShadow:"0 1px 3px rgba(0,0,0,0.06)"}}>
+      <h3 style={{...typography.h3, margin:`0 0 ${spacing.lg} 0`,color:colors.gray[900]}}>Vue d'ensemble</h3>
+      <div style={{display:"grid",gridTemplateColumns:m?"1fr":"repeat(2,1fr)",gap:spacing.lg}}>
+        <div style={{paddingRight:m?0:spacing.lg,borderRight:m?"none":`1px solid ${colors.gray[200]}`}}>
+          <div style={{...typography.label, color:colors.gray[400],marginBottom:spacing.sm,textTransform:"uppercase"}}>Chantiers actifs</div>
+          <div style={{fontSize:m?28:32,fontWeight:700,color:colors.primary[600],marginBottom:spacing.md}}>{enCours}</div>
+          <div style={{display:"flex",alignItems:"center",gap:spacing.md}}>
+            <div style={{flex:1,height:6,background:colors.gray[200],borderRadius:3,overflow:"hidden"}}>
+              <div style={{height:"100%",background:colors.primary[600],width:enCours/(data.chantiers.length||1)*100+"%"}}/>
             </div>
-            <span style={{fontSize:10,color:"#64748B"}}>{enCours}/{data.chantiers.length}</span>
+            <span style={{fontSize:10,color:colors.gray[500]}}>{enCours}/{data.chantiers.length}</span>
           </div>
         </div>
         <div>
-          <div style={{fontSize:11,color:"#94A3B8",fontWeight:600,marginBottom:6,textTransform:"uppercase"}}>Budget</div>
-          <div style={{fontSize:m?24:28,fontWeight:700,color:"#10B981",marginBottom:8}}>{fmtMoney(totalB)}</div>
-          <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:"#64748B"}}>
+          <div style={{...typography.label, color:colors.gray[400],marginBottom:spacing.sm,textTransform:"uppercase"}}>Budget</div>
+          <div style={{fontSize:m?24:28,fontWeight:700,color:colors.success,marginBottom:spacing.md}}>{fmtMoney(totalB)}</div>
+          <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:colors.gray[500]}}>
             <span>Dépensé: <span style={{fontWeight:600}}>{fmtMoney(totalD)}</span></span>
-            <span style={{color:pct(totalD,totalB)>85?"#EF4444":pct(totalD,totalB)>60?"#F59E0B":"#10B981",fontWeight:600}}>{pct(totalD,totalB)}%</span>
+            <span style={{color:pct(totalD,totalB)>85?colors.danger:pct(totalD,totalB)>60?colors.warning:colors.success,fontWeight:600}}>{pct(totalD,totalB)}%</span>
           </div>
         </div>
       </div>
