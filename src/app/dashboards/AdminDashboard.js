@@ -772,7 +772,7 @@ export default function AdminDashboard({ user, profile = null }) {
   const switchTab = (k) => { setTab(k); if (isMobile) setSidebarOpen(false); };
 
   return (
-    <div style={{display:"flex",height:"100vh",fontFamily:"'DM Sans',sans-serif",background:"#F1F5F9",overflow:"hidden"}}>
+    <div style={{display:"flex",height:"100vh",fontFamily:"'DM Sans',sans-serif",background: colors.gray[100],overflow:"hidden"}}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
         @keyframes spin{to{transform:rotate(360deg)}}
@@ -785,8 +785,8 @@ export default function AdminDashboard({ user, profile = null }) {
         @keyframes pulse{0%,80%,100%{opacity:.3;transform:scale(.8)}40%{opacity:1;transform:scale(1)}}
         @keyframes pulseGlow{0%,100%{box-shadow:0 0 0 0 rgba(234,67,53,0.3)}50%{box-shadow:0 0 0 6px rgba(234,67,53,0)}}
         *{box-sizing:border-box}
-        ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-thumb{background:#CBD5E1;border-radius:3px}
-        input:focus,select:focus,textarea:focus{border-color:#3B82F6!important;outline:none}
+        ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-thumb{background:${colors.gray[300]};border-radius:3px}
+        input:focus,select:focus,textarea:focus{border-color:${colors.primary[500]}!important;outline:none}
       `}</style>
 
       {/* MOBILE OVERLAY */}
@@ -795,19 +795,19 @@ export default function AdminDashboard({ user, profile = null }) {
       {/* SIDEBAR */}
       <nav style={{
         width:isMobile?260:240,position:isMobile?"fixed":"relative",left:isMobile?(sidebarOpen?0:-280):0,top:0,bottom:0,
-        background:"linear-gradient(195deg,#0F172A,#1E3A5F)",color:"#fff",display:"flex",flexDirection:"column",flexShrink:0,
+        background:`linear-gradient(195deg,${colors.gray[900]},${colors.gray[800]})`,color:colors.gray[100],display:"flex",flexDirection:"column",flexShrink:0,
         zIndex:999,transition:"left .3s ease",boxShadow:isMobile&&sidebarOpen?"4px 0 20px rgba(0,0,0,0.3)":"none"
       }}>
-        <div style={{padding:"20px 16px 16px",borderBottom:"1px solid rgba(255,255,255,0.08)"}}>
-          <div style={{fontSize:18,fontWeight:700}}>ID MAÎTRISE</div>
-          <div style={{fontSize:10,color:"#94A3B8",marginTop:2,letterSpacing:"0.05em"}}>MAÎTRISE D'ŒUVRE • LE HAVRE</div>
+        <div style={{padding:`${spacing.lg} ${spacing.md} ${spacing.md}`,borderBottom:`1px solid ${colors.gray[700]}`}}>
+          <div style={{...typography.h3, color: colors.gray[100]}}>ID MAÎTRISE</div>
+          <div style={{fontSize:10,color:colors.gray[400],marginTop:spacing.xs,letterSpacing:"0.05em"}}>MAÎTRISE D'ŒUVRE • LE HAVRE</div>
         </div>
-        <div style={{flex:1,padding:"10px 8px",display:"flex",flexDirection:"column",gap:2,overflow:"auto"}}>
+        <div style={{flex:1,padding:`${spacing.sm} ${spacing.xs}`,display:"flex",flexDirection:"column",gap:spacing.xs,overflow:"auto"}}>
           {tabs.map(t=>(
             <button key={t.key} onClick={()=>switchTab(t.key)} style={{
-              display:"flex",alignItems:"center",gap:9,padding:"9px 11px",border:"none",borderRadius:7,cursor:"pointer",fontFamily:"inherit",fontSize:12.5,fontWeight:tab===t.key?600:400,
-              color:tab===t.key?(t.isGcal?"#FCA5A5":t.isQonto?"#C4B5FD":"#fff"):(t.isGcal?"#F87171":t.isQonto?"#A78BFA":"#94A3B8"),
-              background:tab===t.key?(t.isGcal?"rgba(234,67,53,0.15)":t.isQonto?"rgba(124,58,237,0.15)":"rgba(255,255,255,0.12)"):"transparent",
+              display:"flex",alignItems:"center",gap:spacing.md,padding:`${spacing.sm} ${spacing.sm}`,border:"none",borderRadius:7,cursor:"pointer",fontFamily:"inherit",fontSize:12.5,fontWeight:tab===t.key?600:400,
+              color:tab===t.key?(t.isGcal?"#FCA5A5":t.isQonto?"#C4B5FD":colors.gray[100]):(t.isGcal?"#F87171":t.isQonto?"#A78BFA":colors.gray[400]),
+              background:tab===t.key?(t.isGcal?"rgba(234,67,53,0.15)":t.isQonto?"rgba(124,58,237,0.15)":`rgba(255,255,255,0.12)`):"transparent",
               transition:"all .2s",textAlign:"left",width:"100%",
               borderLeft:t.isGcal&&tab===t.key?"3px solid #EA4335":t.isQonto&&tab===t.key?"3px solid #7C3AED":"3px solid transparent",
             }}>
@@ -821,31 +821,31 @@ export default function AdminDashboard({ user, profile = null }) {
           ))}
         </div>
         {/* User info + Logout */}
-        <div style={{padding:"12px 16px",borderTop:"1px solid rgba(255,255,255,0.08)"}}>
+        <div style={{padding:`${spacing.md} ${spacing.md}`,borderTop:`1px solid ${colors.gray[700]}`}}>
           {user && (
-            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
-              {user.user_metadata?.avatar_url && <img src={user.user_metadata.avatar_url} style={{width:28,height:28,borderRadius:"50%",border:"2px solid rgba(255,255,255,0.15)"}} alt=""/>}
+            <div style={{display:"flex",alignItems:"center",gap:spacing.md,marginBottom:spacing.md}}>
+              {user.user_metadata?.avatar_url && <img src={user.user_metadata.avatar_url} style={{width:28,height:28,borderRadius:"50%",border:`2px solid ${colors.gray[600]}`}} alt=""/>}
               <div style={{flex:1,minWidth:0}}>
-                <div style={{fontSize:11,fontWeight:600,color:"#fff",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{user.user_metadata?.full_name || user.email}</div>
-                <div style={{fontSize:9,color:"#64748B",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{user.email}</div>
+                <div style={{fontSize:11,fontWeight:600,color:colors.gray[100],overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{user.user_metadata?.full_name || user.email}</div>
+                <div style={{fontSize:9,color:colors.gray[400],overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{user.email}</div>
               </div>
             </div>
           )}
-          <button onClick={logout} style={{width:"100%",padding:"6px 10px",borderRadius:6,border:"1px solid rgba(255,255,255,0.1)",background:"rgba(255,255,255,0.05)",color:"#94A3B8",fontSize:10,cursor:"pointer",fontFamily:"inherit",fontWeight:500}}>
+          <button onClick={logout} style={{width:"100%",padding:`${spacing.xs} ${spacing.sm}`,borderRadius:6,border:`1px solid ${colors.gray[600]}`,background:colors.gray[800],color:colors.gray[400],fontSize:10,cursor:"pointer",fontFamily:"inherit",fontWeight:500}}>
             Déconnexion
           </button>
-          <div style={{fontSize:9,color:"#475569",marginTop:6}}>SARL ID MAITRISE<br/>9 Rue Henry Genestal, 76600 Le Havre</div>
+          <div style={{fontSize:9,color:colors.gray[500],marginTop:spacing.md}}>SARL ID MAITRISE<br/>9 Rue Henry Genestal, 76600 Le Havre</div>
         </div>
       </nav>
 
       {/* MAIN CONTENT */}
-      <main style={{flex:1,overflow:"auto",padding:isMobile?16:24,paddingTop:isMobile?60:24}}>
+      <main style={{flex:1,overflow:"auto",padding:isMobile?spacing.md:spacing.xl,paddingTop:isMobile?60:spacing.xl}}>
         {/* MOBILE HEADER */}
         {isMobile && (
-          <div style={{position:"fixed",top:0,left:0,right:0,height:52,background:"#fff",borderBottom:"1px solid #E2E8F0",display:"flex",alignItems:"center",padding:"0 16px",zIndex:997,gap:12}}>
-            <button onClick={()=>setSidebarOpen(true)} style={{background:"none",border:"none",cursor:"pointer",padding:4}}><Icon d={I.menu} size={22} color="#0F172A"/></button>
-            <span style={{fontSize:15,fontWeight:700,color:"#0F172A"}}>ID Maîtrise</span>
-            <span style={{fontSize:11,color:"#94A3B8",marginLeft:"auto"}}>{tabs.find(t=>t.key===tab)?.label}</span>
+          <div style={{position:"fixed",top:0,left:0,right:0,height:52,background:colors.gray[100],borderBottom:`1px solid ${colors.gray[200]}`,display:"flex",alignItems:"center",padding:`0 ${spacing.md}`,zIndex:997,gap:spacing.md}}>
+            <button onClick={()=>setSidebarOpen(true)} style={{background:"none",border:"none",cursor:"pointer",padding:spacing.xs,color: colors.gray[900]}}><Icon d={I.menu} size={22} color={colors.gray[900]}/></button>
+            <span style={{fontSize:15,fontWeight:700,color:colors.gray[900]}}>ID Maîtrise</span>
+            <span style={{fontSize:11,color:colors.gray[400],marginLeft:"auto"}}>{tabs.find(t=>t.key===tab)?.label}</span>
           </div>
         )}
         <div style={{animation:"fadeIn .3s ease",maxWidth:1200}}>
