@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from '../supabaseClient'
 import { generateOSPdf, generateCRPdf, generateOSExcel, generateCRExcel } from '../generators'
 import { logout } from '../auth'
+import AIQontoV from '../pages/AIQontoV'
 
 const LocalDB = {
   get(key) { try { if (typeof window === 'undefined') return null; const v = localStorage.getItem(key); return v ? JSON.parse(v) : null; } catch { return null; } },
@@ -1301,8 +1302,8 @@ function QontoV({m, data, reload}) {
             </div>
 
             {/* SUB-TABS */}
-            <div style={{display:"flex",gap:6,marginBottom:16}}>
-              {[{k:"factures",l:`Factures (${invoices.length})`},{k:"devis",l:`Devis (${quotes.length})`},{k:"clients",l:`Clients (${clients.length})`}].map(t=>(
+            <div style={{display:"flex",gap:6,marginBottom:16,flexWrap:"wrap"}}>
+              {[{k:"factures",l:`Factures (${invoices.length})`},{k:"devis",l:`Devis (${quotes.length})`},{k:"clients",l:`Clients (${clients.length})`},{k:"ai",l:"🤖 Analyse IA"}].map(t=>(
                 <button key={t.k} onClick={()=>setActiveTab(t.k)} style={{padding:"8px 16px",borderRadius:20,border:"1.5px solid",borderColor:activeTab===t.k?QT.primary:"#E2E8F0",background:activeTab===t.k?QT.primary:"#fff",color:activeTab===t.k?"#fff":"#64748B",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>{t.l}</button>
               ))}
             </div>
@@ -1391,6 +1392,11 @@ function QontoV({m, data, reload}) {
                   </div>
                 );})}
               </div>
+            )}
+
+            {/* AI ANALYSIS */}
+            {activeTab==="ai" && savedToken && (
+              <AIQontoV qontoToken={savedToken} m={m} />
             )}
           </>
         )}
