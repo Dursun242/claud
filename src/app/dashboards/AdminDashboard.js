@@ -4,6 +4,8 @@ import { supabase } from '../supabaseClient'
 import { generateOSPdf, generateCRPdf, generateOSExcel, generateCRExcel } from '../generators'
 import { logout } from '../auth'
 import AIQontoV from '../pages/AIQontoV'
+import { colors, spacing, typography, animations } from '../design-system'
+import { TabNavigation, Spinner, LoadingState } from '../components'
 
 const LocalDB = {
   get(key) { try { if (typeof window === 'undefined') return null; const v = localStorage.getItem(key); return v ? JSON.parse(v) : null; } catch { return null; } },
@@ -750,9 +752,7 @@ export default function AdminDashboard({ user, profile = null }) {
   const save = useCallback(async (d) => { setData(d); }, []);
 
   if (loading || !data) return (
-    <div style={{height:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"#F8FAFC",fontFamily:"'DM Sans',sans-serif"}}>
-      <div style={{width:48,height:48,border:"4px solid #E2E8F0",borderTopColor:"#1E3A5F",borderRadius:"50%",animation:"spin 1s linear infinite"}}/>
-    </div>
+    <LoadingState message="Chargement des données..." fullHeight />
   );
 
   const tabs = [

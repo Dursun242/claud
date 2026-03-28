@@ -9,4 +9,5 @@ export { default as Skeleton } from './Skeleton'
 export { default as LoadingState } from './LoadingState'
 export { default as ErrorState } from './ErrorState'
 export { default as DashboardHeader } from './DashboardHeader'
+export { default as TabNavigation } from './TabNavigation'
 
