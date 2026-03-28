@@ -1227,27 +1227,27 @@ function QontoV({m, data, reload}) {
 
   return (<div>
     {/* HEADER */}
-    <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:20,flexWrap:"wrap"}}>
+    <div style={{display:"flex",alignItems:"center",gap:spacing.md,marginBottom:spacing.lg,flexWrap:"wrap"}}>
       <div style={{width:44,height:44,borderRadius:12,background:QT.gradient,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 4px 14px rgba(124,58,237,0.3)"}}>
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#fff" strokeWidth="2"/><path d="M15 15l3 3" stroke="#fff" strokeWidth="2" strokeLinecap="round"/><path d="M9 12l2 2 4-4" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
       </div>
       <div style={{flex:1}}>
-        <h1 style={{margin:0,fontSize:m?18:24,fontWeight:700}}>Qonto <QontoBadge/></h1>
-        <p style={{margin:0,fontSize:12,color:"#64748B"}}>Factures, Devis & Clients — API Qonto v2</p>
+        <h1 style={{...typography.h2, margin:0,fontSize:m?18:24}}>Qonto <QontoBadge/></h1>
+        <p style={{margin:0,fontSize:12,color:colors.gray[500]}}>Factures, Devis & Clients — API Qonto v2</p>
       </div>
-      {connected && <a href="https://app.qonto.com" target="_blank" rel="noopener noreferrer" style={{display:"flex",alignItems:"center",gap:5,padding:"8px 14px",borderRadius:8,background:QT.primary,color:"#fff",textDecoration:"none",fontSize:12,fontWeight:600}}>Ouvrir Qonto</a>}
+      {connected && <a href="https://app.qonto.com" target="_blank" rel="noopener noreferrer" style={{display:"flex",alignItems:"center",gap:spacing.xs,padding:`${spacing.xs} ${spacing.md}`,borderRadius:8,background:QT.primary,color:colors.gray[100],textDecoration:"none",fontSize:12,fontWeight:600}}>Ouvrir Qonto</a>}
     </div>
 
     {/* TOKEN CONFIG */}
     {!savedToken ? (
-      <div style={{background:"#fff",borderRadius:14,padding:24,boxShadow:"0 1px 3px rgba(0,0,0,0.06)",border:`2px dashed ${QT.border}`,textAlign:"center",maxWidth:500,margin:"40px auto"}}>
-        <div style={{width:60,height:60,borderRadius:"50%",background:QT.light,margin:"0 auto 16px",display:"flex",alignItems:"center",justifyContent:"center"}}>
+      <div style={{background:colors.gray[100],borderRadius:14,padding:spacing.xl,boxShadow:"0 1px 3px rgba(0,0,0,0.06)",border:`2px dashed ${QT.border}`,textAlign:"center",maxWidth:500,margin:`${spacing.xl} auto`}}>
+        <div style={{width:60,height:60,borderRadius:"50%",background:QT.light,margin:`0 auto ${spacing.lg}`,display:"flex",alignItems:"center",justifyContent:"center"}}>
           <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" stroke="#7C3AED" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
         </div>
-        <h3 style={{margin:"0 0 6px",fontSize:17,fontWeight:700}}>Connecter Qonto</h3>
-        <p style={{margin:"0 0 4px",fontSize:13,color:"#64748B"}}>Entrez votre clé API Qonto au format :</p>
-        <p style={{margin:"0 0 12px",fontSize:13,fontWeight:700,color:"#7C3AED",fontFamily:"monospace"}}>login:secret-key</p>
-        <p style={{margin:"0 0 16px",fontSize:11,color:"#94A3B8"}}>Trouvez-la dans Qonto → Paramètres → Intégrations → API</p>
+        <h3 style={{...typography.h3, margin:`0 0 ${spacing.xs}`}}>Connecter Qonto</h3>
+        <p style={{margin:`0 0 ${spacing.xs}`,fontSize:13,color:colors.gray[500]}}>Entrez votre clé API Qonto au format :</p>
+        <p style={{margin:`0 0 ${spacing.md}`,fontSize:13,fontWeight:700,color:"#7C3AED",fontFamily:"monospace"}}>login:secret-key</p>
+        <p style={{margin:`0 0 ${spacing.lg}`,fontSize:11,color:colors.gray[400]}}>Trouvez-la dans Qonto → Paramètres → Intégrations → API</p>
         <input value={token} onChange={e=>setToken(e.target.value)} placeholder="exemple: mon-login:xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" type="password"
           style={{...inp,maxWidth:420,margin:"0 auto 12px",display:"block",textAlign:"center",fontSize:12,borderColor:QT.border}} />
         <button onClick={saveToken} style={{padding:"10px 28px",borderRadius:8,background:QT.gradient,color:"#fff",border:"none",fontSize:14,fontWeight:600,cursor:"pointer",fontFamily:"inherit",boxShadow:"0 2px 8px rgba(124,58,237,0.3)"}}>Connecter</button>
@@ -1256,13 +1256,13 @@ function QontoV({m, data, reload}) {
     ) : (
       <>
         {/* CONNECTION STATUS */}
-        <div style={{background:connected?"#F0FDF4":"#FEF2F2",border:`1.5px solid ${connected?"#BBF7D0":"#FECACA"}`,borderRadius:10,padding:"10px 14px",marginBottom:16,fontSize:12}}>
-          <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
-            <div style={{width:8,height:8,borderRadius:"50%",background:connected?"#22C55E":"#EF4444",animation:connected?"pulseGlow 2s infinite":"none",flexShrink:0}}/>
+        <div style={{background:connected?"#F0FDF4":"#FEF2F2",border:`1.5px solid ${connected?"#BBF7D0":"#FECACA"}`,borderRadius:10,padding:`${spacing.xs} ${spacing.sm}`,marginBottom:spacing.lg,fontSize:12}}>
+          <div style={{display:"flex",alignItems:"center",gap:spacing.md,flexWrap:"wrap"}}>
+            <div style={{width:8,height:8,borderRadius:"50%",background:connected?colors.success:colors.danger,animation:connected?"pulseGlow 2s infinite":"none",flexShrink:0}}/>
             <span style={{fontWeight:600,color:connected?"#166534":"#991B1B"}}>{connected?"Connecté":"Échec de connexion"}</span>
-            {connected && <span style={{color:"#64748B"}}>• {savedToken.split(":")[0]}</span>}
+            {connected && <span style={{color:colors.gray[500]}}>• {savedToken.split(":")[0]}</span>}
             <span style={{marginLeft:"auto",color:QT.primary,cursor:"pointer",fontWeight:600,fontSize:11}} onClick={()=>fetchAll(savedToken)}>Rafraîchir</span>
-            <span style={{color:"#94A3B8",cursor:"pointer",fontSize:11}} onClick={disconnect}>Changer de compte</span>
+            <span style={{color:colors.gray[400],cursor:"pointer",fontSize:11}} onClick={disconnect}>Changer de compte</span>
           </div>
           {error && (
             <div style={{marginTop:8,background:"#FEF2F2",border:"1px solid #FECACA",borderRadius:6,padding:"8px 10px"}}>
@@ -1280,31 +1280,31 @@ function QontoV({m, data, reload}) {
         </div>
 
         {qLoading ? (
-          <div style={{textAlign:"center",padding:40}}>
-            <div style={{width:40,height:40,border:"4px solid #E2E8F0",borderTopColor:QT.primary,borderRadius:"50%",animation:"spin 1s linear infinite",margin:"0 auto 12px"}}/>
-            <p style={{color:"#64748B",fontSize:13}}>Chargement depuis Qonto...</p>
+          <div style={{textAlign:"center",padding:spacing.xl}}>
+            <div style={{width:40,height:40,border:`4px solid ${colors.gray[200]}`,borderTopColor:QT.primary,borderRadius:"50%",animation:"spin 1s linear infinite",margin:`0 auto ${spacing.md}`}}/>
+            <p style={{color:colors.gray[500],fontSize:13}}>Chargement depuis Qonto...</p>
           </div>
         ) : connected && (
           <>
             {/* KPI */}
-            <div style={{display:"grid",gridTemplateColumns:m?"repeat(2,1fr)":"repeat(4,1fr)",gap:12,marginBottom:20}}>
+            <div style={{display:"grid",gridTemplateColumns:m?"repeat(2,1fr)":"repeat(4,1fr)",gap:spacing.sm,marginBottom:spacing.lg}}>
               {[
                 {l:"Factures",v:invoices.length,c:QT.primary},
                 {l:"Devis",v:quotes.length,c:"#A855F7"},
-                {l:"Encaissé",v:fmtMoney(totalPaid),c:"#10B981"},
-                {l:"À encaisser",v:fmtMoney(totalUnpaid),c:totalUnpaid>0?"#EF4444":"#10B981"},
+                {l:"Encaissé",v:fmtMoney(totalPaid),c:colors.success},
+                {l:"À encaisser",v:fmtMoney(totalUnpaid),c:totalUnpaid>0?colors.danger:colors.success},
               ].map((k,i)=>(
-                <div key={i} style={{background:"#fff",borderRadius:12,padding:m?12:16,boxShadow:"0 1px 3px rgba(0,0,0,0.06)",borderTop:`3px solid ${k.c}`}}>
-                  <div style={{fontSize:10,fontWeight:600,color:"#94A3B8",textTransform:"uppercase",marginBottom:4}}>{k.l}</div>
+                <div key={i} style={{background:colors.gray[100],borderRadius:12,padding:m?spacing.md:spacing.lg,boxShadow:"0 1px 3px rgba(0,0,0,0.06)",borderTop:`3px solid ${k.c}`}}>
+                  <div style={{...typography.label, color:colors.gray[400],textTransform:"uppercase",marginBottom:spacing.xs}}>{k.l}</div>
                   <div style={{fontSize:m?18:24,fontWeight:700,color:k.c}}>{k.v}</div>
                 </div>
               ))}
             </div>
 
             {/* SUB-TABS */}
-            <div style={{display:"flex",gap:6,marginBottom:16,flexWrap:"wrap"}}>
+            <div style={{display:"flex",gap:spacing.xs,marginBottom:spacing.lg,flexWrap:"wrap"}}>
               {[{k:"factures",l:`Factures (${invoices.length})`},{k:"devis",l:`Devis (${quotes.length})`},{k:"clients",l:`Clients (${clients.length})`},{k:"ai",l:"🤖 Analyse IA"}].map(t=>(
-                <button key={t.k} onClick={()=>setActiveTab(t.k)} style={{padding:"8px 16px",borderRadius:20,border:"1.5px solid",borderColor:activeTab===t.k?QT.primary:"#E2E8F0",background:activeTab===t.k?QT.primary:"#fff",color:activeTab===t.k?"#fff":"#64748B",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>{t.l}</button>
+                <button key={t.k} onClick={()=>setActiveTab(t.k)} style={{padding:`${spacing.xs} ${spacing.lg}`,borderRadius:20,border:"1.5px solid",borderColor:activeTab===t.k?QT.primary:colors.gray[200],background:activeTab===t.k?QT.primary:colors.gray[100],color:activeTab===t.k?colors.gray[100]:colors.gray[500],fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>{t.l}</button>
               ))}
             </div>
 
