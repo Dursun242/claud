@@ -1,6 +1,7 @@
 /**
  * DESIGN SYSTEM - ID Maîtrise
  * Tokens centralisés pour cohérence globale
+ * Optimisé pour performance et fluidité
  */
 
 // ════════════════════════════════════════════════════
@@ -153,14 +154,56 @@ export const shadows = {
 };
 
 // ════════════════════════════════════════════════════
-// ⏱️ ANIMATIONS & TRANSITIONS
+// ⏱️ ANIMATIONS & TRANSITIONS (Fluide)
 // ════════════════════════════════════════════════════
 
 export const transitions = {
-  fast: '150ms ease-in-out',
-  base: '200ms ease-in-out',
-  slow: '300ms ease-in-out',
+  // Cubic bezier pour plus de fluidité naturelle
+  easeOut: 'cubic-bezier(0.33, 1, 0.68, 1)', // Decelerate
+  easeInOut: 'cubic-bezier(0.4, 0, 0.2, 1)', // Standard
+  fast: '150ms cubic-bezier(0.4, 0, 0.2, 1)',
+  base: '200ms cubic-bezier(0.4, 0, 0.2, 1)',
+  slow: '300ms cubic-bezier(0.4, 0, 0.2, 1)',
+  slowest: '500ms cubic-bezier(0.33, 1, 0.68, 1)',
 };
+
+// Animations prédéfinies (CSS keyframes)
+export const getAnimationCSS = () => `
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes slideDown {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  @keyframes shimmer {
+    0% { background-position: -1000px 0; }
+    100% { background-position: 1000px 0; }
+  }
+
+  @keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+`;
 
 // ════════════════════════════════════════════════════
 // 🎯 BREAKPOINTS (Responsive)
@@ -185,15 +228,12 @@ export const styles = {
     borderRadius: radius.xl,
     padding: spacing.lg,
     boxShadow: shadows.sm,
+    transition: `all ${transitions.base}`,
   },
 
   cardHover: {
     transition: `all ${transitions.base}`,
     cursor: 'pointer',
-    '&:hover': {
-      borderColor: colors.gray[600],
-      boxShadow: shadows.md,
-    },
   },
 
   // Inputs & Form
@@ -205,16 +245,6 @@ export const styles = {
     color: colors.gray[200],
     fontSize: '14px',
     transition: `all ${transitions.base}`,
-    '&:focus': {
-      outline: 'none',
-      borderColor: colors.primary[600],
-      boxShadow: `0 0 0 3px ${colors.primary[100]}40`,
-    },
-    '&:disabled': {
-      background: colors.gray[800],
-      color: colors.gray[500],
-      cursor: 'not-allowed',
-    },
   },
 
   // Buttons
@@ -230,36 +260,6 @@ export const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.sm,
-  },
-
-  buttonPrimary: {
-    background: colors.primary[600],
-    color: colors.white,
-    '&:hover': {
-      background: colors.primary[700],
-      boxShadow: shadows.md,
-    },
-    '&:active': {
-      background: colors.primary[800],
-    },
-  },
-
-  buttonSecondary: {
-    background: colors.gray[800],
-    color: colors.gray[200],
-    border: `1px solid ${colors.gray[700]}`,
-    '&:hover': {
-      background: colors.gray[700],
-      borderColor: colors.gray[600],
-    },
-  },
-
-  buttonDanger: {
-    background: colors.danger,
-    color: colors.white,
-    '&:hover': {
-      background: '#DC2626',
-    },
   },
 
   // Text
@@ -281,4 +281,36 @@ export const styles = {
     height: '1px',
     border: 'none',
   },
+};
+
+// ════════════════════════════════════════════════════
+// ⚡ PERFORMANCE HELPERS
+// ════════════════════════════════════════════════════
+
+export const debounce = (func, wait) => {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+};
+
+export const throttle = (func, limit) => {
+  let inThrottle;
+  return function(...args) {
+    if (!inThrottle) {
+      func.apply(this, args);
+      inThrottle = true;
+      setTimeout(() => (inThrottle = false), limit);
+    }
+  };
+};
+
+// Mémorisation d'objets pour éviter les re-renders
+export const memoizeObject = (obj) => {
+  return JSON.stringify(obj);
 };
