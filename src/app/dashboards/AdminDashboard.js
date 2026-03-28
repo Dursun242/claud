@@ -4,6 +4,7 @@ import { supabase } from '../supabaseClient'
 import { generateOSPdf, generateCRPdf, generateOSExcel, generateCRExcel } from '../generators'
 import { logout } from '../auth'
 import AIQontoV from '../pages/AIQontoV'
+import { useCreateGoogleCalendarEvent } from '../useGoogleCalendar'
 
 const LocalDB = {
   get(key) { try { if (typeof window === 'undefined') return null; const v = localStorage.getItem(key); return v ? JSON.parse(v) : null; } catch { return null; } },
@@ -2421,6 +2422,65 @@ function AIV({data,save,m,externalTranscript,clearExternal,reload}) {
       if (clearExternal) clearExternal();
     }
   }, [externalTranscript, clearExternal]);
+
+  // ─── HANDLE GOOGLE CALENDAR ACTION ───
+  useEffect(() => {
+    if (!gcalAction) return;
+
+    const createGcalEvent = async () => {
+      try {
+        // Récupérer le token Google Calendar depuis localStorage
+        const googleToken = typeof window !== 'undefined' ? localStorage.getItem('google_calendar_token') : null;
+
+        if (!googleToken) {
+          alert('⚠️ Vous devez d\'abord connecter votre Google Calendar dans l\'onglet Agenda');
+          setGcalAction(null);
+          return;
+        }
+
+        // Créer l'événement via l'API
+        const { title, date, startTime, endTime, location, description } = gcalAction;
+        const startDateTime = new Date(`${date}T${startTime}:00`);
+        const endDateTime = new Date(`${date}T${endTime}:00`);
+
+        const response = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${googleToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            summary: title,
+            description: description || '',
+            location: location || '',
+            start: { dateTime: startDateTime.toISOString() },
+            end: { dateTime: endDateTime.toISOString() },
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Erreur création événement Google Calendar');
+        }
+
+        // Ajouter message de succès
+        setMessages(prev => [...prev, {
+          role: 'assistant',
+          content: `✅ **Rendez-vous créé sur Google Calendar !**\n\n📅 ${title}\n🕐 ${startTime} - ${endTime}\n📍 ${location || '(sans lieu)'}`
+        }]);
+
+        setGcalAction(null);
+      } catch (err) {
+        console.error('Erreur création événement:', err);
+        setMessages(prev => [...prev, {
+          role: 'assistant',
+          content: `❌ **Erreur création RDV:** ${err.message}`
+        }]);
+        setGcalAction(null);
+      }
+    };
+
+    createGcalEvent();
+  }, [gcalAction]);
 
   // ─── SPEECH RECOGNITION ───
   const startListening = useCallback(() => {

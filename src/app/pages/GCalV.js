@@ -19,11 +19,25 @@ export default function GCalV({ m, user }) {
   const updateMutation = useUpdateGoogleCalendarEvent()
   const deleteMutation = useDeleteGoogleCalendarEvent()
 
-  // Charger token depuis localStorage
+  // Charger token depuis localStorage et paramètres d'URL
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('google_calendar_token')
-      if (stored) setAccessToken(stored)
+      // Chercher le token dans les paramètres d'URL (retour du callback OAuth)
+      const params = new URLSearchParams(window.location.search)
+      const urlToken = params.get('google_token')
+
+      if (urlToken) {
+        // Sauvegarder le token et nettoyer l'URL
+        localStorage.setItem('google_calendar_token', urlToken)
+        setAccessToken(urlToken)
+
+        // Nettoyer les paramètres d'URL
+        window.history.replaceState({}, document.title, window.location.pathname)
+      } else {
+        // Sinon, charger depuis localStorage
+        const stored = localStorage.getItem('google_calendar_token')
+        if (stored) setAccessToken(stored)
+      }
     }
   }, [])
 
