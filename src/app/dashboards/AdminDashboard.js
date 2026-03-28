@@ -1028,31 +1028,31 @@ function GCalV({m}) {
   const byDay = {}; gcalEvents.forEach(e=>{const d=e.start.split("T")[0];(byDay[d]=byDay[d]||[]).push(e);});
 
   return (<div>
-    <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:20}}>
+    <div style={{display:"flex",alignItems:"center",gap:spacing.md,marginBottom:spacing.lg}}>
       <div style={{width:40,height:40,borderRadius:10,background:GC.gradient,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 3px 10px rgba(234,67,53,0.3)"}}>
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="#fff" strokeWidth="2"/><path d="M3 10h18" stroke="#fff" strokeWidth="2"/></svg>
       </div>
-      <div><h1 style={{margin:0,fontSize:m?18:24,fontWeight:700}}>Google Calendar <ApiBadge/></h1><p style={{margin:0,fontSize:12,color:"#64748B"}}>Suivi Pro ID MAITRISE</p></div>
+      <div><h1 style={{...typography.h2, margin:0,fontSize:m?18:24}}>Google Calendar <ApiBadge/></h1><p style={{margin:0,fontSize:12,color:colors.gray[500]}}>Suivi Pro ID MAITRISE</p></div>
     </div>
 
-    <div style={{background:"#F0FDF4",border:"1.5px solid #BBF7D0",borderRadius:10,padding:"10px 14px",marginBottom:16,display:"flex",alignItems:"center",gap:8,fontSize:12}}>
-      <div style={{width:8,height:8,borderRadius:"50%",background:"#22C55E",animation:"pulseGlow 2s infinite"}}/><span style={{fontWeight:600,color:"#166534"}}>Connecté</span><span style={{color:"#64748B"}}>• dursunozkan88@gmail.com</span>
+    <div style={{background:"#F0FDF4",border:"1.5px solid #BBF7D0",borderRadius:10,padding:`${spacing.xs} ${spacing.sm}`,marginBottom:spacing.md,display:"flex",alignItems:"center",gap:spacing.md,fontSize:12}}>
+      <div style={{width:8,height:8,borderRadius:"50%",background:"#22C55E",animation:"pulseGlow 2s infinite"}}/><span style={{fontWeight:600,color:"#166534"}}>Connecté</span><span style={{color:colors.gray[500]}}>• dursunozkan88@gmail.com</span>
     </div>
 
-    <div style={{background:"#fff",borderRadius:14,padding:m?14:20,boxShadow:"0 1px 3px rgba(0,0,0,0.06)",border:`1px solid ${GC.border}`}}>
+    <div style={{background:colors.gray[100],borderRadius:14,padding:m?spacing.md:spacing.lg,boxShadow:"0 1px 3px rgba(0,0,0,0.06)",border:`1px solid ${GC.border}`}}>
       {Object.keys(byDay).sort().map(day=>{const isT=day===today; return(
-        <div key={day} style={{marginBottom:16}}>
-          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
-            <span style={{background:isT?GC.primary:"#F1F5F9",color:isT?"#fff":"#64748B",borderRadius:8,padding:"4px 12px",fontSize:12,fontWeight:700}}>{fmtDayFr(day+"T00:00:00")}{isT?" • Aujourd'hui":""}</span>
-            <div style={{flex:1,height:1,background:isT?GC.border:"#F1F5F9"}}/>
+        <div key={day} style={{marginBottom:spacing.lg}}>
+          <div style={{display:"flex",alignItems:"center",gap:spacing.md,marginBottom:spacing.md}}>
+            <span style={{background:isT?GC.primary:colors.gray[100],color:isT?colors.gray[100]:colors.gray[500],borderRadius:8,padding:"4px 12px",fontSize:12,fontWeight:700}}>{fmtDayFr(day+"T00:00:00")}{isT?" • Aujourd'hui":""}</span>
+            <div style={{flex:1,height:1,background:isT?GC.border:colors.gray[200]}}/>
           </div>
           {byDay[day].map(ev=>(
-            <div key={ev.id} style={{display:"flex",gap:12,padding:"10px 12px",marginBottom:6,borderRadius:10,background:isT?GC.light:"#FAFAFA",border:`1.5px solid ${isT?GC.border:"#F1F5F9"}`}}>
-              <div style={{minWidth:55,textAlign:"center"}}><div style={{fontSize:14,fontWeight:700,color:GC.primary}}>{fmtTime(ev.start)}</div><div style={{fontSize:10,color:"#94A3B8"}}>{fmtTime(ev.end)}</div></div>
+            <div key={ev.id} style={{display:"flex",gap:spacing.md,padding:`${spacing.xs} ${spacing.sm}`,marginBottom:spacing.xs,borderRadius:10,background:isT?GC.light:colors.gray[100],border:`1.5px solid ${isT?GC.border:colors.gray[200]}`}}>
+              <div style={{minWidth:55,textAlign:"center"}}><div style={{fontSize:14,fontWeight:700,color:GC.primary}}>{fmtTime(ev.start)}</div><div style={{fontSize:10,color:colors.gray[400]}}>{fmtTime(ev.end)}</div></div>
               <div style={{width:3,borderRadius:3,background:GC.gradient,flexShrink:0}}/>
-              <div style={{flex:1}}><div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2}}><span style={{fontSize:14,fontWeight:700,color:"#0F172A"}}>{ev.summary}</span><ApiBadge/></div>
-                {ev.description&&<div style={{fontSize:11,color:"#64748B",marginBottom:2}}>{ev.description}</div>}
-                {ev.location&&<div style={{fontSize:11,color:"#94A3B8",display:"flex",alignItems:"center",gap:3}}><Icon d={I.mappin} size={10} color="#94A3B8"/>{ev.location}</div>}
+              <div style={{flex:1}}><div style={{display:"flex",alignItems:"center",gap:spacing.xs,marginBottom:spacing.xs}}><span style={{fontSize:14,fontWeight:700,color:colors.gray[900]}}>{ev.summary}</span><ApiBadge/></div>
+                {ev.description&&<div style={{fontSize:11,color:colors.gray[500],marginBottom:spacing.xs}}>{ev.description}</div>}
+                {ev.location&&<div style={{fontSize:11,color:colors.gray[400],display:"flex",alignItems:"center",gap:spacing.xs}}><Icon d={I.mappin} size={10} color={colors.gray[400]}/>{ev.location}</div>}
               </div>
             </div>
           ))}
