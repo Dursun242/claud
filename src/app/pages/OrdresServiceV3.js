@@ -48,7 +48,7 @@ export default function OrdresServiceV3({ data, reload, currentUser = null, user
   }
 
   const handlePDFDownload = (os) => {
-    const chantier = data.chantiers.find(c => c.id === os.chantier_id)
+    const chantier = data?.chantiers?.find(c => c.id === os.chantier_id)
     generateOSPdf({
       ...os,
       chantier: chantier?.nom || 'N/A',
@@ -57,7 +57,7 @@ export default function OrdresServiceV3({ data, reload, currentUser = null, user
   }
 
   const handleValidated = () => {
-    loadOS()
+    reload()
     setSelectedOS(null)
   }
 
@@ -65,8 +65,6 @@ export default function OrdresServiceV3({ data, reload, currentUser = null, user
   const btnPrimary = { background: '#3B82F6', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: '6px', cursor: 'pointer' }
   const btnDanger = { ...btnPrimary, background: '#EF4444' }
   const btnSecondary = { ...btnPrimary, background: '#6B7280' }
-
-  if (loading) return <div style={{ padding: '20px', color: '#9CA3AF' }}>Chargement...</div>
 
   return (
     <div style={{ padding: '20px' }}>
@@ -279,7 +277,6 @@ export default function OrdresServiceV3({ data, reload, currentUser = null, user
 
             <OSForm
               os={formData}
-              chantier={chantier}
               onSave={handleSave}
               onCancel={() => {
                 setFormOpen(false)
