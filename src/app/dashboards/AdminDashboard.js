@@ -5,6 +5,8 @@ import { generateOSPdf, generateCRPdf, generateOSExcel, generateCRExcel } from '
 import { logout } from '../auth'
 import AIQontoV from '../pages/AIQontoV'
 import { useCreateGoogleCalendarEvent } from '../useGoogleCalendar'
+import OrdresServiceV3 from '../pages/OrdresServiceV3'
+import CompteRendusV3 from '../pages/CompteRendusV3'
 
 const LocalDB = {
   get(key) { try { if (typeof window === 'undefined') return null; const v = localStorage.getItem(key); return v ? JSON.parse(v) : null; } catch { return null; } },
@@ -857,8 +859,8 @@ export default function AdminDashboard({ user, profile = null }) {
           {tab==="planning"&&<PlanningV data={data} m={isMobile}/>}
           {tab==="tasks"&&<TasksV data={data} save={save} m={isMobile} reload={reload}/>}
           {tab==="contacts"&&<ContactsV data={data} save={save} m={isMobile} reload={reload}/>}
-          {tab==="reports"&&<ReportsV data={data} save={save} m={isMobile} reload={reload}/>}
-          {tab==="os"&&<OrdresServiceV data={data} m={isMobile} reload={reload}/>}
+          {tab==="reports"&&<CompteRendusV3 data={data} reload={reload} currentUser={user} userRole="admin"/>}
+          {tab==="os"&&<OrdresServiceV3 data={data} reload={reload} currentUser={user} userRole="admin"/>}
           {tab==="admin"&&<AdminV m={isMobile} reload={reload} profile={profile}/>}
           {tab==="ai"&&<AIV data={data} save={save} m={isMobile} externalTranscript={floatTranscript} clearExternal={()=>setFloatTranscript("")} reload={reload}/>}
         </div>

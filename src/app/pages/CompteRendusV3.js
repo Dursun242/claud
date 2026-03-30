@@ -12,39 +12,22 @@ import PhotoUploader from '@/app/components/PhotoUploader'
  * - Commentaires client
  * - Création/édition CR
  */
-export default function CompteRendusV3({ chantier, currentUser = null, userRole = null }) {
-  const [crs, setCRs] = useState([])
+export default function CompteRendusV3({ data, reload, currentUser = null, userRole = 'admin' }) {
   const [showNewCRForm, setShowNewCRForm] = useState(false)
-  const [loading, setLoading] = useState(false)
+  const [selectedChantier, setSelectedChantier] = useState(data?.chantiers?.[0]?.id)
+  const crs = data?.compteRendus?.filter(cr => !selectedChantier || cr.chantier_id === selectedChantier) || []
 
-  useEffect(() => {
-    if (chantier?.id) {
-      loadCRs()
-    }
-  }, [chantier?.id])
-
-  const loadCRs = async () => {
-    setLoading(true)
-    try {
-      const list = await crService.getByChantier(chantier.id)
-      setCRs(list)
-    } catch (err) {
-      console.error('Erreur chargement CR:', err)
-    }
-    setLoading(false)
-  }
-
-  const handleNewCR = async (data) => {
+  const handleNewCR = async (crData) => {
     try {
       await crService.upsert(
         {
-          ...data,
-          chantier_id: chantier.id,
+          ...crData,
+          chantier_id: selectedChantier,
         },
         currentUser?.id
       )
       setShowNewCRForm(false)
-      loadCRs()
+      reload()
     } catch (err) {
       console.error('Erreur création CR:', err)
       alert('Erreur: ' + err.message)
@@ -54,8 +37,6 @@ export default function CompteRendusV3({ chantier, currentUser = null, userRole 
   const canEdit = userRole === 'admin' || userRole === 'salarie'
   const btnPrimary = { background: '#3B82F6', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: '6px', cursor: 'pointer' }
   const btnSecondary = { ...btnPrimary, background: '#6B7280' }
-
-  if (loading) return <div style={{ padding: '20px', color: '#9CA3AF' }}>Chargement...</div>
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -67,8 +48,28 @@ export default function CompteRendusV3({ chantier, currentUser = null, userRole 
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
+        gap: '16px',
+        flexWrap: 'wrap',
       }}>
         <h2 style={{ margin: 0 }}>📝 Comptes Rendus</h2>
+
+        {/* Sélecteur chantier */}
+        <select
+          value={selectedChantier}
+          onChange={(e) => setSelectedChantier(e.target.value)}
+          style={{
+            padding: '8px 12px',
+            border: '1px solid #D1D5DB',
+            borderRadius: '6px',
+            fontSize: '14px',
+            cursor: 'pointer',
+          }}
+        >
+          {data?.chantiers?.map(ch => (
+            <option key={ch.id} value={ch.id}>{ch.nom}</option>
+          ))}
+        </select>
+
         {canEdit && (
           <button onClick={() => setShowNewCRForm(true)} style={btnPrimary}>
             ➕ Nouveau CR
@@ -78,12 +79,14 @@ export default function CompteRendusV3({ chantier, currentUser = null, userRole 
 
       {/* Timeline */}
       <div style={{ flex: 1, overflowY: 'auto' }}>
-        <CRTimeline
-          chantierId={chantier.id}
-          canEdit={canEdit}
-          userId={currentUser?.id}
-          userRole={userRole}
-        />
+        {selectedChantier && (
+          <CRTimeline
+            chantierId={selectedChantier}
+            canEdit={canEdit}
+            userId={currentUser?.id}
+            userRole={userRole}
+          />
+        )}
       </div>
 
       {/* Modal nouveau CR */}
@@ -112,7 +115,8 @@ export default function CompteRendusV3({ chantier, currentUser = null, userRole 
             <h2 style={{ marginBottom: '20px' }}>Nouveau Compte Rendu</h2>
 
             <NewCRForm
-              chantier={chantier}
+              chantierId={selectedChantier}
+              chantierName={data?.chantiers?.find(c => c.id === selectedChantier)?.nom}
               onSave={handleNewCR}
               onCancel={() => setShowNewCRForm(false)}
               currentUser={currentUser}
@@ -125,7 +129,7 @@ export default function CompteRendusV3({ chantier, currentUser = null, userRole 
 }
 
 // ─── Formulaire Nouveau CR ───
-function NewCRForm({ chantier, onSave, onCancel, currentUser }) {
+function NewCRForm({ chantierId, chantierName, onSave, onCancel, currentUser }) {
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
     numero: Math.floor(Math.random() * 10000),
@@ -259,7 +263,7 @@ function NewCRForm({ chantier, onSave, onCancel, currentUser }) {
           Ajouter des photos
         </label>
         <PhotoUploader
-          chantierId={chantier.id}
+          chantierId={chantierId}
           userId={currentUser?.id}
         />
       </div>

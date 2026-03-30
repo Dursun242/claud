@@ -8,34 +8,16 @@ import OSForm from '@/app/components/OSForm'
 /**
  * Page Ordres de Service v3
  * Inclut:
- * - Liste des OS
+ * - Liste des OS (tous les chantiers)
  * - Édition/création OS
  * - Validation client avec checkbox + date
  * - Génération PDF (rendu identique à v2)
  */
-export default function OrdresServiceV3({ data, chantier, currentUser = null, userRole = null }) {
-  const [os_list, setOSList] = useState([])
+export default function OrdresServiceV3({ data, reload, currentUser = null, userRole = 'admin' }) {
   const [selectedOS, setSelectedOS] = useState(null)
   const [formOpen, setFormOpen] = useState(false)
   const [formData, setFormData] = useState({})
-  const [loading, setLoading] = useState(false)
-
-  useEffect(() => {
-    if (chantier?.id) {
-      loadOS()
-    }
-  }, [chantier?.id])
-
-  const loadOS = async () => {
-    setLoading(true)
-    try {
-      const list = await osService.getByChantier(chantier.id)
-      setOSList(list)
-    } catch (err) {
-      console.error('Erreur chargement OS:', err)
-    }
-    setLoading(false)
-  }
+  const os_list = data?.ordresService || []
 
   const handleEdit = (os) => {
     setFormData(os)
@@ -44,13 +26,10 @@ export default function OrdresServiceV3({ data, chantier, currentUser = null, us
 
   const handleSave = async () => {
     try {
-      await osService.upsert({
-        ...formData,
-        chantier_id: chantier.id,
-      })
+      await osService.upsert(formData)
       setFormOpen(false)
       setFormData({})
-      loadOS()
+      reload()
     } catch (err) {
       console.error('Erreur sauvegarde OS:', err)
       alert('Erreur: ' + err.message)
@@ -61,7 +40,7 @@ export default function OrdresServiceV3({ data, chantier, currentUser = null, us
     if (!window.confirm('Supprimer cet OS?')) return
     try {
       await osService.delete(id)
-      loadOS()
+      reload()
     } catch (err) {
       console.error('Erreur suppression OS:', err)
       alert('Erreur: ' + err.message)
@@ -69,10 +48,11 @@ export default function OrdresServiceV3({ data, chantier, currentUser = null, us
   }
 
   const handlePDFDownload = (os) => {
+    const chantier = data.chantiers.find(c => c.id === os.chantier_id)
     generateOSPdf({
       ...os,
-      chantier: chantier.nom,
-      adresse_chantier: chantier.adresse,
+      chantier: chantier?.nom || 'N/A',
+      adresse_chantier: chantier?.adresse || '',
     })
   }
 
@@ -95,7 +75,10 @@ export default function OrdresServiceV3({ data, chantier, currentUser = null, us
         {userRole === 'admin' || userRole === 'salarie' ? (
           <button
             onClick={() => {
-              setFormData({ prestations: [] })
+              setFormData({
+                prestations: [],
+                chantier_id: data.chantiers?.[0]?.id || null
+              })
               setFormOpen(true)
             }}
             style={btnPrimary}
@@ -154,6 +137,7 @@ export default function OrdresServiceV3({ data, chantier, currentUser = null, us
 
             {/* Infos */}
             <div style={{ fontSize: '13px', color: '#6B7280', marginBottom: '12px' }}>
+              <p><strong>Chantier:</strong> {data.chantiers?.find(c => c.id === os.chantier_id)?.nom || 'N/A'}</p>
               <p><strong>Client:</strong> {os.client_nom}</p>
               <p><strong>Montant:</strong> {Number(os.montant_ttc).toLocaleString('fr-FR')} €</p>
             </div>
