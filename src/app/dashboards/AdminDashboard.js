@@ -5,6 +5,13 @@ import { generateOSPdf, generateCRPdf, generateOSExcel, generateCRExcel } from '
 import { logout } from '../auth'
 import AIQontoV from '../pages/AIQontoV'
 import { useCreateGoogleCalendarEvent } from '../useGoogleCalendar'
+import { useToast } from '../contexts/ToastContext'
+
+// Phase 3 Feature Hooks
+import { useAttachments } from '../hooks/useAttachments'
+import { useComments } from '../hooks/useComments'
+import { useSharing } from '../hooks/useSharing'
+import { useDetailView } from '../hooks/useDetailView'
 
 // Phase 2 Shared Components
 import {
