@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { osService } from '@/app/services/osService'
 import { generateOSPdf } from '@/app/generators'
 import OSValidationPanel from '@/app/components/OSValidationPanel'
+import OSForm from '@/app/components/OSForm'
 
 /**
  * Page Ordres de Service v3
@@ -265,7 +266,7 @@ export default function OrdresServiceV3({ data, chantier, currentUser = null, us
         </div>
       )}
 
-      {/* Modal édition OS (simplifié) */}
+      {/* Modal édition OS (complet) */}
       {formOpen && (
         <div style={{
           position: 'fixed',
@@ -278,60 +279,29 @@ export default function OrdresServiceV3({ data, chantier, currentUser = null, us
           alignItems: 'center',
           justifyContent: 'center',
           zIndex: 1000,
+          overflowY: 'auto',
         }}>
           <div style={{
             background: '#FFF',
             borderRadius: '12px',
             padding: '24px',
-            maxWidth: '600px',
-            width: '90%',
+            maxWidth: '900px',
+            width: '95%',
+            margin: '20px auto',
           }}>
             <h2 style={{ marginBottom: '20px' }}>
-              {formData.id ? 'Éditer OS' : 'Nouveau OS'}
+              {formData.id ? 'Éditer OS' : 'Nouvel OS'}
             </h2>
 
-            {/* Formulaire simplifié */}
-            <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '600' }}>
-                Numéro
-              </label>
-              <input
-                type="text"
-                value={formData.numero || ''}
-                onChange={(e) => setFormData({ ...formData, numero: e.target.value })}
-                style={{
-                  width: '100%',
-                  padding: '8px',
-                  border: '1px solid #D1D5DB',
-                  borderRadius: '4px',
-                  fontSize: '14px',
-                  boxSizing: 'border-box',
-                }}
-              />
-            </div>
-
-            {/* Note: Formulaire complet à implémenter */}
-            <p style={{ color: '#6B7280', fontSize: '12px', fontStyle: 'italic' }}>
-              Formulaire complet en développement...
-            </p>
-
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '24px' }}>
-              <button
-                onClick={() => {
-                  setFormOpen(false)
-                  setFormData({})
-                }}
-                style={btnSecondary}
-              >
-                Annuler
-              </button>
-              <button
-                onClick={handleSave}
-                style={btnPrimary}
-              >
-                Enregistrer
-              </button>
-            </div>
+            <OSForm
+              os={formData}
+              chantier={chantier}
+              onSave={handleSave}
+              onCancel={() => {
+                setFormOpen(false)
+                setFormData({})
+              }}
+            />
           </div>
         </div>
       )}

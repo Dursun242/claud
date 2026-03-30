@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { crService } from '@/app/services/crService'
+import CRComments from '@/app/components/CRComments'
 
 /**
  * Timeline des Comptes Rendus par semaine
@@ -163,17 +164,19 @@ export default function CRTimeline({ chantierId, canEdit = false, userId = null,
                   )}
 
                   {/* Commentaires */}
-                  <div style={{
-                    borderTop: '1px solid #E5E7EB',
-                    paddingTop: '12px',
-                    marginTop: '12px',
-                  }}>
-                    <h4 style={{ fontSize: '13px', fontWeight: '600', color: '#6B7280', marginBottom: '8px' }}>
-                      💬 Commentaires
-                    </h4>
-                    {/* Placeholder pour commentaires */}
-                    <p style={{ fontSize: '12px', color: '#9CA3AF' }}>Commentaires à implémenter</p>
-                  </div>
+                  {typeof CRComments !== 'undefined' && (
+                    <div style={{
+                      borderTop: '1px solid #E5E7EB',
+                      paddingTop: '12px',
+                      marginTop: '12px',
+                    }}>
+                      <CRComments
+                        crId={cr.id}
+                        userRole={userRole}
+                        userId={userId}
+                      />
+                    </div>
+                  )}
                 </div>
               ))
             )}
