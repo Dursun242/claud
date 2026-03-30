@@ -8,6 +8,11 @@ import { useCreateGoogleCalendarEvent } from '../useGoogleCalendar'
 import OrdresServiceV3 from '../pages/OrdresServiceV3'
 import CompteRendusV3 from '../pages/CompteRendusV3'
 import { useToast } from '../contexts/ToastContext'
+// Phase 1 Foundation Services/Hooks
+import { supabaseService } from '../services/supabaseService'
+import { useDashboardData } from '../hooks/useDashboardData'
+import { useFormModal } from '../hooks/useFormModal'
+import { useCRUDOperations } from '../hooks/useCRUDOperations'
 
 const LocalDB = {
   get(key) { try { if (typeof window === 'undefined') return null; const v = localStorage.getItem(key); return v ? JSON.parse(v) : null; } catch { return null; } },
