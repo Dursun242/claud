@@ -1291,41 +1291,22 @@ function QontoV({m, data, reload}) {
 // PROJECTS
 // ═══════════════════════════════════════════
 function ProjectsV({data,save,m,reload}) {
+  const { addToast } = useToast();
   const [modal,setModal]=useState(null);const [form,setForm]=useState({});
-  const [selected,setSelected]=useState(null); // Selected chantier for detail view
-  const [detailModal,setDetailModal]=useState(null); // Modal for OS/CR/Tasks within chantier
+  const [selected,setSelected]=useState(null);
+  const [detailModal,setDetailModal]=useState(null);
   const [detailForm,setDetailForm]=useState({});
-  // Detail view states (moved to root level to fix React hook rules)
-  const [attachments, setAttachments] = useState([]);
-  const [comments, setComments] = useState([]);
-  const [shares, setShares] = useState([]);
-  const [newComment, setNewComment] = useState("");
-  const [shareEmail, setShareEmail] = useState("");
-  const [sharePerm, setSharePerm] = useState("view");
+
+  // Phase 3 Hooks - Replaces 9 useState calls + useEffect
+  const { attachments, uploadAttachment, deleteAttachment } = useAttachments('chantier', selected);
+  const { comments, addComment, deleteComment } = useComments('chantier', selected, user?.email);
+  const { shares, addShare, deleteShare } = useSharing(selected);
 
   const openNew=()=>{setForm({nom:"",client:"",adresse:"",phase:"Hors d'air",statut:"Planifié",budget:"",depenses:0,dateDebut:"",dateFin:"",lots:""});setModal("new");};
   const handleSave=async()=>{const e={...form,budget:Number(form.budget)||0,depenses:Number(form.depenses)||0,lots:typeof form.lots==="string"?(form.lots||"").split(",").map(l=>l.trim()).filter(Boolean):form.lots||[]};await SB.upsertChantier(e);setModal(null);reload();};
   const handleDelete=async(id)=>{if(!window.confirm("Supprimer ce chantier ? Cette action est irréversible.")) return;await SB.deleteChantier(id);setSelected(null);reload();};
 
-  // Load detail data when selected changes
-  useEffect(() => {
-    if (!selected) {
-      setAttachments([]);
-      setComments([]);
-      setShares([]);
-      return;
-    }
-    (async () => {
-      try {
-        const att = await SB.getAttachments('chantier', selected);
-        const com = await SB.getComments('chantier', selected);
-        const shr = await SB.getShares(selected);
-        setAttachments(att);
-        setComments(com);
-        setShares(shr);
-      } catch (e) { console.error(e); }
-    })();
-  }, [selected]);
+  // Phase 3 Hooks handle loading data automatically - no useEffect needed!
 
   // If a chantier is selected, show detail view
   if (selected) {
@@ -1394,13 +1375,11 @@ function ProjectsV({data,save,m,reload}) {
         </div>
       </div>
 
-      {/* ATTACHMENTS DU CHANTIER */}
+      {/* ATTACHMENTS - Using Phase 3 Hook */}
       <AttachmentsSection
         attachments={attachments}
-        type="chantier"
-        itemId={ch.id}
-        onUpload={async(file)=>{await SB.uploadAttachment(file,'chantier',ch.id);const att=await SB.getAttachments('chantier',ch.id);setAttachments(att);}}
-        onDelete={async(id,path)=>{await SB.deleteAttachment(id,path);const att=await SB.getAttachments('chantier',ch.id);setAttachments(att);}}
+        onUpload={uploadAttachment}
+        onDelete={deleteAttachment}
       />
 
       {/* ORDRES DE SERVICE */}
@@ -1509,46 +1488,21 @@ function ProjectsV({data,save,m,reload}) {
         </Section>
       )}
 
-      {/* COMMENTAIRES */}
-      <Section title="Commentaires" count={comments.length} color="#EC4899">
-        <div style={{display:"flex",gap:8,marginBottom:12}}>
-          <input type="text" placeholder="Ajouter un commentaire..." value={newComment} onChange={e=>setNewComment(e.target.value)} style={{...inp,flex:1}}/>
-          <button onClick={async()=>{await SB.addComment('chantier',ch.id,user?.email||'Anonyme',newComment);setNewComment("");const com=await SB.getComments('chantier',ch.id);setComments(com);}} style={{background:"#EC4899",color:"#fff",border:"none",borderRadius:6,padding:"6px 12px",fontSize:11,fontWeight:700,cursor:"pointer"}}>Ajouter</button>
-        </div>
-        <div style={{display:"flex",flexDirection:"column",gap:8}}>
-          {comments.map(c=>(
-            <div key={c.id} style={{background:"#FEF1F7",borderRadius:8,padding:12,borderLeft:"3px solid #EC4899"}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
-                <span style={{fontWeight:700,fontSize:12,color:"#0F172A"}}>{c.author_name}</span>
-                <button onClick={async()=>{await SB.deleteComment(c.id);const com=await SB.getComments('chantier',ch.id);setComments(com);}} style={{background:"none",border:"none",color:"#94A3B8",cursor:"pointer",fontSize:10}}>✕</button>
-              </div>
-              <div style={{fontSize:12,color:"#334155",marginBottom:4}}>{c.content}</div>
-              <div style={{fontSize:10,color:"#94A3B8"}}>{new Date(c.created_at).toLocaleDateString("fr-FR")}</div>
-            </div>
-          ))}
-        </div>
-      </Section>
+      {/* COMMENTAIRES - Using Phase 2 Component + Phase 3 Hook */}
+      <CommentsSection
+        comments={comments}
+        onAddComment={addComment}
+        onDeleteComment={deleteComment}
+        currentUser={user}
+        userRole={profile?.role}
+      />
 
-      {/* PARTAGE */}
-      <Section title="Accès & Partage" count={shares.length} color="#06B6D4">
-        <div style={{display:"flex",gap:8,marginBottom:12}}>
-          <input type="email" placeholder="Email..." value={shareEmail} onChange={e=>setShareEmail(e.target.value)} style={{...inp,flex:1}}/>
-          <select value={sharePerm} onChange={e=>setSharePerm(e.target.value)} style={{...sel,width:"120px"}}>
-            <option value="view">Lecture</option>
-            <option value="edit">Édition</option>
-            <option value="admin">Admin</option>
-          </select>
-          <button onClick={async()=>{await SB.shareChantier(ch.id,shareEmail,sharePerm);setShareEmail("");const shr=await SB.getShares(ch.id);setShares(shr);}} style={{background:"#06B6D4",color:"#fff",border:"none",borderRadius:6,padding:"6px 12px",fontSize:11,fontWeight:700,cursor:"pointer"}}>Partager</button>
-        </div>
-        <div style={{display:"flex",flexDirection:"column",gap:6}}>
-          {shares.map(s=>(
-            <div key={s.id} style={{background:"#ECFDF5",borderRadius:6,padding:10,display:"flex",justifyContent:"space-between",alignItems:"center",border:"1px solid #BBEFB9"}}>
-              <div><div style={{fontWeight:600,fontSize:12,color:"#0F172A"}}>{s.shared_with_email}</div><div style={{fontSize:10,color:"#64748B"}}>{s.permission}</div></div>
-              <button onClick={async()=>{await SB.deleteShare(s.id);const shr=await SB.getShares(ch.id);setShares(shr);}} style={{background:"none",border:"none",color:"#10B981",cursor:"pointer",fontSize:10}}>✕</button>
-            </div>
-          ))}
-        </div>
-      </Section>
+      {/* PARTAGE - Using Phase 2 Component + Phase 3 Hook */}
+      <SharingPanel
+        shares={shares}
+        onAddShare={addShare}
+        onDeleteShare={deleteShare}
+      />
 
       {/* MODALES POUR OS/CR/TÂCHES */}
       <Modal open={detailModal==="newOS"||detailModal==="editOS"} onClose={()=>setDetailModal(null)} title={detailModal==="newOS"?"Nouvel Ordre de Service":"Modifier l'OS"}>
