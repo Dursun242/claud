@@ -1,14 +1,16 @@
 'use client'
 import { useState } from 'react'
 import { useAIQonto } from '../useAIQonto'
+import { useToast } from '../contexts/ToastContext'
 
 export default function AIQontoV({ qontoToken, m }) {
+  const { addToast } = useToast()
   const { analyzeQonto, analysis, loading, error } = useAIQonto()
   const [expanded, setExpanded] = useState(false)
 
   const handleAnalyze = async () => {
     if (!qontoToken) {
-      alert('Qonto token manquant')
+      addToast('Qonto token manquant', 'warning')
       return
     }
     await analyzeQonto(qontoToken)

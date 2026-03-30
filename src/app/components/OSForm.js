@@ -1,10 +1,12 @@
 'use client'
 import { useState } from 'react'
+import { useToast } from '@/app/contexts/ToastContext'
 
 /**
  * Formulaire complet pour créer/éditer un Ordre de Service
  */
 export default function OSForm({ os, chantier, onSave, onCancel, contacts = [] }) {
+  const { addToast } = useToast()
   const [formData, setFormData] = useState(os || {
     numero: 'OS-' + Date.now(),
     client_nom: '',
@@ -37,7 +39,7 @@ export default function OSForm({ os, chantier, onSave, onCancel, contacts = [] }
 
   const handleAddPrestation = () => {
     if (!newPrestation.description) {
-      alert('Veuillez entrer une description')
+      addToast('Veuillez entrer une description', 'warning')
       return
     }
 
@@ -79,7 +81,7 @@ export default function OSForm({ os, chantier, onSave, onCancel, contacts = [] }
 
   const handleSubmit = async () => {
     if (!formData.numero || !formData.client_nom) {
-      alert('Veuillez remplir les champs obligatoires')
+      addToast('Veuillez remplir les champs obligatoires', 'warning')
       return
     }
 

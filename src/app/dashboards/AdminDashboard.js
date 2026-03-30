@@ -7,6 +7,7 @@ import AIQontoV from '../pages/AIQontoV'
 import { useCreateGoogleCalendarEvent } from '../useGoogleCalendar'
 import OrdresServiceV3 from '../pages/OrdresServiceV3'
 import CompteRendusV3 from '../pages/CompteRendusV3'
+import { useToast } from '../contexts/ToastContext'
 
 const LocalDB = {
   get(key) { try { if (typeof window === 'undefined') return null; const v = localStorage.getItem(key); return v ? JSON.parse(v) : null; } catch { return null; } },
@@ -543,7 +544,7 @@ function AdminV({m, reload, profile}) {
 
   const handleAdd = async () => {
     if (!newEmail || !newPrenom) {
-      alert("Email et prénom requis");
+      addToast("Email et prénom requis", "warning");
       return;
     }
     setLoading(true);
@@ -553,9 +554,9 @@ function AdminV({m, reload, profile}) {
       setNewPrenom("");
       setNewNom("");
       loadUsers();
-      alert("✅ Salarié ajouté!");
+      addToast("✅ Salarié ajouté!", "success");
     } catch (err) {
-      alert("❌ Erreur: " + err.message);
+      addToast("❌ Erreur: " + err.message, "error");
     }
     setLoading(false);
   };
@@ -565,9 +566,9 @@ function AdminV({m, reload, profile}) {
     try {
       await SB.removeAuthorizedUser(id);
       loadUsers();
-      alert("✅ Accès retiré");
+      addToast("✅ Accès retiré", "success");
     } catch (err) {
-      alert("❌ Erreur: " + err.message);
+      addToast("❌ Erreur: " + err.message, "error");
     }
   };
 
@@ -618,6 +619,7 @@ function AdminV({m, reload, profile}) {
 
 // ═══════════════════════════════════════════
 export default function AdminDashboard({ user, profile = null }) {
+  const { addToast } = useToast();
   const [data, setData] = useState(null);
   const [tab, setTab] = useState("dashboard");
   const [loading, setLoading] = useState(true);
@@ -630,7 +632,7 @@ export default function AdminDashboard({ user, profile = null }) {
 
   const toggleFloatMic = useCallback(() => {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) { alert("Reconnaissance vocale non supportée. Utilisez Chrome ou Safari."); return; }
+    if (!SR) { addToast("Reconnaissance vocale non supportée. Utilisez Chrome ou Safari.", "warning"); return; }
     if (floatListening && floatRecogRef.current) {
       floatRecogRef.current.stop(); setFloatListening(false); return;
     }
@@ -1177,8 +1179,8 @@ function QontoV({m, data, reload}) {
         if (attUrl) { window.open(attUrl, "_blank"); return; }
       }
 
-      alert("PDF non disponible via l'API Qonto pour ce document.");
-    } catch(e) { alert("Erreur récupération PDF : " + e.message); }
+      addToast("PDF non disponible via l'API Qonto pour ce document.", "warning");
+    } catch(e) { addToast("Erreur récupération PDF : " + e.message, "error"); }
   };
 
   // ── Import client Qonto → Annuaire ──
@@ -1584,7 +1586,7 @@ function ProjectsV({data,save,m,reload}) {
               <div style={{display:"flex",gap:4,flexShrink:0}}>
                 <button onClick={()=>generateOSPdf({...os,chantier:ch.nom,adresse_chantier:ch.adresse})} style={{background:"#EF4444",border:"none",borderRadius:5,padding:"4px 10px",cursor:"pointer",fontSize:9,fontWeight:700,color:"#fff"}}>PDF</button>
                 <button onClick={()=>generateOSExcel({...os,chantier:ch.nom,adresse_chantier:ch.adresse})} style={{background:"#10B981",border:"none",borderRadius:5,padding:"4px 10px",cursor:"pointer",fontSize:9,fontWeight:700,color:"#fff"}}>XLS</button>
-                <button onClick={async()=>{await SB.saveTemplate('os',`Template ${os.artisan_nom}`,`Template d'OS pour ${os.artisan_nom}`,{...os});alert("✅ Template créé!");}} title="Créer un template à partir de cet OS" style={{background:"#6366F1",border:"none",borderRadius:5,padding:"4px 10px",cursor:"pointer",fontSize:9,fontWeight:700,color:"#fff"}}>💾</button>
+                <button onClick={async()=>{await SB.saveTemplate('os',`Template ${os.artisan_nom}`,`Template d'OS pour ${os.artisan_nom}`,{...os});addToast("✅ Template créé!", "success");}} title="Créer un template à partir de cet OS" style={{background:"#6366F1",border:"none",borderRadius:5,padding:"4px 10px",cursor:"pointer",fontSize:9,fontWeight:700,color:"#fff"}}>💾</button>
                 <button onClick={()=>{setDetailForm(os);setDetailModal("editOS");}} style={{background:"#3B82F6",border:"none",borderRadius:5,padding:"4px 10px",cursor:"pointer",fontSize:9,fontWeight:700,color:"#fff"}}>✎</button>
               </div>
             </div>
@@ -2435,7 +2437,7 @@ function AIV({data,save,m,externalTranscript,clearExternal,reload}) {
         const googleToken = typeof window !== 'undefined' ? localStorage.getItem('google_calendar_token') : null;
 
         if (!googleToken) {
-          alert('⚠️ Vous devez d\'abord connecter votre Google Calendar dans l\'onglet Agenda');
+          addToast('⚠️ Vous devez d\'abord connecter votre Google Calendar dans l\'onglet Agenda', 'warning');
           setGcalAction(null);
           return;
         }
@@ -2487,7 +2489,7 @@ function AIV({data,save,m,externalTranscript,clearExternal,reload}) {
   // ─── SPEECH RECOGNITION ───
   const startListening = useCallback(() => {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) { alert("La reconnaissance vocale n'est pas supportée sur ce navigateur. Utilisez Chrome ou Safari."); return; }
+    if (!SR) { addToast("La reconnaissance vocale n'est pas supportée sur ce navigateur. Utilisez Chrome ou Safari.", "warning"); return; }
     
     if (listening && recognRef.current) {
       recognRef.current.stop();

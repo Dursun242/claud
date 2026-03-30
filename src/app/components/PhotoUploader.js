@@ -1,12 +1,14 @@
 'use client'
 import { useState } from 'react'
 import { photoService } from '@/app/services/photoService'
+import { useToast } from '@/app/contexts/ToastContext'
 
 /**
  * Uploadeur de photos avec compression automatique
  * Réduit la taille tout en gardant la qualité
  */
 export default function PhotoUploader({ chantierId, crId = null, userId = null, onPhotoUploaded = null }) {
+  const { addToast } = useToast()
   const [uploading, setUploading] = useState(false)
   const [progress, setProgress] = useState(0)
   const [lastStats, setLastStats] = useState(null)
@@ -17,7 +19,7 @@ export default function PhotoUploader({ chantierId, crId = null, userId = null, 
 
     // Vérifier le type
     if (!file.type.startsWith('image/')) {
-      alert('Veuillez sélectionner une image')
+      addToast('Veuillez sélectionner une image', 'warning')
       return
     }
 
@@ -79,7 +81,7 @@ export default function PhotoUploader({ chantierId, crId = null, userId = null, 
       }, 1000)
     } catch (err) {
       console.error('Erreur upload:', err)
-      alert('Erreur: ' + err.message)
+      addToast('Erreur: ' + err.message, 'error')
       setUploading(false)
       setProgress(0)
     }

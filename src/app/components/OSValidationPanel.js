@@ -1,12 +1,14 @@
 'use client'
 import { useState } from 'react'
 import { osService } from '@/app/services/osService'
+import { useToast } from '@/app/contexts/ToastContext'
 
 /**
  * Panel de validation d'un OS par le client
  * Checkbox + Date + Confirmation
  */
 export default function OSValidationPanel({ os, clientId, onValidated }) {
+  const { addToast } = useToast()
   const [loading, setLoading] = useState(false)
   const [validationDate, setValidationDate] = useState(new Date().toISOString().split('T')[0])
 
@@ -16,12 +18,13 @@ export default function OSValidationPanel({ os, clientId, onValidated }) {
     setLoading(true)
     try {
       await osService.validateByClient(os.id, clientId)
+      addToast('Ordre de Service validé avec succès', 'success')
       setLoading(false)
       if (onValidated) onValidated()
     } catch (err) {
       console.error('Erreur validation:', err)
       setLoading(false)
-      alert('Erreur: ' + err.message)
+      addToast('Erreur: ' + err.message, 'error')
     }
   }
 

@@ -1,8 +1,10 @@
 'use client'
 import { useState } from 'react'
 import { usePlans, useUploadPlan, useDeletePlan } from '../hooksPlansPhotos'
+import { useToast } from '../contexts/ToastContext'
 
 export default function PlansV({ data, user, m }) {
+  const { addToast } = useToast()
   const [selectedChantier, setSelectedChantier] = useState(data.chantiers[0]?.id || null)
   const [fileName, setFileName] = useState('')
   const [fileType, setFileType] = useState('plan')
@@ -22,11 +24,12 @@ export default function PlansV({ data, user, m }) {
         user_id: user.id,
         prenom: user.user_metadata?.prenom || user.email,
       })
+      addToast('Plan téléchargé avec succès', 'success')
       setFileName('')
       setFileType('plan')
     } catch (err) {
       console.error('Erreur upload:', err)
-      alert('Erreur lors du téléchargement')
+      addToast('Erreur lors du téléchargement', 'error')
     }
   }
 
@@ -34,9 +37,10 @@ export default function PlansV({ data, user, m }) {
     if (!confirm('Supprimer ce plan ?')) return
     try {
       await deleteMutation.mutateAsync(plan)
+      addToast('Plan supprimé avec succès', 'success')
     } catch (err) {
       console.error('Erreur suppression:', err)
-      alert('Erreur lors de la suppression')
+      addToast('Erreur lors de la suppression', 'error')
     }
   }
 

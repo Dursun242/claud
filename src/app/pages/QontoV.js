@@ -1,8 +1,10 @@
 'use client'
 import { useState, useEffect } from 'react'
 import AIQontoV from './AIQontoV'
+import { useToast } from '../contexts/ToastContext'
 
 export default function QontoV({ m, data, reload }) {
+  const { addToast } = useToast()
   const [qontoToken, setQontoToken] = useState('')
   const [showTokenInput, setShowTokenInput] = useState(false)
 
@@ -18,13 +20,13 @@ export default function QontoV({ m, data, reload }) {
 
   const handleSaveToken = () => {
     if (!qontoToken.trim()) {
-      alert('Le token ne peut pas être vide')
+      addToast('Le token ne peut pas être vide', 'warning')
       return
     }
     if (typeof window !== 'undefined') {
       localStorage.setItem('qonto_token', qontoToken)
       setShowTokenInput(false)
-      alert('Token Qonto sauvegardé dans le navigateur')
+      addToast('Token Qonto sauvegardé dans le navigateur', 'success')
     }
   }
 
@@ -34,7 +36,7 @@ export default function QontoV({ m, data, reload }) {
       if (typeof window !== 'undefined') {
         localStorage.removeItem('qonto_token')
       }
-      alert('Token supprimé')
+      addToast('Token supprimé', 'success')
     }
   }
 

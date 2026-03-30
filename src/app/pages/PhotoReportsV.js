@@ -1,8 +1,10 @@
 'use client'
 import { useState } from 'react'
 import { usePhotoReports, useCreatePhotoReport, usePhotos, useUploadPhoto, useDeletePhoto, useDeletePhotoReport } from '../hooksPlansPhotos'
+import { useToast } from '../contexts/ToastContext'
 
 export default function PhotoReportsV({ data, user, m }) {
+  const { addToast } = useToast()
   const [selectedChantier, setSelectedChantier] = useState(data.chantiers[0]?.id || null)
   const [showNewReport, setShowNewReport] = useState(false)
   const [reportName, setReportName] = useState('')
@@ -31,11 +33,12 @@ export default function PhotoReportsV({ data, user, m }) {
 
       setSelectedReport(newReport.id)
       setReportName('')
+      addToast('Reportage créé avec succès', 'success')
       setReportDesc('')
       setShowNewReport(false)
     } catch (err) {
       console.error('Erreur création reportage:', err)
-      alert('Erreur lors de la création')
+      addToast('Erreur lors de la création', 'error')
     }
   }
 
@@ -64,10 +67,11 @@ export default function PhotoReportsV({ data, user, m }) {
     if (!confirm(`Supprimer le reportage "${report.nom}" et toutes ses photos ?`)) return
     try {
       await deleteReportMutation.mutateAsync(report)
+      addToast('Reportage supprimé avec succès', 'success')
       setSelectedReport(null)
     } catch (err) {
       console.error('Erreur suppression:', err)
-      alert('Erreur lors de la suppression')
+      addToast('Erreur lors de la suppression', 'error')
     }
   }
 

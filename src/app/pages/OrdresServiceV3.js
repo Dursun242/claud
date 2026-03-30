@@ -4,6 +4,7 @@ import { osService } from '@/app/services/osService'
 import { generateOSPdf } from '@/app/generators'
 import OSValidationPanel from '@/app/components/OSValidationPanel'
 import OSForm from '@/app/components/OSForm'
+import { useToast } from '@/app/contexts/ToastContext'
 
 /**
  * Page Ordres de Service v3
@@ -14,6 +15,7 @@ import OSForm from '@/app/components/OSForm'
  * - Génération PDF (rendu identique à v2)
  */
 export default function OrdresServiceV3({ data, reload, currentUser = null, userRole = 'admin' }) {
+  const { addToast } = useToast()
   const [selectedOS, setSelectedOS] = useState(null)
   const [formOpen, setFormOpen] = useState(false)
   const [formData, setFormData] = useState({})
@@ -27,12 +29,13 @@ export default function OrdresServiceV3({ data, reload, currentUser = null, user
   const handleSave = async () => {
     try {
       await osService.upsert(formData)
+      addToast('OS sauvegardé avec succès', 'success')
       setFormOpen(false)
       setFormData({})
       reload()
     } catch (err) {
       console.error('Erreur sauvegarde OS:', err)
-      alert('Erreur: ' + err.message)
+      addToast('Erreur: ' + err.message, 'error')
     }
   }
 
@@ -40,10 +43,11 @@ export default function OrdresServiceV3({ data, reload, currentUser = null, user
     if (!window.confirm('Supprimer cet OS?')) return
     try {
       await osService.delete(id)
+      addToast('OS supprimé avec succès', 'success')
       reload()
     } catch (err) {
       console.error('Erreur suppression OS:', err)
-      alert('Erreur: ' + err.message)
+      addToast('Erreur: ' + err.message, 'error')
     }
   }
 

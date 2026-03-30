@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { crService } from '@/app/services/crService'
 import CRTimeline from '@/app/components/CRTimeline'
 import PhotoUploader from '@/app/components/PhotoUploader'
+import { useToast } from '@/app/contexts/ToastContext'
 
 /**
  * Page Comptes Rendus v3
@@ -13,6 +14,7 @@ import PhotoUploader from '@/app/components/PhotoUploader'
  * - Création/édition CR
  */
 export default function CompteRendusV3({ data, reload, currentUser = null, userRole = 'admin' }) {
+  const { addToast } = useToast()
   const [showNewCRForm, setShowNewCRForm] = useState(false)
   const [selectedChantier, setSelectedChantier] = useState(data?.chantiers?.[0]?.id)
   const crs = data?.compteRendus?.filter(cr => !selectedChantier || cr.chantier_id === selectedChantier) || []
@@ -26,11 +28,12 @@ export default function CompteRendusV3({ data, reload, currentUser = null, userR
         },
         currentUser?.id
       )
+      addToast('Compte rendu créé avec succès', 'success')
       setShowNewCRForm(false)
       reload()
     } catch (err) {
       console.error('Erreur création CR:', err)
-      alert('Erreur: ' + err.message)
+      addToast('Erreur: ' + err.message, 'error')
     }
   }
 
@@ -120,6 +123,7 @@ export default function CompteRendusV3({ data, reload, currentUser = null, userR
               onSave={handleNewCR}
               onCancel={() => setShowNewCRForm(false)}
               currentUser={currentUser}
+              addToast={addToast}
             />
           </div>
         </div>
@@ -129,7 +133,7 @@ export default function CompteRendusV3({ data, reload, currentUser = null, userR
 }
 
 // ─── Formulaire Nouveau CR ───
-function NewCRForm({ chantierId, chantierName, onSave, onCancel, currentUser }) {
+function NewCRForm({ chantierId, chantierName, onSave, onCancel, currentUser, addToast }) {
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
     numero: Math.floor(Math.random() * 10000),
@@ -141,7 +145,7 @@ function NewCRForm({ chantierId, chantierName, onSave, onCancel, currentUser }) 
 
   const handleSubmit = async () => {
     if (!formData.resume) {
-      alert('Veuillez entrer un résumé')
+      addToast('Veuillez entrer un résumé', 'warning')
       return
     }
     setSaving(true)

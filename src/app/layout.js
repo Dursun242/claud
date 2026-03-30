@@ -1,3 +1,5 @@
+import RootWrapper from '@/app/RootWrapper';
+
 export const metadata = {
   title: 'ID Maîtrise - Dashboard',
   description: 'Tableau de bord de gestion de chantiers - ID Maîtrise, Le Havre',
@@ -22,7 +24,9 @@ export default function RootLayout({ children }) {
         <meta name="apple-mobile-web-app-title" content="ID Maîtrise" />
         <link rel="apple-touch-icon" href="/icon-192.png" />
       </head>
-      <body style={{ margin: 0, padding: 0 }}>{children}</body>
+      <body style={{ margin: 0, padding: 0 }}>
+        <RootWrapper>{children}</RootWrapper>
+      </body>
     </html>
   )
 }

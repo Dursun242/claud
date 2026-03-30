@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { crService } from '@/app/services/crService'
+import { useToast } from '@/app/contexts/ToastContext'
 
 /**
  * Commentaires et demandes spécifiques pour CR
@@ -8,6 +9,7 @@ import { crService } from '@/app/services/crService'
  * Admin/Salarié peuvent répondre
  */
 export default function CRComments({ crId, userRole, userId, userName = 'Anonyme' }) {
+  const { addToast } = useToast()
   const [comments, setComments] = useState([])
   const [newComment, setNewComment] = useState('')
   const [commentType, setCommentType] = useState('commentaire')
@@ -31,7 +33,7 @@ export default function CRComments({ crId, userRole, userId, userName = 'Anonyme
 
   const handleAddComment = async () => {
     if (!newComment.trim()) {
-      alert('Veuillez entrer un commentaire')
+      addToast('Veuillez entrer un commentaire', 'warning')
       return
     }
 
@@ -45,11 +47,12 @@ export default function CRComments({ crId, userRole, userId, userName = 'Anonyme
         commentType
       )
       setComments([...comments, comment])
+      addToast('Commentaire ajouté', 'success')
       setNewComment('')
       setCommentType('commentaire')
     } catch (err) {
       console.error('Erreur ajout commentaire:', err)
-      alert('Erreur: ' + err.message)
+      addToast('Erreur: ' + err.message, 'error')
     } finally {
       setSubmitting(false)
     }
@@ -58,12 +61,13 @@ export default function CRComments({ crId, userRole, userId, userName = 'Anonyme
   const handleResolveComment = async (commentId) => {
     try {
       await crService.updateCommentStatus(commentId, 'resolu')
+      addToast('Commentaire marqué comme résolu', 'success')
       setComments(comments.map(c =>
         c.id === commentId ? { ...c, status: 'resolu' } : c
       ))
     } catch (err) {
       console.error('Erreur résolution:', err)
-      alert('Erreur: ' + err.message)
+      addToast('Erreur: ' + err.message, 'error')
     }
   }
 
@@ -71,10 +75,11 @@ export default function CRComments({ crId, userRole, userId, userName = 'Anonyme
     if (!window.confirm('Supprimer ce commentaire?')) return
     try {
       await crService.deleteComment(commentId)
+      addToast('Commentaire supprimé', 'success')
       setComments(comments.filter(c => c.id !== commentId))
     } catch (err) {
       console.error('Erreur suppression:', err)
-      alert('Erreur: ' + err.message)
+      addToast('Erreur: ' + err.message, 'error')
     }
   }
 
