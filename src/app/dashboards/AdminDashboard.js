@@ -725,7 +725,7 @@ export default function AdminDashboard({ user, profile = null }) {
           {tab==="dashboard"&&<DashboardV data={data} setTab={switchTab} m={isMobile} user={user}/>}
           {tab==="gcal"&&<GCalV m={isMobile}/>}
           {tab==="qonto"&&<QontoV m={isMobile} data={data} reload={reload}/>}
-          {tab==="projects"&&<ProjectsV data={data} save={save} m={isMobile} reload={reload}/>}
+          {tab==="projects"&&<ProjectsV data={data} save={save} m={isMobile} reload={reload} user={user} profile={profile}/>}
           {tab==="planning"&&<PlanningV data={data} m={isMobile}/>}
           {tab==="tasks"&&<TasksV data={data} save={save} m={isMobile} reload={reload}/>}
           {tab==="contacts"&&<ContactsV data={data} save={save} m={isMobile} reload={reload}/>}
@@ -1290,7 +1290,7 @@ function QontoV({m, data, reload}) {
 // ═══════════════════════════════════════════
 // PROJECTS
 // ═══════════════════════════════════════════
-function ProjectsV({data,save,m,reload}) {
+function ProjectsV({data,save,m,reload,user,profile}) {
   const { addToast } = useToast();
   const [modal,setModal]=useState(null);const [form,setForm]=useState({});
   const [selected,setSelected]=useState(null);
@@ -1299,7 +1299,7 @@ function ProjectsV({data,save,m,reload}) {
 
   // Phase 3 Hooks - Replaces 9 useState calls + useEffect
   const { attachments, uploadAttachment, deleteAttachment } = useAttachments('chantier', selected);
-  const { comments, addComment, deleteComment } = useComments('chantier', selected, user?.email);
+  const { comments, addComment, deleteComment } = useComments('chantier', selected, user?.email||'Anonyme');
   const { shares, addShare, deleteShare } = useSharing(selected);
 
   const openNew=()=>{setForm({nom:"",client:"",adresse:"",phase:"Hors d'air",statut:"Planifié",budget:"",depenses:0,dateDebut:"",dateFin:"",lots:""});setModal("new");};
