@@ -725,7 +725,7 @@ export default function AdminDashboard({ user, profile = null }) {
           {tab==="dashboard"&&<DashboardV data={data} setTab={switchTab} m={isMobile} user={user}/>}
           {tab==="gcal"&&<GCalV m={isMobile}/>}
           {tab==="qonto"&&<QontoV m={isMobile} data={data} reload={reload}/>}
-          {tab==="projects"&&<ProjectsV data={data} save={save} m={isMobile} reload={reload}/>}
+          {tab==="projects"&&<ProjectsV data={data} save={save} m={isMobile} reload={reload} user={user} profile={profile}/>}
           {tab==="planning"&&<PlanningV data={data} m={isMobile}/>}
           {tab==="tasks"&&<TasksV data={data} save={save} m={isMobile} reload={reload}/>}
           {tab==="contacts"&&<ContactsV data={data} save={save} m={isMobile} reload={reload}/>}
@@ -1290,7 +1290,7 @@ function QontoV({m, data, reload}) {
 // ═══════════════════════════════════════════
 // PROJECTS
 // ═══════════════════════════════════════════
-function ProjectsV({data,save,m,reload}) {
+function ProjectsV({data,save,m,reload,user,profile}) {
   const { addToast } = useToast();
   const [modal,setModal]=useState(null);const [form,setForm]=useState({});
   const [selected,setSelected]=useState(null);
@@ -1612,8 +1612,7 @@ function ProjectsV({data,save,m,reload}) {
   </div>);
 }
 
-// ═══════════════════════════════════════════
-// PLANNING
+
 // ═══════════════════════════════════════════
 function PlanningV({data,m}) {
   const [filter,setFilter]=useState("all");
