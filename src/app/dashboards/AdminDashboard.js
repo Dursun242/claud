@@ -4,7 +4,6 @@ import { supabase } from '../supabaseClient'
 import { generateOSPdf, generateCRPdf, generateOSExcel, generateCRExcel } from '../generators'
 import { logout } from '../auth'
 import AIQontoV from '../pages/AIQontoV'
-import { useCreateGoogleCalendarEvent } from '../useGoogleCalendar'
 import { useToast } from '../contexts/ToastContext'
 
 // Phase 3 Feature Hooks
@@ -285,16 +284,6 @@ const I = {
 // ─── COLORS ───
 const phase = { "Hors d'air": "#F59E0B", "Technique": "#3B82F6", "Finitions": "#10B981" };
 const status = { "En cours": "#3B82F6", "Planifié": "#8B5CF6", "Terminé": "#10B981", "En attente": "#F59E0B", "Urgent": "#EF4444" };
-const GC = { primary: "#EA4335", light: "#FEF2F2", border: "#FECACA", gradient: "linear-gradient(135deg, #EA4335 0%, #FBBC04 50%, #34A853 75%, #4285F4 100%)" };
-
-// ─── GCAL EVENTS ───
-const gcalEvents = [
-  { id: "gc1", summary: "RDV MARYAM", start: "2026-03-17T12:00:00+01:00", end: "2026-03-17T13:00:00+01:00", location: "", description: "" },
-  { id: "gc2", summary: "Garage Lucas", start: "2026-03-18T16:00:00+01:00", end: "2026-03-18T17:00:00+01:00", location: "Mairie - Oudalle", description: "" },
-  { id: "gc3", summary: "FRIBOULET - Finaliser PC modificatif", start: "2026-03-19T14:00:00+01:00", end: "2026-03-19T16:00:00+01:00", location: "", description: "Dernière vérification dossier PC modificatif garage." },
-  { id: "gc4", summary: "Eurofins LABORATOIRE", start: "2026-03-20T11:00:00+01:00", end: "2026-03-20T12:00:00+01:00", location: "Gonneville-la-Mallet", description: "" },
-  { id: "gc5", summary: "FRIBOULET - Dépôt PC modificatif", start: "2026-03-20T14:00:00+01:00", end: "2026-03-20T15:00:00+01:00", location: "Mairie de Riville", description: "Dépôt permis modificatif pour ajout garage." },
-];
 
 // ─── DEFAULT DATA ───
 const defaultData = {
@@ -637,7 +626,6 @@ export default function AdminDashboard({ user, profile = null }) {
     {key:"planning",label:"Planning",icon:I.planning},
     {key:"contacts",label:"Annuaire",icon:I.contacts},
     {key:"qonto",label:"Qonto",icon:null,isQonto:true},
-    {key:"gcal",label:"Agenda Google",icon:null,isGcal:true},
     ...(profile?.role === 'admin' ? [{key:"admin",label:"🔒 Admin",icon:I.settings}] : []),
     {key:"ai",label:"Assistant IA",icon:I.ai},
   ];
@@ -723,7 +711,6 @@ export default function AdminDashboard({ user, profile = null }) {
         )}
         <div style={{animation:"fadeIn .3s ease",maxWidth:1200}}>
           {tab==="dashboard"&&<DashboardV data={data} setTab={switchTab} m={isMobile} user={user}/>}
-          {tab==="gcal"&&<GCalV m={isMobile}/>}
           {tab==="qonto"&&<QontoV m={isMobile} data={data} reload={reload}/>}
           {tab==="projects"&&<ProjectsV data={data} save={save} m={isMobile} reload={reload} user={user} profile={profile}/>}
           {tab==="planning"&&<PlanningV data={data} m={isMobile}/>}
@@ -756,7 +743,6 @@ export default function AdminDashboard({ user, profile = null }) {
 // ═══════════════════════════════════════════
 function DashboardV({data,setTab,m,user}) {
   const today = new Date().toISOString().split("T")[0];
-  const todayGcal = gcalEvents.filter(e=>e.start.split("T")[0]===today);
   const urgentTasks = data.tasks.filter(t=>t.priorite==="Urgent"&&t.statut!=="Terminé");
   const allActiveTasks = data.tasks
     .filter(t=>t.statut!=="Terminé")
@@ -821,26 +807,7 @@ function DashboardV({data,setTab,m,user}) {
     )}
 
     {/* À FAIRE AUJOURD'HUI */}
-    <div style={{display:"grid",gridTemplateColumns:m?"1fr":"1fr 1fr",gap:16,marginBottom:20}}>
-      {/* AGENDA */}
-      <div style={{background:"#fff",borderRadius:14,padding:m?14:18,boxShadow:"0 1px 3px rgba(0,0,0,0.06)",borderTop:`3px solid ${GC.primary}`}}>
-        <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:12}}>
-          <span style={{fontWeight:700,fontSize:15,color:"#0F172A"}}>📅 Agenda</span>
-          <ApiBadge/>
-        </div>
-        {todayGcal.length===0
-          ? <p style={{color:"#94A3B8",fontSize:12,margin:0}}>Aucun RDV aujourd'hui</p>
-          : <div style={{display:"flex",flexDirection:"column",gap:10}}>
-              {todayGcal.map(ev=>(
-                <div key={ev.id} style={{borderLeft:`3px solid ${GC.primary}`,paddingLeft:10,borderRadius:4}}>
-                  <div style={{fontSize:12,fontWeight:700,color:"#0F172A"}}>{fmtTime(ev.start)} — {ev.summary}</div>
-                  {ev.location&&<div style={{fontSize:11,color:"#64748B",marginTop:2}}>{ev.location}</div>}
-                </div>
-              ))}
-            </div>
-        }
-      </div>
-
+    <div style={{marginBottom:20}}>
       {/* TÂCHES URGENTES */}
       <div style={{background:"#FEF2F2",borderRadius:14,padding:m?14:18,border:"1.5px solid #FECACA"}}>
         <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:12}}>
@@ -889,48 +856,6 @@ function DashboardV({data,setTab,m,user}) {
           </div>
         </div>
       </div>
-    </div>
-  </div>);
-}
-
-// ═══════════════════════════════════════════
-// GOOGLE CALENDAR VIEW
-// ═══════════════════════════════════════════
-function GCalV({m}) {
-  const today = new Date().toISOString().split("T")[0];
-  const byDay = {}; gcalEvents.forEach(e=>{const d=e.start.split("T")[0];(byDay[d]=byDay[d]||[]).push(e);});
-
-  return (<div>
-    <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:20}}>
-      <div style={{width:40,height:40,borderRadius:10,background:GC.gradient,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 3px 10px rgba(234,67,53,0.3)"}}>
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="#fff" strokeWidth="2"/><path d="M3 10h18" stroke="#fff" strokeWidth="2"/></svg>
-      </div>
-      <div><h1 style={{margin:0,fontSize:m?18:24,fontWeight:700}}>Google Calendar <ApiBadge/></h1><p style={{margin:0,fontSize:12,color:"#64748B"}}>Suivi Pro ID MAITRISE</p></div>
-    </div>
-
-    <div style={{background:"#F0FDF4",border:"1.5px solid #BBF7D0",borderRadius:10,padding:"10px 14px",marginBottom:16,display:"flex",alignItems:"center",gap:8,fontSize:12}}>
-      <div style={{width:8,height:8,borderRadius:"50%",background:"#22C55E",animation:"pulseGlow 2s infinite"}}/><span style={{fontWeight:600,color:"#166534"}}>Connecté</span><span style={{color:"#64748B"}}>• dursunozkan88@gmail.com</span>
-    </div>
-
-    <div style={{background:"#fff",borderRadius:14,padding:m?14:20,boxShadow:"0 1px 3px rgba(0,0,0,0.06)",border:`1px solid ${GC.border}`}}>
-      {Object.keys(byDay).sort().map(day=>{const isT=day===today; return(
-        <div key={day} style={{marginBottom:16}}>
-          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
-            <span style={{background:isT?GC.primary:"#F1F5F9",color:isT?"#fff":"#64748B",borderRadius:8,padding:"4px 12px",fontSize:12,fontWeight:700}}>{fmtDayFr(day+"T00:00:00")}{isT?" • Aujourd'hui":""}</span>
-            <div style={{flex:1,height:1,background:isT?GC.border:"#F1F5F9"}}/>
-          </div>
-          {byDay[day].map(ev=>(
-            <div key={ev.id} style={{display:"flex",gap:12,padding:"10px 12px",marginBottom:6,borderRadius:10,background:isT?GC.light:"#FAFAFA",border:`1.5px solid ${isT?GC.border:"#F1F5F9"}`}}>
-              <div style={{minWidth:55,textAlign:"center"}}><div style={{fontSize:14,fontWeight:700,color:GC.primary}}>{fmtTime(ev.start)}</div><div style={{fontSize:10,color:"#94A3B8"}}>{fmtTime(ev.end)}</div></div>
-              <div style={{width:3,borderRadius:3,background:GC.gradient,flexShrink:0}}/>
-              <div style={{flex:1}}><div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2}}><span style={{fontSize:14,fontWeight:700,color:"#0F172A"}}>{ev.summary}</span><ApiBadge/></div>
-                {ev.description&&<div style={{fontSize:11,color:"#64748B",marginBottom:2}}>{ev.description}</div>}
-                {ev.location&&<div style={{fontSize:11,color:"#94A3B8",display:"flex",alignItems:"center",gap:3}}><Icon d={I.mappin} size={10} color="#94A3B8"/>{ev.location}</div>}
-              </div>
-            </div>
-          ))}
-        </div>
-      );})}
     </div>
   </div>);
 }
@@ -2198,11 +2123,10 @@ function OrdresServiceV({data,m,reload}) {
 // AI ASSISTANT
 // ═══════════════════════════════════════════
 function AIV({data,save,m,externalTranscript,clearExternal,reload}) {
-  const [messages,setMessages]=useState([{role:"assistant",content:"Bonjour Dursun ! Je suis l'assistant IA d'**ID Maîtrise**.\n\nJe peux tout faire :\n• **\"Crée un OS pour le chantier Friboulet, artisan Lefèvre...\"** → Ordre de Service\n• **\"Rédige un CR pour Les Voiles, présents : Lefèvre, Costa...\"** → Compte Rendu\n• **\"Nouveau chantier Villa Dupont, budget 200 000€...\"** → Chantier\n• **\"Ajoute une tâche urgente...\"** → Tâche\n• **\"RDV demain 14h réunion de chantier...\"** → Google Calendar\n• **\"Résumé avancement du chantier Les Voiles\"** → Analyse\n\nParlez ou tapez !"}]);
+  const [messages,setMessages]=useState([{role:"assistant",content:"Bonjour Dursun ! Je suis l'assistant IA d'**ID Maîtrise**.\n\nJe peux tout faire :\n• **\"Crée un OS pour le chantier Friboulet, artisan Lefèvre...\"** → Ordre de Service\n• **\"Rédige un CR pour Les Voiles, présents : Lefèvre, Costa...\"** → Compte Rendu\n• **\"Nouveau chantier Villa Dupont, budget 200 000€...\"** → Chantier\n• **\"Ajoute une tâche urgente...\"** → Tâche\n• **\"Résumé avancement du chantier Les Voiles\"** → Analyse\n\nParlez ou tapez !"}]);
   const [input,setInput]=useState("");
   const [loading,setLoading]=useState(false);
   const [listening,setListening]=useState(false);
-  const [gcalAction,setGcalAction]=useState(null);
   const recognRef = useRef(null);
   const endRef=useRef(null);
   const inputRef=useRef(null);
@@ -2216,65 +2140,6 @@ function AIV({data,save,m,externalTranscript,clearExternal,reload}) {
       if (clearExternal) clearExternal();
     }
   }, [externalTranscript, clearExternal]);
-
-  // ─── HANDLE GOOGLE CALENDAR ACTION ───
-  useEffect(() => {
-    if (!gcalAction) return;
-
-    const createGcalEvent = async () => {
-      try {
-        // Récupérer le token Google Calendar depuis localStorage
-        const googleToken = typeof window !== 'undefined' ? localStorage.getItem('google_calendar_token') : null;
-
-        if (!googleToken) {
-          alert('⚠️ Vous devez d\'abord connecter votre Google Calendar dans l\'onglet Agenda');
-          setGcalAction(null);
-          return;
-        }
-
-        // Créer l'événement via l'API
-        const { title, date, startTime, endTime, location, description } = gcalAction;
-        const startDateTime = new Date(`${date}T${startTime}:00`);
-        const endDateTime = new Date(`${date}T${endTime}:00`);
-
-        const response = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${googleToken}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            summary: title,
-            description: description || '',
-            location: location || '',
-            start: { dateTime: startDateTime.toISOString() },
-            end: { dateTime: endDateTime.toISOString() },
-          }),
-        });
-
-        if (!response.ok) {
-          throw new Error('Erreur création événement Google Calendar');
-        }
-
-        // Ajouter message de succès
-        setMessages(prev => [...prev, {
-          role: 'assistant',
-          content: `✅ **Rendez-vous créé sur Google Calendar !**\n\n📅 ${title}\n🕐 ${startTime} - ${endTime}\n📍 ${location || '(sans lieu)'}`
-        }]);
-
-        setGcalAction(null);
-      } catch (err) {
-        console.error('Erreur création événement:', err);
-        setMessages(prev => [...prev, {
-          role: 'assistant',
-          content: `❌ **Erreur création RDV:** ${err.message}`
-        }]);
-        setGcalAction(null);
-      }
-    };
-
-    createGcalEvent();
-  }, [gcalAction]);
 
   // ─── SPEECH RECOGNITION ───
   const startListening = useCallback(() => {
@@ -2335,13 +2200,11 @@ function AIV({data,save,m,externalTranscript,clearExternal,reload}) {
       const sys = `Tu es l'assistant IA d'ID Maîtrise, maîtrise d'œuvre BTP au Havre (9 Rue Henry Genestal, 76600). Le gérant est Dursun. Tu gères le quotidien des chantiers.
 
 DONNÉES ACTUELLES (Supabase): ${JSON.stringify(data,null,0)}
-GOOGLE CALENDAR: ${JSON.stringify(gcalEvents,null,0)}
 
 TU PEUX TOUT FAIRE :
 1. Créer des chantiers, tâches, contacts, comptes rendus, ordres de service
-2. Résumer l'avancement d'un chantier (budget consommé, tâches en cours, prochains RDV)
-3. Créer des RDV dans Google Calendar (utilise l'action add_gcal_event)
-4. Lister, rechercher et analyser toutes les données
+2. Résumer l'avancement d'un chantier (budget consommé, tâches en cours)
+3. Lister, rechercher et analyser toutes les données
 
 ACTIONS — utilise un bloc JSON entre <<<ACTION>>> et <<<END_ACTION>>>
 
@@ -2360,8 +2223,6 @@ update_cr: {"type":"update_cr","data":{"id":"UUID-EXISTANT","chantier_id":"UUID"
 add_os: {"type":"add_os","data":{"numero":"OS-2026-XXX","chantier_id":"UUID","client_nom":"...","client_adresse":"...","artisan_nom":"...","artisan_specialite":"...","artisan_tel":"...","artisan_email":"...","artisan_siret":"...","date_emission":"YYYY-MM-DD","date_intervention":"YYYY-MM-DD","date_fin_prevue":"YYYY-MM-DD","prestations":[{"description":"...","unite":"m²","quantite":10,"prix_unitaire":45.00,"tva_taux":20}],"observations":"...","conditions":"Paiement à 30 jours.","statut":"Émis"}}
 
 update_os: {"type":"update_os","data":{"id":"UUID-EXISTANT","numero":"OS-2026-XXX","chantier_id":"UUID","client_nom":"...","artisan_nom":"...","artisan_specialite":"...","artisan_tel":"...","artisan_email":"...","artisan_siret":"...","date_emission":"YYYY-MM-DD","date_intervention":"YYYY-MM-DD","date_fin_prevue":"YYYY-MM-DD","prestations":[{"description":"...","unite":"m²","quantite":10,"prix_unitaire":45.00,"tva_taux":20}],"observations":"...","conditions":"...","statut":"..."}}
-
-add_gcal_event: {"type":"add_gcal_event","data":{"title":"...","date":"YYYY-MM-DD","startTime":"HH:MM","endTime":"HH:MM","location":"...","description":"..."}}
 
 RÈGLES :
 - Réponds TOUJOURS en français, concis et professionnel
@@ -2403,11 +2264,6 @@ RÈGLES :
             await SB.upsertOS({ ...a.data, montant_ht:ht, montant_tva:tva, montant_ttc:ht+tva });
             actionLabel = a.type==="update_os" ? "Ordre de Service mis à jour" : "Ordre de Service créé";
           }
-          else if(a.type==="add_gcal_event") {
-            setGcalAction(a.data);
-            actionLabel="RDV Google Calendar à créer";
-          }
-          
           if(reload) await reload();
           text=text.replace(/<<<ACTION>>>[\s\S]*?<<<END_ACTION>>>/,"").trim()+`\n\n✅ **${actionLabel} dans Supabase !**`;
         } catch(err) {
@@ -2434,7 +2290,7 @@ RÈGLES :
           <h1 style={{margin:0,fontSize:m?18:24,fontWeight:700}}>Assistant IA</h1>
           <ApiBadge/>
         </div>
-        <p style={{margin:"2px 0 0",fontSize:12,color:"#64748B"}}>Parlez ou tapez — connecté à vos données et Google Calendar</p>
+        <p style={{margin:"2px 0 0",fontSize:12,color:"#64748B"}}>Parlez ou tapez — connecté à vos données</p>
       </div>
 
       {/* CHAT */}
