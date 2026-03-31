@@ -634,10 +634,8 @@ export default function AdminDashboard({ user, profile = null }) {
     {key:"os",label:"Ordres de Service",icon:I.reports},
     {key:"reports",label:"Comptes Rendus",icon:I.reports},
     {key:"tasks",label:"Tâches",icon:I.tasks},
-    {key:"planning",label:"Planning",icon:I.planning},
     {key:"contacts",label:"Annuaire",icon:I.contacts},
     {key:"qonto",label:"Qonto",icon:null,isQonto:true},
-    {key:"gcal",label:"Agenda Google",icon:null,isGcal:true},
     ...(profile?.role === 'admin' ? [{key:"admin",label:"🔒 Admin",icon:I.settings}] : []),
     {key:"ai",label:"Assistant IA",icon:I.ai},
   ];
@@ -723,10 +721,8 @@ export default function AdminDashboard({ user, profile = null }) {
         )}
         <div style={{animation:"fadeIn .3s ease",maxWidth:1200}}>
           {tab==="dashboard"&&<DashboardV data={data} setTab={switchTab} m={isMobile} user={user}/>}
-          {tab==="gcal"&&<GCalV m={isMobile}/>}
           {tab==="qonto"&&<QontoV m={isMobile} data={data} reload={reload}/>}
           {tab==="projects"&&<ProjectsV data={data} save={save} m={isMobile} reload={reload} user={user} profile={profile}/>}
-          {tab==="planning"&&<PlanningV data={data} m={isMobile}/>}
           {tab==="tasks"&&<TasksV data={data} save={save} m={isMobile} reload={reload}/>}
           {tab==="contacts"&&<ContactsV data={data} save={save} m={isMobile} reload={reload}/>}
           {tab==="reports"&&<ReportsV data={data} save={save} m={isMobile} reload={reload}/>}
@@ -896,44 +892,6 @@ function DashboardV({data,setTab,m,user}) {
 // ═══════════════════════════════════════════
 // GOOGLE CALENDAR VIEW
 // ═══════════════════════════════════════════
-function GCalV({m}) {
-  const today = new Date().toISOString().split("T")[0];
-  const byDay = {}; gcalEvents.forEach(e=>{const d=e.start.split("T")[0];(byDay[d]=byDay[d]||[]).push(e);});
-
-  return (<div>
-    <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:20}}>
-      <div style={{width:40,height:40,borderRadius:10,background:GC.gradient,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 3px 10px rgba(234,67,53,0.3)"}}>
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="#fff" strokeWidth="2"/><path d="M3 10h18" stroke="#fff" strokeWidth="2"/></svg>
-      </div>
-      <div><h1 style={{margin:0,fontSize:m?18:24,fontWeight:700}}>Google Calendar <ApiBadge/></h1><p style={{margin:0,fontSize:12,color:"#64748B"}}>Suivi Pro ID MAITRISE</p></div>
-    </div>
-
-    <div style={{background:"#F0FDF4",border:"1.5px solid #BBF7D0",borderRadius:10,padding:"10px 14px",marginBottom:16,display:"flex",alignItems:"center",gap:8,fontSize:12}}>
-      <div style={{width:8,height:8,borderRadius:"50%",background:"#22C55E",animation:"pulseGlow 2s infinite"}}/><span style={{fontWeight:600,color:"#166534"}}>Connecté</span><span style={{color:"#64748B"}}>• dursunozkan88@gmail.com</span>
-    </div>
-
-    <div style={{background:"#fff",borderRadius:14,padding:m?14:20,boxShadow:"0 1px 3px rgba(0,0,0,0.06)",border:`1px solid ${GC.border}`}}>
-      {Object.keys(byDay).sort().map(day=>{const isT=day===today; return(
-        <div key={day} style={{marginBottom:16}}>
-          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
-            <span style={{background:isT?GC.primary:"#F1F5F9",color:isT?"#fff":"#64748B",borderRadius:8,padding:"4px 12px",fontSize:12,fontWeight:700}}>{fmtDayFr(day+"T00:00:00")}{isT?" • Aujourd'hui":""}</span>
-            <div style={{flex:1,height:1,background:isT?GC.border:"#F1F5F9"}}/>
-          </div>
-          {byDay[day].map(ev=>(
-            <div key={ev.id} style={{display:"flex",gap:12,padding:"10px 12px",marginBottom:6,borderRadius:10,background:isT?GC.light:"#FAFAFA",border:`1.5px solid ${isT?GC.border:"#F1F5F9"}`}}>
-              <div style={{minWidth:55,textAlign:"center"}}><div style={{fontSize:14,fontWeight:700,color:GC.primary}}>{fmtTime(ev.start)}</div><div style={{fontSize:10,color:"#94A3B8"}}>{fmtTime(ev.end)}</div></div>
-              <div style={{width:3,borderRadius:3,background:GC.gradient,flexShrink:0}}/>
-              <div style={{flex:1}}><div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2}}><span style={{fontSize:14,fontWeight:700,color:"#0F172A"}}>{ev.summary}</span><ApiBadge/></div>
-                {ev.description&&<div style={{fontSize:11,color:"#64748B",marginBottom:2}}>{ev.description}</div>}
-                {ev.location&&<div style={{fontSize:11,color:"#94A3B8",display:"flex",alignItems:"center",gap:3}}><Icon d={I.mappin} size={10} color="#94A3B8"/>{ev.location}</div>}
-              </div>
-            </div>
-          ))}
-        </div>
-      );})}
-    </div>
-  </div>);
-}
 
 // ═══════════════════════════════════════════
 // QONTO VIEW (Factures, Devis, Clients)
@@ -1613,50 +1571,6 @@ function ProjectsV({data,save,m,reload,user,profile}) {
 }
 
 
-// ═══════════════════════════════════════════
-function PlanningV({data,m}) {
-  const [filter,setFilter]=useState("all");
-  const items = filter==="all"?data.planning:data.planning.filter(p=>p.chantierId===filter||p.chantier_id===filter);
-
-  if (!data.planning || data.planning.length === 0) {
-    return (<div>
-      <h1 style={{margin:"0 0 20px",fontSize:m?18:24,fontWeight:700}}>Planning</h1>
-      <div style={{background:"#fff",borderRadius:12,padding:30,textAlign:"center",color:"#94A3B8",fontSize:13,boxShadow:"0 1px 3px rgba(0,0,0,0.06)"}}>
-        Aucune entrée de planning. Ajoutez des tâches planifiées depuis l'onglet Chantiers.
-      </div>
-    </div>);
-  }
-
-  const timestamps = data.planning.map(p=>new Date(p.debut).getTime()).filter(t=>!isNaN(t));
-  const endTimestamps = data.planning.map(p=>new Date(p.fin).getTime()).filter(t=>!isNaN(t));
-  if (timestamps.length === 0 || endTimestamps.length === 0) return null;
-
-  const min=new Date(Math.min(...timestamps));
-  const max=new Date(Math.max(...endTimestamps));
-  const total=Math.max(Math.ceil((max-min)/864e5)+1, 1);
-
-  return (<div>
-    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20,flexWrap:"wrap",gap:10}}>
-      <h1 style={{margin:0,fontSize:m?18:24,fontWeight:700}}>Planning</h1>
-      <select style={{...sel,width:"auto"}} value={filter} onChange={e=>setFilter(e.target.value)}><option value="all">Tous</option>{data.chantiers.map(c=><option key={c.id} value={c.id}>{c.nom}</option>)}</select>
-    </div>
-    <div style={{background:"#fff",borderRadius:12,padding:m?12:18,boxShadow:"0 1px 3px rgba(0,0,0,0.06)",overflowX:"auto"}}>
-      {items.length === 0
-        ? <div style={{textAlign:"center",color:"#94A3B8",padding:20,fontSize:13}}>Aucune tâche pour ce chantier.</div>
-        : items.map(p=>{const ch=data.chantiers.find(c=>c.id===(p.chantierId||p.chantier_id));const s=Math.max(0,Math.ceil((new Date(p.debut)-min)/864e5));const d=Math.max(1,Math.ceil((new Date(p.fin)-new Date(p.debut))/864e5)+1);const c=phase[ch?.phase]||"#3B82F6";
-          return(<div key={p.id} style={{display:"flex",alignItems:"center",padding:"7px 0",borderBottom:"1px solid #F8FAFC",minWidth:m?500:"auto"}}>
-            <div style={{width:m?150:200,flexShrink:0,paddingRight:12}}><div style={{fontSize:12,fontWeight:600,color:"#0F172A"}}>{p.tache}</div><div style={{fontSize:10,color:"#94A3B8"}}>{ch?.nom} • {p.lot}</div></div>
-            <div style={{flex:1,position:"relative",height:24}}>
-              <div style={{position:"absolute",left:`${s/total*100}%`,width:`${d/total*100}%`,top:3,height:18,background:c+"22",borderRadius:5,border:`1.5px solid ${c}`}}>
-                <div style={{width:`${p.avancement}%`,height:"100%",background:c+"55",borderRadius:4}}/><span style={{position:"absolute",right:4,top:1,fontSize:9,fontWeight:700,color:c}}>{p.avancement}%</span>
-              </div>
-            </div>
-          </div>);
-        })
-      }
-    </div>
-  </div>);
-}
 
 // ═══════════════════════════════════════════
 // BUDGET
