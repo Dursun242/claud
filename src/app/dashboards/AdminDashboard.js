@@ -45,9 +45,10 @@ const SB = {
       supabase.from('taches').select('*').order('created_at', { ascending: false }),
       supabase.from('planning').select('*').order('debut'),
       supabase.from('rdv').select('*').order('date'),
-      supabase.from('compte_rendus').select('*').order('date', { ascending: false }),
-      supabase.from('ordres_service').select('*').order('created_at', { ascending: false }),
+      supabase.from('compte_rendus').select('*').order('date', { ascending: false }).limit(200),
+      supabase.from('ordres_service').select('*').order('created_at', { ascending: false }).limit(200),
     ]);
+    if (ch.error) return { error: ch.error.message };
     return {
       chantiers: (ch.data || []).map(c => ({ ...c, lots: c.lots || [] })),
       contacts: (co.data || []).map(c => ({ ...c, chantiers: [] })),
@@ -517,21 +518,12 @@ export default function AdminDashboard({ user, profile = null }) {
   useEffect(() => {
     (async () => {
       try {
-        // Test Supabase connection
-        const { data: testData, error: testError } = await supabase.from('chantiers').select('id').limit(1);
-        
-        if (testError) {
-          console.error("❌ Supabase connection error:", testError.message);
-          console.log("Fallback sur données locales");
+        const sbData = await SB.loadAll();
+        if (sbData.error) {
           setData(defaultData);
           setLoading(false);
           return;
         }
-
-        console.log("✅ Supabase connecté");
-
-        // Load all data
-        const sbData = await SB.loadAll();
         const hasData = sbData.chantiers.length > 0;
 
         if (hasData) {
@@ -635,8 +627,7 @@ export default function AdminDashboard({ user, profile = null }) {
   return (
     <div style={{display:"flex",height:"100vh",fontFamily:"'DM Sans',sans-serif",background:"#F1F5F9",overflow:"hidden"}}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
-        @keyframes spin{to{transform:rotate(360deg)}}
+@keyframes spin{to{transform:rotate(360deg)}}
         @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
         @keyframes heartbeat{0%,100%{transform:scale(1)}15%{transform:scale(1.18)}30%{transform:scale(1)}45%{transform:scale(1.12)}60%{transform:scale(1)}}
         @keyframes ripple{0%{transform:scale(1);opacity:1}100%{transform:scale(1.8);opacity:0}}
