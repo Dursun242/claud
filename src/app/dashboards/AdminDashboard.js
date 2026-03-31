@@ -5,14 +5,32 @@ import { generateOSPdf, generateCRPdf, generateOSExcel, generateCRExcel } from '
 import { logout } from '../auth'
 import AIQontoV from '../pages/AIQontoV'
 import { useCreateGoogleCalendarEvent } from '../useGoogleCalendar'
-import OrdresServiceV3 from '../pages/OrdresServiceV3'
-import CompteRendusV3 from '../pages/CompteRendusV3'
 import { useToast } from '../contexts/ToastContext'
-// Phase 1 Foundation Services/Hooks
-import { supabaseService } from '../services/supabaseService'
-import { useDashboardData } from '../hooks/useDashboardData'
-import { useFormModal } from '../hooks/useFormModal'
-import { useCRUDOperations } from '../hooks/useCRUDOperations'
+
+// Phase 3 Feature Hooks
+import { useAttachments } from '../hooks/useAttachments'
+import { useComments } from '../hooks/useComments'
+import { useSharing } from '../hooks/useSharing'
+import { useDetailView } from '../hooks/useDetailView'
+
+// Phase 2 Shared Components
+import {
+  Badge,
+  ProgressBar,
+  Section,
+  FormField,
+  inputStyle,
+  selectStyle,
+  btnPrimaryStyle,
+  btnSecondaryStyle,
+  Modal,
+  AttachmentsSection,
+  CommentsSection,
+  SharingPanel,
+  FloatingMic,
+  MicButtonInline,
+  TemplateSelector,
+} from '../components'
 
 const LocalDB = {
   get(key) { try { if (typeof window === 'undefined') return null; const v = localStorage.getItem(key); return v ? JSON.parse(v) : null; } catch { return null; } },
@@ -336,18 +354,7 @@ const fmtTime = s => new Date(s).toLocaleTimeString("fr-FR",{hour:"2-digit",minu
 const fmtDayFr = s => new Date(s).toLocaleDateString("fr-FR",{weekday:"short",day:"numeric",month:"short"});
 
 // ─── SHARED COMPONENTS ───
-function Modal({open,onClose,title,children,wide}) {
-  if (!open) return null;
-  return (<div style={{position:"fixed",inset:0,zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(15,23,42,0.6)",backdropFilter:"blur(4px)",padding:16}} onClick={onClose}>
-    <div onClick={e=>e.stopPropagation()} style={{background:"#fff",borderRadius:16,padding:"20px",width:wide?700:520,maxWidth:"100%",maxHeight:"85vh",overflow:"auto",boxShadow:"0 25px 50px rgba(0,0,0,0.25)"}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-        <h3 style={{margin:0,fontSize:17,fontWeight:700,color:"#0F172A"}}>{title}</h3>
-        <button onClick={onClose} style={{background:"none",border:"none",cursor:"pointer",padding:4}}><Icon d={I.x} size={20} color="#94A3B8"/></button>
-      </div>
-      {children}
-    </div>
-  </div>);
-}
+// Modal moved to Phase 2 components (imported above)
 
 function FF({label,children}) {
   return <div style={{marginBottom:12}}><label style={{display:"block",fontSize:11,fontWeight:600,color:"#64748B",marginBottom:3,textTransform:"uppercase",letterSpacing:"0.05em"}}>{label}</label>{children}</div>;
@@ -357,160 +364,17 @@ const sel = {...inp,background:"#fff"};
 const btnP = {padding:"10px 18px",background:"#1E3A5F",color:"#fff",border:"none",borderRadius:8,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit"};
 const btnS = {...btnP,background:"#F1F5F9",color:"#475569"};
 
-function PBar({value,max=100,color="#3B82F6",h=8}) {
-  return <div style={{background:"#F1F5F9",borderRadius:h,height:h,overflow:"hidden",width:"100%"}}><div style={{width:`${Math.min(Math.round(value/max*100),100)}%`,height:"100%",background:color,borderRadius:h,transition:"width .5s"}}/></div>;
-}
-
-function Badge({text,color}) {
-  return <span style={{display:"inline-block",padding:"2px 8px",borderRadius:16,fontSize:10,fontWeight:700,background:color+"18",color,whiteSpace:"nowrap"}}>{text}</span>;
-}
+// Badge and ProgressBar moved to Phase 2 components (imported above)
+// Using ProgressBar component instead of PBar
+const PBar = ({value,max=100,color="#3B82F6",h=8}) => <ProgressBar value={value} max={max} color={color} height={h} />;
 
 function ApiBadge() {
   return <span style={{display:"inline-flex",alignItems:"center",gap:3,padding:"2px 7px",borderRadius:5,background:GC.gradient,color:"#fff",fontSize:8,fontWeight:800,letterSpacing:"0.1em"}}>API</span>;
 }
 
-function AttachmentsSection({attachments=[], type, itemId, onUpload, onDelete, loading}) {
-  const fileInputRef = useRef(null);
-  const handleFileSelect = async(e) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      try {
-        await onUpload(file);
-        e.target.value = '';
-      } catch (err) {
-        console.error("Upload failed:", err);
-      }
-    }
-  };
-  const isImage = (fileName) => /\.(jpg|jpeg|png|gif|webp)$/i.test(fileName);
-  const getFileIcon = (fileName) => /\.pdf$/i.test(fileName) ? '📄' : /\.(xls|xlsx|csv)$/i.test(fileName) ? '📊' : /\.(doc|docx)$/i.test(fileName) ? '📝' : '📎';
-  const getFileUrl = (filePath) => {
-    const { data } = supabase.storage.from('attachments').getPublicUrl(filePath);
-    return data?.publicUrl;
-  };
+// AttachmentsSection moved to Phase 2 components (imported above)
 
-  return (
-    <div style={{marginTop:12,paddingTop:12,borderTop:"1px solid #E2E8F0"}}>
-      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
-        <span style={{fontSize:12,fontWeight:700,color:"#64748B"}}>📎 Attachments ({attachments.length})</span>
-        <button onClick={()=>fileInputRef.current?.click()} disabled={loading} style={{background:"#3B82F6",color:"#fff",border:"none",borderRadius:4,padding:"4px 10px",fontSize:10,fontWeight:700,cursor:"pointer",opacity:loading?0.6:1}}>
-          {loading ? '⏳' : '+ Ajouter'}
-        </button>
-        <input ref={fileInputRef} type="file" onChange={handleFileSelect} style={{display:"none"}}/>
-      </div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(80px,1fr))",gap:8}}>
-        {attachments.map(att=>(
-          <div key={att.id} style={{position:"relative",background:"#F8FAFC",borderRadius:6,padding:6,textAlign:"center"}}>
-            {isImage(att.file_name) ? (
-              <img src={getFileUrl(att.file_path)} style={{width:"100%",height:60,objectFit:"cover",borderRadius:4}} alt={att.file_name}/>
-            ) : (
-              <div style={{fontSize:24,textAlign:"center"}}>{getFileIcon(att.file_name)}</div>
-            )}
-            <button onClick={()=>onDelete(att.id,att.file_path)} style={{position:"absolute",top:-4,right:-4,background:"#EF4444",color:"#fff",border:"none",borderRadius:"50%",width:20,height:20,cursor:"pointer",fontSize:12,display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
-            <div style={{fontSize:8,color:"#94A3B8",marginTop:4,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{att.file_name}</div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════════
-// FLOATING NEON MIC BUTTON (4-branch cross, heartbeat, neon glow)
-// ═══════════════════════════════════════════
-function FloatingMic({ listening, onClick, transcript, onSend, onClear, isMobile }) {
-  return (<>
-    {/* FLOATING BUTTON — fixed bottom-right */}
-    <div style={{
-      position: "fixed", bottom: isMobile ? 24 : 32, right: isMobile ? 24 : 32, zIndex: 1100,
-      display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 10,
-    }}>
-      {/* Transcript bubble when listening */}
-      {listening && transcript && (
-        <div style={{
-          background: "rgba(15,23,42,0.92)", backdropFilter: "blur(12px)",
-          borderRadius: 16, padding: "12px 16px", maxWidth: isMobile ? 260 : 340,
-          color: "#fff", fontSize: 13, lineHeight: 1.5,
-          border: "1px solid rgba(0,255,136,0.25)",
-          boxShadow: "0 0 20px rgba(0,255,136,0.15), 0 8px 32px rgba(0,0,0,0.3)",
-          animation: "fadeIn .2s ease",
-        }}>
-          <div style={{ fontSize: 9, fontWeight: 700, color: "#00FF88", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 4, display: "flex", alignItems: "center", gap: 5 }}>
-            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#00FF88", animation: "neonPulse 1s infinite" }} />
-            Transcription en direct
-          </div>
-          <div>{transcript}</div>
-          <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
-            <button onClick={onSend} style={{ padding: "5px 12px", borderRadius: 8, background: "#00FF88", color: "#0F172A", border: "none", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Envoyer à l'IA</button>
-            <button onClick={onClear} style={{ padding: "5px 10px", borderRadius: 8, background: "rgba(255,255,255,0.1)", color: "#94A3B8", border: "1px solid rgba(255,255,255,0.15)", fontSize: 11, cursor: "pointer", fontFamily: "inherit" }}>Effacer</button>
-          </div>
-        </div>
-      )}
-
-      {/* The neon mic button */}
-      <button onClick={onClick} style={{
-        position: "relative", width: 64, height: 64, borderRadius: "50%",
-        background: listening
-          ? "radial-gradient(circle at 40% 40%, #ff2d2d 0%, #cc0000 60%, #990000 100%)"
-          : "radial-gradient(circle at 40% 40%, #1E3A5F 0%, #0F172A 70%)",
-        border: listening ? "2px solid rgba(255,50,50,0.6)" : "2px solid rgba(0,255,136,0.3)",
-        cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
-        boxShadow: listening
-          ? "0 0 15px rgba(255,50,50,0.6), 0 0 40px rgba(255,50,50,0.3), 0 0 80px rgba(255,50,50,0.15), inset 0 0 15px rgba(255,100,100,0.2)"
-          : "0 0 12px rgba(0,255,136,0.3), 0 0 30px rgba(0,255,136,0.15), 0 0 60px rgba(0,255,136,0.07), inset 0 0 10px rgba(0,255,136,0.08)",
-        transition: "all .4s cubic-bezier(0.4,0,0.2,1)",
-        animation: listening ? "none" : "neonBreathing 3s ease-in-out infinite",
-      }}>
-        {/* IA text with heartbeat */}
-        <span style={{
-          fontSize: 20, fontWeight: 900, letterSpacing: "-0.5px",
-          color: listening ? "#fff" : "#00FF88",
-          fontFamily: "'DM Sans', sans-serif",
-          animation: listening ? "heartbeat 0.8s ease-in-out infinite" : "none",
-          filter: listening ? "drop-shadow(0 0 4px rgba(255,200,200,0.8))" : "drop-shadow(0 0 3px rgba(0,255,136,0.6))",
-          userSelect: "none",
-        }}>IA</span>
-
-        {/* Neon glow rings */}
-        <span style={{
-          position: "absolute", inset: -3, borderRadius: "50%",
-          border: `2px solid ${listening ? "rgba(255,80,80,0.5)" : "rgba(0,255,136,0.35)"}`,
-          animation: listening ? "ripple 1.2s ease-out infinite" : "neonRing 3s ease-in-out infinite",
-        }} />
-        <span style={{
-          position: "absolute", inset: -8, borderRadius: "50%",
-          border: `1.5px solid ${listening ? "rgba(255,80,80,0.25)" : "rgba(0,255,136,0.15)"}`,
-          animation: listening ? "ripple 1.2s ease-out infinite 0.25s" : "neonRing 3s ease-in-out infinite 1s",
-        }} />
-        {listening && <span style={{
-          position: "absolute", inset: -14, borderRadius: "50%",
-          border: "1px solid rgba(255,80,80,0.12)",
-          animation: "ripple 1.2s ease-out infinite 0.5s",
-        }} />}
-      </button>
-    </div>
-  </>);
-}
-
-// Small inline MicButton for the AI chat input row
-function MicButtonInline({ listening, onClick }) {
-  return (
-    <button onClick={onClick} style={{
-      position: "relative", width: 44, height: 44, borderRadius: "50%",
-      background: listening ? "linear-gradient(135deg, #EF4444, #DC2626)" : "linear-gradient(135deg, #1E3A5F, #3B82F6)",
-      border: listening ? "2px solid rgba(255,80,80,0.4)" : "2px solid rgba(0,255,136,0.2)",
-      cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
-      boxShadow: listening ? "0 0 12px rgba(239,68,68,0.5)" : "0 0 8px rgba(0,255,136,0.2)",
-      transition: "all .3s", flexShrink: 0,
-    }}>
-      <span style={{
-        fontSize: 16, fontWeight: 900, color: "#fff", fontFamily: "'DM Sans', sans-serif",
-        animation: listening ? "heartbeat 0.8s ease-in-out infinite" : "none",
-        userSelect: "none",
-      }}>IA</span>
-    </button>
-  );
-}
+// FloatingMic and MicButtonInline moved to Phase 2 components (imported above)
 
 // ═══════════════════════════════════════════
 // MAIN APP (Responsive)
@@ -549,7 +413,7 @@ function AdminV({m, reload, profile}) {
 
   const handleAdd = async () => {
     if (!newEmail || !newPrenom) {
-      addToast("Email et prénom requis", "warning");
+      alert("Email et prénom requis");
       return;
     }
     setLoading(true);
@@ -559,9 +423,9 @@ function AdminV({m, reload, profile}) {
       setNewPrenom("");
       setNewNom("");
       loadUsers();
-      addToast("✅ Salarié ajouté!", "success");
+      alert("✅ Salarié ajouté!");
     } catch (err) {
-      addToast("❌ Erreur: " + err.message, "error");
+      alert("❌ Erreur: " + err.message);
     }
     setLoading(false);
   };
@@ -571,9 +435,9 @@ function AdminV({m, reload, profile}) {
     try {
       await SB.removeAuthorizedUser(id);
       loadUsers();
-      addToast("✅ Accès retiré", "success");
+      alert("✅ Accès retiré");
     } catch (err) {
-      addToast("❌ Erreur: " + err.message, "error");
+      alert("❌ Erreur: " + err.message);
     }
   };
 
@@ -624,7 +488,6 @@ function AdminV({m, reload, profile}) {
 
 // ═══════════════════════════════════════════
 export default function AdminDashboard({ user, profile = null }) {
-  const { addToast } = useToast();
   const [data, setData] = useState(null);
   const [tab, setTab] = useState("dashboard");
   const [loading, setLoading] = useState(true);
@@ -637,7 +500,7 @@ export default function AdminDashboard({ user, profile = null }) {
 
   const toggleFloatMic = useCallback(() => {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) { addToast("Reconnaissance vocale non supportée. Utilisez Chrome ou Safari.", "warning"); return; }
+    if (!SR) { alert("Reconnaissance vocale non supportée. Utilisez Chrome ou Safari."); return; }
     if (floatListening && floatRecogRef.current) {
       floatRecogRef.current.stop(); setFloatListening(false); return;
     }
@@ -866,8 +729,8 @@ export default function AdminDashboard({ user, profile = null }) {
           {tab==="planning"&&<PlanningV data={data} m={isMobile}/>}
           {tab==="tasks"&&<TasksV data={data} save={save} m={isMobile} reload={reload}/>}
           {tab==="contacts"&&<ContactsV data={data} save={save} m={isMobile} reload={reload}/>}
-          {tab==="reports"&&<CompteRendusV3 data={data} reload={reload} currentUser={user} userRole="admin"/>}
-          {tab==="os"&&<OrdresServiceV3 data={data} reload={reload} currentUser={user} userRole="admin"/>}
+          {tab==="reports"&&<ReportsV data={data} save={save} m={isMobile} reload={reload}/>}
+          {tab==="os"&&<OrdresServiceV data={data} m={isMobile} reload={reload}/>}
           {tab==="admin"&&<AdminV m={isMobile} reload={reload} profile={profile}/>}
           {tab==="ai"&&<AIV data={data} save={save} m={isMobile} externalTranscript={floatTranscript} clearExternal={()=>setFloatTranscript("")} reload={reload}/>}
         </div>
@@ -1184,8 +1047,8 @@ function QontoV({m, data, reload}) {
         if (attUrl) { window.open(attUrl, "_blank"); return; }
       }
 
-      addToast("PDF non disponible via l'API Qonto pour ce document.", "warning");
-    } catch(e) { addToast("Erreur récupération PDF : " + e.message, "error"); }
+      alert("PDF non disponible via l'API Qonto pour ce document.");
+    } catch(e) { alert("Erreur récupération PDF : " + e.message); }
   };
 
   // ── Import client Qonto → Annuaire ──
@@ -1422,78 +1285,28 @@ function QontoV({m, data, reload}) {
   </div>);
 }
 
-// Template selector component (extracted to root level to avoid conditional hooks)
-function TemplateSelector({chOS, setDetailForm, setDetailModal, ch}) {
-  const [templates, setTemplates] = useState([]);
-
-  useEffect(() => {
-    (async () => {
-      const tpl = await SB.getTemplates('os');
-      setTemplates(tpl);
-    })();
-  }, []);
-
-  return (
-    <div>
-      {templates.length === 0 ? (
-        <p style={{color:"#94A3B8",fontSize:12}}>Aucun template. Créez-en un en cliquant sur 💾 sur un OS.</p>
-      ) : (
-        <div style={{display:"grid",gridTemplateColumns:"1fr",gap:8}}>
-          {templates.map(tpl => (
-            <button key={tpl.id} onClick={() => {
-              const nextNum = `OS-2026-${String(chOS.length+1).padStart(3,"0")}`;
-              setDetailForm({...tpl.data, numero: nextNum, chantier_id: ch.id});
-              setDetailModal("editOS");
-            }} style={{background:"#F0F4F8",border:"1px solid #E2E8F0",borderRadius:8,padding:12,cursor:"pointer",textAlign:"left"}}>
-              <div style={{fontWeight:700,fontSize:13,color:"#0F172A"}}>{tpl.name}</div>
-              <div style={{fontSize:11,color:"#64748B"}}>{tpl.description}</div>
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
+// TemplateSelector moved to Phase 2 components (imported above)
 
 // ═══════════════════════════════════════════
 // PROJECTS
 // ═══════════════════════════════════════════
 function ProjectsV({data,save,m,reload}) {
+  const { addToast } = useToast();
   const [modal,setModal]=useState(null);const [form,setForm]=useState({});
-  const [selected,setSelected]=useState(null); // Selected chantier for detail view
-  const [detailModal,setDetailModal]=useState(null); // Modal for OS/CR/Tasks within chantier
+  const [selected,setSelected]=useState(null);
+  const [detailModal,setDetailModal]=useState(null);
   const [detailForm,setDetailForm]=useState({});
-  // Detail view states (moved to root level to fix React hook rules)
-  const [attachments, setAttachments] = useState([]);
-  const [comments, setComments] = useState([]);
-  const [shares, setShares] = useState([]);
-  const [newComment, setNewComment] = useState("");
-  const [shareEmail, setShareEmail] = useState("");
-  const [sharePerm, setSharePerm] = useState("view");
+
+  // Phase 3 Hooks - Replaces 9 useState calls + useEffect
+  const { attachments, uploadAttachment, deleteAttachment } = useAttachments('chantier', selected);
+  const { comments, addComment, deleteComment } = useComments('chantier', selected, user?.email);
+  const { shares, addShare, deleteShare } = useSharing(selected);
 
   const openNew=()=>{setForm({nom:"",client:"",adresse:"",phase:"Hors d'air",statut:"Planifié",budget:"",depenses:0,dateDebut:"",dateFin:"",lots:""});setModal("new");};
   const handleSave=async()=>{const e={...form,budget:Number(form.budget)||0,depenses:Number(form.depenses)||0,lots:typeof form.lots==="string"?(form.lots||"").split(",").map(l=>l.trim()).filter(Boolean):form.lots||[]};await SB.upsertChantier(e);setModal(null);reload();};
   const handleDelete=async(id)=>{if(!window.confirm("Supprimer ce chantier ? Cette action est irréversible.")) return;await SB.deleteChantier(id);setSelected(null);reload();};
 
-  // Load detail data when selected changes
-  useEffect(() => {
-    if (!selected) {
-      setAttachments([]);
-      setComments([]);
-      setShares([]);
-      return;
-    }
-    (async () => {
-      try {
-        const att = await SB.getAttachments('chantier', selected);
-        const com = await SB.getComments('chantier', selected);
-        const shr = await SB.getShares(selected);
-        setAttachments(att);
-        setComments(com);
-        setShares(shr);
-      } catch (e) { console.error(e); }
-    })();
-  }, [selected]);
+  // Phase 3 Hooks handle loading data automatically - no useEffect needed!
 
   // If a chantier is selected, show detail view
   if (selected) {
@@ -1562,13 +1375,11 @@ function ProjectsV({data,save,m,reload}) {
         </div>
       </div>
 
-      {/* ATTACHMENTS DU CHANTIER */}
+      {/* ATTACHMENTS - Using Phase 3 Hook */}
       <AttachmentsSection
         attachments={attachments}
-        type="chantier"
-        itemId={ch.id}
-        onUpload={async(file)=>{await SB.uploadAttachment(file,'chantier',ch.id);const att=await SB.getAttachments('chantier',ch.id);setAttachments(att);}}
-        onDelete={async(id,path)=>{await SB.deleteAttachment(id,path);const att=await SB.getAttachments('chantier',ch.id);setAttachments(att);}}
+        onUpload={uploadAttachment}
+        onDelete={deleteAttachment}
       />
 
       {/* ORDRES DE SERVICE */}
@@ -1591,7 +1402,7 @@ function ProjectsV({data,save,m,reload}) {
               <div style={{display:"flex",gap:4,flexShrink:0}}>
                 <button onClick={()=>generateOSPdf({...os,chantier:ch.nom,adresse_chantier:ch.adresse})} style={{background:"#EF4444",border:"none",borderRadius:5,padding:"4px 10px",cursor:"pointer",fontSize:9,fontWeight:700,color:"#fff"}}>PDF</button>
                 <button onClick={()=>generateOSExcel({...os,chantier:ch.nom,adresse_chantier:ch.adresse})} style={{background:"#10B981",border:"none",borderRadius:5,padding:"4px 10px",cursor:"pointer",fontSize:9,fontWeight:700,color:"#fff"}}>XLS</button>
-                <button onClick={async()=>{await SB.saveTemplate('os',`Template ${os.artisan_nom}`,`Template d'OS pour ${os.artisan_nom}`,{...os});addToast("✅ Template créé!", "success");}} title="Créer un template à partir de cet OS" style={{background:"#6366F1",border:"none",borderRadius:5,padding:"4px 10px",cursor:"pointer",fontSize:9,fontWeight:700,color:"#fff"}}>💾</button>
+                <button onClick={async()=>{await SB.saveTemplate('os',`Template ${os.artisan_nom}`,`Template d'OS pour ${os.artisan_nom}`,{...os});alert("✅ Template créé!");}} title="Créer un template à partir de cet OS" style={{background:"#6366F1",border:"none",borderRadius:5,padding:"4px 10px",cursor:"pointer",fontSize:9,fontWeight:700,color:"#fff"}}>💾</button>
                 <button onClick={()=>{setDetailForm(os);setDetailModal("editOS");}} style={{background:"#3B82F6",border:"none",borderRadius:5,padding:"4px 10px",cursor:"pointer",fontSize:9,fontWeight:700,color:"#fff"}}>✎</button>
               </div>
             </div>
@@ -1677,46 +1488,21 @@ function ProjectsV({data,save,m,reload}) {
         </Section>
       )}
 
-      {/* COMMENTAIRES */}
-      <Section title="Commentaires" count={comments.length} color="#EC4899">
-        <div style={{display:"flex",gap:8,marginBottom:12}}>
-          <input type="text" placeholder="Ajouter un commentaire..." value={newComment} onChange={e=>setNewComment(e.target.value)} style={{...inp,flex:1}}/>
-          <button onClick={async()=>{await SB.addComment('chantier',ch.id,user?.email||'Anonyme',newComment);setNewComment("");const com=await SB.getComments('chantier',ch.id);setComments(com);}} style={{background:"#EC4899",color:"#fff",border:"none",borderRadius:6,padding:"6px 12px",fontSize:11,fontWeight:700,cursor:"pointer"}}>Ajouter</button>
-        </div>
-        <div style={{display:"flex",flexDirection:"column",gap:8}}>
-          {comments.map(c=>(
-            <div key={c.id} style={{background:"#FEF1F7",borderRadius:8,padding:12,borderLeft:"3px solid #EC4899"}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
-                <span style={{fontWeight:700,fontSize:12,color:"#0F172A"}}>{c.author_name}</span>
-                <button onClick={async()=>{await SB.deleteComment(c.id);const com=await SB.getComments('chantier',ch.id);setComments(com);}} style={{background:"none",border:"none",color:"#94A3B8",cursor:"pointer",fontSize:10}}>✕</button>
-              </div>
-              <div style={{fontSize:12,color:"#334155",marginBottom:4}}>{c.content}</div>
-              <div style={{fontSize:10,color:"#94A3B8"}}>{new Date(c.created_at).toLocaleDateString("fr-FR")}</div>
-            </div>
-          ))}
-        </div>
-      </Section>
+      {/* COMMENTAIRES - Using Phase 2 Component + Phase 3 Hook */}
+      <CommentsSection
+        comments={comments}
+        onAddComment={addComment}
+        onDeleteComment={deleteComment}
+        currentUser={user}
+        userRole={profile?.role}
+      />
 
-      {/* PARTAGE */}
-      <Section title="Accès & Partage" count={shares.length} color="#06B6D4">
-        <div style={{display:"flex",gap:8,marginBottom:12}}>
-          <input type="email" placeholder="Email..." value={shareEmail} onChange={e=>setShareEmail(e.target.value)} style={{...inp,flex:1}}/>
-          <select value={sharePerm} onChange={e=>setSharePerm(e.target.value)} style={{...sel,width:"120px"}}>
-            <option value="view">Lecture</option>
-            <option value="edit">Édition</option>
-            <option value="admin">Admin</option>
-          </select>
-          <button onClick={async()=>{await SB.shareChantier(ch.id,shareEmail,sharePerm);setShareEmail("");const shr=await SB.getShares(ch.id);setShares(shr);}} style={{background:"#06B6D4",color:"#fff",border:"none",borderRadius:6,padding:"6px 12px",fontSize:11,fontWeight:700,cursor:"pointer"}}>Partager</button>
-        </div>
-        <div style={{display:"flex",flexDirection:"column",gap:6}}>
-          {shares.map(s=>(
-            <div key={s.id} style={{background:"#ECFDF5",borderRadius:6,padding:10,display:"flex",justifyContent:"space-between",alignItems:"center",border:"1px solid #BBEFB9"}}>
-              <div><div style={{fontWeight:600,fontSize:12,color:"#0F172A"}}>{s.shared_with_email}</div><div style={{fontSize:10,color:"#64748B"}}>{s.permission}</div></div>
-              <button onClick={async()=>{await SB.deleteShare(s.id);const shr=await SB.getShares(ch.id);setShares(shr);}} style={{background:"none",border:"none",color:"#10B981",cursor:"pointer",fontSize:10}}>✕</button>
-            </div>
-          ))}
-        </div>
-      </Section>
+      {/* PARTAGE - Using Phase 2 Component + Phase 3 Hook */}
+      <SharingPanel
+        shares={shares}
+        onAddShare={addShare}
+        onDeleteShare={deleteShare}
+      />
 
       {/* MODALES POUR OS/CR/TÂCHES */}
       <Modal open={detailModal==="newOS"||detailModal==="editOS"} onClose={()=>setDetailModal(null)} title={detailModal==="newOS"?"Nouvel Ordre de Service":"Modifier l'OS"}>
@@ -2442,7 +2228,7 @@ function AIV({data,save,m,externalTranscript,clearExternal,reload}) {
         const googleToken = typeof window !== 'undefined' ? localStorage.getItem('google_calendar_token') : null;
 
         if (!googleToken) {
-          addToast('⚠️ Vous devez d\'abord connecter votre Google Calendar dans l\'onglet Agenda', 'warning');
+          alert('⚠️ Vous devez d\'abord connecter votre Google Calendar dans l\'onglet Agenda');
           setGcalAction(null);
           return;
         }
@@ -2494,7 +2280,7 @@ function AIV({data,save,m,externalTranscript,clearExternal,reload}) {
   // ─── SPEECH RECOGNITION ───
   const startListening = useCallback(() => {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) { addToast("La reconnaissance vocale n'est pas supportée sur ce navigateur. Utilisez Chrome ou Safari.", "warning"); return; }
+    if (!SR) { alert("La reconnaissance vocale n'est pas supportée sur ce navigateur. Utilisez Chrome ou Safari."); return; }
     
     if (listening && recognRef.current) {
       recognRef.current.stop();
