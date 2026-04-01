@@ -3,6 +3,7 @@ import { QueryClientProvider } from '@tanstack/react-query'
 import { AuthProvider, useAuth, LoginPage } from './auth'
 import Dashboard from './dashboard'
 import { queryClient } from './queryClient'
+import ErrorBoundary from './components/ErrorBoundary'
 
 function ProtectedApp() {
   const { user, profile, loading } = useAuth()
@@ -32,10 +33,12 @@ function ProtectedApp() {
 
 export default function Page() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <ProtectedApp />
-      </AuthProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <ProtectedApp />
+        </AuthProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   )
 }

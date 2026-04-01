@@ -2,6 +2,19 @@
 import { supabase } from '../supabaseClient'
 import { ProgressBar } from '../components'
 
+// ─── SOURCE UNIQUE : INFOS ENTREPRISE ───
+// Modifier ici = mis à jour partout (PDFs, sidebar, footer, assistant IA)
+export const COMPANY = {
+  nom:       "SARL ID MAÎTRISE",
+  activite:  "Ingénierie de la construction",
+  adresse:   "9 Rue Henry Genestal",
+  cpVille:   "76600 LE HAVRE",
+  email:     "contact@id-maitrise.com",
+  siret:     "921 536 181 00024",
+  assurance: "Décennale MIC Insurance - N° LUN2205206",
+  gerant:    "Dursun",
+}
+
 export const LocalDB = {
   get(key) { try { if (typeof window === 'undefined') return null; const v = localStorage.getItem(key); return v ? JSON.parse(v) : null; } catch { return null; } },
   set(key, val) { try { if (typeof window !== 'undefined') localStorage.setItem(key, JSON.stringify(val)); } catch (e) { console.error(e); } },
@@ -307,7 +320,10 @@ export const defaultData = {
   ],
 };
 
-export const uid = () => Math.random().toString(36).slice(2, 9);
+// crypto.randomUUID() est disponible nativement (navigateurs modernes + Node 14.17+)
+export const uid = () => (typeof crypto !== 'undefined' && crypto.randomUUID)
+  ? crypto.randomUUID()
+  : Math.random().toString(36).slice(2, 9); // fallback navigateurs anciens
 export const fmtDate = d => d ? new Date(d).toLocaleDateString("fr-FR",{day:"2-digit",month:"short"}) : "—";
 export const fmtMoney = n => new Intl.NumberFormat("fr-FR",{style:"currency",currency:"EUR",maximumFractionDigits:0}).format(n);
 export const pct = (a,b) => b ? Math.round(a/b*100) : 0;

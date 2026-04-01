@@ -24,17 +24,14 @@ export default function QontoV({m, data, reload}) {
   const [importing, setImporting] = useState({});
   const [importMsg, setImportMsg] = useState({});
 
-  // Charge le token depuis Supabase (cross-device), fallback localStorage
+  // Charge le token depuis Supabase (cross-device)
   useEffect(() => {
     (async () => {
       try {
         const { data: row } = await supabase.from('settings').select('value').eq('key','qonto-token').single();
         const t = row?.value;
-        if (t && t.includes(":")) { setSavedToken(t); setToken(t); return; }
+        if (t && t.includes(":")) { setSavedToken(t); setToken(t); }
       } catch {}
-      // Fallback localStorage
-      const t = LocalDB.get("qonto-token");
-      if (t && t.includes(":")) { setSavedToken(t); setToken(t); }
     })();
   }, []);
 
@@ -46,16 +43,14 @@ export default function QontoV({m, data, reload}) {
       return;
     }
     setError("");
-    // Sauvegarde dans Supabase ET localStorage
+    // Sauvegarde dans Supabase uniquement (pas de localStorage — token sensible)
     await supabase.from('settings').upsert({ key: 'qonto-token', value: t });
-    LocalDB.set("qonto-token", t);
     setSavedToken(t);
     fetchAll(t);
   };
 
   const disconnect = async () => {
     await supabase.from('settings').delete().eq('key','qonto-token');
-    LocalDB.set("qonto-token", "");
     setSavedToken(""); setToken(""); setConnected(false); setError("");
     setInvoices([]); setQuotes([]); setClients([]);
   };

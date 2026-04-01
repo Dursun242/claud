@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { SB, Icon, I, fmtDate, fmtMoney, FF, inp, sel, btnP, btnS } from '../dashboards/shared'
 import { Badge, Modal } from '../components'
 import { generateOSPdf, generateOSExcel } from '../generators'
@@ -74,6 +74,15 @@ export default function OrdresServiceV({data,m,reload}) {
 
   const handleSave = async () => {
     if (saving) return;
+    // Validation basique des prestations
+    for (const p of prestations) {
+      const q = parseFloat(p.quantite);
+      const pu = parseFloat(p.prix_unitaire);
+      if (p.description && (isNaN(q) || q < 0 || isNaN(pu) || pu < 0)) {
+        alert("Vérifiez les quantités et prix unitaires — aucune valeur négative ou invalide.");
+        return;
+      }
+    }
     setSaving(true);
     try {
       const t = calcTotals();
@@ -101,7 +110,20 @@ export default function OrdresServiceV({data,m,reload}) {
   const osStatusColor = { "Brouillon":"#94A3B8", "Émis":"#3B82F6", "Signé":"#8B5CF6", "En cours":"#F59E0B", "Terminé":"#10B981", "Annulé":"#EF4444" };
   const totals = calcTotals();
 
-  const filterOS=(os)=>{const s=searchOS.toLowerCase();const ch=data.chantiers.find(c=>c.id===os.chantier_id);return String(os.numero).toLowerCase().includes(s)||(ch?.nom||"").toLowerCase().includes(s)||(os.client_nom||"").toLowerCase().includes(s)||(ch?.adresse||"").toLowerCase().includes(s);};
+  // useMemo : recalcule la liste filtrée seulement quand searchOS ou la liste change
+  const filteredOS = useMemo(() => {
+    const s = searchOS.toLowerCase().trim();
+    if (!s) return data.ordresService || [];
+    return (data.ordresService || []).filter(os => {
+      const ch = data.chantiers.find(c => c.id === os.chantier_id);
+      return (
+        String(os.numero).toLowerCase().includes(s) ||
+        (ch?.nom || "").toLowerCase().includes(s) ||
+        (os.artisan_nom || "").toLowerCase().includes(s) ||
+        (os.client_nom || "").toLowerCase().includes(s)
+      );
+    });
+  }, [searchOS, data.ordresService, data.chantiers]);
 
   const artisans = data.contacts.filter(c=>c.type==="Artisan");
 
@@ -116,9 +138,9 @@ export default function OrdresServiceV({data,m,reload}) {
 
     {/* LISTE DES OS */}
     <div style={{display:"grid",gap:12}}>
-      {(data.ordresService||[]).filter(filterOS).length===0 ?
+      {filteredOS.length===0 ?
         <div style={{background:"#fff",borderRadius:12,padding:30,textAlign:"center",color:"#94A3B8",fontSize:13}}>Aucun ordre de service. Cliquez "+ Nouvel OS" pour en créer un.</div>
-      : (data.ordresService||[]).filter(filterOS).sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0)).map(os=>{
+      : [...filteredOS].sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0)).map(os=>{
         const ch = data.chantiers.find(c=>c.id===os.chantier_id);
         return (
           <div key={os.id} style={{background:"#fff",borderRadius:12,padding:m?14:18,boxShadow:"0 1px 3px rgba(0,0,0,0.06)",borderLeft:`4px solid ${osStatusColor[os.statut]||"#94A3B8"}`}}>

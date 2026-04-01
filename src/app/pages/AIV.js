@@ -4,6 +4,34 @@ import ReactMarkdown from 'react-markdown'
 import { SB, Icon, I, ApiBadge, inp, btnP } from '../dashboards/shared'
 import { MicButtonInline } from '../components'
 
+// Prépare un résumé des données pour l'IA — évite d'envoyer les champs inutiles ou trop lourds
+function prepareDataForAI(data) {
+  if (!data) return {}
+  return {
+    chantiers: (data.chantiers || []).map(c => ({
+      id: c.id, nom: c.nom, client: c.client, adresse: c.adresse,
+      phase: c.phase, statut: c.statut, budget: c.budget,
+      dateDebut: c.date_debut, dateFin: c.date_fin, lots: c.lots,
+    })),
+    contacts: (data.contacts || []).map(c => ({
+      id: c.id, nom: c.nom, type: c.type, specialite: c.specialite,
+      tel: c.tel, email: c.email, siret: c.siret,
+    })),
+    tasks: (data.tasks || []).slice(0, 50).map(t => ({
+      id: t.id, chantier_id: t.chantier_id, titre: t.titre,
+      priorite: t.priorite, statut: t.statut, echeance: t.echeance, lot: t.lot,
+    })),
+    compteRendus: (data.compteRendus || []).slice(0, 20).map(cr => ({
+      id: cr.id, chantier_id: cr.chantier_id, date: cr.date, numero: cr.numero,
+      resume: cr.resume?.slice(0, 200),
+    })),
+    ordresService: (data.ordresService || []).slice(0, 20).map(os => ({
+      id: os.id, numero: os.numero, chantier_id: os.chantier_id,
+      artisan_nom: os.artisan_nom, statut: os.statut, date_emission: os.date_emission,
+    })),
+  }
+}
+
 export default function AIV({data,save,m,externalTranscript,clearExternal,reload}) {
   const [messages,setMessages]=useState([{role:"assistant",content:"Bonjour Dursun ! Je suis l'assistant IA d'**ID Maîtrise**.\n\nJe peux tout faire :\n• **\"Crée un OS pour le chantier Friboulet, artisan Lefèvre...\"** → Ordre de Service\n• **\"Rédige un CR pour Les Voiles, présents : Lefèvre, Costa...\"** → Compte Rendu\n• **\"Nouveau chantier Villa Dupont, budget 200 000€...\"** → Chantier\n• **\"Ajoute une tâche urgente...\"** → Tâche\n• **\"Résumé avancement du chantier Les Voiles\"** → Analyse\n\nParlez ou tapez !"}]);
   const [input,setInput]=useState("");
@@ -81,7 +109,7 @@ export default function AIV({data,save,m,externalTranscript,clearExternal,reload
     try {
       const sys = `Tu es l'assistant IA d'ID Maîtrise, maîtrise d'œuvre BTP au Havre (9 Rue Henry Genestal, 76600). Le gérant est Dursun. Tu gères le quotidien des chantiers.
 
-DONNÉES ACTUELLES (Supabase): ${JSON.stringify(data,null,0)}
+DONNÉES ACTUELLES (Supabase): ${JSON.stringify(prepareDataForAI(data),null,0)}
 
 TU PEUX TOUT FAIRE :
 1. Créer des chantiers, tâches, contacts, comptes rendus (CR), ordres de service (OS)

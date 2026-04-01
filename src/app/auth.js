@@ -18,11 +18,7 @@ async function loadUserProfile(email) {
     .eq('actif', true)
     .single()
 
-  if (error) {
-    console.error('❌ Utilisateur non autorisé:', email)
-    return null
-  }
-  console.log('✅ Utilisateur autorisé:', data.prenom, data.role)
+  if (error) return null
   return data
 }
 
@@ -45,12 +41,10 @@ export function AuthProvider({ children }) {
           const profile = await loadUserProfile(session.user.email)
           if (isMounted) {
             if (profile) {
-              console.log("✅ Connecté:", profile.prenom, "(" + profile.role + ")")
               setUser(session.user)
               setProfile(profile)
               setDenied(false)
             } else {
-              console.log("⚠️ Utilisateur non autorisé:", session.user.email)
               setDenied(true)
               setUser(null)
               setProfile(null)
@@ -59,7 +53,11 @@ export function AuthProvider({ children }) {
           }
         } catch (err) {
           console.error("Auth error:", err)
-          if (isMounted) setLoading(false)
+          if (isMounted) {
+            setUser(null)
+            setProfile(null)
+            setLoading(false)
+          }
         }
       } else {
         if (isMounted) {

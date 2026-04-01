@@ -2,25 +2,14 @@
 import jsPDF from 'jspdf'
 import 'jspdf-autotable'
 import { LOGO_B64 } from './logo'
+import { COMPANY as ENT } from './dashboards/shared'
 
-// ═══════════════════════════════════════════
-// CONSTANTES ID MAÎTRISE
-// ═══════════════════════════════════════════
+// Palette couleurs ID Maîtrise
 const BLEU = [30, 58, 95]
 const BLEU_CLAIR = [59,130,246]
 const GRIS = [100,116,139]
 const GRIS_CLAIR = [241,245,249]
 const NOIR = [15,23,42]
-
-const ENT = {
-  nom: "SARL ID MAÎTRISE",
-  activite: "Ingénierie de la construction",
-  adresse: "9 Rue Henry Genestal",
-  cpVille: "76600 LE HAVRE",
-  email: "contact@id-maitrise.com",
-  siret: "921 536 181 00024",
-  assurance: "Décennale MIC Insurance - N° LUN2205206",
-}
 
 // Sanitise text for jsPDF built-in helvetica font (Latin-1 only)
 // Characters outside ISO-8859-1 (like curly quotes, œ, æ…) corrupt entire lines
@@ -38,6 +27,7 @@ const sanitize = (str) => {
     .replace(/\u00c6/g, 'AE')                              // Æ → AE
     .replace(/\u0300|\u0301|\u0302|\u0303|\u0308/g, '')    // strip combining accents
     .replace(/[^\x00-\xFF]/g, '?')                         // any remaining non-Latin-1 → ?
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')    // strip ASCII control chars (corrupt PDFs)
 }
 
 const fmtD = (d) => {
