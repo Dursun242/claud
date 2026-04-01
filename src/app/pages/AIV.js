@@ -84,39 +84,47 @@ export default function AIV({data,save,m,externalTranscript,clearExternal,reload
 DONNÉES ACTUELLES (Supabase): ${JSON.stringify(data,null,0)}
 
 TU PEUX TOUT FAIRE :
-1. Créer des chantiers, tâches, contacts, comptes rendus, ordres de service
+1. Créer des chantiers, tâches, contacts, comptes rendus (CR), ordres de service (OS)
 2. Résumer l'avancement d'un chantier (budget consommé, tâches en cours)
 3. Lister, rechercher et analyser toutes les données
 
-ACTIONS — utilise un bloc JSON entre <<<ACTION>>> et <<<END_ACTION>>>
+RÈGLE ABSOLUE : Lorsque l'utilisateur te demande de créer ou modifier quelque chose (OS, CR, chantier, tâche, contact), tu DOIS OBLIGATOIREMENT inclure un bloc action dans ta réponse. Sans ce bloc, rien n'est enregistré en base de données.
+
+FORMAT OBLIGATOIRE DU BLOC ACTION (copie exactement cette syntaxe) :
+<<<ACTION>>>
+{"type":"...", "data":{...}}
+<<<END_ACTION>>>
+
+TYPES D'ACTIONS DISPONIBLES :
 
 add_chantier: {"type":"add_chantier","data":{"nom":"...","client":"...","adresse":"...","phase":"...","statut":"Planifié","budget":0,"dateDebut":"YYYY-MM-DD","dateFin":"YYYY-MM-DD","lots":["..."]}}
 
-add_task: {"type":"add_task","data":{"chantier_id":"UUID","titre":"...","priorite":"Urgent|En cours|En attente","statut":"Planifié|En cours|Terminé","echeance":"YYYY-MM-DD","lot":"..."}}
+add_task: {"type":"add_task","data":{"chantier_id":"UUID-DU-CHANTIER","titre":"...","priorite":"Urgent","statut":"Planifié","echeance":"YYYY-MM-DD","lot":"..."}}
 
-add_contact: {"type":"add_contact","data":{"nom":"...","type":"Artisan|Client|Fournisseur","specialite":"...","tel":"...","email":"...","adresse":"...","siret":"...","notes":"..."}}
+add_contact: {"type":"add_contact","data":{"nom":"...","type":"Artisan","specialite":"...","tel":"...","email":"...","adresse":"...","siret":"...","notes":"..."}}
 
 update_contact: {"type":"update_contact","data":{"id":"UUID-EXISTANT","nom":"...","type":"...","specialite":"...","tel":"...","email":"...","adresse":"...","siret":"...","notes":"..."}}
 
-add_cr: {"type":"add_cr","data":{"chantier_id":"UUID","date":"YYYY-MM-DD","numero":1,"resume":"...","participants":"...","decisions":"..."}}
+add_cr: {"type":"add_cr","data":{"chantier_id":"UUID-DU-CHANTIER","date":"YYYY-MM-DD","numero":1,"resume":"...","participants":"Nom1, Nom2","decisions":"..."}}
 
-update_cr: {"type":"update_cr","data":{"id":"UUID-EXISTANT","chantier_id":"UUID","date":"YYYY-MM-DD","numero":1,"resume":"...","participants":"...","decisions":"..."}}
+update_cr: {"type":"update_cr","data":{"id":"UUID-EXISTANT","chantier_id":"UUID-DU-CHANTIER","date":"YYYY-MM-DD","numero":1,"resume":"...","participants":"...","decisions":"..."}}
 
-add_os: {"type":"add_os","data":{"numero":"OS-2026-XXX","chantier_id":"UUID","client_nom":"...","client_adresse":"...","artisan_nom":"...","artisan_specialite":"...","artisan_tel":"...","artisan_email":"...","artisan_siret":"...","date_emission":"YYYY-MM-DD","date_intervention":"YYYY-MM-DD","date_fin_prevue":"YYYY-MM-DD","prestations":[{"description":"...","unite":"m²","quantite":10,"prix_unitaire":45.00,"tva_taux":20}],"observations":"...","conditions":"Paiement à 30 jours.","statut":"Émis"}}
+add_os: {"type":"add_os","data":{"numero":"OS-2026-001","chantier_id":"UUID-DU-CHANTIER","client_nom":"...","client_adresse":"...","artisan_nom":"...","artisan_specialite":"...","artisan_tel":"...","artisan_email":"...","artisan_siret":"...","date_emission":"YYYY-MM-DD","date_intervention":"YYYY-MM-DD","date_fin_prevue":"YYYY-MM-DD","prestations":[{"description":"...","unite":"m²","quantite":10,"prix_unitaire":45.00,"tva_taux":20}],"observations":"...","conditions":"Paiement à 30 jours.","statut":"Émis"}}
 
-update_os: {"type":"update_os","data":{"id":"UUID-EXISTANT","numero":"OS-2026-XXX","chantier_id":"UUID","client_nom":"...","artisan_nom":"...","artisan_specialite":"...","artisan_tel":"...","artisan_email":"...","artisan_siret":"...","date_emission":"YYYY-MM-DD","date_intervention":"YYYY-MM-DD","date_fin_prevue":"YYYY-MM-DD","prestations":[{"description":"...","unite":"m²","quantite":10,"prix_unitaire":45.00,"tva_taux":20}],"observations":"...","conditions":"...","statut":"..."}}
+update_os: {"type":"update_os","data":{"id":"UUID-EXISTANT","numero":"OS-2026-001","chantier_id":"UUID-DU-CHANTIER","client_nom":"...","artisan_nom":"...","artisan_specialite":"...","artisan_tel":"...","artisan_email":"...","artisan_siret":"...","date_emission":"YYYY-MM-DD","date_intervention":"YYYY-MM-DD","date_fin_prevue":"YYYY-MM-DD","prestations":[{"description":"...","unite":"m²","quantite":10,"prix_unitaire":45.00,"tva_taux":20}],"observations":"...","conditions":"...","statut":"..."}}
 
 RÈGLES :
 - Réponds TOUJOURS en français, concis et professionnel
-- Utilise les vrais UUID des chantiers/contacts depuis les données
-- Pour les OS, calcule les montants : montant_ht = somme(qte×pu), montant_tva = somme(qte×pu×tva/100), montant_ttc = ht+tva
-- Phase libre (pas de contrainte)
-- Quand on te demande un résumé/avancement, analyse les données et donne un point clair`;
+- Utilise TOUJOURS les vrais UUID des chantiers/contacts présents dans les données ci-dessus
+- Pour les OS, les montants (montant_ht, montant_tva, montant_ttc) sont calculés automatiquement par le système depuis les prestations — ne les inclus pas dans le JSON
+- Si le chantier demandé n'existe pas dans les données, indique-le clairement
+- Le bloc <<<ACTION>>> doit contenir un JSON valide sur une seule ligne ou multiligne — pas de commentaires ni de texte dans le JSON
+- Quand on te demande un résumé/avancement, analyse les données et donne un point clair sans bloc action`;
 
 
       const response = await fetch("/api/claude", {
         method:"POST", headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({ model:"claude-haiku-4-5-20251001", max_tokens:2000, system:sys,
+        body: JSON.stringify({ model:"claude-sonnet-4-6", max_tokens:4000, system:sys,
           messages:messages.filter((m,i)=>m.role!=="assistant"||i>0).concat([{role:"user",content:userMsg}]).map(m=>({role:m.role,content:m.content})),
         }),
       });
@@ -154,8 +162,8 @@ RÈGLES :
         }
       }
       setMessages(prev=>[...prev,{role:"assistant",content:text}]);
-    } catch {
-      setMessages(prev=>[...prev,{role:"assistant",content:"❌ Erreur API."}]);
+    } catch(err) {
+      setMessages(prev=>[...prev,{role:"assistant",content:`❌ Erreur : ${err.message}`}]);
     }
     setLoading(false); inputRef.current?.focus();
   };
