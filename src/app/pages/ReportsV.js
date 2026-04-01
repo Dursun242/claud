@@ -10,13 +10,13 @@ export default function ReportsV({data,save,m,reload}) {
   const handleSave=async()=>{await SB.upsertCR(form);setModal(null);reload();};
   const handleDelete=async(id)=>{if(!window.confirm("Supprimer ce compte rendu ?")) return;await SB.deleteCR(id);reload();};
 
-  const filterCR=(cr)=>{const s=searchCR.toLowerCase();const ch=data.chantiers.find(c=>c.id===(cr.chantierId||cr.chantier_id));return String(cr.numero).toLowerCase().includes(s)||(ch?.nom||"").toLowerCase().includes(s)||(ch?.client||"").toLowerCase().includes(s)||(ch?.commune||"").toLowerCase().includes(s);};
+  const filterCR=(cr)=>{const s=searchCR.toLowerCase();const ch=data.chantiers.find(c=>c.id===(cr.chantierId||cr.chantier_id));return String(cr.numero).toLowerCase().includes(s)||(ch?.nom||"").toLowerCase().includes(s)||(ch?.client||"").toLowerCase().includes(s)||(ch?.adresse||"").toLowerCase().includes(s);};
 
   return (<div>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20,flexWrap:"wrap",gap:8}}>
       <h1 style={{margin:0,fontSize:m?18:24,fontWeight:700}}>Comptes Rendus</h1>
       <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
-        <input type="text" placeholder="Rechercher par n°, chantier, client ou commune..." value={searchCR} onChange={e=>setSearchCR(e.target.value)} style={{padding:"6px 10px",borderRadius:6,border:"1px solid #E2E8F0",fontSize:12,width:m?"100%":"220px"}}/>
+        <input type="text" placeholder="Rechercher par n°, chantier, client ou adresse..." value={searchCR} onChange={e=>setSearchCR(e.target.value)} style={{padding:"6px 10px",borderRadius:6,border:"1px solid #E2E8F0",fontSize:12,width:m?"100%":"220px"}}/>
         <button onClick={openNew} style={{...btnP,fontSize:12}}>+ CR</button>
       </div>
     </div>

@@ -26,7 +26,7 @@ export default function DashboardV({data,setTab,m,user}) {
     {/* ACTIONS RAPIDES */}
     <div style={{display:"grid",gridTemplateColumns:m?"repeat(2,1fr)":"repeat(4,1fr)",gap:10,marginBottom:24}}>
       {[
-        {label:"Nouvel OS",icon:"📋",tab:"orders"},
+        {label:"Nouvel OS",icon:"📋",tab:"os"},
         {label:"Nouveau CR",icon:"📝",tab:"reports"},
         {label:"Nouvelle tâche",icon:"✓",tab:"tasks"},
         {label:"Nouveau chantier",icon:"🏗️",tab:"projects"},

@@ -90,7 +90,7 @@ export default function OrdresServiceV({data,m,reload}) {
   const osStatusColor = { "Brouillon":"#94A3B8", "Émis":"#3B82F6", "Signé":"#8B5CF6", "En cours":"#F59E0B", "Terminé":"#10B981", "Annulé":"#EF4444" };
   const totals = calcTotals();
 
-  const filterOS=(os)=>{const s=searchOS.toLowerCase();const ch=data.chantiers.find(c=>c.id===os.chantier_id);return String(os.numero).toLowerCase().includes(s)||(ch?.nom||"").toLowerCase().includes(s)||(os.client_nom||"").toLowerCase().includes(s)||(ch?.commune||"").toLowerCase().includes(s);};
+  const filterOS=(os)=>{const s=searchOS.toLowerCase();const ch=data.chantiers.find(c=>c.id===os.chantier_id);return String(os.numero).toLowerCase().includes(s)||(ch?.nom||"").toLowerCase().includes(s)||(os.client_nom||"").toLowerCase().includes(s)||(ch?.adresse||"").toLowerCase().includes(s);};
 
   const artisans = data.contacts.filter(c=>c.type==="Artisan");
 
@@ -98,7 +98,7 @@ export default function OrdresServiceV({data,m,reload}) {
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20,flexWrap:"wrap",gap:8}}>
       <h1 style={{margin:0,fontSize:m?18:24,fontWeight:700,color:"#0F172A"}}>Ordres de Service</h1>
       <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
-        <input type="text" placeholder="Rechercher par n°, chantier, client ou commune..." value={searchOS} onChange={e=>setSearchOS(e.target.value)} style={{padding:"6px 10px",borderRadius:6,border:"1px solid #E2E8F0",fontSize:12,width:m?"100%":"220px"}}/>
+        <input type="text" placeholder="Rechercher par n°, chantier, client ou adresse..." value={searchOS} onChange={e=>setSearchOS(e.target.value)} style={{padding:"6px 10px",borderRadius:6,border:"1px solid #E2E8F0",fontSize:12,width:m?"100%":"220px"}}/>
         <button onClick={openNew} style={{...btnP,fontSize:12}}>+ Nouvel OS</button>
       </div>
     </div>

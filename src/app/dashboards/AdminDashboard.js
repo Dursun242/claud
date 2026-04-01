@@ -68,24 +68,19 @@ export default function AdminDashboard({ user, profile = null }) {
         const hasData = sbData.chantiers.length > 0;
 
         if (hasData) {
-          console.log(`✅ Données Supabase chargées: ${sbData.chantiers.length} chantiers, ${sbData.contacts.length} contacts, ${sbData.tasks.length} tâches`);
           setData(sbData);
         } else {
-          console.log("📦 Base vide — insertion des données initiales...");
-
           // Seed chantiers
           const chantierRows = defaultData.chantiers.map(({ id, dateDebut, dateFin, ...rest }) => ({
             ...rest, date_debut: dateDebut || null, date_fin: dateFin || null
           }));
           const { data: insertedCh, error: errCh } = await supabase.from('chantiers').insert(chantierRows).select();
-          if (errCh) console.error("❌ Erreur insert chantiers:", errCh.message);
-          else console.log(`✅ ${insertedCh.length} chantiers insérés`);
+          if (errCh) throw new Error("Erreur insert chantiers: " + errCh.message);
 
           // Seed contacts
           const contactRows = defaultData.contacts.map(({ id, chantiers, ...rest }) => rest);
-          const { data: insertedCo, error: errCo } = await supabase.from('contacts').insert(contactRows).select();
-          if (errCo) console.error("❌ Erreur insert contacts:", errCo.message);
-          else console.log(`✅ ${insertedCo.length} contacts insérés`);
+          const { error: errCo } = await supabase.from('contacts').insert(contactRows).select();
+          if (errCo) throw new Error("Erreur insert contacts: " + errCo.message);
 
           // Build name→UUID map for linking tasks
           const chMap = {};
@@ -101,8 +96,7 @@ export default function AdminDashboard({ user, profile = null }) {
           })).filter(t => t.chantier_id);
           if (taskRows.length > 0) {
             const { error: errTa } = await supabase.from('taches').insert(taskRows);
-            if (errTa) console.error("❌ Erreur insert tâches:", errTa.message);
-            else console.log(`✅ ${taskRows.length} tâches insérées`);
+            if (errTa) throw new Error("Erreur insert tâches: " + errTa.message);
           }
 
           // Seed CRs
@@ -112,18 +106,14 @@ export default function AdminDashboard({ user, profile = null }) {
             })).filter(c => c.chantier_id);
             if (crRows.length > 0) {
               const { error: errCr } = await supabase.from('compte_rendus').insert(crRows);
-              if (errCr) console.error("❌ Erreur insert CR:", errCr.message);
-              else console.log(`✅ ${crRows.length} CR insérés`);
+              if (errCr) throw new Error("Erreur insert CR: " + errCr.message);
             }
           }
 
-          // Reload fresh from Supabase
           const freshData = await SB.loadAll();
-          console.log(`✅ Reload: ${freshData.chantiers.length} chantiers depuis Supabase`);
           setData(freshData.chantiers.length > 0 ? freshData : defaultData);
         }
       } catch (e) {
-        console.error("❌ Erreur globale:", e);
         setData(defaultData);
       }
       setLoading(false);
@@ -134,10 +124,9 @@ export default function AdminDashboard({ user, profile = null }) {
   const reload = useCallback(async () => {
     try {
       const sbData = await SB.loadAll();
-      console.log(`🔄 Reload: ${sbData.chantiers.length} chantiers, ${sbData.tasks.length} tâches`);
       setData(sbData);
     } catch (e) {
-      console.error("Reload error:", e);
+      // silently fail — keep current data
     }
   }, []);
 
