@@ -22,6 +22,24 @@ const ENT = {
   assurance: "Décennale MIC Insurance - N° LUN2205206",
 }
 
+// Sanitise text for jsPDF built-in helvetica font (Latin-1 only)
+// Characters outside ISO-8859-1 (like curly quotes, œ, æ…) corrupt entire lines
+const sanitize = (str) => {
+  if (!str) return ""
+  return str
+    .replace(/[\u2018\u2019\u201A\u201B\u02BC]/g, "'")   // curly single quotes → '
+    .replace(/[\u201C\u201D\u201E\u201F]/g, '"')           // curly double quotes → "
+    .replace(/\u2013/g, '-')                               // en dash
+    .replace(/\u2014/g, '--')                              // em dash
+    .replace(/\u2026/g, '...')                             // ellipsis
+    .replace(/\u0153/g, 'oe')                              // œ → oe
+    .replace(/\u0152/g, 'OE')                              // Œ → OE
+    .replace(/\u00e6/g, 'ae')                              // æ → ae
+    .replace(/\u00c6/g, 'AE')                              // Æ → AE
+    .replace(/\u0300|\u0301|\u0302|\u0303|\u0308/g, '')    // strip combining accents
+    .replace(/[^\x00-\xFF]/g, '?')                         // any remaining non-Latin-1 → ?
+}
+
 const fmtD = (d) => {
   if (!d) return "—"
   try { return new Date(d).toLocaleDateString("fr-FR", { day:"2-digit", month:"2-digit", year:"numeric" }) }
@@ -150,7 +168,7 @@ export function generateOSPdf(data) {
     const q = parseFloat(p.quantite)||0, pu = parseFloat(p.prix_unitaire)||0, tva = parseFloat(p.tva_taux)||20
     const lht = q * pu; totalHT += lht
     tvaMap[tva] = (tvaMap[tva]||0) + lht * tva / 100
-    return [p.description||"", p.unite||"", q.toString(), fmtM(pu), `${tva}%`, fmtM(lht)]
+    return [sanitize(p.description)||"", p.unite||"", q.toString(), fmtM(pu), `${tva}%`, fmtM(lht)]
   })
   const totalTVA = Object.values(tvaMap).reduce((s, v) => s + v, 0)
   const totalTTC = totalHT + totalTVA
@@ -183,7 +201,7 @@ export function generateOSPdf(data) {
     doc.setFontSize(9); doc.setFont("helvetica", "bold"); doc.setTextColor(...BLEU)
     doc.text("OBSERVATIONS", margin, y); y += 4
     doc.setFontSize(7.5); doc.setFont("helvetica", "normal"); doc.setTextColor(...NOIR)
-    const ol = doc.splitTextToSize(data.observations, usable); doc.text(ol, margin, y); y += ol.length * 3.2 + 4
+    const ol = doc.splitTextToSize(sanitize(data.observations), usable); doc.text(ol, margin, y); y += ol.length * 3.2 + 4
   }
 
   // Conditions
@@ -191,7 +209,7 @@ export function generateOSPdf(data) {
     doc.setFontSize(9); doc.setFont("helvetica", "bold"); doc.setTextColor(...BLEU)
     doc.text("CONDITIONS", margin, y); y += 4
     doc.setFontSize(7.5); doc.setFont("helvetica", "normal"); doc.setTextColor(...NOIR)
-    const cl = doc.splitTextToSize(data.conditions, usable); doc.text(cl, margin, y); y += cl.length * 3.2 + 6
+    const cl = doc.splitTextToSize(sanitize(data.conditions), usable); doc.text(cl, margin, y); y += cl.length * 3.2 + 6
   }
 
   // Signatures
@@ -256,13 +274,13 @@ export function generateCRPdf(cr, chantier) {
   doc.setFontSize(9); doc.setFont("helvetica", "bold"); doc.setTextColor(...BLEU)
   doc.text("PARTICIPANTS / PRÉSENTS", margin, y); y += 5
   doc.setFontSize(8.5); doc.setFont("helvetica", "normal"); doc.setTextColor(...NOIR)
-  const pLines = doc.splitTextToSize(cr.participants || "—", usable); doc.text(pLines, margin, y); y += pLines.length * 3.8 + 5
+  const pLines = doc.splitTextToSize(sanitize(cr.participants) || "—", usable); doc.text(pLines, margin, y); y += pLines.length * 3.8 + 5
 
   // Résumé
   doc.setFontSize(9); doc.setFont("helvetica", "bold"); doc.setTextColor(...BLEU)
   doc.text("RÉSUMÉ DES ÉCHANGES", margin, y); y += 4
   doc.setFontSize(8.5); doc.setFont("helvetica", "normal"); doc.setTextColor(...NOIR)
-  const rLines = doc.splitTextToSize(cr.resume || "—", usable - 6)
+  const rLines = doc.splitTextToSize(sanitize(cr.resume) || "—", usable - 6)
   const rH = rLines.length * 4 + 6
   doc.setDrawColor(226,232,240); doc.setLineWidth(0.3); doc.rect(margin, y, usable, rH)
   doc.text(rLines, margin + 3, y + 5); y += rH + 6
@@ -272,7 +290,7 @@ export function generateCRPdf(cr, chantier) {
     if (y > 240) { doc.addPage(); y = 20 }
     doc.setFontSize(9); doc.setFont("helvetica", "bold"); doc.setTextColor(...BLEU)
     doc.text("DÉCISIONS & ACTIONS À MENER", margin, y); y += 4
-    const dLines = doc.splitTextToSize(cr.decisions, usable - 6)
+    const dLines = doc.splitTextToSize(sanitize(cr.decisions), usable - 6)
     const dH = dLines.length * 4 + 6
     doc.setFillColor(254, 243, 199); doc.roundedRect(margin, y, usable, dH, 1.5, 1.5, 'F')
     doc.setDrawColor(245, 158, 11); doc.setLineWidth(0.5); doc.line(margin, y, margin, y + dH)
