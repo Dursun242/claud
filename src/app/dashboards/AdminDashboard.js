@@ -70,48 +70,56 @@ export default function AdminDashboard({ user, profile = null }) {
         if (hasData) {
           setData(sbData);
         } else {
-          // Seed chantiers
-          const chantierRows = defaultData.chantiers.map(({ id, dateDebut, dateFin, ...rest }) => ({
-            ...rest, date_debut: dateDebut || null, date_fin: dateFin || null
-          }));
-          const { data: insertedCh, error: errCh } = await supabase.from('chantiers').insert(chantierRows).select();
-          if (errCh) throw new Error("Erreur insert chantiers: " + errCh.message);
+          // Seed données de démonstration (première connexion)
+          let insertedChIds = [];
+          try {
+            const chantierRows = defaultData.chantiers.map(({ id, dateDebut, dateFin, ...rest }) => ({
+              ...rest, date_debut: dateDebut || null, date_fin: dateFin || null
+            }));
+            const { data: insertedCh, error: errCh } = await supabase.from('chantiers').insert(chantierRows).select();
+            if (errCh) throw new Error("Erreur insert chantiers: " + errCh.message);
+            insertedChIds = (insertedCh || []).map(c => c.id);
 
-          // Seed contacts
-          const contactRows = defaultData.contacts.map(({ id, chantiers, ...rest }) => rest);
-          const { error: errCo } = await supabase.from('contacts').insert(contactRows).select();
-          if (errCo) throw new Error("Erreur insert contacts: " + errCo.message);
+            const contactRows = defaultData.contacts.map(({ id, chantiers, ...rest }) => rest);
+            const { error: errCo } = await supabase.from('contacts').insert(contactRows).select();
+            if (errCo) throw new Error("Erreur insert contacts: " + errCo.message);
 
-          // Build name→UUID map for linking tasks
-          const chMap = {};
-          if (insertedCh) {
-            defaultData.chantiers.forEach((defCh, i) => {
-              if (insertedCh[i]) chMap[defCh.id] = insertedCh[i].id;
-            });
-          }
-
-          // Seed tasks
-          const taskRows = defaultData.tasks.map(({ id, chantierId, ...rest }) => ({
-            ...rest, chantier_id: chMap[chantierId] || null
-          })).filter(t => t.chantier_id);
-          if (taskRows.length > 0) {
-            const { error: errTa } = await supabase.from('taches').insert(taskRows);
-            if (errTa) throw new Error("Erreur insert tâches: " + errTa.message);
-          }
-
-          // Seed CRs
-          if (defaultData.compteRendus) {
-            const crRows = defaultData.compteRendus.map(({ id, chantierId, ...rest }) => ({
-              ...rest, chantier_id: chMap[chantierId] || null
-            })).filter(c => c.chantier_id);
-            if (crRows.length > 0) {
-              const { error: errCr } = await supabase.from('compte_rendus').insert(crRows);
-              if (errCr) throw new Error("Erreur insert CR: " + errCr.message);
+            // Map ancien id → nouveau UUID pour lier les tâches
+            const chMap = {};
+            if (insertedCh) {
+              defaultData.chantiers.forEach((defCh, i) => {
+                if (insertedCh[i]) chMap[defCh.id] = insertedCh[i].id;
+              });
             }
-          }
 
-          const freshData = await SB.loadAll();
-          setData(freshData.chantiers.length > 0 ? freshData : defaultData);
+            const taskRows = defaultData.tasks.map(({ id, chantierId, ...rest }) => ({
+              ...rest, chantier_id: chMap[chantierId] || null
+            })).filter(t => t.chantier_id);
+            if (taskRows.length > 0) {
+              const { error: errTa } = await supabase.from('taches').insert(taskRows);
+              if (errTa) throw new Error("Erreur insert tâches: " + errTa.message);
+            }
+
+            if (defaultData.compteRendus) {
+              const crRows = defaultData.compteRendus.map(({ id, chantierId, ...rest }) => ({
+                ...rest, chantier_id: chMap[chantierId] || null
+              })).filter(c => c.chantier_id);
+              if (crRows.length > 0) {
+                const { error: errCr } = await supabase.from('compte_rendus').insert(crRows);
+                if (errCr) throw new Error("Erreur insert CR: " + errCr.message);
+              }
+            }
+
+            const freshData = await SB.loadAll();
+            setData(freshData.chantiers.length > 0 ? freshData : defaultData);
+          } catch (seedErr) {
+            // Rollback : supprimer les chantiers insérés pour ne pas laisser la base à moitié remplie
+            if (insertedChIds.length > 0) {
+              await supabase.from('chantiers').delete().in('id', insertedChIds).catch(() => {});
+            }
+            console.error("Seed échoué, rollback effectué:", seedErr.message);
+            setData(defaultData);
+          }
         }
       } catch (e) {
         setData(defaultData);
