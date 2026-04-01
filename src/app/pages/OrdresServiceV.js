@@ -9,10 +9,15 @@ export default function OrdresServiceV({data,m,reload}) {
   const [form,setForm]=useState({});
   const [prestations,setPrestations]=useState([]);
   const [searchOS,setSearchOS]=useState("");
+  const [saving,setSaving]=useState(false);
 
   const nextNum = () => {
-    const existing = (data.ordresService||[]).length;
-    return `OS-2026-${String(existing+1).padStart(3,"0")}`;
+    const nums = (data.ordresService||[]).map(os => {
+      const m = String(os.numero||"").match(/(\d+)$/);
+      return m ? parseInt(m[1], 10) : 0;
+    });
+    const next = nums.length > 0 ? Math.max(...nums) + 1 : 1;
+    return `OS-${new Date().getFullYear()}-${String(next).padStart(3,"0")}`;
   };
 
   const openNew = () => {
@@ -68,11 +73,17 @@ export default function OrdresServiceV({data,m,reload}) {
   };
 
   const handleSave = async () => {
-    const t = calcTotals();
-    const osData = { ...form, prestations, montant_ht:t.ht, montant_tva:t.tva, montant_ttc:t.ttc };
-    await SB.upsertOS(osData);
-    setModal(null);
-    reload();
+    if (saving) return;
+    setSaving(true);
+    try {
+      const t = calcTotals();
+      const osData = { ...form, prestations, montant_ht:t.ht, montant_tva:t.tva, montant_ttc:t.ttc };
+      await SB.upsertOS(osData);
+      setModal(null);
+      reload();
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handlePdf = (os) => {
@@ -191,7 +202,7 @@ export default function OrdresServiceV({data,m,reload}) {
 
       <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginTop:12}}>
         <button onClick={()=>setModal(null)} style={btnS}>Annuler</button>
-        <button onClick={handleSave} style={btnP}>Enregistrer l'OS</button>
+        <button onClick={handleSave} disabled={saving} style={{...btnP,opacity:saving?0.6:1}}>{saving?"Enregistrement...":"Enregistrer l'OS"}</button>
       </div>
     </Modal>
   </div>);
