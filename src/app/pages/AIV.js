@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useCallback, useRef } from 'react'
+import ReactMarkdown from 'react-markdown'
 import { SB, Icon, I, ApiBadge, inp, btnP } from '../dashboards/shared'
 import { MicButtonInline } from '../components'
 
@@ -159,10 +160,21 @@ RÈGLES :
     setLoading(false); inputRef.current?.focus();
   };
 
-  const renderMd = text => text.split("\n").map((line,i) => {
-    let h=line.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\*(.*?)\*/g,'<em>$1</em>');
-    return <div key={i} style={{marginBottom:line===""?6:1}} dangerouslySetInnerHTML={{__html:h||"&nbsp;"}}/>;
-  });
+  const renderMd = text => (
+    <ReactMarkdown components={{
+      p: ({node, ...props}) => <p style={{margin:"0 0 6px 0"}} {...props}/>,
+      strong: ({node, ...props}) => <strong style={{fontWeight:700}} {...props}/>,
+      em: ({node, ...props}) => <em style={{fontStyle:"italic"}} {...props}/>,
+      ul: ({node, ...props}) => <ul style={{marginLeft:"20px",marginTop:0,marginBottom:"6px"}} {...props}/>,
+      ol: ({node, ...props}) => <ol style={{marginLeft:"20px",marginTop:0,marginBottom:"6px"}} {...props}/>,
+      code: ({node, inline, ...props}) => inline
+        ? <code style={{background:"#F1F5F9",padding:"2px 6px",borderRadius:4,fontSize:"0.9em",fontFamily:"monospace"}} {...props}/>
+        : <pre style={{background:"#F1F5F9",padding:"10px",borderRadius:6,overflow:"auto",marginTop:"6px",marginBottom:"6px"}}><code {...props}/></pre>,
+      a: ({node, ...props}) => <a style={{color:"#3B82F6",textDecoration:"underline",cursor:"pointer"}} target="_blank" rel="noopener noreferrer" {...props}/>
+    }}>
+      {text}
+    </ReactMarkdown>
+  );
 
   return (
     <div style={{display:"flex",flexDirection:"column",height:m?"calc(100vh - 76px)":"calc(100vh - 48px)"}}>
