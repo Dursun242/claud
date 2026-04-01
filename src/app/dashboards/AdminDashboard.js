@@ -16,6 +16,7 @@ import ContactsV from '../pages/ContactsV'
 import ReportsV from '../pages/ReportsV'
 import OrdresServiceV from '../pages/OrdresServiceV'
 import AIV from '../pages/AIV'
+import GoogleCalendarV from '../pages/GoogleCalendarV'
 
 // ═══════════════════════════════════════════
 export default function AdminDashboard({ user, profile = null }) {
@@ -155,6 +156,7 @@ export default function AdminDashboard({ user, profile = null }) {
     {key:"tasks",label:"Tâches",icon:I.tasks},
     {key:"planning",label:"Planning",icon:I.planning},
     {key:"contacts",label:"Annuaire",icon:I.contacts},
+    {key:"gcal",label:"Agenda",icon:null,isGcal:true},
     {key:"qonto",label:"Qonto",icon:null,isQonto:true},
     ...(profile?.role === 'admin' ? [{key:"admin",label:"🔒 Admin",icon:I.settings}] : []),
     {key:"ai",label:"Assistant IA",icon:I.ai},
@@ -196,16 +198,16 @@ export default function AdminDashboard({ user, profile = null }) {
           {tabs.map(t=>(
             <button key={t.key} onClick={()=>switchTab(t.key)} style={{
               display:"flex",alignItems:"center",gap:9,padding:"9px 11px",border:"none",borderRadius:7,cursor:"pointer",fontFamily:"inherit",fontSize:12.5,fontWeight:tab===t.key?600:400,
-              color:tab===t.key?(t.isGcal?"#FCA5A5":t.isQonto?"#C4B5FD":"#fff"):(t.isGcal?"#F87171":t.isQonto?"#A78BFA":"#94A3B8"),
-              background:tab===t.key?(t.isGcal?"rgba(234,67,53,0.15)":t.isQonto?"rgba(124,58,237,0.15)":"rgba(255,255,255,0.12)"):"transparent",
+              color:tab===t.key?(t.isQonto?"#C4B5FD":"#fff"):(t.isQonto?"#A78BFA":"#94A3B8"),
+              background:tab===t.key?(t.isQonto?"rgba(124,58,237,0.15)":"rgba(255,255,255,0.12)"):"transparent",
               transition:"all .2s",textAlign:"left",width:"100%",
-              borderLeft:t.isGcal&&tab===t.key?"3px solid #EA4335":t.isQonto&&tab===t.key?"3px solid #7C3AED":"3px solid transparent",
+              borderLeft:t.isQonto&&tab===t.key?"3px solid #7C3AED":"3px solid transparent",
             }}>
-              {t.isGcal ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="#EA4335" strokeWidth="2"/><path d="M3 10h18" stroke="#EA4335" strokeWidth="2"/><path d="M8 2v4M16 2v4" stroke="#EA4335" strokeWidth="2" strokeLinecap="round"/></svg>
+              {t.isGcal ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke={tab==="gcal"?"#60A5FA":"#64748B"} strokeWidth="2"/><path d="M3 10h18" stroke={tab==="gcal"?"#60A5FA":"#64748B"} strokeWidth="2"/><path d="M8 2v4M16 2v4" stroke={tab==="gcal"?"#60A5FA":"#64748B"} strokeWidth="2" strokeLinecap="round"/></svg>
                 : t.isQonto ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#7C3AED" strokeWidth="2"/><path d="M15 15l3 3" stroke="#7C3AED" strokeWidth="2" strokeLinecap="round"/><path d="M9 12l2 2 4-4" stroke="#7C3AED" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                 : <Icon d={t.icon} size={16} color={tab===t.key?"#60A5FA":"#64748B"}/>}
               <span style={{flex:1}}>{t.label}</span>
-              {t.isGcal && <ApiBadge/>}
+              {t.isGcal && tab===t.key && <span style={{width:6,height:6,borderRadius:"50%",background:"#34D399",flexShrink:0}}/>}
               {t.isQonto && <span style={{display:"inline-flex",alignItems:"center",gap:3,padding:"2px 7px",borderRadius:5,background:"linear-gradient(135deg,#7C3AED,#A855F7)",color:"#fff",fontSize:8,fontWeight:800,letterSpacing:"0.1em"}}>API</span>}
             </button>
           ))}
@@ -248,6 +250,7 @@ export default function AdminDashboard({ user, profile = null }) {
           {tab==="reports"&&<ReportsV data={data} save={save} m={isMobile} reload={reload}/>}
           {tab==="os"&&<OrdresServiceV data={data} m={isMobile} reload={reload}/>}
           {tab==="admin"&&<AdminV m={isMobile} reload={reload} profile={profile}/>}
+          {tab==="gcal"&&<GoogleCalendarV m={isMobile}/>}
           {tab==="ai"&&<AIV data={data} save={save} m={isMobile} externalTranscript={floatTranscript} clearExternal={()=>setFloatTranscript("")} reload={reload}/>}
         </div>
       </main>

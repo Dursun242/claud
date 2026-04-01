@@ -33,10 +33,15 @@ export function AuthProvider({ children }) {
     let isMounted = true
 
     // OPTIMIZED: Only use onAuthStateChange (it handles both initial and changes)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!isMounted) return
 
       if (session?.user) {
+        // Sauvegarder le token Google Calendar dès qu'il est disponible (juste après login OAuth)
+        if (event === 'SIGNED_IN' && session.provider_token) {
+          await supabase.from('settings').upsert({ key: 'gcal-token', value: session.provider_token }).catch(() => {});
+        }
+
         try {
           const profile = await loadUserProfile(session.user.email)
           if (isMounted) {
@@ -92,6 +97,7 @@ export function LoginPage() {
       provider: 'google',
       options: {
         redirectTo: typeof window !== 'undefined' ? window.location.origin : undefined,
+        scopes: 'https://www.googleapis.com/auth/calendar.readonly',
       }
     })
     if (error) {
