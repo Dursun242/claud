@@ -5,7 +5,7 @@ import Dashboard from './dashboard'
 import { queryClient } from './queryClient'
 
 function ProtectedApp() {
-  const { user, loading } = useAuth()
+  const { user, profile, loading } = useAuth()
 
   if (loading) {
     return (
@@ -27,7 +27,7 @@ function ProtectedApp() {
 
   if (!user) return <LoginPage />
 
-  return <Dashboard user={user} />
+  return <Dashboard user={user} profile={profile} />
 }
 
 export default function Page() {
