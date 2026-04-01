@@ -61,7 +61,11 @@ export default function QontoV({m, data, reload}) {
   };
 
   const fetchQonto = async (endpoint, tk) => {
-    const res = await fetch(`/api/qonto?endpoint=${encodeURIComponent(endpoint)}&token=${encodeURIComponent(tk)}`);
+    const res = await fetch(`/api/qonto`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ endpoint, token: tk })
+    });
     if (!res.ok) { const err = await res.json().catch(()=>({})); throw new Error(err.error || `Qonto ${res.status}`); }
     return res.json();
   };

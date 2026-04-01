@@ -38,9 +38,10 @@ export default function ProjectsV({data,save,m,reload,user,profile}) {
     const chPlanning = (data.planning||[]).filter(p=>(p.chantierId||p.chantier_id)===ch.id);
     // Intervenants = artisans des OS de ce chantier
     const artisanNames = [...new Set(chOS.map(o=>o.artisan_nom).filter(Boolean))];
-    const intervenants = artisanNames.map(name => data.contacts.find(c=>c.nom===name)).filter(Boolean);
+    const contactMap = new Map(data.contacts.map(c => [c.nom, c]));
+    const intervenants = artisanNames.map(name => contactMap.get(name)).filter(Boolean);
     // Also add contacts that match the client name
-    const clientContact = data.contacts.find(c=>c.nom===ch.client);
+    const clientContact = contactMap.get(ch.client);
 
     const ratio = pct(ch.depenses, ch.budget);
     const budgetColor = ratio>85?"#EF4444":ratio>60?"#F59E0B":"#10B981";

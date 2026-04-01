@@ -1,8 +1,7 @@
-export async function GET(request) {
+export async function POST(request) {
   try {
-    const { searchParams } = new URL(request.url)
-    const endpoint = searchParams.get('endpoint')
-    const token = searchParams.get('token')
+    const body = await request.json()
+    const { endpoint, token } = body
 
     if (!endpoint || !token) {
       return Response.json({ error: "Missing endpoint or token" }, { status: 400 })
