@@ -8,7 +8,7 @@ export default function TasksV({data,save,m,reload}) {
   const tasks = filter==="all"?data.tasks:data.tasks.filter(t=>t.statut===filter);
   const openNew=()=>{setForm({chantierId:data.chantiers[0]?.id||"",titre:"",priorite:"En cours",statut:"Planifié",echeance:"",lot:""});setModal("new");};
   const handleSave=async()=>{await SB.upsertTask(form);setModal(null);reload();};
-  const toggle=async(t)=>{const cy=["Planifié","En cours","Terminé"];const next=cy[(cy.indexOf(t.statut)+1)%3];await SB.upsertTask({...t,statut:next});reload();};
+  const toggle=async(t)=>{const cy=["Planifié","En cours","Terminé"];const idx=cy.indexOf(t.statut);const next=cy[(idx<0?0:idx+1)%3];await SB.upsertTask({...t,statut:next});reload();};
   const handleDelete=async(id)=>{if(!window.confirm("Supprimer cette tâche ?")) return;await SB.deleteTask(id);reload();};
 
   return (<div>

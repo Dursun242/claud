@@ -190,7 +190,7 @@ export default function QontoV({m, data, reload}) {
         <input value={token} onChange={e=>setToken(e.target.value)} placeholder="exemple: mon-login:xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" type="password"
           style={{...inp,maxWidth:420,margin:"0 auto 12px",display:"block",textAlign:"center",fontSize:12,borderColor:QT.border}} />
         <button onClick={saveToken} style={{padding:"10px 28px",borderRadius:8,background:QT.gradient,color:"#fff",border:"none",fontSize:14,fontWeight:600,cursor:"pointer",fontFamily:"inherit",boxShadow:"0 2px 8px rgba(124,58,237,0.3)"}}>Connecter</button>
-        <p style={{margin:"12px 0 0",fontSize:11,color:"#94A3B8"}}>Le token est stocké localement sur votre appareil uniquement.</p>
+        <p style={{margin:"12px 0 0",fontSize:11,color:"#94A3B8"}}>Le token est stocké de façon sécurisée dans votre base Supabase.</p>
       </div>
     ) : (
       <>
