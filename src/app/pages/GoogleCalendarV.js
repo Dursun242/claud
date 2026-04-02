@@ -408,6 +408,15 @@ export default function GoogleCalendarV({ m }) {
       clearTimeout(timeout)
       const data = await res.json()
       if (data.error === 'TOKEN_EXPIRED') {
+        // Tenter un refresh de session Supabase pour obtenir un nouveau token Google
+        const { data: refreshData } = await supabase.auth.refreshSession().catch(() => ({ data:{} }))
+        const newToken = refreshData?.session?.provider_token
+        if (newToken && newToken !== token) {
+          await supabase.from('settings').upsert({ key:'gcal-token', value:newToken }).catch(() => {})
+          // Réessayer avec le nouveau token
+          const res2 = await fetch('/api/gcal', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ token:newToken, calendarIds:CALENDARS.map(c=>c.id), timeMin:tMin, timeMax:tMax }) }).catch(() => null)
+          if (res2?.ok) { const d2 = await res2.json(); if (!d2.error) { setEvents(d2.events||[]); return } }
+        }
         await supabase.from('settings').delete().eq('key','gcal-token').catch(() => {})
         setTokenOk(false); setError("Session Google expirée. Reconnectez-vous."); setEvents([])
         return
@@ -423,16 +432,35 @@ export default function GoogleCalendarV({ m }) {
 
   useEffect(() => {
     (async () => {
-      const { data:row } = await supabase.from('settings').select('value').eq('key','gcal-token').single().catch(() => ({ data:null }))
-      if (row?.value) {
+      // Priorité 1 : token de la session active (jamais expiré côté Supabase)
+      const { data: { session } } = await supabase.auth.getSession().catch(() => ({ data: {} }))
+      let token = session?.provider_token || null
+
+      // Priorité 2 : token stocké en base (fallback)
+      if (!token) {
+        const { data: row } = await supabase.from('settings').select('value').eq('key','gcal-token').single().catch(() => ({ data:null }))
+        token = row?.value || null
+      }
+
+      if (token) {
+        // Mettre à jour la base si le token session est plus récent
+        if (session?.provider_token) {
+          await supabase.from('settings').upsert({ key:'gcal-token', value:session.provider_token }).catch(() => {})
+        }
         setTokenOk(true)
         const [tMin, tMax] = getRange('month', 0, 0)
-        await fetchEvents(row.value, tMin, tMax)
+        await fetchEvents(token, tMin, tMax)
       } else { setTokenOk(false); setLoading(false) }
     })()
   }, []) // eslint-disable-line
 
   const getToken = useCallback(async () => {
+    // Toujours essayer la session active en premier
+    const { data: { session } } = await supabase.auth.getSession().catch(() => ({ data:{} }))
+    if (session?.provider_token) {
+      await supabase.from('settings').upsert({ key:'gcal-token', value:session.provider_token }).catch(() => {})
+      return session.provider_token
+    }
     const { data:row } = await supabase.from('settings').select('value').eq('key','gcal-token').single().catch(() => ({ data:null }))
     return row?.value || null
   }, [])
