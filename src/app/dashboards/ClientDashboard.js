@@ -34,22 +34,22 @@ export default function ClientDashboard({ user, profile = null }) {
     return () => window.removeEventListener('resize', check)
   }, [])
 
-  // Chargement données
+  // Chargement données filtrées par client
   useEffect(() => {
     (async () => {
       try {
-        const sbData = await SB.loadAll()
-        setData(sbData.error ? defaultData : sbData)
+        const sbData = await SB.loadForClient(profile?.prenom, profile?.nom)
+        setData(sbData)
       } catch {
-        setData(defaultData)
+        setData({ chantiers:[], contacts:[], tasks:[], planning:[], rdv:[], compteRendus:[], ordresService:[] })
       }
       setLoading(false)
     })()
-  }, [])
+  }, [profile?.prenom, profile?.nom])
 
   const reload = useCallback(async () => {
-    try { const sbData = await SB.loadAll(); setData(sbData) } catch { /* silently fail */ }
-  }, [])
+    try { const sbData = await SB.loadForClient(profile?.prenom, profile?.nom); setData(sbData) } catch { /* silently fail */ }
+  }, [profile?.prenom, profile?.nom])
 
   const save = useCallback(async (d) => { setData(d) }, [])
 
@@ -158,6 +158,17 @@ export default function ClientDashboard({ user, profile = null }) {
         )}
 
         <div style={{ animation:'fadeIn .25s ease', maxWidth:1200, margin:'0 auto' }}>
+          {/* Aucun chantier associé */}
+          {!data?.chantiers?.length && tab !== 'gcal' && (
+            <div style={{ background:'#FFF7ED', border:'1px solid #FED7AA', borderRadius:14, padding:28, marginBottom:20, textAlign:'center' }}>
+              <div style={{ fontSize:32, marginBottom:8 }}>🔗</div>
+              <div style={{ fontWeight:700, fontSize:15, color:'#92400E', marginBottom:6 }}>Aucun chantier associé</div>
+              <div style={{ fontSize:13, color:'#B45309', lineHeight:1.7 }}>
+                Votre compte n&apos;est pas encore lié à un chantier.<br/>
+                L&apos;administrateur doit renseigner votre prénom (<strong>{profile?.prenom}</strong>) dans le champ &quot;Client&quot; du chantier concerné.
+              </div>
+            </div>
+          )}
           {tab === 'dashboard' && <DashboardV     data={data} setTab={switchTab} m={isMobile} user={user} />}
           {tab === 'projects'  && <ProjectsV      data={data} save={save} m={isMobile} reload={reload} user={user} profile={profile} />}
           {tab === 'reports'   && <ReportsV       data={data} save={save} m={isMobile} reload={reload} />}

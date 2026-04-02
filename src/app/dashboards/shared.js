@@ -233,6 +233,40 @@ export const SB = {
     if (error) throw new Error("Erreur ajout utilisateur: " + error.message);
     return data;
   },
+  // Chargement filtré pour un maître d'ouvrage (uniquement ses chantiers)
+  async loadForClient(prenom, nom) {
+    // Chercher les chantiers dont le champ "client" contient le prénom du maître d'ouvrage
+    const term = (prenom || '').trim()
+    if (!term) return { chantiers:[], contacts:[], tasks:[], planning:[], rdv:[], compteRendus:[], ordresService:[] }
+
+    const { data: ch, error } = await supabase
+      .from('chantiers').select('*')
+      .ilike('client', `%${term}%`)
+      .order('created_at', { ascending: false })
+
+    if (error || !ch?.length) {
+      return { chantiers:[], contacts:[], tasks:[], planning:[], rdv:[], compteRendus:[], ordresService:[] }
+    }
+
+    const ids = ch.map(c => c.id)
+    const [cr, os, ta, pl] = await Promise.all([
+      supabase.from('compte_rendus').select('*').in('chantier_id', ids).order('date', { ascending:false }).limit(100),
+      supabase.from('ordres_service').select('*').in('chantier_id', ids).order('created_at', { ascending:false }).limit(100),
+      supabase.from('taches').select('*').in('chantier_id', ids).order('created_at', { ascending:false }),
+      supabase.from('planning').select('*').in('chantier_id', ids).order('debut'),
+    ])
+
+    return {
+      chantiers:    ch.map(c => ({ ...c, lots: c.lots || [] })),
+      contacts:     [],
+      tasks:        (ta.data||[]).map(t => ({ ...t, chantierId: t.chantier_id })),
+      planning:     (pl.data||[]).map(p => ({ ...p, chantierId: p.chantier_id })),
+      rdv:          [],
+      compteRendus: (cr.data||[]).map(c => ({ ...c, chantierId: c.chantier_id })),
+      ordresService: os.data || [],
+    }
+  },
+
   async removeAuthorizedUser(id) {
     const { error } = await supabase.from('authorized_users').delete().eq('id', id);
     if (error) throw new Error("Erreur suppression utilisateur: " + error.message);
