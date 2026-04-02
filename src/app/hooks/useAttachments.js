@@ -42,40 +42,18 @@ export function useAttachments(type, itemId) {
     loadAttachments()
   }, [itemId, type])
 
-  // Upload un fichier
+  // Upload via API route serveur (évite les problèmes de policies RLS Storage)
   const uploadAttachment = async (file) => {
-    if (!itemId) {
-      addToast('Élément non sélectionné', 'warning')
-      return
-    }
-
+    if (!itemId) { addToast('Élément non sélectionné', 'warning'); return }
     setLoading(true)
     try {
-      // Upload vers Supabase storage
-      const filePath = `${type}/${itemId}/${Date.now()}-${file.name}`
-      const { error: uploadError } = await supabase.storage
-        .from('attachments')
-        .upload(filePath, file)
-
-      if (uploadError) throw uploadError
-
-      // Enregistrer dans la DB
-      const colName = {
-        chantier: 'chantier_id',
-        os: 'os_id',
-        cr: 'cr_id',
-        task: 'task_id',
-      }[type]
-
-      const { error: dbError } = await supabase.from('attachments').insert({
-        [colName]: itemId,
-        file_name: file.name,
-        file_path: filePath,
-        file_size: file.size,
-      })
-
-      if (dbError) throw dbError
-
+      const fd = new FormData()
+      fd.append('file', file)
+      fd.append('type', type)
+      fd.append('itemId', itemId)
+      const res  = await fetch('/api/upload', { method: 'POST', body: fd })
+      const data = await res.json()
+      if (!data.ok) throw new Error(data.error || 'Erreur upload')
       await loadAttachments()
       addToast('Fichier uploadé ✓', 'success')
     } catch (err) {
