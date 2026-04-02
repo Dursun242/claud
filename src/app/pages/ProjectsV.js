@@ -21,7 +21,20 @@ export default function ProjectsV({data,save,m,reload,user,profile}) {
   const { shares, addShare, deleteShare } = useSharing(selected);
 
   const openNew=()=>{setForm({nom:"",client:"",adresse:"",phase:"Hors d'air",statut:"Planifié",budget:"",depenses:0,dateDebut:"",dateFin:"",lots:""});setModal("new");};
-  const handleSave=async()=>{const e={...form,budget:Number(form.budget)||0,depenses:Number(form.depenses)||0,lots:typeof form.lots==="string"?(form.lots||"").split(",").map(l=>l.trim()).filter(Boolean):form.lots||[]};await SB.upsertChantier(e);setModal(null);reload();};
+  const [saving,setSaving]=useState(false);
+  const handleSave=async()=>{
+    if(saving) return;
+    setSaving(true);
+    try {
+      const e={...form,budget:Number(form.budget)||0,depenses:Number(form.depenses)||0,lots:typeof form.lots==="string"?(form.lots||"").split(",").map(l=>l.trim()).filter(Boolean):form.lots||[]};
+      await SB.upsertChantier(e);
+      setModal(null);
+      reload();
+      addToast("Chantier enregistré","success");
+    } catch(err) {
+      addToast("Erreur : "+err.message,"error");
+    } finally { setSaving(false); }
+  };
   const handleDelete=async(id)=>{if(!window.confirm("Supprimer ce chantier ? Cette action est irréversible.")) return;await SB.deleteChantier(id);setSelected(null);reload();};
 
   // Phase 3 Hooks handle loading data automatically - no useEffect needed!
@@ -326,7 +339,7 @@ export default function ProjectsV({data,save,m,reload,user,profile}) {
         <FF label="Fin"><input type="date" style={inp} value={form.dateFin||""} onChange={e=>setForm({...form,dateFin:e.target.value})}/></FF>
         <FF label="Lots (virgules)"><input style={inp} value={form.lots||""} onChange={e=>setForm({...form,lots:e.target.value})}/></FF>
       </div>
-      <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginTop:14}}><button onClick={()=>setModal(null)} style={btnS}>Annuler</button><button onClick={handleSave} style={btnP}>Enregistrer</button></div>
+      <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginTop:14}}><button onClick={()=>setModal(null)} style={btnS}>Annuler</button><button onClick={handleSave} disabled={saving} style={{...btnP,opacity:saving?0.7:1}}>{saving?"⏳ Enregistrement...":"Enregistrer"}</button></div>
     </Modal>
   </div>);
 }
