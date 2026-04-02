@@ -396,8 +396,16 @@ export default function GoogleCalendarV({ m }) {
 
   const fetchEvents = useCallback(async (token, tMin, tMax) => {
     setLoading(true); setError('')
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 15000)
     try {
-      const res  = await fetch('/api/gcal', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ token, calendarIds:CALENDARS.map(c => c.id), timeMin:tMin, timeMax:tMax }) })
+      const res  = await fetch('/api/gcal', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({ token, calendarIds:CALENDARS.map(c => c.id), timeMin:tMin, timeMax:tMax }),
+        signal: controller.signal,
+      })
+      clearTimeout(timeout)
       const data = await res.json()
       if (data.error === 'TOKEN_EXPIRED') {
         await supabase.from('settings').delete().eq('key','gcal-token').catch(() => {})
@@ -406,7 +414,10 @@ export default function GoogleCalendarV({ m }) {
       }
       if (data.error) { setError(data.error); setEvents([]); return }
       setEvents(data.events || [])
-    } catch (e) { setError(e.message) }
+    } catch (e) {
+      clearTimeout(timeout)
+      setError(e.name === 'AbortError' ? 'Délai dépassé — vérifiez votre connexion.' : e.message)
+    }
     finally { setLoading(false) }
   }, [])
 

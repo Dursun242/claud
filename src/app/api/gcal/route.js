@@ -27,6 +27,7 @@ export async function POST(request) {
 
         const res = await fetch(url.toString(), {
           headers: { Authorization: `Bearer ${token}` },
+          signal: AbortSignal.timeout(8000),
         });
 
         if (res.status === 401) throw new Error('TOKEN_EXPIRED');
