@@ -62,9 +62,38 @@ export default function AdminV({m, reload, profile}) {
     }
   };
 
+  const [setupLoading, setSetupLoading] = useState(false)
+  const [setupMsg, setSetupMsg] = useState("")
+
+  const handleSetupStorage = async () => {
+    setSetupLoading(true); setSetupMsg("")
+    try {
+      const res = await fetch('/api/setup-storage', { method: 'POST' })
+      const data = await res.json()
+      setSetupMsg(data.ok ? "✅ " + data.message : "❌ " + data.error)
+    } catch(e) { setSetupMsg("❌ " + e.message) }
+    finally { setSetupLoading(false) }
+  }
+
   return (
     <div>
       <h1 style={{margin:"0 0 20px",fontSize:m?18:24,fontWeight:700}}>🔒 Gestion des accès</h1>
+
+      {/* CONFIGURATION STORAGE */}
+      <div style={{background:"#fff",borderRadius:14,padding:m?14:18,boxShadow:"0 1px 3px rgba(0,0,0,0.06)",marginBottom:20,border:"1.5px solid #E0F2FE"}}>
+        <h2 style={{margin:"0 0 8px",fontSize:15,fontWeight:700}}>🗂 Configuration pièces jointes</h2>
+        <p style={{margin:"0 0 12px",fontSize:13,color:"#64748B",lineHeight:1.6}}>
+          Si vous obtenez <strong>"Bucket not found"</strong> lors d&apos;un upload, cliquez sur ce bouton.<br/>
+          <span style={{fontSize:11,color:"#94A3B8"}}>Nécessite <code>SUPABASE_SERVICE_ROLE_KEY</code> dans les variables Vercel.</span>
+        </p>
+        <button onClick={handleSetupStorage} disabled={setupLoading} style={{...btnP,fontSize:12}}>
+          {setupLoading ? "⏳ Configuration..." : "⚙️ Créer le bucket Storage"}
+        </button>
+        {setupMsg && <div style={{marginTop:10,fontSize:13,color:setupMsg.startsWith("✅")?"#10B981":"#EF4444"}}>{setupMsg}</div>}
+        {!setupMsg && <div style={{marginTop:10,fontSize:11,color:"#94A3B8"}}>
+          Si l&apos;erreur persiste : Supabase Dashboard → Storage → New bucket → nom : <strong>attachments</strong>
+        </div>}
+      </div>
 
       {/* AJOUTER UN UTILISATEUR */}
       <div style={{background:"#fff",borderRadius:14,padding:m?14:18,boxShadow:"0 1px 3px rgba(0,0,0,0.06)",marginBottom:20}}>
