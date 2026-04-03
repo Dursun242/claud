@@ -431,27 +431,39 @@ export default function GoogleCalendarV({ m }) {
   }, [])
 
   useEffect(() => {
-    (async () => {
-      // Priorité 1 : token de la session active (jamais expiré côté Supabase)
-      const { data: { session } } = await supabase.auth.getSession().catch(() => ({ data: {} }))
-      let token = session?.provider_token || null
+    const load = async () => {
+      try {
+        // Timeout global de 10s pour tout le chargement initial
+        const tokenPromise = Promise.race([
+          (async () => {
+            const { data } = await supabase.auth.getSession().catch(() => ({ data:{} }))
+            const session = data?.session
+            if (session?.provider_token) {
+              await supabase.from('settings').upsert({ key:'gcal-token', value:session.provider_token }).catch(()=>{})
+              return session.provider_token
+            }
+            const { data: row } = await supabase.from('settings').select('value').eq('key','gcal-token').single().catch(() => ({ data:null }))
+            return row?.value || null
+          })(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 8000))
+        ])
 
-      // Priorité 2 : token stocké en base (fallback)
-      if (!token) {
-        const { data: row } = await supabase.from('settings').select('value').eq('key','gcal-token').single().catch(() => ({ data:null }))
-        token = row?.value || null
-      }
+        const token = await tokenPromise.catch(() => null)
 
-      if (token) {
-        // Mettre à jour la base si le token session est plus récent
-        if (session?.provider_token) {
-          await supabase.from('settings').upsert({ key:'gcal-token', value:session.provider_token }).catch(() => {})
+        if (token) {
+          setTokenOk(true)
+          const [tMin, tMax] = getRange('month', 0, 0)
+          await fetchEvents(token, tMin, tMax)
+        } else {
+          setTokenOk(false)
+          setLoading(false)
         }
-        setTokenOk(true)
-        const [tMin, tMax] = getRange('month', 0, 0)
-        await fetchEvents(token, tMin, tMax)
-      } else { setTokenOk(false); setLoading(false) }
-    })()
+      } catch {
+        setTokenOk(false)
+        setLoading(false)
+      }
+    }
+    load()
   }, []) // eslint-disable-line
 
   const getToken = useCallback(async () => {
