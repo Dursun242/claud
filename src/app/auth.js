@@ -38,7 +38,7 @@ export function AuthProvider({ children }) {
 
       if (session?.user) {
         // Sauvegarder le token Google Calendar dès qu'il est disponible (juste après login OAuth)
-        if (event === 'SIGNED_IN' && session.provider_token) {
+        if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session.provider_token) {
           await supabase.from('settings').upsert({ key: 'gcal-token', value: session.provider_token }).catch(() => {});
         }
 

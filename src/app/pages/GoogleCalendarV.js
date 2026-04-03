@@ -67,14 +67,14 @@ function ConnectScreen({ error }) {
       </p>
       {error && <div style={{ background:'#FEF2F2', border:'1px solid #FECACA', borderRadius:10, padding:'12px 16px', marginBottom:20, fontSize:13, color:'#DC2626' }}>{error}</div>}
       <button
-        onClick={async () => {
-          const { createClient } = await import('@supabase/supabase-js')
-          const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
-          await sb.auth.signInWithOAuth({
-            provider:'google',
-            options:{ redirectTo:window.location.origin, scopes:'https://www.googleapis.com/auth/calendar.readonly' }
-          })
-        }}
+        onClick={() => supabase.auth.signInWithOAuth({
+          provider:'google',
+          options:{
+            redirectTo: window.location.origin,
+            scopes: 'https://www.googleapis.com/auth/calendar.readonly',
+            queryParams: { access_type:'offline', prompt:'consent' },
+          }
+        })}
         style={{ padding:'14px 32px', background:'#1E3A5F', color:'#fff', border:'none', borderRadius:12, fontSize:15, fontWeight:600, cursor:'pointer', fontFamily:'inherit', boxShadow:'0 4px 14px rgba(30,58,95,0.3)' }}
       >
         Connecter Google Agenda
