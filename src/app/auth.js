@@ -114,14 +114,23 @@ export function LoginPage() {
 
   const handleGoogleLogin = async () => {
     setLoggingIn(true)
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: typeof window !== 'undefined' ? window.location.origin : undefined,
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
+        }
+      })
+      if (error) {
+        console.error('Login error:', error.message)
+        setLoggingIn(false)
       }
-    })
-    if (error) {
-      console.error('Login error:', error.message)
+    } catch (err) {
+      console.error('Login exception:', err)
       setLoggingIn(false)
     }
   }
