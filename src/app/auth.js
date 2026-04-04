@@ -9,70 +9,58 @@ export function useAuth() {
   return useContext(AuthContext)
 }
 
-// ─── LOAD USER PROFILE (via API route — bypass RLS) ───
+// ─── LOAD USER PROFILE ───
 async function loadUserProfile(email) {
-  try {
-    const res = await fetch('/api/auth/profile', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email }),
-    })
-    const { profile } = await res.json()
-    return profile || null
-  } catch {
-    return null
-  }
+  const { data } = await supabase
+    .from('authorized_users')
+    .select('*')
+    .eq('email', email)
+    .eq('actif', true)
+    .single()
+    .catch(() => ({ data: null }))
+  return data || null
 }
 
 // ─── AUTH PROVIDER ───
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null)
+  const [user, setUser]       = useState(null)
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [denied, setDenied] = useState(false)
+  const [denied, setDenied]   = useState(false)
 
   useEffect(() => {
     let isMounted = true
 
-    // OPTIMIZED: Only use onAuthStateChange (it handles both initial and changes)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!isMounted) return
 
       if (session?.user) {
-        // Sauvegarder le token Google Calendar (fire-and-forget, sans await)
-        if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session.provider_token) {
-          supabase.from('settings').upsert({ key: 'gcal-token', value: session.provider_token }).catch(() => {});
+        // Sauvegarder le token Google Calendar (fire-and-forget)
+        if (session.provider_token) {
+          supabase.from('settings').upsert({ key: 'gcal-token', value: session.provider_token }).catch(() => {})
         }
 
-        try {
-          const profile = await loadUserProfile(session.user.email)
-          if (isMounted) {
-            if (profile) {
-              setUser(session.user)
-              setProfile(profile)
-              setDenied(false)
-            } else {
-              setDenied(true)
-              setUser(null)
-              setProfile(null)
-              // Différé pour éviter la boucle infinie dans onAuthStateChange
-              setTimeout(() => supabase.auth.signOut(), 0)
-            }
-          }
-        } catch (err) {
-          console.error("Auth error:", err)
-          if (isMounted) {
-            setUser(null)
-            setProfile(null)
-            setLoading(false)
-          }
-        }
-      } else {
-        if (isMounted) {
+        const profile = await loadUserProfile(session.user.email).catch(() => null)
+
+        if (!isMounted) return
+
+        if (profile) {
+          setUser(session.user)
+          setProfile(profile)
+          setDenied(false)
+        } else {
+          // Pas dans authorized_users → accès refusé
+          setDenied(true)
           setUser(null)
           setProfile(null)
+          setTimeout(() => supabase.auth.signOut().catch(() => {}), 100)
         }
+      } else {
+        setUser(null)
+        setProfile(null)
+        setDenied(false)
       }
+
       if (isMounted) setLoading(false)
     })
 
@@ -118,7 +106,6 @@ export function LoginPage() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
         @keyframes fadeIn { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
-        @keyframes neonPulse { 0%,100% { box-shadow: 0 0 20px rgba(0,255,136,0.15); } 50% { box-shadow: 0 0 40px rgba(0,255,136,0.3); } }
       `}</style>
 
       <div style={{
@@ -126,39 +113,28 @@ export function LoginPage() {
         boxShadow: '0 25px 80px rgba(0,0,0,0.4)', animation: 'fadeIn 0.5s ease',
         textAlign: 'center',
       }}>
-        {/* Logo ampoule */}
         <div style={{
-          width: 80, height: 80, borderRadius: 20,
-          background: '#F8FAFC',
+          width: 80, height: 80, borderRadius: 20, background: '#F8FAFC',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          margin: '0 auto 20px', boxShadow: '0 4px 16px rgba(0,0,0,0.08)',
-          overflow: 'hidden',
+          margin: '0 auto 20px', boxShadow: '0 4px 16px rgba(0,0,0,0.08)', overflow: 'hidden',
         }}>
           <img src="/icon-192.png" alt="ID Maîtrise" style={{ width: 60, height: 60, objectFit: 'contain' }} />
         </div>
 
-        <h1 style={{ margin: '0 0 4px', fontSize: 26, fontWeight: 700, color: '#0F172A' }}>
-          ID Maîtrise
-        </h1>
-        <p style={{ margin: '0 0 8px', fontSize: 13, color: '#64748B' }}>
-          Ingénierie de la construction
-        </p>
-        <p style={{ margin: '0 0 32px', fontSize: 12, color: '#94A3B8' }}>
-          Tableau de bord de gestion de chantiers
-        </p>
+        <h1 style={{ margin: '0 0 4px', fontSize: 26, fontWeight: 700, color: '#0F172A' }}>ID Maîtrise</h1>
+        <p style={{ margin: '0 0 8px', fontSize: 13, color: '#64748B' }}>Ingénierie de la construction</p>
+        <p style={{ margin: '0 0 32px', fontSize: 12, color: '#94A3B8' }}>Tableau de bord de gestion de chantiers</p>
 
-        {/* Error message if denied */}
         {denied && (
           <div style={{
             background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 10,
             padding: '12px 16px', marginBottom: 20, fontSize: 13, color: '#DC2626',
           }}>
-            Accès refusé. Votre email n'est pas autorisé.<br/>
-            <span style={{ fontSize: 11, color: '#94A3B8' }}>Contactez l'administrateur pour obtenir l'accès.</span>
+            Accès refusé. Votre email n&apos;est pas autorisé.<br/>
+            <span style={{ fontSize: 11, color: '#94A3B8' }}>Contactez l&apos;administrateur pour obtenir l&apos;accès.</span>
           </div>
         )}
 
-        {/* Google Login Button */}
         <button
           onClick={handleGoogleLogin}
           disabled={loggingIn}
@@ -167,14 +143,10 @@ export function LoginPage() {
             border: '1.5px solid #E2E8F0', background: '#fff',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12,
             cursor: loggingIn ? 'wait' : 'pointer', fontSize: 15, fontWeight: 600,
-            color: '#334155', fontFamily: 'inherit',
-            transition: 'all 0.2s',
+            color: '#334155', fontFamily: 'inherit', transition: 'all 0.2s',
             boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
           }}
-          onMouseEnter={e => { e.target.style.borderColor = '#3B82F6'; e.target.style.boxShadow = '0 2px 8px rgba(59,130,246,0.15)'; }}
-          onMouseLeave={e => { e.target.style.borderColor = '#E2E8F0'; e.target.style.boxShadow = '0 1px 3px rgba(0,0,0,0.08)'; }}
         >
-          {/* Google icon */}
           <svg width="20" height="20" viewBox="0 0 24 24">
             <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
             <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
@@ -188,7 +160,6 @@ export function LoginPage() {
           Accès réservé aux collaborateurs ID Maîtrise
         </p>
 
-        {/* Footer */}
         <div style={{ marginTop: 32, paddingTop: 20, borderTop: '1px solid #F1F5F9' }}>
           <p style={{ margin: 0, fontSize: 10, color: '#94A3B8' }}>
             SARL ID MAÎTRISE — 9 Rue Henry Genestal, 76600 Le Havre<br/>
