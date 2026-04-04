@@ -7,7 +7,6 @@ import ProjectsV     from '../pages/ProjectsV'
 import ReportsV      from '../pages/ReportsV'
 import OrdresServiceV from '../pages/OrdresServiceV'
 import PlanningV     from '../pages/PlanningV'
-import GoogleCalendarV from '../pages/GoogleCalendarV'
 
 // Onglets disponibles pour le maître d'ouvrage
 const TABS = [
@@ -16,7 +15,6 @@ const TABS = [
   { key:'reports',   label:'Comptes Rendus',     icon:I.reports   },
   { key:'os',        label:'Ordres de Service',  icon:I.reports   },
   { key:'planning',  label:'Planning',           icon:I.planning  },
-  { key:'gcal',      label:'Agenda',             icon:null, isGcal:true },
 ]
 
 export default function ClientDashboard({ user, profile = null }) {

@@ -16,7 +16,6 @@ import ContactsV from '../pages/ContactsV'
 import ReportsV from '../pages/ReportsV'
 import OrdresServiceV from '../pages/OrdresServiceV'
 import AIV from '../pages/AIV'
-import GoogleCalendarV from '../pages/GoogleCalendarV'
 
 // ═══════════════════════════════════════════
 export default function AdminDashboard({ user, profile = null }) {
