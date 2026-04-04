@@ -9,17 +9,19 @@ export function useAuth() {
   return useContext(AuthContext)
 }
 
-// ─── LOAD USER PROFILE ───
+// ─── LOAD USER PROFILE (via API route — bypass RLS) ───
 async function loadUserProfile(email) {
-  const { data, error } = await supabase
-    .from('authorized_users')
-    .select('*')
-    .eq('email', email)
-    .eq('actif', true)
-    .single()
-
-  if (error) return null
-  return data
+  try {
+    const res = await fetch('/api/auth/profile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    })
+    const { profile } = await res.json()
+    return profile || null
+  } catch {
+    return null
+  }
 }
 
 // ─── AUTH PROVIDER ───
