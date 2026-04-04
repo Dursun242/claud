@@ -1,10 +1,17 @@
 import { createClient } from '@supabase/supabase-js'
+import { verifyAuth, handleError, successResponse } from '../auth-helpers'
 
 export async function POST(request) {
   try {
+    // Verify user is authenticated
+    const user = await verifyAuth(request)
+
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
     if (!serviceKey) {
-      return Response.json({ error: 'SUPABASE_SERVICE_ROLE_KEY manquant dans Vercel' }, { status: 500 })
+      return handleError(
+        new Error('SUPABASE_SERVICE_ROLE_KEY missing'),
+        500
+      )
     }
 
     const supabaseAdmin = createClient(
@@ -19,31 +26,48 @@ export async function POST(request) {
     const itemId    = formData.get('itemId')
 
     if (!file || !type || !itemId) {
-      return Response.json({ error: 'Paramètres manquants' }, { status: 400 })
+      return Response.json({ error: 'Missing parameters' }, { status: 400 })
     }
 
-    // Upload vers Storage
+    // Validate file size (max 20MB)
+    const MAX_FILE_SIZE = 20 * 1024 * 1024
+    if (file.size > MAX_FILE_SIZE) {
+      return Response.json({ error: 'File too large (max 20MB)' }, { status: 413 })
+    }
+
+    // Upload to Storage
     const filePath = `${type}/${itemId}/${Date.now()}-${file.name}`
     const arrayBuf = await file.arrayBuffer()
     const { error: uploadError } = await supabaseAdmin.storage
       .from('attachments')
       .upload(filePath, arrayBuf, { contentType: file.type })
 
-    if (uploadError) return Response.json({ error: uploadError.message }, { status: 500 })
+    if (uploadError) {
+      return handleError(
+        new Error('Upload failed: ' + uploadError.message),
+        500
+      )
+    }
 
-    // Enregistrer en base
+    // Save metadata to database
     const colName = { chantier:'chantier_id', os:'os_id', cr:'cr_id', task:'task_id' }[type]
     const { error: dbError } = await supabaseAdmin.from('attachments').insert({
       [colName]: itemId,
       file_name: file.name,
       file_path: filePath,
       file_size: file.size,
+      uploaded_by_email: user.email,
     })
 
-    if (dbError) return Response.json({ error: dbError.message }, { status: 500 })
+    if (dbError) {
+      return handleError(
+        new Error('Database error: ' + dbError.message),
+        500
+      )
+    }
 
-    return Response.json({ ok: true, filePath })
+    return successResponse({ ok: true, filePath })
   } catch (e) {
-    return Response.json({ error: e.message }, { status: 500 })
+    return handleError(e)
   }
 }

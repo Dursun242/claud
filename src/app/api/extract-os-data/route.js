@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@supabase/supabase-js";
+import { verifyAuth, handleError, successResponse } from '../auth-helpers'
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -15,6 +16,9 @@ function getSupabase() {
 
 export async function POST(req) {
   try {
+    // Verify user is authenticated
+    const user = await verifyAuth(req)
+
     const { imageBase64, fileName } = await req.json();
 
     if (!imageBase64) {

@@ -233,22 +233,32 @@ export const SB = {
     if (error) throw new Error("Erreur ajout utilisateur: " + error.message);
     return data;
   },
-  // Chargement filtré pour un maître d'ouvrage (uniquement ses chantiers)
+  // Chargement filtré pour un client (via client_chantiers table + RLS)
   async loadForClient(prenom, nom) {
-    // Chercher les chantiers dont le champ "client" contient le prénom du maître d'ouvrage
-    const term = (prenom || '').trim()
-    if (!term) return { chantiers:[], contacts:[], tasks:[], planning:[], rdv:[], compteRendus:[], ordresService:[] }
+    // Get the current user's email from auth
+    const { data: { user } } = await supabase.auth.getUser().catch(() => ({ data: {} }))
+    if (!user?.email) return { chantiers:[], contacts:[], tasks:[], planning:[], rdv:[], compteRendus:[], ordresService:[] }
 
+    // Query chantiers through client_chantiers relationship
+    // RLS policies will enforce access control at the database level
     const { data: ch, error } = await supabase
-      .from('chantiers').select('*')
-      .ilike('client', `%${term}%`)
+      .from('client_chantiers')
+      .select('chantiers(*)')
       .order('created_at', { ascending: false })
 
     if (error || !ch?.length) {
       return { chantiers:[], contacts:[], tasks:[], planning:[], rdv:[], compteRendus:[], ordresService:[] }
     }
 
-    const ids = ch.map(c => c.id)
+    // Extract chantier data from the joined results
+    const chantiers = ch.map(cc => cc.chantiers).filter(Boolean)
+    const ids = chantiers.map(c => c.id)
+
+    if (ids.length === 0) {
+      return { chantiers:[], contacts:[], tasks:[], planning:[], rdv:[], compteRendus:[], ordresService:[] }
+    }
+
+    // Fetch related data (RLS policies enforce access at DB level)
     const [cr, os, ta, pl] = await Promise.all([
       supabase.from('compte_rendus').select('*').in('chantier_id', ids).order('date', { ascending:false }).limit(100),
       supabase.from('ordres_service').select('*').in('chantier_id', ids).order('created_at', { ascending:false }).limit(100),
@@ -257,7 +267,7 @@ export const SB = {
     ])
 
     return {
-      chantiers:    ch.map(c => ({ ...c, lots: c.lots || [] })),
+      chantiers:    chantiers.map(c => ({ ...c, lots: c.lots || [] })),
       contacts:     [],
       tasks:        (ta.data||[]).map(t => ({ ...t, chantierId: t.chantier_id })),
       planning:     (pl.data||[]).map(p => ({ ...p, chantierId: p.chantier_id })),
