@@ -11,14 +11,19 @@ export function useAuth() {
 
 // ─── LOAD USER PROFILE ───
 async function loadUserProfile(email) {
-  const { data } = await supabase
-    .from('authorized_users')
-    .select('*')
-    .eq('email', email)
-    .eq('actif', true)
-    .single()
-    .catch(() => ({ data: null }))
-  return data || null
+  try {
+    // Use server-side API to bypass Supabase RLS on authorized_users table
+    const res = await fetch('/api/auth/profile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    })
+    if (!res.ok) return null
+    const { profile } = await res.json()
+    return profile || null
+  } catch {
+    return null
+  }
 }
 
 // ─── AUTH PROVIDER ───
