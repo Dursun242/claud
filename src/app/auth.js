@@ -170,6 +170,7 @@ export function LoginPage() {
           }}
           onMouseEnter={e => { e.target.style.borderColor = '#3B82F6'; e.target.style.boxShadow = '0 2px 8px rgba(59,130,246,0.15)'; }}
           onMouseLeave={e => { e.target.style.borderColor = '#E2E8F0'; e.target.style.boxShadow = '0 1px 3px rgba(0,0,0,0.08)'; }}
+          title="Accédez à votre Google Agenda et synchronisez vos événements"
         >
           {/* Google icon */}
           <svg width="20" height="20" viewBox="0 0 24 24">
