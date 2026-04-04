@@ -31,34 +31,58 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     let isMounted = true
 
+    // Safety: if nothing fires within 6 seconds, show login page
+    let safetyTimer = setTimeout(() => {
+      if (isMounted) setLoading(false)
+    }, 6000)
+
+    // Check session immediately so we don't wait for the event
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!isMounted) return
+      if (!session?.user) {
+        clearTimeout(safetyTimer)
+        setLoading(false)
+      }
+      // If session exists, onAuthStateChange will fire and handle it
+    }).catch(() => {
+      if (isMounted) { clearTimeout(safetyTimer); setLoading(false) }
+    })
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!isMounted) return
+      clearTimeout(safetyTimer)
 
-      if (session?.user) {
-        // Sauvegarder le token Google Calendar (fire-and-forget)
-        if (session.provider_token) {
-          supabase.from('settings').upsert({ key: 'gcal-token', value: session.provider_token }).catch(() => {})
-        }
+      try {
+        if (session?.user) {
+          // Sauvegarder le token Google Calendar (fire-and-forget)
+          if (session.provider_token) {
+            supabase.from('settings').upsert({ key: 'gcal-token', value: session.provider_token }).catch(() => {})
+          }
 
-        const profile = await loadUserProfile(session.user.email).catch(() => null)
+          const profile = await loadUserProfile(session.user.email).catch(() => null)
 
-        if (!isMounted) return
+          if (!isMounted) return
 
-        if (profile) {
-          setUser(session.user)
-          setProfile(profile)
-          setDenied(false)
+          if (profile) {
+            setUser(session.user)
+            setProfile(profile)
+            setDenied(false)
+          } else {
+            // Pas dans authorized_users → accès refusé
+            setDenied(true)
+            setUser(null)
+            setProfile(null)
+            setTimeout(() => supabase.auth.signOut().catch(() => {}), 100)
+          }
         } else {
-          // Pas dans authorized_users → accès refusé
-          setDenied(true)
           setUser(null)
           setProfile(null)
-          setTimeout(() => supabase.auth.signOut().catch(() => {}), 100)
+          setDenied(false)
         }
-      } else {
+      } catch (err) {
+        console.error('Auth state error:', err)
         setUser(null)
         setProfile(null)
-        setDenied(false)
       }
 
       if (isMounted) setLoading(false)
@@ -66,6 +90,7 @@ export function AuthProvider({ children }) {
 
     return () => {
       isMounted = false
+      clearTimeout(safetyTimer)
       subscription?.unsubscribe()
     }
   }, [])
