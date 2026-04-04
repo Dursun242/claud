@@ -118,7 +118,6 @@ export function LoginPage() {
       provider: 'google',
       options: {
         redirectTo: typeof window !== 'undefined' ? window.location.origin : undefined,
-        scopes: 'https://www.googleapis.com/auth/calendar.readonly',
       }
     })
     if (error) {
