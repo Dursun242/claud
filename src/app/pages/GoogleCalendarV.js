@@ -412,7 +412,8 @@ export default function GoogleCalendarV({ m }) {
         const { data: refreshData } = await supabase.auth.refreshSession().catch(() => ({ data:{} }))
         const newToken = refreshData?.session?.provider_token
         if (newToken && newToken !== token) {
-          await supabase.from('settings').upsert({ key:'gcal-token', value:newToken }).catch(() => {})
+          const { error: settingsError } = await supabase.from('settings').upsert({ key:'gcal-token', value:newToken })
+          if (settingsError) console.warn('Failed to update gcal-token:', settingsError.message)
           // Réessayer avec le nouveau token
           const res2 = await fetch('/api/gcal', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ token:newToken, calendarIds:CALENDARS.map(c=>c.id), timeMin:tMin, timeMax:tMax }) }).catch(() => null)
           if (res2?.ok) { const d2 = await res2.json(); if (!d2.error) { setEvents(d2.events||[]); return } }
@@ -439,7 +440,8 @@ export default function GoogleCalendarV({ m }) {
             const { data } = await supabase.auth.getSession().catch(() => ({ data:{} }))
             const session = data?.session
             if (session?.provider_token) {
-              await supabase.from('settings').upsert({ key:'gcal-token', value:session.provider_token }).catch(()=>{})
+              const { error: settingsError } = await supabase.from('settings').upsert({ key:'gcal-token', value:session.provider_token })
+              if (settingsError) console.warn('Failed to save gcal-token:', settingsError.message)
               return session.provider_token
             }
             const { data: row } = await supabase.from('settings').select('value').eq('key','gcal-token').single().catch(() => ({ data:null }))
@@ -470,7 +472,8 @@ export default function GoogleCalendarV({ m }) {
     // Toujours essayer la session active en premier
     const { data: { session } } = await supabase.auth.getSession().catch(() => ({ data:{} }))
     if (session?.provider_token) {
-      await supabase.from('settings').upsert({ key:'gcal-token', value:session.provider_token }).catch(() => {})
+      const { error: settingsError } = await supabase.from('settings').upsert({ key:'gcal-token', value:session.provider_token })
+      if (settingsError) console.warn('Failed to save gcal-token:', settingsError.message)
       return session.provider_token
     }
     const { data:row } = await supabase.from('settings').select('value').eq('key','gcal-token').single().catch(() => ({ data:null }))

@@ -61,7 +61,8 @@ export function AuthProvider({ children }) {
         if (session?.user) {
           // Sauvegarder le token Google Calendar (fire-and-forget)
           if (session.provider_token) {
-            supabase.from('settings').upsert({ key: 'gcal-token', value: session.provider_token }).catch(() => {})
+            const { error: settingsError } = await supabase.from('settings').upsert({ key: 'gcal-token', value: session.provider_token })
+            if (settingsError) console.warn('Failed to save gcal-token:', settingsError.message)
           }
 
           const profile = await loadUserProfile(session.user.email).catch(() => null)
