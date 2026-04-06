@@ -28,6 +28,7 @@ export function AuthProvider({ children }) {
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
   const [denied, setDenied] = useState(false)
+  const [deniedEmail, setDeniedEmail] = useState(null)
 
   useEffect(() => {
     let isMounted = true
@@ -49,8 +50,10 @@ export function AuthProvider({ children }) {
               setUser(session.user)
               setProfile(profile)
               setDenied(false)
+              setDeniedEmail(null)
             } else {
               setDenied(true)
+              setDeniedEmail(session.user.email)
               setUser(null)
               setProfile(null)
               await supabase.auth.signOut()
@@ -80,7 +83,7 @@ export function AuthProvider({ children }) {
   }, [])
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, denied }}>
+    <AuthContext.Provider value={{ user, profile, loading, denied, deniedEmail }}>
       {children}
     </AuthContext.Provider>
   )
@@ -89,7 +92,7 @@ export function AuthProvider({ children }) {
 // ─── LOGIN PAGE ───
 export function LoginPage() {
   const [loggingIn, setLoggingIn] = useState(false)
-  const { denied } = useAuth()
+  const { denied, deniedEmail } = useAuth()
 
   const handleGoogleLogin = async () => {
     setLoggingIn(true)
@@ -98,6 +101,7 @@ export function LoginPage() {
       options: {
         redirectTo: typeof window !== 'undefined' ? window.location.origin : undefined,
         scopes: 'https://www.googleapis.com/auth/calendar.readonly',
+        queryParams: { access_type: 'offline', prompt: 'consent' },
       }
     })
     if (error) {
@@ -150,8 +154,13 @@ export function LoginPage() {
             background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 10,
             padding: '12px 16px', marginBottom: 20, fontSize: 13, color: '#DC2626',
           }}>
-            Accès refusé. Votre email n'est pas autorisé.<br/>
-            <span style={{ fontSize: 11, color: '#94A3B8' }}>Contactez l'administrateur pour obtenir l'accès.</span>
+            Accès refusé. Cet email n'est pas autorisé.<br/>
+            {deniedEmail && (
+              <span style={{ display: 'block', marginTop: 4, fontSize: 12, fontWeight: 600, color: '#B91C1C', wordBreak: 'break-all' }}>
+                {deniedEmail}
+              </span>
+            )}
+            <span style={{ fontSize: 11, color: '#94A3B8' }}>Ajoutez cet email dans la table <code>authorized_users</code> de Supabase.</span>
           </div>
         )}
 
