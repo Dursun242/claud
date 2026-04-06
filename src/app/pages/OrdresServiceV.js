@@ -5,6 +5,9 @@ import { Badge, Modal } from '../components'
 import { generateOSPdf, generateOSExcel } from '../generators'
 
 export default function OrdresServiceV({data,m,reload}) {
+  const chantiers = Array.isArray(data?.chantiers) ? data.chantiers : [];
+  const contacts = Array.isArray(data?.contacts) ? data.contacts : [];
+  const ordresService = Array.isArray(data?.ordresService) ? data.ordresService : [];
   const [modal,setModal]=useState(null);
   const [form,setForm]=useState({});
   const [prestations,setPrestations]=useState([]);
@@ -12,7 +15,7 @@ export default function OrdresServiceV({data,m,reload}) {
   const [saving,setSaving]=useState(false);
 
   const nextNum = () => {
-    const nums = (data.ordresService||[]).map(os => {
+    const nums = ordresService.map(os => {
       const m = String(os.numero||"").match(/(\d+)$/);
       return m ? parseInt(m[1], 10) : 0;
     });
@@ -21,7 +24,7 @@ export default function OrdresServiceV({data,m,reload}) {
   };
 
   const openNew = () => {
-    const ch = data.chantiers[0];
+    const ch = chantiers[0];
     setForm({
       numero: nextNum(), chantier_id: ch?.id||"", chantier: ch?.nom||"", adresse_chantier: ch?.adresse||"",
       client_nom: ch?.client||"", client_adresse: "",
@@ -35,7 +38,7 @@ export default function OrdresServiceV({data,m,reload}) {
   };
 
   const openEdit = (os) => {
-    const ch = data.chantiers.find(c=>c.id===os.chantier_id);
+    const ch = chantiers.find(c=>c.id===os.chantier_id);
     setForm({
       ...os,
       chantier: ch?.nom||"",
@@ -49,12 +52,12 @@ export default function OrdresServiceV({data,m,reload}) {
   };
 
   const updateChantier = (chId) => {
-    const ch = data.chantiers.find(c=>c.id===chId);
+    const ch = chantiers.find(c=>c.id===chId);
     setForm(f=>({...f, chantier_id: chId, chantier: ch?.nom||"", adresse_chantier: ch?.adresse||"", client_nom: ch?.client||""}));
   };
 
   const updateArtisan = (name) => {
-    const co = data.contacts.find(c=>c.nom===name);
+    const co = contacts.find(c=>c.nom===name);
     if (co) setForm(f=>({...f, artisan_nom:co.nom, artisan_specialite:co.specialite||"", artisan_tel:co.tel||"", artisan_email:co.email||"", artisan_siret:co.siret||""}));
     else setForm(f=>({...f, artisan_nom:name}));
   };
@@ -96,12 +99,12 @@ export default function OrdresServiceV({data,m,reload}) {
   };
 
   const handlePdf = (os) => {
-    const ch = data.chantiers.find(c=>c.id===os.chantier_id);
+    const ch = chantiers.find(c=>c.id===os.chantier_id);
     generateOSPdf({ ...os, chantier: ch?.nom||"", adresse_chantier: ch?.adresse||"" });
   };
 
   const handleExcel = (os) => {
-    const ch = data.chantiers.find(c=>c.id===os.chantier_id);
+    const ch = chantiers.find(c=>c.id===os.chantier_id);
     generateOSExcel({ ...os, chantier: ch?.nom||"", adresse_chantier: ch?.adresse||"" });
   };
 
@@ -115,7 +118,7 @@ export default function OrdresServiceV({data,m,reload}) {
     const s = searchOS.toLowerCase().trim();
     if (!s) return data.ordresService || [];
     return (data.ordresService || []).filter(os => {
-      const ch = data.chantiers.find(c => c.id === os.chantier_id);
+      const ch = chantiers.find(c => c.id === os.chantier_id);
       return (
         String(os.numero).toLowerCase().includes(s) ||
         (ch?.nom || "").toLowerCase().includes(s) ||
@@ -123,9 +126,9 @@ export default function OrdresServiceV({data,m,reload}) {
         (os.client_nom || "").toLowerCase().includes(s)
       );
     });
-  }, [searchOS, data.ordresService, data.chantiers]);
+  }, [searchOS, ordresService, chantiers]);
 
-  const artisans = data.contacts.filter(c=>c.type==="Artisan");
+  const artisans = contacts.filter(c=>c.type==="Artisan");
 
   return (<div>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20,flexWrap:"wrap",gap:8}}>
@@ -141,7 +144,7 @@ export default function OrdresServiceV({data,m,reload}) {
       {filteredOS.length===0 ?
         <div style={{background:"#fff",borderRadius:12,padding:30,textAlign:"center",color:"#94A3B8",fontSize:13}}>Aucun ordre de service. Cliquez "+ Nouvel OS" pour en créer un.</div>
       : [...filteredOS].sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0)).map(os=>{
-        const ch = data.chantiers.find(c=>c.id===os.chantier_id);
+        const ch = chantiers.find(c=>c.id===os.chantier_id);
         return (
           <div key={os.id} style={{background:"#fff",borderRadius:12,padding:m?14:18,boxShadow:"0 1px 3px rgba(0,0,0,0.06)",borderLeft:`4px solid ${osStatusColor[os.statut]||"#94A3B8"}`}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:8}}>
@@ -174,7 +177,7 @@ export default function OrdresServiceV({data,m,reload}) {
     <Modal open={!!modal} onClose={()=>setModal(null)} title={modal==="edit"?"Modifier l'Ordre de Service":"Nouvel Ordre de Service"} wide>
       <div style={{display:"grid",gridTemplateColumns:m?"1fr":"1fr 1fr 1fr",gap:"0 12px"}}>
         <FF label="N° OS"><input style={inp} value={form.numero||""} onChange={e=>setForm({...form,numero:e.target.value})}/></FF>
-        <FF label="Chantier"><select style={sel} value={form.chantier_id||""} onChange={e=>updateChantier(e.target.value)}>{data.chantiers.map(c=><option key={c.id} value={c.id}>{c.nom}</option>)}</select></FF>
+        <FF label="Chantier"><select style={sel} value={form.chantier_id||""} onChange={e=>updateChantier(e.target.value)}>{chantiers.map(c=><option key={c.id} value={c.id}>{c.nom}</option>)}</select></FF>
         <FF label="Statut"><select style={sel} value={form.statut||""} onChange={e=>setForm({...form,statut:e.target.value})}><option>Brouillon</option><option>Émis</option><option>Signé</option><option>En cours</option><option>Terminé</option><option>Annulé</option></select></FF>
       </div>
       <div style={{display:"grid",gridTemplateColumns:m?"1fr":"1fr 1fr",gap:"0 12px"}}>

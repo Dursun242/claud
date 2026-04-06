@@ -237,7 +237,7 @@ export default function AdminDashboard({ user, profile = null }) {
           <div style={{position:"fixed",top:0,left:0,right:0,height:52,background:"#fff",borderBottom:"1px solid #E2E8F0",display:"flex",alignItems:"center",padding:"0 16px",zIndex:997,gap:12}}>
             <button onClick={()=>setSidebarOpen(true)} style={{background:"none",border:"none",cursor:"pointer",padding:4}}><Icon d={I.menu} size={22} color="#0F172A"/></button>
             <span style={{fontSize:15,fontWeight:700,color:"#0F172A"}}>ID Maîtrise</span>
-            <span style={{fontSize:11,color:"#94A3B8",marginLeft:"auto"}}>{tabs.find(t=>t.key===tab)?.label}</span>
+            <span style={{fontSize:11,color:"#94A3B8",marginLeft:"auto"}}>{Array.isArray(tabs) ? tabs.find(t=>t.key===tab)?.label : ""}</span>
           </div>
         )}
         <div style={{animation:"fadeIn .3s ease",maxWidth:1200}}>

@@ -6,11 +6,13 @@ import { generateCRPdf, generateCRExcel } from '../generators'
 
 export default function ReportsV({data,save,m,reload}) {
   const [modal,setModal]=useState(null);const [form,setForm]=useState({});const [searchCR,setSearchCR]=useState("");
-  const openNew=()=>{setForm({chantierId:data.chantiers[0]?.id||"",date:new Date().toISOString().split("T")[0],numero:(data.compteRendus||[]).length+1,resume:"",participants:"",decisions:""});setModal("new");};
+  const chantiers = Array.isArray(data?.chantiers) ? data.chantiers : [];
+  const compteRendus = Array.isArray(data?.compteRendus) ? data.compteRendus : [];
+  const openNew=()=>{setForm({chantierId:chantiers[0]?.id||"",date:new Date().toISOString().split("T")[0],numero:compteRendus.length+1,resume:"",participants:"",decisions:""});setModal("new");};
   const handleSave=async()=>{await SB.upsertCR(form);setModal(null);reload();};
   const handleDelete=async(id)=>{if(!window.confirm("Supprimer ce compte rendu ?")) return;await SB.deleteCR(id);reload();};
 
-  const filterCR=(cr)=>{const s=searchCR.toLowerCase();const ch=data.chantiers.find(c=>c.id===(cr.chantierId||cr.chantier_id));return String(cr.numero).toLowerCase().includes(s)||(ch?.nom||"").toLowerCase().includes(s)||(ch?.client||"").toLowerCase().includes(s)||(ch?.adresse||"").toLowerCase().includes(s);};
+  const filterCR=(cr)=>{const s=searchCR.toLowerCase();const ch=Array.isArray(chantiers) ? chantiers.find(c=>c.id===(cr.chantierId||cr.chantier_id)) : null;return String(cr.numero).toLowerCase().includes(s)||(ch?.nom||"").toLowerCase().includes(s)||(ch?.client||"").toLowerCase().includes(s)||(ch?.adresse||"").toLowerCase().includes(s);};
 
   return (<div>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20,flexWrap:"wrap",gap:8}}>
@@ -20,7 +22,7 @@ export default function ReportsV({data,save,m,reload}) {
         <button onClick={openNew} style={{...btnP,fontSize:12}}>+ CR</button>
       </div>
     </div>
-    {(data.compteRendus||[]).filter(filterCR).sort((a,b)=>new Date(b.date)-new Date(a.date)).map(cr=>{const ch=data.chantiers.find(c=>c.id===(cr.chantierId||cr.chantier_id));return(
+    {compteRendus.filter(filterCR).sort((a,b)=>new Date(b.date)-new Date(a.date)).map(cr=>{const ch=Array.isArray(chantiers) ? chantiers.find(c=>c.id===(cr.chantierId||cr.chantier_id)) : null;return(
       <div key={cr.id} style={{background:"#fff",borderRadius:12,padding:m?14:20,boxShadow:"0 1px 3px rgba(0,0,0,0.06)",marginBottom:12}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10,flexWrap:"wrap",gap:6}}>
           <div style={{display:"flex",alignItems:"center",gap:8}}><span style={{background:"#1E3A5F",color:"#fff",borderRadius:6,padding:"3px 8px",fontSize:12,fontWeight:700}}>CR n°{cr.numero}</span><span style={{fontWeight:700,fontSize:14}}>{ch?.nom}</span><span style={{fontSize:11,color:"#94A3B8"}}>{fmtDate(cr.date)}</span></div>
