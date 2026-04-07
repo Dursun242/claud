@@ -9,44 +9,43 @@ export function useAuth() {
   return useContext(AuthContext)
 }
 
-// ─── LOAD USER PROFILE ───
-// TEMPORAIRE : authorized_users désactivé — tout compte Google est accepté.
-// TODO: réactiver le check en base quand l'auth sera reconfigurée.
-async function loadUserProfile(email) {
-  if (!email) return { profile: null, reason: 'no_email' }
-  // Profil par défaut pour tout utilisateur Google authentifié
-  return {
-    profile: { email, prenom: email.split('@')[0], nom: '', role: 'admin', actif: true },
-    reason: null
-  }
-}
-
 // ─── AUTH PROVIDER ───
+// NOTE : la vérification authorized_users est temporairement désactivée.
+// Tout compte Google authentifié accède à l'app avec le rôle 'admin'.
+// TODO : réactiver loadUserProfile() quand les utilisateurs sont reconfigurés en base.
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [denied, setDenied] = useState(false)
-  const [deniedEmail, setDeniedEmail] = useState(null)
 
   useEffect(() => {
     let isMounted = true
 
-    // OPTIMIZED: Only use onAuthStateChange (it handles both initial and changes)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!isMounted) return
 
       if (session?.user) {
+        // Sauvegarder le token Google Calendar si disponible
         if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session.provider_token) {
-          await supabase.from('settings').upsert({ key: 'gcal-token', value: session.provider_token }).catch(() => {});
+          supabase.from('settings')
+            .upsert({ key: 'gcal-token', value: session.provider_token })
+            .catch(() => {})
         }
 
-        const { profile } = await loadUserProfile(session.user.email)
+        // Profil par défaut — bypass temporaire de authorized_users
+        const defaultProfile = {
+          email: session.user.email,
+          prenom: session.user.user_metadata?.full_name?.split(' ')[0]
+            || session.user.user_metadata?.name?.split(' ')[0]
+            || session.user.email.split('@')[0],
+          nom: session.user.user_metadata?.full_name?.split(' ').slice(1).join(' ') || '',
+          role: 'admin',
+          actif: true,
+        }
+
         if (isMounted) {
           setUser(session.user)
-          setProfile(profile)
-          setDenied(false)
-          setDeniedEmail(null)
+          setProfile(defaultProfile)
         }
       } else {
         if (isMounted) {
@@ -54,6 +53,7 @@ export function AuthProvider({ children }) {
           setProfile(null)
         }
       }
+
       if (isMounted) setLoading(false)
     })
 
@@ -64,7 +64,7 @@ export function AuthProvider({ children }) {
   }, [])
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, denied, deniedEmail }}>
+    <AuthContext.Provider value={{ user, profile, loading }}>
       {children}
     </AuthContext.Provider>
   )
@@ -73,10 +73,11 @@ export function AuthProvider({ children }) {
 // ─── LOGIN PAGE ───
 export function LoginPage() {
   const [loggingIn, setLoggingIn] = useState(false)
-  const { denied, deniedEmail } = useAuth()
+  const [error, setError] = useState(null)
 
   const handleGoogleLogin = async () => {
     setLoggingIn(true)
+    setError(null)
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
@@ -86,7 +87,7 @@ export function LoginPage() {
       }
     })
     if (error) {
-      console.error('Login error:', error.message)
+      setError(error.message)
       setLoggingIn(false)
     }
   }
@@ -100,52 +101,33 @@ export function LoginPage() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
         @keyframes fadeIn { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
-        @keyframes neonPulse { 0%,100% { box-shadow: 0 0 20px rgba(0,255,136,0.15); } 50% { box-shadow: 0 0 40px rgba(0,255,136,0.3); } }
       `}</style>
 
       <div style={{
         background: '#fff', borderRadius: 24, padding: '48px 40px', maxWidth: 420, width: '100%',
-        boxShadow: '0 25px 80px rgba(0,0,0,0.4)', animation: 'fadeIn 0.5s ease',
-        textAlign: 'center',
+        boxShadow: '0 25px 80px rgba(0,0,0,0.4)', animation: 'fadeIn 0.5s ease', textAlign: 'center',
       }}>
-        {/* Logo ampoule */}
         <div style={{
-          width: 80, height: 80, borderRadius: 20,
-          background: '#F8FAFC',
+          width: 80, height: 80, borderRadius: 20, background: '#F8FAFC',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          margin: '0 auto 20px', boxShadow: '0 4px 16px rgba(0,0,0,0.08)',
-          overflow: 'hidden',
+          margin: '0 auto 20px', boxShadow: '0 4px 16px rgba(0,0,0,0.08)', overflow: 'hidden',
         }}>
           <img src="/icon-192.png" alt="ID Maîtrise" style={{ width: 60, height: 60, objectFit: 'contain' }} />
         </div>
 
-        <h1 style={{ margin: '0 0 4px', fontSize: 26, fontWeight: 700, color: '#0F172A' }}>
-          ID Maîtrise
-        </h1>
-        <p style={{ margin: '0 0 8px', fontSize: 13, color: '#64748B' }}>
-          Ingénierie de la construction
-        </p>
-        <p style={{ margin: '0 0 32px', fontSize: 12, color: '#94A3B8' }}>
-          Tableau de bord de gestion de chantiers
-        </p>
+        <h1 style={{ margin: '0 0 4px', fontSize: 26, fontWeight: 700, color: '#0F172A' }}>ID Maîtrise</h1>
+        <p style={{ margin: '0 0 8px', fontSize: 13, color: '#64748B' }}>Ingénierie de la construction</p>
+        <p style={{ margin: '0 0 32px', fontSize: 12, color: '#94A3B8' }}>Tableau de bord de gestion de chantiers</p>
 
-        {/* Error message if denied */}
-        {denied && (
+        {error && (
           <div style={{
             background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 10,
             padding: '12px 16px', marginBottom: 20, fontSize: 13, color: '#DC2626',
           }}>
-            Accès refusé. Cet email n'est pas autorisé.<br/>
-            {deniedEmail && (
-              <span style={{ display: 'block', marginTop: 4, fontSize: 12, fontWeight: 600, color: '#B91C1C', wordBreak: 'break-all' }}>
-                {deniedEmail}
-              </span>
-            )}
-            <span style={{ fontSize: 11, color: '#94A3B8' }}>Ajoutez cet email dans la table <code>authorized_users</code> de Supabase.</span>
+            {error}
           </div>
         )}
 
-        {/* Google Login Button */}
         <button
           onClick={handleGoogleLogin}
           disabled={loggingIn}
@@ -154,14 +136,12 @@ export function LoginPage() {
             border: '1.5px solid #E2E8F0', background: '#fff',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12,
             cursor: loggingIn ? 'wait' : 'pointer', fontSize: 15, fontWeight: 600,
-            color: '#334155', fontFamily: 'inherit',
-            transition: 'all 0.2s',
+            color: '#334155', fontFamily: 'inherit', transition: 'all 0.2s',
             boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
           }}
-          onMouseEnter={e => { e.target.style.borderColor = '#3B82F6'; e.target.style.boxShadow = '0 2px 8px rgba(59,130,246,0.15)'; }}
-          onMouseLeave={e => { e.target.style.borderColor = '#E2E8F0'; e.target.style.boxShadow = '0 1px 3px rgba(0,0,0,0.08)'; }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = '#3B82F6'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(59,130,246,0.15)' }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = '#E2E8F0'; e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.08)' }}
         >
-          {/* Google icon */}
           <svg width="20" height="20" viewBox="0 0 24 24">
             <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
             <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
@@ -175,10 +155,9 @@ export function LoginPage() {
           Accès réservé aux collaborateurs ID Maîtrise
         </p>
 
-        {/* Footer */}
         <div style={{ marginTop: 32, paddingTop: 20, borderTop: '1px solid #F1F5F9' }}>
           <p style={{ margin: 0, fontSize: 10, color: '#94A3B8' }}>
-            SARL ID MAÎTRISE — 9 Rue Henry Genestal, 76600 Le Havre<br/>
+            SARL ID MAÎTRISE — 9 Rue Henry Genestal, 76600 Le Havre<br />
             SIRET 921 536 181 00024
           </p>
         </div>
@@ -187,7 +166,7 @@ export function LoginPage() {
   )
 }
 
-// ─── LOGOUT FUNCTION ───
+// ─── LOGOUT ───
 export async function logout() {
   await supabase.auth.signOut()
 }

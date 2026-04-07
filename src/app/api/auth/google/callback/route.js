@@ -1,11 +1,10 @@
 /**
- * Google OAuth Callback — Feature désactivée
- * L'intégration Google Calendar a été retirée de l'application.
- * Cette route redirige simplement vers l'accueil sans exposer de tokens.
+ * Route désactivée — plus utilisée depuis le passage au flow OAuth implicit (Supabase).
+ * Les tokens sont désormais gérés directement côté client par le SDK Supabase.
  */
-export const dynamic = 'force-dynamic';
+export const dynamic = 'force-dynamic'
 
 export async function GET() {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://claude-dusky.vercel.app';
-  return Response.redirect(new URL('/', appUrl).toString());
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://claude-dusky.vercel.app'
+  return Response.redirect(new URL('/', appUrl).toString())
 }
