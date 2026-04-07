@@ -1,5 +1,6 @@
 'use client'
 import { useRef } from 'react'
+import { supabase } from '../supabaseClient'
 
 /**
  * Composant AttachmentsSection
@@ -36,9 +37,8 @@ export default function AttachmentsSection({
   }
 
   const getFileUrl = (filePath) => {
-    // This should be called from parent and passed down as prop
-    // For now, return a constructed URL (adjust based on your Supabase setup)
-    return `https://YOUR_SUPABASE_URL/storage/v1/object/public/attachments/${filePath}`
+    const { data } = supabase.storage.from('attachments').getPublicUrl(filePath)
+    return data?.publicUrl || ''
   }
 
   return (
