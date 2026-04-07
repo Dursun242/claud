@@ -10,22 +10,15 @@ export function useAuth() {
 }
 
 // ─── LOAD USER PROFILE ───
+// TEMPORAIRE : authorized_users désactivé — tout compte Google est accepté.
+// TODO: réactiver le check en base quand l'auth sera reconfigurée.
 async function loadUserProfile(email) {
   if (!email) return { profile: null, reason: 'no_email' }
-
-  const normalizedEmail = email.trim().toLowerCase()
-  const { data, error } = await supabase
-    .from('authorized_users')
-    .select('*')
-    .ilike('email', normalizedEmail)
-    .eq('actif', true)
-    .single()
-
-  if (error) {
-    console.warn('[Auth] loadUserProfile failed:', error.code, error.message, '| email:', normalizedEmail)
-    return { profile: null, reason: error.code === 'PGRST116' ? 'not_found' : 'db_error' }
+  // Profil par défaut pour tout utilisateur Google authentifié
+  return {
+    profile: { email, prenom: email.split('@')[0], nom: '', role: 'admin', actif: true },
+    reason: null
   }
-  return { profile: data, reason: null }
 }
 
 // ─── AUTH PROVIDER ───
@@ -43,41 +36,17 @@ export function AuthProvider({ children }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!isMounted) return
 
-      console.log('[Auth] event:', event, '| user:', session?.user?.email ?? 'none')
-
       if (session?.user) {
-        // Sauvegarder le token Google Calendar dès qu'il est disponible (juste après login OAuth)
         if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session.provider_token) {
           await supabase.from('settings').upsert({ key: 'gcal-token', value: session.provider_token }).catch(() => {});
         }
 
-        try {
-          const { profile, reason } = await loadUserProfile(session.user.email)
-          console.log('[Auth] profile result:', profile ? 'found' : 'null', '| reason:', reason)
-          if (isMounted) {
-            if (profile) {
-              setUser(session.user)
-              setProfile(profile)
-              setDenied(false)
-              setDeniedEmail(null)
-            } else {
-              console.warn('[Auth] Access denied for', session.user.email, '| reason:', reason)
-              setDenied(true)
-              setDeniedEmail(session.user.email)
-              setUser(null)
-              setProfile(null)
-              await supabase.auth.signOut()
-            }
-          }
-        } catch (err) {
-          console.error('[Auth] Unexpected error:', err)
-          if (isMounted) {
-            setDenied(true)
-            setDeniedEmail(session.user.email)
-            setUser(null)
-            setProfile(null)
-            setLoading(false)
-          }
+        const { profile } = await loadUserProfile(session.user.email)
+        if (isMounted) {
+          setUser(session.user)
+          setProfile(profile)
+          setDenied(false)
+          setDeniedEmail(null)
         }
       } else {
         if (isMounted) {
