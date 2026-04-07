@@ -10,13 +10,11 @@ export function useAuth() {
 }
 
 // ─── AUTH PROVIDER ───
-// NOTE : la vérification authorized_users est temporairement désactivée.
-// Tout compte Google authentifié accède à l'app avec le rôle 'admin'.
-// TODO : réactiver loadUserProfile() quand les utilisateurs sont reconfigurés en base.
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [denied, setDenied] = useState(false)
 
   useEffect(() => {
     let isMounted = true
@@ -25,27 +23,32 @@ export function AuthProvider({ children }) {
       if (!isMounted) return
 
       if (session?.user) {
-        // Sauvegarder le token Google Calendar si disponible
         if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session.provider_token) {
           supabase.from('settings')
             .upsert({ key: 'gcal-token', value: session.provider_token })
             .catch(() => {})
         }
 
-        // Profil par défaut — bypass temporaire de authorized_users
-        const defaultProfile = {
-          email: session.user.email,
-          prenom: session.user.user_metadata?.full_name?.split(' ')[0]
-            || session.user.user_metadata?.name?.split(' ')[0]
-            || session.user.email.split('@')[0],
-          nom: session.user.user_metadata?.full_name?.split(' ').slice(1).join(' ') || '',
-          role: 'admin',
-          actif: true,
-        }
+        // Vérification dans authorized_users
+        const email = session.user.email?.trim().toLowerCase()
+        const { data, error } = await supabase
+          .from('authorized_users')
+          .select('*')
+          .ilike('email', email)
+          .eq('actif', true)
+          .single()
 
         if (isMounted) {
-          setUser(session.user)
-          setProfile(defaultProfile)
+          if (data && !error) {
+            setUser(session.user)
+            setProfile(data)
+            setDenied(false)
+          } else {
+            setDenied(true)
+            setUser(null)
+            setProfile(null)
+            await supabase.auth.signOut()
+          }
         }
       } else {
         if (isMounted) {
@@ -64,7 +67,7 @@ export function AuthProvider({ children }) {
   }, [])
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading }}>
+    <AuthContext.Provider value={{ user, profile, loading, denied }}>
       {children}
     </AuthContext.Provider>
   )
@@ -74,6 +77,7 @@ export function AuthProvider({ children }) {
 export function LoginPage() {
   const [loggingIn, setLoggingIn] = useState(false)
   const [error, setError] = useState(null)
+  const { denied } = useAuth()
 
   const handleGoogleLogin = async () => {
     setLoggingIn(true)
@@ -119,12 +123,12 @@ export function LoginPage() {
         <p style={{ margin: '0 0 8px', fontSize: 13, color: '#64748B' }}>Ingénierie de la construction</p>
         <p style={{ margin: '0 0 32px', fontSize: 12, color: '#94A3B8' }}>Tableau de bord de gestion de chantiers</p>
 
-        {error && (
+        {(denied || error) && (
           <div style={{
             background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 10,
             padding: '12px 16px', marginBottom: 20, fontSize: 13, color: '#DC2626',
           }}>
-            {error}
+            {denied ? 'Accès refusé. Votre compte n\'est pas autorisé.' : error}
           </div>
         )}
 
