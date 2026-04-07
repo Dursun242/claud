@@ -11,15 +11,21 @@ export function useAuth() {
 
 // ─── LOAD USER PROFILE ───
 async function loadUserProfile(email) {
+  if (!email) return { profile: null, reason: 'no_email' }
+
+  const normalizedEmail = email.trim().toLowerCase()
   const { data, error } = await supabase
     .from('authorized_users')
     .select('*')
-    .eq('email', email)
+    .ilike('email', normalizedEmail)
     .eq('actif', true)
     .single()
 
-  if (error) return null
-  return data
+  if (error) {
+    console.warn('[Auth] loadUserProfile failed:', error.code, error.message, '| email:', normalizedEmail)
+    return { profile: null, reason: error.code === 'PGRST116' ? 'not_found' : 'db_error' }
+  }
+  return { profile: data, reason: null }
 }
 
 // ─── AUTH PROVIDER ───
@@ -37,6 +43,8 @@ export function AuthProvider({ children }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!isMounted) return
 
+      console.log('[Auth] event:', event, '| user:', session?.user?.email ?? 'none')
+
       if (session?.user) {
         // Sauvegarder le token Google Calendar dès qu'il est disponible (juste après login OAuth)
         if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session.provider_token) {
@@ -44,7 +52,8 @@ export function AuthProvider({ children }) {
         }
 
         try {
-          const profile = await loadUserProfile(session.user.email)
+          const { profile, reason } = await loadUserProfile(session.user.email)
+          console.log('[Auth] profile result:', profile ? 'found' : 'null', '| reason:', reason)
           if (isMounted) {
             if (profile) {
               setUser(session.user)
@@ -52,6 +61,7 @@ export function AuthProvider({ children }) {
               setDenied(false)
               setDeniedEmail(null)
             } else {
+              console.warn('[Auth] Access denied for', session.user.email, '| reason:', reason)
               setDenied(true)
               setDeniedEmail(session.user.email)
               setUser(null)
@@ -60,8 +70,10 @@ export function AuthProvider({ children }) {
             }
           }
         } catch (err) {
-          console.error("Auth error:", err)
+          console.error('[Auth] Unexpected error:', err)
           if (isMounted) {
+            setDenied(true)
+            setDeniedEmail(session.user.email)
             setUser(null)
             setProfile(null)
             setLoading(false)
