@@ -29,16 +29,18 @@ export function AuthProvider({ children }) {
             .catch(() => {})
         }
 
-        // Vérification dans authorized_users
+        // Vérification via API serveur (service role key, bypass RLS garanti)
         const email = session.user.email?.trim().toLowerCase()
-        const { data: rows } = await supabase
-          .from('authorized_users')
-          .select('*')
-          .eq('actif', true)
-
-        const profile = (rows || []).find(
-          u => u.email?.trim().toLowerCase() === email
-        )
+        let profile = null
+        try {
+          const res = await fetch('/api/admin/users')
+          if (res.ok) {
+            const json = await res.json()
+            profile = (json.data || []).find(
+              u => u.email?.trim().toLowerCase() === email && u.actif
+            )
+          }
+        } catch (_) {}
 
         if (isMounted) {
           if (profile) {
