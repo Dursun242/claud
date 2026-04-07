@@ -31,17 +31,19 @@ export function AuthProvider({ children }) {
 
         // Vérification dans authorized_users
         const email = session.user.email?.trim().toLowerCase()
-        const { data, error } = await supabase
+        const { data: rows } = await supabase
           .from('authorized_users')
           .select('*')
-          .ilike('email', email)
           .eq('actif', true)
-          .single()
+
+        const profile = (rows || []).find(
+          u => u.email?.trim().toLowerCase() === email
+        )
 
         if (isMounted) {
-          if (data && !error) {
+          if (profile) {
             setUser(session.user)
-            setProfile(data)
+            setProfile(profile)
             setDenied(false)
           } else {
             setDenied(true)
