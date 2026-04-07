@@ -10,16 +10,15 @@ export function useAuth() {
 }
 
 // ─── LOAD USER PROFILE ───
+// TEMPORAIRE : authorized_users désactivé — tout compte Google est accepté.
+// TODO: réactiver le check en base quand l'auth sera reconfigurée.
 async function loadUserProfile(email) {
-  const { data, error } = await supabase
-    .from('authorized_users')
-    .select('*')
-    .eq('email', email)
-    .eq('actif', true)
-    .single()
-
-  if (error) return null
-  return data
+  if (!email) return { profile: null, reason: 'no_email' }
+  // Profil par défaut pour tout utilisateur Google authentifié
+  return {
+    profile: { email, prenom: email.split('@')[0], nom: '', role: 'admin', actif: true },
+    reason: null
+  }
 }
 
 // ─── AUTH PROVIDER ───
@@ -28,6 +27,7 @@ export function AuthProvider({ children }) {
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
   const [denied, setDenied] = useState(false)
+  const [deniedEmail, setDeniedEmail] = useState(null)
 
   useEffect(() => {
     let isMounted = true
@@ -37,32 +37,16 @@ export function AuthProvider({ children }) {
       if (!isMounted) return
 
       if (session?.user) {
-        // Sauvegarder le token Google Calendar dès qu'il est disponible (juste après login OAuth)
         if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session.provider_token) {
           await supabase.from('settings').upsert({ key: 'gcal-token', value: session.provider_token }).catch(() => {});
         }
 
-        try {
-          const profile = await loadUserProfile(session.user.email)
-          if (isMounted) {
-            if (profile) {
-              setUser(session.user)
-              setProfile(profile)
-              setDenied(false)
-            } else {
-              setDenied(true)
-              setUser(null)
-              setProfile(null)
-              await supabase.auth.signOut()
-            }
-          }
-        } catch (err) {
-          console.error("Auth error:", err)
-          if (isMounted) {
-            setUser(null)
-            setProfile(null)
-            setLoading(false)
-          }
+        const { profile } = await loadUserProfile(session.user.email)
+        if (isMounted) {
+          setUser(session.user)
+          setProfile(profile)
+          setDenied(false)
+          setDeniedEmail(null)
         }
       } else {
         if (isMounted) {
@@ -80,7 +64,7 @@ export function AuthProvider({ children }) {
   }, [])
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, denied }}>
+    <AuthContext.Provider value={{ user, profile, loading, denied, deniedEmail }}>
       {children}
     </AuthContext.Provider>
   )
@@ -89,7 +73,7 @@ export function AuthProvider({ children }) {
 // ─── LOGIN PAGE ───
 export function LoginPage() {
   const [loggingIn, setLoggingIn] = useState(false)
-  const { denied } = useAuth()
+  const { denied, deniedEmail } = useAuth()
 
   const handleGoogleLogin = async () => {
     setLoggingIn(true)
@@ -98,6 +82,7 @@ export function LoginPage() {
       options: {
         redirectTo: typeof window !== 'undefined' ? window.location.origin : undefined,
         scopes: 'https://www.googleapis.com/auth/calendar.readonly',
+        queryParams: { access_type: 'offline', prompt: 'consent' },
       }
     })
     if (error) {
@@ -150,8 +135,13 @@ export function LoginPage() {
             background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 10,
             padding: '12px 16px', marginBottom: 20, fontSize: 13, color: '#DC2626',
           }}>
-            Accès refusé. Votre email n'est pas autorisé.<br/>
-            <span style={{ fontSize: 11, color: '#94A3B8' }}>Contactez l'administrateur pour obtenir l'accès.</span>
+            Accès refusé. Cet email n'est pas autorisé.<br/>
+            {deniedEmail && (
+              <span style={{ display: 'block', marginTop: 4, fontSize: 12, fontWeight: 600, color: '#B91C1C', wordBreak: 'break-all' }}>
+                {deniedEmail}
+              </span>
+            )}
+            <span style={{ fontSize: 11, color: '#94A3B8' }}>Ajoutez cet email dans la table <code>authorized_users</code> de Supabase.</span>
           </div>
         )}
 
