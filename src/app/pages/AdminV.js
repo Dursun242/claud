@@ -1,11 +1,16 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { btnP, btnS } from '../dashboards/shared'
+import { supabase } from '../supabaseClient'
 
 async function apiUsers(method, body) {
+  const { data: { session } } = await supabase.auth.getSession()
   const res = await fetch('/api/admin/users', {
     method,
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${session?.access_token || ''}`,
+    },
     body: body ? JSON.stringify(body) : undefined,
   })
   const json = await res.json()
@@ -79,7 +84,11 @@ export default function AdminV({ m, reload, profile }) {
   const handleSetupStorage = async () => {
     setSetupLoading(true); setSetupMsg("")
     try {
-      const res = await fetch('/api/setup-storage', { method: 'POST' })
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch('/api/setup-storage', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${session?.access_token || ''}` },
+      })
       const data = await res.json()
       setSetupMsg(data.ok ? "✅ " + data.message : "❌ " + data.error)
     } catch (e) {

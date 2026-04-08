@@ -51,7 +51,12 @@ export function useAttachments(type, itemId) {
       fd.append('file', file)
       fd.append('type', type)
       fd.append('itemId', itemId)
-      const res  = await fetch('/api/upload', { method: 'POST', body: fd })
+      const { data: { session } } = await supabase.auth.getSession()
+      const res  = await fetch('/api/upload', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${session?.access_token || ''}` },
+        body: fd,
+      })
       const data = await res.json()
       if (!data.ok) throw new Error(data.error || 'Erreur upload')
       await loadAttachments()

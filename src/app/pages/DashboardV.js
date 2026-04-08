@@ -1,5 +1,5 @@
 'use client'
-import { pct, fmtMoney, phase, status, PBar } from '../dashboards/shared'
+import { pct, fmtMoney, phase, status, PBar, COMPANY } from '../dashboards/shared'
 
 export default function DashboardV({data,setTab,m,user}) {
   const today = new Date().toISOString().split("T")[0];
@@ -19,7 +19,7 @@ export default function DashboardV({data,setTab,m,user}) {
   return (<div>
     {/* HEADER */}
     <div style={{marginBottom:24}}>
-      <h1 style={{margin:0,fontSize:m?22:28,fontWeight:700,color:"#0F172A"}}>Bonjour {user?.user_metadata?.full_name?.split(" ")[0] || "Dursun"}</h1>
+      <h1 style={{margin:0,fontSize:m?22:28,fontWeight:700,color:"#0F172A"}}>Bonjour {user?.user_metadata?.full_name?.split(" ")[0] || COMPANY.gerant}</h1>
       <p style={{margin:"6px 0 0",color:"#64748B",fontSize:m?12:13}}>{new Date().toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"})}</p>
     </div>
 

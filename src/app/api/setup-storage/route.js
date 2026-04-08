@@ -1,6 +1,26 @@
 import { createClient } from '@supabase/supabase-js'
 
-export async function POST() {
+async function verifyAdmin(request) {
+  const authHeader = request.headers.get('Authorization')
+  if (!authHeader?.startsWith('Bearer ')) return false
+  const token = authHeader.replace('Bearer ', '')
+  const client = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    { auth: { persistSession: false } }
+  )
+  const { data: { user } } = await client.auth.getUser(token)
+  if (!user) return false
+
+  const adminClient = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } })
+  const { data } = await adminClient.from('authorized_users').select('role').eq('email', user.email).single()
+  return data?.role === 'admin'
+}
+
+export async function POST(request) {
+  const isAdmin = await verifyAdmin(request)
+  if (!isAdmin) return Response.json({ error: 'Accès réservé aux administrateurs' }, { status: 403 })
+
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
   if (!serviceKey) {
     return Response.json({ error: 'SUPABASE_SERVICE_ROLE_KEY manquant dans les variables d\'environnement Vercel.' }, { status: 500 })
@@ -12,7 +32,6 @@ export async function POST() {
     { auth: { persistSession: false, autoRefreshToken: false } }
   )
 
-  // Vérifier si le bucket existe déjà
   const { data: buckets, error: listError } = await supabaseAdmin.storage.listBuckets()
   if (listError) {
     return Response.json({ error: 'Impossible de lister les buckets : ' + listError.message }, { status: 500 })
@@ -23,11 +42,14 @@ export async function POST() {
   if (!exists) {
     const { error } = await supabaseAdmin.storage.createBucket('attachments', {
       public: false,
-      fileSizeLimit: 20971520, // 20 MB
-      allowedMimeTypes: ['image/*', 'application/pdf', 'application/msword',
+      fileSizeLimit: 20971520,
+      allowedMimeTypes: [
+        'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+        'application/pdf', 'application/msword',
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         'application/vnd.ms-excel',
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'],
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      ],
     })
     if (error) {
       return Response.json({ error: 'Création bucket échouée : ' + error.message }, { status: 500 })

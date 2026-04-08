@@ -1,20 +1,31 @@
 import { createClient } from '@supabase/supabase-js'
 
-/**
- * API route pour gérer les utilisateurs autorisés.
- * Utilise la service role key pour bypasser la RLS Supabase.
- * Nécessite SUPABASE_SERVICE_ROLE_KEY dans les variables Vercel.
- */
-
 function getAdminClient() {
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
   if (!serviceKey) throw new Error('SUPABASE_SERVICE_ROLE_KEY manquant dans les variables Vercel.')
-  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, serviceKey)
+  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, serviceKey, { auth: { persistSession: false } })
 }
 
-// GET — liste tous les utilisateurs
-export async function GET() {
+// Vérifie le JWT Supabase et retourne l'utilisateur, ou null si invalide
+async function verifyAuth(request) {
+  const authHeader = request.headers.get('Authorization')
+  if (!authHeader?.startsWith('Bearer ')) return null
+  const token = authHeader.replace('Bearer ', '')
+  const client = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    { auth: { persistSession: false } }
+  )
+  const { data: { user } } = await client.auth.getUser(token)
+  return user || null
+}
+
+// GET — liste tous les utilisateurs (authentification requise)
+export async function GET(request) {
   try {
+    const user = await verifyAuth(request)
+    if (!user) return Response.json({ error: 'Non autorisé' }, { status: 401 })
+
     const supabaseAdmin = getAdminClient()
     const { data, error } = await supabaseAdmin
       .from('authorized_users')
@@ -27,12 +38,23 @@ export async function GET() {
   }
 }
 
-// POST — ajoute ou met à jour un utilisateur
+// POST — ajoute ou met à jour un utilisateur (admin uniquement)
 export async function POST(request) {
   try {
-    const supabaseAdmin = getAdminClient()
-    const { email, prenom, nom, role } = await request.json()
+    const user = await verifyAuth(request)
+    if (!user) return Response.json({ error: 'Non autorisé' }, { status: 401 })
 
+    const supabaseAdmin = getAdminClient()
+
+    // Vérifier que l'appelant est bien admin
+    const { data: caller } = await supabaseAdmin
+      .from('authorized_users')
+      .select('role')
+      .eq('email', user.email)
+      .single()
+    if (caller?.role !== 'admin') return Response.json({ error: 'Accès réservé aux administrateurs' }, { status: 403 })
+
+    const { email, prenom, nom, role } = await request.json()
     if (!email?.trim() || !prenom?.trim()) {
       return Response.json({ error: 'Email et prénom requis.' }, { status: 400 })
     }
@@ -56,10 +78,21 @@ export async function POST(request) {
   }
 }
 
-// DELETE — supprime un utilisateur par id
+// DELETE — supprime un utilisateur par id (admin uniquement)
 export async function DELETE(request) {
   try {
+    const user = await verifyAuth(request)
+    if (!user) return Response.json({ error: 'Non autorisé' }, { status: 401 })
+
     const supabaseAdmin = getAdminClient()
+
+    const { data: caller } = await supabaseAdmin
+      .from('authorized_users')
+      .select('role')
+      .eq('email', user.email)
+      .single()
+    if (caller?.role !== 'admin') return Response.json({ error: 'Accès réservé aux administrateurs' }, { status: 403 })
+
     const { id } = await request.json()
     if (!id) return Response.json({ error: 'ID requis.' }, { status: 400 })
 

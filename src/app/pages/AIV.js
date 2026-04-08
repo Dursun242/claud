@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import ReactMarkdown from 'react-markdown'
-import { SB, Icon, I, ApiBadge, inp, btnP } from '../dashboards/shared'
+import { SB, Icon, I, ApiBadge, inp, btnP, COMPANY } from '../dashboards/shared'
 import { MicButtonInline } from '../components'
 
 // Prépare un résumé des données pour l'IA — évite d'envoyer les champs inutiles ou trop lourds
@@ -33,7 +33,7 @@ function prepareDataForAI(data) {
 }
 
 export default function AIV({data,save,m,externalTranscript,clearExternal,reload}) {
-  const [messages,setMessages]=useState([{role:"assistant",content:"Bonjour Dursun ! Je suis l'assistant IA d'**ID Maîtrise**.\n\nJe peux tout faire :\n• **\"Crée un OS pour le chantier Friboulet, artisan Lefèvre...\"** → Ordre de Service\n• **\"Rédige un CR pour Les Voiles, présents : Lefèvre, Costa...\"** → Compte Rendu\n• **\"Nouveau chantier Villa Dupont, budget 200 000€...\"** → Chantier\n• **\"Ajoute une tâche urgente...\"** → Tâche\n• **\"Résumé avancement du chantier Les Voiles\"** → Analyse\n\nParlez ou tapez !"}]);
+  const [messages,setMessages]=useState([{role:"assistant",content:`Bonjour ${COMPANY.gerant} ! Je suis l'assistant IA d'**ID Maîtrise**.\n\nJe peux tout faire :\n• **"Crée un OS pour le chantier Friboulet, artisan Lefèvre..."** → Ordre de Service\n• **"Rédige un CR pour Les Voiles, présents : Lefèvre, Costa..."** → Compte Rendu\n• **"Nouveau chantier Villa Dupont, budget 200 000€..."** → Chantier\n• **"Ajoute une tâche urgente..."** → Tâche\n• **"Résumé avancement du chantier Les Voiles"** → Analyse\n\nParlez ou tapez !`}]);
   const [input,setInput]=useState("");
   const [loading,setLoading]=useState(false);
   const [listening,setListening]=useState(false);

@@ -33,7 +33,9 @@ export function AuthProvider({ children }) {
         const email = session.user.email?.trim().toLowerCase()
         let profile = null
         try {
-          const res = await fetch('/api/admin/users')
+          const res = await fetch('/api/admin/users', {
+            headers: { 'Authorization': `Bearer ${session.access_token}` }
+          })
           if (res.ok) {
             const json = await res.json()
             profile = (json.data || []).find(
