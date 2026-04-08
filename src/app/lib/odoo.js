@@ -154,56 +154,59 @@ export async function createSignRequest({ templateId, signerName, signerEmail, r
 export async function createSignRequestFromPdf({ pdfBase64, signerName, signerEmail, reference }) {
   const partnerId = await findOrCreatePartner({ name: signerName, email: signerEmail })
   const b64 = pdfBase64.includes(',') ? pdfBase64.split(',')[1] : pdfBase64
-  const errors = []
 
-  // ── Étape 1 : Créer le template Sign avec le PDF ──────────────────────────
-  let templateId
-
-  // Tentative A : _inherits direct (passer les champs ir.attachment directement)
-  try {
-    templateId = await execute('sign.template', 'create', [{
-      name: `${reference || 'OS'}.pdf`,
-      type: 'binary',
-      datas: b64,
-      mimetype: 'application/pdf',
-    }])
-  } catch (eA) { errors.push(`A(direct): ${eA.message}`) }
-
-  // Tentative B : créer attachment séparé puis sign.template avec attachment_id
-  if (!templateId) {
-    let attId
-    try { attId = await execute('ir.attachment', 'create', [{ name: `${reference || 'OS'}.pdf`, type: 'binary', datas: b64, mimetype: 'application/pdf' }]) }
-    catch (eB0) { errors.push(`B(attachment): ${eB0.message}`) }
-
-    if (attId) {
-      try { templateId = await execute('sign.template', 'create', [{ attachment_id: attId }]) }
-      catch (eB1) { errors.push(`B(template+attach): ${eB1.message}`) }
-    }
+  // ── Étape 1 : Détecter dynamiquement le champ attachment de sign.template ─
+  const tplFields = await execute('sign.template', 'fields_get', [], {
+    attributes: ['string', 'type', 'relation'],
+  })
+  // Chercher le Many2one vers ir.attachment (peu importe son nom exact)
+  const attachEntry = Object.entries(tplFields).find(
+    ([, v]) => v.type === 'many2one' && v.relation === 'ir.attachment'
+  )
+  if (!attachEntry) {
+    throw new Error(
+      `Champ ir.attachment introuvable dans sign.template. Champs disponibles : ${Object.keys(tplFields).join(', ')}`
+    )
   }
+  const [attachFieldName] = attachEntry
 
-  // Tentative C : REST API Odoo 17
-  if (!templateId) {
-    try {
-      const attId = await execute('ir.attachment', 'create', [{ name: `${reference || 'OS'}.pdf`, type: 'binary', datas: b64, mimetype: 'application/pdf' }])
-      const r = await fetch(`${ODOO_URL}/api/sign.template`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${ODOO_API_KEY}` },
-        body: JSON.stringify({ attachment_id: attId }),
-      })
-      const j = await r.json()
-      templateId = j?.id
-      if (!templateId) errors.push(`C(REST): HTTP ${r.status} — ${JSON.stringify(j).slice(0, 200)}`)
-    } catch (eC) { errors.push(`C(REST): ${eC.message}`) }
-  }
+  // ── Étape 2 : Créer l'attachment PDF ─────────────────────────────────────
+  const attId = await execute('ir.attachment', 'create', [{
+    name: `${reference || 'OS'}.pdf`,
+    type: 'binary',
+    datas: b64,
+    mimetype: 'application/pdf',
+  }])
 
-  if (!templateId) throw new Error(`Impossible de créer le template. Erreurs : ${errors.join(' | ')}`)
+  // ── Étape 3 : Créer le template avec le champ détecté ────────────────────
+  const templateId = await execute('sign.template', 'create', [{ [attachFieldName]: attId }])
+  if (!templateId) throw new Error(`Impossible de créer le template Sign (champ: ${attachFieldName})`)
 
-  // ── Étape 2 : Rôle signataire ─────────────────────────────────────────────
+  // ── Étape 4 : Rôle signataire ─────────────────────────────────────────────
   const roles = await execute('sign.item.role', 'search_read', [[]], { fields: ['id', 'name'], limit: 1 })
   const roleId = roles[0]?.id
   if (!roleId) throw new Error('Aucun rôle signataire dans Odoo Sign')
 
-  // ── Étape 3 : Demande de signature ────────────────────────────────────────
+  // ── Étape 5 : Ajouter une zone de signature au template ───────────────────
+  try {
+    const signTypes = await execute('sign.item.type', 'search_read', [[]], { fields: ['id', 'name'], limit: 5 })
+    const signTypeId = signTypes[0]?.id
+    if (signTypeId) {
+      await execute('sign.item', 'create', [{
+        template_id: templateId,
+        responsible_id: roleId,
+        required: true,
+        type_id: signTypeId,
+        posX: 0.1,
+        posY: 0.75,
+        width: 0.4,
+        height: 0.15,
+        page: 1,
+      }])
+    }
+  } catch (_) { /* zone de signature non bloquante */ }
+
+  // ── Étape 6 : Créer la demande de signature ───────────────────────────────
   let requestId
   try {
     requestId = await execute('sign.request', 'create', [{
