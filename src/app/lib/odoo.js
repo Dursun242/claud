@@ -155,19 +155,26 @@ export async function createSignRequestFromPdf({ pdfBase64, signerName, signerEm
   const partnerId = await findOrCreatePartner({ name: signerName, email: signerEmail })
   const b64 = pdfBase64.includes(',') ? pdfBase64.split(',')[1] : pdfBase64
 
-  // ── Étape 1 : Créer l'attachment PDF ─────────────────────────────────────
-  const attId = await execute('ir.attachment', 'create', [{
-    name: `${reference || 'OS'}.pdf`,
-    type: 'binary',
-    datas: b64,
-    mimetype: 'application/pdf',
-  }])
+  // ── Étape 1 : Créer le sign.document (Many2many de sign.template) ─────────
+  // Odoo 17 Enterprise : document_ids pointe vers sign.document (pas ir.attachment)
+  // sign.document utilise _inherits depuis ir.attachment → on passe datas/name/mimetype
+  let docId
+  try {
+    docId = await execute('sign.document', 'create', [{
+      name: `${reference || 'OS'}.pdf`,
+      datas: b64,
+      mimetype: 'application/pdf',
+    }])
+  } catch (e) {
+    // Si _inherits n'existe pas, inspecter les champs disponibles
+    const docFields = await execute('sign.document', 'fields_get', [], { attributes: ['string', 'type'] })
+    throw new Error(`sign.document: ${e.message} | Champs: ${Object.keys(docFields).join(', ')}`)
+  }
 
   // ── Étape 2 : Créer le template Sign ─────────────────────────────────────
-  // Odoo 17 Enterprise : sign.template utilise document_ids (Many2many)
   const templateId = await execute('sign.template', 'create', [{
     name: `${reference || 'OS'}.pdf`,
-    document_ids: [[6, 0, [attId]]],
+    document_ids: [[4, docId, 0]],
   }])
   if (!templateId) throw new Error('Impossible de créer le template Odoo Sign')
 
