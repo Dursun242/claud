@@ -46,7 +46,7 @@ export const SB = {
 
   // Chantiers
   async upsertChantier(ch) {
-    const row = { nom: ch.nom, client: ch.client, adresse: ch.adresse, phase: ch.phase, statut: ch.statut, budget: Number(ch.budget)||0, depenses: Number(ch.depenses)||0, date_debut: ch.dateDebut||ch.date_debut||null, date_fin: ch.dateFin||ch.date_fin||null, lots: ch.lots||[] };
+    const row = { nom: ch.nom, client: ch.client, adresse: ch.adresse, phase: ch.phase, statut: ch.statut, budget: Number(ch.budget)||0, depenses: Number(ch.depenses)||0, date_debut: ch.dateDebut||ch.date_debut||null, date_fin: ch.dateFin||ch.date_fin||null, lots: ch.lots||[], photo_couverture: ch.photo_couverture||null, notes_internes: ch.notes_internes||null };
     if (ch.id && String(ch.id).length > 10) {
       const { data, error } = await supabase.from('chantiers').update(row).eq('id', ch.id).select().single();
       if (error) throw new Error("Erreur mise à jour chantier : " + error.message);

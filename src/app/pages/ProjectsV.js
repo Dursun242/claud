@@ -14,13 +14,15 @@ export default function ProjectsV({data,save,m,reload,user,profile}) {
   const [selected,setSelected]=useState(null);
   const [detailModal,setDetailModal]=useState(null);
   const [detailForm,setDetailForm]=useState({});
+  const [filterStatut,setFilterStatut]=useState("");
+  const [filterPhase,setFilterPhase]=useState("");
 
   // Phase 3 Hooks - Replaces 9 useState calls + useEffect
   const { attachments, uploadAttachment, deleteAttachment } = useAttachments('chantier', selected);
   const { comments, addComment, deleteComment } = useComments('chantier', selected, user?.email);
   const { shares, addShare, deleteShare } = useSharing(selected);
 
-  const openNew=()=>{setForm({nom:"",client:"",adresse:"",phase:"Hors d'air",statut:"Planifié",budget:"",depenses:0,dateDebut:"",dateFin:"",lots:""});setModal("new");};
+  const openNew=()=>{setForm({nom:"",client:"",adresse:"",phase:"Hors d'air",statut:"Planifié",budget:"",depenses:0,dateDebut:"",dateFin:"",lots:"",photo_couverture:"",notes_internes:""});setModal("new");};
   const [saving,setSaving]=useState(false);
   const handleSave=async()=>{
     if(saving) return;
@@ -74,6 +76,15 @@ export default function ProjectsV({data,save,m,reload,user,profile}) {
       <button onClick={()=>setSelected(null)} style={{background:"none",border:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:6,color:"#3B82F6",fontSize:13,fontWeight:600,marginBottom:16,fontFamily:"inherit",padding:0}}>
         ← Retour aux chantiers
       </button>
+
+      {/* Photo de couverture */}
+      {ch.photo_couverture && (
+        <div style={{borderRadius:14,overflow:"hidden",marginBottom:16,height:180,position:"relative"}}>
+          <img src={ch.photo_couverture} alt={ch.nom} style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+          <div style={{position:"absolute",inset:0,background:"linear-gradient(to top, rgba(15,23,42,0.5) 0%, transparent 60%)"}}/>
+          <h1 style={{position:"absolute",bottom:16,left:20,margin:0,fontSize:m?20:26,fontWeight:700,color:"#fff",textShadow:"0 2px 8px rgba(0,0,0,0.4)"}}>{ch.nom}</h1>
+        </div>
+      )}
 
       {/* Chantier Header Card */}
       <div style={{background:"#fff",borderRadius:14,padding:m?16:24,boxShadow:"0 2px 8px rgba(0,0,0,0.06)",borderLeft:`5px solid ${phase[ch.phase]||"#3B82F6"}`,marginBottom:20}}>
@@ -220,6 +231,21 @@ export default function ProjectsV({data,save,m,reload,user,profile}) {
         </Section>
       )}
 
+      {/* NOTES INTERNES */}
+      <Section title="Notes internes" color="#64748B">
+        <div style={{background:"#FFFBEB",border:"1px solid #FDE68A",borderRadius:10,padding:14}}>
+          <textarea
+            value={detailForm.notes_internes ?? ch.notes_internes ?? ""}
+            onChange={e=>setDetailForm({...ch,...detailForm,notes_internes:e.target.value})}
+            placeholder="Notes internes (non visibles par le client)..."
+            style={{width:"100%",minHeight:80,border:"none",background:"transparent",fontSize:13,fontFamily:"inherit",resize:"vertical",outline:"none",color:"#92400E",boxSizing:"border-box"}}
+          />
+          <div style={{display:"flex",justifyContent:"flex-end",marginTop:6}}>
+            <button onClick={async()=>{await SB.upsertChantier({...ch,notes_internes:detailForm.notes_internes??ch.notes_internes??""});setDetailForm({});reload();addToast("Notes enregistrées","success");}} style={{background:"#F59E0B",color:"#fff",border:"none",borderRadius:6,padding:"5px 14px",fontSize:11,fontWeight:700,cursor:"pointer"}}>Enregistrer</button>
+          </div>
+        </div>
+      </Section>
+
       {/* COMMENTAIRES - Using Phase 2 Component + Phase 3 Hook */}
       <CommentsSection
         comments={comments}
@@ -277,17 +303,36 @@ export default function ProjectsV({data,save,m,reload,user,profile}) {
   }
 
   // ─── LIST VIEW (default) ───
+  const chantiersFiltered = data.chantiers.filter(ch=>
+    (!filterStatut || ch.statut===filterStatut) &&
+    (!filterPhase  || ch.phase===filterPhase)
+  );
+
   return (<div>
-    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20,flexWrap:"wrap",gap:10}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,flexWrap:"wrap",gap:10}}>
       <h1 style={{margin:0,fontSize:m?18:24,fontWeight:700}}>Chantiers</h1>
       <button onClick={openNew} style={{...btnP,fontSize:12}}><Icon d={I.plus} size={14} color="#fff"/> Nouveau</button>
     </div>
+    {/* Filtres */}
+    <div style={{display:"flex",gap:8,marginBottom:16,flexWrap:"wrap"}}>
+      <select value={filterStatut} onChange={e=>setFilterStatut(e.target.value)} style={{padding:"6px 10px",borderRadius:6,border:"1px solid #E2E8F0",fontSize:12,background:"#fff",color:filterStatut?"#1E3A5F":"#94A3B8"}}>
+        <option value="">Tous les statuts</option>
+        <option>Planifié</option><option>En cours</option><option>En attente</option><option>Terminé</option>
+      </select>
+      <select value={filterPhase} onChange={e=>setFilterPhase(e.target.value)} style={{padding:"6px 10px",borderRadius:6,border:"1px solid #E2E8F0",fontSize:12,background:"#fff",color:filterPhase?"#1E3A5F":"#94A3B8"}}>
+        <option value="">Toutes les phases</option>
+        <option>Avant-projet</option><option>Études</option><option>Gros œuvre</option><option>Hors d'air</option><option>Technique</option><option>Finitions</option>
+      </select>
+      {(filterStatut||filterPhase) && <button onClick={()=>{setFilterStatut("");setFilterPhase("");}} style={{padding:"6px 10px",borderRadius:6,border:"1px solid #FECACA",fontSize:12,background:"#FEF2F2",color:"#EF4444",cursor:"pointer"}}>✕ Réinitialiser</button>}
+      <span style={{marginLeft:"auto",fontSize:12,color:"#94A3B8",alignSelf:"center"}}>{chantiersFiltered.length} chantier{chantiersFiltered.length!==1?"s":""}</span>
+    </div>
     <div style={{display:"grid",gap:12}}>
-      {data.chantiers.map(ch=>(
-        <div key={ch.id} onClick={()=>setSelected(ch.id)} style={{background:"#fff",borderRadius:12,padding:m?14:18,boxShadow:"0 1px 3px rgba(0,0,0,0.06)",borderLeft:`4px solid ${phase[ch.phase]||"#94A3B8"}`,cursor:"pointer",transition:"all .2s"}}
+      {chantiersFiltered.map(ch=>(
+        <div key={ch.id} onClick={()=>setSelected(ch.id)} style={{background:"#fff",borderRadius:12,overflow:"hidden",boxShadow:"0 1px 3px rgba(0,0,0,0.06)",borderLeft:`4px solid ${phase[ch.phase]||"#94A3B8"}`,cursor:"pointer",transition:"all .2s"}}
           onMouseEnter={e=>{e.currentTarget.style.boxShadow="0 4px 12px rgba(0,0,0,0.1)";e.currentTarget.style.transform="translateX(4px)";}}
           onMouseLeave={e=>{e.currentTarget.style.boxShadow="0 1px 3px rgba(0,0,0,0.06)";e.currentTarget.style.transform="";}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:8}}>
+          {ch.photo_couverture && <div style={{height:80,overflow:"hidden"}}><img src={ch.photo_couverture} alt={ch.nom} style={{width:"100%",height:"100%",objectFit:"cover"}}/></div>}
+          <div style={{padding:m?14:18,display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:8}}>
             <div style={{flex:1,minWidth:200}}>
               <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4,flexWrap:"wrap"}}><span style={{fontSize:m?14:16,fontWeight:700}}>{ch.nom}</span><Badge text={ch.phase} color={phase[ch.phase]||"#64748B"}/><Badge text={ch.statut} color={status[ch.statut]||"#64748B"}/></div>
               <div style={{fontSize:12,color:"#64748B"}}>{ch.client} — {ch.adresse}</div>
@@ -298,11 +343,11 @@ export default function ProjectsV({data,save,m,reload,user,profile}) {
               </div>
             </div>
             <div style={{display:"flex",gap:4}} onClick={e=>e.stopPropagation()}>
-              <button onClick={()=>{setForm({...ch,lots:ch.lots?.join(", ")||"",budget:String(ch.budget),depenses:String(ch.depenses),dateDebut:ch.date_debut||ch.dateDebut||"",dateFin:ch.date_fin||ch.dateFin||""});setModal("edit");}} style={{background:"#F8FAFC",border:"1px solid #E2E8F0",borderRadius:6,padding:5,cursor:"pointer"}}><Icon d={I.edit} size={14} color="#64748B"/></button>
+              <button onClick={()=>{setForm({...ch,lots:ch.lots?.join(", ")||"",budget:String(ch.budget),depenses:String(ch.depenses),dateDebut:ch.date_debut||ch.dateDebut||"",dateFin:ch.date_fin||ch.dateFin||"",photo_couverture:ch.photo_couverture||"",notes_internes:ch.notes_internes||""});setModal("edit");}} style={{background:"#F8FAFC",border:"1px solid #E2E8F0",borderRadius:6,padding:5,cursor:"pointer"}}><Icon d={I.edit} size={14} color="#64748B"/></button>
               <button onClick={()=>handleDelete(ch.id)} style={{background:"#FEF2F2",border:"1px solid #FECACA",borderRadius:6,padding:5,cursor:"pointer"}}><Icon d={I.trash} size={14} color="#EF4444"/></button>
             </div>
           </div>
-          <div style={{marginTop:10}}>
+          <div style={{padding:`0 ${m?14:18}px ${m?14:18}px`,marginTop:-4}}>
             {(() => {
               const start = new Date(ch.date_debut || ch.dateDebut);
               const end = new Date(ch.date_fin || ch.dateFin);
@@ -338,7 +383,9 @@ export default function ProjectsV({data,save,m,reload,user,profile}) {
         <FF label="Début"><input type="date" style={inp} value={form.dateDebut||""} onChange={e=>setForm({...form,dateDebut:e.target.value})}/></FF>
         <FF label="Fin"><input type="date" style={inp} value={form.dateFin||""} onChange={e=>setForm({...form,dateFin:e.target.value})}/></FF>
         <FF label="Lots (virgules)"><input style={inp} value={form.lots||""} onChange={e=>setForm({...form,lots:e.target.value})}/></FF>
+        <FF label="Photo de couverture (URL)" style={{gridColumn:"1 / -1"}}><input style={inp} value={form.photo_couverture||""} onChange={e=>setForm({...form,photo_couverture:e.target.value})} placeholder="https://... ou laisser vide"/></FF>
       </div>
+      <FF label="Notes internes"><textarea style={{...inp,minHeight:60,resize:"vertical"}} value={form.notes_internes||""} onChange={e=>setForm({...form,notes_internes:e.target.value})} placeholder="Remarques internes (non visibles par le client)..."/></FF>
       <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginTop:14}}><button onClick={()=>setModal(null)} style={btnS}>Annuler</button><button onClick={handleSave} disabled={saving} style={{...btnP,opacity:saving?0.7:1}}>{saving?"⏳ Enregistrement...":"Enregistrer"}</button></div>
     </Modal>
   </div>);

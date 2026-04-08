@@ -107,6 +107,26 @@ export default function OrdresServiceV({data,m,reload}) {
 
   const handleDelete = async (id) => { if(!window.confirm("Supprimer cet ordre de service ?")) return; await SB.deleteOS(id); reload(); };
 
+  const handleDuplicate = async (os) => {
+    const { id, created_at, ...rest } = os;
+    await SB.upsertOS({ ...rest, numero: nextNum(), statut: "Brouillon", date_emission: new Date().toISOString().split("T")[0] });
+    reload();
+  };
+
+  const handleEmail = (os) => {
+    const ch = data.chantiers.find(c=>c.id===os.chantier_id);
+    const subject = encodeURIComponent(`Ordre de Service ${os.numero} — ${ch?.nom || ""}`);
+    const body = encodeURIComponent(
+      `Bonjour,\n\nVeuillez trouver ci-joint l'Ordre de Service ${os.numero} pour le chantier "${ch?.nom || ""}".\n\n` +
+      `Destinataire : ${os.artisan_nom || ""}\n` +
+      `Date d'émission : ${os.date_emission || ""}\n` +
+      `Montant TTC : ${Number(os.montant_ttc||0).toLocaleString("fr-FR")} €\n\n` +
+      `Cordialement,\nID Maîtrise`
+    );
+    const to = encodeURIComponent(os.artisan_email || "");
+    window.open(`mailto:${to}?subject=${subject}&body=${body}`);
+  };
+
   const osStatusColor = { "Brouillon":"#94A3B8", "Émis":"#3B82F6", "Signé":"#8B5CF6", "En cours":"#F59E0B", "Terminé":"#10B981", "Annulé":"#EF4444" };
   const totals = calcTotals();
 
@@ -166,8 +186,10 @@ export default function OrdresServiceV({data,m,reload}) {
               </div>
             </div>
             <div style={{display:"flex",gap:6,marginTop:10,flexWrap:"wrap"}}>
-              <button onClick={()=>handlePdf(os)} style={{background:"#EF4444",border:"none",borderRadius:6,padding:"5px 14px",cursor:"pointer",fontSize:11,fontWeight:700,color:"#fff"}}>Télécharger PDF</button>
-              <button onClick={()=>handleExcel(os)} style={{background:"#10B981",border:"none",borderRadius:6,padding:"5px 14px",cursor:"pointer",fontSize:11,fontWeight:700,color:"#fff"}}>Exporter Excel</button>
+              <button onClick={()=>handlePdf(os)} style={{background:"#EF4444",border:"none",borderRadius:6,padding:"5px 14px",cursor:"pointer",fontSize:11,fontWeight:700,color:"#fff"}}>PDF</button>
+              <button onClick={()=>handleExcel(os)} style={{background:"#10B981",border:"none",borderRadius:6,padding:"5px 14px",cursor:"pointer",fontSize:11,fontWeight:700,color:"#fff"}}>XLS</button>
+              <button onClick={()=>handleEmail(os)} title="Envoyer par email" style={{background:"#6366F1",border:"none",borderRadius:6,padding:"5px 14px",cursor:"pointer",fontSize:11,fontWeight:700,color:"#fff"}}>✉ Email</button>
+              <button onClick={()=>handleDuplicate(os)} title="Dupliquer cet OS" style={{background:"#F59E0B",border:"none",borderRadius:6,padding:"5px 14px",cursor:"pointer",fontSize:11,fontWeight:700,color:"#fff"}}>Dupliquer</button>
               <button onClick={()=>openEdit(os)} style={{background:"#3B82F6",border:"none",borderRadius:6,padding:"5px 14px",cursor:"pointer",fontSize:11,fontWeight:700,color:"#fff"}}>Modifier</button>
               <button onClick={()=>handleDelete(os.id)} style={{background:"none",border:"1px solid #FECACA",borderRadius:6,padding:"4px 10px",cursor:"pointer",fontSize:11,color:"#EF4444"}}>Supprimer</button>
             </div>
