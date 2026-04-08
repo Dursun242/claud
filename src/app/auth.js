@@ -23,12 +23,6 @@ export function AuthProvider({ children }) {
       if (!isMounted) return
 
       if (session?.user) {
-        if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session.provider_token) {
-          supabase.from('settings')
-            .upsert({ key: 'gcal-token', value: session.provider_token })
-            .catch(() => {})
-        }
-
         // Vérification via API serveur (service role key, bypass RLS garanti)
         const email = session.user.email?.trim().toLowerCase()
         let profile = null
@@ -92,8 +86,6 @@ export function LoginPage() {
       provider: 'google',
       options: {
         redirectTo: typeof window !== 'undefined' ? window.location.origin : undefined,
-        scopes: 'https://www.googleapis.com/auth/calendar.readonly',
-        queryParams: { access_type: 'offline', prompt: 'consent' },
       }
     })
     if (error) {

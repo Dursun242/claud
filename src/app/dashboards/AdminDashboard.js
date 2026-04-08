@@ -16,7 +16,6 @@ import ContactsV from '../pages/ContactsV'
 import ReportsV from '../pages/ReportsV'
 import OrdresServiceV from '../pages/OrdresServiceV'
 import AIV from '../pages/AIV'
-import GoogleCalendarV from '../pages/GoogleCalendarV'
 import GlobalSearch from '../components/GlobalSearch'
 
 // ═══════════════════════════════════════════
@@ -204,11 +203,9 @@ export default function AdminDashboard({ user, profile = null }) {
               transition:"all .2s",textAlign:"left",width:"100%",
               borderLeft:t.isQonto&&tab===t.key?"3px solid #7C3AED":"3px solid transparent",
             }}>
-              {t.isGcal ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke={tab==="gcal"?"#60A5FA":"#64748B"} strokeWidth="2"/><path d="M3 10h18" stroke={tab==="gcal"?"#60A5FA":"#64748B"} strokeWidth="2"/><path d="M8 2v4M16 2v4" stroke={tab==="gcal"?"#60A5FA":"#64748B"} strokeWidth="2" strokeLinecap="round"/></svg>
-                : t.isQonto ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#7C3AED" strokeWidth="2"/><path d="M15 15l3 3" stroke="#7C3AED" strokeWidth="2" strokeLinecap="round"/><path d="M9 12l2 2 4-4" stroke="#7C3AED" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              {t.isQonto ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#7C3AED" strokeWidth="2"/><path d="M15 15l3 3" stroke="#7C3AED" strokeWidth="2" strokeLinecap="round"/><path d="M9 12l2 2 4-4" stroke="#7C3AED" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                 : <Icon d={t.icon} size={16} color={tab===t.key?"#60A5FA":"#64748B"}/>}
               <span style={{flex:1}}>{t.label}</span>
-              {t.isGcal && tab===t.key && <span style={{width:6,height:6,borderRadius:"50%",background:"#34D399",flexShrink:0}}/>}
               {t.isQonto && <span style={{display:"inline-flex",alignItems:"center",gap:3,padding:"2px 7px",borderRadius:5,background:"linear-gradient(135deg,#7C3AED,#A855F7)",color:"#fff",fontSize:8,fontWeight:800,letterSpacing:"0.1em"}}>API</span>}
             </button>
           ))}

@@ -7,8 +7,6 @@ import ProjectsV     from '../pages/ProjectsV'
 import ReportsV      from '../pages/ReportsV'
 import OrdresServiceV from '../pages/OrdresServiceV'
 import PlanningV     from '../pages/PlanningV'
-import GoogleCalendarV from '../pages/GoogleCalendarV'
-
 // Onglets disponibles pour le maître d'ouvrage
 const TABS = [
   { key:'dashboard', label:'Tableau de bord',   icon:I.dashboard },
@@ -16,7 +14,6 @@ const TABS = [
   { key:'reports',   label:'Comptes Rendus',     icon:I.reports   },
   { key:'os',        label:'Ordres de Service',  icon:I.reports   },
   { key:'planning',  label:'Planning',           icon:I.planning  },
-  { key:'gcal',      label:'Agenda',             icon:null, isGcal:true },
 ]
 
 export default function ClientDashboard({ user, profile = null }) {
@@ -102,10 +99,7 @@ export default function ClientDashboard({ user, profile = null }) {
                 color:active?'#fff':'#94A3B8',
                 fontWeight:active?600:400, fontSize:13, transition:'all .15s',
               }}>
-                {t.isGcal
-                  ? <span style={{ fontSize:15 }}>📅</span>
-                  : t.icon && <Icon d={t.icon} size={15} color={active?'#fff':'#64748B'} />
-                }
+                {t.icon && <Icon d={t.icon} size={15} color={active?'#fff':'#64748B'} />}
                 <span>{t.label}</span>
                 {active && <div style={{ marginLeft:'auto', width:4, height:4, borderRadius:'50%', background:'#3B82F6' }} />}
               </button>
@@ -159,7 +153,7 @@ export default function ClientDashboard({ user, profile = null }) {
 
         <div style={{ animation:'fadeIn .25s ease', maxWidth:1200, margin:'0 auto' }}>
           {/* Aucun chantier associé */}
-          {!data?.chantiers?.length && tab !== 'gcal' && (
+          {!data?.chantiers?.length && (
             <div style={{ background:'#FFF7ED', border:'1px solid #FED7AA', borderRadius:14, padding:28, marginBottom:20, textAlign:'center' }}>
               <div style={{ fontSize:32, marginBottom:8 }}>🔗</div>
               <div style={{ fontWeight:700, fontSize:15, color:'#92400E', marginBottom:6 }}>Aucun chantier associé</div>
@@ -174,7 +168,6 @@ export default function ClientDashboard({ user, profile = null }) {
           {tab === 'reports'   && <ReportsV       data={data} save={save} m={isMobile} reload={reload} />}
           {tab === 'os'        && <OrdresServiceV data={data} m={isMobile} reload={reload} />}
           {tab === 'planning'  && <PlanningV      data={data} m={isMobile} />}
-          {tab === 'gcal'      && <GoogleCalendarV m={isMobile} />}
         </div>
       </main>
     </div>
