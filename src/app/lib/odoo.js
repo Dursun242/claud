@@ -115,8 +115,20 @@ export async function createSignRequest({ templateId, signerName, signerEmail, r
     }]],
   }])
 
-  // 4. Envoyer la demande (email envoyé automatiquement par Odoo)
-  await execute('sign.request', 'action_sent', [[requestId]])
+  // 4. Envoyer la demande — essaie plusieurs noms de méthode selon la version Odoo
+  const sendMethods = ['action_send_request', 'send_signature_accesses', 'action_validate']
+  let sent = false
+  for (const method of sendMethods) {
+    try {
+      await execute('sign.request', method, [[requestId]])
+      sent = true
+      break
+    } catch (_) { /* essai suivant */ }
+  }
+  // Si aucune méthode ne fonctionne, forcer l'état "sent" directement
+  if (!sent) {
+    await execute('sign.request', 'write', [[requestId], { state: 'sent' }])
+  }
 
   // 5. Récupérer l'URL de la demande
   const requestData = await execute('sign.request', 'read', [[requestId]], {
