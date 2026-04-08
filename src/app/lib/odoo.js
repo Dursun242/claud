@@ -153,34 +153,41 @@ export async function createSignRequestFromPdf({ pdfBase64, signerName, signerEm
   // Extraire le base64 pur (sans le préfixe data:application/pdf;base64,)
   const b64 = pdfBase64.includes(',') ? pdfBase64.split(',')[1] : pdfBase64
 
-  // 1. Créer le template Sign directement avec le PDF
-  // Dans Odoo 17, sign.template utilise _inherits sur ir.attachment :
-  // les champs du PDF sont passés directement au create du template
+  // 1. Créer le template Sign
+  // On essaie plusieurs approches selon la version Odoo
   let templateId
+  let lastError = ''
+
+  // Approche A : _inherits direct (Odoo 17)
   try {
     templateId = await execute('sign.template', 'create', [{
       name: `${reference || 'OS'}.pdf`,
       datas: b64,
       mimetype: 'application/pdf',
     }])
-  } catch (_) {
-    // Fallback : créer l'attachment séparément puis le lier
-    const attachmentId = await execute('ir.attachment', 'create', [{
-      name: `${reference || 'OS'}.pdf`,
-      type: 'binary',
-      datas: b64,
-      mimetype: 'application/pdf',
-    }])
-    // Essayer plusieurs noms de champ selon la version
+  } catch (e1) {
+    lastError = e1.message
+    // Approche B : attachment séparé puis liaison
+    let attachmentId
+    try {
+      attachmentId = await execute('ir.attachment', 'create', [{
+        name: `${reference || 'OS'}.pdf`,
+        type: 'binary',
+        datas: b64,
+        mimetype: 'application/pdf',
+      }])
+    } catch (eA) { throw new Error(`Erreur création attachment Odoo : ${eA.message}`) }
+
     for (const field of ['attachment_id', 'ir_attachment_id', 'signed_document']) {
       try {
         const data = { name: reference || 'OS' }
         data[field] = attachmentId
         templateId = await execute('sign.template', 'create', [data])
+        lastError = ''
         break
-      } catch (_) {}
+      } catch (e2) { lastError = `[${field}] ${e2.message}` }
     }
-    if (!templateId) throw new Error("Impossible de créer le template Odoo Sign. Vérifiez les droits d'accès.")
+    if (!templateId) throw new Error(`Odoo Sign : impossible de créer le template. Dernière erreur : ${lastError}`)
   }
 
   // 3. Récupérer le rôle de signataire par défaut
