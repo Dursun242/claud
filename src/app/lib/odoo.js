@@ -9,11 +9,23 @@ const ODOO_USER = process.env.ODOO_USER
 const ODOO_API_KEY = process.env.ODOO_API_KEY
 
 async function jsonrpc(service, method, args) {
-  const res = await fetch(`${ODOO_URL}/jsonrpc`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ jsonrpc: '2.0', method: 'call', id: Date.now(), params: { service, method, args } }),
-  })
+  if (!ODOO_URL) throw new Error('Variable ODOO_URL manquante dans Vercel')
+  let res
+  try {
+    res = await fetch(`${ODOO_URL}/jsonrpc`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'User-Agent': 'Mozilla/5.0 ID-Maitrise/1.0',
+      },
+      body: JSON.stringify({ jsonrpc: '2.0', method: 'call', id: Date.now(), params: { service, method, args } }),
+      cache: 'no-store',
+    })
+  } catch (err) {
+    throw new Error(`Connexion Odoo impossible (${ODOO_URL}) : ${err.message}`)
+  }
+  if (!res.ok) throw new Error(`Odoo HTTP ${res.status}: ${res.statusText}`)
   const json = await res.json()
   if (json.error) {
     const msg = json.error.data?.message || json.error.message || 'Odoo error'
