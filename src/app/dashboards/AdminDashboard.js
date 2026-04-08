@@ -17,6 +17,7 @@ import ReportsV from '../pages/ReportsV'
 import OrdresServiceV from '../pages/OrdresServiceV'
 import AIV from '../pages/AIV'
 import GoogleCalendarV from '../pages/GoogleCalendarV'
+import GlobalSearch from '../components/GlobalSearch'
 
 // ═══════════════════════════════════════════
 export default function AdminDashboard({ user, profile = null }) {
@@ -194,6 +195,7 @@ export default function AdminDashboard({ user, profile = null }) {
           <div style={{fontSize:18,fontWeight:700}}>ID MAÎTRISE</div>
           <div style={{fontSize:10,color:"#94A3B8",marginTop:2,letterSpacing:"0.05em"}}>MAÎTRISE D'ŒUVRE • LE HAVRE</div>
         </div>
+        <GlobalSearch data={data} onNavigate={switchTab} />
         <div style={{flex:1,padding:"10px 8px",display:"flex",flexDirection:"column",gap:2,overflow:"auto"}}>
           {tabs.map(t=>(
             <button key={t.key} onClick={()=>switchTab(t.key)} style={{
