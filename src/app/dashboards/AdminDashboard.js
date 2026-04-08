@@ -157,7 +157,6 @@ export default function AdminDashboard({ user, profile = null }) {
     {key:"tasks",label:"Tâches",icon:I.tasks},
     {key:"planning",label:"Planning",icon:I.planning},
     {key:"contacts",label:"Annuaire",icon:I.contacts},
-    {key:"gcal",label:"Agenda",icon:null,isGcal:true},
     {key:"qonto",label:"Qonto",icon:null,isQonto:true},
     ...(profile?.role === 'admin' ? [{key:"admin",label:"🔒 Admin",icon:I.settings}] : []),
     {key:"ai",label:"Assistant IA",icon:I.ai},
@@ -252,7 +251,6 @@ export default function AdminDashboard({ user, profile = null }) {
           {tab==="reports"&&<ReportsV data={data} save={save} m={isMobile} reload={reload}/>}
           {tab==="os"&&<OrdresServiceV data={data} m={isMobile} reload={reload}/>}
           {tab==="admin"&&<AdminV m={isMobile} reload={reload} profile={profile}/>}
-          {tab==="gcal"&&<GoogleCalendarV m={isMobile}/>}
           {tab==="ai"&&<AIV data={data} save={save} m={isMobile} externalTranscript={floatTranscript} clearExternal={()=>setFloatTranscript("")} reload={reload}/>}
         </div>
       </main>
