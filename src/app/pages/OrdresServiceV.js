@@ -124,8 +124,10 @@ export default function OrdresServiceV({data,m,reload}) {
   const openSignModal = async (os) => {
     setSignError("");
     setSelectedTemplate("");
-    setSignModal(os);
     setOdooTemplates([]);
+    // Chercher l'email dans les contacts si absent sur l'OS
+    const emailEffectif = os.artisan_email || data.contacts.find(c => c.nom === os.artisan_nom)?.email || "";
+    setSignModal({ ...os, artisan_email: emailEffectif });
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const res = await fetch('/api/odoo/templates', { headers: { Authorization: `Bearer ${session.access_token}` } });
@@ -140,7 +142,8 @@ export default function OrdresServiceV({data,m,reload}) {
 
   const handleSendSign = async () => {
     if (!selectedTemplate || !signModal) return;
-    if (!signModal.artisan_email) { setSignError("L'email du destinataire est requis pour envoyer pour signature."); return; }
+    const emailEffectif = signModal.artisan_email || data.contacts.find(c => c.nom === signModal.artisan_nom)?.email || "";
+    if (!emailEffectif) { setSignError("L'email du destinataire est introuvable dans l'annuaire."); return; }
     setSignSending(true);
     setSignError("");
     try {
@@ -151,7 +154,7 @@ export default function OrdresServiceV({data,m,reload}) {
         body: JSON.stringify({
           templateId: parseInt(selectedTemplate),
           signerName: signModal.artisan_nom,
-          signerEmail: signModal.artisan_email,
+          signerEmail: emailEffectif,
           reference: signModal.numero,
           osId: signModal.id,
         }),
@@ -160,7 +163,7 @@ export default function OrdresServiceV({data,m,reload}) {
       if (!res.ok) throw new Error(json.error || 'Erreur lors de la création');
       setSignModal(null);
       reload();
-      alert(`Demande de signature envoyée à ${signModal.artisan_email} !`);
+      alert(`Demande de signature envoyée à ${emailEffectif} !`);
     } catch (err) {
       setSignError(err.message);
     } finally {
@@ -329,7 +332,7 @@ export default function OrdresServiceV({data,m,reload}) {
           <div style={{background:"#F5F3FF",borderRadius:8,padding:12}}>
             <div style={{fontSize:13,fontWeight:700,color:"#1E3A5F",marginBottom:4}}>OS {signModal.numero}</div>
             <div style={{fontSize:12,color:"#64748B"}}>Destinataire : <strong>{signModal.artisan_nom || "—"}</strong></div>
-            <div style={{fontSize:12,color:"#64748B"}}>Email : <strong>{signModal.artisan_email || <span style={{color:"#EF4444"}}>Non renseigné !</span>}</strong></div>
+            <div style={{fontSize:12,color:"#64748B"}}>Email : <strong style={{color: signModal.artisan_email ? "inherit" : "#EF4444"}}>{signModal.artisan_email || "Non trouvé dans l'annuaire !"}</strong></div>
           </div>
 
           {odooTemplates.length === 0 && !signError && (
