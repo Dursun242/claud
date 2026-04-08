@@ -161,11 +161,21 @@ export async function createSignRequestFromPdf({ pdfBase64, signerName, signerEm
     mimetype: 'application/pdf',
   }])
 
-  // 2. Créer le template Sign depuis l'attachment
-  const templateId = await execute('sign.template', 'create', [{
-    attachment_id: attachmentId,
-    name: reference || 'OS',
-  }])
+  // 2. Créer le template Sign — trouver le bon champ selon la version Odoo
+  const templateFields = await execute('sign.template', 'fields_get', [], { attributes: ['string'] })
+  const pdfField = 'attachment_id' in templateFields ? 'attachment_id'
+    : 'signed_document' in templateFields ? 'signed_document'
+    : 'document' in templateFields ? 'document'
+    : null
+
+  const templateData = { name: reference || 'OS' }
+  if (pdfField) templateData[pdfField] = attachmentId
+  const templateId = await execute('sign.template', 'create', [templateData])
+
+  // Lier l'attachment au template si le champ n'était pas dans create
+  if (!pdfField) {
+    await execute('sign.template', 'write', [[templateId], { attachment_id: attachmentId }])
+  }
 
   // 3. Récupérer le rôle de signataire par défaut
   const roles = await execute('sign.item.role', 'search_read', [[]], { fields: ['id', 'name'], limit: 1 })
