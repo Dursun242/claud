@@ -154,65 +154,75 @@ export async function createSignRequest({ templateId, signerName, signerEmail, r
 export async function createSignRequestFromPdf({ pdfBase64, signerName, signerEmail, reference }) {
   const partnerId = await findOrCreatePartner({ name: signerName, email: signerEmail })
   const b64 = pdfBase64.includes(',') ? pdfBase64.split(',')[1] : pdfBase64
+  const filename = `${reference || 'OS'}.pdf`
 
-  // ── Étape 1 : Créer le sign.document (Many2many de sign.template) ─────────
-  // Odoo 17 Enterprise : document_ids pointe vers sign.document (pas ir.attachment)
-  // sign.document utilise _inherits depuis ir.attachment → on passe datas/name/mimetype
-  let docId
-  try {
-    docId = await execute('sign.document', 'create', [{
-      name: `${reference || 'OS'}.pdf`,
-      datas: b64,
-    }])
-  } catch (e) {
-    // Si _inherits n'existe pas, inspecter les champs disponibles
-    const docFields = await execute('sign.document', 'fields_get', [], { attributes: ['string', 'type'] })
-    throw new Error(`sign.document: ${e.message} | Champs: ${Object.keys(docFields).join(', ')}`)
+  // ── A : ir.attachment — stocke le PDF binaire ─────────────────────────────
+  const attPayload = { name: filename, type: 'binary', datas: b64, mimetype: 'application/pdf' }
+  console.log('[OdooSign] A — create ir.attachment:', filename)
+  const attId = await execute('ir.attachment', 'create', [attPayload])
+  console.log('[OdooSign] A — ir.attachment id:', attId)
+
+  // ── B : sign.template — conteneur du template ────────────────────────────
+  console.log('[OdooSign] B — create sign.template:', filename)
+  const templateId = await execute('sign.template', 'create', [{ name: filename }])
+  console.log('[OdooSign] B — sign.template id:', templateId)
+
+  // ── C : sign.document — lie le PDF au template (attachment_id obligatoire) ─
+  const docPayload = { name: filename, template_id: templateId, attachment_id: attId }
+  console.log('[OdooSign] C — create sign.document:', JSON.stringify(docPayload))
+  const signDocId = await execute('sign.document', 'create', [docPayload])
+  console.log('[OdooSign] C — sign.document id:', signDocId)
+
+  // Relecture pour confirmer que attachment_id est bien présent
+  const signDocRead = await execute('sign.document', 'read', [[signDocId]], {
+    fields: ['id', 'name', 'template_id', 'attachment_id', 'num_pages'],
+  })
+  console.log('[OdooSign] C — sign.document relu:', JSON.stringify(signDocRead[0]))
+  if (!signDocRead[0]?.attachment_id) {
+    throw new Error(`sign.document ${signDocId} créé mais attachment_id absent après relecture`)
   }
 
-  // ── Étape 2 : Créer le template Sign ─────────────────────────────────────
-  const templateId = await execute('sign.template', 'create', [{
-    name: `${reference || 'OS'}.pdf`,
-    document_ids: [[4, docId, 0]],
-  }])
-  if (!templateId) throw new Error('Impossible de créer le template Odoo Sign')
-
-  // ── Étape 3 : Rôle signataire ─────────────────────────────────────────────
+  // ── D : Rôle signataire ───────────────────────────────────────────────────
   const roles = await execute('sign.item.role', 'search_read', [[]], { fields: ['id', 'name'], limit: 1 })
   const roleId = roles[0]?.id
   if (!roleId) throw new Error('Aucun rôle signataire dans Odoo Sign')
+  console.log('[OdooSign] D — role id:', roleId, roles[0].name)
 
-  // ── Étape 4 : Zone de signature (non bloquant) ────────────────────────────
+  // ── E : sign.item — zone de signature dans le template ───────────────────
   try {
     const signTypes = await execute('sign.item.type', 'search_read', [[]], { fields: ['id', 'name'], limit: 1 })
     const signTypeId = signTypes[0]?.id
     if (signTypeId) {
-      await execute('sign.item', 'create', [{
-        template_id: templateId,
-        responsible_id: roleId,
-        required: true,
-        type_id: signTypeId,
+      const itemPayload = {
+        template_id: templateId, responsible_id: roleId,
+        required: true, type_id: signTypeId,
         posX: 0.1, posY: 0.75, width: 0.4, height: 0.15, page: 1,
-      }])
+      }
+      console.log('[OdooSign] E — create sign.item:', JSON.stringify(itemPayload))
+      const itemId = await execute('sign.item', 'create', [itemPayload])
+      console.log('[OdooSign] E — sign.item id:', itemId)
     }
-  } catch (_) {}
+  } catch (e) {
+    console.warn('[OdooSign] E — sign.item non bloquant:', e.message)
+  }
 
-  // ── Étape 5 : Demande de signature ───────────────────────────────────────
+  // ── F : sign.request — crée et envoie la demande de signature ────────────
+  const reqBase = {
+    template_id: templateId,
+    reference: reference || '',
+    request_item_ids: [[0, 0, { partner_id: partnerId, role_id: roleId }]],
+  }
+  console.log('[OdooSign] F — create sign.request:', JSON.stringify(reqBase))
   let requestId
   try {
-    requestId = await execute('sign.request', 'create', [{
-      template_id: templateId, reference: reference || '', state: 'sent',
-      request_item_ids: [[0, 0, { partner_id: partnerId, role_id: roleId }]],
-    }])
+    requestId = await execute('sign.request', 'create', [{ ...reqBase, state: 'sent' }])
   } catch (_) {
-    requestId = await execute('sign.request', 'create', [{
-      template_id: templateId, reference: reference || '',
-      request_item_ids: [[0, 0, { partner_id: partnerId, role_id: roleId }]],
-    }])
+    requestId = await execute('sign.request', 'create', [reqBase])
     for (const m of ['action_send_request', 'send_signature_accesses', 'action_sign_send', 'action_sent'])
       try { await execute('sign.request', m, [[requestId]]); break } catch (_) {}
     await execute('sign.request', 'write', [[requestId], { state: 'sent' }])
   }
+  console.log('[OdooSign] F — sign.request id:', requestId)
 
   return { requestId, signUrl: `${ODOO_URL}/odoo/sign/${requestId}`, state: 'sent' }
 }
