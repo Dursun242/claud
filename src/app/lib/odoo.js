@@ -163,7 +163,6 @@ export async function createSignRequestFromPdf({ pdfBase64, signerName, signerEm
     docId = await execute('sign.document', 'create', [{
       name: `${reference || 'OS'}.pdf`,
       datas: b64,
-      mimetype: 'application/pdf',
     }])
   } catch (e) {
     // Si _inherits n'existe pas, inspecter les champs disponibles
