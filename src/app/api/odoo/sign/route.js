@@ -22,16 +22,22 @@ export async function POST(request) {
 
   try {
     const body = await request.json()
-    const { signerName, signerEmail, reference, osId, pdfBase64 } = body
-    if (!signerEmail) return NextResponse.json({ error: 'Email du signataire requis' }, { status: 400 })
+    const { reference, osId, pdfBase64, signers, operationName } = body
 
-    // Si un PDF est fourni → uploader le document de l'OS directement
-    // Sinon → utiliser un template Odoo existant
+    // Validation : au moins un signataire avec email
+    if (!signers?.length && !body.signerEmail) {
+      return NextResponse.json({ error: 'Au moins un signataire requis' }, { status: 400 })
+    }
+
     let result
     if (pdfBase64) {
-      result = await createSignRequestFromPdf({ pdfBase64, signerName, signerEmail, reference })
+      // Nouveau flux 3 signataires
+      const signersResolved = signers?.length
+        ? signers
+        : [{ name: body.signerName, email: body.signerEmail, role: 'Entreprise' }]
+      result = await createSignRequestFromPdf({ pdfBase64, reference, operationName, signers: signersResolved })
     } else {
-      const { templateId } = body
+      const { signerName, signerEmail, templateId } = body
       if (!templateId) return NextResponse.json({ error: 'templateId ou pdfBase64 requis' }, { status: 400 })
       result = await createSignRequest({ templateId, signerName, signerEmail, reference })
     }

@@ -13,9 +13,8 @@ export default function OrdresServiceV({data,m,reload}) {
   const [prestations,setPrestations]=useState([]);
   const [searchOS,setSearchOS]=useState("");
   const [saving,setSaving]=useState(false);
-  const [signModal,setSignModal]=useState(null); // {os} quand ouvert
-  const [odooTemplates,setOdooTemplates]=useState([]);
-  const [selectedTemplate,setSelectedTemplate]=useState("");
+  const [signModal,setSignModal]=useState(null);
+  const [signSigners,setSignSigners]=useState({ moe:{name:'',email:''}, moa:{name:'',email:''}, entreprise:{name:'',email:''} });
   const [signSending,setSignSending]=useState(false);
   const [signError,setSignError]=useState("");
 
@@ -123,32 +122,46 @@ export default function OrdresServiceV({data,m,reload}) {
 
   const openSignModal = (os) => {
     setSignError("");
-    setOdooTemplates([]);
-    const nomLower = (os.artisan_nom || "").toLowerCase().trim();
-    const contactMatch = data.contacts.find(c => (c.nom || "").toLowerCase().trim() === nomLower);
-    const emailEffectif = os.artisan_email || contactMatch?.email || "";
-    setSignModal({ ...os, artisan_email: emailEffectif });
+    const ch = data.chantiers.find(c => c.id === os.chantier_id);
+    // Entreprise (artisan)
+    const artisanContact = data.contacts.find(c => (c.nom||"").toLowerCase().trim() === (os.artisan_nom||"").toLowerCase().trim());
+    const entrepriseEmail = os.artisan_email || artisanContact?.email || "";
+    // MOA (client/maître d'ouvrage)
+    const moaContact = data.contacts.find(c => (c.nom||"").toLowerCase().trim() === (os.client_nom||"").toLowerCase().trim());
+    const moaEmail = moaContact?.email || "";
+    setSignSigners({
+      moe:        { name: "Id Maîtrise", email: "contact@id-maitrise.com" },
+      moa:        { name: os.client_nom || "", email: moaEmail },
+      entreprise: { name: os.artisan_nom || "", email: entrepriseEmail },
+    });
+    setSignModal({ ...os, ch });
   };
 
   const handleSendSign = async () => {
     if (!signModal) return;
-    const emailEffectif = signModal.artisan_email;
-    if (!emailEffectif) { setSignError("L'email du destinataire est introuvable dans l'annuaire."); return; }
+    const { moe, moa, entreprise } = signSigners;
+    if (!entreprise.email) { setSignError("Email Entreprise requis."); return; }
+    if (!moe.email) { setSignError("Email MOE requis."); return; }
     setSignSending(true);
     setSignError("");
     try {
-      const ch = data.chantiers.find(c => c.id === signModal.chantier_id);
+      const ch = signModal.ch || data.chantiers.find(c => c.id === signModal.chantier_id);
       const pdfResult = generateOSPdf({ ...signModal, chantier: ch?.nom || "", adresse_chantier: ch?.adresse || "", returnBase64: true });
       if (!pdfResult?.base64) throw new Error("Impossible de générer le PDF de l'OS");
+      const signers = [
+        { name: moe.name, email: moe.email, role: 'MOE' },
+        ...(moa.email ? [{ name: moa.name, email: moa.email, role: 'MOA' }] : []),
+        { name: entreprise.name, email: entreprise.email, role: 'Entreprise' },
+      ];
       const { data: { session } } = await supabase.auth.getSession();
       const res = await fetch('/api/odoo/sign', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
         body: JSON.stringify({
           pdfBase64: pdfResult.base64,
-          signerName: signModal.artisan_nom,
-          signerEmail: emailEffectif,
           reference: signModal.numero,
+          operationName: ch?.nom || "",
+          signers,
           osId: signModal.id,
         }),
       });
@@ -156,7 +169,7 @@ export default function OrdresServiceV({data,m,reload}) {
       if (!res.ok) throw new Error(json.error || 'Erreur lors de la création');
       setSignModal(null);
       reload();
-      alert(`Demande de signature envoyée à ${emailEffectif} via Odoo Sign !`);
+      alert(`Demande de signature envoyée (${signers.length} signataires) via Odoo Sign !`);
     } catch (err) {
       setSignError(err.message);
     } finally {
@@ -318,26 +331,44 @@ export default function OrdresServiceV({data,m,reload}) {
       </div>
     </Modal>
 
-    {/* MODAL SIGNATURE ODOO */}
+    {/* MODAL SIGNATURE ODOO — 3 SIGNATAIRES */}
     <Modal open={!!signModal} onClose={()=>setSignModal(null)} title="Envoyer pour signature Odoo">
       {signModal && (
         <div style={{display:"flex",flexDirection:"column",gap:12}}>
           <div style={{background:"#F5F3FF",borderRadius:8,padding:12}}>
-            <div style={{fontSize:13,fontWeight:700,color:"#1E3A5F",marginBottom:4}}>OS {signModal.numero}</div>
-            <div style={{fontSize:12,color:"#64748B"}}>Destinataire : <strong>{signModal.artisan_nom || "—"}</strong></div>
-            <div style={{fontSize:12,color:"#64748B"}}>Email : <strong style={{color: signModal.artisan_email ? "#059669" : "#EF4444"}}>{signModal.artisan_email || "Non trouvé dans l'annuaire !"}</strong></div>
+            <div style={{fontSize:13,fontWeight:700,color:"#1E3A5F",marginBottom:2}}>OS {signModal.numero}</div>
+            <div style={{fontSize:11,color:"#64748B"}}>
+              Objet email : <em>Signature requise – OS {signModal.numero}{signModal.ch?.nom ? ` – ${signModal.ch.nom}` : ""}</em>
+            </div>
           </div>
 
-          <div style={{background:"#F0FDF4",border:"1px solid #BBF7D0",borderRadius:8,padding:10,fontSize:12,color:"#166534"}}>
-            Le PDF exact de l'OS sera généré et envoyé à Odoo Sign. {signModal.artisan_nom} recevra un email pour signer.
+          {[
+            { key:"moe",   label:"MOE (Id Maîtrise)",       color:"#1E3A5F" },
+            { key:"moa",   label:"Maître d'ouvrage (MOA)",   color:"#0369A1", optional:true },
+            { key:"entreprise", label:"Entreprise (artisan)", color:"#7C3AED" },
+          ].map(({ key, label, color, optional }) => (
+            <div key={key} style={{background:"#F8FAFC",borderRadius:8,padding:10}}>
+              <div style={{fontSize:11,fontWeight:700,color,marginBottom:6,textTransform:"uppercase"}}>{label}{optional ? " (facultatif)" : ""}</div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
+                <input placeholder="Nom" style={{...inp,fontSize:12}} value={signSigners[key].name}
+                  onChange={e=>setSignSigners(s=>({...s,[key]:{...s[key],name:e.target.value}}))}/>
+                <input placeholder={optional?"Email (si disponible)":"Email *"} style={{...inp,fontSize:12,borderColor:!signSigners[key].email&&!optional?"#EF4444":"#E2E8F0"}}
+                  value={signSigners[key].email}
+                  onChange={e=>setSignSigners(s=>({...s,[key]:{...s[key],email:e.target.value}}))}/>
+              </div>
+            </div>
+          ))}
+
+          <div style={{background:"#F0FDF4",border:"1px solid #BBF7D0",borderRadius:8,padding:10,fontSize:11,color:"#166534"}}>
+            Le PDF de l'OS sera signé par {[signSigners.moe,signSigners.moa,signSigners.entreprise].filter(s=>s.email).length} signataire(s). Chaque signataire recevra un email d'Odoo Sign.
           </div>
 
           {signError && <div style={{background:"#FEF2F2",border:"1px solid #FECACA",borderRadius:8,padding:10,fontSize:12,color:"#EF4444"}}>{signError}</div>}
 
           <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
             <button onClick={()=>setSignModal(null)} style={btnS}>Annuler</button>
-            <button onClick={handleSendSign} disabled={signSending || !signModal.artisan_email}
-              style={{...btnP,background:"#7C3AED",opacity:(signSending||!signModal.artisan_email)?0.5:1}}>
+            <button onClick={handleSendSign} disabled={signSending||!signSigners.entreprise.email||!signSigners.moe.email}
+              style={{...btnP,background:"#7C3AED",opacity:(signSending||!signSigners.entreprise.email||!signSigners.moe.email)?0.5:1}}>
               {signSending?"Génération et envoi…":"✍ Envoyer pour signature"}
             </button>
           </div>
