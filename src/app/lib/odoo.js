@@ -110,28 +110,27 @@ export async function createSignRequest({ templateId, signerName, signerEmail, r
   if (!roles.length) throw new Error('Aucun rôle de signataire trouvé dans ce template')
   const roleId = roles[0].id
 
-  // 3. Créer la demande de signature
-  const requestId = await execute('sign.request', 'create', [{
-    template_id: templateId,
-    reference: reference || '',
-    request_item_ids: [[0, 0, {
-      partner_id: partnerId,
-      role_id: roleId,
-    }]],
-  }])
-
-  // 4. Envoyer la demande — essaie plusieurs noms de méthode selon la version Odoo
-  const sendMethods = ['action_send_request', 'send_signature_accesses', 'action_validate']
-  let sent = false
-  for (const method of sendMethods) {
-    try {
-      await execute('sign.request', method, [[requestId]])
-      sent = true
-      break
-    } catch (_) { /* essai suivant */ }
-  }
-  // Si aucune méthode ne fonctionne, forcer l'état "sent" directement
-  if (!sent) {
+  // 3. Créer la demande de signature avec state='sent' pour déclencher l'envoi auto
+  let requestId
+  try {
+    requestId = await execute('sign.request', 'create', [{
+      template_id: templateId,
+      reference: reference || '',
+      state: 'sent',
+      request_item_ids: [[0, 0, { partner_id: partnerId, role_id: roleId }]],
+    }])
+  } catch (_) {
+    // Fallback sans state (certaines versions n'acceptent pas state à la création)
+    requestId = await execute('sign.request', 'create', [{
+      template_id: templateId,
+      reference: reference || '',
+      request_item_ids: [[0, 0, { partner_id: partnerId, role_id: roleId }]],
+    }])
+    // Essai envoi post-création
+    const sendMethods = ['action_send_request', 'send_signature_accesses', 'action_sign_send', 'action_validate']
+    for (const method of sendMethods) {
+      try { await execute('sign.request', method, [[requestId]]); break } catch (_) {}
+    }
     await execute('sign.request', 'write', [[requestId], { state: 'sent' }])
   }
 
