@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { createSignRequest, getSignRequestStatus } from '../../../lib/odoo'
+import { createSignRequest, createSignRequestFromPdf, getSignRequestStatus } from '../../../lib/odoo'
 
 async function verifyAuth(request) {
   const auth = request.headers.get('Authorization')
@@ -21,11 +21,20 @@ export async function POST(request) {
   if (!user) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
 
   try {
-    const { templateId, signerName, signerEmail, reference, osId } = await request.json()
-    if (!templateId) return NextResponse.json({ error: 'templateId requis' }, { status: 400 })
+    const body = await request.json()
+    const { signerName, signerEmail, reference, osId, pdfBase64 } = body
     if (!signerEmail) return NextResponse.json({ error: 'Email du signataire requis' }, { status: 400 })
 
-    const result = await createSignRequest({ templateId, signerName, signerEmail, reference })
+    // Si un PDF est fourni → uploader le document de l'OS directement
+    // Sinon → utiliser un template Odoo existant
+    let result
+    if (pdfBase64) {
+      result = await createSignRequestFromPdf({ pdfBase64, signerName, signerEmail, reference })
+    } else {
+      const { templateId } = body
+      if (!templateId) return NextResponse.json({ error: 'templateId ou pdfBase64 requis' }, { status: 400 })
+      result = await createSignRequest({ templateId, signerName, signerEmail, reference })
+    }
 
     // Mettre à jour l'OS dans Supabase avec l'ID de la demande Odoo
     if (osId) {

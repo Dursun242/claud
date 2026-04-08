@@ -214,6 +214,9 @@ export function generateOSPdf(data) {
   })
   y += 30
   pied(doc, w, margin, y)
+  if (data.returnBase64) {
+    return { totalHT, totalTVA, totalTTC, base64: doc.output('datauristring') }
+  }
   doc.save(`${data.numero || 'OS'}.pdf`)
   return { totalHT, totalTVA, totalTTC }
 }

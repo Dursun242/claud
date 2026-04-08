@@ -139,6 +139,73 @@ export async function createSignRequest({ templateId, signerName, signerEmail, r
   return { requestId, signUrl, state: requestData[0]?.state || 'sent' }
 }
 
+/**
+ * Crée une demande de signature depuis un PDF base64 (l'OS généré par l'app)
+ * @param {Object} params
+ * @param {string} params.pdfBase64 - dataURI base64 du PDF (output de jsPDF)
+ * @param {string} params.signerName
+ * @param {string} params.signerEmail
+ * @param {string} params.reference - Numéro OS
+ */
+export async function createSignRequestFromPdf({ pdfBase64, signerName, signerEmail, reference }) {
+  const partnerId = await findOrCreatePartner({ name: signerName, email: signerEmail })
+
+  // Extraire le base64 pur (sans le préfixe data:application/pdf;base64,)
+  const b64 = pdfBase64.includes(',') ? pdfBase64.split(',')[1] : pdfBase64
+
+  // 1. Créer l'attachment Odoo
+  const attachmentId = await execute('ir.attachment', 'create', [{
+    name: `${reference || 'OS'}.pdf`,
+    type: 'binary',
+    datas: b64,
+    mimetype: 'application/pdf',
+  }])
+
+  // 2. Créer le template Sign depuis l'attachment
+  const templateId = await execute('sign.template', 'create', [{
+    attachment_id: attachmentId,
+    name: reference || 'OS',
+  }])
+
+  // 3. Récupérer le rôle de signataire par défaut
+  const roles = await execute('sign.item.role', 'search_read', [[]], { fields: ['id', 'name'], limit: 1 })
+  const roleId = roles[0]?.id
+  if (!roleId) throw new Error('Aucun rôle signataire trouvé dans Odoo Sign')
+
+  // 4. Ajouter une zone de signature en bas à droite de la page 1
+  await execute('sign.item', 'create', [{
+    template_id: templateId,
+    type_id: (await execute('sign.item.type', 'search_read', [[['item_type', '=', 'signature']]], { fields: ['id'], limit: 1 }))[0]?.id || 1,
+    required: true,
+    page: 1,
+    posX: 0.55,
+    posY: 0.88,
+    width: 0.35,
+    height: 0.08,
+    responsible_id: roleId,
+  }])
+
+  // 5. Créer la demande de signature
+  const requestId = await execute('sign.request', 'create', [{
+    template_id: templateId,
+    reference: reference || '',
+    request_item_ids: [[0, 0, { partner_id: partnerId, role_id: roleId }]],
+  }])
+
+  // 6. Envoyer (essai multi-méthodes)
+  const sendMethods = ['action_send_request', 'send_signature_accesses', 'action_validate']
+  let sent = false
+  for (const method of sendMethods) {
+    try { await execute('sign.request', method, [[requestId]]); sent = true; break } catch (_) {}
+  }
+  if (!sent) {
+    await execute('sign.request', 'write', [[requestId], { state: 'sent' }])
+  }
+
+  const signUrl = `${ODOO_URL}/odoo/sign/${requestId}`
+  return { requestId, signUrl, state: 'sent' }
+}
+
 /** Vérifie le statut d'une demande de signature */
 export async function getSignRequestStatus(requestId) {
   const data = await execute('sign.request', 'read', [[requestId]], {
