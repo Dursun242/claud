@@ -25,7 +25,7 @@ export default function OrdresServiceV({data,m,reload}) {
     setForm({
       numero: nextNum(), chantier_id: ch?.id||"", chantier: ch?.nom||"", adresse_chantier: ch?.adresse||"",
       client_nom: ch?.client||"", client_adresse: "",
-      artisan_nom: "", artisan_specialite: "", artisan_tel: "", artisan_email: "", artisan_siret: "",
+      artisan_nom: "", artisan_specialite: "", artisan_adresse: "", artisan_tel: "", artisan_email: "", artisan_siret: "",
       date_emission: new Date().toISOString().split("T")[0], date_intervention: "", date_fin_prevue: "",
       observations: "", conditions: "Paiement à 30 jours à compter de la réception de la facture.",
       statut: "Brouillon",
@@ -55,7 +55,7 @@ export default function OrdresServiceV({data,m,reload}) {
 
   const updateDestinataire = (name) => {
     const co = data.contacts.find(c=>c.nom===name);
-    if (co) setForm(f=>({...f, artisan_nom:co.nom, artisan_specialite:co.specialite||co.type||"", artisan_tel:co.tel||"", artisan_email:co.email||"", artisan_siret:co.siret||""}));
+    if (co) setForm(f=>({...f, artisan_nom:co.nom, artisan_specialite:co.specialite||co.type||"", artisan_adresse:co.adresse||"", artisan_tel:co.tel||"", artisan_email:co.email||"", artisan_siret:co.siret||""}));
     else setForm(f=>({...f, artisan_nom:name}));
   };
 
@@ -194,6 +194,9 @@ export default function OrdresServiceV({data,m,reload}) {
           ))}
         </select></FF>
       </div>
+      <FF label="Adresse du destinataire">
+        <input style={inp} value={form.artisan_adresse||""} onChange={e=>setForm({...form,artisan_adresse:e.target.value})} placeholder="Adresse complète du prestataire"/>
+      </FF>
       <div style={{display:"grid",gridTemplateColumns:m?"1fr":"1fr 1fr 1fr",gap:"0 12px"}}>
         <FF label="Date émission"><input type="date" style={inp} value={form.date_emission||""} onChange={e=>setForm({...form,date_emission:e.target.value})}/></FF>
         <FF label="Date intervention"><input type="date" style={inp} value={form.date_intervention||""} onChange={e=>setForm({...form,date_intervention:e.target.value})}/></FF>
