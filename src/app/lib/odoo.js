@@ -158,16 +158,7 @@ export async function createSignRequestFromPdf({ pdfBase64, signerName, signerEm
   // Extraire le base64 pur (sans le préfixe data:application/pdf;base64,)
   const b64 = pdfBase64.includes(',') ? pdfBase64.split(',')[1] : pdfBase64
 
-  // 1. Inspecter les vrais champs de sign.template pour trouver le champ PDF
-  const tplFields = await execute('sign.template', 'fields_get', [], { attributes: ['type', 'required'] })
-  const tplFieldNames = Object.keys(tplFields)
-
-  // Trouver le champ Many2one vers ir.attachment
-  const attachField = tplFieldNames.find(f =>
-    tplFields[f].type === 'many2one' && (f.includes('attach') || f.includes('document') || f.includes('pdf'))
-  ) || tplFieldNames.find(f => tplFields[f].type === 'many2one')
-
-  // Créer l'attachment Odoo
+  // 1. Créer l'attachment Odoo
   const attachmentId = await execute('ir.attachment', 'create', [{
     name: `${reference || 'OS'}.pdf`,
     type: 'binary',
@@ -175,34 +166,17 @@ export async function createSignRequestFromPdf({ pdfBase64, signerName, signerEm
     mimetype: 'application/pdf',
   }])
 
-  if (!attachField) {
-    throw new Error(`Champs sign.template disponibles : ${tplFieldNames.join(', ')}`)
-  }
+  // 2. Créer le template Sign avec l'attachment
+  const templateId = await execute('sign.template', 'create', [{
+    attachment_id: attachmentId,
+  }])
 
-  // Créer le template avec le bon champ
-  const templateData = { name: reference || 'OS' }
-  templateData[attachField] = attachmentId
-  const templateId = await execute('sign.template', 'create', [templateData])
-
-  // 3. Récupérer le rôle de signataire par défaut
+  // 3. Récupérer rôle et créer la demande directement (sans sign.item manuel)
   const roles = await execute('sign.item.role', 'search_read', [[]], { fields: ['id', 'name'], limit: 1 })
   const roleId = roles[0]?.id
   if (!roleId) throw new Error('Aucun rôle signataire trouvé dans Odoo Sign')
 
-  // 4. Ajouter une zone de signature en bas à droite de la page 1
-  await execute('sign.item', 'create', [{
-    template_id: templateId,
-    type_id: (await execute('sign.item.type', 'search_read', [[['item_type', '=', 'signature']]], { fields: ['id'], limit: 1 }))[0]?.id || 1,
-    required: true,
-    page: 1,
-    posX: 0.55,
-    posY: 0.88,
-    width: 0.35,
-    height: 0.08,
-    responsible_id: roleId,
-  }])
-
-  // 5. Créer la demande de signature
+  // 4. Créer la demande de signature
   const requestId = await execute('sign.request', 'create', [{
     template_id: templateId,
     reference: reference || '',
