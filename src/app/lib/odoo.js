@@ -48,6 +48,11 @@ async function execute(model, method, args = [], kwargs = {}) {
 // ─── Méthodes publiques ────────────────────────────────────────────────────────
 
 /** Teste la connexion Odoo */
+/** Inspecte les champs d'un modèle Odoo (diagnostic) */
+export async function inspectModel(model) {
+  return execute(model, 'fields_get', [], { attributes: ['string', 'type', 'readonly', 'required'] })
+}
+
 export async function testConnection() {
   const version = await jsonrpc('common', 'version', [])
   const uid = await getUid()

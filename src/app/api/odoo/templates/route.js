@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { getSignTemplates, testConnection } from '../../../lib/odoo'
+import { getSignTemplates, testConnection, inspectModel } from '../../../lib/odoo'
 
 async function verifyAuth(request) {
   const auth = request.headers.get('Authorization')
@@ -22,7 +22,9 @@ export async function GET(request) {
 
   try {
     const templates = await getSignTemplates()
-    return NextResponse.json({ templates })
+    // Inspecter les champs sign.template pour le diagnostic
+    const fields = await inspectModel('sign.template')
+    return NextResponse.json({ templates, _signTemplateFields: Object.keys(fields) })
   } catch (err) {
     console.error('❌ Odoo templates:', err.message)
     return NextResponse.json({ error: err.message }, { status: 500 })
