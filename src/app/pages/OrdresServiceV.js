@@ -1,8 +1,11 @@
 'use client'
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { SB, Icon, I, fmtDate, fmtMoney, FF, inp, sel, btnP, btnS } from '../dashboards/shared'
 import { Badge, Modal } from '../components'
 import { generateOSPdf, generateOSExcel } from '../generators'
+import { createClient } from '@supabase/supabase-js'
+
+const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
 
 export default function OrdresServiceV({data,m,reload}) {
   const [modal,setModal]=useState(null);
@@ -10,6 +13,11 @@ export default function OrdresServiceV({data,m,reload}) {
   const [prestations,setPrestations]=useState([]);
   const [searchOS,setSearchOS]=useState("");
   const [saving,setSaving]=useState(false);
+  const [signModal,setSignModal]=useState(null); // {os} quand ouvert
+  const [odooTemplates,setOdooTemplates]=useState([]);
+  const [selectedTemplate,setSelectedTemplate]=useState("");
+  const [signSending,setSignSending]=useState(false);
+  const [signError,setSignError]=useState("");
 
   const nextNum = () => {
     const nums = (data.ordresService||[]).map(os => {
@@ -113,6 +121,53 @@ export default function OrdresServiceV({data,m,reload}) {
     reload();
   };
 
+  const openSignModal = async (os) => {
+    setSignError("");
+    setSelectedTemplate("");
+    setSignModal(os);
+    setOdooTemplates([]);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch('/api/odoo/templates', { headers: { Authorization: `Bearer ${session.access_token}` } });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Erreur Odoo');
+      setOdooTemplates(json.templates || []);
+      if (json.templates?.length) setSelectedTemplate(String(json.templates[0].id));
+    } catch (err) {
+      setSignError(err.message);
+    }
+  };
+
+  const handleSendSign = async () => {
+    if (!selectedTemplate || !signModal) return;
+    if (!signModal.artisan_email) { setSignError("L'email du destinataire est requis pour envoyer pour signature."); return; }
+    setSignSending(true);
+    setSignError("");
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch('/api/odoo/sign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({
+          templateId: parseInt(selectedTemplate),
+          signerName: signModal.artisan_nom,
+          signerEmail: signModal.artisan_email,
+          reference: signModal.numero,
+          osId: signModal.id,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Erreur lors de la création');
+      setSignModal(null);
+      reload();
+      alert(`Demande de signature envoyée à ${signModal.artisan_email} !`);
+    } catch (err) {
+      setSignError(err.message);
+    } finally {
+      setSignSending(false);
+    }
+  };
+
   const handleEmail = (os) => {
     const ch = data.chantiers.find(c=>c.id===os.chantier_id);
     const subject = encodeURIComponent(`Ordre de Service ${os.numero} — ${ch?.nom || ""}`);
@@ -189,6 +244,10 @@ export default function OrdresServiceV({data,m,reload}) {
               <button onClick={()=>handlePdf(os)} style={{background:"#EF4444",border:"none",borderRadius:6,padding:"5px 14px",cursor:"pointer",fontSize:11,fontWeight:700,color:"#fff"}}>PDF</button>
               <button onClick={()=>handleExcel(os)} style={{background:"#10B981",border:"none",borderRadius:6,padding:"5px 14px",cursor:"pointer",fontSize:11,fontWeight:700,color:"#fff"}}>XLS</button>
               <button onClick={()=>handleEmail(os)} title="Envoyer par email" style={{background:"#6366F1",border:"none",borderRadius:6,padding:"5px 14px",cursor:"pointer",fontSize:11,fontWeight:700,color:"#fff"}}>✉ Email</button>
+              {os.odoo_sign_url
+                ? <a href={os.odoo_sign_url} target="_blank" rel="noreferrer" title={`Signature : ${os.statut_signature||"Envoyé"}`} style={{background:"#7C3AED",border:"none",borderRadius:6,padding:"5px 14px",cursor:"pointer",fontSize:11,fontWeight:700,color:"#fff",textDecoration:"none"}}>✍ {os.statut_signature||"Signé"}</a>
+                : <button onClick={()=>openSignModal(os)} title="Envoyer pour signature Odoo" style={{background:"#7C3AED",border:"none",borderRadius:6,padding:"5px 14px",cursor:"pointer",fontSize:11,fontWeight:700,color:"#fff"}}>✍ Signature</button>
+              }
               <button onClick={()=>handleDuplicate(os)} title="Dupliquer cet OS" style={{background:"#F59E0B",border:"none",borderRadius:6,padding:"5px 14px",cursor:"pointer",fontSize:11,fontWeight:700,color:"#fff"}}>Dupliquer</button>
               <button onClick={()=>openEdit(os)} style={{background:"#3B82F6",border:"none",borderRadius:6,padding:"5px 14px",cursor:"pointer",fontSize:11,fontWeight:700,color:"#fff"}}>Modifier</button>
               <button onClick={()=>handleDelete(os.id)} style={{background:"none",border:"1px solid #FECACA",borderRadius:6,padding:"4px 10px",cursor:"pointer",fontSize:11,color:"#EF4444"}}>Supprimer</button>
@@ -261,6 +320,45 @@ export default function OrdresServiceV({data,m,reload}) {
         <button onClick={()=>setModal(null)} style={btnS}>Annuler</button>
         <button onClick={handleSave} disabled={saving} style={{...btnP,opacity:saving?0.6:1}}>{saving?"Enregistrement...":"Enregistrer l'OS"}</button>
       </div>
+    </Modal>
+
+    {/* MODAL SIGNATURE ODOO */}
+    <Modal open={!!signModal} onClose={()=>setSignModal(null)} title="Envoyer pour signature Odoo">
+      {signModal && (
+        <div style={{display:"flex",flexDirection:"column",gap:12}}>
+          <div style={{background:"#F5F3FF",borderRadius:8,padding:12}}>
+            <div style={{fontSize:13,fontWeight:700,color:"#1E3A5F",marginBottom:4}}>OS {signModal.numero}</div>
+            <div style={{fontSize:12,color:"#64748B"}}>Destinataire : <strong>{signModal.artisan_nom || "—"}</strong></div>
+            <div style={{fontSize:12,color:"#64748B"}}>Email : <strong>{signModal.artisan_email || <span style={{color:"#EF4444"}}>Non renseigné !</span>}</strong></div>
+          </div>
+
+          {odooTemplates.length === 0 && !signError && (
+            <div style={{fontSize:12,color:"#94A3B8",textAlign:"center",padding:12}}>Chargement des templates Odoo…</div>
+          )}
+
+          {odooTemplates.length > 0 && (
+            <FF label="Template Odoo Sign">
+              <select style={sel} value={selectedTemplate} onChange={e=>setSelectedTemplate(e.target.value)}>
+                {odooTemplates.map(t=><option key={t.id} value={String(t.id)}>{t.name}</option>)}
+              </select>
+            </FF>
+          )}
+
+          {signError && <div style={{background:"#FEF2F2",border:"1px solid #FECACA",borderRadius:8,padding:10,fontSize:12,color:"#EF4444"}}>{signError}</div>}
+
+          <div style={{fontSize:11,color:"#94A3B8"}}>
+            Odoo va envoyer un email de signature à {signModal.artisan_email || "l'email du destinataire"}. Le statut sera mis à jour automatiquement.
+          </div>
+
+          <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
+            <button onClick={()=>setSignModal(null)} style={btnS}>Annuler</button>
+            <button onClick={handleSendSign} disabled={signSending || !selectedTemplate || !signModal.artisan_email}
+              style={{...btnP,background:"#7C3AED",opacity:(signSending||!selectedTemplate||!signModal.artisan_email)?0.5:1}}>
+              {signSending?"Envoi en cours…":"✍ Envoyer pour signature"}
+            </button>
+          </div>
+        </div>
+      )}
     </Modal>
   </div>);
 }
