@@ -53,9 +53,9 @@ export default function OrdresServiceV({data,m,reload}) {
     setForm(f=>({...f, chantier_id: chId, chantier: ch?.nom||"", adresse_chantier: ch?.adresse||"", client_nom: ch?.client||""}));
   };
 
-  const updateArtisan = (name) => {
+  const updateDestinataire = (name) => {
     const co = data.contacts.find(c=>c.nom===name);
-    if (co) setForm(f=>({...f, artisan_nom:co.nom, artisan_specialite:co.specialite||"", artisan_tel:co.tel||"", artisan_email:co.email||"", artisan_siret:co.siret||""}));
+    if (co) setForm(f=>({...f, artisan_nom:co.nom, artisan_specialite:co.specialite||co.type||"", artisan_tel:co.tel||"", artisan_email:co.email||"", artisan_siret:co.siret||""}));
     else setForm(f=>({...f, artisan_nom:name}));
   };
 
@@ -125,7 +125,13 @@ export default function OrdresServiceV({data,m,reload}) {
     });
   }, [searchOS, data.ordresService, data.chantiers]);
 
-  const artisans = data.contacts.filter(c=>c.type==="Artisan");
+  // Tous les contacts disponibles comme destinataires (pas seulement les artisans)
+  const contactsParType = data.contacts.reduce((acc, c) => {
+    const type = c.type || "Autre";
+    if (!acc[type]) acc[type] = [];
+    acc[type].push(c);
+    return acc;
+  }, {});
 
   return (<div>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20,flexWrap:"wrap",gap:8}}>
@@ -151,7 +157,7 @@ export default function OrdresServiceV({data,m,reload}) {
                   <Badge text={os.statut} color={osStatusColor[os.statut]||"#94A3B8"}/>
                   <span style={{fontSize:14,fontWeight:700,color:"#0F172A"}}>{ch?.nom||"—"}</span>
                 </div>
-                <div style={{fontSize:12,color:"#64748B"}}>{os.artisan_nom} ({os.artisan_specialite}) — Client : {os.client_nom}</div>
+                <div style={{fontSize:12,color:"#64748B"}}>{os.artisan_nom}{os.artisan_specialite ? ` · ${os.artisan_specialite}` : ""} — Client : {os.client_nom}</div>
                 <div style={{fontSize:11,color:"#94A3B8",marginTop:2}}>Émis {fmtDate(os.date_emission)} • Intervention {fmtDate(os.date_intervention)} • {(os.prestations||[]).length} prestation(s)</div>
               </div>
               <div style={{textAlign:"right"}}>
@@ -179,9 +185,13 @@ export default function OrdresServiceV({data,m,reload}) {
       </div>
       <div style={{display:"grid",gridTemplateColumns:m?"1fr":"1fr 1fr",gap:"0 12px"}}>
         <FF label="Client">{form.client_nom && <div style={{fontSize:13,padding:"8px 0",color:"#0F172A",fontWeight:600}}>{form.client_nom}</div>}</FF>
-        <FF label="Artisan"><select style={sel} value={form.artisan_nom||""} onChange={e=>updateArtisan(e.target.value)}>
+        <FF label="Destinataire"><select style={sel} value={form.artisan_nom||""} onChange={e=>updateDestinataire(e.target.value)}>
           <option value="">— Sélectionner —</option>
-          {artisans.map(a=><option key={a.id} value={a.nom}>{a.nom} ({a.specialite})</option>)}
+          {Object.entries(contactsParType).map(([type, contacts]) => (
+            <optgroup key={type} label={type}>
+              {contacts.map(c=><option key={c.id} value={c.nom}>{c.nom}{c.specialite ? ` · ${c.specialite}` : ""}</option>)}
+            </optgroup>
+          ))}
         </select></FF>
       </div>
       <div style={{display:"grid",gridTemplateColumns:m?"1fr":"1fr 1fr 1fr",gap:"0 12px"}}>
