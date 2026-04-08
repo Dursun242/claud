@@ -158,42 +158,31 @@ export async function createSignRequestFromPdf({ pdfBase64, signerName, signerEm
   // Extraire le base64 pur (sans le préfixe data:application/pdf;base64,)
   const b64 = pdfBase64.includes(',') ? pdfBase64.split(',')[1] : pdfBase64
 
-  // 1. Créer le template Sign
-  // On essaie plusieurs approches selon la version Odoo
-  let templateId
-  let lastError = ''
+  // 1. Inspecter les vrais champs de sign.template pour trouver le champ PDF
+  const tplFields = await execute('sign.template', 'fields_get', [], { attributes: ['type', 'required'] })
+  const tplFieldNames = Object.keys(tplFields)
 
-  // Approche A : _inherits direct (Odoo 17)
-  try {
-    templateId = await execute('sign.template', 'create', [{
-      name: `${reference || 'OS'}.pdf`,
-      datas: b64,
-      mimetype: 'application/pdf',
-    }])
-  } catch (e1) {
-    lastError = e1.message
-    // Approche B : attachment séparé puis liaison
-    let attachmentId
-    try {
-      attachmentId = await execute('ir.attachment', 'create', [{
-        name: `${reference || 'OS'}.pdf`,
-        type: 'binary',
-        datas: b64,
-        mimetype: 'application/pdf',
-      }])
-    } catch (eA) { throw new Error(`Erreur création attachment Odoo : ${eA.message}`) }
+  // Trouver le champ Many2one vers ir.attachment
+  const attachField = tplFieldNames.find(f =>
+    tplFields[f].type === 'many2one' && (f.includes('attach') || f.includes('document') || f.includes('pdf'))
+  ) || tplFieldNames.find(f => tplFields[f].type === 'many2one')
 
-    for (const field of ['attachment_id', 'ir_attachment_id', 'signed_document']) {
-      try {
-        const data = { name: reference || 'OS' }
-        data[field] = attachmentId
-        templateId = await execute('sign.template', 'create', [data])
-        lastError = ''
-        break
-      } catch (e2) { lastError = `[${field}] ${e2.message}` }
-    }
-    if (!templateId) throw new Error(`Odoo Sign : impossible de créer le template. Dernière erreur : ${lastError}`)
+  // Créer l'attachment Odoo
+  const attachmentId = await execute('ir.attachment', 'create', [{
+    name: `${reference || 'OS'}.pdf`,
+    type: 'binary',
+    datas: b64,
+    mimetype: 'application/pdf',
+  }])
+
+  if (!attachField) {
+    throw new Error(`Champs sign.template disponibles : ${tplFieldNames.join(', ')}`)
   }
+
+  // Créer le template avec le bon champ
+  const templateData = { name: reference || 'OS' }
+  templateData[attachField] = attachmentId
+  const templateId = await execute('sign.template', 'create', [templateData])
 
   // 3. Récupérer le rôle de signataire par défaut
   const roles = await execute('sign.item.role', 'search_read', [[]], { fields: ['id', 'name'], limit: 1 })
