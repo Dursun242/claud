@@ -121,39 +121,31 @@ export default function OrdresServiceV({data,m,reload}) {
     reload();
   };
 
-  const openSignModal = async (os) => {
+  const openSignModal = (os) => {
     setSignError("");
-    setSelectedTemplate("");
     setOdooTemplates([]);
     const nomLower = (os.artisan_nom || "").toLowerCase().trim();
     const contactMatch = data.contacts.find(c => (c.nom || "").toLowerCase().trim() === nomLower);
     const emailEffectif = os.artisan_email || contactMatch?.email || "";
     setSignModal({ ...os, artisan_email: emailEffectif });
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch('/api/odoo/templates', { headers: { Authorization: `Bearer ${session.access_token}` } });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || 'Erreur Odoo');
-      setOdooTemplates(json.templates || []);
-      if (json.templates?.length) setSelectedTemplate(String(json.templates[0].id));
-    } catch (err) {
-      setSignError(err.message);
-    }
   };
 
   const handleSendSign = async () => {
-    if (!signModal || !selectedTemplate) return;
+    if (!signModal) return;
     const emailEffectif = signModal.artisan_email;
     if (!emailEffectif) { setSignError("L'email du destinataire est introuvable dans l'annuaire."); return; }
     setSignSending(true);
     setSignError("");
     try {
+      const ch = data.chantiers.find(c => c.id === signModal.chantier_id);
+      const pdfResult = generateOSPdf({ ...signModal, chantier: ch?.nom || "", adresse_chantier: ch?.adresse || "", returnBase64: true });
+      if (!pdfResult?.base64) throw new Error("Impossible de générer le PDF de l'OS");
       const { data: { session } } = await supabase.auth.getSession();
       const res = await fetch('/api/odoo/sign', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
         body: JSON.stringify({
-          templateId: parseInt(selectedTemplate),
+          pdfBase64: pdfResult.base64,
           signerName: signModal.artisan_nom,
           signerEmail: emailEffectif,
           reference: signModal.numero,
@@ -336,24 +328,17 @@ export default function OrdresServiceV({data,m,reload}) {
             <div style={{fontSize:12,color:"#64748B"}}>Email : <strong style={{color: signModal.artisan_email ? "#059669" : "#EF4444"}}>{signModal.artisan_email || "Non trouvé dans l'annuaire !"}</strong></div>
           </div>
 
-          {odooTemplates.length === 0 && !signError && (
-            <div style={{fontSize:12,color:"#94A3B8",textAlign:"center",padding:8}}>Chargement des templates Odoo…</div>
-          )}
-          {odooTemplates.length > 0 && (
-            <FF label="Template Odoo Sign">
-              <select style={sel} value={selectedTemplate} onChange={e=>setSelectedTemplate(e.target.value)}>
-                {odooTemplates.map(t=><option key={t.id} value={String(t.id)}>{t.name}</option>)}
-              </select>
-            </FF>
-          )}
+          <div style={{background:"#F0FDF4",border:"1px solid #BBF7D0",borderRadius:8,padding:10,fontSize:12,color:"#166534"}}>
+            Le PDF exact de l'OS sera généré et envoyé à Odoo Sign. {signModal.artisan_nom} recevra un email pour signer.
+          </div>
 
           {signError && <div style={{background:"#FEF2F2",border:"1px solid #FECACA",borderRadius:8,padding:10,fontSize:12,color:"#EF4444"}}>{signError}</div>}
 
           <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
             <button onClick={()=>setSignModal(null)} style={btnS}>Annuler</button>
-            <button onClick={handleSendSign} disabled={signSending || !selectedTemplate || !signModal.artisan_email}
-              style={{...btnP,background:"#7C3AED",opacity:(signSending||!selectedTemplate||!signModal.artisan_email)?0.5:1}}>
-              {signSending?"Envoi en cours…":"✍ Envoyer pour signature"}
+            <button onClick={handleSendSign} disabled={signSending || !signModal.artisan_email}
+              style={{...btnP,background:"#7C3AED",opacity:(signSending||!signModal.artisan_email)?0.5:1}}>
+              {signSending?"Génération et envoi…":"✍ Envoyer pour signature"}
             </button>
           </div>
         </div>

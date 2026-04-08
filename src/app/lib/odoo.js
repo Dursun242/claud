@@ -153,47 +153,87 @@ export async function createSignRequest({ templateId, signerName, signerEmail, r
  */
 export async function createSignRequestFromPdf({ pdfBase64, signerName, signerEmail, reference }) {
   const partnerId = await findOrCreatePartner({ name: signerName, email: signerEmail })
-
-  // Extraire le base64 pur (sans le préfixe data:application/pdf;base64,)
   const b64 = pdfBase64.includes(',') ? pdfBase64.split(',')[1] : pdfBase64
 
-  // 1. Créer l'attachment Odoo
-  const attachmentId = await execute('ir.attachment', 'create', [{
-    name: `${reference || 'OS'}.pdf`,
-    type: 'binary',
-    datas: b64,
-    mimetype: 'application/pdf',
-  }])
+  // Approche REST API Odoo 17 (Bearer token) — contourne les restrictions JSON-RPC
+  const uid = await getUid()
+  const credentials = Buffer.from(`${ODOO_USER}:${ODOO_API_KEY}`).toString('base64')
 
-  // 2. Créer le template Sign avec l'attachment
-  const templateId = await execute('sign.template', 'create', [{
-    attachment_id: attachmentId,
-  }])
+  // 1. Upload PDF via l'endpoint web session d'Odoo
+  let attachmentId
+  try {
+    const uploadRes = await fetch(`${ODOO_URL}/web/dataset/call_kw`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Basic ${credentials}`,
+      },
+      body: JSON.stringify({
+        jsonrpc: '2.0', method: 'call', id: 1,
+        params: {
+          model: 'ir.attachment', method: 'create',
+          args: [{ name: `${reference || 'OS'}.pdf`, type: 'binary', datas: b64, mimetype: 'application/pdf' }],
+          kwargs: { context: { active_model: 'sign.template' } },
+        },
+      }),
+    })
+    const uploadJson = await uploadRes.json()
+    if (uploadJson.error) throw new Error(uploadJson.error.data?.message || uploadJson.error.message)
+    attachmentId = uploadJson.result
+  } catch (e) {
+    throw new Error(`Upload PDF Odoo : ${e.message}`)
+  }
 
-  // 3. Récupérer rôle et créer la demande directement (sans sign.item manuel)
+  // 2. Créer template via REST API Odoo 17
+  let templateId
+  try {
+    const tplRes = await fetch(`${ODOO_URL}/api/sign.template`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${ODOO_API_KEY}`,
+      },
+      body: JSON.stringify({ attachment_id: attachmentId }),
+    })
+    if (tplRes.ok) {
+      const tplJson = await tplRes.json()
+      templateId = tplJson.id || tplJson
+    }
+  } catch (_) {}
+
+  // 3. Fallback JSON-RPC si REST ne fonctionne pas
+  if (!templateId) {
+    try {
+      templateId = await execute('sign.template', 'create', [{ attachment_id: attachmentId }])
+    } catch (e) {
+      throw new Error(`Création template Odoo Sign impossible. Erreur : ${e.message}. AttachmentId créé : ${attachmentId}`)
+    }
+  }
+
+  // 4. Rôle signataire
   const roles = await execute('sign.item.role', 'search_read', [[]], { fields: ['id', 'name'], limit: 1 })
   const roleId = roles[0]?.id
   if (!roleId) throw new Error('Aucun rôle signataire trouvé dans Odoo Sign')
 
-  // 4. Créer la demande de signature
-  const requestId = await execute('sign.request', 'create', [{
-    template_id: templateId,
-    reference: reference || '',
-    request_item_ids: [[0, 0, { partner_id: partnerId, role_id: roleId }]],
-  }])
-
-  // 6. Envoyer (essai multi-méthodes)
-  const sendMethods = ['action_send_request', 'send_signature_accesses', 'action_validate']
-  let sent = false
-  for (const method of sendMethods) {
-    try { await execute('sign.request', method, [[requestId]]); sent = true; break } catch (_) {}
-  }
-  if (!sent) {
+  // 5. Créer la demande de signature
+  let requestId
+  try {
+    requestId = await execute('sign.request', 'create', [{
+      template_id: templateId, reference: reference || '', state: 'sent',
+      request_item_ids: [[0, 0, { partner_id: partnerId, role_id: roleId }]],
+    }])
+  } catch (_) {
+    requestId = await execute('sign.request', 'create', [{
+      template_id: templateId, reference: reference || '',
+      request_item_ids: [[0, 0, { partner_id: partnerId, role_id: roleId }]],
+    }])
+    for (const m of ['action_send_request', 'send_signature_accesses', 'action_sign_send']) {
+      try { await execute('sign.request', m, [[requestId]]); break } catch (_) {}
+    }
     await execute('sign.request', 'write', [[requestId], { state: 'sent' }])
   }
 
-  const signUrl = `${ODOO_URL}/odoo/sign/${requestId}`
-  return { requestId, signUrl, state: 'sent' }
+  return { requestId, signUrl: `${ODOO_URL}/odoo/sign/${requestId}`, state: 'sent' }
 }
 
 /** Vérifie le statut d'une demande de signature */
