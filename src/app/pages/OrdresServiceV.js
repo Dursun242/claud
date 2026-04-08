@@ -125,8 +125,10 @@ export default function OrdresServiceV({data,m,reload}) {
     setSignError("");
     setSelectedTemplate("");
     setOdooTemplates([]);
-    // Chercher l'email dans les contacts si absent sur l'OS
-    const emailEffectif = os.artisan_email || data.contacts.find(c => c.nom === os.artisan_nom)?.email || "";
+    // Chercher l'email dans les contacts si absent sur l'OS (insensible à la casse)
+    const nomLower = (os.artisan_nom || "").toLowerCase().trim();
+    const contactMatch = data.contacts.find(c => (c.nom || "").toLowerCase().trim() === nomLower);
+    const emailEffectif = os.artisan_email || contactMatch?.email || "";
     setSignModal({ ...os, artisan_email: emailEffectif });
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -142,7 +144,8 @@ export default function OrdresServiceV({data,m,reload}) {
 
   const handleSendSign = async () => {
     if (!selectedTemplate || !signModal) return;
-    const emailEffectif = signModal.artisan_email || data.contacts.find(c => c.nom === signModal.artisan_nom)?.email || "";
+    const nomLower2 = (signModal.artisan_nom || "").toLowerCase().trim();
+    const emailEffectif = signModal.artisan_email || data.contacts.find(c => (c.nom || "").toLowerCase().trim() === nomLower2)?.email || "";
     if (!emailEffectif) { setSignError("L'email du destinataire est introuvable dans l'annuaire."); return; }
     setSignSending(true);
     setSignError("");
