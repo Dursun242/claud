@@ -30,9 +30,10 @@ export default function OrdresServiceV({data,m,reload}) {
 
   const openNew = () => {
     const ch = data.chantiers[0];
+    const clientContact = data.contacts.find(c => c.nom === ch?.client);
     setForm({
       numero: nextNum(), chantier_id: ch?.id||"", chantier: ch?.nom||"", adresse_chantier: ch?.adresse||"",
-      client_nom: ch?.client||"", client_adresse: "",
+      client_nom: ch?.client||"", client_adresse: clientContact?.adresse||"", client_tel: clientContact?.tel||"", client_email: clientContact?.email||"",
       artisan_nom: "", artisan_specialite: "", artisan_adresse: "", artisan_tel: "", artisan_email: "", artisan_siret: "",
       date_emission: new Date().toISOString().split("T")[0], date_intervention: "", date_fin_prevue: "",
       observations: "", conditions: "Paiement à 30 jours à compter de la réception de la facture.",
@@ -58,7 +59,8 @@ export default function OrdresServiceV({data,m,reload}) {
 
   const updateChantier = (chId) => {
     const ch = data.chantiers.find(c=>c.id===chId);
-    setForm(f=>({...f, chantier_id: chId, chantier: ch?.nom||"", adresse_chantier: ch?.adresse||"", client_nom: ch?.client||""}));
+    const clientContact = data.contacts.find(c => c.nom === ch?.client);
+    setForm(f=>({...f, chantier_id: chId, chantier: ch?.nom||"", adresse_chantier: ch?.adresse||"", client_nom: ch?.client||"", client_adresse: clientContact?.adresse||"", client_tel: clientContact?.tel||"", client_email: clientContact?.email||""}));
   };
 
   const updateDestinataire = (name) => {

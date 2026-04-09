@@ -135,7 +135,8 @@ export function generateOSPdf(data) {
   doc.setFontSize(9); doc.setFont("helvetica", "bold"); doc.setTextColor(...NOIR)
   doc.text(data.client_nom || "—", margin + 3, y + 10)
   doc.setFontSize(7); doc.setFont("helvetica", "normal"); doc.setTextColor(...GRIS)
-  doc.text(data.client_adresse || "", margin + 3, y + 15)
+  const cLines = [data.client_adresse, data.client_tel && `Tél: ${data.client_tel}`, data.client_email].filter(Boolean)
+  cLines.forEach((l, i) => doc.text(l, margin + 3, y + 15 + i * 3.2))
 
   const ax = margin + halfW + 4
   doc.rect(ax, y, halfW, 26)
