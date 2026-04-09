@@ -158,7 +158,14 @@ export async function createSignRequestFromPdf({ pdfBase64, reference, operation
     ? `Signature requise – OS ${reference} – ${operationName}`
     : `Signature requise – OS ${reference}`
 
-  if (!signers?.length) throw new Error('Au moins un signataire requis')
+  // Validation stricte : 3 signataires obligatoires
+  const REQUIRED_ROLES = ['MOE', 'MOA', 'Entreprise']
+  const ROLE_LABELS = { MOE: 'MOE (Id Maîtrise)', MOA: "Maître d'ouvrage", Entreprise: 'Entreprise' }
+  for (const role of REQUIRED_ROLES) {
+    const s = signers?.find(x => x.role === role)
+    if (!s?.email) throw new Error(`Email obligatoire pour le rôle ${ROLE_LABELS[role]}`)
+  }
+  if (signers.length !== 3) throw new Error(`3 signataires requis (MOE, Maître d'ouvrage, Entreprise), ${signers.length} fourni(s)`)
 
   // ── A : ir.attachment ────────────────────────────────────────────────────
   const attId = await execute('ir.attachment', 'create', [{
