@@ -3,10 +3,14 @@
  * Utilisé côté serveur uniquement (routes API Next.js)
  */
 
-const ODOO_URL = process.env.ODOO_URL
-const ODOO_DB = process.env.ODOO_DB
-const ODOO_USER = process.env.ODOO_USER
+const ODOO_URL     = process.env.ODOO_URL
+const ODOO_DB      = process.env.ODOO_DB
+const ODOO_USER    = process.env.ODOO_USER
 const ODOO_API_KEY = process.env.ODOO_API_KEY
+
+// ID du template Odoo Sign de référence (ex : 43)
+// Ce template doit avoir 3 zones de signature configurées : MOE / Maître d'ouvrage / Entreprise
+const ODOO_SIGN_TEMPLATE_REF = parseInt(process.env.ODOO_SIGN_TEMPLATE_REF || '0')
 
 async function jsonrpc(service, method, args) {
   if (!ODOO_URL) throw new Error('Variable ODOO_URL manquante dans Vercel')
@@ -16,8 +20,8 @@ async function jsonrpc(service, method, args) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'User-Agent': 'Mozilla/5.0 ID-Maitrise/1.0',
+        'Accept':       'application/json',
+        'User-Agent':   'Mozilla/5.0 ID-Maitrise/1.0',
       },
       body: JSON.stringify({ jsonrpc: '2.0', method: 'call', id: Date.now(), params: { service, method, args } }),
       cache: 'no-store',
@@ -48,15 +52,15 @@ async function execute(model, method, args = [], kwargs = {}) {
 // ─── Méthodes publiques ────────────────────────────────────────────────────────
 
 /** Teste la connexion Odoo */
-/** Inspecte les champs d'un modèle Odoo (diagnostic) */
-export async function inspectModel(model) {
-  return execute(model, 'fields_get', [], { attributes: ['string', 'type', 'readonly', 'required'] })
-}
-
 export async function testConnection() {
   const version = await jsonrpc('common', 'version', [])
   const uid = await getUid()
   return { ok: true, version: version.server_version, uid }
+}
+
+/** Inspecte les champs d'un modèle Odoo (diagnostic) */
+export async function inspectModel(model) {
+  return execute(model, 'fields_get', [], { attributes: ['string', 'type', 'readonly', 'required'] })
 }
 
 /** Récupère les templates Odoo Sign disponibles */
@@ -69,13 +73,11 @@ export async function getSignTemplates() {
 
 /** Récupère les rôles de signataire disponibles dans un template */
 export async function getTemplateRoles(templateId) {
-  // Les rôles sont définis dans sign.item.role
   const items = await execute('sign.item', 'search_read', [[['template_id', '=', templateId]]], {
     fields: ['id', 'responsible_id'],
   })
   const roleIds = [...new Set(items.map(i => i.responsible_id?.[0]).filter(Boolean))]
   if (!roleIds.length) {
-    // Récupérer le rôle par défaut
     const defaultRoles = await execute('sign.item.role', 'search_read', [[]], { fields: ['id', 'name'], limit: 10 })
     return defaultRoles
   }
@@ -94,23 +96,14 @@ export async function findOrCreatePartner({ name, email }) {
 }
 
 /**
- * Crée et envoie une demande de signature Odoo
- * @param {Object} params
- * @param {number} params.templateId - ID du template Odoo Sign
- * @param {string} params.signerName - Nom du signataire
- * @param {string} params.signerEmail - Email du signataire
- * @param {string} params.reference - Référence (numéro OS)
+ * Crée et envoie une demande de signature Odoo (flux 1 signataire — ancien)
  */
 export async function createSignRequest({ templateId, signerName, signerEmail, reference }) {
-  // 1. Trouver ou créer le partenaire
   const partnerId = await findOrCreatePartner({ name: signerName, email: signerEmail })
-
-  // 2. Récupérer le premier rôle du template
   const roles = await getTemplateRoles(templateId)
   if (!roles.length) throw new Error('Aucun rôle de signataire trouvé dans ce template')
   const roleId = roles[0].id
 
-  // 3. Créer la demande de signature avec state='sent' pour déclencher l'envoi auto
   let requestId
   try {
     requestId = await execute('sign.request', 'create', [{
@@ -120,214 +113,284 @@ export async function createSignRequest({ templateId, signerName, signerEmail, r
       request_item_ids: [[0, 0, { partner_id: partnerId, role_id: roleId }]],
     }])
   } catch (_) {
-    // Fallback sans state (certaines versions n'acceptent pas state à la création)
     requestId = await execute('sign.request', 'create', [{
       template_id: templateId,
       reference: reference || '',
       request_item_ids: [[0, 0, { partner_id: partnerId, role_id: roleId }]],
     }])
-    // Essai envoi post-création
-    const sendMethods = ['action_send_request', 'send_signature_accesses', 'action_sign_send', 'action_validate']
-    for (const method of sendMethods) {
-      try { await execute('sign.request', method, [[requestId]]); break } catch (_) {}
+    for (const m of ['action_send_request', 'send_signature_accesses', 'action_sign_send', 'action_validate']) {
+      try { await execute('sign.request', m, [[requestId]]); break } catch (_) {}
     }
     await execute('sign.request', 'write', [[requestId], { state: 'sent' }])
   }
 
-  // 5. Récupérer l'URL de la demande
   const requestData = await execute('sign.request', 'read', [[requestId]], {
     fields: ['id', 'reference', 'state', 'request_item_ids'],
   })
-
-  const signUrl = `${ODOO_URL}/odoo/sign/${requestId}`
-  return { requestId, signUrl, state: requestData[0]?.state || 'sent' }
+  return { requestId, signUrl: `${ODOO_URL}/odoo/sign/${requestId}`, state: requestData[0]?.state || 'sent' }
 }
 
-/**
- * Crée une demande de signature depuis un PDF base64
- * @param {Object} params
- * @param {string} params.pdfBase64       - dataURI base64 du PDF
- * @param {string} params.reference       - Numéro OS (ex: OS-2026-020)
- * @param {string} params.operationName   - Nom du chantier (pour l'objet email)
- * @param {Array}  params.signers         - [{name, email, role}] role ∈ 'MOE'|'MOA'|'Entreprise'
- */
-const ODOO_SIGN_TEMPLATE_REF = parseInt(process.env.ODOO_SIGN_TEMPLATE_REF || '0')
+// ─────────────────────────────────────────────────────────────────────────────
+// Flux 3 signataires — flux principal
+// ─────────────────────────────────────────────────────────────────────────────
 
-// Associe un nom de rôle Odoo à notre clé interne (MOE / MOA / Entreprise)
+/**
+ * Mappe un nom de rôle Odoo vers la clé interne : 'MOE' | 'MOA' | 'Entreprise'
+ * Les noms dans Odoo peuvent être "MOE", "Maître d'œuvre", "Maître d'ouvrage", "Entreprise"...
+ */
 function roleNameToKey(name = '') {
   const n = name.toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '')
-  if (n.includes('moe') || n.includes('maitrise')) return 'MOE'
-  if (n.includes('maitre') || n.includes('ouvrage') || n.includes('moa')) return 'MOA'
-  if (n.includes('entreprise') || n.includes('artisan')) return 'Entreprise'
+  if (n.includes('moe') || n.includes('uvre') || n.includes('maitrise')) return 'MOE'
+  if (n.includes('ouvrage') || n.includes('moa'))                        return 'MOA'
+  if (n.includes('entreprise') || n.includes('artisan'))                 return 'Entreprise'
   return null
 }
 
+/**
+ * Crée et envoie une demande de signature Odoo Sign depuis un PDF base64.
+ *
+ * Architecture :
+ *   1. Upload ir.attachment (le PDF de l'OS)
+ *   2. copy() du template de référence (préserve sign.items + rôles)
+ *   3. Remplace le PDF sur le template copié
+ *   4. Lit les sign.items → roleIds (source de vérité)
+ *   5. Crée/trouve les partenaires Odoo pour chaque signataire
+ *   6. Crée sign.request avec request_item_ids couvrant EXACTEMENT les 3 rôles
+ *   7. Définit subject + email_from
+ *   8. Envoie via send_signature_accesses (avec logs explicites des erreurs)
+ *
+ * @param {string} params.pdfBase64     - PDF de l'OS (dataURI ou base64 brut)
+ * @param {string} params.reference     - Numéro OS, ex : "OS-2026-020"
+ * @param {string} params.operationName - Nom du chantier (pour l'objet email)
+ * @param {Array}  params.signers       - [{name, email, role}] role ∈ 'MOE'|'MOA'|'Entreprise'
+ */
 export async function createSignRequestFromPdf({ pdfBase64, reference, operationName, signers }) {
-  const b64 = pdfBase64.includes(',') ? pdfBase64.split(',')[1] : pdfBase64
+  const b64      = pdfBase64.includes(',') ? pdfBase64.split(',')[1] : pdfBase64
   const filename = `${reference || 'OS'}.pdf`
-  const subject = operationName
+  const subject  = operationName
     ? `Signature requise – OS ${reference} – ${operationName}`
     : `Signature requise – OS ${reference}`
 
-  // Validation stricte : 3 signataires obligatoires
+  // ── Validation stricte ──────────────────────────────────────────────────────
   const ROLE_LABELS = { MOE: 'MOE (Id Maîtrise)', MOA: "Maître d'ouvrage", Entreprise: 'Entreprise' }
   for (const role of ['MOE', 'MOA', 'Entreprise']) {
     const s = signers?.find(x => x.role === role)
     if (!s?.email) throw new Error(`Email obligatoire pour le rôle ${ROLE_LABELS[role]}`)
   }
   if (signers.length !== 3) throw new Error(`3 signataires requis, ${signers.length} fourni(s)`)
-
-  // ── REF : Lire le template de référence Odoo (rôles + positions) ─────────
-  let refItems = []
-  if (ODOO_SIGN_TEMPLATE_REF) {
-    refItems = await execute('sign.item', 'search_read',
-      [[['template_id', '=', ODOO_SIGN_TEMPLATE_REF]]],
-      { fields: ['responsible_id', 'type_id', 'posX', 'posY', 'width', 'height', 'page', 'required'] }
-    )
-    console.log('[OdooSign] REF — template', ODOO_SIGN_TEMPLATE_REF, '→', refItems.length, 'items')
+  if (!ODOO_SIGN_TEMPLATE_REF) {
+    throw new Error('Variable ODOO_SIGN_TEMPLATE_REF manquante — ajoutez ODOO_SIGN_TEMPLATE_REF=43 dans Vercel')
   }
 
-  // Mapping clé interne → role ID Odoo (lu depuis le template de référence)
-  const roleIds = {}                    // { MOE: id, MOA: id, Entreprise: id }
-  const roleItemPayloads = []           // sign.item payloads à créer sur le nouveau template
-  if (refItems.length) {
-    for (const ref of refItems) {
-      const rId  = ref.responsible_id?.[0]
-      const rName = ref.responsible_id?.[1] || ''
-      const key  = roleNameToKey(rName)
-      if (rId && key) {
-        roleIds[key] = rId
-        roleItemPayloads.push({
-          responsible_id: rId,
-          type_id:        ref.type_id?.[0],
-          posX: ref.posX, posY: ref.posY,
-          width: ref.width, height: ref.height,
-          page: ref.page ?? 1,
-          required: ref.required ?? true,
-        })
-      }
-    }
-    console.log('[OdooSign] REF — roleIds depuis template:', JSON.stringify(roleIds))
-  } else {
-    // Fallback : find-or-create les rôles par nom
-    const allRoles = await execute('sign.item.role', 'search_read', [[]], { fields: ['id', 'name'] })
-    const ROLE_NAMES = { MOE: 'moe', MOA: 'maître', Entreprise: 'entreprise' }
-    for (const [key, fragment] of Object.entries(ROLE_NAMES)) {
-      const found = allRoles.find(r => r.name.toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '').includes(fragment))
-      if (found) {
-        roleIds[key] = found.id
-      } else {
-        const labels = { MOE: 'MOE', MOA: "Maître d'ouvrage", Entreprise: 'Entreprise' }
-        try { roleIds[key] = await execute('sign.item.role', 'create', [{ name: labels[key] }]) }
-        catch (e) { roleIds[key] = allRoles[0]?.id; console.warn('[OdooSign] fallback rôle:', key) }
-      }
-    }
-    // Zones par défaut si pas de template de référence
-    const signTypes = await execute('sign.item.type', 'search_read', [[]], { fields: ['id'], limit: 1 })
-    const tId = signTypes[0]?.id
-    if (tId) {
-      const DEFAULT_ZONES = [
-        { key: 'MOE',        posX: 0.03, posY: 0.82 },
-        { key: 'MOA',        posX: 0.37, posY: 0.82 },
-        { key: 'Entreprise', posX: 0.68, posY: 0.82 },
-      ]
-      for (const z of DEFAULT_ZONES) {
-        if (roleIds[z.key]) roleItemPayloads.push({ responsible_id: roleIds[z.key], type_id: tId, posX: z.posX, posY: z.posY, width: 0.28, height: 0.12, page: 1, required: true })
-      }
-    }
-    console.log('[OdooSign] fallback — roleIds:', JSON.stringify(roleIds))
-  }
-
-  // ── A : ir.attachment ────────────────────────────────────────────────────
+  // ── 1 : Upload le PDF de l'OS ───────────────────────────────────────────────
   const attId = await execute('ir.attachment', 'create', [{
     name: filename, type: 'binary', datas: b64, mimetype: 'application/pdf',
   }])
-  console.log('[OdooSign] A — attId:', attId)
+  console.log('[OdooSign] 1 — ir.attachment créé:', attId)
 
-  // ── B : sign.template ────────────────────────────────────────────────────
-  const templateId = await execute('sign.template', 'create', [{ name: filename }])
-  console.log('[OdooSign] B — templateId:', templateId)
-
-  // ── C : sign.document ────────────────────────────────────────────────────
-  const signDocId = await execute('sign.document', 'create', [{
-    name: filename, template_id: templateId, attachment_id: attId,
-  }])
-  const docRead = await execute('sign.document', 'read', [[signDocId]], { fields: ['id', 'attachment_id'] })
-  if (!docRead[0]?.attachment_id) throw new Error('sign.document créé sans attachment_id')
-  console.log('[OdooSign] C — signDocId:', signDocId)
-
-  // ── E : sign.items (structure du template de référence) ──────────────────
-  for (const payload of roleItemPayloads) {
+  // ── 2 : Dupliquer le template de référence ──────────────────────────────────
+  // copy() duplique le template ET ses sign.items (zones + rôles) automatiquement.
+  // On passe notre nouveau attachment_id dans les valeurs par défaut.
+  // Si attachment_id n'est pas un champ valide sur sign.template, on copie sans
+  // puis on met à jour l'attachment séparément (voir étape 3).
+  let newTemplateId
+  try {
+    newTemplateId = await execute('sign.template', 'copy', [ODOO_SIGN_TEMPLATE_REF], {
+      default: { name: filename, attachment_id: attId },
+    })
+    console.log('[OdooSign] 2 — template copié avec attachment_id:', newTemplateId)
+  } catch (e1) {
+    console.warn('[OdooSign] 2 — copy avec attachment_id échoué:', e1.message, '— retry sans')
     try {
-      const iId = await execute('sign.item', 'create', [{ template_id: templateId, ...payload }])
-      console.log('[OdooSign] E — sign.item créé:', iId)
-    } catch (e) {
-      console.warn('[OdooSign] E — sign.item échec:', e.message)
+      newTemplateId = await execute('sign.template', 'copy', [ODOO_SIGN_TEMPLATE_REF], {
+        default: { name: filename },
+      })
+      console.log('[OdooSign] 2 — template copié (sans attachment_id):', newTemplateId)
+    } catch (e2) {
+      throw new Error(`Impossible de copier le template ${ODOO_SIGN_TEMPLATE_REF} : ${e2.message}`)
     }
   }
 
-  // Lire les rôles réels créés sur le template (source de vérité pour sign.request)
-  const templateItems = await execute('sign.item', 'search_read',
-    [[['template_id', '=', templateId]]], { fields: ['responsible_id'] }
-  )
-  const requiredRoleIds = [...new Set(templateItems.map(i => i.responsible_id?.[0]).filter(Boolean))]
-  console.log('[OdooSign] E — rôles requis sur template:', requiredRoleIds)
+  // ── 3 : Assurer que le PDF de l'OS est bien lié au template copié ───────────
+  // Le copy() a peut-être hérité de l'attachment du template original.
+  // On s'assure que le template copié pointe sur Notre nouveau PDF.
+  let pdfLinked = false
 
-  // ── F : Partenaires ──────────────────────────────────────────────────────
-  const roleToPartner = {}
-  for (const s of signers) {
-    if (!s.email || !roleIds[s.role]) continue
-    const partnerId = await findOrCreatePartner({ name: s.name, email: s.email })
-    roleToPartner[roleIds[s.role]] = partnerId
-    console.log('[OdooSign] F —', s.role, s.email, '→ partner', partnerId)
+  // Essai A : attachment_id direct sur sign.template
+  try {
+    const tmplData = await execute('sign.template', 'read', [[newTemplateId]], { fields: ['id', 'attachment_id'] })
+    const currentAttId = tmplData[0]?.attachment_id?.[0]
+    if (currentAttId === attId) {
+      // Déjà lié (le copy() avec default a fonctionné)
+      pdfLinked = true
+      console.log('[OdooSign] 3A — attachment_id déjà correct:', attId)
+    } else {
+      // Mettre à jour l'attachment_id sur le template copié
+      await execute('sign.template', 'write', [[newTemplateId], { attachment_id: attId }])
+      pdfLinked = true
+      console.log('[OdooSign] 3A — attachment_id mis à jour:', currentAttId, '→', attId)
+    }
+  } catch (eA) {
+    console.warn('[OdooSign] 3A — attachment_id non disponible sur sign.template:', eA.message)
+
+    // Essai B : mettre à jour le contenu de l'attachment copié (via sign.document)
+    try {
+      const docs = await execute('sign.document', 'search_read',
+        [[['template_id', '=', newTemplateId]]],
+        { fields: ['id', 'attachment_id'], limit: 1 }
+      )
+      if (docs.length && docs[0].attachment_id?.[0]) {
+        // Écraser le contenu de l'attachment copié avec notre nouveau PDF
+        await execute('ir.attachment', 'write', [[docs[0].attachment_id[0]], { datas: b64, name: filename }])
+        pdfLinked = true
+        console.log('[OdooSign] 3B — ir.attachment mis à jour via sign.document:', docs[0].attachment_id[0])
+      } else {
+        // Créer un sign.document avec notre attachment
+        await execute('sign.document', 'create', [{
+          name: filename, template_id: newTemplateId, attachment_id: attId,
+        }])
+        pdfLinked = true
+        console.log('[OdooSign] 3B — sign.document créé avec attachment')
+      }
+    } catch (eB) {
+      console.error('[OdooSign] 3B — mise à jour PDF échouée:', eB.message)
+      // On continue : le template de référence sera affiché à la place du PDF de l'OS
+    }
   }
 
-  // ── G : request_items couvrant EXACTEMENT les rôles du template ───────────
-  const fallbackPartnerId = Object.values(roleToPartner)[0]
-  const requestItems = (requiredRoleIds.length > 0 ? requiredRoleIds : Object.keys(roleToPartner).map(Number))
-    .map(rId => {
-      const partnerId = roleToPartner[rId] ?? fallbackPartnerId
-      return partnerId ? [0, 0, { partner_id: partnerId, role_id: rId }] : null
-    })
-    .filter(Boolean)
+  if (!pdfLinked) {
+    console.warn('[OdooSign] 3 — PDF non lié au template. Le document signé affichera le PDF du template de référence.')
+  }
 
-  if (!requestItems.length) throw new Error('Aucun request_item — vérifiez les emails et rôles')
-  console.log('[OdooSign] G — requestItems:', requestItems.length)
+  // ── 4 : Lire les sign.items du template copié (source de vérité pour les rôles) ──
+  const templateItems = await execute('sign.item', 'search_read',
+    [[['template_id', '=', newTemplateId]]],
+    { fields: ['id', 'responsible_id'] }
+  )
+  console.log('[OdooSign] 4 —', templateItems.length, 'sign.item(s) sur le template copié')
 
-  // ── H : sign.request ─────────────────────────────────────────────────────
+  if (!templateItems.length) {
+    throw new Error(
+      `Le template de référence (id:${ODOO_SIGN_TEMPLATE_REF}) n'a aucune zone de signature (sign.item). ` +
+      `Ouvrez Odoo Sign > Modèles > id:${ODOO_SIGN_TEMPLATE_REF} et configurez les 3 zones.`
+    )
+  }
+
+  // Construire le mapping clé interne → role_id Odoo
+  const roleIds = {}
+  for (const item of templateItems) {
+    const rId  = item.responsible_id?.[0]
+    const key  = roleNameToKey(item.responsible_id?.[1] || '')
+    if (rId && key && !roleIds[key]) roleIds[key] = rId
+  }
+  console.log('[OdooSign] 4 — roleIds mappés:', JSON.stringify(roleIds))
+
+  // Vérifier que les 3 rôles sont reconnus
+  for (const role of ['MOE', 'MOA', 'Entreprise']) {
+    if (!roleIds[role]) {
+      const found = templateItems.map(i => `"${i.responsible_id?.[1]}" (id:${i.responsible_id?.[0]})`).join(', ')
+      throw new Error(
+        `Rôle "${role}" non reconnu dans le template ${ODOO_SIGN_TEMPLATE_REF}. ` +
+        `Rôles trouvés : ${found}. ` +
+        `Vérifiez que les noms de rôles contiennent : "moe"/"uvre" pour MOE, "ouvrage" pour MOA, "entreprise" pour Entreprise.`
+      )
+    }
+  }
+
+  // IDs uniques des rôles dans le template (dans l'ordre pour la correspondance exacte)
+  const uniqueRoleIds = [...new Set(templateItems.map(i => i.responsible_id?.[0]).filter(Boolean))]
+
+  // ── 5 : Créer/trouver les partenaires Odoo pour chaque signataire ───────────
+  const roleToPartner = {}
+  for (const s of signers) {
+    const rId = roleIds[s.role]
+    const partnerId = await findOrCreatePartner({ name: s.name, email: s.email })
+    roleToPartner[rId] = partnerId
+    console.log('[OdooSign] 5 —', s.role, '→ partner', partnerId, '(', s.email, ')')
+  }
+
+  // ── 6 : Créer sign.request ──────────────────────────────────────────────────
+  // request_item_ids doit couvrir EXACTEMENT les mêmes rôles que les sign.items du template.
+  // Odoo valide que template_roles == signer_roles (dans les deux sens).
+  const requestItems = uniqueRoleIds.map(rId => {
+    const pId = roleToPartner[rId]
+    if (!pId) throw new Error(`Partenaire manquant pour role_id ${rId} — vérifiez le mapping signers`)
+    return [0, 0, { partner_id: pId, role_id: rId }]
+  })
+  console.log('[OdooSign] 6 — requestItems:', requestItems.length)
+
   const requestId = await execute('sign.request', 'create', [{
-    template_id: templateId,
-    reference: reference || '',
+    template_id:      newTemplateId,
+    reference:        reference || '',
     request_item_ids: requestItems,
   }])
-  console.log('[OdooSign] H — requestId:', requestId)
+  console.log('[OdooSign] 6 — sign.request créé:', requestId)
 
-  // ── I : Subject + email_from avant envoi ─────────────────────────────────
+  // ── 7 : Définir subject + email_from AVANT l'envoi ─────────────────────────
   try {
     await execute('sign.request', 'write', [[requestId], {
       subject,
       email_from: `Id Maîtrise <${ODOO_USER}>`,
-      reply_to: `Id Maîtrise <${ODOO_USER}>`,
+      reply_to:   `Id Maîtrise <${ODOO_USER}>`,
     }])
-    console.log('[OdooSign] I — subject + email_from définis')
-  } catch (_) {
-    try { await execute('sign.request', 'write', [[requestId], { subject }]) }
-    catch (e) { console.warn('[OdooSign] I — subject non supporté:', e.message) }
+    console.log('[OdooSign] 7 — subject défini:', subject)
+  } catch (e) {
+    console.warn('[OdooSign] 7 — write subject/email_from échoué:', e.message)
+    try { await execute('sign.request', 'write', [[requestId], { subject }]) } catch (_) {}
   }
 
-  // ── J : Envoi ─────────────────────────────────────────────────────────────
+  // ── 8 : Envoyer la demande de signature ─────────────────────────────────────
+  // Les erreurs sont LOGGÉES (pas ignorées) pour diagnostiquer si l'envoi échoue.
+  const sendErrors = []
   let sent = false
+
   for (const m of ['action_send_request', 'send_signature_accesses', 'action_sign_send']) {
-    try { await execute('sign.request', m, [[requestId]]); sent = true; console.log('[OdooSign] J — envoyé via', m); break }
-    catch (_) {}
-  }
-  if (!sent) {
-    try { await execute('sign.request', 'write', [[requestId], { state: 'sent' }]); console.log('[OdooSign] J — state=sent') }
-    catch (e) { console.warn('[OdooSign] J —', e.message) }
+    try {
+      await execute('sign.request', m, [[requestId]])
+      sent = true
+      console.log('[OdooSign] 8 — envoyé via', m)
+      break
+    } catch (e) {
+      sendErrors.push(`${m}: ${e.message}`)
+      console.warn('[OdooSign] 8 —', m, 'échoué:', e.message)
+    }
   }
 
-  console.log('[OdooSign] DONE — requestId:', requestId, 'subject:', subject)
-  return { requestId, signUrl: `${ODOO_URL}/odoo/sign/${requestId}`, state: 'sent', subject }
+  // Fallback : forcer state=sent (certaines versions d'Odoo envoient les emails au changement d'état)
+  if (!sent) {
+    try {
+      await execute('sign.request', 'write', [[requestId], { state: 'sent' }])
+      sent = true
+      console.log('[OdooSign] 8 — state=sent forcé (fallback)')
+    } catch (e) {
+      sendErrors.push(`write state=sent: ${e.message}`)
+    }
+  }
+
+  if (!sent) {
+    // La demande EST créée dans Odoo mais les emails ne sont pas partis.
+    // On remonte l'erreur avec le détail pour corriger.
+    throw new Error(
+      `sign.request ${requestId} créé mais NON envoyé.\n` +
+      `Erreurs :\n${sendErrors.join('\n')}\n` +
+      `Vérifiez manuellement : ${ODOO_URL}/odoo/sign/${requestId}`
+    )
+  }
+
+  // ── 9 : Vérifier l'état final ────────────────────────────────────────────────
+  let finalState = 'sent'
+  try {
+    const stateData = await execute('sign.request', 'read', [[requestId]], { fields: ['id', 'state'] })
+    finalState = stateData[0]?.state || 'sent'
+  } catch (_) {}
+  console.log('[OdooSign] DONE — requestId:', requestId, '| state:', finalState, '| subject:', subject)
+
+  return {
+    requestId,
+    signUrl: `${ODOO_URL}/odoo/sign/${requestId}`,
+    state:   finalState,
+    subject,
+  }
 }
 
 /** Vérifie le statut d'une demande de signature */
