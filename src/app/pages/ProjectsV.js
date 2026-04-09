@@ -374,7 +374,13 @@ export default function ProjectsV({data,save,m,reload,user,profile}) {
     <Modal open={!!modal} onClose={()=>setModal(null)} title={modal==="new"?"Nouveau chantier":"Modifier"}>
       <div style={{display:"grid",gridTemplateColumns:m?"1fr":"1fr 1fr",gap:"0 14px"}}>
         <FF label="Nom"><input style={inp} value={form.nom||""} onChange={e=>setForm({...form,nom:e.target.value})}/></FF>
-        <FF label="Client"><input style={inp} value={form.client||""} onChange={e=>setForm({...form,client:e.target.value})}/></FF>
+        <FF label="Client">
+          <select style={sel} value={form.client||""} onChange={e=>setForm({...form,client:e.target.value})}>
+            <option value="">— Sélectionner un client —</option>
+            {(data.contacts||[]).slice().sort((a,b)=>a.nom.localeCompare(b.nom)).map(c=><option key={c.id} value={c.nom}>{c.nom}</option>)}
+            {form.client && !(data.contacts||[]).some(c=>c.nom===form.client) && <option value={form.client}>{form.client}</option>}
+          </select>
+        </FF>
         <FF label="Adresse"><input style={inp} value={form.adresse||""} onChange={e=>setForm({...form,adresse:e.target.value})}/></FF>
         <FF label="Phase"><select style={sel} value={form.phase||""} onChange={e=>setForm({...form,phase:e.target.value})}><option>Hors d'air</option><option>Technique</option><option>Finitions</option><option>Avant-projet</option><option>Études</option><option>Gros œuvre</option></select></FF>
         <FF label="Statut"><select style={sel} value={form.statut||""} onChange={e=>setForm({...form,statut:e.target.value})}><option>Planifié</option><option>En cours</option><option>En attente</option><option>Terminé</option></select></FF>
