@@ -40,25 +40,67 @@ export default function AdminDashboard({ user, profile = null }) {
   const floatRecogRef = useRef(null);
 
   const toggleFloatMic = useCallback(() => {
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) { alert("Reconnaissance vocale non supportée. Utilisez Chrome ou Safari."); return; }
-    if (floatListening && floatRecogRef.current) {
-      floatRecogRef.current.stop(); setFloatListening(false); return;
-    }
-    const r = new SR(); r.lang = "fr-FR"; r.continuous = true; r.interimResults = true;
-    floatRecogRef.current = r; let final = "";
-    r.onstart = () => { setFloatListening(true); setFloatTranscript(""); };
-    r.onresult = (ev) => {
-      let interim = "";
-      for (let i = ev.resultIndex; i < ev.results.length; i++) {
-        if (ev.results[i].isFinal) final += ev.results[i][0].transcript + " ";
-        else interim = ev.results[i][0].transcript;
+    // Debug diagnostic : vérifier que le clic arrive et que l'API est supportée
+    console.log('[FloatingMic] toggle clicked', {
+      listening: floatListening,
+      hasSR: !!(typeof window !== 'undefined' && (window.SpeechRecognition || window.webkitSpeechRecognition)),
+      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'n/a',
+    });
+
+    try {
+      const SR = typeof window !== 'undefined'
+        ? (window.SpeechRecognition || window.webkitSpeechRecognition)
+        : null;
+
+      if (!SR) {
+        alert("Reconnaissance vocale non supportée par ce navigateur.\n\nUtilisez Chrome, Edge ou Safari (pas Firefox ni Brave).");
+        return;
       }
-      setFloatTranscript(final + interim);
-    };
-    r.onerror = () => setFloatListening(false);
-    r.onend = () => { setFloatListening(false); if (final.trim()) setFloatTranscript(final.trim()); };
-    r.start();
+
+      if (floatListening && floatRecogRef.current) {
+        floatRecogRef.current.stop();
+        setFloatListening(false);
+        return;
+      }
+
+      const r = new SR();
+      r.lang = "fr-FR";
+      r.continuous = true;
+      r.interimResults = true;
+      floatRecogRef.current = r;
+      let final = "";
+
+      r.onstart = () => {
+        console.log('[FloatingMic] recognition started');
+        setFloatListening(true);
+        setFloatTranscript("");
+      };
+      r.onresult = (ev) => {
+        let interim = "";
+        for (let i = ev.resultIndex; i < ev.results.length; i++) {
+          if (ev.results[i].isFinal) final += ev.results[i][0].transcript + " ";
+          else interim = ev.results[i][0].transcript;
+        }
+        setFloatTranscript(final + interim);
+      };
+      r.onerror = (ev) => {
+        console.error('[FloatingMic] recognition error', ev?.error, ev);
+        setFloatListening(false);
+        if (ev?.error === 'not-allowed' || ev?.error === 'service-not-allowed') {
+          alert("Micro bloqué par le navigateur.\n\nAutorise l'accès au micro pour ce site dans les réglages du navigateur.");
+        }
+      };
+      r.onend = () => {
+        console.log('[FloatingMic] recognition ended');
+        setFloatListening(false);
+        if (final.trim()) setFloatTranscript(final.trim());
+      };
+      r.start();
+    } catch (e) {
+      console.error('[FloatingMic] toggleFloatMic exception', e);
+      alert("Erreur lors du démarrage de la reconnaissance vocale :\n" + (e?.message || String(e)));
+      setFloatListening(false);
+    }
   }, [floatListening]);
 
   useEffect(() => {
