@@ -1,8 +1,19 @@
 'use client'
-import jsPDF from 'jspdf'
-import 'jspdf-autotable'
 import { LOGO_B64 } from './logo'
 import { COMPANY as ENT } from './dashboards/shared'
+
+// Lazy-load jsPDF + plugin autotable : évite de charger ~180 KB au démarrage
+// de l'app. La promesse est mise en cache pour éviter les imports répétés.
+let _jsPdfPromise = null
+function loadJsPdf() {
+  if (!_jsPdfPromise) {
+    _jsPdfPromise = Promise.all([
+      import('jspdf'),
+      import('jspdf-autotable'),
+    ]).then(([jsPdfModule]) => jsPdfModule.default)
+  }
+  return _jsPdfPromise
+}
 
 // Palette couleurs ID Maîtrise
 const BLEU = [30, 58, 95]
@@ -73,7 +84,8 @@ function pied(doc, w, margin, y) {
 // ═══════════════════════════════════════════
 // GÉNÉRATEUR PDF — ORDRE DE SERVICE
 // ═══════════════════════════════════════════
-export function generateOSPdf(data) {
+export async function generateOSPdf(data) {
+  const jsPDF = await loadJsPdf()
   const doc = new jsPDF('p', 'mm', 'a4')
   const w = doc.internal.pageSize.getWidth()
   const margin = 18
@@ -224,7 +236,8 @@ export function generateOSPdf(data) {
 // ═══════════════════════════════════════════
 // GÉNÉRATEUR PDF — COMPTE RENDU DE CHANTIER
 // ═══════════════════════════════════════════
-export function generateCRPdf(cr, chantier) {
+export async function generateCRPdf(cr, chantier) {
+  const jsPDF = await loadJsPdf()
   const doc = new jsPDF('p', 'mm', 'a4')
   const w = doc.internal.pageSize.getWidth()
   const margin = 18

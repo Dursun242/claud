@@ -20,21 +20,46 @@ async function verifyAuth(request) {
   return user || null
 }
 
-// GET — liste tous les utilisateurs (authentification requise)
+// GET — liste les utilisateurs autorisés
+// - Admin : liste complète
+// - User normal : uniquement son propre profil (évite la fuite d'infos collègues)
 export async function GET(request) {
   try {
     const user = await verifyAuth(request)
     if (!user) return Response.json({ error: 'Non autorisé' }, { status: 401 })
 
     const supabaseAdmin = getAdminClient()
+
+    // Récupère d'abord le profil du caller pour vérifier son rôle
+    const email = user.email?.trim().toLowerCase()
+    const { data: caller, error: callerErr } = await supabaseAdmin
+      .from('authorized_users')
+      .select('*')
+      .eq('email', email)
+      .maybeSingle()
+    if (callerErr) {
+      console.error('[admin/users GET] caller lookup:', callerErr)
+      return Response.json({ error: 'Erreur serveur' }, { status: 500 })
+    }
+
+    // User non-admin : on ne renvoie que son propre profil
+    if (caller?.role !== 'admin') {
+      return Response.json({ ok: true, data: caller ? [caller] : [] })
+    }
+
+    // Admin : liste complète
     const { data, error } = await supabaseAdmin
       .from('authorized_users')
       .select('*')
       .order('prenom')
-    if (error) return Response.json({ error: error.message }, { status: 500 })
+    if (error) {
+      console.error('[admin/users GET] select:', error)
+      return Response.json({ error: 'Erreur serveur' }, { status: 500 })
+    }
     return Response.json({ ok: true, data: data || [] })
   } catch (err) {
-    return Response.json({ error: err.message }, { status: 500 })
+    console.error('[admin/users GET] exception:', err)
+    return Response.json({ error: 'Erreur serveur' }, { status: 500 })
   }
 }
 
@@ -71,10 +96,14 @@ export async function POST(request) {
       .select()
       .single()
 
-    if (error) return Response.json({ error: error.message }, { status: 500 })
+    if (error) {
+      console.error('[admin/users POST] upsert:', error)
+      return Response.json({ error: 'Erreur serveur' }, { status: 500 })
+    }
     return Response.json({ ok: true, data })
   } catch (err) {
-    return Response.json({ error: err.message }, { status: 500 })
+    console.error('[admin/users POST] exception:', err)
+    return Response.json({ error: 'Erreur serveur' }, { status: 500 })
   }
 }
 
@@ -101,9 +130,13 @@ export async function DELETE(request) {
       .delete()
       .eq('id', id)
 
-    if (error) return Response.json({ error: error.message }, { status: 500 })
+    if (error) {
+      console.error('[admin/users DELETE] delete:', error)
+      return Response.json({ error: 'Erreur serveur' }, { status: 500 })
+    }
     return Response.json({ ok: true })
   } catch (err) {
-    return Response.json({ error: err.message }, { status: 500 })
+    console.error('[admin/users DELETE] exception:', err)
+    return Response.json({ error: 'Erreur serveur' }, { status: 500 })
   }
 }

@@ -152,7 +152,24 @@ export async function createSignRequest({ templateId, signerName, signerEmail, r
  * @param {Array}  params.signers         - [{name, email, role}] role ∈ 'MOE'|'MOA'|'Entreprise'
  */
 export async function createSignRequestFromPdf({ pdfBase64, reference, operationName, signers }) {
+  // Validation du PDF : taille et signature MIME
+  if (typeof pdfBase64 !== 'string' || pdfBase64.length === 0) {
+    throw new Error('PDF manquant ou invalide')
+  }
   const b64 = pdfBase64.includes(',') ? pdfBase64.split(',')[1] : pdfBase64
+
+  // Taille max 20 Mo (un PDF base64 fait ~4/3 du binaire)
+  const MAX_BYTES = 20 * 1024 * 1024
+  const approxBytes = Math.floor(b64.length * 0.75)
+  if (approxBytes > MAX_BYTES) {
+    throw new Error(`PDF trop volumineux (${Math.round(approxBytes / 1024 / 1024)} Mo, max 20 Mo)`)
+  }
+
+  // Signature %PDF (en base64 : "JVBER" ou "JVBERi")
+  if (!b64.startsWith('JVBER')) {
+    throw new Error('Le fichier ne semble pas être un PDF valide')
+  }
+
   const filename = `${reference || 'OS'}.pdf`
   const subject = operationName
     ? `Signature requise – OS ${reference} – ${operationName}`

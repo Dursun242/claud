@@ -1,12 +1,20 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
+import dynamic from 'next/dynamic'
 import { logout } from '../auth'
 import { SB, defaultData, I, Icon } from './shared'
-import DashboardV    from '../pages/DashboardV'
-import ProjectsV     from '../pages/ProjectsV'
-import ReportsV      from '../pages/ReportsV'
-import OrdresServiceV from '../pages/OrdresServiceV'
-import PlanningV     from '../pages/PlanningV'
+
+// Lazy-load des pages — chunks séparés par onglet
+const PageLoading = () => (
+  <div style={{padding:40,textAlign:"center",color:"#94A3B8",fontSize:12}}>Chargement...</div>
+)
+const dyn = (loader) => dynamic(loader, { loading: PageLoading, ssr: false })
+
+const DashboardV     = dyn(() => import('../pages/DashboardV'))
+const ProjectsV      = dyn(() => import('../pages/ProjectsV'))
+const ReportsV       = dyn(() => import('../pages/ReportsV'))
+const OrdresServiceV = dyn(() => import('../pages/OrdresServiceV'))
+const PlanningV      = dyn(() => import('../pages/PlanningV'))
 // Onglets disponibles pour le maître d'ouvrage
 const TABS = [
   { key:'dashboard', label:'Tableau de bord',   icon:I.dashboard },

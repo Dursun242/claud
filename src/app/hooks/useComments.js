@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../supabaseClient'
 import { useToast } from '../contexts/ToastContext'
 
@@ -13,7 +13,7 @@ export function useComments(type, itemId, currentUserEmail) {
   const [loading, setLoading] = useState(false)
 
   // Charger les commentaires
-  const loadComments = async () => {
+  const loadComments = useCallback(async () => {
     if (!itemId) return
     try {
       const colName = {
@@ -35,12 +35,12 @@ export function useComments(type, itemId, currentUserEmail) {
       console.error('Erreur chargement commentaires:', err)
       addToast('Erreur chargement commentaires', 'error')
     }
-  }
+  }, [itemId, type, addToast])
 
   // Charger au montage ou changement d'itemId
   useEffect(() => {
     loadComments()
-  }, [itemId, type])
+  }, [loadComments])
 
   // Ajouter un commentaire
   const addComment = async (content) => {

@@ -147,7 +147,7 @@ export default function OrdresServiceV({data,m,reload}) {
     setSignError("");
     try {
       const ch = signModal.ch || data.chantiers.find(c => c.id === signModal.chantier_id);
-      const pdfResult = generateOSPdf({ ...signModal, chantier: ch?.nom || "", adresse_chantier: ch?.adresse || "", returnBase64: true });
+      const pdfResult = await generateOSPdf({ ...signModal, chantier: ch?.nom || "", adresse_chantier: ch?.adresse || "", returnBase64: true });
       if (!pdfResult?.base64) throw new Error("Impossible de générer le PDF de l'OS");
       const signers = [
         { name: moe.name,        email: moe.email,        role: 'MOE' },

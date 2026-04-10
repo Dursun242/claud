@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../supabaseClient'
 import { useToast } from '../contexts/ToastContext'
 
@@ -13,7 +13,7 @@ export function useSharing(itemId) {
   const [loading, setLoading] = useState(false)
 
   // Charger les partages
-  const loadShares = async () => {
+  const loadShares = useCallback(async () => {
     if (!itemId) return
     try {
       const { data, error } = await supabase
@@ -28,12 +28,12 @@ export function useSharing(itemId) {
       console.error('Erreur chargement partages:', err)
       addToast('Erreur chargement partages', 'error')
     }
-  }
+  }, [itemId, addToast])
 
   // Charger au montage ou changement d'itemId
   useEffect(() => {
     loadShares()
-  }, [itemId])
+  }, [loadShares])
 
   // Ajouter un partage
   const addShare = async (email, permission = 'view') => {

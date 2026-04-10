@@ -84,9 +84,9 @@ Réponds en JSON avec: { summary: string, topClients: array, paymentRate: string
       generatedAt: new Date().toISOString(),
     });
   } catch (error) {
-    console.error("IA Qonto error:", error);
+    console.error("[ai-qonto] error:", error);
     return Response.json(
-      { error: `Analysis error: ${error.message}` },
+      { error: "Erreur lors de l'analyse" },
       { status: 500 }
     );
   }

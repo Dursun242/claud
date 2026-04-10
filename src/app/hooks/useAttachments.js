@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../supabaseClient'
 import { useToast } from '../contexts/ToastContext'
 
@@ -13,7 +13,7 @@ export function useAttachments(type, itemId) {
   const [loading, setLoading] = useState(false)
 
   // Charger les attachments
-  const loadAttachments = async () => {
+  const loadAttachments = useCallback(async () => {
     if (!itemId) return
     try {
       const colName = {
@@ -35,12 +35,12 @@ export function useAttachments(type, itemId) {
       console.error('Erreur chargement attachments:', err)
       addToast('Erreur chargement fichiers', 'error')
     }
-  }
+  }, [itemId, type, addToast])
 
   // Charger au montage ou changement d'itemId
   useEffect(() => {
     loadAttachments()
-  }, [itemId, type])
+  }, [loadAttachments])
 
   // Upload via API route serveur (évite les problèmes de policies RLS Storage)
   const uploadAttachment = async (file) => {

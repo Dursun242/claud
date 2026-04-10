@@ -23,9 +23,10 @@ export async function POST(request) {
     })
 
     if (!response.ok) {
-      const errText = await response.text()
+      const errText = await response.text().catch(() => '')
+      console.error(`[qonto] ${response.status} ${errText}`)
       return Response.json(
-        { error: `Qonto API ${response.status}: ${errText}` },
+        { error: 'Erreur Qonto' },
         { status: response.status }
       )
     }
@@ -34,8 +35,9 @@ export async function POST(request) {
     return Response.json(data)
 
   } catch (error) {
+    console.error('[qonto] proxy exception:', error)
     return Response.json(
-      { error: `Proxy error: ${error.message}` },
+      { error: 'Erreur serveur' },
       { status: 500 }
     )
   }

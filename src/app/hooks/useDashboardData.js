@@ -11,10 +11,6 @@ export function useDashboardData() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
-  useEffect(() => {
-    loadData()
-  }, [])
-
   const loadData = useCallback(async () => {
     setLoading(true)
     setError(null)
@@ -28,6 +24,10 @@ export function useDashboardData() {
       setLoading(false)
     }
   }, [])
+
+  useEffect(() => {
+    loadData()
+  }, [loadData])
 
   const reload = useCallback(async () => {
     try {

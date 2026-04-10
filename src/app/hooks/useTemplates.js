@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../supabaseClient'
 import { useToast } from '../contexts/ToastContext'
 
@@ -13,7 +13,7 @@ export function useTemplates(type) {
   const [loading, setLoading] = useState(false)
 
   // Charger les templates
-  const loadTemplates = async () => {
+  const loadTemplates = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('templates')
@@ -27,12 +27,12 @@ export function useTemplates(type) {
       console.error('Erreur chargement templates:', err)
       addToast('Erreur chargement templates', 'error')
     }
-  }
+  }, [type, addToast])
 
   // Charger au montage ou changement de type
   useEffect(() => {
     loadTemplates()
-  }, [type])
+  }, [loadTemplates])
 
   // Créer/sauvegarder un template
   const saveTemplate = async (name, description, data) => {

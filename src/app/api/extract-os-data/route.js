@@ -128,9 +128,9 @@ Si un champ n'est pas trouvé, laisse-le vide ou null.`,
       },
     });
   } catch (error) {
-    console.error("Erreur extraction données:", error);
+    console.error("[extract-os-data] error:", error);
     return Response.json(
-      { error: error.message || "Erreur lors du traitement" },
+      { error: "Erreur lors du traitement" },
       { status: 500 }
     );
   }

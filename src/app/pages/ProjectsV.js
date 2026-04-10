@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { SB, Icon, I, phase, status, fmtDate, fmtMoney, pct, FF, inp, sel, btnP, btnS, PBar } from '../dashboards/shared'
 import { Badge, Modal, AttachmentsSection, CommentsSection, SharingPanel, TemplateSelector } from '../components'
 import { useAttachments } from '../hooks/useAttachments'
@@ -22,6 +22,35 @@ export default function ProjectsV({data,save,m,reload,user,profile}) {
   const { comments, addComment, deleteComment } = useComments('chantier', selected, user?.email);
   const { shares, addShare, deleteShare } = useSharing(selected);
 
+  // Dérivées memoizées : évite de recalculer à chaque frappe dans un input.
+  // Recalculées uniquement si data ou selected change.
+  const selectedChantier = useMemo(
+    () => (selected ? data.chantiers.find(c => c.id === selected) : null),
+    [data.chantiers, selected]
+  );
+
+  const selectedRelated = useMemo(() => {
+    if (!selectedChantier) return null;
+    const ch = selectedChantier;
+    const chTasks = (data.tasks || []).filter(t => (t.chantierId || t.chantier_id) === ch.id);
+    const chOS = (data.ordresService || []).filter(o => o.chantier_id === ch.id);
+    const chCR = (data.compteRendus || []).filter(c => (c.chantierId || c.chantier_id) === ch.id);
+    const chPlanning = (data.planning || []).filter(p => (p.chantierId || p.chantier_id) === ch.id);
+    const artisanNames = [...new Set(chOS.map(o => o.artisan_nom).filter(Boolean))];
+    const contactMap = new Map((data.contacts || []).map(c => [c.nom, c]));
+    const intervenants = artisanNames.map(name => contactMap.get(name)).filter(Boolean);
+    const clientContact = contactMap.get(ch.client);
+    return { chTasks, chOS, chCR, chPlanning, intervenants, clientContact };
+  }, [selectedChantier, data.tasks, data.ordresService, data.compteRendus, data.planning, data.contacts]);
+
+  const chantiersFiltered = useMemo(
+    () => data.chantiers.filter(ch =>
+      (!filterStatut || ch.statut === filterStatut) &&
+      (!filterPhase || ch.phase === filterPhase)
+    ),
+    [data.chantiers, filterStatut, filterPhase]
+  );
+
   const openNew=()=>{setForm({nom:"",client:"",adresse:"",phase:"Hors d'air",statut:"Planifié",budget:"",depenses:0,dateDebut:"",dateFin:"",lots:"",photo_couverture:"",notes_internes:""});setModal("new");};
   const [saving,setSaving]=useState(false);
   const handleSave=async()=>{
@@ -43,20 +72,11 @@ export default function ProjectsV({data,save,m,reload,user,profile}) {
 
   // If a chantier is selected, show detail view
   if (selected) {
-    const ch = data.chantiers.find(c=>c.id===selected);
+    const ch = selectedChantier;
     if (!ch) { setSelected(null); return null; }
 
-    // Get related data for this chantier
-    const chTasks = (data.tasks||[]).filter(t=>(t.chantierId||t.chantier_id)===ch.id);
-    const chOS = (data.ordresService||[]).filter(o=>o.chantier_id===ch.id);
-    const chCR = (data.compteRendus||[]).filter(c=>(c.chantierId||c.chantier_id)===ch.id);
-    const chPlanning = (data.planning||[]).filter(p=>(p.chantierId||p.chantier_id)===ch.id);
-    // Intervenants = artisans des OS de ce chantier
-    const artisanNames = [...new Set(chOS.map(o=>o.artisan_nom).filter(Boolean))];
-    const contactMap = new Map(data.contacts.map(c => [c.nom, c]));
-    const intervenants = artisanNames.map(name => contactMap.get(name)).filter(Boolean);
-    // Also add contacts that match the client name
-    const clientContact = contactMap.get(ch.client);
+    // Données dérivées memoizées (voir useMemo plus haut)
+    const { chTasks, chOS, chCR, chPlanning, intervenants, clientContact } = selectedRelated;
 
     const ratio = pct(ch.depenses, ch.budget);
     const budgetColor = ratio>85?"#EF4444":ratio>60?"#F59E0B":"#10B981";
@@ -303,10 +323,7 @@ export default function ProjectsV({data,save,m,reload,user,profile}) {
   }
 
   // ─── LIST VIEW (default) ───
-  const chantiersFiltered = data.chantiers.filter(ch=>
-    (!filterStatut || ch.statut===filterStatut) &&
-    (!filterPhase  || ch.phase===filterPhase)
-  );
+  // chantiersFiltered est memoizé en haut du composant
 
   return (<div>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,flexWrap:"wrap",gap:10}}>

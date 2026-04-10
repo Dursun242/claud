@@ -62,9 +62,10 @@ export async function POST(request) {
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
+      const errorText = await response.text().catch(() => '');
+      console.error(`[claude] Anthropic ${response.status} ${errorText}`);
       return Response.json(
-        { error: `Anthropic API error ${response.status}: ${errorText}` },
+        { error: 'Erreur du service IA' },
         { status: response.status }
       );
     }
@@ -73,8 +74,9 @@ export async function POST(request) {
     return Response.json(data);
 
   } catch (error) {
+    console.error('[claude] exception:', error);
     return Response.json(
-      { error: `Erreur serveur: ${error.message}` },
+      { error: 'Erreur serveur' },
       { status: 500 }
     );
   }

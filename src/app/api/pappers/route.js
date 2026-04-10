@@ -6,31 +6,43 @@ export async function GET(request) {
 
     const apiKey = process.env.PAPPERS_API_KEY;
     if (!apiKey) {
-      return Response.json({ error: "PAPPERS_API_KEY non configurée dans les variables d'environnement" }, { status: 500 });
+      console.error('[pappers] PAPPERS_API_KEY manquante');
+      return Response.json({ error: 'Configuration serveur invalide' }, { status: 500 });
     }
 
-    let url;
+    // Construction propre via URLSearchParams pour éviter tout oubli d'encoding
+    // et isoler clairement la clé API du reste de l'URL.
+    let endpoint;
+    const params = new URLSearchParams({ api_token: apiKey });
     if (siret) {
-      // Lookup direct par SIRET (14 chiffres)
-      url = `https://api.pappers.fr/v2/entreprise?siret=${siret}&api_token=${apiKey}`;
+      endpoint = 'https://api.pappers.fr/v2/entreprise';
+      params.set('siret', siret);
     } else if (q) {
-      // Recherche par nom (retourne une liste)
-      url = `https://api.pappers.fr/v2/recherche?q=${encodeURIComponent(q)}&api_token=${apiKey}&par_page=6`;
+      endpoint = 'https://api.pappers.fr/v2/recherche';
+      params.set('q', q);
+      params.set('par_page', '6');
     } else {
       return Response.json({ error: "Paramètre 'siret' ou 'q' requis" }, { status: 400 });
     }
 
-    const response = await fetch(url);
+    const response = await fetch(`${endpoint}?${params.toString()}`);
 
     if (!response.ok) {
-      const errText = await response.text();
-      return Response.json({ error: `Pappers ${response.status}: ${errText}` }, { status: response.status });
+      // On log l'erreur complète côté serveur mais on ne renvoie jamais le body
+      // brut de Pappers au client (risque de fuite d'info ou d'écho de la clé).
+      const errText = await response.text().catch(() => '');
+      console.error(`[pappers] ${response.status} ${errText}`);
+      return Response.json(
+        { error: 'Erreur lors de la requête Pappers' },
+        { status: response.status }
+      );
     }
 
     const data = await response.json();
     return Response.json(data);
 
   } catch (error) {
-    return Response.json({ error: `Erreur proxy Pappers : ${error.message}` }, { status: 500 });
+    console.error('[pappers] exception:', error);
+    return Response.json({ error: 'Erreur serveur' }, { status: 500 });
   }
 }

@@ -34,7 +34,8 @@ export async function POST(request) {
 
   const { data: buckets, error: listError } = await supabaseAdmin.storage.listBuckets()
   if (listError) {
-    return Response.json({ error: 'Impossible de lister les buckets : ' + listError.message }, { status: 500 })
+    console.error('[setup-storage] listBuckets:', listError)
+    return Response.json({ error: 'Impossible de lister les buckets' }, { status: 500 })
   }
 
   const exists = (buckets || []).some(b => b.name === 'attachments')
@@ -52,7 +53,8 @@ export async function POST(request) {
       ],
     })
     if (error) {
-      return Response.json({ error: 'Création bucket échouée : ' + error.message }, { status: 500 })
+      console.error('[setup-storage] createBucket:', error)
+      return Response.json({ error: 'Création bucket échouée' }, { status: 500 })
     }
   }
 
