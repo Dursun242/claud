@@ -1,13 +1,18 @@
 'use client'
-import { useToast } from '../contexts/ToastContext'
+import { useToast, useToastList } from '../contexts/ToastContext'
 
 /**
  * Composant ToastContainer
  * Affiche les notifications toast
  * À placer en haut de la hiérarchie de l'app
+ *
+ * Consomme les DEUX contextes (state + actions) : c'est le seul
+ * composant de l'app qui lit la liste des toasts, donc lui seul
+ * re-render quand un toast est ajouté/retiré.
  */
 export default function ToastContainer() {
-  const { toasts, removeToast } = useToast()
+  const { toasts } = useToastList()
+  const { removeToast } = useToast()
 
   const typeStyles = {
     success: {

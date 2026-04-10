@@ -1,19 +1,35 @@
 'use client'
-import { createContext, useContext, useState, useCallback } from 'react'
+import { createContext, useContext, useState, useCallback, useMemo } from 'react'
 
 /**
- * ToastContext
- * Gère les notifications toast globales
- * Utilisé pour les messages de succès, erreur, avertissement
+ * ToastContext — split en DEUX contextes pour éviter les re-renders
+ * en cascade.
+ *
+ * - ToastActionsContext  : { addToast, removeToast } — stable, les
+ *                          références ne changent jamais → les 15+
+ *                          consommateurs ne re-render pas quand un
+ *                          nouveau toast est ajouté.
+ * - ToastStateContext    : { toasts } — change à chaque toast. Seul
+ *                          ToastContainer l'écoute.
+ *
+ * API publique :
+ *   useToast()     → { addToast, removeToast }
+ *   useToastList() → { toasts } (uniquement pour le container)
  */
-const ToastContext = createContext(null)
+
+const ToastActionsContext = createContext(null)
+const ToastStateContext = createContext(null)
 
 export function useToast() {
-  const context = useContext(ToastContext)
-  if (!context) {
-    throw new Error('useToast must be used within ToastProvider')
-  }
-  return context
+  const ctx = useContext(ToastActionsContext)
+  if (!ctx) throw new Error('useToast must be used within ToastProvider')
+  return ctx
+}
+
+export function useToastList() {
+  const ctx = useContext(ToastStateContext)
+  if (!ctx) throw new Error('useToastList must be used within ToastProvider')
+  return ctx
 }
 
 export function ToastProvider({ children }) {
@@ -21,7 +37,7 @@ export function ToastProvider({ children }) {
 
   const addToast = useCallback(
     (message, type = 'info', duration = 3000) => {
-      const id = Date.now()
+      const id = Date.now() + Math.random()
       setToasts((prev) => [...prev, { id, message, type, duration }])
 
       if (duration > 0) {
@@ -37,9 +53,21 @@ export function ToastProvider({ children }) {
     setToasts((prev) => prev.filter((t) => t.id !== id))
   }, [])
 
+  // Actions : stable entre renders (addToast et removeToast sont en
+  // useCallback([]) donc leurs refs ne changent jamais)
+  const actions = useMemo(
+    () => ({ addToast, removeToast }),
+    [addToast, removeToast]
+  )
+
+  // State : change quand la liste de toasts change
+  const state = useMemo(() => ({ toasts }), [toasts])
+
   return (
-    <ToastContext.Provider value={{ addToast, removeToast, toasts }}>
-      {children}
-    </ToastContext.Provider>
+    <ToastActionsContext.Provider value={actions}>
+      <ToastStateContext.Provider value={state}>
+        {children}
+      </ToastStateContext.Provider>
+    </ToastActionsContext.Provider>
   )
 }

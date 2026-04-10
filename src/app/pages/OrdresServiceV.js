@@ -1,5 +1,5 @@
 'use client'
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo } from 'react'
 import { SB, Icon, I, fmtDate, fmtMoney, FF, inp, sel, btnP, btnS } from '../dashboards/shared'
 import { Badge, Modal } from '../components'
 import { generateOSPdf, generateOSExcel } from '../generators'
@@ -70,14 +70,16 @@ export default function OrdresServiceV({data,m,reload}) {
   const removePrestation = (i) => setPrestations(p=>p.filter((_,j)=>j!==i));
   const updatePrestation = (i,field,val) => setPrestations(p=>p.map((x,j)=>j===i?{...x,[field]:val}:x));
 
-  const calcTotals = () => {
-    let ht=0, tva=0;
-    prestations.forEach(p=>{
-      const l = (parseFloat(p.quantite)||0)*(parseFloat(p.prix_unitaire)||0);
-      ht += l; tva += l*(parseFloat(p.tva_taux)||20)/100;
+  // totals memoïsé : recalculé uniquement quand prestations changent
+  const totals = useMemo(() => {
+    let ht = 0, tva = 0;
+    prestations.forEach(p => {
+      const l = (parseFloat(p.quantite) || 0) * (parseFloat(p.prix_unitaire) || 0);
+      ht += l;
+      tva += l * (parseFloat(p.tva_taux) || 20) / 100;
     });
-    return { ht, tva, ttc: ht+tva };
-  };
+    return { ht, tva, ttc: ht + tva };
+  }, [prestations]);
 
   const handleSave = async () => {
     if (saving) return;
@@ -92,8 +94,7 @@ export default function OrdresServiceV({data,m,reload}) {
     }
     setSaving(true);
     try {
-      const t = calcTotals();
-      const osData = { ...form, prestations, montant_ht:t.ht, montant_tva:t.tva, montant_ttc:t.ttc };
+      const osData = { ...form, prestations, montant_ht: totals.ht, montant_tva: totals.tva, montant_ttc: totals.ttc };
       await SB.upsertOS(osData);
       setModal(null);
       reload();
@@ -115,7 +116,7 @@ export default function OrdresServiceV({data,m,reload}) {
   const handleDelete = async (id) => { if(!window.confirm("Supprimer cet ordre de service ?")) return; await SB.deleteOS(id); reload(); };
 
   const handleDuplicate = async (os) => {
-    const { id, created_at, ...rest } = os;
+    const { id: _id, created_at: _created_at, ...rest } = os;
     await SB.upsertOS({ ...rest, numero: nextNum(), statut: "Brouillon", date_emission: new Date().toISOString().split("T")[0] });
     reload();
   };
@@ -193,30 +194,42 @@ export default function OrdresServiceV({data,m,reload}) {
   };
 
   const osStatusColor = { "Brouillon":"#94A3B8", "Émis":"#3B82F6", "Signé":"#8B5CF6", "En cours":"#F59E0B", "Terminé":"#10B981", "Annulé":"#EF4444" };
-  const totals = calcTotals();
 
-  // useMemo : recalcule la liste filtrée seulement quand searchOS ou la liste change
-  const filteredOS = useMemo(() => {
+  // Map chantier_id → chantier : évite les .find() O(N*M) dans les listes
+  const chantierById = useMemo(
+    () => new Map((data.chantiers || []).map(c => [c.id, c])),
+    [data.chantiers]
+  );
+
+  // Liste filtrée + triée par created_at desc, mémoïsée ensemble pour éviter
+  // qu'un [...filteredOS].sort() dans le JSX ne crée un nouveau tableau à
+  // chaque render.
+  const filteredSortedOS = useMemo(() => {
     const s = searchOS.toLowerCase().trim();
-    if (!s) return data.ordresService || [];
-    return (data.ordresService || []).filter(os => {
-      const ch = data.chantiers.find(c => c.id === os.chantier_id);
-      return (
-        String(os.numero).toLowerCase().includes(s) ||
-        (ch?.nom || "").toLowerCase().includes(s) ||
-        (os.artisan_nom || "").toLowerCase().includes(s) ||
-        (os.client_nom || "").toLowerCase().includes(s)
-      );
-    });
-  }, [searchOS, data.ordresService, data.chantiers]);
+    const list = data.ordresService || [];
+    const filtered = s
+      ? list.filter(os => {
+          const ch = chantierById.get(os.chantier_id);
+          return (
+            String(os.numero).toLowerCase().includes(s) ||
+            (ch?.nom || "").toLowerCase().includes(s) ||
+            (os.artisan_nom || "").toLowerCase().includes(s) ||
+            (os.client_nom || "").toLowerCase().includes(s)
+          );
+        })
+      : list;
+    return [...filtered].sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+  }, [searchOS, data.ordresService, chantierById]);
 
-  // Tous les contacts disponibles comme destinataires (pas seulement les artisans)
-  const contactsParType = data.contacts.reduce((acc, c) => {
-    const type = c.type || "Autre";
-    if (!acc[type]) acc[type] = [];
-    acc[type].push(c);
-    return acc;
-  }, {});
+  // Tous les contacts regroupés par type (pour les dropdowns du formulaire)
+  const contactsParType = useMemo(() => {
+    return (data.contacts || []).reduce((acc, c) => {
+      const type = c.type || "Autre";
+      if (!acc[type]) acc[type] = [];
+      acc[type].push(c);
+      return acc;
+    }, {});
+  }, [data.contacts]);
 
   return (<div>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20,flexWrap:"wrap",gap:8}}>
@@ -229,10 +242,10 @@ export default function OrdresServiceV({data,m,reload}) {
 
     {/* LISTE DES OS */}
     <div style={{display:"grid",gap:12}}>
-      {filteredOS.length===0 ?
+      {filteredSortedOS.length===0 ?
         <div style={{background:"#fff",borderRadius:12,padding:30,textAlign:"center",color:"#94A3B8",fontSize:13}}>Aucun ordre de service. Cliquez "+ Nouvel OS" pour en créer un.</div>
-      : [...filteredOS].sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0)).map(os=>{
-        const ch = data.chantiers.find(c=>c.id===os.chantier_id);
+      : filteredSortedOS.map(os=>{
+        const ch = chantierById.get(os.chantier_id);
         return (
           <div key={os.id} style={{background:"#fff",borderRadius:12,padding:m?14:18,boxShadow:"0 1px 3px rgba(0,0,0,0.06)",borderLeft:`4px solid ${osStatusColor[os.statut]||"#94A3B8"}`}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:8}}>

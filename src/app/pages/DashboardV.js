@@ -1,20 +1,36 @@
 'use client'
-import { pct, fmtMoney, phase, status, PBar, COMPANY } from '../dashboards/shared'
+import { useMemo } from 'react'
+import { pct, fmtMoney, phase, PBar, COMPANY } from '../dashboards/shared'
 
 export default function DashboardV({data,setTab,m,user}) {
-  const today = new Date().toISOString().split("T")[0];
-  const urgentTasks = data.tasks.filter(t=>t.priorite==="Urgent"&&t.statut!=="Terminé");
-  const allActiveTasks = data.tasks
-    .filter(t=>t.statut!=="Terminé")
-    .sort((a,b)=>{
-      const pri = {Urgent:0,"En cours":1,"En attente":2};
-      if ((pri[a.priorite]??9) !== (pri[b.priorite]??9)) return (pri[a.priorite]??9)-(pri[b.priorite]??9);
-      return new Date(a.echeance||"9999")-new Date(b.echeance||"9999");
-    });
-  const chantiersEnCours = data.chantiers.filter(c=>c.statut==="En cours").sort((a,b)=>new Date(b.date_debut||0)-new Date(a.date_debut||0)).slice(0,3);
-  const totalB = data.chantiers.reduce((s,c)=>s+(Number(c.budget)||0),0);
-  const totalD = data.chantiers.reduce((s,c)=>s+(Number(c.depenses)||0),0);
-  const enCours = data.chantiers.filter(c=>c.statut==="En cours").length;
+  // Toutes les dérivées memoïsées : recalculées uniquement si data change,
+  // pas à chaque re-render dû à un toast ou un resize.
+  const { urgentTasks, allActiveTasks, chantiersEnCours, totalB, totalD, enCours, chantierById } = useMemo(() => {
+    const tasks = data.tasks || [];
+    const chantiers = data.chantiers || [];
+    const priorityOrder = { Urgent: 0, "En cours": 1, "En attente": 2 };
+
+    return {
+      urgentTasks: tasks.filter(t => t.priorite === "Urgent" && t.statut !== "Terminé"),
+      allActiveTasks: tasks
+        .filter(t => t.statut !== "Terminé")
+        .sort((a, b) => {
+          const pa = priorityOrder[a.priorite] ?? 9;
+          const pb = priorityOrder[b.priorite] ?? 9;
+          if (pa !== pb) return pa - pb;
+          return new Date(a.echeance || "9999") - new Date(b.echeance || "9999");
+        }),
+      chantiersEnCours: chantiers
+        .filter(c => c.statut === "En cours")
+        .sort((a, b) => new Date(b.date_debut || 0) - new Date(a.date_debut || 0))
+        .slice(0, 3),
+      totalB: chantiers.reduce((s, c) => s + (Number(c.budget) || 0), 0),
+      totalD: chantiers.reduce((s, c) => s + (Number(c.depenses) || 0), 0),
+      enCours: chantiers.filter(c => c.statut === "En cours").length,
+      // Map id → chantier pour éviter les .find() répétés dans le rendu des tâches
+      chantierById: new Map(chantiers.map(c => [c.id, c])),
+    };
+  }, [data.tasks, data.chantiers]);
 
   return (<div>
     {/* HEADER */}
@@ -78,7 +94,7 @@ export default function DashboardV({data,setTab,m,user}) {
           ? <p style={{color:"#94A3B8",fontSize:12,margin:0}}>Aucune tâche</p>
           : <div style={{display:"flex",flexDirection:"column",gap:8}}>
               {allActiveTasks.slice(0,5).map(t=>{
-                const ch=data.chantiers.find(c=>c.id===(t.chantierId||t.chantier_id));
+                const ch=chantierById.get(t.chantierId||t.chantier_id);
                 const isUrgent=t.priorite==="Urgent";
                 return(
                   <div key={t.id} onClick={()=>setTab("tasks")} style={{cursor:"pointer",paddingBottom:8,borderBottom:"1px solid #F1F5F9"}}>
