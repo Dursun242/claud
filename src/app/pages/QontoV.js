@@ -1,7 +1,7 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../supabaseClient'
-import { LocalDB, SB, fmtDate, fmtMoney, inp, sel, ApiBadge } from '../dashboards/shared'
+import { SB, fmtDate, fmtMoney, inp } from '../dashboards/shared'
 import { Badge } from '../components'
 import AIQontoV from './AIQontoV'
 
@@ -55,7 +55,7 @@ export default function QontoV({m, data, reload}) {
     setInvoices([]); setQuotes([]); setClients([]);
   };
 
-  const fetchQonto = async (endpoint, tk) => {
+  const fetchQonto = useCallback(async (endpoint, tk) => {
     const res = await fetch(`/api/qonto`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -63,9 +63,9 @@ export default function QontoV({m, data, reload}) {
     });
     if (!res.ok) { const err = await res.json().catch(()=>({})); throw new Error(err.error || `Qonto ${res.status}`); }
     return res.json();
-  };
+  }, []);
 
-  const fetchAll = async (tk) => {
+  const fetchAll = useCallback(async (tk) => {
     setQLoading(true); setError("");
     try {
       const [invData, quoData, cliData] = await Promise.all([
@@ -82,9 +82,9 @@ export default function QontoV({m, data, reload}) {
       setConnected(false);
     }
     setQLoading(false);
-  };
+  }, [fetchQonto]);
 
-  useEffect(() => { if (savedToken) fetchAll(savedToken); }, [savedToken]);
+  useEffect(() => { if (savedToken) fetchAll(savedToken); }, [savedToken, fetchAll]);
 
   // ── Téléchargement PDF ──
   const downloadPdf = async (item, type) => {
