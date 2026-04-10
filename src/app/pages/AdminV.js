@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { btnP, btnS } from '../dashboards/shared'
 import { supabase } from '../supabaseClient'
 
@@ -19,15 +19,8 @@ async function apiUsers(method, body) {
 }
 
 export default function AdminV({ m, reload, profile }) {
-  if (!profile || profile.role !== 'admin') {
-    return (
-      <div style={{ background: "#FEF2F2", borderRadius: 14, padding: 40, textAlign: "center", border: "1.5px solid #FECACA" }}>
-        <h1 style={{ margin: "0 0 10px", fontSize: 20, fontWeight: 700, color: "#DC2626" }}>🔒 Accès refusé</h1>
-        <p style={{ margin: 0, color: "#94A3B8", fontSize: 14 }}>Seuls les administrateurs peuvent accéder à cette section.</p>
-      </div>
-    )
-  }
-
+  // ⚠️ Tous les hooks doivent être appelés avant tout early return
+  // (règles des hooks React). Le garde d'accès admin est plus bas.
   const [users, setUsers] = useState([])
   const [newEmail, setNewEmail] = useState("")
   const [newPrenom, setNewPrenom] = useState("")
@@ -38,15 +31,28 @@ export default function AdminV({ m, reload, profile }) {
   const [setupLoading, setSetupLoading] = useState(false)
   const [setupMsg, setSetupMsg] = useState("")
 
-  useEffect(() => { loadUsers() }, [])
+  const isAdmin = profile?.role === 'admin'
 
-  const loadUsers = async () => {
+  const loadUsers = useCallback(async () => {
     try {
       const { data } = await apiUsers('GET')
       setUsers(data)
     } catch (err) {
       setMsg({ type: 'error', text: "Chargement impossible : " + err.message })
     }
+  }, [])
+
+  useEffect(() => {
+    if (isAdmin) loadUsers()
+  }, [isAdmin, loadUsers])
+
+  if (!isAdmin) {
+    return (
+      <div style={{ background: "#FEF2F2", borderRadius: 14, padding: 40, textAlign: "center", border: "1.5px solid #FECACA" }}>
+        <h1 style={{ margin: "0 0 10px", fontSize: 20, fontWeight: 700, color: "#DC2626" }}>🔒 Accès refusé</h1>
+        <p style={{ margin: 0, color: "#94A3B8", fontSize: 14 }}>Seuls les administrateurs peuvent accéder à cette section.</p>
+      </div>
+    )
   }
 
   const handleAdd = async () => {
