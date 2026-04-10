@@ -15,33 +15,31 @@ function getSupabase() {
 
 export async function POST(req) {
   try {
-    const { imageBase64, fileName } = await req.json();
+    const { imageBase64, pdfBase64, fileName } = await req.json();
 
-    if (!imageBase64) {
+    if (!imageBase64 && !pdfBase64) {
       return Response.json(
-        { error: "Aucune image fournie" },
+        { error: "Aucun fichier fourni (imageBase64 ou pdfBase64 requis)" },
         { status: 400 }
       );
     }
 
     const supabase = getSupabase();
 
-    // Appel Claude Haiku Vision pour extraire les données
+    // Construire le bloc de contenu selon le type de fichier
+    const fileContent = pdfBase64
+      ? { type: "document", source: { type: "base64", media_type: "application/pdf", data: pdfBase64 } }
+      : { type: "image", source: { type: "base64", media_type: "image/jpeg", data: imageBase64 } };
+
+    // Appel Claude pour extraire les données (sonnet pour PDF, haiku pour image)
     const message = await anthropic.messages.create({
-      model: "claude-3-5-haiku-20241022",
+      model: pdfBase64 ? "claude-sonnet-4-6" : "claude-3-5-haiku-20241022",
       max_tokens: 1024,
       messages: [
         {
           role: "user",
           content: [
-            {
-              type: "image",
-              source: {
-                type: "base64",
-                media_type: "image/jpeg",
-                data: imageBase64,
-              },
-            },
+            fileContent,
             {
               type: "text",
               text: `Analyse ce document et extrais les informations pour créer un Ordre de Service.

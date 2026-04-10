@@ -1,5 +1,5 @@
 'use client'
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { SB, Icon, I, fmtDate, fmtMoney, FF, inp, sel, btnP, btnS } from '../dashboards/shared'
 import { Badge, Modal } from '../components'
 import { generateOSPdf, generateOSExcel } from '../generators'
@@ -18,6 +18,14 @@ export default function OrdresServiceV({data,m,reload}) {
   const [selectedTemplate,setSelectedTemplate]=useState("");
   const [signSending,setSignSending]=useState(false);
   const [signError,setSignError]=useState("");
+  // Templates de prestations
+  const [osTemplates,setOsTemplates]=useState([]);
+  const [showTemplates,setShowTemplates]=useState(false);
+  const [savingTpl,setSavingTpl]=useState(false);
+  // Import devis
+  const [importLoading,setImportLoading]=useState(false);
+  const [importMsg,setImportMsg]=useState("");
+  const importInputRef=useRef(null);
 
   const nextNum = () => {
     const nums = (data.ordresService||[]).map(os => {
@@ -117,10 +125,64 @@ export default function OrdresServiceV({data,m,reload}) {
 
   const handleDelete = async (id) => { if(!window.confirm("Supprimer cet ordre de service ?")) return; await SB.deleteOS(id); reload(); };
 
-  const handleDuplicate = async (os) => {
-    const { id, created_at, ...rest } = os;
-    await SB.upsertOS({ ...rest, numero: nextNum(), statut: "Brouillon", date_emission: new Date().toISOString().split("T")[0] });
-    reload();
+  // Dupliquer → ouvre le formulaire pour pouvoir éditer avant d'enregistrer
+  const handleDuplicate = (os) => {
+    const { id, created_at, updated_at, odoo_sign_id, odoo_sign_url, statut_signature, ...rest } = os;
+    const ch = data.chantiers.find(c=>c.id===os.chantier_id);
+    setForm({ ...rest, chantier: ch?.nom||"", adresse_chantier: ch?.adresse||"", numero: nextNum(), statut: "Brouillon", date_emission: new Date().toISOString().split("T")[0] });
+    setPrestations((os.prestations||[]).map(p=>({...p,quantite:String(p.quantite||""),prix_unitaire:String(p.prix_unitaire||""),tva_taux:String(p.tva_taux||"20")})));
+    setModal("new");
+  };
+
+  // ── Templates de prestations ───────────────────────────────────────────────
+  useEffect(() => { SB.getTemplates('os').then(setOsTemplates).catch(()=>{}); }, []);
+
+  const handleSaveTemplate = async () => {
+    const name = window.prompt("Nom du modèle :");
+    if (!name?.trim()) return;
+    setSavingTpl(true);
+    try {
+      await SB.saveTemplate('os', name.trim(), `${prestations.length} ligne(s)`, { prestations });
+      const updated = await SB.getTemplates('os');
+      setOsTemplates(updated);
+    } finally { setSavingTpl(false); }
+  };
+
+  const handleLoadTemplate = (tpl) => {
+    setPrestations((tpl.data?.prestations||[]).map(p=>({...p,quantite:String(p.quantite||""),prix_unitaire:String(p.prix_unitaire||""),tva_taux:String(p.tva_taux||"20")})));
+    setShowTemplates(false);
+  };
+
+  // ── Import devis PDF / image → pré-remplissage IA ─────────────────────────
+  const handleImportDevis = async (file) => {
+    if (!file) return;
+    setImportLoading(true);
+    setImportMsg("");
+    try {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const base64 = e.target.result.split(',')[1];
+          const isPdf = file.type === 'application/pdf';
+          const res = await fetch('/api/extract-os-data', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(isPdf ? { pdfBase64: base64, fileName: file.name } : { imageBase64: base64, fileName: file.name }),
+          });
+          const json = await res.json();
+          if (!json.success) throw new Error(json.error||"Erreur extraction");
+          const d = json.data;
+          if (d.prestations?.length) {
+            setPrestations(d.prestations.map(p=>({description:p.description||"",unite:p.unite||"u",quantite:String(p.quantite||""),prix_unitaire:String(p.prix_unitaire||""),tva_taux:String(p.tva_taux||"20")})));
+          }
+          if (d.artisan_nom) updateDestinataire(d.artisan_nom);
+          if (d.observations) setForm(f=>({...f,observations:(f.observations?f.observations+"\n":"")+d.observations}));
+          setImportMsg(`✓ ${d.prestations?.length||0} prestation(s) extraite(s)${d.artisan_nom?` — ${d.artisan_nom}`:""}`);
+        } catch(err) { setImportMsg("Erreur : "+err.message); }
+        finally { setImportLoading(false); }
+      };
+      reader.readAsDataURL(file);
+    } catch(err) { setImportMsg("Erreur : "+err.message); setImportLoading(false); }
   };
 
   const openSignModal = (os) => {
@@ -284,10 +346,39 @@ export default function OrdresServiceV({data,m,reload}) {
 
       {/* PRESTATIONS */}
       <div style={{marginTop:12,marginBottom:8}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8,flexWrap:"wrap",gap:6}}>
           <span style={{fontSize:12,fontWeight:700,color:"#1E3A5F",textTransform:"uppercase"}}>Prestations</span>
-          <button onClick={addPrestation} style={{fontSize:11,color:"#3B82F6",background:"none",border:"none",cursor:"pointer",fontWeight:600}}>+ Ajouter une ligne</button>
+          <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
+            {/* Import devis */}
+            <input ref={importInputRef} type="file" accept="application/pdf,image/*" style={{display:"none"}} onChange={e=>handleImportDevis(e.target.files[0])}/>
+            <button onClick={()=>{setImportMsg("");importInputRef.current?.click();}} disabled={importLoading} title="Importer un devis PDF ou image pour pré-remplir les prestations" style={{fontSize:11,color:"#fff",background:"#6366F1",border:"none",borderRadius:6,padding:"4px 10px",cursor:"pointer",fontWeight:600,opacity:importLoading?0.6:1}}>
+              {importLoading?"⏳ Analyse...":"📄 Importer devis"}
+            </button>
+            {/* Charger modèle */}
+            <div style={{position:"relative"}}>
+              <button onClick={()=>setShowTemplates(v=>!v)} disabled={!osTemplates.length} title={osTemplates.length?"Charger un modèle de prestations":"Aucun modèle enregistré"} style={{fontSize:11,color:"#fff",background:osTemplates.length?"#0EA5E9":"#94A3B8",border:"none",borderRadius:6,padding:"4px 10px",cursor:osTemplates.length?"pointer":"default",fontWeight:600}}>
+                📂 Modèle{osTemplates.length?` (${osTemplates.length})`:""}
+              </button>
+              {showTemplates && (
+                <div style={{position:"absolute",right:0,top:"110%",background:"#fff",border:"1px solid #E2E8F0",borderRadius:8,boxShadow:"0 4px 16px rgba(0,0,0,0.12)",zIndex:50,minWidth:200,padding:8}}>
+                  <div style={{fontSize:11,fontWeight:700,color:"#64748B",marginBottom:6,padding:"0 4px"}}>Choisir un modèle</div>
+                  {osTemplates.map(tpl=>(
+                    <button key={tpl.id} onClick={()=>handleLoadTemplate(tpl)} style={{display:"block",width:"100%",textAlign:"left",background:"none",border:"none",padding:"7px 8px",borderRadius:6,cursor:"pointer",fontSize:12,color:"#0F172A"}}>
+                      <span style={{fontWeight:600}}>{tpl.name}</span>
+                      {tpl.description&&<span style={{fontSize:10,color:"#94A3B8",marginLeft:6}}>{tpl.description}</span>}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            {/* Sauvegarder comme modèle */}
+            <button onClick={handleSaveTemplate} disabled={savingTpl||!prestations.some(p=>p.description)} title="Sauvegarder les prestations comme modèle réutilisable" style={{fontSize:11,color:"#fff",background:"#10B981",border:"none",borderRadius:6,padding:"4px 10px",cursor:"pointer",fontWeight:600,opacity:savingTpl?0.6:1}}>
+              {savingTpl?"...":"💾 Enregistrer modèle"}
+            </button>
+            <button onClick={addPrestation} style={{fontSize:11,color:"#3B82F6",background:"none",border:"none",cursor:"pointer",fontWeight:600}}>+ Ligne</button>
+          </div>
         </div>
+        {importMsg && <div style={{fontSize:11,padding:"5px 8px",borderRadius:6,marginBottom:8,background:importMsg.startsWith("✓")?"#F0FDF4":"#FEF2F2",color:importMsg.startsWith("✓")?"#166534":"#EF4444"}}>{importMsg}</div>}
         {prestations.map((p,i)=>(
           <div key={i} style={{display:"grid",gridTemplateColumns:m?"1fr":"3fr 1fr 1fr 1fr 1fr auto",gap:6,marginBottom:6,alignItems:"end"}}>
             <input placeholder="Description" style={{...inp,fontSize:12}} value={p.description} onChange={e=>updatePrestation(i,"description",e.target.value)}/>
