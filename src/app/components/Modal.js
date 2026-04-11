@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 /**
  * Composant Modal réutilisable
@@ -16,6 +16,17 @@ export default function Modal({ open, onClose, title, children, wide = false }) 
   const contentRef = useRef(null)
   const previouslyFocused = useRef(null)
   const titleId = useRef(`modal-title-${Math.random().toString(36).slice(2, 9)}`)
+  // Détection mobile pour padding et arrondis adaptés (évite d'écraser
+  // le layout 16px du modal sur petit écran)
+  const [isMobile, setIsMobile] = useState(false)
+  useEffect(() => {
+    const check = () => setIsMobile(typeof window !== 'undefined' && window.innerWidth < 640)
+    check()
+    if (typeof window !== 'undefined') {
+      window.addEventListener('resize', check)
+      return () => window.removeEventListener('resize', check)
+    }
+  }, [])
 
   // Escape pour fermer + focus trap Tab/Shift+Tab
   useEffect(() => {
@@ -82,11 +93,11 @@ export default function Modal({ open, onClose, title, children, wide = false }) 
         inset: 0,
         zIndex: 1000,
         display: 'flex',
-        alignItems: 'center',
+        alignItems: isMobile ? 'flex-end' : 'center',
         justifyContent: 'center',
         background: 'rgba(15,23,42,0.6)',
         backdropFilter: 'blur(4px)',
-        padding: 16,
+        padding: isMobile ? 0 : 16,
         animation: 'fadeIn .15s ease',
       }}
       onClick={onClose}
@@ -96,14 +107,17 @@ export default function Modal({ open, onClose, title, children, wide = false }) 
         onClick={(e) => e.stopPropagation()}
         style={{
           background: '#fff',
-          borderRadius: 16,
-          padding: '20px',
+          // Sur mobile : bord plat en bas, plein écran avec marge haut,
+          // pour un look bottom-sheet natif
+          borderRadius: isMobile ? '16px 16px 0 0' : 16,
+          padding: isMobile ? '18px 16px 20px' : '20px',
           width: wide ? 700 : 520,
           maxWidth: '100%',
-          maxHeight: '85vh',
+          maxHeight: isMobile ? '92vh' : '85vh',
           overflow: 'auto',
           boxShadow: '0 25px 50px rgba(15,23,42,0.25)',
           animation: 'fadeIn .2s ease',
+          WebkitOverflowScrolling: 'touch',
         }}
       >
         <div

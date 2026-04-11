@@ -313,6 +313,12 @@ export default function AdminDashboard({ user, profile = null }) {
         @media (prefers-reduced-motion: reduce){
           *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important}
         }
+        /* Mobile : inputs à 16px minimum pour éviter l'auto-zoom iOS Safari */
+        @media (max-width: 768px){
+          input:not([type="checkbox"]):not([type="radio"]),select,textarea{font-size:16px !important}
+          /* Touch targets minimum 36px sur mobile pour les boutons d'action */
+          button:not([aria-label="Copier"]):not([aria-label="Fermer"]):not([aria-label="Fermer la notification"]){min-height:36px}
+        }
       `}</style>
 
       {/* MOBILE OVERLAY */}

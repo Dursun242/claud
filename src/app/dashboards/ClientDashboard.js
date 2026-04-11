@@ -134,6 +134,10 @@ export default function ClientDashboard({ user, profile = null }) {
         @media (prefers-reduced-motion: reduce){
           *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important}
         }
+        @media (max-width: 768px){
+          input:not([type="checkbox"]):not([type="radio"]),select,textarea{font-size:16px !important}
+          button:not([aria-label="Copier"]):not([aria-label="Fermer"]):not([aria-label="Fermer la notification"]){min-height:36px}
+        }
       `}</style>
 
       {/* ── Overlay mobile ── */}
