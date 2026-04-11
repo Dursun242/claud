@@ -1,17 +1,26 @@
 'use client'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { supabase } from '../supabaseClient'
 import { SB, fmtDate, fmtMoney, inp } from '../dashboards/shared'
 import { Badge } from '../components'
+import { useToast } from '../contexts/ToastContext'
 import AIQontoV from './AIQontoV'
 
 const QT = { primary:"#7C3AED", light:"#F5F3FF", border:"#DDD6FE", gradient:"linear-gradient(135deg,#7C3AED,#A855F7,#C084FC)" };
+
+// Style commun pour le bouton PDF (soft)
+const pdfBtn = {
+  background:"#FEF2F2",border:"1px solid #FECACA",borderRadius:5,
+  padding:"3px 10px",cursor:"pointer",fontSize:10,fontWeight:700,
+  color:"#DC2626",fontFamily:"inherit",
+}
 
 function QontoBadge() {
   return <span style={{display:"inline-flex",alignItems:"center",gap:3,padding:"2px 7px",borderRadius:5,background:QT.gradient,color:"#fff",fontSize:8,fontWeight:800,letterSpacing:"0.1em"}}>API</span>;
 }
 
 export default function QontoV({m, data, reload}) {
+  const { addToast } = useToast();
   const [token, setToken] = useState("");
   const [savedToken, setSavedToken] = useState("");
   const [activeTab, setActiveTab] = useState("factures");
@@ -23,6 +32,10 @@ export default function QontoV({m, data, reload}) {
   const [connected, setConnected] = useState(false);
   const [importing, setImporting] = useState({});
   const [importMsg, setImportMsg] = useState({});
+  // Recherche locale par onglet (factures/devis/clients)
+  const [searchFactures, setSearchFactures] = useState("");
+  const [searchDevis, setSearchDevis] = useState("");
+  const [searchClients, setSearchClients] = useState("");
 
   // Charge le token depuis Supabase (cross-device)
   useEffect(() => {
@@ -113,8 +126,8 @@ export default function QontoV({m, data, reload}) {
         if (attUrl) { window.open(attUrl, "_blank"); return; }
       }
 
-      alert("PDF non disponible via l'API Qonto pour ce document.");
-    } catch(e) { alert("Erreur récupération PDF : " + e.message); }
+      addToast("PDF non disponible via l'API Qonto pour ce document.", "warning");
+    } catch(e) { addToast("Erreur récupération PDF : " + e.message, "error"); }
   };
 
   // ── Import client Qonto → Annuaire ──
@@ -163,6 +176,46 @@ export default function QontoV({m, data, reload}) {
   const unpaidInvoices = invoices.filter(i => ["sent","finalized","unpaid","pending"].includes(i.status));
   const totalPaid = paidInvoices.reduce((s,i) => s + getAmt(i), 0);
   const totalUnpaid = unpaidInvoices.reduce((s,i) => s + getAmt(i), 0);
+
+  // Listes filtrées par recherche locale + triées par date desc
+  const filteredInvoices = useMemo(() => {
+    const s = searchFactures.toLowerCase().trim();
+    const list = s
+      ? invoices.filter(inv => (inv.number||"").toLowerCase().includes(s) || (inv.contact_email||"").toLowerCase().includes(s))
+      : invoices;
+    return [...list].sort((a,b) => new Date(b.created_at||0) - new Date(a.created_at||0));
+  }, [invoices, searchFactures]);
+
+  const filteredQuotes = useMemo(() => {
+    const s = searchDevis.toLowerCase().trim();
+    const list = s
+      ? quotes.filter(q => (q.number||"").toLowerCase().includes(s) || (q.contact_email||"").toLowerCase().includes(s))
+      : quotes;
+    return [...list].sort((a,b) => new Date(b.created_at||0) - new Date(a.created_at||0));
+  }, [quotes, searchDevis]);
+
+  const filteredClients = useMemo(() => {
+    const s = searchClients.toLowerCase().trim();
+    if (!s) return clients;
+    return clients.filter(c => {
+      const nom = c.name || `${c.first_name||""} ${c.last_name||""}`.trim();
+      return nom.toLowerCase().includes(s) || (c.email||"").toLowerCase().includes(s) || (c.siret||"").includes(s);
+    });
+  }, [clients, searchClients]);
+
+  // Petit composant de barre de recherche locale (réutilisé dans les 3 onglets)
+  const LocalSearch = ({ value, onChange, placeholder }) => (
+    <div style={{position:"relative",marginBottom:10}}>
+      <svg style={{position:"absolute",left:9,top:"50%",transform:"translateY(-50%)",opacity:0.5}} width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2.5"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+      <input
+        type="search"
+        placeholder={placeholder}
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        style={{padding:"7px 10px 7px 28px",borderRadius:7,border:"1px solid #E2E8F0",fontSize:12,width:m?"100%":320,boxSizing:"border-box",fontFamily:"inherit"}}
+      />
+    </div>
+  );
 
   return (<div>
     {/* HEADER */}
@@ -249,56 +302,76 @@ export default function QontoV({m, data, reload}) {
 
             {/* FACTURES LIST */}
             {activeTab==="factures" && (
-              <div style={{display:"grid",gap:8}}>
-                {invoices.length===0 ? <p style={{color:"#94A3B8",fontSize:13,textAlign:"center",padding:20}}>Aucune facture trouvée</p> :
-                invoices.sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0)).map(inv=>(
-                  <div key={inv.id} style={{background:"#fff",borderRadius:10,padding:m?12:16,boxShadow:"0 1px 2px rgba(0,0,0,0.04)",borderLeft:`4px solid ${invStatusColor[inv.status]||"#94A3B8"}`,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
-                    <div style={{flex:1,minWidth:180}}>
-                      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:3}}>
-                        <span style={{fontSize:14,fontWeight:700,color:"#0F172A"}}>{inv.number||"—"}</span>
-                        <Badge text={invStatusFr[inv.status]||inv.status} color={invStatusColor[inv.status]||"#94A3B8"}/>
-                        <QontoBadge/>
+              <>
+                <LocalSearch value={searchFactures} onChange={setSearchFactures} placeholder="Rechercher n° ou email…"/>
+                <div style={{display:"grid",gap:8}}>
+                  {filteredInvoices.length===0 ? (
+                    <div style={{background:"#fff",borderRadius:10,padding:"30px 20px",textAlign:"center",boxShadow:"0 1px 2px rgba(0,0,0,0.04)"}}>
+                      <div style={{fontSize:30,opacity:0.5,marginBottom:6}}>🧾</div>
+                      <div style={{fontSize:13,color:"#64748B",fontWeight:600}}>{searchFactures ? "Aucun résultat" : "Aucune facture"}</div>
+                    </div>
+                  ) : filteredInvoices.map(inv=>(
+                    <div key={inv.id} style={{background:"#fff",borderRadius:10,padding:m?12:16,boxShadow:"0 1px 2px rgba(15,23,42,0.05)",borderLeft:`4px solid ${invStatusColor[inv.status]||"#94A3B8"}`,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
+                      <div style={{flex:1,minWidth:180}}>
+                        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:3,flexWrap:"wrap"}}>
+                          <span style={{fontSize:14,fontWeight:700,color:"#0F172A"}}>{inv.number||"—"}</span>
+                          <Badge text={invStatusFr[inv.status]||inv.status} color={invStatusColor[inv.status]||"#94A3B8"}/>
+                          <QontoBadge/>
+                        </div>
+                        <div style={{fontSize:11,color:"#64748B"}}>{inv.contact_email||"—"} {inv.issue_date ? `• ${fmtDate(inv.issue_date)}` : ""} {inv.due_date ? `• Éch. ${fmtDate(inv.due_date)}` : ""}</div>
                       </div>
-                      <div style={{fontSize:11,color:"#64748B"}}>{inv.contact_email||"—"} {inv.issue_date ? `• ${fmtDate(inv.issue_date)}` : ""} {inv.due_date ? `• Éch. ${fmtDate(inv.due_date)}` : ""}</div>
+                      <div style={{textAlign:"right",display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4}}>
+                        <div style={{fontSize:16,fontWeight:700,color:inv.status==="paid"?"#10B981":"#0F172A"}}>{fmtMoney(getAmt(inv))}</div>
+                        {(inv.vat_amount?.value||inv.vat_amount_cents) && <div style={{fontSize:10,color:"#94A3B8"}}>TVA: {fmtMoney(parseFloat(inv.vat_amount?.value??(inv.vat_amount_cents||0)/100))}</div>}
+                        <button onClick={()=>downloadPdf(inv,"invoice")} title="Télécharger le PDF" style={pdfBtn}>⬇ PDF</button>
+                      </div>
                     </div>
-                    <div style={{textAlign:"right",display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4}}>
-                      <div style={{fontSize:16,fontWeight:700,color:inv.status==="paid"?"#10B981":"#0F172A"}}>{fmtMoney(getAmt(inv))}</div>
-                      {(inv.vat_amount?.value||inv.vat_amount_cents) && <div style={{fontSize:10,color:"#94A3B8"}}>TVA: {fmtMoney(parseFloat(inv.vat_amount?.value??(inv.vat_amount_cents||0)/100))}</div>}
-                      <button onClick={()=>downloadPdf(inv,"invoice")} style={{background:"#EF4444",border:"none",borderRadius:5,padding:"3px 10px",cursor:"pointer",fontSize:10,fontWeight:700,color:"#fff"}}>⬇ PDF</button>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              </>
             )}
 
             {/* DEVIS LIST */}
             {activeTab==="devis" && (
-              <div style={{display:"grid",gap:8}}>
-                {quotes.length===0 ? <p style={{color:"#94A3B8",fontSize:13,textAlign:"center",padding:20}}>Aucun devis trouvé</p> :
-                quotes.sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0)).map(q=>(
-                  <div key={q.id} style={{background:"#fff",borderRadius:10,padding:m?12:16,boxShadow:"0 1px 2px rgba(0,0,0,0.04)",borderLeft:`4px solid ${quoStatusColor[q.status]||"#94A3B8"}`,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
-                    <div style={{flex:1,minWidth:180}}>
-                      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:3}}>
-                        <span style={{fontSize:14,fontWeight:700,color:"#0F172A"}}>{q.number||"—"}</span>
-                        <Badge text={quoStatusFr[q.status]||q.status} color={quoStatusColor[q.status]||"#94A3B8"}/>
-                        <QontoBadge/>
+              <>
+                <LocalSearch value={searchDevis} onChange={setSearchDevis} placeholder="Rechercher n° ou email…"/>
+                <div style={{display:"grid",gap:8}}>
+                  {filteredQuotes.length===0 ? (
+                    <div style={{background:"#fff",borderRadius:10,padding:"30px 20px",textAlign:"center",boxShadow:"0 1px 2px rgba(0,0,0,0.04)"}}>
+                      <div style={{fontSize:30,opacity:0.5,marginBottom:6}}>📑</div>
+                      <div style={{fontSize:13,color:"#64748B",fontWeight:600}}>{searchDevis ? "Aucun résultat" : "Aucun devis"}</div>
+                    </div>
+                  ) : filteredQuotes.map(q=>(
+                    <div key={q.id} style={{background:"#fff",borderRadius:10,padding:m?12:16,boxShadow:"0 1px 2px rgba(15,23,42,0.05)",borderLeft:`4px solid ${quoStatusColor[q.status]||"#94A3B8"}`,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
+                      <div style={{flex:1,minWidth:180}}>
+                        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:3,flexWrap:"wrap"}}>
+                          <span style={{fontSize:14,fontWeight:700,color:"#0F172A"}}>{q.number||"—"}</span>
+                          <Badge text={quoStatusFr[q.status]||q.status} color={quoStatusColor[q.status]||"#94A3B8"}/>
+                          <QontoBadge/>
+                        </div>
+                        <div style={{fontSize:11,color:"#64748B"}}>{q.contact_email||"—"} {q.issue_date ? `• Émis ${fmtDate(q.issue_date)}` : ""} {q.expiry_date ? `• Expire ${fmtDate(q.expiry_date)}` : ""}</div>
                       </div>
-                      <div style={{fontSize:11,color:"#64748B"}}>{q.contact_email||"—"} {q.issue_date ? `• Émis ${fmtDate(q.issue_date)}` : ""} {q.expiry_date ? `• Expire ${fmtDate(q.expiry_date)}` : ""}</div>
+                      <div style={{textAlign:"right"}}>
+                        <div style={{fontSize:16,fontWeight:700,color:"#0F172A"}}>{fmtMoney(parseFloat(q.total_amount?.value??(q.total_amount_cents||0)/100)||0)}</div>
+                        <button onClick={()=>downloadPdf(q,"quote")} title="Télécharger le PDF" style={{...pdfBtn,marginTop:4}}>⬇ PDF</button>
+                      </div>
                     </div>
-                    <div style={{textAlign:"right"}}>
-                      <div style={{fontSize:16,fontWeight:700,color:"#0F172A"}}>{fmtMoney(parseFloat(q.total_amount?.value??(q.total_amount_cents||0)/100)||0)}</div>
-                      <button onClick={()=>downloadPdf(q,"quote")} style={{background:"#EF4444",border:"none",borderRadius:5,padding:"3px 10px",cursor:"pointer",fontSize:10,fontWeight:700,color:"#fff",marginTop:4}}>⬇ PDF</button>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              </>
             )}
 
             {/* CLIENTS LIST */}
             {activeTab==="clients" && (
-              <div style={{display:"grid",gridTemplateColumns:m?"1fr":"1fr 1fr",gap:10}}>
-                {clients.length===0 ? <p style={{color:"#94A3B8",fontSize:13,textAlign:"center",padding:20,gridColumn:"1/-1"}}>Aucun client trouvé</p> :
-                clients.map(c=>{
+              <>
+                <LocalSearch value={searchClients} onChange={setSearchClients} placeholder="Rechercher nom, email ou SIRET…"/>
+                <div style={{display:"grid",gridTemplateColumns:m?"1fr":"1fr 1fr",gap:10}}>
+                  {filteredClients.length===0 ? (
+                    <div style={{background:"#fff",borderRadius:10,padding:"30px 20px",textAlign:"center",boxShadow:"0 1px 2px rgba(0,0,0,0.04)",gridColumn:"1/-1"}}>
+                      <div style={{fontSize:30,opacity:0.5,marginBottom:6}}>👥</div>
+                      <div style={{fontSize:13,color:"#64748B",fontWeight:600}}>{searchClients ? "Aucun résultat" : "Aucun client"}</div>
+                    </div>
+                  ) : filteredClients.map(c=>{
                   const nom = c.name||`${c.first_name||""} ${c.last_name||""}`.trim();
                   const siret = c.siret || null;
                   const existBySiret = siret && (data?.contacts||[]).find(x=>x.siret===siret);
@@ -330,7 +403,8 @@ export default function QontoV({m, data, reload}) {
                     </div>
                   </div>
                 );})}
-              </div>
+                </div>
+              </>
             )}
 
             {/* AI ANALYSIS */}
