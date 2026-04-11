@@ -124,25 +124,41 @@ export default function ContactsV({data,save,m,reload,focusId,focusTs}) {
   const handleSave = async () => {
     setFormError("");
     if (!form.nom || !form.nom.trim()) { setFormError("Le nom est requis."); return; }
-    // Validation stricte : bloque la sauvegarde si un format est invalide.
-    // Les champs vides sont autorisés (validateur retourne valid:true).
-    const checks = [
+
+    // Validation STRICTE : bloque la sauvegarde si le format est clairement
+    // cassé (email, téléphone, code postal — des formats simples à corriger).
+    const blockingChecks = [
       ['Email', validateEmail(form.email)],
-      ['SIRET', validateSiret(form.siret)],
       ['Téléphone mobile', validatePhoneFR(form.tel)],
       ['Téléphone fixe', validatePhoneFR(form.tel_fixe)],
       ['Code postal', validateCodePostalFR(form.code_postal)],
-      ['TVA intra.', validateTvaIntra(form.tva_intra)],
-      ['IBAN', validateIban(form.iban)],
     ];
-    for (const [label, result] of checks) {
+    for (const [label, result] of blockingChecks) {
       if (!result.valid) { setFormError(`${label} : ${result.message}`); return; }
     }
+
+    // Validation SOFT : les champs sensibles et souvent imparfaits
+    // (SIRET peut avoir une typo mineure, IBAN copié-collé partiel, TVA
+    // format international variable). On N'EMPÊCHE PAS la sauvegarde,
+    // juste un toast d'avertissement pour que l'utilisateur corrige
+    // éventuellement plus tard.
+    const warnings = [];
+    const siretCheck = validateSiret(form.siret);
+    if (!siretCheck.valid) warnings.push(`SIRET ${siretCheck.message}`);
+    const ibanCheck = validateIban(form.iban);
+    if (!ibanCheck.valid) warnings.push(`IBAN ${ibanCheck.message}`);
+    const tvaCheck = validateTvaIntra(form.tva_intra);
+    if (!tvaCheck.valid) warnings.push(`TVA ${tvaCheck.message}`);
+
     try {
       await SB.upsertContact(form);
       setModal(null);
       reload();
-      addToast(modal === "edit" ? "Contact mis à jour" : "Contact créé", "success");
+      if (warnings.length > 0) {
+        addToast("Contact enregistré · " + warnings.join(" · ") + " à vérifier", "warning", 5000);
+      } else {
+        addToast(modal === "edit" ? "Contact mis à jour" : "Contact créé", "success");
+      }
     } catch (err) {
       setFormError(err?.message || "Erreur lors de l'enregistrement.");
     }
