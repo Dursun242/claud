@@ -1,11 +1,16 @@
 'use client'
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { SB, Icon, I, FF, inp, sel, btnP, btnS } from '../dashboards/shared'
 import { Badge, Modal } from '../components'
+import { supabase } from '../supabaseClient'
 
 export default function ContactsV({data,save,m,reload}) {
   const [modal,setModal]=useState(null);const [form,setForm]=useState({});const [tf,setTf]=useState("all");const [q,setQ]=useState("");
   const [pSearch,setPSearch]=useState("");const [pLoading,setPLoading]=useState(false);const [pResults,setPResults]=useState(null);const [pError,setPError]=useState("");
+  // États import par photo
+  const [importing, setImporting] = useState(false);
+  const [importError, setImportError] = useState("");
+  const fileInputRef = useRef(null);
   const tc={Artisan:"#F59E0B",Client:"#3B82F6",Fournisseur:"#10B981","Sous-traitant":"#8B5CF6",Prestataire:"#EC4899",MOA:"#0EA5E9",Architecte:"#6366F1",BET:"#14B8A6"};
   const types = ["Artisan","Sous-traitant","Prestataire","Client","Fournisseur","MOA","Architecte","BET"];
   const list=data.contacts.filter(c=>{
@@ -67,18 +72,201 @@ export default function ContactsV({data,save,m,reload}) {
     finally { setPLoading(false); }
   };
 
+  // ─── Import par photo (Claude Vision) ─────────────────────────
+  //
+  // Resize une image via canvas pour rester sous 1600px de largeur
+  // et ≤ 5 Mo. Retourne { base64, mediaType }.
+  const resizeImage = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const MAX_W = 1600;
+          let { width, height } = img;
+          if (width > MAX_W) {
+            height = Math.round(height * (MAX_W / width));
+            width = MAX_W;
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          // JPEG qualité 0.85 — bon compromis taille/lisibilité pour OCR
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+          const base64 = dataUrl.split(',')[1];
+          resolve({ base64, mediaType: 'image/jpeg' });
+        };
+        img.onerror = () => reject(new Error("Image illisible"));
+        img.src = e.target.result;
+      };
+      reader.onerror = () => reject(new Error("Lecture fichier échouée"));
+      reader.readAsDataURL(file);
+    });
+  };
+
+  // Si Claude a extrait un SIRET, on enrichit automatiquement via Pappers
+  // pour fiabiliser les données officielles (adresse, TVA intra, dénomination).
+  const enrichFromSiret = async (siret) => {
+    try {
+      const clean = (siret || "").replace(/\s/g, "");
+      if (!/^\d{14}$/.test(clean)) return null;
+      const res = await fetch(`/api/pappers?siret=${clean}`);
+      if (!res.ok) return null;
+      return await res.json();
+    } catch {
+      return null;
+    }
+  };
+
+  const handleImportPhoto = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // reset pour permettre de re-sélectionner la même photo
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setImportError("Ce fichier n'est pas une image.");
+      return;
+    }
+
+    setImporting(true);
+    setImportError("");
+
+    try {
+      // 1. Redimensionne + convertit en base64
+      const { base64, mediaType } = await resizeImage(file);
+
+      // 2. Récupère le JWT Supabase pour authentifier la requête
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        setImportError("Session expirée, reconnectez-vous.");
+        return;
+      }
+
+      // 3. Appelle la route serveur qui parle à Claude Vision
+      const res = await fetch('/api/extract-contact', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ imageBase64: base64, mediaType }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setImportError(json.error || "Extraction échouée");
+        return;
+      }
+
+      const extracted = json.data || {};
+      if (!extracted || Object.keys(extracted).length === 0) {
+        setImportError("Aucune information de contact n'a pu être détectée sur cette image. Essayez une photo plus nette.");
+        return;
+      }
+
+      // 4. Pré-remplit le formulaire en fusionnant avec les defaults
+      const prefilled = { ...emptyForm, ...extracted };
+
+      // 5. Bonus : si un SIRET a été détecté, enrichit via Pappers
+      if (extracted.siret) {
+        const pappers = await enrichFromSiret(extracted.siret);
+        if (pappers) {
+          const siege = pappers.siege || {};
+          // On garde les champs déjà remplis par Claude, on ajoute ce qui manque
+          if (!prefilled.societe) prefilled.societe = pappers.denomination || prefilled.societe;
+          if (!prefilled.tva_intra) prefilled.tva_intra = pappers.num_tva_intracommunautaire || prefilled.tva_intra;
+          if (!prefilled.adresse) prefilled.adresse = siege.adresse_ligne_1 || siege.adresse || prefilled.adresse;
+          if (!prefilled.code_postal) prefilled.code_postal = siege.code_postal || prefilled.code_postal;
+          if (!prefilled.ville) prefilled.ville = siege.ville || prefilled.ville;
+          if (!prefilled.site_web) prefilled.site_web = pappers.site_internet || prefilled.site_web;
+          if (!prefilled.specialite) prefilled.specialite = pappers.libelle_activite_principale || prefilled.specialite;
+        }
+      }
+
+      // 6. Ouvre la modale pré-remplie pour relecture + validation
+      setForm(prefilled);
+      setPSearch("");
+      setPResults(null);
+      setPError("");
+      setModal("new");
+    } catch (err) {
+      setImportError("Erreur : " + (err?.message || String(err)));
+    } finally {
+      setImporting(false);
+    }
+  };
+
   // Stats par type
   const stats = {};
   types.forEach(t => { const c = data.contacts.filter(x=>x.type===t).length; if(c>0) stats[t]=c; });
 
   return (<div>
+    {/* Input file caché, déclenché par le bouton "Importer depuis photo".
+        `capture` est une hint iOS/Android pour ouvrir la caméra en priorité. */}
+    <input
+      ref={fileInputRef}
+      type="file"
+      accept="image/*"
+      capture="environment"
+      onChange={handleImportPhoto}
+      style={{display:"none"}}
+    />
+
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,flexWrap:"wrap",gap:8}}>
       <div>
         <h1 style={{margin:0,fontSize:m?18:24,fontWeight:700}}>Annuaire</h1>
         <p style={{margin:"2px 0 0",fontSize:12,color:"#94A3B8"}}>{data.contacts.length} contacts</p>
       </div>
-      <button onClick={openNew} style={{...btnP,fontSize:12}}>+ Nouveau contact</button>
+      <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          disabled={importing}
+          style={{
+            ...btnS,
+            fontSize:12,
+            background:"#EEF2FF",
+            color:"#4F46E5",
+            border:"1.5px solid #C7D2FE",
+            cursor:importing?"wait":"pointer",
+            opacity:importing?0.7:1,
+            display:"flex",
+            alignItems:"center",
+            gap:6,
+          }}
+          title="Prendre une photo d'une carte de visite, signature email ou badge pour auto-remplir"
+        >
+          {importing ? (
+            <>
+              <span style={{display:"inline-block",width:12,height:12,border:"2px solid #C7D2FE",borderTopColor:"#4F46E5",borderRadius:"50%",animation:"spin 0.8s linear infinite"}}/>
+              Extraction…
+            </>
+          ) : (
+            <>📸 Importer depuis photo</>
+          )}
+        </button>
+        <button onClick={openNew} style={{...btnP,fontSize:12}}>+ Nouveau contact</button>
+      </div>
     </div>
+
+    {importError && (
+      <div style={{
+        background:"#FEF2F2",
+        border:"1px solid #FECACA",
+        borderRadius:8,
+        padding:"8px 12px",
+        marginBottom:12,
+        fontSize:12,
+        color:"#DC2626",
+        display:"flex",
+        justifyContent:"space-between",
+        alignItems:"center",
+        gap:8,
+      }}>
+        <span>{importError}</span>
+        <button onClick={()=>setImportError("")} style={{background:"none",border:"none",cursor:"pointer",color:"#DC2626",fontSize:16,padding:0}}>✕</button>
+      </div>
+    )}
 
     {/* Search + Filters */}
     <div style={{display:"flex",gap:8,marginBottom:14,flexWrap:"wrap"}}>
