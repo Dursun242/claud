@@ -26,26 +26,101 @@ export default function ContactsV({data,save,m,reload}) {
   const handleSave=async()=>{await SB.upsertContact(form);setModal(null);reload();};
   const handleDelete=async(id)=>{if(!window.confirm("Supprimer ce contact ? Cette action est irréversible.")) return;await SB.deleteContact(id);reload();};
 
-  // ── Pappers : mapping réponse → formulaire ──
-  const fillFromPappers = (entreprise) => {
+  // ── Pappers : mapping entreprise complète → formulaire ──
+  //
+  // Règles clés :
+  // 1. NE PAS écraser form.nom avec entreprise.denomination. Si le user
+  //    a déjà un nom (saisi ou extrait par Claude Vision), on le garde.
+  // 2. Si form.nom est vide, on essaie de le remplir avec le 1er
+  //    dirigeant/représentant trouvé dans l'entreprise.
+  // 3. entreprise.denomination → toujours dans form.societe.
+  // 4. Si on a un dirigeant (via options.dirigeant ou via les
+  //    representants de l'entreprise), on remplit form.fonction avec
+  //    sa qualité (Gérant, Président, etc.) si elle est vide.
+  const fillFromPappers = (entreprise, options = {}) => {
     const siege = entreprise.siege || {};
+
+    // Chercher un dirigeant : priorité à options.dirigeant (passé explicitement),
+    // sinon premier représentant de l'entreprise
+    const representants = entreprise.representants
+      || entreprise.dirigeants_actuels
+      || entreprise.dirigeants
+      || [];
+    const dirigeant = options.dirigeant || representants[0] || null;
+
+    const formatName = (d) => {
+      if (!d) return "";
+      const prenom = (d.prenom || "").trim();
+      const nom = (d.nom || d.nom_usage || "").trim();
+      return `${prenom} ${nom}`.trim();
+    };
+    const dirigeantName = formatName(dirigeant);
+
     setForm(f => ({
       ...f,
-      nom: entreprise.denomination || f.nom,
-      societe: entreprise.denomination || f.societe,
+      // Nom : on GARDE ce qui est déjà rempli. Si vide, on prend le dirigeant.
+      nom: (f.nom && f.nom.trim()) || dirigeantName || f.nom,
+      // Société : toujours la dénomination officielle Pappers
+      societe: entreprise.denomination || entreprise.nom_entreprise || f.societe,
+      // Fonction : garde ce qui est rempli, sinon la qualité du dirigeant
+      fonction: (f.fonction && f.fonction.trim()) || dirigeant?.qualite || f.fonction,
+      // Administratif
       siret: entreprise.siret || siege.siret || f.siret,
       tva_intra: entreprise.num_tva_intracommunautaire || f.tva_intra,
+      // Adresse du siège
       adresse: siege.adresse_ligne_1 || siege.adresse || f.adresse,
       code_postal: siege.code_postal || f.code_postal,
       ville: siege.ville || f.ville,
+      // Contact
       tel: entreprise.telephone || f.tel,
       email: entreprise.email || f.email,
       site_web: entreprise.site_internet || f.site_web,
+      // Activité → spécialité (utile pour typer : Plombier/Élec/etc.)
       specialite: entreprise.libelle_activite_principale || f.specialite,
     }));
     setPResults(null);
     setPSearch("");
     setPError("");
+  };
+
+  // ─── Helper : fetch complet d'une entreprise par son SIRET ────
+  // Utile quand on a un résultat de recherche léger (pas de representants) :
+  // on va chercher le détail complet avant d'appeler fillFromPappers.
+  const fetchFullEntreprise = async (siret) => {
+    if (!siret) return null;
+    try {
+      const res = await fetch(`/api/pappers?siret=${encodeURIComponent(siret)}`);
+      if (!res.ok) return null;
+      return await res.json();
+    } catch {
+      return null;
+    }
+  };
+
+  // Clic "Importer" sur un résultat entreprise : on fetch le détail complet
+  // puis on remplit le formulaire
+  const importEntrepriseFromSearch = async (entrepriseLight) => {
+    setPLoading(true);
+    try {
+      const siret = entrepriseLight.siret || entrepriseLight.siege?.siret;
+      const full = (siret && await fetchFullEntreprise(siret)) || entrepriseLight;
+      fillFromPappers(full);
+    } finally {
+      setPLoading(false);
+    }
+  };
+
+  // Clic "Importer" sur un résultat dirigeant : on fetch l'entreprise
+  // complète puis on remplit le form en forçant le nom/prénom du dirigeant
+  const importDirigeantFromSearch = async (dirigeantInfo, entrepriseLight) => {
+    setPLoading(true);
+    try {
+      const siret = entrepriseLight.siret || entrepriseLight.siege?.siret;
+      const full = (siret && await fetchFullEntreprise(siret)) || entrepriseLight;
+      fillFromPappers(full, { dirigeant: dirigeantInfo });
+    } finally {
+      setPLoading(false);
+    }
   };
 
   const searchPappers = async () => {
@@ -60,13 +135,17 @@ export default function ContactsV({data,save,m,reload}) {
       const json = await res.json();
       if (!res.ok) { setPError(json.error || "Erreur Pappers"); return; }
       if (isSiret) {
-        // Résultat direct → on remplit le form
+        // Lookup direct : on a déjà l'entreprise complète
         fillFromPappers(json);
       } else {
-        // Liste de résultats → on affiche pour choisir
-        const results = json.resultats || [];
-        if (results.length === 0) { setPError("Aucune entreprise trouvée."); return; }
-        setPResults(results);
+        // Recherche texte : on a { resultats, dirigeants }
+        const companies = json.resultats || [];
+        const dirigeants = json.dirigeants || [];
+        if (companies.length === 0 && dirigeants.length === 0) {
+          setPError("Aucune entreprise ni dirigeant trouvé.");
+          return;
+        }
+        setPResults({ companies, dirigeants });
       }
     } catch(e) { setPError("Erreur réseau : " + e.message); }
     finally { setPLoading(false); }
@@ -364,12 +443,12 @@ export default function ContactsV({data,save,m,reload}) {
         <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
           <span style={{fontSize:12,fontWeight:700,color:"#1E40AF"}}>Recherche Pappers</span>
-          <span style={{fontSize:10,color:"#60A5FA"}}>SIRET (14 chiffres) ou nom de l'entreprise</span>
+          <span style={{fontSize:10,color:"#60A5FA",width:"100%"}}>SIRET (14 chiffres), nom d'entreprise ou nom d'un dirigeant</span>
         </div>
         <div style={{display:"flex",gap:8}}>
           <input
             style={{...inp,flex:1,fontSize:13}}
-            placeholder="Ex: 12345678901234 ou Lefèvre Électricité..."
+            placeholder="SIRET, Lefèvre Électricité, Yusuf Caglayan..."
             value={pSearch}
             onChange={e=>setPSearch(e.target.value)}
             onKeyDown={e=>e.key==="Enter"&&searchPappers()}
@@ -382,22 +461,82 @@ export default function ContactsV({data,save,m,reload}) {
         </div>
         {pError && <div style={{marginTop:8,fontSize:11,color:"#EF4444"}}>{pError}</div>}
         {pResults && (
-          <div style={{marginTop:10,display:"flex",flexDirection:"column",gap:6}}>
-            <div style={{fontSize:11,color:"#64748B",fontWeight:600}}>Sélectionnez une entreprise :</div>
-            {pResults.map((r,i)=>{
-              const siege = r.siege||{};
-              return (
-                <button key={i} onClick={()=>fillFromPappers(r)}
-                  style={{background:"#fff",border:"1.5px solid #BFDBFE",borderRadius:8,padding:"8px 12px",cursor:"pointer",textAlign:"left",display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,fontFamily:"inherit"}}>
-                  <div>
-                    <div style={{fontSize:13,fontWeight:700,color:"#0F172A"}}>{r.denomination}</div>
-                    <div style={{fontSize:10,color:"#64748B"}}>{siege.code_postal} {siege.ville} — SIRET {r.siret}</div>
-                    {r.libelle_activite_principale&&<div style={{fontSize:10,color:"#94A3B8"}}>{r.libelle_activite_principale}</div>}
-                  </div>
-                  <span style={{fontSize:11,color:"#3B82F6",fontWeight:600,flexShrink:0}}>Importer →</span>
-                </button>
-              );
-            })}
+          <div style={{marginTop:10,display:"flex",flexDirection:"column",gap:10}}>
+
+            {/* ── Section ENTREPRISES ── */}
+            {pResults.companies?.length > 0 && (
+              <div>
+                <div style={{fontSize:11,color:"#64748B",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.03em",marginBottom:6}}>
+                  🏢 Entreprises ({pResults.companies.length})
+                </div>
+                <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                  {pResults.companies.map((r,i)=>{
+                    const siege = r.siege||{};
+                    return (
+                      <button key={`c-${i}`} onClick={()=>importEntrepriseFromSearch(r)} disabled={pLoading}
+                        style={{background:"#fff",border:"1.5px solid #BFDBFE",borderRadius:8,padding:"8px 12px",cursor:pLoading?"wait":"pointer",textAlign:"left",display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,fontFamily:"inherit",opacity:pLoading?0.6:1}}>
+                        <div>
+                          <div style={{fontSize:13,fontWeight:700,color:"#0F172A"}}>{r.denomination||r.nom_entreprise}</div>
+                          <div style={{fontSize:10,color:"#64748B"}}>{siege.code_postal} {siege.ville} — SIRET {r.siret}</div>
+                          {r.libelle_activite_principale&&<div style={{fontSize:10,color:"#94A3B8"}}>{r.libelle_activite_principale}</div>}
+                        </div>
+                        <span style={{fontSize:11,color:"#3B82F6",fontWeight:600,flexShrink:0}}>Importer →</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* ── Section DIRIGEANTS ── */}
+            {pResults.dirigeants?.length > 0 && (
+              <div>
+                <div style={{fontSize:11,color:"#64748B",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.03em",marginBottom:6}}>
+                  👤 Dirigeants ({pResults.dirigeants.length})
+                </div>
+                <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                  {pResults.dirigeants.flatMap((d,i)=>{
+                    // Chaque dirigeant peut être lié à plusieurs entreprises.
+                    // On "aplatit" : une ligne = un duo (dirigeant, entreprise).
+                    const entreprises = d.entreprises || d.companies || (d.entreprise ? [d.entreprise] : []);
+                    const dirigeantInfo = {
+                      nom: d.nom || d.nom_usage,
+                      prenom: d.prenom,
+                      qualite: d.qualite || d.fonction,
+                    };
+                    const fullName = `${dirigeantInfo.prenom||""} ${dirigeantInfo.nom||""}`.trim();
+
+                    if (entreprises.length === 0) return [];
+
+                    return entreprises.map((ent, j) => {
+                      const siege = ent.siege || {};
+                      return (
+                        <button
+                          key={`d-${i}-${j}`}
+                          onClick={() => importDirigeantFromSearch(dirigeantInfo, ent)}
+                          disabled={pLoading}
+                          style={{background:"#fff",border:"1.5px solid #C7D2FE",borderRadius:8,padding:"8px 12px",cursor:pLoading?"wait":"pointer",textAlign:"left",display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,fontFamily:"inherit",opacity:pLoading?0.6:1}}
+                        >
+                          <div>
+                            <div style={{fontSize:13,fontWeight:700,color:"#0F172A"}}>
+                              {fullName}
+                              {dirigeantInfo.qualite && <span style={{fontSize:10,color:"#6366F1",fontWeight:600,marginLeft:6}}>({dirigeantInfo.qualite})</span>}
+                            </div>
+                            <div style={{fontSize:11,fontWeight:600,color:"#4338CA"}}>{ent.denomination || ent.nom_entreprise}</div>
+                            <div style={{fontSize:10,color:"#64748B"}}>
+                              {[siege.code_postal || ent.code_postal, siege.ville || ent.ville].filter(Boolean).join(" ")}
+                              {ent.siret && <> — SIRET {ent.siret}</>}
+                            </div>
+                          </div>
+                          <span style={{fontSize:11,color:"#6366F1",fontWeight:600,flexShrink:0}}>Importer →</span>
+                        </button>
+                      );
+                    });
+                  })}
+                </div>
+              </div>
+            )}
+
           </div>
         )}
       </div>
