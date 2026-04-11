@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import dynamic from 'next/dynamic'
 import { supabase } from '../supabaseClient'
 import { logout } from '../auth'
@@ -11,9 +11,15 @@ import { SB, defaultData, I, Icon, ApiBadge } from './shared'
 // téléchargée qu'au premier affichage de l'onglet correspondant.
 // Gain : bundle initial réduit de ~60-80% (on n'embarque plus 8 pages au démarrage).
 const PageLoading = () => (
-  <div style={{padding:40,textAlign:"center",color:"#94A3B8",fontSize:12}}>Chargement...</div>
+  <div style={{padding:"60px 40px",display:"flex",flexDirection:"column",alignItems:"center",gap:12,color:"#94A3B8",fontSize:12}}>
+    <div style={{width:32,height:32,border:"3px solid #E2E8F0",borderTopColor:"#1E3A5F",borderRadius:"50%",animation:"spin .9s linear infinite"}}/>
+    <span>Chargement…</span>
+  </div>
 )
 const dyn = (loader) => dynamic(loader, { loading: PageLoading, ssr: false })
+
+// Clé localStorage pour la persistance de l'onglet actif (survit au refresh)
+const LAST_TAB_KEY = 'idm_admin_tab'
 
 const AdminV = dyn(() => import('../pages/AdminV'))
 const DashboardV = dyn(() => import('../pages/DashboardV'))
@@ -34,6 +40,10 @@ export default function AdminDashboard({ user, profile = null }) {
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  // Aide clavier (déclenchée par « ? »)
+  const [helpOpen, setHelpOpen] = useState(false);
+  // Préfixe « g » en attente (style GitHub : g puis lettre = go to tab)
+  const pendingGRef = useRef(null);
   // Floating mic state
   const [floatListening, setFloatListening] = useState(false);
   const [floatTranscript, setFloatTranscript] = useState("");
@@ -191,30 +201,94 @@ export default function AdminDashboard({ user, profile = null }) {
   // pour respecter les règles des hooks React.
   const [focus, setFocus] = useState(null);
 
+  // ─── Liste des onglets (avec raccourcis clavier « g + lettre ») ───
+  // Définie avant l'early return pour respecter les règles des hooks.
+  const tabs = useMemo(() => [
+    {key:"dashboard",label:"Tableau de bord",   icon:I.dashboard, sc:"d"},
+    {key:"projects", label:"Chantiers",         icon:I.projects,  sc:"p"},
+    {key:"os",       label:"Ordres de Service", icon:I.os,        sc:"o"},
+    {key:"reports",  label:"Comptes Rendus",    icon:I.reports,   sc:"r"},
+    {key:"tasks",    label:"Tâches",            icon:I.tasks,     sc:"t"},
+    {key:"planning", label:"Planning",          icon:I.planning,  sc:"l"},
+    {key:"contacts", label:"Annuaire",          icon:I.contacts,  sc:"c"},
+    {key:"qonto",    label:"Qonto",             icon:null,        sc:"q", isQonto:true},
+    ...(profile?.role === 'admin' ? [{key:"admin",label:"🔒 Admin", icon:I.settings, sc:"s"}] : []),
+    {key:"ai",       label:"Assistant IA",      icon:I.ai,        sc:"a"},
+  ], [profile?.role]);
+
+  // switchTab : utilisé par la recherche globale, les boutons et les raccourcis
+  const switchTab = useCallback((k, id = null) => {
+    setTab(k);
+    setFocus(id ? { id, ts: Date.now() } : null);
+    setSidebarOpen(false); // ferme toujours sur mobile, no-op sur desktop
+  }, []);
+
+  // ─── Persistance : on restaure le dernier onglet visité au chargement ───
+  useEffect(() => {
+    try {
+      const saved = typeof window !== 'undefined' ? localStorage.getItem(LAST_TAB_KEY) : null;
+      if (saved && tabs.some(t => t.key === saved)) setTab(saved);
+    } catch { /* ignore */ }
+    // on ne dépend que de tabs (qui change avec le rôle) — exécuté une fois après mount
+  }, [tabs]);
+
+  // … et on sauvegarde à chaque changement
+  useEffect(() => {
+    try { if (typeof window !== 'undefined') localStorage.setItem(LAST_TAB_KEY, tab); } catch { /* ignore */ }
+  }, [tab]);
+
+  // ─── Raccourcis clavier globaux ───
+  // • « g » + lettre → aller à un onglet (style GitHub)
+  // • « / »          → focus la recherche globale (Ctrl+K reste dispo)
+  // • « ? »          → ouvrir/fermer l'aide clavier
+  // • Escape         → fermer l'aide
+  useEffect(() => {
+    const isTyping = (el) => {
+      if (!el) return false;
+      const tag = (el.tagName || '').toLowerCase();
+      return tag === 'input' || tag === 'textarea' || tag === 'select' || el.isContentEditable;
+    };
+    const clearPending = () => { pendingGRef.current = null; };
+    const handler = (e) => {
+      // Laisser passer les combos système
+      if (e.altKey || e.ctrlKey || e.metaKey) return;
+      // Escape ferme l'aide (même depuis un champ)
+      if (e.key === 'Escape' && helpOpen) { setHelpOpen(false); return; }
+      if (isTyping(e.target)) return;
+
+      // « ? » → toggle help (Shift + /)
+      if (e.key === '?') { e.preventDefault(); setHelpOpen(o => !o); return; }
+      // « / » → focus la recherche globale
+      if (e.key === '/') {
+        e.preventDefault();
+        const input = document.querySelector('[data-global-search-input]');
+        if (input) { input.focus(); input.select?.(); }
+        return;
+      }
+      // Préfixe « g »
+      if (pendingGRef.current) {
+        const target = tabs.find(t => t.sc === e.key.toLowerCase());
+        clearPending();
+        if (target) { e.preventDefault(); switchTab(target.key); }
+        return;
+      }
+      if (e.key === 'g' || e.key === 'G') {
+        pendingGRef.current = setTimeout(clearPending, 1500);
+        return;
+      }
+    };
+    document.addEventListener('keydown', handler);
+    return () => {
+      document.removeEventListener('keydown', handler);
+      if (pendingGRef.current) clearTimeout(pendingGRef.current);
+    };
+  }, [tabs, switchTab, helpOpen]);
+
   if (loading || !data) return (
     <div style={{height:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"#F8FAFC",fontFamily:"'DM Sans',sans-serif"}}>
       <div style={{width:48,height:48,border:"4px solid #E2E8F0",borderTopColor:"#1E3A5F",borderRadius:"50%",animation:"spin 1s linear infinite"}}/>
     </div>
   );
-
-  const tabs = [
-    {key:"dashboard",label:"Tableau de bord",icon:I.dashboard},
-    {key:"projects",label:"Chantiers",icon:I.projects},
-    {key:"os",label:"Ordres de Service",icon:I.reports},
-    {key:"reports",label:"Comptes Rendus",icon:I.reports},
-    {key:"tasks",label:"Tâches",icon:I.tasks},
-    {key:"planning",label:"Planning",icon:I.planning},
-    {key:"contacts",label:"Annuaire",icon:I.contacts},
-    {key:"qonto",label:"Qonto",icon:null,isQonto:true},
-    ...(profile?.role === 'admin' ? [{key:"admin",label:"🔒 Admin",icon:I.settings}] : []),
-    {key:"ai",label:"Assistant IA",icon:I.ai},
-  ];
-
-  const switchTab = (k, id = null) => {
-    setTab(k);
-    setFocus(id ? { id, ts: Date.now() } : null);
-    if (isMobile) setSidebarOpen(false);
-  };
 
   return (
     <div style={{display:"flex",height:"100vh",fontFamily:"'DM Sans',sans-serif",background:"#F1F5F9",overflow:"hidden"}}>
@@ -248,20 +322,41 @@ export default function AdminDashboard({ user, profile = null }) {
         </div>
         <GlobalSearch data={data} onNavigate={switchTab} />
         <div style={{flex:1,padding:"10px 8px",display:"flex",flexDirection:"column",gap:2,overflow:"auto"}}>
-          {tabs.map(t=>(
-            <button key={t.key} onClick={()=>switchTab(t.key)} style={{
-              display:"flex",alignItems:"center",gap:9,padding:"9px 11px",border:"none",borderRadius:7,cursor:"pointer",fontFamily:"inherit",fontSize:12.5,fontWeight:tab===t.key?600:400,
-              color:tab===t.key?(t.isQonto?"#C4B5FD":"#fff"):(t.isQonto?"#A78BFA":"#94A3B8"),
-              background:tab===t.key?(t.isQonto?"rgba(124,58,237,0.15)":"rgba(255,255,255,0.12)"):"transparent",
-              transition:"all .2s",textAlign:"left",width:"100%",
-              borderLeft:t.isQonto&&tab===t.key?"3px solid #7C3AED":"3px solid transparent",
-            }}>
-              {t.isQonto ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#7C3AED" strokeWidth="2"/><path d="M15 15l3 3" stroke="#7C3AED" strokeWidth="2" strokeLinecap="round"/><path d="M9 12l2 2 4-4" stroke="#7C3AED" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                : <Icon d={t.icon} size={16} color={tab===t.key?"#60A5FA":"#64748B"}/>}
-              <span style={{flex:1}}>{t.label}</span>
-              {t.isQonto && <span style={{display:"inline-flex",alignItems:"center",gap:3,padding:"2px 7px",borderRadius:5,background:"linear-gradient(135deg,#7C3AED,#A855F7)",color:"#fff",fontSize:8,fontWeight:800,letterSpacing:"0.1em"}}>API</span>}
-            </button>
-          ))}
+          {tabs.map(t=>{
+            const active = tab===t.key;
+            // Couleur d'accent : bleu pour tout, violet pour Qonto (distinction API)
+            const accent = t.isQonto ? "#A78BFA" : "#60A5FA";
+            return (
+              <button key={t.key} onClick={()=>switchTab(t.key)} title={`${t.label} (g ${t.sc})`} style={{
+                position:"relative",
+                display:"flex",alignItems:"center",gap:9,
+                padding:"9px 11px 9px 14px",border:"none",borderRadius:7,cursor:"pointer",fontFamily:"inherit",fontSize:12.5,
+                fontWeight:active?600:400,
+                color:active?"#fff":"#94A3B8",
+                background:active?"rgba(255,255,255,0.10)":"transparent",
+                transition:"background .15s, color .15s",textAlign:"left",width:"100%",
+              }}
+              onMouseEnter={e=>{ if(!active) e.currentTarget.style.background="rgba(255,255,255,0.04)"; }}
+              onMouseLeave={e=>{ if(!active) e.currentTarget.style.background="transparent"; }}>
+                {/* Barre d'accent verticale, uniforme sur tous les onglets actifs */}
+                <span aria-hidden style={{
+                  position:"absolute",left:4,top:8,bottom:8,width:3,borderRadius:2,
+                  background:active?accent:"transparent",transition:"background .15s"
+                }}/>
+                {t.isQonto ? (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                    <circle cx="12" cy="12" r="9" stroke={accent} strokeWidth="2"/>
+                    <path d="M15 15l3 3" stroke={accent} strokeWidth="2" strokeLinecap="round"/>
+                    <path d="M9 12l2 2 4-4" stroke={accent} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                ) : (
+                  <Icon d={t.icon} size={16} color={active?accent:"#64748B"}/>
+                )}
+                <span style={{flex:1}}>{t.label}</span>
+                {t.isQonto && <span style={{display:"inline-flex",alignItems:"center",gap:3,padding:"2px 7px",borderRadius:5,background:"linear-gradient(135deg,#7C3AED,#A855F7)",color:"#fff",fontSize:8,fontWeight:800,letterSpacing:"0.1em"}}>API</span>}
+              </button>
+            );
+          })}
         </div>
         {/* User info + Logout */}
         <div style={{padding:"12px 16px",borderTop:"1px solid rgba(255,255,255,0.08)"}}>
@@ -283,12 +378,18 @@ export default function AdminDashboard({ user, profile = null }) {
 
       {/* MAIN CONTENT */}
       <main style={{flex:1,overflow:"auto",padding:isMobile?16:24,paddingTop:isMobile?60:24}}>
-        {/* MOBILE HEADER */}
+        {/* MOBILE HEADER — affiche clairement l'onglet actif */}
         {isMobile && (
-          <div style={{position:"fixed",top:0,left:0,right:0,height:52,background:"#fff",borderBottom:"1px solid #E2E8F0",display:"flex",alignItems:"center",padding:"0 16px",zIndex:997,gap:12}}>
-            <button onClick={()=>setSidebarOpen(true)} style={{background:"none",border:"none",cursor:"pointer",padding:4}}><Icon d={I.menu} size={22} color="#0F172A"/></button>
-            <span style={{fontSize:15,fontWeight:700,color:"#0F172A"}}>ID Maîtrise</span>
-            <span style={{fontSize:11,color:"#94A3B8",marginLeft:"auto"}}>{tabs.find(t=>t.key===tab)?.label}</span>
+          <div style={{position:"fixed",top:0,left:0,right:0,height:52,background:"#fff",borderBottom:"1px solid #E2E8F0",display:"flex",alignItems:"center",padding:"0 12px",zIndex:997,gap:10,boxShadow:"0 1px 3px rgba(15,23,42,0.04)"}}>
+            <button onClick={()=>setSidebarOpen(true)} aria-label="Ouvrir le menu" style={{background:"none",border:"none",cursor:"pointer",padding:6,borderRadius:6,display:"flex",alignItems:"center",justifyContent:"center"}}>
+              <Icon d={I.menu} size={22} color="#0F172A"/>
+            </button>
+            <div style={{flex:1,minWidth:0,display:"flex",flexDirection:"column",lineHeight:1.15}}>
+              <span style={{fontSize:10,fontWeight:600,color:"#94A3B8",letterSpacing:"0.06em",textTransform:"uppercase"}}>ID Maîtrise</span>
+              <span style={{fontSize:15,fontWeight:700,color:"#0F172A",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                {tabs.find(t=>t.key===tab)?.label}
+              </span>
+            </div>
           </div>
         )}
         <div style={{animation:"fadeIn .3s ease",maxWidth:1200}}>
@@ -316,6 +417,63 @@ export default function AdminDashboard({ user, profile = null }) {
           onClear={() => { setFloatTranscript(""); if (floatListening && floatRecogRef.current) { floatRecogRef.current.stop(); setFloatListening(false); } }}
         />
       )}
+
+      {/* KEYBOARD SHORTCUTS HELP — déclenché par « ? » */}
+      {helpOpen && (
+        <div onClick={()=>setHelpOpen(false)} style={{
+          position:"fixed",inset:0,background:"rgba(15,23,42,0.55)",backdropFilter:"blur(4px)",
+          zIndex:5000,display:"flex",alignItems:"center",justifyContent:"center",padding:16,
+          animation:"fadeIn .15s ease"
+        }}>
+          <div onClick={e=>e.stopPropagation()} style={{
+            background:"#fff",borderRadius:14,boxShadow:"0 20px 60px rgba(0,0,0,0.3)",
+            width:"100%",maxWidth:460,padding:"20px 24px 22px",fontFamily:"'DM Sans',sans-serif"
+          }}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}>
+              <div>
+                <div style={{fontSize:16,fontWeight:700,color:"#0F172A"}}>Raccourcis clavier</div>
+                <div style={{fontSize:11,color:"#64748B",marginTop:2}}>Naviguer plus vite dans l'app</div>
+              </div>
+              <button onClick={()=>setHelpOpen(false)} aria-label="Fermer" style={{background:"#F1F5F9",border:"none",width:28,height:28,borderRadius:6,cursor:"pointer",color:"#64748B",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center"}}>×</button>
+            </div>
+            <div style={{display:"flex",flexDirection:"column",gap:14}}>
+              <div>
+                <div style={{fontSize:10,fontWeight:700,color:"#94A3B8",letterSpacing:"0.08em",textTransform:"uppercase",marginBottom:6}}>Global</div>
+                {[
+                  {k:["Ctrl","K"], label:"Recherche globale"},
+                  {k:["/"],        label:"Focus la recherche"},
+                  {k:["?"],        label:"Afficher cette aide"},
+                  {k:["Esc"],      label:"Fermer / annuler"},
+                ].map((r,i)=>(
+                  <div key={i} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"6px 0"}}>
+                    <span style={{fontSize:13,color:"#334155"}}>{r.label}</span>
+                    <span style={{display:"flex",gap:4}}>{r.k.map((key,j)=>(<kbd key={j} style={kbdStyle}>{key}</kbd>))}</span>
+                  </div>
+                ))}
+              </div>
+              <div>
+                <div style={{fontSize:10,fontWeight:700,color:"#94A3B8",letterSpacing:"0.08em",textTransform:"uppercase",marginBottom:6}}>Aller à (appuie sur <kbd style={kbdStyle}>g</kbd> puis…)</div>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:"4px 16px"}}>
+                  {tabs.map(t=>(
+                    <div key={t.key} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"4px 0"}}>
+                      <span style={{fontSize:12,color:"#334155",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.label}</span>
+                      <kbd style={kbdStyle}>{t.sc}</kbd>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
+// Style partagé pour les touches affichées dans la modale d'aide
+const kbdStyle = {
+  display:"inline-flex",alignItems:"center",justifyContent:"center",
+  minWidth:22,height:22,padding:"0 6px",
+  background:"#F1F5F9",border:"1px solid #CBD5E1",borderBottomWidth:2,
+  borderRadius:5,fontSize:11,fontWeight:600,color:"#334155",fontFamily:"'DM Sans',sans-serif"
+};

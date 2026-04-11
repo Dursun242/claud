@@ -1,12 +1,15 @@
 'use client'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import dynamic from 'next/dynamic'
 import { logout } from '../auth'
 import { SB, defaultData, I, Icon } from './shared'
 
 // Lazy-load des pages — chunks séparés par onglet
 const PageLoading = () => (
-  <div style={{padding:40,textAlign:"center",color:"#94A3B8",fontSize:12}}>Chargement...</div>
+  <div style={{padding:"60px 40px",display:"flex",flexDirection:"column",alignItems:"center",gap:12,color:"#94A3B8",fontSize:12}}>
+    <div style={{width:32,height:32,border:"3px solid #E2E8F0",borderTopColor:"#1E3A5F",borderRadius:"50%",animation:"spin .9s linear infinite"}}/>
+    <span>Chargement…</span>
+  </div>
 )
 const dyn = (loader) => dynamic(loader, { loading: PageLoading, ssr: false })
 
@@ -15,14 +18,17 @@ const ProjectsV      = dyn(() => import('../pages/ProjectsV'))
 const ReportsV       = dyn(() => import('../pages/ReportsV'))
 const OrdresServiceV = dyn(() => import('../pages/OrdresServiceV'))
 const PlanningV      = dyn(() => import('../pages/PlanningV'))
-// Onglets disponibles pour le maître d'ouvrage
+// Onglets disponibles pour le maître d'ouvrage (avec raccourci clavier « g + sc »)
+// Note : OS utilise I.os (presse-papier) pour se distinguer visuellement des Comptes Rendus (I.reports)
 const TABS = [
-  { key:'dashboard', label:'Tableau de bord',   icon:I.dashboard },
-  { key:'projects',  label:'Mes Chantiers',      icon:I.projects  },
-  { key:'reports',   label:'Comptes Rendus',     icon:I.reports   },
-  { key:'os',        label:'Ordres de Service',  icon:I.reports   },
-  { key:'planning',  label:'Planning',           icon:I.planning  },
+  { key:'dashboard', label:'Tableau de bord',   icon:I.dashboard, sc:'d' },
+  { key:'projects',  label:'Mes Chantiers',      icon:I.projects,  sc:'p' },
+  { key:'reports',   label:'Comptes Rendus',     icon:I.reports,   sc:'r' },
+  { key:'os',        label:'Ordres de Service',  icon:I.os,        sc:'o' },
+  { key:'planning',  label:'Planning',           icon:I.planning,  sc:'l' },
 ]
+
+const LAST_TAB_KEY = 'idm_client_tab'
 
 export default function ClientDashboard({ user, profile = null }) {
   const [data,        setData]        = useState(null)
@@ -30,6 +36,8 @@ export default function ClientDashboard({ user, profile = null }) {
   const [loading,     setLoading]     = useState(true)
   const [isMobile,    setIsMobile]    = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [helpOpen,    setHelpOpen]    = useState(false)
+  const pendingGRef = useRef(null)
 
   // Détection mobile
   useEffect(() => {
@@ -38,6 +46,17 @@ export default function ClientDashboard({ user, profile = null }) {
     window.addEventListener('resize', check)
     return () => window.removeEventListener('resize', check)
   }, [])
+
+  // Restauration du dernier onglet visité
+  useEffect(() => {
+    try {
+      const saved = typeof window !== 'undefined' ? localStorage.getItem(LAST_TAB_KEY) : null
+      if (saved && TABS.some(t => t.key === saved)) setTab(saved)
+    } catch { /* ignore */ }
+  }, [])
+  useEffect(() => {
+    try { if (typeof window !== 'undefined') localStorage.setItem(LAST_TAB_KEY, tab) } catch { /* ignore */ }
+  }, [tab])
 
   // Chargement données filtrées par client
   useEffect(() => {
@@ -58,7 +77,41 @@ export default function ClientDashboard({ user, profile = null }) {
 
   const save = useCallback(async (d) => { setData(d) }, [])
 
-  const switchTab = (k) => { setTab(k); if (isMobile) setSidebarOpen(false) }
+  const switchTab = useCallback((k) => {
+    setTab(k)
+    setSidebarOpen(false)
+  }, [])
+
+  // Raccourcis clavier : « g + lettre », « ? » pour l'aide, Escape pour fermer
+  useEffect(() => {
+    const isTyping = (el) => {
+      if (!el) return false
+      const tag = (el.tagName || '').toLowerCase()
+      return tag === 'input' || tag === 'textarea' || tag === 'select' || el.isContentEditable
+    }
+    const clearPending = () => { pendingGRef.current = null }
+    const handler = (e) => {
+      if (e.altKey || e.ctrlKey || e.metaKey) return
+      if (e.key === 'Escape' && helpOpen) { setHelpOpen(false); return }
+      if (isTyping(e.target)) return
+
+      if (e.key === '?') { e.preventDefault(); setHelpOpen(o => !o); return }
+      if (pendingGRef.current) {
+        const target = TABS.find(t => t.sc === e.key.toLowerCase())
+        clearPending()
+        if (target) { e.preventDefault(); switchTab(target.key) }
+        return
+      }
+      if (e.key === 'g' || e.key === 'G') {
+        pendingGRef.current = setTimeout(clearPending, 1500)
+      }
+    }
+    document.addEventListener('keydown', handler)
+    return () => {
+      document.removeEventListener('keydown', handler)
+      if (pendingGRef.current) clearTimeout(pendingGRef.current)
+    }
+  }, [switchTab, helpOpen])
 
   if (loading || !data) return (
     <div style={{ height:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'#F8FAFC', fontFamily:"'DM Sans',sans-serif" }}>
@@ -100,16 +153,23 @@ export default function ClientDashboard({ user, profile = null }) {
           {TABS.map(t => {
             const active = tab === t.key
             return (
-              <button key={t.key} onClick={() => switchTab(t.key)} style={{
+              <button key={t.key} onClick={() => switchTab(t.key)} title={`${t.label} (g ${t.sc})`} style={{
+                position:'relative',
                 width:'100%', textAlign:'left', display:'flex', alignItems:'center', gap:10,
-                padding:'10px 12px', marginBottom:2, border:'none', borderRadius:8, cursor:'pointer', fontFamily:'inherit',
-                background:active?'rgba(255,255,255,0.1)':'transparent',
+                padding:'10px 12px 10px 16px', marginBottom:2, border:'none', borderRadius:8, cursor:'pointer', fontFamily:'inherit',
+                background:active?'rgba(255,255,255,0.10)':'transparent',
                 color:active?'#fff':'#94A3B8',
-                fontWeight:active?600:400, fontSize:13, transition:'all .15s',
-              }}>
-                {t.icon && <Icon d={t.icon} size={15} color={active?'#fff':'#64748B'} />}
-                <span>{t.label}</span>
-                {active && <div style={{ marginLeft:'auto', width:4, height:4, borderRadius:'50%', background:'#3B82F6' }} />}
+                fontWeight:active?600:400, fontSize:13, transition:'background .15s, color .15s',
+              }}
+              onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'rgba(255,255,255,0.04)' }}
+              onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent' }}>
+                {/* Barre d'accent verticale uniforme */}
+                <span aria-hidden style={{
+                  position:'absolute', left:4, top:9, bottom:9, width:3, borderRadius:2,
+                  background:active?'#60A5FA':'transparent', transition:'background .15s'
+                }}/>
+                {t.icon && <Icon d={t.icon} size={15} color={active?'#60A5FA':'#64748B'} />}
+                <span style={{ flex:1 }}>{t.label}</span>
               </button>
             )
           })}
@@ -150,12 +210,16 @@ export default function ClientDashboard({ user, profile = null }) {
 
       {/* ── Contenu principal ── */}
       <main style={{ flex:1, overflow:'auto', padding:isMobile?16:24, paddingTop:isMobile?60:24 }}>
-        {/* Topbar mobile */}
+        {/* Topbar mobile — affiche clairement l'onglet actif */}
         {isMobile && (
-          <div style={{ position:'fixed', top:0, left:0, right:0, height:52, background:'#fff', borderBottom:'1px solid #E2E8F0', display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 16px', zIndex:997, boxShadow:'0 1px 4px rgba(0,0,0,0.06)' }}>
-            <button onClick={() => setSidebarOpen(s => !s)} style={{ background:'none', border:'none', fontSize:20, cursor:'pointer', color:'#334155', padding:'4px 8px' }}>☰</button>
-            <span style={{ fontSize:14, fontWeight:700, color:'#0F172A' }}>ID Maîtrise</span>
-            <span style={{ fontSize:11, color:'#94A3B8' }}>{TABS.find(t => t.key === tab)?.label}</span>
+          <div style={{ position:'fixed', top:0, left:0, right:0, height:52, background:'#fff', borderBottom:'1px solid #E2E8F0', display:'flex', alignItems:'center', padding:'0 12px', zIndex:997, boxShadow:'0 1px 3px rgba(15,23,42,0.04)', gap:10 }}>
+            <button onClick={() => setSidebarOpen(s => !s)} aria-label="Ouvrir le menu" style={{ background:'none', border:'none', fontSize:20, cursor:'pointer', color:'#334155', padding:6, borderRadius:6 }}>☰</button>
+            <div style={{ flex:1, minWidth:0, display:'flex', flexDirection:'column', lineHeight:1.15 }}>
+              <span style={{ fontSize:10, fontWeight:600, color:'#94A3B8', letterSpacing:'0.06em', textTransform:'uppercase' }}>Espace client</span>
+              <span style={{ fontSize:15, fontWeight:700, color:'#0F172A', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                {TABS.find(t => t.key === tab)?.label}
+              </span>
+            </div>
           </div>
         )}
 
@@ -178,6 +242,47 @@ export default function ClientDashboard({ user, profile = null }) {
           {tab === 'planning'  && <PlanningV      data={data} m={isMobile} />}
         </div>
       </main>
+
+      {/* Aide clavier (déclenchée par « ? ») */}
+      {helpOpen && (
+        <div onClick={() => setHelpOpen(false)} style={{
+          position:'fixed', inset:0, background:'rgba(15,23,42,0.55)', backdropFilter:'blur(4px)',
+          zIndex:5000, display:'flex', alignItems:'center', justifyContent:'center', padding:16,
+          animation:'fadeIn .15s ease'
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            background:'#fff', borderRadius:14, boxShadow:'0 20px 60px rgba(0,0,0,0.3)',
+            width:'100%', maxWidth:420, padding:'20px 24px 22px', fontFamily:"'DM Sans',sans-serif"
+          }}>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14 }}>
+              <div>
+                <div style={{ fontSize:16, fontWeight:700, color:'#0F172A' }}>Raccourcis clavier</div>
+                <div style={{ fontSize:11, color:'#64748B', marginTop:2 }}>Naviguer plus vite dans l&apos;app</div>
+              </div>
+              <button onClick={() => setHelpOpen(false)} aria-label="Fermer" style={{ background:'#F1F5F9', border:'none', width:28, height:28, borderRadius:6, cursor:'pointer', color:'#64748B', fontSize:16 }}>×</button>
+            </div>
+            <div style={{ fontSize:10, fontWeight:700, color:'#94A3B8', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:6 }}>
+              Aller à (appuie sur <kbd style={kbdStyleC}>g</kbd> puis…)
+            </div>
+            {TABS.map(t => (
+              <div key={t.key} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'6px 0' }}>
+                <span style={{ fontSize:13, color:'#334155' }}>{t.label}</span>
+                <kbd style={kbdStyleC}>{t.sc}</kbd>
+              </div>
+            ))}
+            <div style={{ fontSize:10, color:'#94A3B8', marginTop:10, borderTop:'1px solid #E2E8F0', paddingTop:10 }}>
+              Appuie sur <kbd style={kbdStyleC}>?</kbd> à tout moment pour réouvrir cette aide · <kbd style={kbdStyleC}>Esc</kbd> pour fermer
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
+}
+
+const kbdStyleC = {
+  display:'inline-flex', alignItems:'center', justifyContent:'center',
+  minWidth:22, height:22, padding:'0 6px',
+  background:'#F1F5F9', border:'1px solid #CBD5E1', borderBottomWidth:2,
+  borderRadius:5, fontSize:11, fontWeight:600, color:'#334155', fontFamily:"'DM Sans',sans-serif"
 }
