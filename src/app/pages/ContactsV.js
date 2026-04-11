@@ -29,6 +29,18 @@ export default function ContactsV({data,save,m,reload,focusId,focusTs}) {
     label: 'Contact',
     onConfirmDelete: async (c) => { await SB.deleteContact(c.id); reload(); },
   });
+
+  // Copy-to-clipboard : un clic sur SIRET/email/tel copie la valeur
+  // dans le presse-papier et affiche un toast de confirmation.
+  const copyToClipboard = async (value, label) => {
+    if (!value) return;
+    try {
+      await navigator.clipboard.writeText(value);
+      addToast(`${label} copié : ${value}`, "success", 2000);
+    } catch {
+      addToast("Impossible de copier — clipboard non supporté", "warning");
+    }
+  };
   const list=data.contacts.filter(c=>{
     if(pendingDeleteIds.has(c.id)) return false;
     if(tf!=="all"&&c.type!==tf) return false;
@@ -503,14 +515,25 @@ export default function ContactsV({data,save,m,reload,focusId,focusTs}) {
               </div>
               {c.societe && <div style={{fontSize:12,fontWeight:600,color:"#334155",marginBottom:2}}>{c.societe}</div>}
               {c.specialite && <div style={{fontSize:11,color:"#64748B",marginBottom:4}}>{c.specialite}{c.fonction?` — ${c.fonction}`:""}</div>}
-              {/* Coordonnées cliquables (tel: / mailto:) */}
+              {/* Coordonnées : cliquer sur le lien appelle/envoie, cliquer sur
+                  l'icône 📋 à droite copie la valeur dans le presse-papier. */}
               <div style={{display:"flex",flexWrap:"wrap",gap:"4px 10px",fontSize:11,marginTop:4}}>
-                {c.tel && <a href={`tel:${c.tel.replace(/\s/g,"")}`} onClick={e=>e.stopPropagation()} style={{color:"#1D4ED8",textDecoration:"none",fontWeight:500}}>📱 {c.tel}</a>}
-                {c.tel_fixe && <a href={`tel:${c.tel_fixe.replace(/\s/g,"")}`} onClick={e=>e.stopPropagation()} style={{color:"#1D4ED8",textDecoration:"none",fontWeight:500}}>☎ {c.tel_fixe}</a>}
-                {c.email && <a href={`mailto:${c.email}`} onClick={e=>e.stopPropagation()} style={{color:"#1D4ED8",textDecoration:"none",fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:220}}>✉ {c.email}</a>}
+                {c.tel && <ContactInfoLink href={`tel:${c.tel.replace(/\s/g,"")}`} onCopy={() => copyToClipboard(c.tel, "Téléphone")} label={`📱 ${c.tel}`}/>}
+                {c.tel_fixe && <ContactInfoLink href={`tel:${c.tel_fixe.replace(/\s/g,"")}`} onCopy={() => copyToClipboard(c.tel_fixe, "Téléphone fixe")} label={`☎ ${c.tel_fixe}`}/>}
+                {c.email && <ContactInfoLink href={`mailto:${c.email}`} onCopy={() => copyToClipboard(c.email, "Email")} label={`✉ ${c.email}`} maxWidth={220}/>}
               </div>
-              {(c.ville||c.adresse) && <div style={{fontSize:10,color:"#94A3B8",marginTop:3}}>📍 {[c.adresse,c.code_postal,c.ville].filter(Boolean).join(", ")}</div>}
-              {c.siret && <div style={{fontSize:10,color:"#CBD5E1",marginTop:1}}>SIRET : {c.siret}</div>}
+              {(c.ville||c.adresse) && (
+                <div style={{fontSize:10,color:"#94A3B8",marginTop:3,display:"inline-flex",alignItems:"center",gap:5}}>
+                  📍 {[c.adresse,c.code_postal,c.ville].filter(Boolean).join(", ")}
+                  <CopyIconBtn onClick={() => copyToClipboard([c.adresse,c.code_postal,c.ville].filter(Boolean).join(", "), "Adresse")}/>
+                </div>
+              )}
+              {c.siret && (
+                <div style={{fontSize:10,color:"#94A3B8",marginTop:2,display:"inline-flex",alignItems:"center",gap:5}}>
+                  SIRET : {c.siret}
+                  <CopyIconBtn onClick={() => copyToClipboard(c.siret, "SIRET")}/>
+                </div>
+              )}
               {c.qualifications && <div style={{fontSize:10,color:"#3B82F6",marginTop:2,fontWeight:600}}>🏅 {c.qualifications}</div>}
             </div>
             <div style={{display:"flex",flexDirection:"column",gap:4,flexShrink:0}}>
@@ -756,4 +779,50 @@ export default function ContactsV({data,save,m,reload,focusId,focusTs}) {
       </div>
     </Modal>
   </div>);
+}
+
+// ─── Composants helpers copy-to-clipboard ──────────────────────────
+
+// Lien cliquable (tel: / mailto:) avec bouton copie à droite.
+// Le clic sur le lien ouvre l'app native ; le clic sur 📋 copie la valeur.
+function ContactInfoLink({ href, onCopy, label, maxWidth }) {
+  return (
+    <span style={{display:"inline-flex",alignItems:"center",gap:4}}>
+      <a
+        href={href}
+        onClick={e => e.stopPropagation()}
+        style={{
+          color:"#1D4ED8",textDecoration:"none",fontWeight:500,
+          overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",
+          maxWidth: maxWidth || undefined,
+        }}
+      >{label}</a>
+      <CopyIconBtn onClick={onCopy}/>
+    </span>
+  );
+}
+
+// Petit bouton "copier" (icône seulement, 14x14)
+function CopyIconBtn({ onClick }) {
+  return (
+    <button
+      onClick={e => { e.stopPropagation(); e.preventDefault(); onClick?.(); }}
+      aria-label="Copier"
+      title="Copier dans le presse-papier"
+      style={{
+        background:"none",border:"none",cursor:"pointer",
+        padding:0,width:14,height:14,
+        display:"inline-flex",alignItems:"center",justifyContent:"center",
+        color:"#94A3B8",fontFamily:"inherit",
+        opacity:0.7,
+      }}
+      onMouseEnter={e => { e.currentTarget.style.opacity = 1; e.currentTarget.style.color = "#3B82F6"; }}
+      onMouseLeave={e => { e.currentTarget.style.opacity = 0.7; e.currentTarget.style.color = "#94A3B8"; }}
+    >
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+      </svg>
+    </button>
+  );
 }
