@@ -1,5 +1,5 @@
 'use client'
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { SB, Icon, I, phase, status, fmtDate, fmtMoney, pct, FF, inp, sel, btnP, btnS, PBar } from '../dashboards/shared'
 import { Badge, Modal, AttachmentsSection, CommentsSection, SharingPanel, TemplateSelector } from '../components'
 import { useAttachments } from '../hooks/useAttachments'
@@ -8,14 +8,34 @@ import { useSharing } from '../hooks/useSharing'
 import { generateOSPdf, generateCRPdf, generateOSExcel, generateCRExcel } from '../generators'
 import { useToast } from '../contexts/ToastContext'
 
+// Listes canoniques utilisées pour les pills de filtre
+const PROJECT_STATUSES = ["Planifié","En cours","En attente","Terminé"]
+const PROJECT_PHASES = ["Avant-projet","Études","Gros œuvre","Hors d'air","Technique","Finitions"]
+
+// Style doux pour les boutons d'action dans la vue détail (PDF/XLS/etc.)
+// Remplace les blocs rouge/vert/bleu saturés par des pastilles pastel.
+const detailBtn = (color, bg, border) => ({
+  background: bg,
+  border: `1px solid ${border}`,
+  borderRadius: 5,
+  padding: "4px 9px",
+  cursor: "pointer",
+  fontSize: 10,
+  fontWeight: 700,
+  color,
+  fontFamily: "inherit",
+})
+
 export default function ProjectsV({data,save,m,reload,user,profile,focusId,focusTs}) {
   const { addToast } = useToast();
   const [modal,setModal]=useState(null);const [form,setForm]=useState({});
   const [selected,setSelected]=useState(null);
   const [detailModal,setDetailModal]=useState(null);
   const [detailForm,setDetailForm]=useState({});
+  const [q,setQ]=useState("");
   const [filterStatut,setFilterStatut]=useState("");
   const [filterPhase,setFilterPhase]=useState("");
+  const searchInputRef = useRef(null);
 
   // Phase 3 Hooks - Replaces 9 useState calls + useEffect
   const { attachments, uploadAttachment, deleteAttachment } = useAttachments('chantier', selected);
@@ -43,13 +63,19 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
     return { chTasks, chOS, chCR, chPlanning, intervenants, clientContact };
   }, [selectedChantier, data.tasks, data.ordresService, data.compteRendus, data.planning, data.contacts]);
 
-  const chantiersFiltered = useMemo(
-    () => data.chantiers.filter(ch =>
-      (!filterStatut || ch.statut === filterStatut) &&
-      (!filterPhase || ch.phase === filterPhase)
-    ),
-    [data.chantiers, filterStatut, filterPhase]
-  );
+  const chantiersFiltered = useMemo(() => {
+    const search = q.toLowerCase().trim();
+    return data.chantiers.filter(ch => {
+      if (filterStatut && ch.statut !== filterStatut) return false;
+      if (filterPhase && ch.phase !== filterPhase) return false;
+      if (!search) return true;
+      return (
+        (ch.nom || "").toLowerCase().includes(search) ||
+        (ch.client || "").toLowerCase().includes(search) ||
+        (ch.adresse || "").toLowerCase().includes(search)
+      );
+    });
+  }, [data.chantiers, filterStatut, filterPhase, q]);
 
   // Focus depuis la recherche globale : ouvre directement la vue détail
   // du chantier correspondant.
@@ -62,6 +88,24 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
 
   const openNew=()=>{setForm({nom:"",client:"",adresse:"",phase:"Hors d'air",statut:"Planifié",budget:"",depenses:0,dateDebut:"",dateFin:"",lots:"",photo_couverture:"",notes_internes:""});setModal("new");};
   const [saving,setSaving]=useState(false);
+
+  // Raccourci clavier « n » pour créer un chantier (hors saisie, hors modale,
+  // hors vue détail qui a ses propres actions)
+  const openNewRef = useRef(null);
+  useEffect(() => { openNewRef.current = openNew; });
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.altKey || e.ctrlKey || e.metaKey) return;
+      const t = e.target;
+      const tag = (t?.tagName || '').toLowerCase();
+      if (tag === 'input' || tag === 'textarea' || tag === 'select' || t?.isContentEditable) return;
+      if (modal || detailModal || selected) return;
+      if (e.key === 'n' || e.key === 'N') { e.preventDefault(); openNewRef.current?.(); }
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [modal, detailModal, selected]);
   const handleSave=async()=>{
     if(saving) return;
     setSaving(true);
@@ -75,7 +119,11 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
       addToast("Erreur : "+err.message,"error");
     } finally { setSaving(false); }
   };
-  const handleDelete=async(id)=>{if(!window.confirm("Supprimer ce chantier ? Cette action est irréversible.")) return;await SB.deleteChantier(id);setSelected(null);reload();};
+  const handleDelete = async (id) => {
+    if (!window.confirm("Supprimer ce chantier ? Cette action est irréversible.")) return;
+    try { await SB.deleteChantier(id); setSelected(null); reload(); addToast("Chantier supprimé", "success"); }
+    catch (err) { addToast("Erreur : " + (err?.message || "suppression impossible"), "error"); }
+  };
 
   // Phase 3 Hooks handle loading data automatically - no useEffect needed!
 
@@ -171,11 +219,11 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
                 <div style={{fontSize:11,color:"#64748B"}}>{os.artisan_nom} • {(os.prestations||[]).length} prestation(s) • {fmtDate(os.date_emission)}</div>
                 <div style={{fontSize:16,fontWeight:700,color:"#1E3A5F",marginTop:4}}>{fmtMoney(os.montant_ttc||0)}</div>
               </div>
-              <div style={{display:"flex",gap:4,flexShrink:0}}>
-                <button onClick={()=>generateOSPdf({...os,chantier:ch.nom,adresse_chantier:ch.adresse})} style={{background:"#EF4444",border:"none",borderRadius:5,padding:"4px 10px",cursor:"pointer",fontSize:9,fontWeight:700,color:"#fff"}}>PDF</button>
-                <button onClick={()=>generateOSExcel({...os,chantier:ch.nom,adresse_chantier:ch.adresse})} style={{background:"#10B981",border:"none",borderRadius:5,padding:"4px 10px",cursor:"pointer",fontSize:9,fontWeight:700,color:"#fff"}}>XLS</button>
-                <button onClick={async()=>{await SB.saveTemplate('os',`Template ${os.artisan_nom}`,`Template d'OS pour ${os.artisan_nom}`,{...os});alert("✅ Template créé!");}} title="Créer un template à partir de cet OS" style={{background:"#6366F1",border:"none",borderRadius:5,padding:"4px 10px",cursor:"pointer",fontSize:9,fontWeight:700,color:"#fff"}}>💾</button>
-                <button onClick={()=>{setDetailForm(os);setDetailModal("editOS");}} style={{background:"#3B82F6",border:"none",borderRadius:5,padding:"4px 10px",cursor:"pointer",fontSize:9,fontWeight:700,color:"#fff"}}>✎</button>
+              <div style={{display:"flex",gap:4,flexShrink:0,flexWrap:"wrap"}}>
+                <button onClick={()=>generateOSPdf({...os,chantier:ch.nom,adresse_chantier:ch.adresse})} title="PDF" style={detailBtn("#DC2626","#FEF2F2","#FECACA")}>📄 PDF</button>
+                <button onClick={()=>generateOSExcel({...os,chantier:ch.nom,adresse_chantier:ch.adresse})} title="Excel" style={detailBtn("#047857","#ECFDF5","#A7F3D0")}>📊 XLS</button>
+                <button onClick={async()=>{try{await SB.saveTemplate('os',`Template ${os.artisan_nom}`,`Template d'OS pour ${os.artisan_nom}`,{...os});addToast("Template créé","success");}catch(err){addToast("Erreur : "+(err?.message||"template"),"error");}}} title="Créer un template à partir de cet OS" style={detailBtn("#4338CA","#EEF2FF","#C7D2FE")}>💾 Template</button>
+                <button onClick={()=>{setDetailForm(os);setDetailModal("editOS");}} title="Modifier" style={detailBtn("#1D4ED8","#EFF6FF","#BFDBFE")}>✎ Modifier</button>
               </div>
             </div>
           ))
@@ -197,10 +245,10 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
                 </div>
                 <div style={{fontSize:12,color:"#334155",lineHeight:1.5}}>{(cr.resume||"").substring(0,100)}{(cr.resume||"").length>100?"...":""}</div>
               </div>
-              <div style={{display:"flex",gap:4,flexShrink:0}}>
-                <button onClick={()=>generateCRPdf(cr,ch)} style={{background:"#EF4444",border:"none",borderRadius:5,padding:"4px 10px",cursor:"pointer",fontSize:9,fontWeight:700,color:"#fff"}}>PDF</button>
-                <button onClick={()=>generateCRExcel(cr,ch)} style={{background:"#10B981",border:"none",borderRadius:5,padding:"4px 10px",cursor:"pointer",fontSize:9,fontWeight:700,color:"#fff"}}>XLS</button>
-                <button onClick={()=>{setDetailForm(cr);setDetailModal("editCR");}} style={{background:"#3B82F6",border:"none",borderRadius:5,padding:"4px 10px",cursor:"pointer",fontSize:9,fontWeight:700,color:"#fff"}}>✎</button>
+              <div style={{display:"flex",gap:4,flexShrink:0,flexWrap:"wrap"}}>
+                <button onClick={()=>generateCRPdf(cr,ch)} title="PDF" style={detailBtn("#DC2626","#FEF2F2","#FECACA")}>📄 PDF</button>
+                <button onClick={()=>generateCRExcel(cr,ch)} title="Excel" style={detailBtn("#047857","#ECFDF5","#A7F3D0")}>📊 XLS</button>
+                <button onClick={()=>{setDetailForm(cr);setDetailModal("editCR");}} title="Modifier" style={detailBtn("#1D4ED8","#EFF6FF","#BFDBFE")}>✎ Modifier</button>
               </div>
             </div>
           ))
@@ -334,24 +382,83 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
   // ─── LIST VIEW (default) ───
   // chantiersFiltered est memoizé en haut du composant
 
+  const hasFilters = !!(q || filterStatut || filterPhase);
   return (<div>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,flexWrap:"wrap",gap:10}}>
-      <h1 style={{margin:0,fontSize:m?18:24,fontWeight:700}}>Chantiers</h1>
-      <button onClick={openNew} style={{...btnP,fontSize:12}}><Icon d={I.plus} size={14} color="#fff"/> Nouveau</button>
+      <div>
+        <h1 style={{margin:0,fontSize:m?18:24,fontWeight:700}}>Chantiers</h1>
+        <div style={{fontSize:11,color:"#94A3B8",marginTop:2}}>
+          {data.chantiers.length} au total
+          {hasFilters && <> · <strong>{chantiersFiltered.length}</strong> affiché{chantiersFiltered.length>1?"s":""}</>}
+        </div>
+      </div>
+      <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+        <div style={{position:"relative",width:m?"100%":260}}>
+          <svg style={{position:"absolute",left:9,top:"50%",transform:"translateY(-50%)",opacity:0.5}} width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2.5"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+          <input
+            ref={searchInputRef}
+            type="search"
+            placeholder="Rechercher nom, client, adresse… (tape /)"
+            value={q}
+            onChange={e=>setQ(e.target.value)}
+            style={{padding:"7px 10px 7px 28px",borderRadius:7,border:"1px solid #E2E8F0",fontSize:12,width:"100%",boxSizing:"border-box",fontFamily:"inherit"}}
+          />
+        </div>
+        <button onClick={openNew} title="Nouveau chantier (raccourci : n)" style={{...btnP,fontSize:12,display:"inline-flex",alignItems:"center",gap:4}}>
+          <Icon d={I.plus} size={14} color="#fff"/> Nouveau
+        </button>
+      </div>
     </div>
-    {/* Filtres */}
-    <div style={{display:"flex",gap:8,marginBottom:16,flexWrap:"wrap"}}>
-      <select value={filterStatut} onChange={e=>setFilterStatut(e.target.value)} style={{padding:"6px 10px",borderRadius:6,border:"1px solid #E2E8F0",fontSize:12,background:"#fff",color:filterStatut?"#1E3A5F":"#94A3B8"}}>
-        <option value="">Tous les statuts</option>
-        <option>Planifié</option><option>En cours</option><option>En attente</option><option>Terminé</option>
-      </select>
-      <select value={filterPhase} onChange={e=>setFilterPhase(e.target.value)} style={{padding:"6px 10px",borderRadius:6,border:"1px solid #E2E8F0",fontSize:12,background:"#fff",color:filterPhase?"#1E3A5F":"#94A3B8"}}>
-        <option value="">Toutes les phases</option>
-        <option>Avant-projet</option><option>Études</option><option>Gros œuvre</option><option>Hors d'air</option><option>Technique</option><option>Finitions</option>
-      </select>
-      {(filterStatut||filterPhase) && <button onClick={()=>{setFilterStatut("");setFilterPhase("");}} style={{padding:"6px 10px",borderRadius:6,border:"1px solid #FECACA",fontSize:12,background:"#FEF2F2",color:"#EF4444",cursor:"pointer"}}>✕ Réinitialiser</button>}
-      <span style={{marginLeft:"auto",fontSize:12,color:"#94A3B8",alignSelf:"center"}}>{chantiersFiltered.length} chantier{chantiersFiltered.length!==1?"s":""}</span>
+    {/* Pills de filtre — statut */}
+    <div style={{display:"flex",gap:6,marginBottom:8,flexWrap:"wrap",overflowX:m?"auto":"visible",paddingBottom:m?4:0}}>
+      <span style={{fontSize:10,fontWeight:700,color:"#94A3B8",textTransform:"uppercase",letterSpacing:"0.05em",alignSelf:"center",marginRight:4}}>Statut</span>
+      <button onClick={()=>setFilterStatut("")} style={pillStyle(filterStatut==="", "#1E3A5F")}>
+        <span style={pillDot(filterStatut==="", "#64748B")}/>Tous
+      </button>
+      {PROJECT_STATUSES.map(s => {
+        const active = filterStatut === s;
+        const color = status[s] || "#1E3A5F";
+        return (
+          <button key={s} onClick={()=>setFilterStatut(active?"":s)} style={pillStyle(active, color)}>
+            <span style={pillDot(active, color)}/>{s}
+          </button>
+        );
+      })}
     </div>
+    {/* Pills de filtre — phase */}
+    <div style={{display:"flex",gap:6,marginBottom:14,flexWrap:"wrap",overflowX:m?"auto":"visible",paddingBottom:m?4:0}}>
+      <span style={{fontSize:10,fontWeight:700,color:"#94A3B8",textTransform:"uppercase",letterSpacing:"0.05em",alignSelf:"center",marginRight:4}}>Phase</span>
+      <button onClick={()=>setFilterPhase("")} style={pillStyle(filterPhase==="", "#1E3A5F")}>
+        <span style={pillDot(filterPhase==="", "#64748B")}/>Toutes
+      </button>
+      {PROJECT_PHASES.map(p => {
+        const active = filterPhase === p;
+        const color = phase[p] || "#1E3A5F";
+        return (
+          <button key={p} onClick={()=>setFilterPhase(active?"":p)} style={pillStyle(active, color)}>
+            <span style={pillDot(active, color)}/>{p}
+          </button>
+        );
+      })}
+    </div>
+    {chantiersFiltered.length === 0 ? (
+      <div style={{background:"#fff",borderRadius:12,padding:"40px 24px",textAlign:"center",boxShadow:"0 1px 3px rgba(0,0,0,0.04)"}}>
+        <div style={{fontSize:36,marginBottom:8,opacity:0.5}}>🏗️</div>
+        {hasFilters ? (
+          <>
+            <div style={{fontSize:14,fontWeight:700,color:"#334155",marginBottom:4}}>Aucun résultat</div>
+            <div style={{fontSize:12,color:"#94A3B8",marginBottom:14}}>Essaie d'élargir ta recherche ou de changer les filtres.</div>
+            <button onClick={()=>{setQ("");setFilterStatut("");setFilterPhase("");}} style={{...btnS,fontSize:12}}>Réinitialiser les filtres</button>
+          </>
+        ) : (
+          <>
+            <div style={{fontSize:14,fontWeight:700,color:"#334155",marginBottom:4}}>Aucun chantier</div>
+            <div style={{fontSize:12,color:"#94A3B8",marginBottom:14}}>Démarre en créant ton premier chantier.</div>
+            <button onClick={openNew} style={{...btnP,fontSize:12}}>+ Nouveau chantier</button>
+          </>
+        )}
+      </div>
+    ) : (
     <div style={{display:"grid",gap:12}}>
       {chantiersFiltered.map(ch=>(
         <div key={ch.id} onClick={()=>setSelected(ch.id)} style={{background:"#fff",borderRadius:12,overflow:"hidden",boxShadow:"0 1px 3px rgba(0,0,0,0.06)",borderLeft:`4px solid ${phase[ch.phase]||"#94A3B8"}`,cursor:"pointer",transition:"all .2s"}}
@@ -397,6 +504,7 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
         </div>
       ))}
     </div>
+    )}
     <Modal open={!!modal} onClose={()=>setModal(null)} title={modal==="new"?"Nouveau chantier":"Modifier"}>
       <div style={{display:"grid",gridTemplateColumns:m?"1fr":"1fr 1fr",gap:"0 14px"}}>
         <FF label="Nom"><input style={inp} value={form.nom||""} onChange={e=>setForm({...form,nom:e.target.value})}/></FF>
@@ -412,7 +520,24 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
         <FF label="Photo de couverture (URL)" style={{gridColumn:"1 / -1"}}><input style={inp} value={form.photo_couverture||""} onChange={e=>setForm({...form,photo_couverture:e.target.value})} placeholder="https://... ou laisser vide"/></FF>
       </div>
       <FF label="Notes internes"><textarea style={{...inp,minHeight:60,resize:"vertical"}} value={form.notes_internes||""} onChange={e=>setForm({...form,notes_internes:e.target.value})} placeholder="Remarques internes (non visibles par le client)..."/></FF>
-      <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginTop:14}}><button onClick={()=>setModal(null)} style={btnS}>Annuler</button><button onClick={handleSave} disabled={saving} style={{...btnP,opacity:saving?0.7:1}}>{saving?"⏳ Enregistrement...":"Enregistrer"}</button></div>
+      <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginTop:14}}><button onClick={()=>setModal(null)} style={btnS}>Annuler</button><button onClick={handleSave} disabled={saving} style={{...btnP,opacity:saving?0.7:1}}>{saving?"⏳ Enregistrement…":"Enregistrer"}</button></div>
     </Modal>
   </div>);
 }
+
+// Style partagé pour les pills de filtre (statut / phase)
+const pillStyle = (active, color) => ({
+  display:"inline-flex",alignItems:"center",gap:6,
+  padding:"5px 11px",borderRadius:999,fontSize:11,fontWeight:600,
+  border:`1px solid ${active ? color : "#E2E8F0"}`,
+  background:active ? color : "#fff",
+  color:active ? "#fff" : "#334155",
+  cursor:"pointer",fontFamily:"inherit",
+  transition:"background .15s, color .15s, border-color .15s",
+  whiteSpace:"nowrap",
+})
+const pillDot = (active, color) => ({
+  width:7,height:7,borderRadius:"50%",
+  background:active?"#fff":color,
+  opacity:active?0.8:1,
+})
