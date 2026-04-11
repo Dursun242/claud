@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, createContext, useContext } from 'react'
+import { useState, useEffect, createContext, useContext, useRef } from 'react'
 import { supabase } from './supabaseClient'
 
 // ─── AUTH CONTEXT ───
@@ -10,11 +10,23 @@ export function useAuth() {
 }
 
 // ─── AUTH PROVIDER ───
+//
+// Gère :
+// - Login/logout via Supabase
+// - Vérification d'autorisation (profil actif en DB)
+// - Détection d'expiration de session : quand `session` devient null
+//   APRÈS avoir été valide, on considère que la session a expiré et on
+//   affiche un message dédié sur l'écran de login.
+// - Refresh proactif de la session quand l'utilisateur revient sur
+//   l'onglet après une longue absence (visibilitychange).
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
   const [denied, setDenied] = useState(false)
+  // Session expirée = était loggé, ne l'est plus, et ce n'est pas un logout volontaire
+  const [expired, setExpired] = useState(false)
+  const wasSignedInRef = useRef(false)
 
   useEffect(() => {
     let isMounted = true
@@ -23,6 +35,7 @@ export function AuthProvider({ children }) {
       if (!isMounted) return
 
       if (session?.user) {
+        wasSignedInRef.current = true
         // Vérification via API serveur (service role key, bypass RLS garanti)
         const email = session.user.email?.trim().toLowerCase()
         let profile = null
@@ -43,6 +56,7 @@ export function AuthProvider({ children }) {
             setUser(session.user)
             setProfile(profile)
             setDenied(false)
+            setExpired(false)
           } else {
             setDenied(true)
             setUser(null)
@@ -51,7 +65,20 @@ export function AuthProvider({ children }) {
           }
         }
       } else {
+        // Pas de session : soit on démarre fresh, soit on vient d'être déconnecté.
         if (isMounted) {
+          // On détecte une expiration (≠ logout volontaire) si :
+          //   1. on était loggé (wasSignedInRef)
+          //   2. ET ce n'est pas un logout volontaire (flag sessionStorage posé par logout())
+          //   3. ET ce n'est pas un accès refusé (déjà géré)
+          let voluntary = false
+          try { voluntary = sessionStorage.getItem('idm_voluntary_logout') === '1' } catch {}
+          if (wasSignedInRef.current && !voluntary && !denied) {
+            setExpired(true)
+          }
+          // Nettoie le flag dans tous les cas
+          try { sessionStorage.removeItem('idm_voluntary_logout') } catch {}
+          wasSignedInRef.current = false
           setUser(null)
           setProfile(null)
         }
@@ -60,14 +87,37 @@ export function AuthProvider({ children }) {
       if (isMounted) setLoading(false)
     })
 
+    // Refresh proactif quand l'onglet redevient visible après une longue absence.
+    // Supabase refresh automatiquement en background, mais si l'ordi a dormi
+    // longtemps, le refresh peut avoir échoué silencieusement.
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          // Si pas de session alors qu'on pensait être loggé → refresh
+          if (!session && wasSignedInRef.current) {
+            supabase.auth.refreshSession().catch(() => {
+              // Le refresh a échoué → onAuthStateChange va déclencher l'état "expired"
+            })
+          }
+        })
+      }
+    }
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', onVisibilityChange)
+    }
+
     return () => {
       isMounted = false
       subscription?.unsubscribe()
+      if (typeof document !== 'undefined') {
+        document.removeEventListener('visibilitychange', onVisibilityChange)
+      }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, denied }}>
+    <AuthContext.Provider value={{ user, profile, loading, denied, expired }}>
       {children}
     </AuthContext.Provider>
   )
@@ -77,7 +127,7 @@ export function AuthProvider({ children }) {
 export function LoginPage() {
   const [loggingIn, setLoggingIn] = useState(false)
   const [error, setError] = useState(null)
-  const { denied } = useAuth()
+  const { denied, expired } = useAuth()
 
   const handleGoogleLogin = async () => {
     setLoggingIn(true)
@@ -155,6 +205,20 @@ export function LoginPage() {
             </div>
           </div>
         )}
+        {expired && !denied && (
+          <div style={{
+            background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 10,
+            padding: '14px 16px', marginBottom: 20, fontSize: 13, color: '#92400E',
+            textAlign: 'left',
+          }}>
+            <div style={{ fontWeight: 700, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span>⏱</span> Session expirée
+            </div>
+            <div style={{ fontSize: 12, color: '#92400E', lineHeight: 1.5 }}>
+              Votre session a expiré par mesure de sécurité. Reconnectez-vous avec votre compte Google pour continuer.
+            </div>
+          </div>
+        )}
         {error && !denied && (
           <div style={{
             background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 10,
@@ -216,6 +280,9 @@ export function LoginPage() {
 }
 
 // ─── LOGOUT ───
+// Flag posé dans sessionStorage pour différencier un logout volontaire
+// d'une expiration de session. AuthProvider le lit au SIGNED_OUT suivant.
 export async function logout() {
+  try { sessionStorage.setItem('idm_voluntary_logout', '1') } catch {}
   await supabase.auth.signOut()
 }
