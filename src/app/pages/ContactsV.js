@@ -4,6 +4,7 @@ import { SB, Icon, I, FF, inp, sel, btnP, btnS } from '../dashboards/shared'
 import { Badge, Modal } from '../components'
 import { useToast } from '../contexts/ToastContext'
 import { useConfirm } from '../contexts/ConfirmContext'
+import { useUndoableDelete } from '../hooks/useUndoableDelete'
 import { supabase } from '../supabaseClient'
 
 const TYPE_COLORS = {Artisan:"#F59E0B",Client:"#3B82F6",Fournisseur:"#10B981","Sous-traitant":"#8B5CF6",Prestataire:"#EC4899",MOA:"#0EA5E9",Architecte:"#6366F1",BET:"#14B8A6"}
@@ -22,7 +23,14 @@ export default function ContactsV({data,save,m,reload,focusId,focusTs}) {
   const searchInputRef = useRef(null);
   const tc = TYPE_COLORS;
   const types = TYPES;
+
+  // Delete avec undo (5s pour annuler)
+  const { pendingIds: pendingDeleteIds, scheduleDelete } = useUndoableDelete({
+    label: 'Contact',
+    onConfirmDelete: async (c) => { await SB.deleteContact(c.id); reload(); },
+  });
   const list=data.contacts.filter(c=>{
+    if(pendingDeleteIds.has(c.id)) return false;
     if(tf!=="all"&&c.type!==tf) return false;
     if(!q) return true;
     const search=q.toLowerCase();
@@ -82,13 +90,12 @@ export default function ContactsV({data,save,m,reload,focusId,focusTs}) {
   const handleDelete = async (c) => {
     const ok = await confirm({
       title: `Supprimer ${c.nom} ?`,
-      message: "Cette action est irréversible. Les OS liés à ce contact ne seront pas supprimés mais perdront l'association.",
+      message: "Tu pourras annuler cette suppression pendant 5 secondes. Les OS liés à ce contact ne seront pas supprimés mais perdront l'association.",
       confirmLabel: "Supprimer",
       danger: true,
     });
     if (!ok) return;
-    try { await SB.deleteContact(c.id); reload(); addToast("Contact supprimé", "success"); }
-    catch (err) { addToast("Erreur : " + (err?.message || "suppression impossible"), "error"); }
+    scheduleDelete(c, { itemLabel: `Contact ${c.nom}` });
   };
 
   // ── Pappers : mapping entreprise complète → formulaire ──

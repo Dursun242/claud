@@ -4,6 +4,7 @@ import { SB, Icon, I, fmtDate, fmtMoney, FF, inp, sel, btnP, btnS } from '../das
 import { Badge, Modal } from '../components'
 import { useToast } from '../contexts/ToastContext'
 import { useConfirm } from '../contexts/ConfirmContext'
+import { useUndoableDelete } from '../hooks/useUndoableDelete'
 import { generateOSPdf, generateOSExcel } from '../generators'
 import { createClient } from '@supabase/supabase-js'
 
@@ -48,6 +49,12 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs}) {
   const [importError, setImportError] = useState("");
   const devisInputRef = useRef(null);
   const searchInputRef = useRef(null);
+
+  // Delete avec undo (5s pour annuler)
+  const { pendingIds: pendingDeleteIds, scheduleDelete } = useUndoableDelete({
+    label: 'OS',
+    onConfirmDelete: async (os) => { await SB.deleteOS(os.id); reload(); },
+  });
 
   const nextNum = () => {
     const nums = (data.ordresService||[]).map(os => {
@@ -378,13 +385,12 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs}) {
   const handleDelete = async (os) => {
     const ok = await confirm({
       title: `Supprimer l'OS ${os.numero} ?`,
-      message: "Cette action est irréversible.",
+      message: "Tu pourras annuler cette suppression pendant 5 secondes.",
       confirmLabel: "Supprimer",
       danger: true,
     });
     if (!ok) return;
-    try { await SB.deleteOS(os.id); reload(); addToast("OS supprimé", "success"); }
-    catch (err) { addToast("Erreur : " + (err?.message || "suppression impossible"), "error"); }
+    scheduleDelete(os, { itemLabel: `OS ${os.numero}` });
   };
 
   const handleDuplicate = async (os) => {
@@ -481,11 +487,12 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs}) {
   // Liste filtrée par recherche + statut, puis triée selon sortBy.
   // Mémoïsée ensemble pour éviter qu'un [...filteredOS].sort() dans le JSX
   // ne crée un nouveau tableau à chaque render.
+  // Exclut les OS en cours de suppression (fenêtre d'undo ouverte).
   const filteredSortedOS = useMemo(() => {
     const s = searchOS.toLowerCase().trim();
-    const list = data.ordresService || [];
+    const baseList = (data.ordresService || []).filter(os => !pendingDeleteIds.has(os.id));
     let filtered = s
-      ? list.filter(os => {
+      ? baseList.filter(os => {
           const ch = chantierById.get(os.chantier_id);
           return (
             String(os.numero).toLowerCase().includes(s) ||
@@ -494,7 +501,7 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs}) {
             (os.client_nom || "").toLowerCase().includes(s)
           );
         })
-      : list;
+      : baseList;
     if (statusFilter !== "all") {
       filtered = filtered.filter(os => os.statut === statusFilter);
     }
@@ -506,7 +513,7 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs}) {
       default:           sorted.sort((a,b) => new Date(b.created_at||0) - new Date(a.created_at||0)); // date_desc
     }
     return sorted;
-  }, [searchOS, statusFilter, sortBy, data.ordresService, chantierById]);
+  }, [searchOS, statusFilter, sortBy, data.ordresService, chantierById, pendingDeleteIds]);
 
   // Compte par statut (pour les badges des pills de filtre)
   const countByStatus = useMemo(() => {

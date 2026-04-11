@@ -4,6 +4,7 @@ import { SB, Icon, I, fmtDate, FF, inp, sel, btnP, btnS } from '../dashboards/sh
 import { Modal } from '../components'
 import { useToast } from '../contexts/ToastContext'
 import { useConfirm } from '../contexts/ConfirmContext'
+import { useUndoableDelete } from '../hooks/useUndoableDelete'
 import { generateCRPdf, generateCRExcel } from '../generators'
 
 // Style doux pour les boutons d'action sur les cartes CR
@@ -29,6 +30,12 @@ export default function ReportsV({data,save,m,reload,focusId,focusTs}) {
   const [formError, setFormError] = useState("")
   const searchInputRef = useRef(null)
 
+  // Delete avec undo (5s pour annuler)
+  const { pendingIds: pendingDeleteIds, scheduleDelete } = useUndoableDelete({
+    label: 'CR',
+    onConfirmDelete: async (cr) => { await SB.deleteCR(cr.id); reload(); },
+  })
+
   const openNew = () => {
     setForm({ chantierId: data.chantiers[0]?.id || "", date: new Date().toISOString().split("T")[0], numero: (data.compteRendus || []).length + 1, resume: "", participants: "", decisions: "" })
     setFormError("")
@@ -53,13 +60,12 @@ export default function ReportsV({data,save,m,reload,focusId,focusTs}) {
   const handleDelete = async (cr) => {
     const ok = await confirm({
       title: `Supprimer le CR n°${cr.numero} ?`,
-      message: "Cette action est irréversible.",
+      message: "Tu pourras annuler cette suppression pendant 5 secondes.",
       confirmLabel: "Supprimer",
       danger: true,
     })
     if (!ok) return
-    try { await SB.deleteCR(cr.id); reload(); addToast("CR supprimé", "success") }
-    catch (err) { addToast("Erreur : " + (err?.message || "suppression impossible"), "error") }
+    scheduleDelete(cr, { itemLabel: `CR n°${cr.numero}` })
   }
 
   // Raccourci clavier « n » pour créer un CR
@@ -89,10 +95,11 @@ export default function ReportsV({data,save,m,reload,focusId,focusTs}) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusId, focusTs])
 
-  // Liste filtrée + triée par date desc, mémoïsée
+  // Liste filtrée + triée par date desc, mémoïsée.
+  // Exclut les CR en cours de suppression (fenêtre d'undo ouverte).
   const filteredSortedCRs = useMemo(() => {
     const s = searchCR.toLowerCase().trim()
-    let list = data.compteRendus || []
+    let list = (data.compteRendus || []).filter(cr => !pendingDeleteIds.has(cr.id))
     if (chantierFilter) list = list.filter(cr => (cr.chantierId || cr.chantier_id) === chantierFilter)
     if (s) {
       list = list.filter(cr => {
@@ -108,7 +115,7 @@ export default function ReportsV({data,save,m,reload,focusId,focusTs}) {
       })
     }
     return [...list].sort((a, b) => new Date(b.date) - new Date(a.date))
-  }, [searchCR, chantierFilter, data.compteRendus, data.chantiers])
+  }, [searchCR, chantierFilter, data.compteRendus, data.chantiers, pendingDeleteIds])
 
   const hasFilters = !!(searchCR || chantierFilter)
   const total = (data.compteRendus || []).length

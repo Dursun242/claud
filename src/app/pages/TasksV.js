@@ -4,6 +4,7 @@ import { SB, Icon, I, status, fmtDate, FF, inp, sel, btnP, btnS } from '../dashb
 import { Badge, Modal } from '../components'
 import { useToast } from '../contexts/ToastContext'
 import { useConfirm } from '../contexts/ConfirmContext'
+import { useUndoableDelete } from '../hooks/useUndoableDelete'
 
 // Ordre de priorité canonique (pour le tri)
 const PRIORITY_ORDER = { Urgent: 0, "En cours": 1, "En attente": 2 }
@@ -19,11 +20,21 @@ export default function TasksV({data,save,m,reload,focusId,focusTs}) {
   const [formError, setFormError] = useState("")
   const searchInputRef = useRef(null)
 
-  // Liste filtrée + triée par priorité puis échéance, mémoïsée
+  // Delete avec undo : cache l'item pendant 5s puis commit si pas d'annulation
+  const { pendingIds: pendingDeleteIds, scheduleDelete } = useUndoableDelete({
+    label: 'Tâche',
+    onConfirmDelete: async (task) => {
+      await SB.deleteTask(task.id)
+      reload()
+    },
+  })
+
+  // Liste filtrée + triée par priorité puis échéance, mémoïsée.
+  // Exclut les tâches en cours de suppression (undo window ouverte).
   const todayISO = new Date().toISOString().split("T")[0]
   const filteredTasks = useMemo(() => {
     const search = q.toLowerCase().trim()
-    let list = data.tasks || []
+    let list = (data.tasks || []).filter(t => !pendingDeleteIds.has(t.id))
     if (filter !== "all") list = list.filter(t => t.statut === filter)
     if (search) {
       list = list.filter(t => {
@@ -44,7 +55,7 @@ export default function TasksV({data,save,m,reload,focusId,focusTs}) {
       if (pa !== pb) return pa - pb
       return new Date(a.echeance || "9999") - new Date(b.echeance || "9999")
     })
-  }, [data.tasks, data.chantiers, filter, q])
+  }, [data.tasks, data.chantiers, filter, q, pendingDeleteIds])
 
   // Compteurs par statut (pour les pills)
   const countByStatus = useMemo(() => {
@@ -118,13 +129,12 @@ export default function TasksV({data,save,m,reload,focusId,focusTs}) {
   const handleDelete = async (t) => {
     const ok = await confirm({
       title: `Supprimer la tâche « ${t.titre} » ?`,
-      message: "Cette action est irréversible.",
+      message: "Tu pourras annuler cette suppression pendant 5 secondes.",
       confirmLabel: "Supprimer",
       danger: true,
     })
     if (!ok) return
-    try { await SB.deleteTask(t.id); reload(); addToast("Tâche supprimée", "success") }
-    catch (err) { addToast("Erreur : " + (err?.message || "suppression impossible"), "error") }
+    scheduleDelete(t, { itemLabel: `Tâche « ${t.titre} »` })
   }
 
   const hasFilters = !!(q || filter !== "all")
