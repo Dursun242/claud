@@ -4,13 +4,19 @@ import { COMPANY as ENT } from './dashboards/shared'
 
 // Lazy-load jsPDF + plugin autotable : évite de charger ~180 KB au démarrage
 // de l'app. La promesse est mise en cache pour éviter les imports répétés.
+//
+// ⚠️ Depuis jspdf 4.x, le constructor est exporté en NAMED export `jsPDF`
+// (l'export default en 4.x est un objet avec d'autres classes AcroForm,
+// GState, etc., pas le constructor lui-même). On récupère donc
+// `jsPdfModule.jsPDF` avec fallback sur `.default` pour garder la
+// compatibilité si jamais on downgrade.
 let _jsPdfPromise = null
 function loadJsPdf() {
   if (!_jsPdfPromise) {
     _jsPdfPromise = Promise.all([
       import('jspdf'),
       import('jspdf-autotable'),
-    ]).then(([jsPdfModule]) => jsPdfModule.default)
+    ]).then(([jsPdfModule]) => jsPdfModule.jsPDF || jsPdfModule.default)
   }
   return _jsPdfPromise
 }

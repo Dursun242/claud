@@ -40,13 +40,6 @@ export default function AdminDashboard({ user, profile = null }) {
   const floatRecogRef = useRef(null);
 
   const toggleFloatMic = useCallback(() => {
-    // Debug diagnostic : vérifier que le clic arrive et que l'API est supportée
-    console.log('[FloatingMic] toggle clicked', {
-      listening: floatListening,
-      hasSR: !!(typeof window !== 'undefined' && (window.SpeechRecognition || window.webkitSpeechRecognition)),
-      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'n/a',
-    });
-
     try {
       const SR = typeof window !== 'undefined'
         ? (window.SpeechRecognition || window.webkitSpeechRecognition)
@@ -71,7 +64,6 @@ export default function AdminDashboard({ user, profile = null }) {
       let final = "";
 
       r.onstart = () => {
-        console.log('[FloatingMic] recognition started');
         setFloatListening(true);
         setFloatTranscript("");
       };
@@ -84,14 +76,13 @@ export default function AdminDashboard({ user, profile = null }) {
         setFloatTranscript(final + interim);
       };
       r.onerror = (ev) => {
-        console.error('[FloatingMic] recognition error', ev?.error, ev);
+        console.error('[FloatingMic] recognition error', ev?.error);
         setFloatListening(false);
         if (ev?.error === 'not-allowed' || ev?.error === 'service-not-allowed') {
           alert("Micro bloqué par le navigateur.\n\nAutorise l'accès au micro pour ce site dans les réglages du navigateur.");
         }
       };
       r.onend = () => {
-        console.log('[FloatingMic] recognition ended');
         setFloatListening(false);
         if (final.trim()) setFloatTranscript(final.trim());
       };
