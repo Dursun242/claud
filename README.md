@@ -90,24 +90,8 @@ Le fichier [`.env.example`](./.env.example) liste et documente **toutes** les va
 - **Pappers** (obligatoire pour la recherche entreprises FR)
 - **Odoo Sign** (optionnel — sans ça, la fonction "Signature OS" est désactivée)
 - **App** : `NEXT_PUBLIC_APP_URL` pour le callback OAuth Google
-- **Sentry** (optionnel — sans ça, le monitoring d'erreurs est désactivé)
 
 **Note importante** sur le token Qonto : il n'est PAS dans les env vars. Il est saisi directement dans l'app (onglet Qonto) puis stocké dans la table `settings` de Supabase. Le serveur le relit à chaque appel via le service role key. Voir commit `421e218` pour le détail.
-
-### Monitoring Sentry (optionnel mais recommandé en prod)
-
-Si tu veux être alerté quand des erreurs se produisent en prod (plutôt que de les découvrir via WhatsApp ou pas du tout), configure Sentry :
-
-1. Crée un compte sur [sentry.io](https://sentry.io) (gratuit jusqu'à 5000 erreurs/mois)
-2. Crée un projet de type **Next.js**
-3. Dans `.env.local` et dans Vercel, remplis :
-   - `NEXT_PUBLIC_SENTRY_DSN` — le DSN fourni par Sentry
-   - `SENTRY_ORG` et `SENTRY_PROJECT` — les slugs
-   - `SENTRY_AUTH_TOKEN` — pour l'upload des source maps au build (sans ça, les stack traces en prod sont minifiées et illisibles)
-
-Sans ces variables, Sentry est désactivé et l'app fonctionne exactement comme avant — aucune requête n'est envoyée, aucune info n'est captée.
-
-L'intégration est dans `src/instrumentation.js` (server), `src/instrumentation-client.js` (client), et `src/app/components/ErrorBoundary.js` (capture des erreurs React).
 
 ---
 

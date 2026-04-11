@@ -8,21 +8,14 @@
 // root layout ou un de ses ancêtres — cas où même <ErrorBoundary>
 // dans RootWrapper.js ne peut pas aider (il est monté APRÈS le layout).
 //
-// On reporte à Sentry puis on affiche un écran minimaliste.
+// On affiche un écran minimaliste qui propose juste de recharger.
 //
 // Cas d'usage typiques :
 // - ToastProvider ou ConfirmProvider qui plantent au mount
 // - Imports manquants dans layout.js
 // - Erreur dans le chargement des polices / métadonnées
 
-import * as Sentry from '@sentry/nextjs'
-import { useEffect } from 'react'
-
-export default function GlobalError({ error }) {
-  useEffect(() => {
-    Sentry.captureException(error)
-  }, [error])
-
+export default function GlobalError({ error, reset }) {
   return (
     <html lang="fr">
       <body style={{ margin: 0, fontFamily: "'DM Sans', sans-serif" }}>
@@ -48,10 +41,23 @@ export default function GlobalError({ error }) {
             </h2>
             <p style={{ margin: '0 0 24px', color: '#64748B', fontSize: 14, lineHeight: 1.6 }}>
               L&apos;application a rencontré un problème et n&apos;a pas pu se charger.<br />
-              L&apos;équipe technique a été alertée automatiquement.
+              Recharge la page pour reprendre.
             </p>
+            {error?.message && (
+              <details style={{ textAlign: 'left', marginBottom: 20 }}>
+                <summary style={{ cursor: 'pointer', fontSize: 12, color: '#94A3B8' }}>
+                  Détails techniques
+                </summary>
+                <pre style={{
+                  marginTop: 8, padding: 12, background: '#F1F5F9', borderRadius: 8,
+                  fontSize: 11, overflowX: 'auto', color: '#475569', whiteSpace: 'pre-wrap',
+                }}>
+                  {error.message}
+                </pre>
+              </details>
+            )}
             <button
-              onClick={() => window.location.reload()}
+              onClick={() => (reset ? reset() : window.location.reload())}
               style={{
                 padding: '10px 24px',
                 background: '#1E3A5F',

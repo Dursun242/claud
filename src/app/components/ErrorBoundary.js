@@ -1,21 +1,17 @@
 'use client'
 import { Component } from 'react'
-import * as Sentry from '@sentry/nextjs'
 
 /**
  * ErrorBoundary — Capture les erreurs React pour éviter un crash total de l'app.
  * Usage : <ErrorBoundary><MonComposant /></ErrorBoundary>
  *
  * Quand un enfant lève une erreur non gérée, ce composant affiche un écran de
- * secours propre plutôt qu'une page blanche, ET reporte l'erreur à Sentry
- * pour qu'on soit alerté en prod (si Sentry est configuré).
- *
- * Si Sentry n'est pas configuré (pas de DSN), captureException est un no-op.
+ * secours propre plutôt qu'une page blanche.
  */
 export default class ErrorBoundary extends Component {
   constructor(props) {
     super(props)
-    this.state = { hasError: false, error: null, eventId: null }
+    this.state = { hasError: false, error: null }
   }
 
   static getDerivedStateFromError(error) {
@@ -23,15 +19,10 @@ export default class ErrorBoundary extends Component {
   }
 
   componentDidCatch(error, info) {
+    // En production, on pourrait envoyer l'erreur à un service de monitoring
+    // (Sentry, LogRocket, etc.) — pas fait pour l'instant, besoin non justifié
+    // à l'échelle actuelle de l'app.
     console.error('ErrorBoundary caught:', error, info.componentStack)
-    // Report à Sentry avec le composant stack React (utile pour localiser
-    // le composant qui a planté, pas juste la fonction JS)
-    const eventId = Sentry.captureException(error, {
-      contexts: {
-        react: { componentStack: info.componentStack },
-      },
-    })
-    this.setState({ eventId })
   }
 
   render() {
@@ -64,11 +55,6 @@ export default class ErrorBoundary extends Component {
                 }}>
                   {this.state.error.message}
                 </pre>
-                {this.state.eventId && (
-                  <div style={{ fontSize: 10, color: '#94A3B8', marginTop: 6 }}>
-                    Référence erreur : <code>{this.state.eventId}</code>
-                  </div>
-                )}
               </details>
             )}
             <button
