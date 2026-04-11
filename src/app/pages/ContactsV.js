@@ -202,13 +202,14 @@ export default function ContactsV({data,save,m,reload}) {
   types.forEach(t => { const c = data.contacts.filter(x=>x.type===t).length; if(c>0) stats[t]=c; });
 
   return (<div>
-    {/* Input file caché, déclenché par le bouton "Importer depuis photo".
-        `capture` est une hint iOS/Android pour ouvrir la caméra en priorité. */}
+    {/* Input file caché. Pas de `capture` pour que iOS propose les 3 options :
+        "Prendre une photo", "Photothèque", "Choisir un fichier" — permet
+        d'importer aussi bien une photo fraîche qu'une capture d'écran
+        existante (iOS Contacts, SMS, WhatsApp, etc.). */}
     <input
       ref={fileInputRef}
       type="file"
       accept="image/*"
-      capture="environment"
       onChange={handleImportPhoto}
       style={{display:"none"}}
     />
@@ -234,7 +235,7 @@ export default function ContactsV({data,save,m,reload}) {
             alignItems:"center",
             gap:6,
           }}
-          title="Prendre une photo d'une carte de visite, signature email ou badge pour auto-remplir"
+          title="Importer un contact depuis une photo ou une capture d'écran (carte de visite, signature email, iOS Contacts, SMS, WhatsApp…)"
         >
           {importing ? (
             <>
@@ -242,7 +243,7 @@ export default function ContactsV({data,save,m,reload}) {
               Extraction…
             </>
           ) : (
-            <>📸 Importer depuis photo</>
+            <>📸 Importer photo / capture</>
           )}
         </button>
         <button onClick={openNew} style={{...btnP,fontSize:12}}>+ Nouveau contact</button>
@@ -317,10 +318,10 @@ export default function ContactsV({data,save,m,reload}) {
       {/* ── IMPORT PAR PHOTO (visible uniquement en création) ── */}
       {modal==="new" && (
         <div style={{background:"#EEF2FF",border:"1.5px solid #C7D2FE",borderRadius:10,padding:"12px 14px",marginBottom:12}}>
-          <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
+          <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8,flexWrap:"wrap"}}>
             <span style={{fontSize:15}}>📸</span>
-            <span style={{fontSize:12,fontWeight:700,color:"#4338CA"}}>Import par photo</span>
-            <span style={{fontSize:10,color:"#818CF8"}}>Carte de visite, signature email, badge…</span>
+            <span style={{fontSize:12,fontWeight:700,color:"#4338CA"}}>Import par photo ou capture d'écran</span>
+            <span style={{fontSize:10,color:"#818CF8",width:"100%"}}>Carte de visite, signature email, contact iOS, SMS, WhatsApp…</span>
           </div>
           <button
             onClick={() => fileInputRef.current?.click()}
@@ -349,7 +350,7 @@ export default function ContactsV({data,save,m,reload}) {
                 Extraction en cours…
               </>
             ) : (
-              <>📷 Prendre ou choisir une photo</>
+              <>📷 Choisir une photo ou une capture d'écran</>
             )}
           </button>
           {importError && (
