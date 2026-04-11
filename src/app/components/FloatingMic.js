@@ -4,6 +4,12 @@
  * Composant FloatingMic
  * Bouton microphone flottant neon avec transcription en direct
  * Affiche une bulle de transcription et gère le contrôle de la saisie vocale
+ *
+ * Accessibilité :
+ * - aria-label explicite + aria-pressed pour l'état d'écoute
+ * - Title pour le tooltip desktop
+ * - Transcript en aria-live="polite" pour annoncer aux lecteurs d'écran
+ * - Focus visible respecté (pas d'outline:none sur ce bouton)
  */
 export default function FloatingMic({
   listening,
@@ -31,6 +37,8 @@ export default function FloatingMic({
         {/* Transcript bubble when listening */}
         {listening && transcript && (
           <div
+            role="status"
+            aria-live="polite"
             style={{
               background: 'rgba(15,23,42,0.92)',
               backdropFilter: 'blur(12px)',
@@ -60,6 +68,7 @@ export default function FloatingMic({
               }}
             >
               <span
+                aria-hidden="true"
                 style={{
                   width: 6,
                   height: 6,
@@ -71,11 +80,11 @@ export default function FloatingMic({
               Transcription en direct
             </div>
             <div>{transcript}</div>
-            <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+            <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
               <button
                 onClick={onSend}
                 style={{
-                  padding: '5px 12px',
+                  padding: '6px 14px',
                   borderRadius: 8,
                   background: '#00FF88',
                   color: '#0F172A',
@@ -86,19 +95,21 @@ export default function FloatingMic({
                   fontFamily: 'inherit',
                 }}
               >
-                Envoyer à l'IA
+                Envoyer à l&apos;IA
               </button>
               <button
                 onClick={onClear}
+                aria-label="Effacer la transcription et arrêter l'écoute"
                 style={{
-                  padding: '5px 10px',
+                  padding: '6px 12px',
                   borderRadius: 8,
                   background: 'rgba(255,255,255,0.1)',
-                  color: '#94A3B8',
-                  border: '1px solid rgba(255,255,255,0.15)',
+                  color: '#E2E8F0',
+                  border: '1px solid rgba(255,255,255,0.2)',
                   fontSize: 11,
                   cursor: 'pointer',
                   fontFamily: 'inherit',
+                  fontWeight: 500,
                 }}
               >
                 Effacer
@@ -110,6 +121,9 @@ export default function FloatingMic({
         {/* The neon mic button */}
         <button
           onClick={onClick}
+          aria-label={listening ? "Arrêter l'écoute vocale" : "Démarrer l'écoute vocale pour dicter à l'IA"}
+          aria-pressed={!!listening}
+          title={listening ? "Cliquer pour arrêter" : "Dicter à l'IA"}
           style={{
             position: 'relative',
             width: 64,
@@ -128,14 +142,19 @@ export default function FloatingMic({
             boxShadow: listening
               ? '0 0 15px rgba(255,50,50,0.6), 0 0 40px rgba(255,50,50,0.3), 0 0 80px rgba(255,50,50,0.15), inset 0 0 15px rgba(255,100,100,0.2)'
               : '0 0 12px rgba(0,255,136,0.3), 0 0 30px rgba(0,255,136,0.15), 0 0 60px rgba(0,255,136,0.07), inset 0 0 10px rgba(0,255,136,0.08)',
-            transition: 'all .4s cubic-bezier(0.4,0,0.2,1)',
+            transition: 'transform .2s cubic-bezier(0.4,0,0.2,1), box-shadow .4s',
             animation: listening
               ? 'none'
               : 'neonBreathing 3s ease-in-out infinite',
+            fontFamily: 'inherit',
           }}
+          onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(0.94)' }}
+          onMouseUp={(e) => { e.currentTarget.style.transform = 'scale(1)' }}
+          onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)' }}
         >
           {/* IA text with heartbeat */}
           <span
+            aria-hidden="true"
             style={{
               fontSize: 20,
               fontWeight: 900,
@@ -154,8 +173,9 @@ export default function FloatingMic({
             IA
           </span>
 
-          {/* Neon glow rings */}
+          {/* Neon glow rings (décoratifs — aria-hidden) */}
           <span
+            aria-hidden="true"
             style={{
               position: 'absolute',
               inset: -3,
@@ -171,6 +191,7 @@ export default function FloatingMic({
             }}
           />
           <span
+            aria-hidden="true"
             style={{
               position: 'absolute',
               inset: -8,
@@ -187,6 +208,7 @@ export default function FloatingMic({
           />
           {listening && (
             <span
+              aria-hidden="true"
               style={{
                 position: 'absolute',
                 inset: -14,
