@@ -56,6 +56,11 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs}) {
     onConfirmDelete: async (os) => { await SB.deleteOS(os.id); reload(); },
   });
 
+  // Loading state pour la génération de PDF / Excel
+  // Stocke l'id+type du document en cours de génération pour afficher
+  // un spinner uniquement sur le bon bouton.
+  const [generating, setGenerating] = useState(null); // { id, kind: 'pdf'|'xls' } | null
+
   const nextNum = () => {
     const nums = (data.ordresService||[]).map(os => {
       const m = String(os.numero||"").match(/(\d+)$/);
@@ -374,12 +379,30 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs}) {
     return enriched;
   };
 
-  const handlePdf = (os) => {
-    generateOSPdf(enrichOsForPdf(os));
+  const handlePdf = async (os) => {
+    if (generating) return;
+    setGenerating({ id: os.id, kind: 'pdf' });
+    try {
+      await generateOSPdf(enrichOsForPdf(os));
+      addToast(`PDF ${os.numero} généré`, 'success');
+    } catch (err) {
+      addToast('Erreur PDF : ' + (err?.message || 'génération impossible'), 'error');
+    } finally {
+      setGenerating(null);
+    }
   };
 
-  const handleExcel = (os) => {
-    generateOSExcel(enrichOsForPdf(os));
+  const handleExcel = async (os) => {
+    if (generating) return;
+    setGenerating({ id: os.id, kind: 'xls' });
+    try {
+      await generateOSExcel(enrichOsForPdf(os));
+      addToast(`Excel ${os.numero} généré`, 'success');
+    } catch (err) {
+      addToast('Erreur Excel : ' + (err?.message || 'génération impossible'), 'error');
+    } finally {
+      setGenerating(null);
+    }
   };
 
   const handleDelete = async (os) => {
@@ -708,8 +731,18 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs}) {
             </div>
             <div style={{display:"flex",gap:6,marginTop:10,flexWrap:"wrap"}}>
               {/* Groupe Export */}
-              <button onClick={()=>handlePdf(os)} title="Télécharger le PDF" style={osBtn("#DC2626","#FEF2F2","#FECACA")}>📄 PDF</button>
-              <button onClick={()=>handleExcel(os)} title="Télécharger l'Excel" style={osBtn("#047857","#ECFDF5","#A7F3D0")}>📊 XLS</button>
+              <button onClick={()=>handlePdf(os)} disabled={!!generating} title="Télécharger le PDF"
+                style={{...osBtn("#DC2626","#FEF2F2","#FECACA"),opacity:generating?.id===os.id&&generating?.kind==='pdf'?0.7:(generating?0.5:1),cursor:generating?'wait':'pointer'}}>
+                {generating?.id===os.id && generating?.kind==='pdf' ? (
+                  <><span style={{display:"inline-block",width:10,height:10,border:"2px solid #FECACA",borderTopColor:"#DC2626",borderRadius:"50%",animation:"spin .8s linear infinite",marginRight:4,verticalAlign:"middle"}}/>Génération…</>
+                ) : '📄 PDF'}
+              </button>
+              <button onClick={()=>handleExcel(os)} disabled={!!generating} title="Télécharger l'Excel"
+                style={{...osBtn("#047857","#ECFDF5","#A7F3D0"),opacity:generating?.id===os.id&&generating?.kind==='xls'?0.7:(generating?0.5:1),cursor:generating?'wait':'pointer'}}>
+                {generating?.id===os.id && generating?.kind==='xls' ? (
+                  <><span style={{display:"inline-block",width:10,height:10,border:"2px solid #A7F3D0",borderTopColor:"#047857",borderRadius:"50%",animation:"spin .8s linear infinite",marginRight:4,verticalAlign:"middle"}}/>Génération…</>
+                ) : '📊 XLS'}
+              </button>
               <button onClick={()=>handleEmail(os)} title="Envoyer par email" style={osBtn("#4338CA","#EEF2FF","#C7D2FE")}>✉ Email</button>
               {os.odoo_sign_url ? (
                 <a href={os.odoo_sign_url} target="_blank" rel="noreferrer" title={`Signature : ${os.statut_signature||"Envoyé"}`}

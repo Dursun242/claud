@@ -36,6 +36,24 @@ export default function ReportsV({data,save,m,reload,focusId,focusTs}) {
     onConfirmDelete: async (cr) => { await SB.deleteCR(cr.id); reload(); },
   })
 
+  // Loading state pour la génération de PDF / Excel
+  const [generating, setGenerating] = useState(null)
+
+  const handlePdf = async (cr, ch) => {
+    if (generating) return
+    setGenerating({ id: cr.id, kind: 'pdf' })
+    try { await generateCRPdf(cr, ch); addToast(`PDF CR n°${cr.numero} généré`, 'success') }
+    catch (err) { addToast('Erreur PDF : ' + (err?.message || 'génération impossible'), 'error') }
+    finally { setGenerating(null) }
+  }
+  const handleExcel = async (cr, ch) => {
+    if (generating) return
+    setGenerating({ id: cr.id, kind: 'xls' })
+    try { await generateCRExcel(cr, ch); addToast(`Excel CR n°${cr.numero} généré`, 'success') }
+    catch (err) { addToast('Erreur Excel : ' + (err?.message || 'génération impossible'), 'error') }
+    finally { setGenerating(null) }
+  }
+
   const openNew = () => {
     setForm({ chantierId: data.chantiers[0]?.id || "", date: new Date().toISOString().split("T")[0], numero: (data.compteRendus || []).length + 1, resume: "", participants: "", decisions: "" })
     setFormError("")
@@ -178,8 +196,18 @@ export default function ReportsV({data,save,m,reload,focusId,focusTs}) {
                 <span style={{fontSize:11,color:"#94A3B8"}}>{fmtDate(cr.date)}</span>
               </div>
               <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
-                <button onClick={()=>generateCRPdf(cr,ch)} title="Télécharger le PDF" style={crBtn("#DC2626","#FEF2F2","#FECACA")}>📄 PDF</button>
-                <button onClick={()=>generateCRExcel(cr,ch)} title="Télécharger l'Excel" style={crBtn("#047857","#ECFDF5","#A7F3D0")}>📊 XLS</button>
+                <button onClick={()=>handlePdf(cr,ch)} disabled={!!generating} title="Télécharger le PDF"
+                  style={{...crBtn("#DC2626","#FEF2F2","#FECACA"),opacity:generating?.id===cr.id&&generating?.kind==='pdf'?0.7:(generating?0.5:1),cursor:generating?'wait':'pointer'}}>
+                  {generating?.id===cr.id && generating?.kind==='pdf' ? (
+                    <><span style={{display:"inline-block",width:10,height:10,border:"2px solid #FECACA",borderTopColor:"#DC2626",borderRadius:"50%",animation:"spin .8s linear infinite",marginRight:4,verticalAlign:"middle"}}/>Génération…</>
+                  ) : '📄 PDF'}
+                </button>
+                <button onClick={()=>handleExcel(cr,ch)} disabled={!!generating} title="Télécharger l'Excel"
+                  style={{...crBtn("#047857","#ECFDF5","#A7F3D0"),opacity:generating?.id===cr.id&&generating?.kind==='xls'?0.7:(generating?0.5:1),cursor:generating?'wait':'pointer'}}>
+                  {generating?.id===cr.id && generating?.kind==='xls' ? (
+                    <><span style={{display:"inline-block",width:10,height:10,border:"2px solid #A7F3D0",borderTopColor:"#047857",borderRadius:"50%",animation:"spin .8s linear infinite",marginRight:4,verticalAlign:"middle"}}/>Génération…</>
+                  ) : '📊 XLS'}
+                </button>
                 <button onClick={()=>openEdit(cr)} title="Modifier" style={crBtn("#1D4ED8","#EFF6FF","#BFDBFE")}>✎ Modifier</button>
                 <button onClick={()=>handleDelete(cr)} title="Supprimer" style={crBtn("#DC2626","#fff","#FECACA")}>Supprimer</button>
               </div>
