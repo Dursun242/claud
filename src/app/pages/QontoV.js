@@ -63,7 +63,7 @@ export default function QontoV({m, data, reload}) {
     // Sauvegarde dans Supabase uniquement (pas de localStorage — token sensible)
     await supabase.from('settings').upsert({ key: 'qonto-token', value: t });
     setSavedToken(t);
-    fetchAll(t);
+    // useEffect [savedToken] déclenchera automatiquement fetchAll()
   };
 
   const disconnect = async () => {
@@ -72,23 +72,31 @@ export default function QontoV({m, data, reload}) {
     setInvoices([]); setQuotes([]); setClients([]);
   };
 
-  const fetchQonto = useCallback(async (endpoint, tk) => {
+  // Depuis le fix sécurité P0 : on ne passe plus le token Qonto dans le body.
+  // Le serveur /api/qonto le récupère directement dans Supabase via le
+  // service role key (table settings, key='qonto-token'). On envoie juste
+  // le JWT Supabase pour s'authentifier auprès de notre propre API.
+  const fetchQonto = useCallback(async (endpoint) => {
+    const { data: { session } } = await supabase.auth.getSession();
     const res = await fetch(`/api/qonto`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ endpoint, token: tk })
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session?.access_token || ''}`,
+      },
+      body: JSON.stringify({ endpoint })
     });
     if (!res.ok) { const err = await res.json().catch(()=>({})); throw new Error(err.error || `Qonto ${res.status}`); }
     return res.json();
   }, []);
 
-  const fetchAll = useCallback(async (tk) => {
+  const fetchAll = useCallback(async () => {
     setQLoading(true); setError("");
     try {
       const [invData, quoData, cliData] = await Promise.all([
-        fetchQonto("client_invoices?exclude_imports=false", tk),
-        fetchQonto("quotes", tk),
-        fetchQonto("clients", tk),
+        fetchQonto("client_invoices?exclude_imports=false"),
+        fetchQonto("quotes"),
+        fetchQonto("clients"),
       ]);
       setInvoices(invData.client_invoices || []);
       setQuotes(quoData.quotes || []);
@@ -101,7 +109,7 @@ export default function QontoV({m, data, reload}) {
     setQLoading(false);
   }, [fetchQonto]);
 
-  useEffect(() => { if (savedToken) fetchAll(savedToken); }, [savedToken, fetchAll]);
+  useEffect(() => { if (savedToken) fetchAll(); }, [savedToken, fetchAll]);
 
   // ── Téléchargement PDF ──
   //
@@ -149,7 +157,7 @@ export default function QontoV({m, data, reload}) {
     try {
       // 2. Récupération du détail complet
       const endpoint = type === "invoice" ? `client_invoices/${id}` : `quotes/${id}`;
-      const detail = await fetchQonto(endpoint, savedToken);
+      const detail = await fetchQonto(endpoint);
       const doc = detail.client_invoice || detail.quote || detail;
 
       const docUrl = doc.pdf_url || doc.file_url || doc.pdf_download_url
@@ -160,7 +168,7 @@ export default function QontoV({m, data, reload}) {
       // 3. Qonto stocke parfois le PDF dans un attachment séparé
       const attId = doc.attachment_ids?.[0] || doc.attachment_id;
       if (attId) {
-        const att = await fetchQonto(`attachments/${attId}`, savedToken);
+        const att = await fetchQonto(`attachments/${attId}`);
         const attUrl = att.attachment?.url || att.url || att.file_url || att.file?.url;
         if (attUrl) { openPdfOrFallback(attUrl, item.number || "PDF"); return; }
       }
@@ -309,7 +317,7 @@ export default function QontoV({m, data, reload}) {
             <div style={{width:8,height:8,borderRadius:"50%",background:connected?"#22C55E":"#EF4444",animation:connected?"pulseGlow 2s infinite":"none",flexShrink:0}}/>
             <span style={{fontWeight:600,color:connected?"#166534":"#991B1B"}}>{connected?"Connecté":"Échec de connexion"}</span>
             {connected && <span style={{color:"#64748B"}}>• {savedToken.split(":")[0]}</span>}
-            <span style={{marginLeft:"auto",color:QT.primary,cursor:"pointer",fontWeight:600,fontSize:11}} onClick={()=>fetchAll(savedToken)}>Rafraîchir</span>
+            <span style={{marginLeft:"auto",color:QT.primary,cursor:"pointer",fontWeight:600,fontSize:11}} onClick={()=>fetchAll()}>Rafraîchir</span>
             <span style={{color:"#94A3B8",cursor:"pointer",fontSize:11}} onClick={disconnect}>Changer de compte</span>
           </div>
           {error && (
@@ -495,7 +503,7 @@ export default function QontoV({m, data, reload}) {
 
             {/* AI ANALYSIS */}
             {activeTab==="ai" && savedToken && (
-              <AIQontoV qontoToken={savedToken} m={m} />
+              <AIQontoV m={m} />
             )}
           </>
         )}

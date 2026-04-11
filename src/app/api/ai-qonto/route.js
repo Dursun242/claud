@@ -1,19 +1,64 @@
-import { Anthropic } from "@anthropic-ai/sdk";
+// Route /api/ai-qonto — analyse IA des factures Qonto via Claude.
+//
+// Sécurité : même pattern que /api/qonto
+// - Auth JWT Supabase obligatoire
+// - Token Qonto récupéré côté serveur depuis la table settings
+//   (service role key), jamais passé dans le body HTTP.
+import { Anthropic } from "@anthropic-ai/sdk"
+import { createClient } from "@supabase/supabase-js"
 
-const client = new Anthropic();
+const client = new Anthropic()
+
+async function verifyAuth(request) {
+  const authHeader = request.headers.get('Authorization')
+  if (!authHeader?.startsWith('Bearer ')) return null
+  const token = authHeader.replace('Bearer ', '')
+  try {
+    const sb = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      { auth: { persistSession: false } }
+    )
+    const { data: { user } } = await sb.auth.getUser(token)
+    return user || null
+  } catch {
+    return null
+  }
+}
+
+async function getQontoToken() {
+  const admin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY,
+    { auth: { persistSession: false } }
+  )
+  const { data, error } = await admin
+    .from('settings')
+    .select('value')
+    .eq('key', 'qonto-token')
+    .maybeSingle()
+  if (error || !data?.value) return null
+  return data.value
+}
 
 export async function POST(request) {
   try {
-    const { qontoData, qontoToken } = await request.json();
-
-    if (!qontoData || !qontoToken) {
-      return Response.json(
-        { error: "Missing qontoData or qontoToken" },
-        { status: 400 }
-      );
+    // 1. Auth JWT Supabase
+    const user = await verifyAuth(request)
+    if (!user) {
+      return Response.json({ error: 'Non autorisé' }, { status: 401 })
     }
 
-    // Récupérer les devis et factures de Qonto
+    // 2. Récupération du token Qonto côté serveur
+    const qontoToken = await getQontoToken()
+    if (!qontoToken) {
+      return Response.json(
+        { error: 'Token Qonto non configuré. Va dans l\'onglet Qonto pour le saisir.' },
+        { status: 400 }
+      )
+    }
+
+    // 3. Récupérer les factures de Qonto
     const invoicesResponse = await fetch(
       `https://thirdparty.qonto.com/v2/client_invoices`,
       {
@@ -22,16 +67,21 @@ export async function POST(request) {
           "Content-Type": "application/json",
         },
       }
-    );
+    )
 
     if (!invoicesResponse.ok) {
-      throw new Error(`Qonto API error: ${invoicesResponse.status}`);
+      const errText = await invoicesResponse.text().catch(() => '')
+      console.error(`[ai-qonto] qonto ${invoicesResponse.status} ${errText}`)
+      return Response.json(
+        { error: `Erreur Qonto: ${invoicesResponse.status}` },
+        { status: invoicesResponse.status }
+      )
     }
 
-    const invoicesData = await invoicesResponse.json();
-    const invoices = invoicesData.client_invoices || [];
+    const invoicesData = await invoicesResponse.json()
+    const invoices = invoicesData.client_invoices || []
 
-    // Formater les données pour Claude
+    // 4. Formater les données pour Claude
     const invoicesSummary = invoices.slice(0, 10).map((inv) => ({
       id: inv.id,
       date: inv.issued_at,
@@ -39,7 +89,7 @@ export async function POST(request) {
       status: inv.status,
       currency: inv.currency,
       client: inv.client?.name,
-    }));
+    }))
 
     const prompt = `Analyse ces devis/factures de Qonto et fournis:
 1. Résumé financier (total, moyenne, tendance)
@@ -50,11 +100,11 @@ export async function POST(request) {
 Données:
 ${JSON.stringify(invoicesSummary, null, 2)}
 
-Réponds en JSON avec: { summary: string, topClients: array, paymentRate: string, recommendations: array }`;
+Réponds en JSON avec: { summary: string, topClients: array, paymentRate: string, recommendations: array }`
 
-    // Appeler Claude
+    // 5. Appel Claude
     const message = await client.messages.create({
-      model: "claude-3-5-sonnet-20241022",
+      model: "claude-haiku-4-5-20251001",
       max_tokens: 1024,
       messages: [
         {
@@ -62,19 +112,18 @@ Réponds en JSON avec: { summary: string, topClients: array, paymentRate: string
           content: prompt,
         },
       ],
-    });
+    })
 
-    // Extraire la réponse
     const responseText =
-      message.content[0].type === "text" ? message.content[0].text : "";
+      message.content[0].type === "text" ? message.content[0].text : ""
 
-    // Parser JSON
-    let analysis = {};
+    // Parser JSON (Claude peut entourer de markdown malgré l'instruction)
+    let analysis = {}
     try {
-      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-      analysis = jsonMatch ? JSON.parse(jsonMatch[0]) : { analysis: responseText };
-    } catch (e) {
-      analysis = { analysis: responseText };
+      const jsonMatch = responseText.match(/\{[\s\S]*\}/)
+      analysis = jsonMatch ? JSON.parse(jsonMatch[0]) : { analysis: responseText }
+    } catch {
+      analysis = { analysis: responseText }
     }
 
     return Response.json({
@@ -82,12 +131,12 @@ Réponds en JSON avec: { summary: string, topClients: array, paymentRate: string
       analysis,
       invoiceCount: invoices.length,
       generatedAt: new Date().toISOString(),
-    });
+    })
   } catch (error) {
-    console.error("[ai-qonto] error:", error);
+    console.error("[ai-qonto] error:", error)
     return Response.json(
       { error: "Erreur lors de l'analyse" },
       { status: 500 }
-    );
+    )
   }
 }

@@ -3,17 +3,19 @@ import { useState } from 'react'
 import { useAIQonto } from '../useAIQonto'
 import { useToast } from '../contexts/ToastContext'
 
-export default function AIQontoV({ qontoToken, m }) {
+export default function AIQontoV({ m }) {
   const { addToast } = useToast()
   const { analyzeQonto, analysis, loading, error } = useAIQonto()
   const [expanded, setExpanded] = useState(false)
 
+  // Le token Qonto est stocké côté serveur dans Supabase et récupéré
+  // directement par /api/ai-qonto. Plus besoin de le passer ici.
   const handleAnalyze = async () => {
-    if (!qontoToken) {
-      addToast('Qonto token manquant', 'warning')
-      return
+    try {
+      await analyzeQonto()
+    } catch {
+      addToast('Analyse Qonto échouée', 'error')
     }
-    await analyzeQonto(qontoToken)
   }
 
   return (
