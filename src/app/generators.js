@@ -5,18 +5,19 @@ import { COMPANY as ENT } from './dashboards/shared'
 // Lazy-load jsPDF + plugin autotable : évite de charger ~180 KB au démarrage
 // de l'app. La promesse est mise en cache pour éviter les imports répétés.
 //
-// ⚠️ Depuis jspdf 4.x, le constructor est exporté en NAMED export `jsPDF`
-// (l'export default en 4.x est un objet avec d'autres classes AcroForm,
-// GState, etc., pas le constructor lui-même). On récupère donc
-// `jsPdfModule.jsPDF` avec fallback sur `.default` pour garder la
-// compatibilité si jamais on downgrade.
+// ⚠️ Depuis jspdf 4.x, le constructor est exporté en NAMED export `jsPDF`.
+// Depuis jspdf-autotable 5.x, on doit importer la fonction explicitement
+// et l'appeler via `autoTable(doc, options)` au lieu de `doc.autoTable(options)`.
 let _jsPdfPromise = null
 function loadJsPdf() {
   if (!_jsPdfPromise) {
     _jsPdfPromise = Promise.all([
       import('jspdf'),
       import('jspdf-autotable'),
-    ]).then(([jsPdfModule]) => jsPdfModule.jsPDF || jsPdfModule.default)
+    ]).then(([jsPdfModule, autoTableModule]) => ({
+      jsPDF: jsPdfModule.jsPDF || jsPdfModule.default,
+      autoTable: autoTableModule.default,
+    }))
   }
   return _jsPdfPromise
 }
@@ -91,7 +92,7 @@ function pied(doc, w, margin, y) {
 // GÉNÉRATEUR PDF — ORDRE DE SERVICE
 // ═══════════════════════════════════════════
 export async function generateOSPdf(data) {
-  const jsPDF = await loadJsPdf()
+  const { jsPDF, autoTable } = await loadJsPdf()
   const doc = new jsPDF('p', 'mm', 'a4')
   const w = doc.internal.pageSize.getWidth()
   const margin = 18
@@ -181,7 +182,7 @@ export async function generateOSPdf(data) {
   const totalTVA = Object.values(tvaMap).reduce((s, v) => s + v, 0)
   const totalTTC = totalHT + totalTVA
 
-  doc.autoTable({
+  autoTable(doc, {
     startY: y, head: [["Description", "Unité", "Qté", "PU HT", "TVA", "Total HT"]], body: tbody,
     margin: { left: margin, right: margin },
     headStyles: { fillColor: BLEU, textColor: [255,255,255], fontStyle: 'bold', fontSize: 7.5 },
@@ -243,7 +244,7 @@ export async function generateOSPdf(data) {
 // GÉNÉRATEUR PDF — COMPTE RENDU DE CHANTIER
 // ═══════════════════════════════════════════
 export async function generateCRPdf(cr, chantier) {
-  const jsPDF = await loadJsPdf()
+  const { jsPDF } = await loadJsPdf()
   const doc = new jsPDF('p', 'mm', 'a4')
   const w = doc.internal.pageSize.getWidth()
   const margin = 18
