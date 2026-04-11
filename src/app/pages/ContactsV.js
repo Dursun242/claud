@@ -314,6 +314,50 @@ export default function ContactsV({data,save,m,reload}) {
     {/* MODAL — Formulaire enrichi */}
     <Modal open={!!modal} onClose={()=>setModal(null)} title={modal==="new"?"Nouveau contact":"Modifier le contact"} wide>
 
+      {/* ── IMPORT PAR PHOTO (visible uniquement en création) ── */}
+      {modal==="new" && (
+        <div style={{background:"#EEF2FF",border:"1.5px solid #C7D2FE",borderRadius:10,padding:"12px 14px",marginBottom:12}}>
+          <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
+            <span style={{fontSize:15}}>📸</span>
+            <span style={{fontSize:12,fontWeight:700,color:"#4338CA"}}>Import par photo</span>
+            <span style={{fontSize:10,color:"#818CF8"}}>Carte de visite, signature email, badge…</span>
+          </div>
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={importing}
+            style={{
+              width:"100%",
+              padding:"10px 14px",
+              borderRadius:8,
+              border:"1.5px dashed #A5B4FC",
+              background:"#fff",
+              color:"#4F46E5",
+              fontSize:13,
+              fontWeight:600,
+              cursor:importing?"wait":"pointer",
+              fontFamily:"inherit",
+              display:"flex",
+              alignItems:"center",
+              justifyContent:"center",
+              gap:8,
+              opacity:importing?0.7:1,
+            }}
+          >
+            {importing ? (
+              <>
+                <span style={{display:"inline-block",width:12,height:12,border:"2px solid #C7D2FE",borderTopColor:"#4F46E5",borderRadius:"50%",animation:"spin 0.8s linear infinite"}}/>
+                Extraction en cours…
+              </>
+            ) : (
+              <>📷 Prendre ou choisir une photo</>
+            )}
+          </button>
+          {importError && (
+            <div style={{marginTop:8,fontSize:11,color:"#DC2626"}}>{importError}</div>
+          )}
+        </div>
+      )}
+
       {/* ── RECHERCHE PAPPERS ── */}
       <div style={{background:"#EFF6FF",border:"1.5px solid #BFDBFE",borderRadius:10,padding:"12px 14px",marginBottom:16}}>
         <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
