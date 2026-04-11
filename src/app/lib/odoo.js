@@ -188,11 +188,9 @@ export async function createSignRequestFromPdf({ pdfBase64, reference, operation
   const attId = await execute('ir.attachment', 'create', [{
     name: filename, type: 'binary', datas: b64, mimetype: 'application/pdf',
   }])
-  console.log('[OdooSign] A — attId:', attId)
 
   // ── B : sign.template ────────────────────────────────────────────────────
   const templateId = await execute('sign.template', 'create', [{ name: filename }])
-  console.log('[OdooSign] B — templateId:', templateId)
 
   // ── C : sign.document ────────────────────────────────────────────────────
   const signDocId = await execute('sign.document', 'create', [{
@@ -200,12 +198,10 @@ export async function createSignRequestFromPdf({ pdfBase64, reference, operation
   }])
   const docRead = await execute('sign.document', 'read', [[signDocId]], { fields: ['id', 'attachment_id'] })
   if (!docRead[0]?.attachment_id) throw new Error('sign.document créé sans attachment_id')
-  console.log('[OdooSign] C — signDocId:', signDocId)
 
   // ── D : Rôles (find or create) ───────────────────────────────────────────
   const ROLE_NAMES = { MOE: 'MOE', MOA: "Maître d'ouvrage", Entreprise: 'Entreprise' }
   const existingRoles = await execute('sign.item.role', 'search_read', [[]], { fields: ['id', 'name'] })
-  console.log('[OdooSign] D — rôles Odoo:', existingRoles.map(r => `${r.id}:${r.name}`).join(', '))
 
   const roleIds = {}
   for (const [key, label] of Object.entries(ROLE_NAMES)) {
@@ -214,10 +210,9 @@ export async function createSignRequestFromPdf({ pdfBase64, reference, operation
       roleIds[key] = found.id
     } else {
       try { roleIds[key] = await execute('sign.item.role', 'create', [{ name: label }]) }
-      catch (e) { roleIds[key] = existingRoles[0]?.id; console.warn('[OdooSign] D — fallback rôle pour', key) }
+      catch (e) { roleIds[key] = existingRoles[0]?.id; console.warn('[OdooSign] fallback rôle pour', key) }
     }
   }
-  console.log('[OdooSign] D — roleIds:', JSON.stringify(roleIds))
 
   // ── E : sign.item.type + zones de signature ──────────────────────────────
   const signTypes = await execute('sign.item.type', 'search_read', [[]], { fields: ['id', 'name'], limit: 1 })
@@ -233,14 +228,13 @@ export async function createSignRequestFromPdf({ pdfBase64, reference, operation
       const rId = roleIds[z.role]
       if (!rId) continue
       try {
-        const iId = await execute('sign.item', 'create', [{
+        await execute('sign.item', 'create', [{
           template_id: templateId, responsible_id: rId,
           required: true, type_id: signTypeId,
           posX: z.posX, posY: z.posY, width: 0.28, height: 0.12, page: 1,
         }])
-        console.log('[OdooSign] E — sign.item', z.role, '→', iId)
       } catch (e) {
-        console.warn('[OdooSign] E — sign.item', z.role, 'échec:', e.message)
+        console.warn('[OdooSign] sign.item', z.role, 'échec:', e.message)
       }
     }
   }
@@ -251,7 +245,6 @@ export async function createSignRequestFromPdf({ pdfBase64, reference, operation
     { fields: ['id', 'responsible_id'] }
   )
   const requiredRoleIds = [...new Set(templateItems.map(i => i.responsible_id?.[0]).filter(Boolean))]
-  console.log('[OdooSign] E — rôles requis (lu template):', requiredRoleIds)
 
   // ── F : Partenaires ──────────────────────────────────────────────────────
   const roleToPartner = {}
@@ -259,7 +252,6 @@ export async function createSignRequestFromPdf({ pdfBase64, reference, operation
     if (!s.email) continue
     const partnerId = await findOrCreatePartner({ name: s.name, email: s.email })
     if (roleIds[s.role]) roleToPartner[roleIds[s.role]] = partnerId
-    console.log('[OdooSign] F —', s.role, s.email, '→ partner', partnerId)
   }
 
   // ── G : request_items couvrant EXACTEMENT les rôles du template ───────────
@@ -280,7 +272,6 @@ export async function createSignRequestFromPdf({ pdfBase64, reference, operation
   }
 
   if (!requestItems.length) throw new Error('Aucun request_item à créer — vérifiez les emails et rôles')
-  console.log('[OdooSign] G — requestItems count:', requestItems.length)
 
   // ── H : sign.request ─────────────────────────────────────────────────────
   const requestId = await execute('sign.request', 'create', [{
@@ -288,7 +279,6 @@ export async function createSignRequestFromPdf({ pdfBase64, reference, operation
     reference: reference || '',
     request_item_ids: requestItems,
   }])
-  console.log('[OdooSign] H — requestId:', requestId)
 
   // ── I : Subject + email_from avant envoi ─────────────────────────────────
   try {
@@ -297,24 +287,22 @@ export async function createSignRequestFromPdf({ pdfBase64, reference, operation
       email_from: `Id Maîtrise <${ODOO_USER}>`,
       reply_to: `Id Maîtrise <${ODOO_USER}>`,
     }])
-    console.log('[OdooSign] I — subject + email_from définis')
   } catch (_) {
     try { await execute('sign.request', 'write', [[requestId], { subject }]) }
-    catch (e) { console.warn('[OdooSign] I — subject non supporté:', e.message) }
+    catch (e) { console.warn('[OdooSign] subject non supporté:', e.message) }
   }
 
   // ── J : Envoi ─────────────────────────────────────────────────────────────
   let sent = false
   for (const m of ['action_send_request', 'send_signature_accesses', 'action_sign_send']) {
-    try { await execute('sign.request', m, [[requestId]]); sent = true; console.log('[OdooSign] J — envoyé via', m); break }
+    try { await execute('sign.request', m, [[requestId]]); sent = true; break }
     catch (_) {}
   }
   if (!sent) {
-    try { await execute('sign.request', 'write', [[requestId], { state: 'sent' }]); console.log('[OdooSign] J — state=sent') }
-    catch (e) { console.warn('[OdooSign] J —', e.message) }
+    try { await execute('sign.request', 'write', [[requestId], { state: 'sent' }]) }
+    catch (e) { console.warn('[OdooSign] envoi fallback échoué:', e.message) }
   }
 
-  console.log('[OdooSign] DONE — requestId:', requestId, 'subject:', subject)
   return { requestId, signUrl: `${ODOO_URL}/odoo/sign/${requestId}`, state: 'sent', subject }
 }
 
