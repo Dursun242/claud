@@ -3,6 +3,13 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import ReactMarkdown from 'react-markdown'
 import { SB, Icon, I, ApiBadge, inp, btnP, COMPANY } from '../dashboards/shared'
 import { MicButtonInline } from '../components'
+import { useToast } from '../contexts/ToastContext'
+
+// Message d'accueil de l'assistant (identique après un reset)
+const WELCOME_MESSAGE = {
+  role: "assistant",
+  content: `Bonjour ${COMPANY.gerant} ! Je suis l'assistant IA d'**ID Maîtrise**.\n\nJe peux tout faire :\n• **"Crée un OS pour le chantier Friboulet, artisan Lefèvre..."** → Ordre de Service\n• **"Rédige un CR pour Les Voiles, présents : Lefèvre, Costa..."** → Compte Rendu\n• **"Nouveau chantier Villa Dupont, budget 200 000€..."** → Chantier\n• **"Ajoute une tâche urgente..."** → Tâche\n• **"Résumé avancement du chantier Les Voiles"** → Analyse\n\nParlez ou tapez !`,
+}
 
 // Prépare un résumé des données pour l'IA — évite d'envoyer les champs inutiles ou trop lourds
 function prepareDataForAI(data) {
@@ -33,7 +40,8 @@ function prepareDataForAI(data) {
 }
 
 export default function AIV({data,save,m,externalTranscript,clearExternal,reload}) {
-  const [messages,setMessages]=useState([{role:"assistant",content:`Bonjour ${COMPANY.gerant} ! Je suis l'assistant IA d'**ID Maîtrise**.\n\nJe peux tout faire :\n• **"Crée un OS pour le chantier Friboulet, artisan Lefèvre..."** → Ordre de Service\n• **"Rédige un CR pour Les Voiles, présents : Lefèvre, Costa..."** → Compte Rendu\n• **"Nouveau chantier Villa Dupont, budget 200 000€..."** → Chantier\n• **"Ajoute une tâche urgente..."** → Tâche\n• **"Résumé avancement du chantier Les Voiles"** → Analyse\n\nParlez ou tapez !`}]);
+  const { addToast } = useToast();
+  const [messages,setMessages]=useState([WELCOME_MESSAGE]);
   const [input,setInput]=useState("");
   const [loading,setLoading]=useState(false);
   const [listening,setListening]=useState(false);
@@ -42,6 +50,16 @@ export default function AIV({data,save,m,externalTranscript,clearExternal,reload
   const inputRef=useRef(null);
 
   useEffect(()=>{endRef.current?.scrollIntoView({behavior:"smooth"});},[messages]);
+
+  // Auto-focus à l'ouverture de la page
+  useEffect(() => { inputRef.current?.focus(); }, []);
+
+  const resetConversation = () => {
+    setMessages([WELCOME_MESSAGE]);
+    setInput("");
+    addToast("Nouvelle conversation", "info");
+    inputRef.current?.focus();
+  };
 
   // Pick up transcript from floating mic
   useEffect(() => {
@@ -53,8 +71,8 @@ export default function AIV({data,save,m,externalTranscript,clearExternal,reload
 
   // ─── SPEECH RECOGNITION ───
   const startListening = useCallback(() => {
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) { alert("La reconnaissance vocale n'est pas supportée sur ce navigateur. Utilisez Chrome ou Safari."); return; }
+    const SR = typeof window !== 'undefined' ? (window.SpeechRecognition || window.webkitSpeechRecognition) : null;
+    if (!SR) { addToast("Reconnaissance vocale non supportée. Utilise Chrome ou Safari.", "warning"); return; }
 
     if (listening && recognRef.current) {
       recognRef.current.stop();
@@ -98,7 +116,7 @@ export default function AIV({data,save,m,externalTranscript,clearExternal,reload
     };
 
     recognition.start();
-  }, [listening]);
+  }, [listening, addToast]);
 
   const sendMessage = async () => {
     if (!input.trim()||loading) return;
@@ -184,9 +202,11 @@ RÈGLES :
           }
           if(reload) await reload();
           text=text.replace(/<<<ACTION>>>[\s\S]*?<<<END_ACTION>>>/,"").trim()+`\n\n✅ **${actionLabel} dans Supabase !**`;
+          if (actionLabel) addToast(actionLabel, "success");
         } catch(err) {
           console.error("❌ Action error:", err);
           text=text.replace(/<<<ACTION>>>[\s\S]*?<<<END_ACTION>>>/,"").trim()+`\n\n❌ **Erreur Supabase :** ${err.message}`;
+          addToast("Erreur : " + err.message, "error");
         }
       }
       setMessages(prev=>[...prev,{role:"assistant",content:text}]);
@@ -214,12 +234,25 @@ RÈGLES :
 
   return (
     <div style={{display:"flex",flexDirection:"column",height:m?"calc(100vh - 76px)":"calc(100vh - 48px)"}}>
-      <div style={{marginBottom:12}}>
-        <div style={{display:"flex",alignItems:"center",gap:8}}>
-          <h1 style={{margin:0,fontSize:m?18:24,fontWeight:700}}>Assistant IA</h1>
-          <ApiBadge/>
+      <div style={{marginBottom:12,display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8}}>
+        <div>
+          <div style={{display:"flex",alignItems:"center",gap:8}}>
+            <h1 style={{margin:0,fontSize:m?18:24,fontWeight:700}}>Assistant IA</h1>
+            <ApiBadge/>
+          </div>
+          <p style={{margin:"2px 0 0",fontSize:12,color:"#64748B"}}>
+            Parlez ou tapez — {messages.length - 1} message{messages.length-1>1?"s":""} dans cette conversation
+          </p>
         </div>
-        <p style={{margin:"2px 0 0",fontSize:12,color:"#64748B"}}>Parlez ou tapez — connecté à vos données</p>
+        {messages.length > 1 && (
+          <button onClick={resetConversation} title="Effacer la conversation et recommencer" style={{
+            background:"#F1F5F9",border:"1px solid #E2E8F0",borderRadius:8,
+            padding:"6px 12px",fontSize:11,fontWeight:600,color:"#475569",
+            cursor:"pointer",fontFamily:"inherit",display:"inline-flex",alignItems:"center",gap:4,
+          }}>
+            ↻ Nouvelle conversation
+          </button>
+        )}
       </div>
 
       {/* CHAT */}
@@ -231,25 +264,64 @@ RÈGLES :
             </div>
           </div>
         ))}
-        {loading&&<div style={{display:"flex",gap:5,padding:10}}>{[0,1,2].map(i=><div key={i} style={{width:7,height:7,borderRadius:"50%",background:"#94A3B8",animation:`pulse 1.4s ease-in-out ${i*.2}s infinite`}}/>)}</div>}
+        {loading && (
+          <div style={{display:"flex",alignItems:"center",gap:8,padding:10}}>
+            <div style={{display:"flex",gap:5}}>
+              {[0,1,2].map(i=><div key={i} style={{width:7,height:7,borderRadius:"50%",background:"#94A3B8",animation:`pulse 1.4s ease-in-out ${i*.2}s infinite`}}/>)}
+            </div>
+            <span style={{fontSize:11,color:"#94A3B8",fontStyle:"italic"}}>Claude réfléchit…</span>
+          </div>
+        )}
         <div ref={endRef}/>
       </div>
 
-      {/* INPUT + MIC */}
-      <div style={{display:"flex",gap:8,alignItems:"center"}}>
+      {/* INPUT + MIC — textarea pour autoriser les retours à la ligne avec Shift+Enter */}
+      <div style={{display:"flex",gap:8,alignItems:"flex-end"}}>
         <MicButtonInline listening={listening} onClick={startListening} />
-        <input ref={inputRef} value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&sendMessage()}
-          placeholder={listening?"🎙️ Je vous écoute...":"Tapez ou appuyez sur le micro..."}
-          style={{...inp,flex:1,padding:"12px 16px",fontSize:14,borderRadius:12,background:listening?"#FEF2F2":"#fff",borderColor:listening?"#FECACA":"#E2E8F0",boxShadow:"0 1px 3px rgba(0,0,0,0.06)"}}/>
-        <button onClick={sendMessage} disabled={loading} style={{...btnP,padding:"12px 16px",borderRadius:12,opacity:loading?.6:1,display:"flex",alignItems:"center",gap:5}}>
+        <textarea
+          ref={inputRef}
+          value={input}
+          onChange={e=>setInput(e.target.value)}
+          onKeyDown={e=>{
+            if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+          }}
+          rows={1}
+          placeholder={listening?"🎙️ Je vous écoute…":"Tape ou appuie sur le micro · Shift+Entrée = nouvelle ligne"}
+          style={{
+            ...inp,flex:1,padding:"12px 16px",fontSize:14,borderRadius:12,
+            background:listening?"#FEF2F2":"#fff",
+            borderColor:listening?"#FECACA":"#E2E8F0",
+            boxShadow:"0 1px 3px rgba(0,0,0,0.06)",
+            resize:"none",minHeight:46,maxHeight:140,
+            fontFamily:"inherit",lineHeight:1.4,
+          }}
+        />
+        <button onClick={sendMessage} disabled={loading||!input.trim()} style={{...btnP,padding:"12px 16px",borderRadius:12,opacity:(loading||!input.trim())?.6:1,display:"flex",alignItems:"center",gap:5}}>
           <Icon d={I.send} size={16} color="#fff"/>{!m&&"Envoyer"}
         </button>
       </div>
 
-      {/* QUICK ACTIONS */}
-      <div style={{display:"flex",gap:6,marginTop:8,flexWrap:"wrap"}}>
-        {["Crée un OS pour...", "Rédige un CR pour...", "Résumé avancement chantiers", "Tâches urgentes", "Crée un RDV demain", "Liste artisans actifs"].map(q=>(
-          <button key={q} onClick={()=>setInput(q)} style={{padding:"5px 12px",borderRadius:16,border:"1px solid #E2E8F0",background:"#fff",color:"#64748B",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>{q}</button>
+      {/* QUICK ACTIONS — suggestions cliquables */}
+      <div style={{display:"flex",gap:6,marginTop:10,flexWrap:"wrap"}}>
+        {[
+          {t:"Crée un OS pour…",           c:"#8B5CF6"},
+          {t:"Rédige un CR pour…",          c:"#3B82F6"},
+          {t:"Résumé avancement chantiers", c:"#10B981"},
+          {t:"Tâches urgentes",             c:"#EF4444"},
+          {t:"Crée un RDV demain",          c:"#F59E0B"},
+          {t:"Liste artisans actifs",       c:"#6366F1"},
+        ].map(q=>(
+          <button
+            key={q.t}
+            onClick={()=>{setInput(q.t); inputRef.current?.focus();}}
+            style={{
+              padding:"5px 12px",borderRadius:16,
+              border:`1px solid ${q.c}33`,
+              background:`${q.c}0A`,
+              color:q.c,fontSize:11,fontWeight:500,
+              cursor:"pointer",fontFamily:"inherit",
+            }}
+          >{q.t}</button>
         ))}
       </div>
     </div>
