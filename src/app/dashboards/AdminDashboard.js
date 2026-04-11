@@ -4,19 +4,14 @@ import dynamic from 'next/dynamic'
 import { supabase } from '../supabaseClient'
 import { logout } from '../auth'
 import { FloatingMic } from '../components'
+import { DashboardSkeleton, PageSkeleton } from '../components/Skeleton'
 
 import { SB, defaultData, I, Icon, ApiBadge } from './shared'
 
 // Lazy-load des pages : chaque page devient son propre chunk et n'est
 // téléchargée qu'au premier affichage de l'onglet correspondant.
 // Gain : bundle initial réduit de ~60-80% (on n'embarque plus 8 pages au démarrage).
-const PageLoading = () => (
-  <div style={{padding:"60px 40px",display:"flex",flexDirection:"column",alignItems:"center",gap:12,color:"#94A3B8",fontSize:12}}>
-    <div style={{width:32,height:32,border:"3px solid #E2E8F0",borderTopColor:"#1E3A5F",borderRadius:"50%",animation:"spin .9s linear infinite"}}/>
-    <span>Chargement…</span>
-  </div>
-)
-const dyn = (loader) => dynamic(loader, { loading: PageLoading, ssr: false })
+const dyn = (loader) => dynamic(loader, { loading: PageSkeleton, ssr: false })
 
 // Clé localStorage pour la persistance de l'onglet actif (survit au refresh)
 const LAST_TAB_KEY = 'idm_admin_tab'
@@ -284,11 +279,20 @@ export default function AdminDashboard({ user, profile = null }) {
     };
   }, [tabs, switchTab, helpOpen]);
 
-  if (loading || !data) return (
-    <div style={{height:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"#F8FAFC",fontFamily:"'DM Sans',sans-serif"}}>
-      <div style={{width:48,height:48,border:"4px solid #E2E8F0",borderTopColor:"#1E3A5F",borderRadius:"50%",animation:"spin 1s linear infinite"}}/>
-    </div>
-  );
+  // ─── Prefetch de jsPDF après le premier render ───
+  // Télécharge le chunk generators.js (~180 KB) en arrière-plan 2s après
+  // que l'app soit chargée, pour que le premier clic sur un bouton PDF
+  // soit instantané au lieu d'attendre le download du chunk.
+  // Silent fail : si le prefetch échoue (réseau instable), l'utilisateur
+  // verra juste le comportement actuel au 1er clic.
+  useEffect(() => {
+    const t = setTimeout(() => {
+      import('../generators').catch(() => { /* silent */ });
+    }, 2000);
+    return () => clearTimeout(t);
+  }, []);
+
+  if (loading || !data) return <DashboardSkeleton role="admin" />;
 
   return (
     <div style={{display:"flex",height:"100vh",fontFamily:"'DM Sans',sans-serif",background:"#F1F5F9",overflow:"hidden"}}>

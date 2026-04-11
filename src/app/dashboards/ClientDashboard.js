@@ -3,15 +3,10 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import dynamic from 'next/dynamic'
 import { logout } from '../auth'
 import { SB, defaultData, I, Icon } from './shared'
+import { DashboardSkeleton, PageSkeleton } from '../components/Skeleton'
 
 // Lazy-load des pages — chunks séparés par onglet
-const PageLoading = () => (
-  <div style={{padding:"60px 40px",display:"flex",flexDirection:"column",alignItems:"center",gap:12,color:"#94A3B8",fontSize:12}}>
-    <div style={{width:32,height:32,border:"3px solid #E2E8F0",borderTopColor:"#1E3A5F",borderRadius:"50%",animation:"spin .9s linear infinite"}}/>
-    <span>Chargement…</span>
-  </div>
-)
-const dyn = (loader) => dynamic(loader, { loading: PageLoading, ssr: false })
+const dyn = (loader) => dynamic(loader, { loading: PageSkeleton, ssr: false })
 
 const DashboardV     = dyn(() => import('../pages/DashboardV'))
 const ProjectsV      = dyn(() => import('../pages/ProjectsV'))
@@ -113,12 +108,15 @@ export default function ClientDashboard({ user, profile = null }) {
     }
   }, [switchTab, helpOpen])
 
-  if (loading || !data) return (
-    <div style={{ height:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'#F8FAFC', fontFamily:"'DM Sans',sans-serif" }}>
-      <div style={{ width:48, height:48, border:'4px solid #E2E8F0', borderTopColor:'#1E3A5F', borderRadius:'50%', animation:'spin 1s linear infinite' }} />
-      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-    </div>
-  )
+  // Prefetch jsPDF en arrière-plan (voir commentaire détaillé dans AdminDashboard)
+  useEffect(() => {
+    const t = setTimeout(() => {
+      import('../generators').catch(() => { /* silent */ })
+    }, 2000)
+    return () => clearTimeout(t)
+  }, [])
+
+  if (loading || !data) return <DashboardSkeleton role="client" />
 
   return (
     <div style={{ display:'flex', height:'100vh', fontFamily:"'DM Sans',sans-serif", background:'#F1F5F9', overflow:'hidden' }}>
