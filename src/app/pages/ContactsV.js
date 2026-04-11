@@ -24,18 +24,18 @@ export default function ContactsV({data,save,m,reload,focusId,focusTs}) {
 
   const openNew=()=>{setForm(emptyForm);setPSearch("");setPResults(null);setPError("");setModal("new");};
 
-  // Focus depuis la recherche globale : quand on arrive ici avec un focusId,
-  // on ouvre directement la modale d'édition du contact correspondant.
-  // focusTs change à chaque navigation (même si même id) pour re-déclencher.
+  // Focus depuis la recherche globale : au lieu d'ouvrir une modale,
+  // on pré-remplit la recherche locale avec le nom du contact et on
+  // reset le filtre de type. Résultat : la liste se filtre pour
+  // afficher uniquement ce contact (plus ceux qui ont un nom similaire).
+  // L'utilisateur voit la "pastille" du contact en contexte et peut
+  // cliquer le crayon pour éditer s'il le souhaite.
   useEffect(() => {
     if (!focusId) return;
     const contact = (data.contacts || []).find(c => c.id === focusId);
-    if (contact) {
-      setForm({...contact});
-      setPSearch("");
-      setPResults(null);
-      setPError("");
-      setModal("edit");
+    if (contact?.nom) {
+      setQ(contact.nom);
+      setTf("all");
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusId, focusTs]);

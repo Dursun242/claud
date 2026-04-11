@@ -10,17 +10,13 @@ export default function ReportsV({data,save,m,reload,focusId,focusTs}) {
   const handleSave=async()=>{await SB.upsertCR(form);setModal(null);reload();};
   const handleDelete=async(id)=>{if(!window.confirm("Supprimer ce compte rendu ?")) return;await SB.deleteCR(id);reload();};
 
-  // Focus depuis la recherche globale : ouvre directement la modale
-  // d'édition du CR correspondant, et vide le filtre de recherche
-  // local pour que la liste en fond reste cohérente.
+  // Focus depuis la recherche globale : pré-remplit la recherche locale
+  // avec le numéro du CR pour filtrer la liste et afficher la carte
+  // correspondante.
   useEffect(() => {
     if (!focusId) return;
     const cr = (data.compteRendus || []).find(c => c.id === focusId);
-    if (cr) {
-      setSearchCR("");
-      setForm(cr);
-      setModal("edit");
-    }
+    if (cr) setSearchCR(String(cr.numero || ""));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusId, focusTs]);
 

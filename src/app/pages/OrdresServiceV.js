@@ -55,12 +55,14 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs}) {
     setModal("edit");
   };
 
-  // Focus depuis la recherche globale : ouvre directement la modale d'édition
-  // de l'OS correspondant.
+  // Focus depuis la recherche globale : pré-remplit la recherche locale
+  // avec le numéro de l'OS pour filtrer la liste et afficher la carte
+  // correspondante. L'utilisateur voit l'OS en contexte et peut cliquer
+  // "Modifier" s'il veut l'éditer.
   useEffect(() => {
     if (!focusId) return;
     const os = (data.ordresService || []).find(o => o.id === focusId);
-    if (os) openEdit(os);
+    if (os?.numero) setSearchOS(os.numero);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusId, focusTs]);
 
