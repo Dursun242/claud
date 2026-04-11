@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { useToast } from '../contexts/ToastContext'
+import { useConfirm } from '../contexts/ConfirmContext'
 
 const PERMISSIONS = {
   view:  { label: '👁 Lecture',  color: '#64748B', bg: '#F1F5F9', border: '#CBD5E1' },
@@ -25,6 +26,7 @@ export default function SharingPanel({
   loading = false,
 }) {
   const { addToast } = useToast()
+  const confirm = useConfirm()
   const [email, setEmail] = useState('')
   const [permission, setPermission] = useState('view')
   const [submitting, setSubmitting] = useState(false)
@@ -51,7 +53,13 @@ export default function SharingPanel({
   }
 
   const handleDelete = async (share) => {
-    if (!window.confirm(`Retirer l'accès de ${share.shared_with_email} ?`)) return
+    const ok = await confirm({
+      title: `Retirer l'accès de ${share.shared_with_email} ?`,
+      message: "Cette personne ne pourra plus consulter ni modifier cet élément.",
+      confirmLabel: "Retirer l'accès",
+      danger: true,
+    })
+    if (!ok) return
     try {
       await onDeleteShare(share.id)
       addToast('Accès retiré', 'success')

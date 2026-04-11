@@ -7,6 +7,7 @@ import { useComments } from '../hooks/useComments'
 import { useSharing } from '../hooks/useSharing'
 import { generateOSPdf, generateCRPdf, generateOSExcel, generateCRExcel } from '../generators'
 import { useToast } from '../contexts/ToastContext'
+import { useConfirm } from '../contexts/ConfirmContext'
 
 // Listes canoniques utilisées pour les pills de filtre
 const PROJECT_STATUSES = ["Planifié","En cours","En attente","Terminé"]
@@ -28,6 +29,7 @@ const detailBtn = (color, bg, border) => ({
 
 export default function ProjectsV({data,save,m,reload,user,profile,focusId,focusTs}) {
   const { addToast } = useToast();
+  const confirm = useConfirm();
   const [modal,setModal]=useState(null);const [form,setForm]=useState({});
   const [selected,setSelected]=useState(null);
   const [detailModal,setDetailModal]=useState(null);
@@ -119,9 +121,15 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
       addToast("Erreur : "+err.message,"error");
     } finally { setSaving(false); }
   };
-  const handleDelete = async (id) => {
-    if (!window.confirm("Supprimer ce chantier ? Cette action est irréversible.")) return;
-    try { await SB.deleteChantier(id); setSelected(null); reload(); addToast("Chantier supprimé", "success"); }
+  const handleDelete = async (ch) => {
+    const ok = await confirm({
+      title: `Supprimer le chantier « ${ch.nom} » ?`,
+      message: "Le chantier sera supprimé, mais les OS, CR et tâches associés ne seront pas effacés. Cette action est irréversible.",
+      confirmLabel: "Supprimer le chantier",
+      danger: true,
+    });
+    if (!ok) return;
+    try { await SB.deleteChantier(ch.id); setSelected(null); reload(); addToast("Chantier supprimé", "success"); }
     catch (err) { addToast("Erreur : " + (err?.message || "suppression impossible"), "error"); }
   };
 
@@ -477,7 +485,7 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
             </div>
             <div style={{display:"flex",gap:4}} onClick={e=>e.stopPropagation()}>
               <button onClick={()=>{setForm({...ch,lots:ch.lots?.join(", ")||"",budget:String(ch.budget),depenses:String(ch.depenses),dateDebut:ch.date_debut||ch.dateDebut||"",dateFin:ch.date_fin||ch.dateFin||"",photo_couverture:ch.photo_couverture||"",notes_internes:ch.notes_internes||""});setModal("edit");}} style={{background:"#F8FAFC",border:"1px solid #E2E8F0",borderRadius:6,padding:5,cursor:"pointer"}}><Icon d={I.edit} size={14} color="#64748B"/></button>
-              <button onClick={()=>handleDelete(ch.id)} style={{background:"#FEF2F2",border:"1px solid #FECACA",borderRadius:6,padding:5,cursor:"pointer"}}><Icon d={I.trash} size={14} color="#EF4444"/></button>
+              <button onClick={()=>handleDelete(ch)} style={{background:"#FEF2F2",border:"1px solid #FECACA",borderRadius:6,padding:5,cursor:"pointer"}}><Icon d={I.trash} size={14} color="#EF4444"/></button>
             </div>
           </div>
           <div style={{padding:`0 ${m?14:18}px ${m?14:18}px`,marginTop:-4}}>

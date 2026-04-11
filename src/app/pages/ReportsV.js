@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo, useRef } from 'react'
 import { SB, Icon, I, fmtDate, FF, inp, sel, btnP, btnS } from '../dashboards/shared'
 import { Modal } from '../components'
 import { useToast } from '../contexts/ToastContext'
+import { useConfirm } from '../contexts/ConfirmContext'
 import { generateCRPdf, generateCRExcel } from '../generators'
 
 // Style doux pour les boutons d'action sur les cartes CR
@@ -20,6 +21,7 @@ const crBtn = (color, bg, border) => ({
 
 export default function ReportsV({data,save,m,reload,focusId,focusTs}) {
   const { addToast } = useToast()
+  const confirm = useConfirm()
   const [modal, setModal] = useState(null)
   const [form, setForm] = useState({})
   const [searchCR, setSearchCR] = useState("")
@@ -48,9 +50,15 @@ export default function ReportsV({data,save,m,reload,focusId,focusTs}) {
       setFormError(err?.message || "Erreur lors de l'enregistrement.")
     }
   }
-  const handleDelete = async (id) => {
-    if (!window.confirm("Supprimer ce compte rendu ?")) return
-    try { await SB.deleteCR(id); reload(); addToast("CR supprimé", "success") }
+  const handleDelete = async (cr) => {
+    const ok = await confirm({
+      title: `Supprimer le CR n°${cr.numero} ?`,
+      message: "Cette action est irréversible.",
+      confirmLabel: "Supprimer",
+      danger: true,
+    })
+    if (!ok) return
+    try { await SB.deleteCR(cr.id); reload(); addToast("CR supprimé", "success") }
     catch (err) { addToast("Erreur : " + (err?.message || "suppression impossible"), "error") }
   }
 
@@ -166,7 +174,7 @@ export default function ReportsV({data,save,m,reload,focusId,focusTs}) {
                 <button onClick={()=>generateCRPdf(cr,ch)} title="Télécharger le PDF" style={crBtn("#DC2626","#FEF2F2","#FECACA")}>📄 PDF</button>
                 <button onClick={()=>generateCRExcel(cr,ch)} title="Télécharger l'Excel" style={crBtn("#047857","#ECFDF5","#A7F3D0")}>📊 XLS</button>
                 <button onClick={()=>openEdit(cr)} title="Modifier" style={crBtn("#1D4ED8","#EFF6FF","#BFDBFE")}>✎ Modifier</button>
-                <button onClick={()=>handleDelete(cr.id)} title="Supprimer" style={crBtn("#DC2626","#fff","#FECACA")}>Supprimer</button>
+                <button onClick={()=>handleDelete(cr)} title="Supprimer" style={crBtn("#DC2626","#fff","#FECACA")}>Supprimer</button>
               </div>
             </div>
             {cr.resume && <div style={{fontSize:13,color:"#334155",lineHeight:1.6,marginBottom:8}}>{cr.resume}</div>}

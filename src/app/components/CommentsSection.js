@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { useToast } from '../contexts/ToastContext'
+import { useConfirm } from '../contexts/ConfirmContext'
 
 // Temps relatif en français (sans lib externe)
 function formatRelative(dateStr) {
@@ -44,6 +45,7 @@ export default function CommentsSection({
   loading = false,
 }) {
   const { addToast } = useToast()
+  const confirm = useConfirm()
   const [newComment, setNewComment] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
@@ -63,7 +65,13 @@ export default function CommentsSection({
   }
 
   const handleDelete = async (commentId) => {
-    if (!window.confirm('Supprimer ce commentaire ?')) return
+    const ok = await confirm({
+      title: 'Supprimer ce commentaire ?',
+      message: 'Cette action est irréversible.',
+      confirmLabel: 'Supprimer',
+      danger: true,
+    })
+    if (!ok) return
     try {
       await onDeleteComment(commentId)
       addToast('Commentaire supprimé', 'success')

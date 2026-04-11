@@ -15,6 +15,14 @@ import { createContext, useContext, useState, useCallback, useMemo } from 'react
  * API publique :
  *   useToast()     → { addToast, removeToast }
  *   useToastList() → { toasts } (uniquement pour le container)
+ *
+ * addToast peut accepter :
+ *   addToast('Message', 'success')                          // simple
+ *   addToast('Message', 'success', 5000)                    // durée custom
+ *   addToast('Message', 'info', { action: { label, onClick }}) // avec bouton
+ *   addToast('Message', 'info', { duration: 0 })            // persistant (pas d'auto-dismiss)
+ *
+ * Retourne l'id du toast créé pour pouvoir le supprimer plus tard.
  */
 
 const ToastActionsContext = createContext(null)
@@ -35,32 +43,34 @@ export function useToastList() {
 export function ToastProvider({ children }) {
   const [toasts, setToasts] = useState([])
 
-  const addToast = useCallback(
-    (message, type = 'info', duration = 3000) => {
-      const id = Date.now() + Math.random()
-      setToasts((prev) => [...prev, { id, message, type, duration }])
+  const addToast = useCallback((message, type = 'info', optsOrDuration = 3000) => {
+    // Rétro-compatibilité : 3e argument peut être un number (duration) ou un objet d'options
+    const opts = typeof optsOrDuration === 'number'
+      ? { duration: optsOrDuration }
+      : (optsOrDuration || {})
+    const duration = opts.duration ?? 3000
+    const action = opts.action || null
 
-      if (duration > 0) {
-        setTimeout(() => {
-          setToasts((prev) => prev.filter((t) => t.id !== id))
-        }, duration)
-      }
-    },
-    []
-  )
+    const id = Date.now() + Math.random()
+    setToasts((prev) => [...prev, { id, message, type, duration, action }])
+
+    if (duration > 0) {
+      setTimeout(() => {
+        setToasts((prev) => prev.filter((t) => t.id !== id))
+      }, duration)
+    }
+    return id
+  }, [])
 
   const removeToast = useCallback((id) => {
     setToasts((prev) => prev.filter((t) => t.id !== id))
   }, [])
 
-  // Actions : stable entre renders (addToast et removeToast sont en
-  // useCallback([]) donc leurs refs ne changent jamais)
   const actions = useMemo(
     () => ({ addToast, removeToast }),
     [addToast, removeToast]
   )
 
-  // State : change quand la liste de toasts change
   const state = useMemo(() => ({ toasts }), [toasts])
 
   return (

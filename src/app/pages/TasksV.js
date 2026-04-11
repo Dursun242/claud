@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo, useRef } from 'react'
 import { SB, Icon, I, status, fmtDate, FF, inp, sel, btnP, btnS } from '../dashboards/shared'
 import { Badge, Modal } from '../components'
 import { useToast } from '../contexts/ToastContext'
+import { useConfirm } from '../contexts/ConfirmContext'
 
 // Ordre de priorité canonique (pour le tri)
 const PRIORITY_ORDER = { Urgent: 0, "En cours": 1, "En attente": 2 }
@@ -10,6 +11,7 @@ const TASK_STATUSES = ["Planifié", "En cours", "Terminé"]
 
 export default function TasksV({data,save,m,reload,focusId,focusTs}) {
   const { addToast } = useToast()
+  const confirm = useConfirm()
   const [modal, setModal] = useState(null)
   const [form, setForm] = useState({})
   const [filter, setFilter] = useState("all")
@@ -113,9 +115,15 @@ export default function TasksV({data,save,m,reload,focusId,focusTs}) {
       addToast("Erreur : " + (err?.message || "mise à jour impossible"), "error")
     }
   }
-  const handleDelete = async (id) => {
-    if (!window.confirm("Supprimer cette tâche ?")) return
-    try { await SB.deleteTask(id); reload(); addToast("Tâche supprimée", "success") }
+  const handleDelete = async (t) => {
+    const ok = await confirm({
+      title: `Supprimer la tâche « ${t.titre} » ?`,
+      message: "Cette action est irréversible.",
+      confirmLabel: "Supprimer",
+      danger: true,
+    })
+    if (!ok) return
+    try { await SB.deleteTask(t.id); reload(); addToast("Tâche supprimée", "success") }
     catch (err) { addToast("Erreur : " + (err?.message || "suppression impossible"), "error") }
   }
 
@@ -222,7 +230,7 @@ export default function TasksV({data,save,m,reload,focusId,focusTs}) {
             <button onClick={()=>openEdit(t)} title="Modifier" style={{background:"#F1F5F9",border:"1px solid #E2E8F0",borderRadius:6,cursor:"pointer",padding:"4px 6px",display:"flex"}}>
               <Icon d={I.edit} size={12} color="#475569"/>
             </button>
-            <button onClick={()=>handleDelete(t.id)} title="Supprimer" style={{background:"#fff",border:"1px solid #FECACA",borderRadius:6,cursor:"pointer",padding:"4px 6px",display:"flex"}}>
+            <button onClick={()=>handleDelete(t)} title="Supprimer" style={{background:"#fff",border:"1px solid #FECACA",borderRadius:6,cursor:"pointer",padding:"4px 6px",display:"flex"}}>
               <Icon d={I.trash} size={12} color="#DC2626"/>
             </button>
           </div>

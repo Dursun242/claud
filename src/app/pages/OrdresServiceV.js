@@ -3,6 +3,7 @@ import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { SB, Icon, I, fmtDate, fmtMoney, FF, inp, sel, btnP, btnS } from '../dashboards/shared'
 import { Badge, Modal } from '../components'
 import { useToast } from '../contexts/ToastContext'
+import { useConfirm } from '../contexts/ConfirmContext'
 import { generateOSPdf, generateOSExcel } from '../generators'
 import { createClient } from '@supabase/supabase-js'
 
@@ -29,6 +30,7 @@ const osBtn = (color, bg, border) => ({
 
 export default function OrdresServiceV({data,m,reload,focusId,focusTs}) {
   const { addToast } = useToast();
+  const confirm = useConfirm();
   const [modal,setModal]=useState(null);
   const [form,setForm]=useState({});
   const [prestations,setPrestations]=useState([]);
@@ -373,9 +375,15 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs}) {
     generateOSExcel(enrichOsForPdf(os));
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Supprimer cet ordre de service ?")) return;
-    try { await SB.deleteOS(id); reload(); addToast("OS supprimé", "success"); }
+  const handleDelete = async (os) => {
+    const ok = await confirm({
+      title: `Supprimer l'OS ${os.numero} ?`,
+      message: "Cette action est irréversible.",
+      confirmLabel: "Supprimer",
+      danger: true,
+    });
+    if (!ok) return;
+    try { await SB.deleteOS(os.id); reload(); addToast("OS supprimé", "success"); }
     catch (err) { addToast("Erreur : " + (err?.message || "suppression impossible"), "error"); }
   };
 
@@ -707,7 +715,7 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs}) {
               <span style={{width:1,background:"#E2E8F0",margin:"2px 4px"}}/>
               <button onClick={()=>handleDuplicate(os)} title="Dupliquer cet OS" style={osBtn("#B45309","#FFFBEB","#FDE68A")}>Dupliquer</button>
               <button onClick={()=>openEdit(os)} title="Modifier" style={osBtn("#1D4ED8","#EFF6FF","#BFDBFE")}>Modifier</button>
-              <button onClick={()=>handleDelete(os.id)} title="Supprimer" style={{...osBtn("#DC2626","#fff","#FECACA"),marginLeft:"auto"}}>Supprimer</button>
+              <button onClick={()=>handleDelete(os)} title="Supprimer" style={{...osBtn("#DC2626","#fff","#FECACA"),marginLeft:"auto"}}>Supprimer</button>
             </div>
           </div>
         );

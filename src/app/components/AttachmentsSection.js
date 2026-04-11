@@ -1,9 +1,11 @@
 'use client'
 import { useRef, useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
+import { useConfirm } from '../contexts/ConfirmContext'
 
 // Miniature avec URL signée (bucket privé — valide 1h)
 function AttachmentThumb({ att, onDelete }) {
+  const confirm = useConfirm()
   const [url, setUrl] = useState('')
   const isImg = /\.(jpg|jpeg|png|gif|webp)$/i.test(att.file_name)
 
@@ -21,10 +23,14 @@ function AttachmentThumb({ att, onDelete }) {
     : /\.(doc|docx)$/i.test(att.file_name) ? '📝'
     : '📎'
 
-  const confirmDelete = () => {
-    if (window.confirm(`Supprimer « ${att.file_name} » ?`)) {
-      onDelete(att.id, att.file_path)
-    }
+  const confirmDelete = async () => {
+    const ok = await confirm({
+      title: `Supprimer « ${att.file_name} » ?`,
+      message: "Ce fichier sera définitivement supprimé du stockage.",
+      confirmLabel: "Supprimer",
+      danger: true,
+    })
+    if (ok) onDelete(att.id, att.file_path)
   }
 
   return (

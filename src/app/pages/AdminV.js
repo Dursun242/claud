@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { btnP } from '../dashboards/shared'
 import { supabase } from '../supabaseClient'
 import { useToast } from '../contexts/ToastContext'
+import { useConfirm } from '../contexts/ConfirmContext'
 
 async function apiUsers(method, body) {
   const { data: { session } } = await supabase.auth.getSession()
@@ -28,6 +29,7 @@ const ROLE_META = {
 
 export default function AdminV({ m, reload, profile }) {
   const { addToast } = useToast()
+  const confirm = useConfirm()
   // ⚠️ Tous les hooks doivent être appelés avant tout early return
   // (règles des hooks React). Le garde d'accès admin est plus bas.
   const [users, setUsers] = useState([])
@@ -111,7 +113,13 @@ export default function AdminV({ m, reload, profile }) {
   }
 
   const handleRemove = async (u) => {
-    if (!window.confirm(`Retirer l'accès de ${u.prenom} ${u.nom || ""} (${u.email}) ?`)) return
+    const ok = await confirm({
+      title: `Retirer l'accès de ${u.prenom} ${u.nom || ""} ?`,
+      message: `${u.email} ne pourra plus se connecter à l'application.`,
+      confirmLabel: "Retirer l'accès",
+      danger: true,
+    })
+    if (!ok) return
     try {
       await apiUsers('DELETE', { id: u.id })
       await loadUsers()

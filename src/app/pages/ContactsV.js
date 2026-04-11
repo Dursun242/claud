@@ -3,6 +3,7 @@ import { useState, useRef, useEffect } from 'react'
 import { SB, Icon, I, FF, inp, sel, btnP, btnS } from '../dashboards/shared'
 import { Badge, Modal } from '../components'
 import { useToast } from '../contexts/ToastContext'
+import { useConfirm } from '../contexts/ConfirmContext'
 import { supabase } from '../supabaseClient'
 
 const TYPE_COLORS = {Artisan:"#F59E0B",Client:"#3B82F6",Fournisseur:"#10B981","Sous-traitant":"#8B5CF6",Prestataire:"#EC4899",MOA:"#0EA5E9",Architecte:"#6366F1",BET:"#14B8A6"}
@@ -10,6 +11,7 @@ const TYPES = ["Artisan","Sous-traitant","Prestataire","Client","Fournisseur","M
 
 export default function ContactsV({data,save,m,reload,focusId,focusTs}) {
   const { addToast } = useToast();
+  const confirm = useConfirm();
   const [modal,setModal]=useState(null);const [form,setForm]=useState({});const [tf,setTf]=useState("all");const [q,setQ]=useState("");
   const [formError, setFormError] = useState("");
   const [pSearch,setPSearch]=useState("");const [pLoading,setPLoading]=useState(false);const [pResults,setPResults]=useState(null);const [pError,setPError]=useState("");
@@ -77,9 +79,15 @@ export default function ContactsV({data,save,m,reload,focusId,focusTs}) {
       setFormError(err?.message || "Erreur lors de l'enregistrement.");
     }
   };
-  const handleDelete = async (id) => {
-    if (!window.confirm("Supprimer ce contact ? Cette action est irréversible.")) return;
-    try { await SB.deleteContact(id); reload(); addToast("Contact supprimé", "success"); }
+  const handleDelete = async (c) => {
+    const ok = await confirm({
+      title: `Supprimer ${c.nom} ?`,
+      message: "Cette action est irréversible. Les OS liés à ce contact ne seront pas supprimés mais perdront l'association.",
+      confirmLabel: "Supprimer",
+      danger: true,
+    });
+    if (!ok) return;
+    try { await SB.deleteContact(c.id); reload(); addToast("Contact supprimé", "success"); }
     catch (err) { addToast("Erreur : " + (err?.message || "suppression impossible"), "error"); }
   };
 
@@ -502,7 +510,7 @@ export default function ContactsV({data,save,m,reload,focusId,focusTs}) {
               <button onClick={()=>openEdit(c)} title="Modifier" style={{background:"#F1F5F9",border:"1px solid #E2E8F0",borderRadius:6,cursor:"pointer",padding:"5px 7px",display:"flex",alignItems:"center",justifyContent:"center"}}>
                 <Icon d={I.edit} size={13} color="#475569"/>
               </button>
-              <button onClick={()=>handleDelete(c.id)} title="Supprimer" style={{background:"#fff",border:"1px solid #FECACA",borderRadius:6,cursor:"pointer",padding:"5px 7px",display:"flex",alignItems:"center",justifyContent:"center"}}>
+              <button onClick={()=>handleDelete(c)} title="Supprimer" style={{background:"#fff",border:"1px solid #FECACA",borderRadius:6,cursor:"pointer",padding:"5px 7px",display:"flex",alignItems:"center",justifyContent:"center"}}>
                 <Icon d={I.trash} size={13} color="#DC2626"/>
               </button>
             </div>
