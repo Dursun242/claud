@@ -2,17 +2,24 @@
 import { useState, useRef, useEffect } from 'react'
 import { SB, Icon, I, FF, inp, sel, btnP, btnS } from '../dashboards/shared'
 import { Badge, Modal } from '../components'
+import { useToast } from '../contexts/ToastContext'
 import { supabase } from '../supabaseClient'
 
+const TYPE_COLORS = {Artisan:"#F59E0B",Client:"#3B82F6",Fournisseur:"#10B981","Sous-traitant":"#8B5CF6",Prestataire:"#EC4899",MOA:"#0EA5E9",Architecte:"#6366F1",BET:"#14B8A6"}
+const TYPES = ["Artisan","Sous-traitant","Prestataire","Client","Fournisseur","MOA","Architecte","BET"]
+
 export default function ContactsV({data,save,m,reload,focusId,focusTs}) {
+  const { addToast } = useToast();
   const [modal,setModal]=useState(null);const [form,setForm]=useState({});const [tf,setTf]=useState("all");const [q,setQ]=useState("");
+  const [formError, setFormError] = useState("");
   const [pSearch,setPSearch]=useState("");const [pLoading,setPLoading]=useState(false);const [pResults,setPResults]=useState(null);const [pError,setPError]=useState("");
   // États import par photo
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState("");
   const fileInputRef = useRef(null);
-  const tc={Artisan:"#F59E0B",Client:"#3B82F6",Fournisseur:"#10B981","Sous-traitant":"#8B5CF6",Prestataire:"#EC4899",MOA:"#0EA5E9",Architecte:"#6366F1",BET:"#14B8A6"};
-  const types = ["Artisan","Sous-traitant","Prestataire","Client","Fournisseur","MOA","Architecte","BET"];
+  const searchInputRef = useRef(null);
+  const tc = TYPE_COLORS;
+  const types = TYPES;
   const list=data.contacts.filter(c=>{
     if(tf!=="all"&&c.type!==tf) return false;
     if(!q) return true;
@@ -22,7 +29,26 @@ export default function ContactsV({data,save,m,reload,focusId,focusTs}) {
 
   const emptyForm = {nom:"",type:"Artisan",specialite:"",societe:"",fonction:"",tel:"",tel_fixe:"",email:"",adresse:"",code_postal:"",ville:"",siret:"",tva_intra:"",assurance_decennale:"",assurance_validite:"",iban:"",qualifications:"",site_web:"",note:0,actif:true,notes:""};
 
-  const openNew=()=>{setForm(emptyForm);setPSearch("");setPResults(null);setPError("");setModal("new");};
+  const openNew=()=>{setForm(emptyForm);setPSearch("");setPResults(null);setPError("");setFormError("");setModal("new");};
+  const openEdit=(c)=>{setForm({...c});setPSearch("");setPResults(null);setPError("");setFormError("");setModal("edit");};
+  const closeModal=()=>{setModal(null);setFormError("");};
+
+  // Raccourci clavier « n » pour créer un contact (sauf si on tape ou modale ouverte)
+  const openNewRef = useRef(null);
+  useEffect(() => { openNewRef.current = openNew; });
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.altKey || e.ctrlKey || e.metaKey) return;
+      const t = e.target;
+      const tag = (t?.tagName || '').toLowerCase();
+      if (tag === 'input' || tag === 'textarea' || tag === 'select' || t?.isContentEditable) return;
+      if (modal) return;
+      if (e.key === 'n' || e.key === 'N') { e.preventDefault(); openNewRef.current?.(); }
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [modal]);
 
   // Focus depuis la recherche globale : au lieu d'ouvrir une modale,
   // on pré-remplit la recherche locale avec le nom du contact et on
@@ -39,8 +65,23 @@ export default function ContactsV({data,save,m,reload,focusId,focusTs}) {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusId, focusTs]);
-  const handleSave=async()=>{await SB.upsertContact(form);setModal(null);reload();};
-  const handleDelete=async(id)=>{if(!window.confirm("Supprimer ce contact ? Cette action est irréversible.")) return;await SB.deleteContact(id);reload();};
+  const handleSave = async () => {
+    setFormError("");
+    if (!form.nom || !form.nom.trim()) { setFormError("Le nom est requis."); return; }
+    try {
+      await SB.upsertContact(form);
+      setModal(null);
+      reload();
+      addToast(modal === "edit" ? "Contact mis à jour" : "Contact créé", "success");
+    } catch (err) {
+      setFormError(err?.message || "Erreur lors de l'enregistrement.");
+    }
+  };
+  const handleDelete = async (id) => {
+    if (!window.confirm("Supprimer ce contact ? Cette action est irréversible.")) return;
+    try { await SB.deleteContact(id); reload(); addToast("Contact supprimé", "success"); }
+    catch (err) { addToast("Erreur : " + (err?.message || "suppression impossible"), "error"); }
+  };
 
   // ── Pappers : mapping entreprise complète → formulaire ──
   //
@@ -309,10 +350,13 @@ export default function ContactsV({data,save,m,reload,focusId,focusTs}) {
       style={{display:"none"}}
     />
 
-    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,flexWrap:"wrap",gap:8}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14,flexWrap:"wrap",gap:8}}>
       <div>
         <h1 style={{margin:0,fontSize:m?18:24,fontWeight:700}}>Annuaire</h1>
-        <p style={{margin:"2px 0 0",fontSize:12,color:"#94A3B8"}}>{data.contacts.length} contacts</p>
+        <p style={{margin:"2px 0 0",fontSize:12,color:"#94A3B8"}}>
+          {data.contacts.length} contact{data.contacts.length>1?"s":""}
+          {(q || tf !== "all") && <> · <strong>{list.length}</strong> affiché{list.length>1?"s":""}</>}
+        </p>
       </div>
       <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
         <button
@@ -341,7 +385,7 @@ export default function ContactsV({data,save,m,reload,focusId,focusTs}) {
             <>📸 Importer photo / capture</>
           )}
         </button>
-        <button onClick={openNew} style={{...btnP,fontSize:12}}>+ Nouveau contact</button>
+        <button onClick={openNew} title="Nouveau contact (raccourci : n)" style={{...btnP,fontSize:12}}>+ Nouveau contact</button>
       </div>
     </div>
 
@@ -365,50 +409,111 @@ export default function ContactsV({data,save,m,reload,focusId,focusTs}) {
     )}
 
     {/* Search + Filters */}
-    <div style={{display:"flex",gap:8,marginBottom:14,flexWrap:"wrap"}}>
-      <div style={{position:"relative",flex:1,minWidth:200}}><span style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)"}}><Icon d={I.search} size={14} color="#94A3B8"/></span><input placeholder="Rechercher nom, société, ville, email..." style={{...inp,paddingLeft:30,fontSize:13}} value={q} onChange={e=>setQ(e.target.value)}/></div>
+    <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap"}}>
+      <div style={{position:"relative",flex:1,minWidth:200}}>
+        <span style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",pointerEvents:"none"}}><Icon d={I.search} size={14} color="#94A3B8"/></span>
+        <input
+          ref={searchInputRef}
+          type="search"
+          placeholder="Rechercher nom, société, ville, email… (tape /)"
+          style={{...inp,paddingLeft:30,fontSize:13}}
+          value={q}
+          onChange={e=>setQ(e.target.value)}
+        />
+      </div>
     </div>
-    <div style={{display:"flex",gap:6,marginBottom:16,flexWrap:"wrap"}}>
-      <button onClick={()=>setTf("all")} style={{padding:"5px 12px",borderRadius:16,border:"1.5px solid",borderColor:tf==="all"?"#1E3A5F":"#E2E8F0",background:tf==="all"?"#1E3A5F":"#fff",color:tf==="all"?"#fff":"#64748B",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>Tous ({data.contacts.length})</button>
-      {Object.entries(stats).map(([type,count])=>(
-        <button key={type} onClick={()=>setTf(type)} style={{padding:"5px 12px",borderRadius:16,border:"1.5px solid",borderColor:tf===type?tc[type]||"#1E3A5F":"#E2E8F0",background:tf===type?tc[type]||"#1E3A5F":"#fff",color:tf===type?"#fff":"#64748B",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>{type}s ({count})</button>
-      ))}
+    <div style={{display:"flex",gap:6,marginBottom:14,flexWrap:"wrap",overflowX:m?"auto":"visible",paddingBottom:m?4:0}}>
+      <button onClick={()=>setTf("all")} style={{
+        display:"inline-flex",alignItems:"center",gap:6,
+        padding:"5px 11px",borderRadius:999,fontSize:11,fontWeight:600,
+        border:`1px solid ${tf==="all"?"#1E3A5F":"#E2E8F0"}`,
+        background:tf==="all"?"#1E3A5F":"#fff",
+        color:tf==="all"?"#fff":"#334155",cursor:"pointer",fontFamily:"inherit",
+        transition:"background .15s, color .15s, border-color .15s",whiteSpace:"nowrap",
+      }}>
+        <span style={{width:7,height:7,borderRadius:"50%",background:tf==="all"?"#fff":"#64748B",opacity:tf==="all"?0.8:1}}/>
+        Tous <span style={{fontSize:10,opacity:0.75,fontWeight:500}}>{data.contacts.length}</span>
+      </button>
+      {Object.entries(stats).map(([type,count])=>{
+        const active = tf === type;
+        const color = tc[type] || "#1E3A5F";
+        return (
+          <button key={type} onClick={()=>setTf(type)} style={{
+            display:"inline-flex",alignItems:"center",gap:6,
+            padding:"5px 11px",borderRadius:999,fontSize:11,fontWeight:600,
+            border:`1px solid ${active?color:"#E2E8F0"}`,
+            background:active?color:"#fff",
+            color:active?"#fff":"#334155",cursor:"pointer",fontFamily:"inherit",
+            transition:"background .15s, color .15s, border-color .15s",whiteSpace:"nowrap",
+          }}>
+            <span style={{width:7,height:7,borderRadius:"50%",background:active?"#fff":color,opacity:active?0.8:1}}/>
+            {type} <span style={{fontSize:10,opacity:0.75,fontWeight:500}}>{count}</span>
+          </button>
+        );
+      })}
     </div>
 
     {/* Contact Cards */}
+    {list.length === 0 ? (
+      <div style={{background:"#fff",borderRadius:12,padding:"40px 24px",textAlign:"center",boxShadow:"0 1px 3px rgba(0,0,0,0.04)"}}>
+        <div style={{fontSize:36,marginBottom:8,opacity:0.5}}>👤</div>
+        {data.contacts.length === 0 ? (
+          <>
+            <div style={{fontSize:14,fontWeight:700,color:"#334155",marginBottom:4}}>Aucun contact pour l'instant</div>
+            <div style={{fontSize:12,color:"#94A3B8",marginBottom:14}}>Crée ton premier contact ou importe-en un depuis une photo/capture.</div>
+            <div style={{display:"flex",gap:8,justifyContent:"center",flexWrap:"wrap"}}>
+              <button onClick={openNew} style={{...btnP,fontSize:12}}>+ Nouveau contact</button>
+              <button onClick={()=>fileInputRef.current?.click()} style={{...btnS,fontSize:12}}>📸 Importer une photo</button>
+            </div>
+          </>
+        ) : (
+          <>
+            <div style={{fontSize:14,fontWeight:700,color:"#334155",marginBottom:4}}>Aucun résultat</div>
+            <div style={{fontSize:12,color:"#94A3B8",marginBottom:14}}>Essaie d'élargir ta recherche ou de changer de filtre.</div>
+            <button onClick={()=>{setQ("");setTf("all");}} style={{...btnS,fontSize:12}}>Réinitialiser les filtres</button>
+          </>
+        )}
+      </div>
+    ) : (
     <div style={{display:"grid",gridTemplateColumns:m?"1fr":"1fr 1fr",gap:10}}>
       {list.map(c=>(
-        <div key={c.id} style={{background:"#fff",borderRadius:12,padding:m?14:18,boxShadow:"0 1px 3px rgba(0,0,0,0.04)",borderLeft:`4px solid ${tc[c.type]||"#94A3B8"}`,opacity:c.actif===false?0.5:1}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-            <div style={{flex:1}}>
+        <div key={c.id} style={{background:"#fff",borderRadius:12,padding:m?14:16,boxShadow:"0 1px 3px rgba(15,23,42,0.05)",borderLeft:`4px solid ${tc[c.type]||"#94A3B8"}`,opacity:c.actif===false?0.55:1}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8}}>
+            <div style={{flex:1,minWidth:0}}>
               <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:3,flexWrap:"wrap"}}>
                 <span style={{fontSize:15,fontWeight:700,color:"#0F172A"}}>{c.nom}</span>
                 <Badge text={c.type} color={tc[c.type]||"#94A3B8"}/>
                 {c.actif===false && <Badge text="Inactif" color="#94A3B8"/>}
-                {c.note>0 && <span style={{fontSize:11,color:"#F59E0B"}}>{"★".repeat(c.note)}{"☆".repeat(5-c.note)}</span>}
+                {c.note>0 && <span title={`${c.note}/5`} style={{fontSize:11,color:"#F59E0B"}}>{"★".repeat(c.note)}{"☆".repeat(5-c.note)}</span>}
               </div>
               {c.societe && <div style={{fontSize:12,fontWeight:600,color:"#334155",marginBottom:2}}>{c.societe}</div>}
-              {c.specialite && <div style={{fontSize:11,color:"#64748B",marginBottom:3}}>{c.specialite}{c.fonction?` — ${c.fonction}`:""}</div>}
-              <div style={{fontSize:11,color:"#94A3B8"}}>
-                {c.tel && <span>{c.tel}</span>}
-                {c.tel_fixe && <span> • {c.tel_fixe}</span>}
-                {c.email && <span> • {c.email}</span>}
+              {c.specialite && <div style={{fontSize:11,color:"#64748B",marginBottom:4}}>{c.specialite}{c.fonction?` — ${c.fonction}`:""}</div>}
+              {/* Coordonnées cliquables (tel: / mailto:) */}
+              <div style={{display:"flex",flexWrap:"wrap",gap:"4px 10px",fontSize:11,marginTop:4}}>
+                {c.tel && <a href={`tel:${c.tel.replace(/\s/g,"")}`} onClick={e=>e.stopPropagation()} style={{color:"#1D4ED8",textDecoration:"none",fontWeight:500}}>📱 {c.tel}</a>}
+                {c.tel_fixe && <a href={`tel:${c.tel_fixe.replace(/\s/g,"")}`} onClick={e=>e.stopPropagation()} style={{color:"#1D4ED8",textDecoration:"none",fontWeight:500}}>☎ {c.tel_fixe}</a>}
+                {c.email && <a href={`mailto:${c.email}`} onClick={e=>e.stopPropagation()} style={{color:"#1D4ED8",textDecoration:"none",fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:220}}>✉ {c.email}</a>}
               </div>
-              {(c.ville||c.adresse) && <div style={{fontSize:10,color:"#CBD5E1",marginTop:2}}>{[c.adresse,c.code_postal,c.ville].filter(Boolean).join(", ")}</div>}
-              {c.siret && <div style={{fontSize:10,color:"#CBD5E1"}}>SIRET: {c.siret}</div>}
-              {c.qualifications && <div style={{fontSize:10,color:"#3B82F6",marginTop:2}}>{c.qualifications}</div>}
+              {(c.ville||c.adresse) && <div style={{fontSize:10,color:"#94A3B8",marginTop:3}}>📍 {[c.adresse,c.code_postal,c.ville].filter(Boolean).join(", ")}</div>}
+              {c.siret && <div style={{fontSize:10,color:"#CBD5E1",marginTop:1}}>SIRET : {c.siret}</div>}
+              {c.qualifications && <div style={{fontSize:10,color:"#3B82F6",marginTop:2,fontWeight:600}}>🏅 {c.qualifications}</div>}
             </div>
-            <div style={{display:"flex",gap:3,flexShrink:0}}>
-              <button onClick={()=>{setForm({...c});setModal("edit");}} style={{background:"none",border:"none",cursor:"pointer"}}><Icon d={I.edit} size={14} color="#94A3B8"/></button>
-              <button onClick={()=>handleDelete(c.id)} style={{background:"none",border:"none",cursor:"pointer"}}><Icon d={I.trash} size={14} color="#CBD5E1"/></button>
+            <div style={{display:"flex",flexDirection:"column",gap:4,flexShrink:0}}>
+              <button onClick={()=>openEdit(c)} title="Modifier" style={{background:"#F1F5F9",border:"1px solid #E2E8F0",borderRadius:6,cursor:"pointer",padding:"5px 7px",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                <Icon d={I.edit} size={13} color="#475569"/>
+              </button>
+              <button onClick={()=>handleDelete(c.id)} title="Supprimer" style={{background:"#fff",border:"1px solid #FECACA",borderRadius:6,cursor:"pointer",padding:"5px 7px",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                <Icon d={I.trash} size={13} color="#DC2626"/>
+              </button>
             </div>
           </div>
         </div>
       ))}
     </div>
+    )}
 
     {/* MODAL — Formulaire enrichi */}
-    <Modal open={!!modal} onClose={()=>setModal(null)} title={modal==="new"?"Nouveau contact":"Modifier le contact"} wide>
+    <Modal open={!!modal} onClose={closeModal} title={modal==="new"?"Nouveau contact":"Modifier le contact"} wide>
 
       {/* ── IMPORT PAR PHOTO (visible uniquement en création) ── */}
       {modal==="new" && (
@@ -619,8 +724,19 @@ export default function ContactsV({data,save,m,reload,focusId,focusTs}) {
       </div>
       <FF label="Notes / Remarques"><textarea style={{...inp,minHeight:50,resize:"vertical"}} value={form.notes||""} onChange={e=>setForm({...form,notes:e.target.value})} placeholder="Notes internes..."/></FF>
 
+      {formError && (
+        <div style={{
+          background:"#FEF2F2",border:"1px solid #FECACA",borderRadius:8,
+          padding:"8px 12px",marginTop:10,marginBottom:4,fontSize:12,color:"#DC2626",
+          display:"flex",alignItems:"center",gap:8,
+        }}>
+          <span style={{fontSize:14}}>⚠</span>
+          <span style={{flex:1}}>{formError}</span>
+          <button onClick={()=>setFormError("")} aria-label="Fermer" style={{background:"none",border:"none",cursor:"pointer",color:"#DC2626",fontSize:14,padding:0,lineHeight:1}}>✕</button>
+        </div>
+      )}
       <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginTop:14}}>
-        <button onClick={()=>setModal(null)} style={btnS}>Annuler</button>
+        <button onClick={closeModal} style={btnS}>Annuler</button>
         <button onClick={handleSave} style={btnP}>Enregistrer</button>
       </div>
     </Modal>
