@@ -5,6 +5,7 @@ import { Badge, Modal } from '../components'
 import { useToast } from '../contexts/ToastContext'
 import { useConfirm } from '../contexts/ConfirmContext'
 import { useUndoableDelete } from '../hooks/useUndoableDelete'
+import { validateSiret, validatePhoneFR, validateEmail, validateIban, validateCodePostalFR, validateTvaIntra } from '../lib/validators'
 import { supabase } from '../supabaseClient'
 
 const TYPE_COLORS = {Artisan:"#F59E0B",Client:"#3B82F6",Fournisseur:"#10B981","Sous-traitant":"#8B5CF6",Prestataire:"#EC4899",MOA:"#0EA5E9",Architecte:"#6366F1",BET:"#14B8A6"}
@@ -90,6 +91,20 @@ export default function ContactsV({data,save,m,reload,focusId,focusTs}) {
   const handleSave = async () => {
     setFormError("");
     if (!form.nom || !form.nom.trim()) { setFormError("Le nom est requis."); return; }
+    // Validation stricte : bloque la sauvegarde si un format est invalide.
+    // Les champs vides sont autorisés (validateur retourne valid:true).
+    const checks = [
+      ['Email', validateEmail(form.email)],
+      ['SIRET', validateSiret(form.siret)],
+      ['Téléphone mobile', validatePhoneFR(form.tel)],
+      ['Téléphone fixe', validatePhoneFR(form.tel_fixe)],
+      ['Code postal', validateCodePostalFR(form.code_postal)],
+      ['TVA intra.', validateTvaIntra(form.tva_intra)],
+      ['IBAN', validateIban(form.iban)],
+    ];
+    for (const [label, result] of checks) {
+      if (!result.valid) { setFormError(`${label} : ${result.message}`); return; }
+    }
     try {
       await SB.upsertContact(form);
       setModal(null);

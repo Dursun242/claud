@@ -292,6 +292,16 @@ export default function AdminDashboard({ user, profile = null }) {
 
   return (
     <div style={{display:"flex",height:"100vh",fontFamily:"'DM Sans',sans-serif",background:"#F1F5F9",overflow:"hidden"}}>
+      {/* Skip link a11y : caché visuellement mais accessible au focus clavier */}
+      <a href="#main-content" style={{
+        position:"absolute",left:-9999,top:0,
+        background:"#1E3A5F",color:"#fff",padding:"10px 16px",
+        borderRadius:"0 0 8px 0",fontSize:13,fontWeight:600,
+        textDecoration:"none",zIndex:10001,
+      }}
+      onFocus={e => { e.currentTarget.style.left = "0" }}
+      onBlur={e => { e.currentTarget.style.left = "-9999px" }}
+      >Passer au contenu principal</a>
       <style>{`
 @keyframes spin{to{transform:rotate(360deg)}}
         @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
