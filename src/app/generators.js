@@ -160,11 +160,29 @@ export async function generateOSPdf(data) {
   doc.rect(ax, y, halfW, 26)
   doc.setFontSize(7.5); doc.setFont("helvetica", "bold"); doc.setTextColor(...BLEU)
   doc.text("ENTREPRISE", ax + 3, y + 5)
+
+  // Nom principal en gros : on privilégie la société si elle est connue,
+  // sinon on retombe sur le nom de l'interlocuteur (rétrocompat).
+  const hasSociete = data.artisan_societe && String(data.artisan_societe).trim()
+  const mainName = hasSociete ? data.artisan_societe : (data.artisan_nom || "—")
   doc.setFontSize(9); doc.setFont("helvetica", "bold"); doc.setTextColor(...NOIR)
-  doc.text(data.artisan_nom || "—", ax + 3, y + 10)
+  doc.text(sanitize(mainName), ax + 3, y + 10)
+
+  // Lignes secondaires (petites) : si société connue et nom différent,
+  // on affiche l'interlocuteur en premier. Sinon on garde l'ancien layout.
   doc.setFontSize(7); doc.setFont("helvetica", "normal"); doc.setTextColor(...GRIS)
-  const aLines = [data.artisan_specialite, `Tél: ${data.artisan_tel||""}`, `SIRET: ${data.artisan_siret||""}`].filter(Boolean)
-  aLines.forEach((l, i) => doc.text(l, ax + 3, y + 15 + i * 3.2))
+  const aLines = [
+    hasSociete && data.artisan_nom && sanitize(data.artisan_nom) !== sanitize(data.artisan_societe)
+      ? `Interlocuteur : ${data.artisan_nom}`
+      : null,
+    data.artisan_specialite,
+    `Tél: ${data.artisan_tel || ""}`,
+    `SIRET: ${data.artisan_siret || ""}`,
+  ].filter(Boolean)
+  // Espacement adapté : 3.2 pour 3 lignes ou moins, 2.8 pour 4 lignes
+  // afin de rester dans la boîte de 26 d'hauteur.
+  const lineGap = aLines.length > 3 ? 2.8 : 3.2
+  aLines.forEach((l, i) => doc.text(sanitize(l), ax + 3, y + 14 + i * lineGap))
   y += 32
 
   // Prestations

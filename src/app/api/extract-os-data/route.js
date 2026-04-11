@@ -67,7 +67,8 @@ L'image peut être :
 Retourne UNIQUEMENT ce JSON (sans markdown, sans backticks, sans texte avant/après) :
 
 {
-  "artisan_nom": "Raison sociale ou nom de l'entreprise (en-tête du devis)",
+  "artisan_societe": "Raison sociale de l'entreprise (le nom en gros dans l'en-tête, ex: 'BRASSEUR TP', 'SARL DUPONT PLOMBERIE', 'YC INGÉNIERIE')",
+  "artisan_nom": "Nom et prénom de l'interlocuteur/signataire si visible (ex: 'Christophe Brasseur'). Si le devis ne mentionne qu'une personne physique sans société, mets-le ici et laisse artisan_societe vide.",
   "artisan_specialite": "Métier/activité (Plombier, Électricité CFO/CFA, Gros œuvre, etc.)",
   "artisan_tel": "Téléphone principal (format français avec espaces)",
   "artisan_email": "Email",

@@ -102,22 +102,29 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs}) {
     });
   };
 
-  // Trouve un contact existant qui matche le nom ou le SIRET extrait.
-  // Cela permet de préserver l'ID en base (pas de doublon) et de récupérer
-  // les infos supplémentaires (spécialité officielle, adresse vérifiée, etc.).
+  // Trouve un contact existant qui matche la société, le nom ou le SIRET
+  // extraits. Cela permet de préserver l'ID en base (pas de doublon) et
+  // de récupérer les infos supplémentaires (spécialité officielle, etc.).
   const findExistingContact = (extracted) => {
     if (!extracted) return null;
     const contacts = data.contacts || [];
+    const norm = (s) => String(s || '').toLowerCase().trim().replace(/\s+/g, ' ');
     // Priorité 1 : match exact par SIRET (le plus fiable)
     if (extracted.artisan_siret) {
       const siretClean = String(extracted.artisan_siret).replace(/\s/g, '');
       const byS = contacts.find(c => String(c.siret || '').replace(/\s/g, '') === siretClean);
       if (byS) return byS;
     }
-    // Priorité 2 : match exact par nom (insensible à la casse et espaces)
+    // Priorité 2 : match par société extraite (vs contact.societe ou contact.nom)
+    if (extracted.artisan_societe) {
+      const nSoc = norm(extracted.artisan_societe);
+      const bySoc = contacts.find(c => norm(c.societe) === nSoc || norm(c.nom) === nSoc);
+      if (bySoc) return bySoc;
+    }
+    // Priorité 3 : match par nom d'interlocuteur
     if (extracted.artisan_nom) {
-      const norm = (s) => String(s || '').toLowerCase().trim().replace(/\s+/g, ' ');
-      const byN = contacts.find(c => norm(c.nom) === norm(extracted.artisan_nom));
+      const nNom = norm(extracted.artisan_nom);
+      const byN = contacts.find(c => norm(c.nom) === nNom);
       if (byN) return byN;
     }
     return null;
@@ -174,9 +181,14 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs}) {
       // 5. Chantier par défaut : le premier (l'user peut changer dans le form)
       const ch = data.chantiers?.[0];
 
-      // 6. Construction du form pré-rempli
-      //    On privilégie les infos de contact existant s'il est trouvé,
-      //    sinon on utilise ce que Claude a extrait.
+      // 6. Construction du form pré-rempli.
+      //    Si un contact existe déjà → on utilise son nom (l'enrichOsForPdf
+      //    trouvera sa société au moment de générer le PDF).
+      //    Sinon → on privilégie la société extraite comme "nom principal"
+      //    pour que la société s'affiche en gros sur le PDF (l'interlocuteur
+      //    est perdu dans ce cas, l'user peut l'ajouter manuellement à
+      //    l'annuaire après).
+      const fallbackName = extracted.artisan_societe || extracted.artisan_nom || "";
       const newForm = {
         numero: nextNum(),
         chantier_id: ch?.id || "",
@@ -184,7 +196,7 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs}) {
         adresse_chantier: ch?.adresse || "",
         client_nom: extracted.client_nom || ch?.client || "",
         client_adresse: extracted.client_adresse || "",
-        artisan_nom: existing?.nom || extracted.artisan_nom || "",
+        artisan_nom: existing?.nom || fallbackName,
         artisan_specialite: existing?.specialite || extracted.artisan_specialite || "",
         artisan_adresse: existing?.adresse || extracted.artisan_adresse || "",
         artisan_tel: existing?.tel || extracted.artisan_tel || "",
@@ -267,14 +279,43 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs}) {
     }
   };
 
+  // Enrichissement au moment de la génération PDF/Excel :
+  // l'OS en base ne stocke que artisan_nom (qui peut être la société OU
+  // l'interlocuteur selon qui a créé l'OS). Pour afficher la société en
+  // gros dans le PDF avec l'interlocuteur en-dessous, on cherche le
+  // contact correspondant dans l'annuaire et on y récupère la société.
+  // Match par SIRET (fiable) puis par nom exact.
+  const enrichOsForPdf = (os) => {
+    const ch = data.chantiers.find(c => c.id === os.chantier_id);
+    const enriched = {
+      ...os,
+      chantier: ch?.nom || "",
+      adresse_chantier: ch?.adresse || "",
+    };
+    const contacts = data.contacts || [];
+    const norm = (s) => String(s || '').toLowerCase().trim();
+    // 1. match SIRET
+    let contact = null;
+    if (os.artisan_siret) {
+      const clean = String(os.artisan_siret).replace(/\s/g, '');
+      contact = contacts.find(c => String(c.siret || '').replace(/\s/g, '') === clean);
+    }
+    // 2. fallback match nom exact
+    if (!contact && os.artisan_nom) {
+      contact = contacts.find(c => norm(c.nom) === norm(os.artisan_nom));
+    }
+    if (contact?.societe) {
+      enriched.artisan_societe = contact.societe;
+    }
+    return enriched;
+  };
+
   const handlePdf = (os) => {
-    const ch = data.chantiers.find(c=>c.id===os.chantier_id);
-    generateOSPdf({ ...os, chantier: ch?.nom||"", adresse_chantier: ch?.adresse||"" });
+    generateOSPdf(enrichOsForPdf(os));
   };
 
   const handleExcel = (os) => {
-    const ch = data.chantiers.find(c=>c.id===os.chantier_id);
-    generateOSExcel({ ...os, chantier: ch?.nom||"", adresse_chantier: ch?.adresse||"" });
+    generateOSExcel(enrichOsForPdf(os));
   };
 
   const handleDelete = async (id) => { if(!window.confirm("Supprimer cet ordre de service ?")) return; await SB.deleteOS(id); reload(); };
@@ -311,8 +352,10 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs}) {
     setSignSending(true);
     setSignError("");
     try {
-      const ch = signModal.ch || data.chantiers.find(c => c.id === signModal.chantier_id);
-      const pdfResult = await generateOSPdf({ ...signModal, chantier: ch?.nom || "", adresse_chantier: ch?.adresse || "", returnBase64: true });
+      // Enrichissement identique à handlePdf/handleExcel pour que le PDF
+      // envoyé pour signature affiche bien la société en gros
+      const enriched = enrichOsForPdf(signModal);
+      const pdfResult = await generateOSPdf({ ...enriched, returnBase64: true });
       if (!pdfResult?.base64) throw new Error("Impossible de générer le PDF de l'OS");
       const signers = [
         { name: moe.name,        email: moe.email,        role: 'MOE' },
