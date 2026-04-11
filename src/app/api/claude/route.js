@@ -1,5 +1,14 @@
+// Route /api/claude — proxy Anthropic avec auth JWT + rate limit
+//
+// Sécurité :
+// - Vérifie que l'appel vient d'un utilisateur Supabase authentifié
+//   (Bearer token dans le header Authorization) avant de relayer à Anthropic.
+//   Sinon, n'importe qui connaissant l'URL pourrait drainer le quota
+//   Anthropic (= coût direct sur la carte bancaire).
+// - Rate limit en mémoire par IP en plus : 20 req/min, même pattern que
+//   /api/extract-*. Double filet de sécurité.
+
 // Rate limiting simple en mémoire (par IP)
-// Adapté à une app interne : 20 requêtes / minute / IP
 const rateLimit = new Map(); // ip → { count, resetAt }
 const LIMIT = 20;
 const WINDOW_MS = 60_000; // 1 minute
@@ -25,15 +34,41 @@ setInterval(() => {
   }
 }, WINDOW_MS * 5);
 
+// Vérification auth : Bearer token Supabase valide
+// Utilise le Anon key côté serveur juste pour décoder le JWT — pas besoin du service role.
+async function verifyAuth(request) {
+  const authHeader = request.headers.get('Authorization');
+  if (!authHeader?.startsWith('Bearer ')) return null;
+  const token = authHeader.replace('Bearer ', '');
+  try {
+    const { createClient } = await import('@supabase/supabase-js');
+    const client = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      { auth: { persistSession: false } }
+    );
+    const { data: { user } } = await client.auth.getUser(token);
+    return user || null;
+  } catch {
+    return null;
+  }
+}
+
 export async function POST(request) {
   try {
-    // Vérification rate limit
+    // 1. Vérification rate limit par IP
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
     if (!checkRateLimit(ip)) {
       return Response.json(
         { error: "Trop de requêtes — attendez 1 minute avant de réessayer." },
         { status: 429 }
       );
+    }
+
+    // 2. Vérification JWT Supabase — bloque les appels anonymes
+    const user = await verifyAuth(request);
+    if (!user) {
+      return Response.json({ error: 'Non autorisé' }, { status: 401 });
     }
 
     const body = await request.json();

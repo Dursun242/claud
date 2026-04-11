@@ -4,6 +4,7 @@ import ReactMarkdown from 'react-markdown'
 import { SB, Icon, I, ApiBadge, inp, btnP, COMPANY } from '../dashboards/shared'
 import { MicButtonInline } from '../components'
 import { useToast } from '../contexts/ToastContext'
+import { supabase } from '../supabaseClient'
 
 // Message d'accueil de l'assistant (identique après un reset)
 const WELCOME_MESSAGE = {
@@ -168,8 +169,15 @@ RÈGLES :
 - Quand on te demande un résumé/avancement, analyse les données et donne un point clair sans bloc action`;
 
 
+      // JWT Supabase requis par /api/claude pour éviter que n'importe qui
+      // avec l'URL puisse drainer notre quota Anthropic.
+      const { data: { session } } = await supabase.auth.getSession();
       const response = await fetch("/api/claude", {
-        method:"POST", headers:{"Content-Type":"application/json"},
+        method:"POST",
+        headers:{
+          "Content-Type":"application/json",
+          "Authorization": `Bearer ${session?.access_token || ''}`,
+        },
         body: JSON.stringify({ model:"claude-haiku-4-5-20251001", max_tokens:4000, system:sys,
           messages:messages.filter((m,i)=>m.role!=="assistant"||i>0).concat([{role:"user",content:userMsg}]).map(m=>({role:m.role,content:m.content})),
         }),
