@@ -1,17 +1,41 @@
 'use client'
-import { useState, useMemo, useEffect, useRef } from 'react'
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { SB, Icon, I, fmtDate, fmtMoney, FF, inp, sel, btnP, btnS } from '../dashboards/shared'
 import { Badge, Modal } from '../components'
+import { useToast } from '../contexts/ToastContext'
 import { generateOSPdf, generateOSExcel } from '../generators'
 import { createClient } from '@supabase/supabase-js'
 
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
 
+// Ordre canonique des statuts (utilisé dans le filtre et le dropdown de tri)
+const OS_STATUSES = ["Brouillon","Émis","Signé","En cours","Terminé","Annulé"]
+const osStatusColor = { "Brouillon":"#94A3B8", "Émis":"#3B82F6", "Signé":"#8B5CF6", "En cours":"#F59E0B", "Terminé":"#10B981", "Annulé":"#EF4444" }
+
+// Style "pastille" pour les boutons d'action sur les cartes OS.
+// Remplace les boutons saturés (rouge/vert/violet plein) par des versions
+// plus douces, plus cohérentes visuellement.
+const osBtn = (color, bg, border) => ({
+  background: bg,
+  border: `1px solid ${border}`,
+  borderRadius: 6,
+  padding: "4px 10px",
+  cursor: "pointer",
+  fontSize: 11,
+  fontWeight: 600,
+  color,
+  fontFamily: "inherit",
+})
+
 export default function OrdresServiceV({data,m,reload,focusId,focusTs}) {
+  const { addToast } = useToast();
   const [modal,setModal]=useState(null);
   const [form,setForm]=useState({});
   const [prestations,setPrestations]=useState([]);
   const [searchOS,setSearchOS]=useState("");
+  const [statusFilter,setStatusFilter]=useState("all"); // "all" | un des OS_STATUSES
+  const [sortBy,setSortBy]=useState("date_desc");       // date_desc | date_asc | amount_desc | amount_asc
+  const [formError,setFormError]=useState("");          // erreur de validation affichée dans la modale
   const [saving,setSaving]=useState(false);
   const [signModal,setSignModal]=useState(null);
   const [signSigners,setSignSigners]=useState({ moe:{name:'',email:''}, moa:{name:'',email:''}, entreprise:{name:'',email:''} });
@@ -21,6 +45,7 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs}) {
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState("");
   const devisInputRef = useRef(null);
+  const searchInputRef = useRef(null);
 
   const nextNum = () => {
     const nums = (data.ordresService||[]).map(os => {
@@ -42,6 +67,7 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs}) {
       statut: "Brouillon",
     });
     setPrestations([{ description:"", unite:"m²", quantite:"", prix_unitaire:"", tva_taux:"20" }]);
+    setFormError("");
     setModal("new");
   };
 
@@ -56,8 +82,11 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs}) {
       ? os.prestations.map(p=>({...p, quantite:String(p.quantite||""), prix_unitaire:String(p.prix_unitaire||""), tva_taux:String(p.tva_taux||"20")}))
       : [{ description:"", unite:"m²", quantite:"", prix_unitaire:"", tva_taux:"20" }]
     );
+    setFormError("");
     setModal("edit");
   };
+
+  const closeModal = useCallback(() => { setModal(null); setFormError(""); }, []);
 
   // Focus depuis la recherche globale : pré-remplit la recherche locale
   // avec le numéro de l'OS pour filtrer la liste et afficher la carte
@@ -69,6 +98,24 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs}) {
     if (os?.numero) setSearchOS(os.numero);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusId, focusTs]);
+
+  // Raccourcis locaux : « n » crée un nouveau OS. Désactivé si on est en
+  // train de taper ou si une modale est déjà ouverte.
+  const openNewRef = useRef(null);
+  useEffect(() => { openNewRef.current = openNew; });
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.altKey || e.ctrlKey || e.metaKey) return;
+      const t = e.target;
+      const tag = (t?.tagName || '').toLowerCase();
+      if (tag === 'input' || tag === 'textarea' || tag === 'select' || t?.isContentEditable) return;
+      if (modal || signModal) return;
+      if (e.key === 'n' || e.key === 'N') { e.preventDefault(); openNewRef.current?.(); }
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [modal, signModal]);
 
   // ─── Import devis par photo (Claude Vision) ──────────────────
   //
@@ -259,12 +306,16 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs}) {
 
   const handleSave = async () => {
     if (saving) return;
-    // Validation basique des prestations
+    // Validation basique des prestations — affichée dans la modale, pas en alert()
+    setFormError("");
+    if (!form.numero) { setFormError("Le numéro d'OS est requis."); return; }
+    if (!form.chantier_id) { setFormError("Sélectionne un chantier."); return; }
+    if (!form.artisan_nom) { setFormError("Sélectionne un destinataire (artisan)."); return; }
     for (const p of prestations) {
       const q = parseFloat(p.quantite);
       const pu = parseFloat(p.prix_unitaire);
       if (p.description && (isNaN(q) || q < 0 || isNaN(pu) || pu < 0)) {
-        alert("Vérifiez les quantités et prix unitaires — aucune valeur négative ou invalide.");
+        setFormError("Vérifie les quantités et prix unitaires — aucune valeur négative ou invalide.");
         return;
       }
     }
@@ -273,7 +324,11 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs}) {
       const osData = { ...form, prestations, montant_ht: totals.ht, montant_tva: totals.tva, montant_ttc: totals.ttc };
       await SB.upsertOS(osData);
       setModal(null);
+      setFormError("");
       reload();
+      addToast(modal === "edit" ? "OS mis à jour" : "OS créé", "success");
+    } catch (err) {
+      setFormError(err?.message || "Erreur lors de l'enregistrement.");
     } finally {
       setSaving(false);
     }
@@ -318,12 +373,21 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs}) {
     generateOSExcel(enrichOsForPdf(os));
   };
 
-  const handleDelete = async (id) => { if(!window.confirm("Supprimer cet ordre de service ?")) return; await SB.deleteOS(id); reload(); };
+  const handleDelete = async (id) => {
+    if (!window.confirm("Supprimer cet ordre de service ?")) return;
+    try { await SB.deleteOS(id); reload(); addToast("OS supprimé", "success"); }
+    catch (err) { addToast("Erreur : " + (err?.message || "suppression impossible"), "error"); }
+  };
 
   const handleDuplicate = async (os) => {
-    const { id: _id, created_at: _created_at, ...rest } = os;
-    await SB.upsertOS({ ...rest, numero: nextNum(), statut: "Brouillon", date_emission: new Date().toISOString().split("T")[0] });
-    reload();
+    try {
+      const { id: _id, created_at: _created_at, ...rest } = os;
+      await SB.upsertOS({ ...rest, numero: nextNum(), statut: "Brouillon", date_emission: new Date().toISOString().split("T")[0] });
+      reload();
+      addToast("OS dupliqué en brouillon", "success");
+    } catch (err) {
+      addToast("Erreur : " + (err?.message || "duplication impossible"), "error");
+    }
   };
 
   const openSignModal = (os) => {
@@ -400,21 +464,19 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs}) {
     window.open(`mailto:${to}?subject=${subject}&body=${body}`);
   };
 
-  const osStatusColor = { "Brouillon":"#94A3B8", "Émis":"#3B82F6", "Signé":"#8B5CF6", "En cours":"#F59E0B", "Terminé":"#10B981", "Annulé":"#EF4444" };
-
   // Map chantier_id → chantier : évite les .find() O(N*M) dans les listes
   const chantierById = useMemo(
     () => new Map((data.chantiers || []).map(c => [c.id, c])),
     [data.chantiers]
   );
 
-  // Liste filtrée + triée par created_at desc, mémoïsée ensemble pour éviter
-  // qu'un [...filteredOS].sort() dans le JSX ne crée un nouveau tableau à
-  // chaque render.
+  // Liste filtrée par recherche + statut, puis triée selon sortBy.
+  // Mémoïsée ensemble pour éviter qu'un [...filteredOS].sort() dans le JSX
+  // ne crée un nouveau tableau à chaque render.
   const filteredSortedOS = useMemo(() => {
     const s = searchOS.toLowerCase().trim();
     const list = data.ordresService || [];
-    const filtered = s
+    let filtered = s
       ? list.filter(os => {
           const ch = chantierById.get(os.chantier_id);
           return (
@@ -425,8 +487,35 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs}) {
           );
         })
       : list;
-    return [...filtered].sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
-  }, [searchOS, data.ordresService, chantierById]);
+    if (statusFilter !== "all") {
+      filtered = filtered.filter(os => os.statut === statusFilter);
+    }
+    const sorted = [...filtered];
+    switch (sortBy) {
+      case "date_asc":   sorted.sort((a,b) => new Date(a.created_at||0) - new Date(b.created_at||0)); break;
+      case "amount_desc":sorted.sort((a,b) => (Number(b.montant_ttc)||0) - (Number(a.montant_ttc)||0)); break;
+      case "amount_asc": sorted.sort((a,b) => (Number(a.montant_ttc)||0) - (Number(b.montant_ttc)||0)); break;
+      default:           sorted.sort((a,b) => new Date(b.created_at||0) - new Date(a.created_at||0)); // date_desc
+    }
+    return sorted;
+  }, [searchOS, statusFilter, sortBy, data.ordresService, chantierById]);
+
+  // Compte par statut (pour les badges des pills de filtre)
+  const countByStatus = useMemo(() => {
+    const acc = { all: 0 };
+    OS_STATUSES.forEach(s => { acc[s] = 0; });
+    (data.ordresService || []).forEach(os => {
+      acc.all++;
+      if (acc[os.statut] != null) acc[os.statut]++;
+    });
+    return acc;
+  }, [data.ordresService]);
+
+  // Un OS est "en retard" si sa date de fin prévue est passée et son statut
+  // n'est ni Terminé ni Annulé. Indicateur visuel sur les cartes.
+  const todayISO = new Date().toISOString().split("T")[0];
+  const isOverdue = (os) =>
+    os.date_fin_prevue && os.date_fin_prevue < todayISO && !["Terminé","Annulé"].includes(os.statut);
 
   // Tous les contacts regroupés par type (pour les dropdowns du formulaire)
   const contactsParType = useMemo(() => {
@@ -449,10 +538,32 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs}) {
       style={{display:"none"}}
     />
 
-    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20,flexWrap:"wrap",gap:8}}>
-      <h1 style={{margin:0,fontSize:m?18:24,fontWeight:700,color:"#0F172A"}}>Ordres de Service</h1>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14,flexWrap:"wrap",gap:8}}>
+      <div>
+        <h1 style={{margin:0,fontSize:m?18:24,fontWeight:700,color:"#0F172A"}}>Ordres de Service</h1>
+        <div style={{fontSize:11,color:"#94A3B8",marginTop:2}}>
+          {countByStatus.all} au total
+          {statusFilter !== "all" && <> · <strong>{filteredSortedOS.length}</strong> filtré{filteredSortedOS.length>1?"s":""}</>}
+        </div>
+      </div>
       <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
-        <input type="text" placeholder="Rechercher par n°, chantier, client ou adresse..." value={searchOS} onChange={e=>setSearchOS(e.target.value)} style={{padding:"6px 10px",borderRadius:6,border:"1px solid #E2E8F0",fontSize:12,width:m?"100%":"220px"}}/>
+        <div style={{position:"relative",width:m?"100%":260}}>
+          <svg style={{position:"absolute",left:9,top:"50%",transform:"translateY(-50%)",opacity:0.5}} width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2.5"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+          <input
+            ref={searchInputRef}
+            type="search"
+            placeholder="Rechercher n°, chantier, client… (tape /)"
+            value={searchOS}
+            onChange={e=>setSearchOS(e.target.value)}
+            style={{padding:"7px 10px 7px 28px",borderRadius:7,border:"1px solid #E2E8F0",fontSize:12,width:"100%",boxSizing:"border-box",fontFamily:"inherit"}}
+          />
+        </div>
+        <select value={sortBy} onChange={e=>setSortBy(e.target.value)} title="Trier" style={{padding:"7px 8px",borderRadius:7,border:"1px solid #E2E8F0",fontSize:12,background:"#fff",cursor:"pointer",fontFamily:"inherit"}}>
+          <option value="date_desc">📅 Plus récents</option>
+          <option value="date_asc">📅 Plus anciens</option>
+          <option value="amount_desc">💰 Montant ↓</option>
+          <option value="amount_asc">💰 Montant ↑</option>
+        </select>
         <button
           onClick={() => devisInputRef.current?.click()}
           disabled={importing}
@@ -479,8 +590,32 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs}) {
             <>📸 Importer devis</>
           )}
         </button>
-        <button onClick={openNew} style={{...btnP,fontSize:12}}>+ Nouvel OS</button>
+        <button onClick={openNew} title="Nouvel OS (raccourci : n)" style={{...btnP,fontSize:12}}>+ Nouvel OS</button>
       </div>
+    </div>
+
+    {/* PILLS DE FILTRE PAR STATUT */}
+    <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:14,overflowX:m?"auto":"visible",paddingBottom:m?4:0}}>
+      {[{key:"all",label:"Tous",color:"#64748B"}, ...OS_STATUSES.map(s=>({key:s,label:s,color:osStatusColor[s]}))].map(p => {
+        const active = statusFilter === p.key;
+        const count = countByStatus[p.key] || 0;
+        return (
+          <button key={p.key} onClick={()=>setStatusFilter(p.key)} style={{
+            display:"inline-flex",alignItems:"center",gap:6,
+            padding:"5px 11px",borderRadius:999,fontSize:11,fontWeight:600,
+            border:`1px solid ${active ? p.color : "#E2E8F0"}`,
+            background:active ? p.color : "#fff",
+            color:active ? "#fff" : "#334155",
+            cursor:"pointer",fontFamily:"inherit",
+            transition:"background .15s, color .15s, border-color .15s",
+            whiteSpace:"nowrap",
+          }}>
+            <span style={{width:7,height:7,borderRadius:"50%",background:active?"#fff":p.color,opacity:active?0.8:1}}/>
+            {p.label}
+            <span style={{fontSize:10,opacity:0.75,fontWeight:500}}>{count}</span>
+          </button>
+        );
+      })}
     </div>
 
     {importError && (
@@ -503,18 +638,49 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs}) {
     )}
 
     {/* LISTE DES OS */}
-    <div style={{display:"grid",gap:12}}>
-      {filteredSortedOS.length===0 ?
-        <div style={{background:"#fff",borderRadius:12,padding:30,textAlign:"center",color:"#94A3B8",fontSize:13}}>Aucun ordre de service. Cliquez "+ Nouvel OS" pour en créer un.</div>
-      : filteredSortedOS.map(os=>{
+    <div style={{display:"grid",gap:10}}>
+      {filteredSortedOS.length===0 ? (
+        <div style={{background:"#fff",borderRadius:12,padding:"40px 24px",textAlign:"center",boxShadow:"0 1px 3px rgba(0,0,0,0.04)"}}>
+          <div style={{fontSize:36,marginBottom:8,opacity:0.5}}>📋</div>
+          {searchOS || statusFilter !== "all" ? (
+            <>
+              <div style={{fontSize:14,fontWeight:700,color:"#334155",marginBottom:4}}>Aucun résultat</div>
+              <div style={{fontSize:12,color:"#94A3B8",marginBottom:14}}>Essaie d'élargir ta recherche ou de changer de statut.</div>
+              <button onClick={()=>{setSearchOS("");setStatusFilter("all");}} style={{...btnS,fontSize:12}}>Réinitialiser les filtres</button>
+            </>
+          ) : (
+            <>
+              <div style={{fontSize:14,fontWeight:700,color:"#334155",marginBottom:4}}>Aucun ordre de service</div>
+              <div style={{fontSize:12,color:"#94A3B8",marginBottom:14}}>Crée-en un ou importe un devis par photo pour démarrer.</div>
+              <div style={{display:"flex",gap:8,justifyContent:"center",flexWrap:"wrap"}}>
+                <button onClick={openNew} style={{...btnP,fontSize:12}}>+ Nouvel OS</button>
+                <button onClick={()=>devisInputRef.current?.click()} style={{...btnS,fontSize:12}}>📸 Importer un devis</button>
+              </div>
+            </>
+          )}
+        </div>
+      ) : filteredSortedOS.map(os=>{
         const ch = chantierById.get(os.chantier_id);
+        const overdue = isOverdue(os);
         return (
-          <div key={os.id} style={{background:"#fff",borderRadius:12,padding:m?14:18,boxShadow:"0 1px 3px rgba(0,0,0,0.06)",borderLeft:`4px solid ${osStatusColor[os.statut]||"#94A3B8"}`}}>
+          <div key={os.id} style={{
+            background:"#fff",borderRadius:12,padding:m?14:16,
+            boxShadow:"0 1px 3px rgba(15,23,42,0.06)",
+            borderLeft:`4px solid ${osStatusColor[os.statut]||"#94A3B8"}`,
+          }}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:8}}>
-              <div style={{flex:1}}>
-                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4,flexWrap:"wrap"}}>
-                  <span style={{background:"#1E3A5F",color:"#fff",borderRadius:6,padding:"3px 10px",fontSize:12,fontWeight:700}}>{os.numero}</span>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:4,flexWrap:"wrap"}}>
+                  <span style={{background:"#1E3A5F",color:"#fff",borderRadius:6,padding:"3px 9px",fontSize:11,fontWeight:700,letterSpacing:"0.02em"}}>{os.numero}</span>
                   <Badge text={os.statut} color={osStatusColor[os.statut]||"#94A3B8"}/>
+                  {overdue && (
+                    <span title={`Échéance dépassée : ${fmtDate(os.date_fin_prevue)}`} style={{
+                      display:"inline-flex",alignItems:"center",gap:4,
+                      background:"#FEF2F2",color:"#DC2626",
+                      border:"1px solid #FECACA",borderRadius:999,
+                      padding:"2px 8px",fontSize:10,fontWeight:700
+                    }}>⚠ En retard</span>
+                  )}
                   <span style={{fontSize:14,fontWeight:700,color:"#0F172A"}}>{ch?.nom||"—"}</span>
                 </div>
                 <div style={{fontSize:12,color:"#64748B"}}>{os.artisan_nom}{os.artisan_specialite ? ` · ${os.artisan_specialite}` : ""} — Client : {os.client_nom}</div>
@@ -526,16 +692,22 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs}) {
               </div>
             </div>
             <div style={{display:"flex",gap:6,marginTop:10,flexWrap:"wrap"}}>
-              <button onClick={()=>handlePdf(os)} style={{background:"#EF4444",border:"none",borderRadius:6,padding:"5px 14px",cursor:"pointer",fontSize:11,fontWeight:700,color:"#fff"}}>PDF</button>
-              <button onClick={()=>handleExcel(os)} style={{background:"#10B981",border:"none",borderRadius:6,padding:"5px 14px",cursor:"pointer",fontSize:11,fontWeight:700,color:"#fff"}}>XLS</button>
-              <button onClick={()=>handleEmail(os)} title="Envoyer par email" style={{background:"#6366F1",border:"none",borderRadius:6,padding:"5px 14px",cursor:"pointer",fontSize:11,fontWeight:700,color:"#fff"}}>✉ Email</button>
-              {os.odoo_sign_url
-                ? <a href={os.odoo_sign_url} target="_blank" rel="noreferrer" title={`Signature : ${os.statut_signature||"Envoyé"}`} style={{background:"#7C3AED",border:"none",borderRadius:6,padding:"5px 14px",cursor:"pointer",fontSize:11,fontWeight:700,color:"#fff",textDecoration:"none"}}>✍ {os.statut_signature||"Signé"}</a>
-                : <button onClick={()=>openSignModal(os)} title="Envoyer pour signature Odoo" style={{background:"#7C3AED",border:"none",borderRadius:6,padding:"5px 14px",cursor:"pointer",fontSize:11,fontWeight:700,color:"#fff"}}>✍ Signature</button>
-              }
-              <button onClick={()=>handleDuplicate(os)} title="Dupliquer cet OS" style={{background:"#F59E0B",border:"none",borderRadius:6,padding:"5px 14px",cursor:"pointer",fontSize:11,fontWeight:700,color:"#fff"}}>Dupliquer</button>
-              <button onClick={()=>openEdit(os)} style={{background:"#3B82F6",border:"none",borderRadius:6,padding:"5px 14px",cursor:"pointer",fontSize:11,fontWeight:700,color:"#fff"}}>Modifier</button>
-              <button onClick={()=>handleDelete(os.id)} style={{background:"none",border:"1px solid #FECACA",borderRadius:6,padding:"4px 10px",cursor:"pointer",fontSize:11,color:"#EF4444"}}>Supprimer</button>
+              {/* Groupe Export */}
+              <button onClick={()=>handlePdf(os)} title="Télécharger le PDF" style={osBtn("#DC2626","#FEF2F2","#FECACA")}>📄 PDF</button>
+              <button onClick={()=>handleExcel(os)} title="Télécharger l'Excel" style={osBtn("#047857","#ECFDF5","#A7F3D0")}>📊 XLS</button>
+              <button onClick={()=>handleEmail(os)} title="Envoyer par email" style={osBtn("#4338CA","#EEF2FF","#C7D2FE")}>✉ Email</button>
+              {os.odoo_sign_url ? (
+                <a href={os.odoo_sign_url} target="_blank" rel="noreferrer" title={`Signature : ${os.statut_signature||"Envoyé"}`}
+                  style={{...osBtn("#6D28D9","#F5F3FF","#DDD6FE"), textDecoration:"none", display:"inline-flex", alignItems:"center"}}>
+                  ✍ {os.statut_signature||"Signé"}
+                </a>
+              ) : (
+                <button onClick={()=>openSignModal(os)} title="Envoyer pour signature Odoo" style={osBtn("#6D28D9","#F5F3FF","#DDD6FE")}>✍ Signature</button>
+              )}
+              <span style={{width:1,background:"#E2E8F0",margin:"2px 4px"}}/>
+              <button onClick={()=>handleDuplicate(os)} title="Dupliquer cet OS" style={osBtn("#B45309","#FFFBEB","#FDE68A")}>Dupliquer</button>
+              <button onClick={()=>openEdit(os)} title="Modifier" style={osBtn("#1D4ED8","#EFF6FF","#BFDBFE")}>Modifier</button>
+              <button onClick={()=>handleDelete(os.id)} title="Supprimer" style={{...osBtn("#DC2626","#fff","#FECACA"),marginLeft:"auto"}}>Supprimer</button>
             </div>
           </div>
         );
@@ -543,7 +715,7 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs}) {
     </div>
 
     {/* MODAL CRÉATION OS */}
-    <Modal open={!!modal} onClose={()=>setModal(null)} title={modal==="edit"?"Modifier l'Ordre de Service":"Nouvel Ordre de Service"} wide>
+    <Modal open={!!modal} onClose={closeModal} title={modal==="edit"?"Modifier l'Ordre de Service":"Nouvel Ordre de Service"} wide>
 
       {/* ── IMPORT DEVIS PAR PHOTO (visible uniquement en création) ── */}
       {modal==="new" && (
@@ -646,9 +818,20 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs}) {
       <FF label="Observations"><textarea style={{...inp,minHeight:50,resize:"vertical"}} value={form.observations||""} onChange={e=>setForm({...form,observations:e.target.value})}/></FF>
       <FF label="Conditions de paiement"><textarea style={{...inp,minHeight:40,resize:"vertical"}} value={form.conditions||""} onChange={e=>setForm({...form,conditions:e.target.value})}/></FF>
 
+      {formError && (
+        <div style={{
+          background:"#FEF2F2",border:"1px solid #FECACA",borderRadius:8,
+          padding:"8px 12px",marginTop:10,marginBottom:4,fontSize:12,color:"#DC2626",
+          display:"flex",alignItems:"center",gap:8,
+        }}>
+          <span style={{fontSize:14}}>⚠</span>
+          <span style={{flex:1}}>{formError}</span>
+          <button onClick={()=>setFormError("")} aria-label="Fermer" style={{background:"none",border:"none",cursor:"pointer",color:"#DC2626",fontSize:14,padding:0,lineHeight:1}}>✕</button>
+        </div>
+      )}
       <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginTop:12}}>
-        <button onClick={()=>setModal(null)} style={btnS}>Annuler</button>
-        <button onClick={handleSave} disabled={saving} style={{...btnP,opacity:saving?0.6:1}}>{saving?"Enregistrement...":"Enregistrer l'OS"}</button>
+        <button onClick={closeModal} style={btnS}>Annuler</button>
+        <button onClick={handleSave} disabled={saving} style={{...btnP,opacity:saving?0.6:1}}>{saving?"Enregistrement…":"Enregistrer l'OS"}</button>
       </div>
     </Modal>
 
