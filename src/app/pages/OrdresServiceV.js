@@ -5,6 +5,7 @@ import { Badge, Modal } from '../components'
 import { useToast } from '../contexts/ToastContext'
 import { useConfirm } from '../contexts/ConfirmContext'
 import { useUndoableDelete } from '../hooks/useUndoableDelete'
+import { buildCSV, downloadCSV, formatDateFR, formatMoneyFR } from '../lib/csv'
 import { generateOSPdf, generateOSExcel } from '../generators'
 import { createClient } from '@supabase/supabase-js'
 
@@ -60,6 +61,33 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs}) {
   // Stocke l'id+type du document en cours de génération pour afficher
   // un spinner uniquement sur le bon bouton.
   const [generating, setGenerating] = useState(null); // { id, kind: 'pdf'|'xls' } | null
+
+  // Export CSV de la liste filtrée/triée (ce qui est visible à l'écran)
+  const handleExportCSV = () => {
+    if (filteredSortedOS.length === 0) {
+      addToast("Aucun OS à exporter", "warning");
+      return;
+    }
+    const columns = [
+      { label: 'Numéro',        key: 'numero' },
+      { label: 'Chantier',      get: (os) => chantierById.get(os.chantier_id)?.nom || '' },
+      { label: 'Client',        key: 'client_nom' },
+      { label: 'Destinataire',  key: 'artisan_nom' },
+      { label: 'Spécialité',    key: 'artisan_specialite' },
+      { label: 'Statut',        key: 'statut' },
+      { label: 'Émis le',       get: (os) => formatDateFR(os.date_emission) },
+      { label: 'Intervention',  get: (os) => formatDateFR(os.date_intervention) },
+      { label: 'Fin prévue',    get: (os) => formatDateFR(os.date_fin_prevue) },
+      { label: 'Montant HT',    get: (os) => formatMoneyFR(os.montant_ht) },
+      { label: 'TVA',           get: (os) => formatMoneyFR(os.montant_tva) },
+      { label: 'Montant TTC',   get: (os) => formatMoneyFR(os.montant_ttc) },
+      { label: 'Nb prestations',get: (os) => (os.prestations || []).length },
+    ];
+    const csv = buildCSV(filteredSortedOS, columns);
+    const today = new Date().toISOString().split('T')[0];
+    downloadCSV(`ordres-service_${today}.csv`, csv);
+    addToast(`${filteredSortedOS.length} OS exporté${filteredSortedOS.length > 1 ? 's' : ''}`, "success");
+  };
 
   const nextNum = () => {
     const nums = (data.ordresService||[]).map(os => {
@@ -628,6 +656,20 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs}) {
             <>📸 Importer devis</>
           )}
         </button>
+        <button
+          onClick={handleExportCSV}
+          title="Exporter la liste filtrée au format CSV (Excel)"
+          disabled={filteredSortedOS.length === 0}
+          style={{
+            ...btnS,
+            fontSize: 12,
+            background: "#F0FDF4",
+            color: "#047857",
+            border: "1.5px solid #A7F3D0",
+            cursor: filteredSortedOS.length === 0 ? "not-allowed" : "pointer",
+            opacity: filteredSortedOS.length === 0 ? 0.5 : 1,
+          }}
+        >⬇ CSV</button>
         <button onClick={openNew} title="Nouvel OS (raccourci : n)" style={{...btnP,fontSize:12}}>+ Nouvel OS</button>
       </div>
     </div>

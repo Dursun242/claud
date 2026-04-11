@@ -6,6 +6,7 @@ import { useToast } from '../contexts/ToastContext'
 import { useConfirm } from '../contexts/ConfirmContext'
 import { useUndoableDelete } from '../hooks/useUndoableDelete'
 import { validateSiret, validatePhoneFR, validateEmail, validateIban, validateCodePostalFR, validateTvaIntra } from '../lib/validators'
+import { buildCSV, downloadCSV } from '../lib/csv'
 import { supabase } from '../supabaseClient'
 
 const TYPE_COLORS = {Artisan:"#F59E0B",Client:"#3B82F6",Fournisseur:"#10B981","Sous-traitant":"#8B5CF6",Prestataire:"#EC4899",MOA:"#0EA5E9",Architecte:"#6366F1",BET:"#14B8A6"}
@@ -41,6 +42,38 @@ export default function ContactsV({data,save,m,reload,focusId,focusTs}) {
     } catch {
       addToast("Impossible de copier — clipboard non supporté", "warning");
     }
+  };
+
+  // Export CSV de la liste filtrée/triée (ce qui est visible à l'écran)
+  const handleExportCSV = () => {
+    if (list.length === 0) {
+      addToast("Aucun contact à exporter", "warning");
+      return;
+    }
+    const columns = [
+      { label: 'Nom',            key: 'nom' },
+      { label: 'Société',        key: 'societe' },
+      { label: 'Type',           key: 'type' },
+      { label: 'Spécialité',     key: 'specialite' },
+      { label: 'Fonction',       key: 'fonction' },
+      { label: 'Tél. mobile',    key: 'tel' },
+      { label: 'Tél. fixe',      key: 'tel_fixe' },
+      { label: 'Email',          key: 'email' },
+      { label: 'Adresse',        key: 'adresse' },
+      { label: 'Code postal',    key: 'code_postal' },
+      { label: 'Ville',          key: 'ville' },
+      { label: 'SIRET',          key: 'siret' },
+      { label: 'TVA intra.',     key: 'tva_intra' },
+      { label: 'Site web',       key: 'site_web' },
+      { label: 'IBAN',           key: 'iban' },
+      { label: 'Qualifications', key: 'qualifications' },
+      { label: 'Note',           get: (c) => c.note ? `${c.note}/5` : '' },
+      { label: 'Actif',          get: (c) => c.actif === false ? 'Non' : 'Oui' },
+    ];
+    const csv = buildCSV(list, columns);
+    const today = new Date().toISOString().split('T')[0];
+    downloadCSV(`contacts_${today}.csv`, csv);
+    addToast(`${list.length} contact${list.length > 1 ? 's' : ''} exporté${list.length > 1 ? 's' : ''}`, "success");
   };
   const list=data.contacts.filter(c=>{
     if(pendingDeleteIds.has(c.id)) return false;
@@ -427,6 +460,20 @@ export default function ContactsV({data,save,m,reload,focusId,focusTs}) {
             <>📸 Importer photo / capture</>
           )}
         </button>
+        <button
+          onClick={handleExportCSV}
+          title="Exporter la liste filtrée au format CSV (Excel)"
+          disabled={list.length === 0}
+          style={{
+            ...btnS,
+            fontSize: 12,
+            background: "#F0FDF4",
+            color: "#047857",
+            border: "1.5px solid #A7F3D0",
+            cursor: list.length === 0 ? "not-allowed" : "pointer",
+            opacity: list.length === 0 ? 0.5 : 1,
+          }}
+        >⬇ CSV</button>
         <button onClick={openNew} title="Nouveau contact (raccourci : n)" style={{...btnP,fontSize:12}}>+ Nouveau contact</button>
       </div>
     </div>
