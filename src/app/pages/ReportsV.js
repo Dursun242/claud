@@ -1,14 +1,28 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { SB, Icon, I, fmtDate, FF, inp, sel, btnP, btnS } from '../dashboards/shared'
 import { Modal } from '../components'
 import { generateCRPdf, generateCRExcel } from '../generators'
 
-export default function ReportsV({data,save,m,reload}) {
+export default function ReportsV({data,save,m,reload,focusId,focusTs}) {
   const [modal,setModal]=useState(null);const [form,setForm]=useState({});const [searchCR,setSearchCR]=useState("");
   const openNew=()=>{setForm({chantierId:data.chantiers[0]?.id||"",date:new Date().toISOString().split("T")[0],numero:(data.compteRendus||[]).length+1,resume:"",participants:"",decisions:""});setModal("new");};
   const handleSave=async()=>{await SB.upsertCR(form);setModal(null);reload();};
   const handleDelete=async(id)=>{if(!window.confirm("Supprimer ce compte rendu ?")) return;await SB.deleteCR(id);reload();};
+
+  // Focus depuis la recherche globale : ouvre directement la modale
+  // d'édition du CR correspondant, et vide le filtre de recherche
+  // local pour que la liste en fond reste cohérente.
+  useEffect(() => {
+    if (!focusId) return;
+    const cr = (data.compteRendus || []).find(c => c.id === focusId);
+    if (cr) {
+      setSearchCR("");
+      setForm(cr);
+      setModal("edit");
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusId, focusTs]);
 
   const filterCR=(cr)=>{const s=searchCR.toLowerCase();const ch=data.chantiers.find(c=>c.id===(cr.chantierId||cr.chantier_id));return String(cr.numero).toLowerCase().includes(s)||(ch?.nom||"").toLowerCase().includes(s)||(ch?.client||"").toLowerCase().includes(s)||(ch?.adresse||"").toLowerCase().includes(s);};
 

@@ -1,5 +1,5 @@
 'use client'
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { SB, Icon, I, phase, status, fmtDate, fmtMoney, pct, FF, inp, sel, btnP, btnS, PBar } from '../dashboards/shared'
 import { Badge, Modal, AttachmentsSection, CommentsSection, SharingPanel, TemplateSelector } from '../components'
 import { useAttachments } from '../hooks/useAttachments'
@@ -8,7 +8,7 @@ import { useSharing } from '../hooks/useSharing'
 import { generateOSPdf, generateCRPdf, generateOSExcel, generateCRExcel } from '../generators'
 import { useToast } from '../contexts/ToastContext'
 
-export default function ProjectsV({data,save,m,reload,user,profile}) {
+export default function ProjectsV({data,save,m,reload,user,profile,focusId,focusTs}) {
   const { addToast } = useToast();
   const [modal,setModal]=useState(null);const [form,setForm]=useState({});
   const [selected,setSelected]=useState(null);
@@ -50,6 +50,15 @@ export default function ProjectsV({data,save,m,reload,user,profile}) {
     ),
     [data.chantiers, filterStatut, filterPhase]
   );
+
+  // Focus depuis la recherche globale : ouvre directement la vue détail
+  // du chantier correspondant.
+  useEffect(() => {
+    if (!focusId) return;
+    const exists = (data.chantiers || []).some(c => c.id === focusId);
+    if (exists) setSelected(focusId);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusId, focusTs]);
 
   const openNew=()=>{setForm({nom:"",client:"",adresse:"",phase:"Hors d'air",statut:"Planifié",budget:"",depenses:0,dateDebut:"",dateFin:"",lots:"",photo_couverture:"",notes_internes:""});setModal("new");};
   const [saving,setSaving]=useState(false);

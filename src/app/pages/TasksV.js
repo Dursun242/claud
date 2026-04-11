@@ -1,13 +1,27 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { SB, Icon, I, status, fmtDate, FF, inp, sel, btnP, btnS } from '../dashboards/shared'
 import { Badge, Modal } from '../components'
 
-export default function TasksV({data,save,m,reload}) {
+export default function TasksV({data,save,m,reload,focusId,focusTs}) {
   const [modal,setModal]=useState(null);const [form,setForm]=useState({});const [filter,setFilter]=useState("all");
   const tasks = filter==="all"?data.tasks:data.tasks.filter(t=>t.statut===filter);
   const openNew=()=>{setForm({chantierId:data.chantiers[0]?.id||"",titre:"",priorite:"En cours",statut:"Planifié",echeance:"",lot:""});setModal("new");};
   const handleSave=async()=>{await SB.upsertTask(form);setModal(null);reload();};
+
+  // Focus depuis la recherche globale : ouvre la modale d'édition de la
+  // tâche correspondante, et retire le filtre pour qu'elle soit visible
+  // en fond derrière la modale.
+  useEffect(() => {
+    if (!focusId) return;
+    const task = (data.tasks || []).find(t => t.id === focusId);
+    if (task) {
+      setFilter("all");
+      setForm(task);
+      setModal("edit");
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusId, focusTs]);
   const toggle=async(t)=>{const cy=["Planifié","En cours","Terminé"];const idx=cy.indexOf(t.statut);const next=cy[(idx<0?0:idx+1)%3];await SB.upsertTask({...t,statut:next});reload();};
   const handleDelete=async(id)=>{if(!window.confirm("Supprimer cette tâche ?")) return;await SB.deleteTask(id);reload();};
 

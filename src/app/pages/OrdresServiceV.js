@@ -1,5 +1,5 @@
 'use client'
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { SB, Icon, I, fmtDate, fmtMoney, FF, inp, sel, btnP, btnS } from '../dashboards/shared'
 import { Badge, Modal } from '../components'
 import { generateOSPdf, generateOSExcel } from '../generators'
@@ -7,7 +7,7 @@ import { createClient } from '@supabase/supabase-js'
 
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
 
-export default function OrdresServiceV({data,m,reload}) {
+export default function OrdresServiceV({data,m,reload,focusId,focusTs}) {
   const [modal,setModal]=useState(null);
   const [form,setForm]=useState({});
   const [prestations,setPrestations]=useState([]);
@@ -54,6 +54,15 @@ export default function OrdresServiceV({data,m,reload}) {
     );
     setModal("edit");
   };
+
+  // Focus depuis la recherche globale : ouvre directement la modale d'édition
+  // de l'OS correspondant.
+  useEffect(() => {
+    if (!focusId) return;
+    const os = (data.ordresService || []).find(o => o.id === focusId);
+    if (os) openEdit(os);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusId, focusTs]);
 
   const updateChantier = (chId) => {
     const ch = data.chantiers.find(c=>c.id===chId);

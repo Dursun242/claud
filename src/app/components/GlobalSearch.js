@@ -76,8 +76,8 @@ export default function GlobalSearch({ data, onNavigate }) {
     return () => document.removeEventListener('keydown', handler)
   }, [])
 
-  const handleNavigate = useCallback((tab) => {
-    onNavigate(tab)
+  const handleNavigate = useCallback((tab, id = null) => {
+    onNavigate(tab, id)
     setOpen(false)
     setQuery('')
   }, [onNavigate])
@@ -91,7 +91,7 @@ export default function GlobalSearch({ data, onNavigate }) {
     if (!open) return
     if (e.key === 'ArrowDown') { e.preventDefault(); setActive(i => Math.min(i + 1, flat.length - 1)) }
     if (e.key === 'ArrowUp')   { e.preventDefault(); setActive(i => Math.max(i - 1, -1)) }
-    if (e.key === 'Enter' && activeIdx >= 0) { handleNavigate(flat[activeIdx].tab) }
+    if (e.key === 'Enter' && activeIdx >= 0) { handleNavigate(flat[activeIdx].tab, flat[activeIdx].id) }
   }
 
   return (
@@ -145,7 +145,7 @@ export default function GlobalSearch({ data, onNavigate }) {
                     const globalIdx = flat.findIndex(f => f.id === item.id && f.tab === cat.tab)
                     const isActive = globalIdx === activeIdx
                     return (
-                      <button key={item.id} onClick={() => handleNavigate(cat.tab)}
+                      <button key={item.id} onClick={() => handleNavigate(cat.tab, item.id)}
                         onMouseEnter={() => setActive(globalIdx)}
                         style={{
                           display: 'block', width: '100%', textAlign: 'left',

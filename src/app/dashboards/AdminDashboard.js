@@ -184,6 +184,13 @@ export default function AdminDashboard({ user, profile = null }) {
   // Legacy save
   const save = useCallback(async (d) => { setData(d); }, []);
 
+  // Focus = élément à mettre en avant dans la page cible après navigation
+  // (utilisé par la recherche globale). On utilise un timestamp "ts" pour
+  // que re-cliquer sur le même résultat re-déclenche le useEffect côté page.
+  // ⚠️ Doit être déclaré AVANT le early return `if (loading || !data)`
+  // pour respecter les règles des hooks React.
+  const [focus, setFocus] = useState(null);
+
   if (loading || !data) return (
     <div style={{height:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"#F8FAFC",fontFamily:"'DM Sans',sans-serif"}}>
       <div style={{width:48,height:48,border:"4px solid #E2E8F0",borderTopColor:"#1E3A5F",borderRadius:"50%",animation:"spin 1s linear infinite"}}/>
@@ -203,7 +210,11 @@ export default function AdminDashboard({ user, profile = null }) {
     {key:"ai",label:"Assistant IA",icon:I.ai},
   ];
 
-  const switchTab = (k) => { setTab(k); if (isMobile) setSidebarOpen(false); };
+  const switchTab = (k, id = null) => {
+    setTab(k);
+    setFocus(id ? { id, ts: Date.now() } : null);
+    if (isMobile) setSidebarOpen(false);
+  };
 
   return (
     <div style={{display:"flex",height:"100vh",fontFamily:"'DM Sans',sans-serif",background:"#F1F5F9",overflow:"hidden"}}>
@@ -283,12 +294,12 @@ export default function AdminDashboard({ user, profile = null }) {
         <div style={{animation:"fadeIn .3s ease",maxWidth:1200}}>
           {tab==="dashboard"&&<DashboardV data={data} setTab={switchTab} m={isMobile} user={user}/>}
           {tab==="qonto"&&<QontoV m={isMobile} data={data} reload={reload}/>}
-          {tab==="projects"&&<ProjectsV data={data} save={save} m={isMobile} reload={reload} user={user} profile={profile}/>}
+          {tab==="projects"&&<ProjectsV data={data} save={save} m={isMobile} reload={reload} user={user} profile={profile} focusId={focus?.id} focusTs={focus?.ts}/>}
           {tab==="planning"&&<PlanningV data={data} m={isMobile}/>}
-          {tab==="tasks"&&<TasksV data={data} save={save} m={isMobile} reload={reload}/>}
-          {tab==="contacts"&&<ContactsV data={data} save={save} m={isMobile} reload={reload}/>}
-          {tab==="reports"&&<ReportsV data={data} save={save} m={isMobile} reload={reload}/>}
-          {tab==="os"&&<OrdresServiceV data={data} m={isMobile} reload={reload}/>}
+          {tab==="tasks"&&<TasksV data={data} save={save} m={isMobile} reload={reload} focusId={focus?.id} focusTs={focus?.ts}/>}
+          {tab==="contacts"&&<ContactsV data={data} save={save} m={isMobile} reload={reload} focusId={focus?.id} focusTs={focus?.ts}/>}
+          {tab==="reports"&&<ReportsV data={data} save={save} m={isMobile} reload={reload} focusId={focus?.id} focusTs={focus?.ts}/>}
+          {tab==="os"&&<OrdresServiceV data={data} m={isMobile} reload={reload} focusId={focus?.id} focusTs={focus?.ts}/>}
           {tab==="admin"&&<AdminV m={isMobile} reload={reload} profile={profile}/>}
           {tab==="ai"&&<AIV data={data} save={save} m={isMobile} externalTranscript={floatTranscript} clearExternal={()=>setFloatTranscript("")} reload={reload}/>}
         </div>

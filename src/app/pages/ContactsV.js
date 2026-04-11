@@ -1,10 +1,10 @@
 'use client'
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { SB, Icon, I, FF, inp, sel, btnP, btnS } from '../dashboards/shared'
 import { Badge, Modal } from '../components'
 import { supabase } from '../supabaseClient'
 
-export default function ContactsV({data,save,m,reload}) {
+export default function ContactsV({data,save,m,reload,focusId,focusTs}) {
   const [modal,setModal]=useState(null);const [form,setForm]=useState({});const [tf,setTf]=useState("all");const [q,setQ]=useState("");
   const [pSearch,setPSearch]=useState("");const [pLoading,setPLoading]=useState(false);const [pResults,setPResults]=useState(null);const [pError,setPError]=useState("");
   // États import par photo
@@ -23,6 +23,22 @@ export default function ContactsV({data,save,m,reload}) {
   const emptyForm = {nom:"",type:"Artisan",specialite:"",societe:"",fonction:"",tel:"",tel_fixe:"",email:"",adresse:"",code_postal:"",ville:"",siret:"",tva_intra:"",assurance_decennale:"",assurance_validite:"",iban:"",qualifications:"",site_web:"",note:0,actif:true,notes:""};
 
   const openNew=()=>{setForm(emptyForm);setPSearch("");setPResults(null);setPError("");setModal("new");};
+
+  // Focus depuis la recherche globale : quand on arrive ici avec un focusId,
+  // on ouvre directement la modale d'édition du contact correspondant.
+  // focusTs change à chaque navigation (même si même id) pour re-déclencher.
+  useEffect(() => {
+    if (!focusId) return;
+    const contact = (data.contacts || []).find(c => c.id === focusId);
+    if (contact) {
+      setForm({...contact});
+      setPSearch("");
+      setPResults(null);
+      setPError("");
+      setModal("edit");
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusId, focusTs]);
   const handleSave=async()=>{await SB.upsertContact(form);setModal(null);reload();};
   const handleDelete=async(id)=>{if(!window.confirm("Supprimer ce contact ? Cette action est irréversible.")) return;await SB.deleteContact(id);reload();};
 
