@@ -1,5 +1,5 @@
 'use client'
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { SB, Icon, I, fmtDate, fmtMoney, FF, inp, sel, btnP, btnS } from '../dashboards/shared'
 import { Badge, Modal } from '../components'
 import { generateOSPdf, generateOSExcel } from '../generators'
@@ -17,6 +17,10 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs}) {
   const [signSigners,setSignSigners]=useState({ moe:{name:'',email:''}, moa:{name:'',email:''}, entreprise:{name:'',email:''} });
   const [signSending,setSignSending]=useState(false);
   const [signError,setSignError]=useState("");
+  // Import devis par photo
+  const [importing, setImporting] = useState(false);
+  const [importError, setImportError] = useState("");
+  const devisInputRef = useRef(null);
 
   const nextNum = () => {
     const nums = (data.ordresService||[]).map(os => {
@@ -65,6 +69,155 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs}) {
     if (os?.numero) setSearchOS(os.numero);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusId, focusTs]);
+
+  // ─── Import devis par photo (Claude Vision) ──────────────────
+  //
+  // Resize une image via canvas pour rester sous 1600px de largeur
+  // (même pattern que ContactsV pour rester < 5 Mo).
+  const resizeImageToBase64 = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const MAX_W = 1600;
+          let { width, height } = img;
+          if (width > MAX_W) {
+            height = Math.round(height * (MAX_W / width));
+            width = MAX_W;
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+          resolve({ base64: dataUrl.split(',')[1], mediaType: 'image/jpeg' });
+        };
+        img.onerror = () => reject(new Error("Image illisible"));
+        img.src = e.target.result;
+      };
+      reader.onerror = () => reject(new Error("Lecture fichier échouée"));
+      reader.readAsDataURL(file);
+    });
+  };
+
+  // Trouve un contact existant qui matche le nom ou le SIRET extrait.
+  // Cela permet de préserver l'ID en base (pas de doublon) et de récupérer
+  // les infos supplémentaires (spécialité officielle, adresse vérifiée, etc.).
+  const findExistingContact = (extracted) => {
+    if (!extracted) return null;
+    const contacts = data.contacts || [];
+    // Priorité 1 : match exact par SIRET (le plus fiable)
+    if (extracted.artisan_siret) {
+      const siretClean = String(extracted.artisan_siret).replace(/\s/g, '');
+      const byS = contacts.find(c => String(c.siret || '').replace(/\s/g, '') === siretClean);
+      if (byS) return byS;
+    }
+    // Priorité 2 : match exact par nom (insensible à la casse et espaces)
+    if (extracted.artisan_nom) {
+      const norm = (s) => String(s || '').toLowerCase().trim().replace(/\s+/g, ' ');
+      const byN = contacts.find(c => norm(c.nom) === norm(extracted.artisan_nom));
+      if (byN) return byN;
+    }
+    return null;
+  };
+
+  const handleImportDevis = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // permet de re-sélectionner la même photo
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setImportError("Ce fichier n'est pas une image.");
+      return;
+    }
+
+    setImporting(true);
+    setImportError("");
+
+    try {
+      // 1. Resize + base64
+      const { base64, mediaType } = await resizeImageToBase64(file);
+
+      // 2. Auth token Supabase
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        setImportError("Session expirée, reconnectez-vous.");
+        return;
+      }
+
+      // 3. Appel extraction
+      const res = await fetch('/api/extract-os-data', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ imageBase64: base64, mediaType }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setImportError(json.error || "Extraction échouée");
+        return;
+      }
+
+      const extracted = json.data || {};
+      if (!extracted || Object.keys(extracted).length === 0) {
+        setImportError("Aucune information n'a pu être détectée sur cette image. Essaye une photo plus nette.");
+        return;
+      }
+
+      // 4. Match avec un contact existant (pour réutiliser les infos fiables)
+      const existing = findExistingContact(extracted);
+
+      // 5. Chantier par défaut : le premier (l'user peut changer dans le form)
+      const ch = data.chantiers?.[0];
+
+      // 6. Construction du form pré-rempli
+      //    On privilégie les infos de contact existant s'il est trouvé,
+      //    sinon on utilise ce que Claude a extrait.
+      const newForm = {
+        numero: nextNum(),
+        chantier_id: ch?.id || "",
+        chantier: ch?.nom || "",
+        adresse_chantier: ch?.adresse || "",
+        client_nom: extracted.client_nom || ch?.client || "",
+        client_adresse: extracted.client_adresse || "",
+        artisan_nom: existing?.nom || extracted.artisan_nom || "",
+        artisan_specialite: existing?.specialite || extracted.artisan_specialite || "",
+        artisan_adresse: existing?.adresse || extracted.artisan_adresse || "",
+        artisan_tel: existing?.tel || extracted.artisan_tel || "",
+        artisan_email: existing?.email || extracted.artisan_email || "",
+        artisan_siret: existing?.siret || extracted.artisan_siret || "",
+        date_emission: extracted.date_emission || new Date().toISOString().split("T")[0],
+        date_intervention: extracted.date_intervention || "",
+        date_fin_prevue: "",
+        observations: extracted.observations || "",
+        conditions: "Paiement à 30 jours à compter de la réception de la facture.",
+        statut: "Brouillon",
+      };
+
+      // 7. Prestations → conversion en strings pour les inputs controlled
+      const newPrestations = Array.isArray(extracted.prestations) && extracted.prestations.length > 0
+        ? extracted.prestations.map(p => ({
+            description: String(p.description || ""),
+            unite: String(p.unite || "u"),
+            quantite: String(p.quantite || ""),
+            prix_unitaire: String(p.prix_unitaire || ""),
+            tva_taux: String(p.tva_taux || "20"),
+          }))
+        : [{ description: "", unite: "m²", quantite: "", prix_unitaire: "", tva_taux: "20" }];
+
+      setForm(newForm);
+      setPrestations(newPrestations);
+      setModal("new");
+    } catch (err) {
+      setImportError("Erreur : " + (err?.message || String(err)));
+    } finally {
+      setImporting(false);
+    }
+  };
 
   const updateChantier = (chId) => {
     const ch = data.chantiers.find(c=>c.id===chId);
@@ -243,13 +396,68 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs}) {
   }, [data.contacts]);
 
   return (<div>
+    {/* Input file caché pour l'import de devis par photo.
+        Pas de `capture` → iOS propose caméra + photothèque + fichiers. */}
+    <input
+      ref={devisInputRef}
+      type="file"
+      accept="image/*"
+      onChange={handleImportDevis}
+      style={{display:"none"}}
+    />
+
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20,flexWrap:"wrap",gap:8}}>
       <h1 style={{margin:0,fontSize:m?18:24,fontWeight:700,color:"#0F172A"}}>Ordres de Service</h1>
       <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
         <input type="text" placeholder="Rechercher par n°, chantier, client ou adresse..." value={searchOS} onChange={e=>setSearchOS(e.target.value)} style={{padding:"6px 10px",borderRadius:6,border:"1px solid #E2E8F0",fontSize:12,width:m?"100%":"220px"}}/>
+        <button
+          onClick={() => devisInputRef.current?.click()}
+          disabled={importing}
+          style={{
+            ...btnS,
+            fontSize:12,
+            background:"#EEF2FF",
+            color:"#4F46E5",
+            border:"1.5px solid #C7D2FE",
+            cursor:importing?"wait":"pointer",
+            opacity:importing?0.7:1,
+            display:"flex",
+            alignItems:"center",
+            gap:6,
+          }}
+          title="Photographie ou screenshot un devis artisan pour auto-remplir un OS"
+        >
+          {importing ? (
+            <>
+              <span style={{display:"inline-block",width:12,height:12,border:"2px solid #C7D2FE",borderTopColor:"#4F46E5",borderRadius:"50%",animation:"spin 0.8s linear infinite"}}/>
+              Extraction…
+            </>
+          ) : (
+            <>📸 Importer devis</>
+          )}
+        </button>
         <button onClick={openNew} style={{...btnP,fontSize:12}}>+ Nouvel OS</button>
       </div>
     </div>
+
+    {importError && (
+      <div style={{
+        background:"#FEF2F2",
+        border:"1px solid #FECACA",
+        borderRadius:8,
+        padding:"8px 12px",
+        marginBottom:12,
+        fontSize:12,
+        color:"#DC2626",
+        display:"flex",
+        justifyContent:"space-between",
+        alignItems:"center",
+        gap:8,
+      }}>
+        <span>{importError}</span>
+        <button onClick={()=>setImportError("")} style={{background:"none",border:"none",cursor:"pointer",color:"#DC2626",fontSize:16,padding:0}}>✕</button>
+      </div>
+    )}
 
     {/* LISTE DES OS */}
     <div style={{display:"grid",gap:12}}>
@@ -293,6 +501,51 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs}) {
 
     {/* MODAL CRÉATION OS */}
     <Modal open={!!modal} onClose={()=>setModal(null)} title={modal==="edit"?"Modifier l'Ordre de Service":"Nouvel Ordre de Service"} wide>
+
+      {/* ── IMPORT DEVIS PAR PHOTO (visible uniquement en création) ── */}
+      {modal==="new" && (
+        <div style={{background:"#EEF2FF",border:"1.5px solid #C7D2FE",borderRadius:10,padding:"12px 14px",marginBottom:12}}>
+          <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8,flexWrap:"wrap"}}>
+            <span style={{fontSize:15}}>📸</span>
+            <span style={{fontSize:12,fontWeight:700,color:"#4338CA"}}>Import devis par photo ou capture</span>
+            <span style={{fontSize:10,color:"#818CF8",width:"100%"}}>Photo d'un devis, facture, bon de commande ou screenshot PDF</span>
+          </div>
+          <button
+            onClick={() => devisInputRef.current?.click()}
+            disabled={importing}
+            style={{
+              width:"100%",
+              padding:"10px 14px",
+              borderRadius:8,
+              border:"1.5px dashed #A5B4FC",
+              background:"#fff",
+              color:"#4F46E5",
+              fontSize:13,
+              fontWeight:600,
+              cursor:importing?"wait":"pointer",
+              fontFamily:"inherit",
+              display:"flex",
+              alignItems:"center",
+              justifyContent:"center",
+              gap:8,
+              opacity:importing?0.7:1,
+            }}
+          >
+            {importing ? (
+              <>
+                <span style={{display:"inline-block",width:12,height:12,border:"2px solid #C7D2FE",borderTopColor:"#4F46E5",borderRadius:"50%",animation:"spin 0.8s linear infinite"}}/>
+                Extraction en cours…
+              </>
+            ) : (
+              <>📷 Choisir une photo ou capture</>
+            )}
+          </button>
+          {importError && (
+            <div style={{marginTop:8,fontSize:11,color:"#DC2626"}}>{importError}</div>
+          )}
+        </div>
+      )}
+
       <div style={{display:"grid",gridTemplateColumns:m?"1fr":"1fr 1fr 1fr",gap:"0 12px"}}>
         <FF label="N° OS"><input style={inp} value={form.numero||""} onChange={e=>setForm({...form,numero:e.target.value})}/></FF>
         <FF label="Chantier"><select style={sel} value={form.chantier_id||""} onChange={e=>updateChantier(e.target.value)}>{data.chantiers.map(c=><option key={c.id} value={c.id}>{c.nom}</option>)}</select></FF>

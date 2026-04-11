@@ -1,137 +1,264 @@
-import Anthropic from "@anthropic-ai/sdk";
-import { createClient } from "@supabase/supabase-js";
+// Extraction de données d'un devis artisan via Claude Vision
+// pour pré-remplir un Ordre de Service.
+//
+// Pattern identique à /api/extract-contact : auth JWT, rate limit,
+// validation taille/format, modèle Claude à jour, zéro side-effect DB.
+// La route retourne juste le JSON parsé — c'est le frontend qui décide
+// quoi en faire (pré-remplir le form, créer un contact si absent, etc.).
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
+// Rate limiting simple en mémoire (par IP)
+const rateLimit = new Map();
+const LIMIT = 10; // conservateur : les extractions coûtent
+const WINDOW_MS = 60_000;
 
-// Initialize Supabase lazily to avoid build-time errors
-function getSupabase() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  );
+function checkRateLimit(ip) {
+  const now = Date.now();
+  const entry = rateLimit.get(ip);
+  if (!entry || now > entry.resetAt) {
+    rateLimit.set(ip, { count: 1, resetAt: now + WINDOW_MS });
+    return true;
+  }
+  if (entry.count >= LIMIT) return false;
+  entry.count++;
+  return true;
 }
 
-export async function POST(req) {
-  try {
-    const { imageBase64, fileName } = await req.json();
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, entry] of rateLimit.entries()) {
+    if (now > entry.resetAt) rateLimit.delete(ip);
+  }
+}, WINDOW_MS * 5);
 
-    if (!imageBase64) {
+// Vérification auth minimale : JWT Supabase valide
+async function verifyAuth(request) {
+  const authHeader = request.headers.get('Authorization');
+  if (!authHeader?.startsWith('Bearer ')) return null;
+  const token = authHeader.replace('Bearer ', '');
+  try {
+    const { createClient } = await import('@supabase/supabase-js');
+    const client = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      { auth: { persistSession: false } }
+    );
+    const { data: { user } } = await client.auth.getUser(token);
+    return user || null;
+  } catch {
+    return null;
+  }
+}
+
+const SYSTEM_PROMPT = `Tu es un assistant d'extraction de devis du secteur BTP français.
+
+L'utilisateur te fournit une image d'un devis, facture, proforma ou bon
+de commande provenant d'un artisan (plombier, électricien, maçon, peintre,
+charpentier, etc.) ou d'un fournisseur de matériaux.
+
+Extrais TOUTES les informations utiles pour pré-remplir un Ordre de Service
+et retourne-les au format JSON strict.
+
+L'image peut être :
+- Une photo d'un devis papier
+- Un screenshot d'un PDF ou d'un email contenant un devis
+- Une photo d'un bon de commande manuscrit
+- Une photo d'une feuille de prix / catalogue
+
+Retourne UNIQUEMENT ce JSON (sans markdown, sans backticks, sans texte avant/après) :
+
+{
+  "artisan_nom": "Raison sociale ou nom de l'entreprise (en-tête du devis)",
+  "artisan_specialite": "Métier/activité (Plombier, Électricité CFO/CFA, Gros œuvre, etc.)",
+  "artisan_tel": "Téléphone principal (format français avec espaces)",
+  "artisan_email": "Email",
+  "artisan_siret": "14 chiffres sans espace",
+  "artisan_adresse": "Adresse complète si visible (numéro, rue, CP, ville)",
+  "client_nom": "Nom du destinataire du devis (souvent libellé 'Client:' ou 'Adresse de facturation')",
+  "client_adresse": "Adresse du destinataire",
+  "date_emission": "Date d'émission du devis au format AAAA-MM-JJ",
+  "date_intervention": "Date d'intervention prévue si mentionnée, format AAAA-MM-JJ",
+  "prestations": [
+    {
+      "description": "Description exacte de la ligne",
+      "unite": "u | m² | m³ | ml | h | j | forfait | kg | t | ens",
+      "quantite": 1.5,
+      "prix_unitaire": 125.50,
+      "tva_taux": 20
+    }
+  ],
+  "observations": "Notes / conditions particulières / délais / remarques au bas du devis"
+}
+
+RÈGLES STRICTES pour les prestations :
+
+1. N'inclus PAS les lignes de totaux (Total HT, TVA, Total TTC, Sous-total,
+   Acompte, Net à payer) dans "prestations". Ce sont des sous-totaux calculés,
+   pas des prestations.
+
+2. Inclus UNIQUEMENT les vraies lignes de travail/fourniture, une ligne
+   par prestation.
+
+3. Les nombres français utilisent la virgule comme décimale. Convertis-les
+   en point pour le JSON :
+   - "1 234,56" → 1234.56
+   - "125,50 €" → 125.50
+   - "15 %" → 15 (pour la TVA, juste le nombre)
+
+4. Unités courantes BTP à reconnaître :
+   - "u", "unité", "pièce", "pc", "pce" → "u"
+   - "m²", "m2", "mc" → "m²"
+   - "m³", "m3" → "m³"
+   - "ml", "m.l.", "mètre linéaire" → "ml"
+   - "h", "heure", "hr" → "h"
+   - "j", "jour", "jr" → "j"
+   - "forfait", "ft", "fft" → "forfait"
+   - "kg", "kilo" → "kg"
+   - "t", "tonne" → "t"
+   - "ens", "ensemble" → "ens"
+   Si tu ne reconnais pas l'unité, mets "u" par défaut.
+
+5. TVA par défaut si non spécifiée : 20 (taux normal France).
+   Reconnais aussi : 5.5 (rénovation logement), 10 (intermédiaire), 2.1 (DOM).
+
+RÈGLES pour les champs optionnels :
+- Si une info n'est PAS visible ou PAS certaine, OMETS le champ entièrement
+  (ne mets ni null ni chaîne vide).
+- Si aucune prestation n'est détectable, renvoie prestations: [].
+- Si l'image n'est pas un devis exploitable, renvoie un objet {} vide.
+
+Retourne UNIQUEMENT le JSON, rien d'autre.`;
+
+export async function POST(request) {
+  try {
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+    if (!checkRateLimit(ip)) {
       return Response.json(
-        { error: "Aucune image fournie" },
-        { status: 400 }
+        { error: 'Trop de requêtes — attendez 1 minute avant de réessayer.' },
+        { status: 429 }
       );
     }
 
-    const supabase = getSupabase();
-
-    // Appel Claude Haiku Vision pour extraire les données
-    const message = await anthropic.messages.create({
-      model: "claude-3-5-haiku-20241022",
-      max_tokens: 1024,
-      messages: [
-        {
-          role: "user",
-          content: [
-            {
-              type: "image",
-              source: {
-                type: "base64",
-                media_type: "image/jpeg",
-                data: imageBase64,
-              },
-            },
-            {
-              type: "text",
-              text: `Analyse ce document et extrais les informations pour créer un Ordre de Service.
-
-Retourne UNIQUEMENT un JSON (sans markdown) avec cette structure:
-{
-  "artisan_nom": "Nom de l'entreprise/artisan",
-  "artisan_specialite": "Spécialité/domaine",
-  "artisan_tel": "Téléphone",
-  "artisan_email": "Email",
-  "artisan_siret": "SIRET si disponible",
-  "prestations": [
-    {"description": "Description", "unite": "u|m²|ml|h|forfait", "quantite": 1, "prix_unitaire": 100, "tva_taux": 20}
-  ],
-  "observations": "Notes supplémentaires",
-  "montant_ht": 0,
-  "montant_ttc": 0
-}
-
-Si un champ n'est pas trouvé, laisse-le vide ou null.`,
-            },
-          ],
-        },
-      ],
-    });
-
-    const responseText =
-      message.content[0].type === "text" ? message.content[0].text : "";
-
-    // Parse la réponse JSON
-    let osData;
-    try {
-      osData = JSON.parse(responseText);
-    } catch (e) {
-      // Si ce n'est pas du JSON pur, essayer d'extraire le JSON
-      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        osData = JSON.parse(jsonMatch[0]);
-      } else {
-        throw new Error("Impossible de parser la réponse");
-      }
+    const user = await verifyAuth(request);
+    if (!user) {
+      return Response.json({ error: 'Non autorisé' }, { status: 401 });
     }
 
-    // Créer ou récupérer le contact (artisan)
-    let contactId = null;
-    if (osData.artisan_nom) {
-      const { data: existingContact } = await supabase
-        .from("contacts")
-        .select("id")
-        .eq("nom", osData.artisan_nom)
-        .single();
+    const body = await request.json();
+    const { imageBase64, mediaType } = body;
 
-      if (existingContact) {
-        contactId = existingContact.id;
-      } else {
-        // Créer un nouveau contact
-        const { data: newContact, error } = await supabase
-          .from("contacts")
-          .insert({
-            nom: osData.artisan_nom,
-            type: "Artisan",
-            specialite: osData.artisan_specialite || null,
-            tel: osData.artisan_tel || null,
-            email: osData.artisan_email || null,
-            siret: osData.artisan_siret || null,
-            actif: true,
-          })
-          .select()
-          .single();
-
-        if (error) {
-          console.error("Erreur création contact:", error);
-        } else {
-          contactId = newContact.id;
-        }
-      }
+    // Validation du payload
+    if (typeof imageBase64 !== 'string' || imageBase64.length === 0) {
+      return Response.json({ error: 'Image manquante' }, { status: 400 });
+    }
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    if (!allowedTypes.includes(mediaType)) {
+      return Response.json(
+        { error: "Format d'image non supporté (JPEG/PNG/WebP/GIF attendu)" },
+        { status: 400 }
+      );
+    }
+    // Taille max 5 Mo (limite Claude API)
+    const approxBytes = Math.floor(imageBase64.length * 0.75);
+    if (approxBytes > 5 * 1024 * 1024) {
+      return Response.json({ error: 'Image trop volumineuse (max 5 Mo)' }, { status: 400 });
     }
 
-    return Response.json({
-      success: true,
-      data: {
-        ...osData,
-        artisan_id: contactId,
+    const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
+    if (!ANTHROPIC_API_KEY) {
+      console.error('[extract-os-data] ANTHROPIC_API_KEY manquante');
+      return Response.json({ error: 'Configuration serveur invalide' }, { status: 500 });
+    }
+
+    // Appel Claude Vision (Haiku 4.5 — même modèle que extract-contact)
+    const anthropicResponse = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
       },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        // Un devis peut avoir beaucoup de lignes → on laisse plus de marge
+        // qu'un contact (tokens plus élevés pour couvrir le tableau prestations)
+        max_tokens: 2048,
+        system: SYSTEM_PROMPT,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'image',
+                source: {
+                  type: 'base64',
+                  media_type: mediaType,
+                  data: imageBase64,
+                },
+              },
+              {
+                type: 'text',
+                text: "Extrais les informations de ce devis au format JSON strict comme indiqué.",
+              },
+            ],
+          },
+        ],
+      }),
     });
+
+    if (!anthropicResponse.ok) {
+      const errText = await anthropicResponse.text().catch(() => '');
+      console.error(`[extract-os-data] Anthropic ${anthropicResponse.status} ${errText}`);
+      return Response.json({ error: 'Erreur du service IA' }, { status: anthropicResponse.status });
+    }
+
+    const claudeData = await anthropicResponse.json();
+    const textResponse = claudeData?.content?.[0]?.text || '';
+
+    if (!textResponse) {
+      console.error('[extract-os-data] Réponse Claude vide', claudeData);
+      return Response.json({ error: 'Réponse IA vide' }, { status: 500 });
+    }
+
+    // Parser le JSON (strip fences markdown si présentes)
+    let cleaned = textResponse.trim();
+    if (cleaned.startsWith('```')) {
+      cleaned = cleaned.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+    }
+
+    let extracted;
+    try {
+      extracted = JSON.parse(cleaned);
+    } catch (parseErr) {
+      console.error('[extract-os-data] JSON parse failed:', cleaned);
+      return Response.json({
+        error: "Extraction échouée — la réponse IA n'est pas un JSON valide. Essaie avec une photo plus nette.",
+      }, { status: 500 });
+    }
+
+    if (!extracted || typeof extracted !== 'object' || Array.isArray(extracted)) {
+      return Response.json({ error: 'Format de réponse inattendu' }, { status: 500 });
+    }
+
+    // Nettoyer / normaliser les prestations
+    if (Array.isArray(extracted.prestations)) {
+      extracted.prestations = extracted.prestations
+        .filter(p => p && typeof p === 'object')
+        .map(p => ({
+          description: String(p.description || '').trim(),
+          unite: String(p.unite || 'u').trim(),
+          quantite: Number(p.quantite) || 0,
+          prix_unitaire: Number(p.prix_unitaire) || 0,
+          tva_taux: Number(p.tva_taux) || 20,
+        }))
+        .filter(p => p.description); // vire les lignes sans description
+    } else {
+      extracted.prestations = [];
+    }
+
+    return Response.json({ ok: true, data: extracted });
+
   } catch (error) {
-    console.error("[extract-os-data] error:", error);
-    return Response.json(
-      { error: "Erreur lors du traitement" },
-      { status: 500 }
-    );
+    console.error('[extract-os-data] exception:', error);
+    return Response.json({ error: 'Erreur serveur' }, { status: 500 });
   }
 }
