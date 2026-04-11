@@ -36,6 +36,10 @@ export default function QontoV({m, data, reload}) {
   const [searchFactures, setSearchFactures] = useState("");
   const [searchDevis, setSearchDevis] = useState("");
   const [searchClients, setSearchClients] = useState("");
+  // PDF download state : quel item est en cours de fetch
+  const [pdfLoadingId, setPdfLoadingId] = useState(null);
+  // PDFs dont on sait (après fetch) qu'ils ne sont pas disponibles via l'API
+  const [pdfUnavailable, setPdfUnavailable] = useState(() => new Set());
 
   // Charge le token depuis Supabase (cross-device)
   useEffect(() => {
@@ -100,34 +104,86 @@ export default function QontoV({m, data, reload}) {
   useEffect(() => { if (savedToken) fetchAll(savedToken); }, [savedToken, fetchAll]);
 
   // ── Téléchargement PDF ──
+  //
+  // Deux causes d'échec principales :
+  // 1. L'API Qonto v2 n'expose pas toujours pdf_url selon le plan :
+  //    on essaie 3 chemins successifs (champ direct → détail → attachment)
+  // 2. Popup bloqué sur iOS Safari : window.open() après un await est
+  //    silencieusement ignoré par le browser. On détecte ça et on propose
+  //    un fallback cliquable dans un toast persistant.
   const downloadPdf = async (item, type) => {
-    // 1. Champs directs possibles selon la version de l'API Qonto
+    if (pdfLoadingId) return; // un seul téléchargement à la fois
+    const id = item.id;
+
+    // Helper : ouvre l'URL dans un nouvel onglet en détectant le popup block.
+    // Si popup bloqué, affiche un toast persistant avec une action "Ouvrir"
+    // qui est un vrai clic user → le browser autorise la navigation.
+    const openPdfOrFallback = (url, label) => {
+      const win = window.open(url, "_blank", "noopener,noreferrer");
+      if (!win || win.closed || typeof win.closed === 'undefined') {
+        // Popup bloqué (iOS Safari fréquent après un fetch async)
+        addToast(`Ouvrir ${label}`, "info", {
+          duration: 0, // persistant jusqu'au click
+          action: {
+            label: "Ouvrir PDF",
+            onClick: () => { window.location.href = url; },
+          },
+        });
+      } else {
+        addToast(`${label} ouvert`, "success", 2000);
+      }
+    };
+
+    // 1. Champ direct disponible dans l'objet list ?
     const directUrl = item.pdf_url || item.file_url || item.pdf_download_url
       || item.attachment?.url || item.file?.url || item.document_url
       || item.attachments?.[0]?.url;
-    if (directUrl) { window.open(directUrl, "_blank"); return; }
+    if (directUrl) {
+      // Synchrone → pas de popup block
+      openPdfOrFallback(directUrl, item.number || "PDF");
+      return;
+    }
 
+    // Pas de champ direct → on fetch le détail (opération async, coûteuse)
+    setPdfLoadingId(id);
     try {
       // 2. Récupération du détail complet
-      const endpoint = type === "invoice" ? `client_invoices/${item.id}` : `quotes/${item.id}`;
+      const endpoint = type === "invoice" ? `client_invoices/${id}` : `quotes/${id}`;
       const detail = await fetchQonto(endpoint, savedToken);
       const doc = detail.client_invoice || detail.quote || detail;
 
       const docUrl = doc.pdf_url || doc.file_url || doc.pdf_download_url
         || doc.attachment?.url || doc.file?.url || doc.document_url
         || doc.attachments?.[0]?.url;
-      if (docUrl) { window.open(docUrl, "_blank"); return; }
+      if (docUrl) { openPdfOrFallback(docUrl, item.number || "PDF"); return; }
 
-      // 3. Qonto stocke parfois le PDF dans un attachment séparé via attachment_ids
+      // 3. Qonto stocke parfois le PDF dans un attachment séparé
       const attId = doc.attachment_ids?.[0] || doc.attachment_id;
       if (attId) {
         const att = await fetchQonto(`attachments/${attId}`, savedToken);
         const attUrl = att.attachment?.url || att.url || att.file_url || att.file?.url;
-        if (attUrl) { window.open(attUrl, "_blank"); return; }
+        if (attUrl) { openPdfOrFallback(attUrl, item.number || "PDF"); return; }
       }
 
-      addToast("PDF non disponible via l'API Qonto pour ce document.", "warning");
-    } catch(e) { addToast("Erreur récupération PDF : " + e.message, "error"); }
+      // Aucune URL trouvée → on marque le document comme indisponible
+      // et on propose un fallback vers l'app Qonto web
+      setPdfUnavailable(prev => new Set(prev).add(id));
+      addToast(
+        `PDF non disponible via l'API Qonto pour ${item.number || "ce document"}`,
+        "warning",
+        {
+          duration: 0,
+          action: {
+            label: "Ouvrir Qonto",
+            onClick: () => { window.open("https://app.qonto.com", "_blank", "noopener,noreferrer"); },
+          },
+        }
+      );
+    } catch(e) {
+      addToast("Erreur récupération PDF : " + e.message, "error");
+    } finally {
+      setPdfLoadingId(null);
+    }
   };
 
   // ── Import client Qonto → Annuaire ──
@@ -323,7 +379,22 @@ export default function QontoV({m, data, reload}) {
                       <div style={{textAlign:"right",display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4}}>
                         <div style={{fontSize:16,fontWeight:700,color:inv.status==="paid"?"#10B981":"#0F172A"}}>{fmtMoney(getAmt(inv))}</div>
                         {(inv.vat_amount?.value||inv.vat_amount_cents) && <div style={{fontSize:10,color:"#94A3B8"}}>TVA: {fmtMoney(parseFloat(inv.vat_amount?.value??(inv.vat_amount_cents||0)/100))}</div>}
-                        <button onClick={()=>downloadPdf(inv,"invoice")} title="Télécharger le PDF" style={pdfBtn}>⬇ PDF</button>
+                        {pdfUnavailable.has(inv.id) ? (
+                          <a href="https://app.qonto.com" target="_blank" rel="noopener noreferrer"
+                            title="PDF non disponible via l'API Qonto — ouvrir sur l'app Qonto"
+                            style={{...pdfBtn,background:"#FEF3C7",color:"#92400E",border:"1px solid #FDE68A",textDecoration:"none"}}>
+                            ↗ Voir Qonto
+                          </a>
+                        ) : (
+                          <button onClick={()=>downloadPdf(inv,"invoice")}
+                            disabled={pdfLoadingId!==null}
+                            title={pdfLoadingId===inv.id?"Récupération du PDF…":"Télécharger le PDF"}
+                            style={{...pdfBtn,opacity:pdfLoadingId===inv.id?0.7:(pdfLoadingId?0.5:1),cursor:pdfLoadingId?'wait':'pointer'}}>
+                            {pdfLoadingId===inv.id ? (
+                              <><span style={{display:"inline-block",width:9,height:9,border:"2px solid #FECACA",borderTopColor:"#DC2626",borderRadius:"50%",animation:"spin .8s linear infinite",marginRight:4,verticalAlign:"middle"}}/>Récup…</>
+                            ) : '⬇ PDF'}
+                          </button>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -351,9 +422,24 @@ export default function QontoV({m, data, reload}) {
                         </div>
                         <div style={{fontSize:11,color:"#64748B"}}>{q.contact_email||"—"} {q.issue_date ? `• Émis ${fmtDate(q.issue_date)}` : ""} {q.expiry_date ? `• Expire ${fmtDate(q.expiry_date)}` : ""}</div>
                       </div>
-                      <div style={{textAlign:"right"}}>
+                      <div style={{textAlign:"right",display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4}}>
                         <div style={{fontSize:16,fontWeight:700,color:"#0F172A"}}>{fmtMoney(parseFloat(q.total_amount?.value??(q.total_amount_cents||0)/100)||0)}</div>
-                        <button onClick={()=>downloadPdf(q,"quote")} title="Télécharger le PDF" style={{...pdfBtn,marginTop:4}}>⬇ PDF</button>
+                        {pdfUnavailable.has(q.id) ? (
+                          <a href="https://app.qonto.com" target="_blank" rel="noopener noreferrer"
+                            title="PDF non disponible via l'API Qonto — ouvrir sur l'app Qonto"
+                            style={{...pdfBtn,background:"#FEF3C7",color:"#92400E",border:"1px solid #FDE68A",textDecoration:"none"}}>
+                            ↗ Voir Qonto
+                          </a>
+                        ) : (
+                          <button onClick={()=>downloadPdf(q,"quote")}
+                            disabled={pdfLoadingId!==null}
+                            title={pdfLoadingId===q.id?"Récupération du PDF…":"Télécharger le PDF"}
+                            style={{...pdfBtn,opacity:pdfLoadingId===q.id?0.7:(pdfLoadingId?0.5:1),cursor:pdfLoadingId?'wait':'pointer'}}>
+                            {pdfLoadingId===q.id ? (
+                              <><span style={{display:"inline-block",width:9,height:9,border:"2px solid #FECACA",borderTopColor:"#DC2626",borderRadius:"50%",animation:"spin .8s linear infinite",marginRight:4,verticalAlign:"middle"}}/>Récup…</>
+                            ) : '⬇ PDF'}
+                          </button>
+                        )}
                       </div>
                     </div>
                   ))}

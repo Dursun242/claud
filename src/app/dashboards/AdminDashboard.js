@@ -407,7 +407,10 @@ export default function AdminDashboard({ user, profile = null }) {
       </nav>
 
       {/* MAIN CONTENT */}
-      <main id="main-content" aria-label="Contenu principal" style={{flex:1,overflow:"auto",padding:isMobile?16:24,paddingTop:isMobile?60:24}}>
+      {/* overflowX: hidden + minWidth: 0 → empêche le débordement horizontal
+          quand un enfant est trop large (sécurité contre les bugs de layout
+          flex sur mobile) */}
+      <main id="main-content" aria-label="Contenu principal" style={{flex:1,minWidth:0,overflowX:"hidden",overflowY:"auto",padding:isMobile?16:24,paddingTop:isMobile?60:24}}>
         {/* MOBILE HEADER — affiche clairement l'onglet actif */}
         {isMobile && (
           <div style={{position:"fixed",top:0,left:0,right:0,height:52,background:"#fff",borderBottom:"1px solid #E2E8F0",display:"flex",alignItems:"center",padding:"0 12px",zIndex:997,gap:10,boxShadow:"0 1px 3px rgba(15,23,42,0.04)"}}>

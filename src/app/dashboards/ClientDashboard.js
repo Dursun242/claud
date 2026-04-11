@@ -238,7 +238,7 @@ export default function ClientDashboard({ user, profile = null }) {
       </aside>
 
       {/* ── Contenu principal ── */}
-      <main id="main-content" aria-label="Contenu principal" style={{ flex:1, overflow:'auto', padding:isMobile?16:24, paddingTop:isMobile?60:24 }}>
+      <main id="main-content" aria-label="Contenu principal" style={{ flex:1, minWidth:0, overflowX:'hidden', overflowY:'auto', padding:isMobile?16:24, paddingTop:isMobile?60:24 }}>
         {/* Topbar mobile — affiche clairement l'onglet actif */}
         {isMobile && (
           <div style={{ position:'fixed', top:0, left:0, right:0, height:52, background:'#fff', borderBottom:'1px solid #E2E8F0', display:'flex', alignItems:'center', padding:'0 12px', zIndex:997, boxShadow:'0 1px 3px rgba(15,23,42,0.04)', gap:10 }}>

@@ -208,18 +208,22 @@ export default function TasksV({data,save,m,reload,focusId,focusTs}) {
         )}
       </div>
     ) : (
-    <div style={{display:"grid",gap:6}}>
+    // gridTemplateColumns:"minmax(0,1fr)" empêche les enfants de dépasser
+    // la largeur du container (fix overflow horizontal sur mobile)
+    <div style={{display:"grid",gap:6,gridTemplateColumns:"minmax(0,1fr)"}}>
       {filteredTasks.map(t => {
         const ch = data.chantiers.find(c => c.id === t.chantierId)
         const overdue = isOverdue(t)
         return (
           <div key={t.id} style={{
-            display:"flex",alignItems:"center",gap:10,
+            display:"flex",alignItems:"center",gap:m?8:10,
             background:"#fff",borderRadius:10,padding:m?"10px 12px":"11px 16px",
             boxShadow:"0 1px 2px rgba(15,23,42,0.05)",
             borderLeft:overdue ? "3px solid #EF4444" : "3px solid transparent",
+            minWidth:0,                // important : autorise le shrink des enfants
+            overflow:"hidden",         // dernière ligne de défense anti-overflow
           }}>
-            <button onClick={()=>toggle(t)} title="Changer le statut" style={{
+            <button onClick={()=>toggle(t)} title="Changer le statut" aria-label={`Marquer comme ${t.statut==="Terminé"?"à faire":"terminée"}`} style={{
               width:24,height:24,borderRadius:"50%",
               border:`2px solid ${status[t.statut]||"#CBD5E1"}`,
               background:t.statut==="Terminé"?"#10B981":"transparent",
@@ -228,19 +232,24 @@ export default function TasksV({data,save,m,reload,focusId,focusTs}) {
             }}>
               {t.statut==="Terminé" && <Icon d={I.check} size={12} color="#fff"/>}
             </button>
-            <div onClick={()=>openEdit(t)} style={{flex:1,minWidth:0,cursor:"pointer",opacity:t.statut==="Terminé"?0.5:1}}>
+            <div onClick={()=>openEdit(t)} style={{flex:"1 1 0",minWidth:0,cursor:"pointer",opacity:t.statut==="Terminé"?0.5:1}}>
               <div style={{fontSize:13,fontWeight:600,color:"#0F172A",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",textDecoration:t.statut==="Terminé"?"line-through":"none"}}>{t.titre}</div>
               <div style={{fontSize:10,color:"#94A3B8",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
                 {ch?.nom || "—"}{t.lot ? ` · ${t.lot}` : ""}
               </div>
             </div>
-            {overdue && <span title="En retard" style={{fontSize:10,fontWeight:700,color:"#DC2626",background:"#FEF2F2",border:"1px solid #FECACA",borderRadius:999,padding:"2px 7px",whiteSpace:"nowrap"}}>⚠ Retard</span>}
-            <Badge text={t.priorite} color={status[t.priorite]||"#64748B"}/>
+            {/* Sur mobile, on n'affiche que le pictogramme pour économiser la largeur */}
+            {overdue && (
+              <span title="En retard" style={{fontSize:10,fontWeight:700,color:"#DC2626",background:"#FEF2F2",border:"1px solid #FECACA",borderRadius:999,padding:m?"2px 5px":"2px 7px",whiteSpace:"nowrap",flexShrink:0}}>
+                {m ? "⚠" : "⚠ Retard"}
+              </span>
+            )}
+            {!m && <Badge text={t.priorite} color={status[t.priorite]||"#64748B"}/>}
             {!m && <span style={{fontSize:11,color:overdue?"#DC2626":"#94A3B8",fontWeight:overdue?600:400,whiteSpace:"nowrap"}}>{fmtDate(t.echeance)}</span>}
-            <button onClick={()=>openEdit(t)} title="Modifier" style={{background:"#F1F5F9",border:"1px solid #E2E8F0",borderRadius:6,cursor:"pointer",padding:"4px 6px",display:"flex"}}>
+            <button onClick={()=>openEdit(t)} title="Modifier" aria-label="Modifier la tâche" style={{background:"#F1F5F9",border:"1px solid #E2E8F0",borderRadius:6,cursor:"pointer",padding:"4px 6px",display:"flex",flexShrink:0}}>
               <Icon d={I.edit} size={12} color="#475569"/>
             </button>
-            <button onClick={()=>handleDelete(t)} title="Supprimer" style={{background:"#fff",border:"1px solid #FECACA",borderRadius:6,cursor:"pointer",padding:"4px 6px",display:"flex"}}>
+            <button onClick={()=>handleDelete(t)} title="Supprimer" aria-label="Supprimer la tâche" style={{background:"#fff",border:"1px solid #FECACA",borderRadius:6,cursor:"pointer",padding:"4px 6px",display:"flex",flexShrink:0}}>
               <Icon d={I.trash} size={12} color="#DC2626"/>
             </button>
           </div>

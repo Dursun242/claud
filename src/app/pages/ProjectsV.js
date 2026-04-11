@@ -218,16 +218,18 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
         </div>
         {chOS.length===0 ? <p style={{color:"#94A3B8",fontSize:12}}>Aucun OS pour ce chantier</p> :
           chOS.map(os=>(
-            <div key={os.id} style={{background:"#fff",borderRadius:10,padding:12,marginBottom:8,boxShadow:"0 1px 2px rgba(0,0,0,0.04)",display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8}}>
-              <div style={{flex:1}}>
-                <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2}}>
-                  <span style={{fontWeight:700,fontSize:13,color:"#0F172A"}}>{os.numero}</span>
+            // Sur mobile : colonne (titre au-dessus, boutons en dessous)
+            // Sur desktop : ligne (titre à gauche, boutons à droite)
+            <div key={os.id} style={{background:"#fff",borderRadius:10,padding:12,marginBottom:8,boxShadow:"0 1px 2px rgba(0,0,0,0.04)",display:"flex",flexDirection:m?"column":"row",justifyContent:"space-between",alignItems:m?"stretch":"flex-start",gap:m?8:8,minWidth:0,overflow:"hidden"}}>
+              <div style={{flex:"1 1 0",minWidth:0}}>
+                <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2,flexWrap:"wrap"}}>
+                  <span style={{fontWeight:700,fontSize:13,color:"#0F172A",whiteSpace:"nowrap"}}>{os.numero}</span>
                   <Badge text={os.statut||"Brouillon"} color={{"Brouillon":"#94A3B8","Émis":"#3B82F6","Signé":"#8B5CF6","En cours":"#F59E0B","Terminé":"#10B981","Annulé":"#EF4444"}[os.statut]||"#94A3B8"}/>
                 </div>
-                <div style={{fontSize:11,color:"#64748B"}}>{os.artisan_nom} • {(os.prestations||[]).length} prestation(s) • {fmtDate(os.date_emission)}</div>
+                <div style={{fontSize:11,color:"#64748B",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{os.artisan_nom} • {(os.prestations||[]).length} prestation(s) • {fmtDate(os.date_emission)}</div>
                 <div style={{fontSize:16,fontWeight:700,color:"#1E3A5F",marginTop:4}}>{fmtMoney(os.montant_ttc||0)}</div>
               </div>
-              <div style={{display:"flex",gap:4,flexShrink:0,flexWrap:"wrap"}}>
+              <div style={{display:"flex",gap:4,flexShrink:0,flexWrap:"wrap",justifyContent:m?"flex-start":"flex-end"}}>
                 <button onClick={()=>generateOSPdf({...os,chantier:ch.nom,adresse_chantier:ch.adresse})} title="PDF" style={detailBtn("#DC2626","#FEF2F2","#FECACA")}>📄 PDF</button>
                 <button onClick={()=>generateOSExcel({...os,chantier:ch.nom,adresse_chantier:ch.adresse})} title="Excel" style={detailBtn("#047857","#ECFDF5","#A7F3D0")}>📊 XLS</button>
                 <button onClick={async()=>{try{await SB.saveTemplate('os',`Template ${os.artisan_nom}`,`Template d'OS pour ${os.artisan_nom}`,{...os});addToast("Template créé","success");}catch(err){addToast("Erreur : "+(err?.message||"template"),"error");}}} title="Créer un template à partir de cet OS" style={detailBtn("#4338CA","#EEF2FF","#C7D2FE")}>💾 Template</button>
@@ -245,15 +247,15 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
         </div>
         {chCR.length===0 ? <p style={{color:"#94A3B8",fontSize:12}}>Aucun CR pour ce chantier</p> :
           chCR.sort((a,b)=>new Date(b.date)-new Date(a.date)).map(cr=>(
-            <div key={cr.id} style={{background:"#fff",borderRadius:10,padding:12,marginBottom:8,boxShadow:"0 1px 2px rgba(0,0,0,0.04)",display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8}}>
-              <div style={{flex:1}}>
-                <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2}}>
-                  <span style={{background:"#1E3A5F",color:"#fff",borderRadius:5,padding:"2px 8px",fontSize:11,fontWeight:700}}>CR n°{cr.numero}</span>
+            <div key={cr.id} style={{background:"#fff",borderRadius:10,padding:12,marginBottom:8,boxShadow:"0 1px 2px rgba(0,0,0,0.04)",display:"flex",flexDirection:m?"column":"row",justifyContent:"space-between",alignItems:m?"stretch":"flex-start",gap:8,minWidth:0,overflow:"hidden"}}>
+              <div style={{flex:"1 1 0",minWidth:0}}>
+                <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2,flexWrap:"wrap"}}>
+                  <span style={{background:"#1E3A5F",color:"#fff",borderRadius:5,padding:"2px 8px",fontSize:11,fontWeight:700,whiteSpace:"nowrap"}}>CR n°{cr.numero}</span>
                   <span style={{fontSize:11,color:"#94A3B8"}}>{fmtDate(cr.date)}</span>
                 </div>
                 <div style={{fontSize:12,color:"#334155",lineHeight:1.5}}>{(cr.resume||"").substring(0,100)}{(cr.resume||"").length>100?"...":""}</div>
               </div>
-              <div style={{display:"flex",gap:4,flexShrink:0,flexWrap:"wrap"}}>
+              <div style={{display:"flex",gap:4,flexShrink:0,flexWrap:"wrap",justifyContent:m?"flex-start":"flex-end"}}>
                 <button onClick={()=>generateCRPdf(cr,ch)} title="PDF" style={detailBtn("#DC2626","#FEF2F2","#FECACA")}>📄 PDF</button>
                 <button onClick={()=>generateCRExcel(cr,ch)} title="Excel" style={detailBtn("#047857","#ECFDF5","#A7F3D0")}>📊 XLS</button>
                 <button onClick={()=>{setDetailForm(cr);setDetailModal("editCR");}} title="Modifier" style={detailBtn("#1D4ED8","#EFF6FF","#BFDBFE")}>✎ Modifier</button>
