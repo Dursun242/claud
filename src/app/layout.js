@@ -6,11 +6,13 @@ export const metadata = {
   manifest: '/manifest.json',
 }
 
+// Viewport : on laisse les utilisateurs zoomer (accessibilité — WCAG 1.4.4)
+// Certaines personnes avec une basse vision doivent pouvoir agrandir le texte.
 export const viewport = {
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
+  maximumScale: 5,
+  userScalable: true,
   themeColor: '#1E3A5F',
 }
 

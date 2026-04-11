@@ -125,6 +125,15 @@ export default function ClientDashboard({ user, profile = null }) {
       <style>{`
         @keyframes spin{to{transform:rotate(360deg)}}
         @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+        *{box-sizing:border-box}
+        ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-thumb{background:#CBD5E1;border-radius:3px}
+        input:focus,select:focus,textarea:focus{border-color:#3B82F6!important;outline:none}
+        :focus{outline:none}
+        :focus-visible{outline:2px solid #3B82F6 !important;outline-offset:2px;border-radius:4px}
+        button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:2px solid #3B82F6 !important;outline-offset:2px}
+        @media (prefers-reduced-motion: reduce){
+          *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important}
+        }
       `}</style>
 
       {/* ── Overlay mobile ── */}
@@ -133,7 +142,7 @@ export default function ClientDashboard({ user, profile = null }) {
       )}
 
       {/* ── Sidebar ── */}
-      <aside style={{
+      <aside aria-label="Navigation principale" style={{
         width:isMobile?260:240, position:isMobile?'fixed':'relative',
         left:isMobile?(sidebarOpen?0:-280):0, top:0, bottom:0,
         background:'linear-gradient(180deg,#0F172A 0%,#1E293B 100%)',
@@ -153,7 +162,13 @@ export default function ClientDashboard({ user, profile = null }) {
           {TABS.map(t => {
             const active = tab === t.key
             return (
-              <button key={t.key} onClick={() => switchTab(t.key)} title={`${t.label} (g ${t.sc})`} style={{
+              <button
+                key={t.key}
+                onClick={() => switchTab(t.key)}
+                title={`${t.label} (g ${t.sc})`}
+                aria-current={active ? "page" : undefined}
+                aria-label={`${t.label}, raccourci g puis ${t.sc}`}
+                style={{
                 position:'relative',
                 width:'100%', textAlign:'left', display:'flex', alignItems:'center', gap:10,
                 padding:'10px 12px 10px 16px', marginBottom:2, border:'none', borderRadius:8, cursor:'pointer', fontFamily:'inherit',
@@ -209,7 +224,7 @@ export default function ClientDashboard({ user, profile = null }) {
       </aside>
 
       {/* ── Contenu principal ── */}
-      <main style={{ flex:1, overflow:'auto', padding:isMobile?16:24, paddingTop:isMobile?60:24 }}>
+      <main id="main-content" aria-label="Contenu principal" style={{ flex:1, overflow:'auto', padding:isMobile?16:24, paddingTop:isMobile?60:24 }}>
         {/* Topbar mobile — affiche clairement l'onglet actif */}
         {isMobile && (
           <div style={{ position:'fixed', top:0, left:0, right:0, height:52, background:'#fff', borderBottom:'1px solid #E2E8F0', display:'flex', alignItems:'center', padding:'0 12px', zIndex:997, boxShadow:'0 1px 3px rgba(15,23,42,0.04)', gap:10 }}>

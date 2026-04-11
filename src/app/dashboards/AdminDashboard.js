@@ -305,13 +305,21 @@ export default function AdminDashboard({ user, profile = null }) {
         *{box-sizing:border-box}
         ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-thumb{background:#CBD5E1;border-radius:3px}
         input:focus,select:focus,textarea:focus{border-color:#3B82F6!important;outline:none}
+        /* A11y : focus ring clavier uniquement (pas sur les clics souris) */
+        :focus{outline:none}
+        :focus-visible{outline:2px solid #3B82F6 !important;outline-offset:2px;border-radius:4px}
+        button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:2px solid #3B82F6 !important;outline-offset:2px}
+        /* Respect prefers-reduced-motion : désactive les animations décoratives */
+        @media (prefers-reduced-motion: reduce){
+          *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important}
+        }
       `}</style>
 
       {/* MOBILE OVERLAY */}
       {isMobile && sidebarOpen && <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.4)",zIndex:998}} onClick={()=>setSidebarOpen(false)} />}
 
       {/* SIDEBAR */}
-      <nav style={{
+      <nav aria-label="Navigation principale" style={{
         width:isMobile?260:240,position:isMobile?"fixed":"relative",left:isMobile?(sidebarOpen?0:-280):0,top:0,bottom:0,
         background:"linear-gradient(195deg,#0F172A,#1E3A5F)",color:"#fff",display:"flex",flexDirection:"column",flexShrink:0,
         zIndex:999,transition:"left .3s ease",boxShadow:isMobile&&sidebarOpen?"4px 0 20px rgba(0,0,0,0.3)":"none"
@@ -327,7 +335,13 @@ export default function AdminDashboard({ user, profile = null }) {
             // Couleur d'accent : bleu pour tout, violet pour Qonto (distinction API)
             const accent = t.isQonto ? "#A78BFA" : "#60A5FA";
             return (
-              <button key={t.key} onClick={()=>switchTab(t.key)} title={`${t.label} (g ${t.sc})`} style={{
+              <button
+                key={t.key}
+                onClick={()=>switchTab(t.key)}
+                title={`${t.label} (g ${t.sc})`}
+                aria-current={active ? "page" : undefined}
+                aria-label={`${t.label}, raccourci g puis ${t.sc}`}
+                style={{
                 position:"relative",
                 display:"flex",alignItems:"center",gap:9,
                 padding:"9px 11px 9px 14px",border:"none",borderRadius:7,cursor:"pointer",fontFamily:"inherit",fontSize:12.5,
@@ -377,7 +391,7 @@ export default function AdminDashboard({ user, profile = null }) {
       </nav>
 
       {/* MAIN CONTENT */}
-      <main style={{flex:1,overflow:"auto",padding:isMobile?16:24,paddingTop:isMobile?60:24}}>
+      <main id="main-content" aria-label="Contenu principal" style={{flex:1,overflow:"auto",padding:isMobile?16:24,paddingTop:isMobile?60:24}}>
         {/* MOBILE HEADER — affiche clairement l'onglet actif */}
         {isMobile && (
           <div style={{position:"fixed",top:0,left:0,right:0,height:52,background:"#fff",borderBottom:"1px solid #E2E8F0",display:"flex",alignItems:"center",padding:"0 12px",zIndex:997,gap:10,boxShadow:"0 1px 3px rgba(15,23,42,0.04)"}}>
