@@ -7,8 +7,8 @@ import { supabase } from '../supabaseClient'
 
 // Compresse une image à max 1600px de large et retourne une data URL base64
 // Compression agressive pour garder le PDF < 2 Mo avec 10 photos :
-// - Max 1200px de large (au lieu de 1600)
-// - JPEG qualité 70% (au lieu de 85%)
+// - Max 900px de large (suffisant pour un PDF A4 à 150dpi)
+// - JPEG qualité 55% (quasi invisible sur des photos de chantier)
 // - Résultat ~80-150 KB par photo → 10 photos ≈ 1-1.5 Mo total
 function compressImage(file) {
   return new Promise((resolve, reject) => {
@@ -16,7 +16,7 @@ function compressImage(file) {
     reader.onload = (e) => {
       const img = new Image()
       img.onload = () => {
-        const MAX_W = 1200
+        const MAX_W = 900
         let { width, height } = img
         if (width > MAX_W) {
           height = Math.round(height * (MAX_W / width))
@@ -27,7 +27,7 @@ function compressImage(file) {
         canvas.height = height
         canvas.getContext('2d').drawImage(img, 0, 0, width, height)
         resolve({
-          base64: canvas.toDataURL('image/jpeg', 0.70),
+          base64: canvas.toDataURL('image/jpeg', 0.55),
           width,
           height,
           name: file.name,
