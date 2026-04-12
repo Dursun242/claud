@@ -139,7 +139,9 @@ export default function PhotoReportsV({ data, m }) {
       try {
         const { data: { session } } = await supabase.auth.getSession()
         const form = new FormData()
-        form.append('file', new File([blob], filename, { type: 'application/pdf' }))
+        // Utiliser form.append(name, blob, filename) au lieu de new File()
+        // car le constructeur File() peut échouer sur certains navigateurs mobiles
+        form.append('file', blob, filename)
         form.append('type', 'chantier')
         form.append('itemId', chantierId)
 
@@ -150,13 +152,13 @@ export default function PhotoReportsV({ data, m }) {
         })
 
         if (res.ok) {
-          addToast('Reportage PDF généré et enregistré dans le dossier chantier', 'success')
+          addToast('Reportage PDF enregistré dans le dossier chantier', 'success')
         } else {
           const err = await res.json().catch(() => ({}))
-          addToast('PDF téléchargé · Sauvegarde chantier échouée : ' + (err.error || 'erreur'), 'warning', 5000)
+          addToast('PDF téléchargé · Sauvegarde : ' + (err.error || `erreur ${res.status}`), 'warning', 5000)
         }
-      } catch {
-        addToast('PDF téléchargé · Sauvegarde chantier indisponible', 'warning', 5000)
+      } catch (saveErr) {
+        addToast('PDF téléchargé · Sauvegarde : ' + (saveErr?.message || 'erreur réseau'), 'warning', 5000)
       }
     } catch (err) {
       addToast('Erreur PDF : ' + (err?.message || 'génération impossible'), 'error')
