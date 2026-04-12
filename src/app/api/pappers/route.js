@@ -1,5 +1,31 @@
+import { createClient } from '@supabase/supabase-js'
+
+// Vérification auth JWT Supabase (même pattern que /api/claude, /api/qonto, etc.)
+async function verifyAuth(request) {
+  const authHeader = request.headers.get('Authorization')
+  if (!authHeader?.startsWith('Bearer ')) return null
+  const token = authHeader.replace('Bearer ', '')
+  try {
+    const client = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      { auth: { persistSession: false } }
+    )
+    const { data: { user } } = await client.auth.getUser(token)
+    return user || null
+  } catch {
+    return null
+  }
+}
+
 export async function GET(request) {
   try {
+    // Auth obligatoire — empêche un tiers de consommer le quota Pappers
+    const user = await verifyAuth(request)
+    if (!user) {
+      return Response.json({ error: 'Non autorisé' }, { status: 401 })
+    }
+
     const { searchParams } = new URL(request.url);
     const siret = searchParams.get('siret');
     const q = searchParams.get('q');

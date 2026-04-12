@@ -231,13 +231,22 @@ export default function ContactsV({data,save,m,reload,focusId,focusTs}) {
     setPError("");
   };
 
+  // ── Helper Pappers avec auth JWT ─────────────────────────────
+  // Centralise les appels à /api/pappers en y injectant le Bearer token.
+  const fetchPappers = async (queryString) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    return fetch(`/api/pappers?${queryString}`, {
+      headers: { 'Authorization': `Bearer ${session?.access_token || ''}` },
+    });
+  };
+
   // ─── Helper : fetch complet d'une entreprise par son SIRET ────
   // Utile quand on a un résultat de recherche léger (pas de representants) :
   // on va chercher le détail complet avant d'appeler fillFromPappers.
   const fetchFullEntreprise = async (siret) => {
     if (!siret) return null;
     try {
-      const res = await fetch(`/api/pappers?siret=${encodeURIComponent(siret)}`);
+      const res = await fetchPappers(`siret=${encodeURIComponent(siret)}`);
       if (!res.ok) return null;
       return await res.json();
     } catch {
@@ -278,8 +287,8 @@ export default function ContactsV({data,save,m,reload,focusId,focusTs}) {
     try {
       const isSiret = /^\d{14}$/.test(v.replace(/\s/g,""));
       const cleanSiret = v.replace(/\s/g,"");
-      const url = isSiret ? `/api/pappers?siret=${cleanSiret}` : `/api/pappers?q=${encodeURIComponent(v)}`;
-      const res = await fetch(url);
+      const qs = isSiret ? `siret=${cleanSiret}` : `q=${encodeURIComponent(v)}`;
+      const res = await fetchPappers(qs);
       const json = await res.json();
       if (!res.ok) { setPError(json.error || "Erreur Pappers"); return; }
       if (isSiret) {
@@ -339,7 +348,7 @@ export default function ContactsV({data,save,m,reload,focusId,focusTs}) {
     try {
       const clean = (siret || "").replace(/\s/g, "");
       if (!/^\d{14}$/.test(clean)) return null;
-      const res = await fetch(`/api/pappers?siret=${clean}`);
+      const res = await fetchPappers(`siret=${clean}`);
       if (!res.ok) return null;
       return await res.json();
     } catch {
