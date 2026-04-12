@@ -27,7 +27,7 @@ const detailBtn = (color, bg, border) => ({
   fontFamily: "inherit",
 })
 
-export default function ProjectsV({data,save,m,reload,user,profile,focusId,focusTs}) {
+export default function ProjectsV({data,save,m,reload,user,profile,focusId,focusTs,readOnly}) {
   const { addToast } = useToast();
   const confirm = useConfirm();
   const [modal,setModal]=useState(null);const [form,setForm]=useState({});
@@ -185,11 +185,11 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
             <div style={{fontSize:12,color:"#94A3B8",marginTop:4}}>Du {fmtDate(ch.date_debut||ch.dateDebut)} au {fmtDate(ch.date_fin||ch.dateFin)}</div>
             {ch.lots?.length>0 && <div style={{fontSize:11,color:"#CBD5E1",marginTop:4}}>Lots : {ch.lots.join(", ")}</div>}
           </div>
-          <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+          {!readOnly && <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
             <button onClick={async()=>{await SB.duplicateChantier(ch);reload();}} style={{...btnS,fontSize:12,padding:"8px 14px"}}>Dupliquer</button>
             <button onClick={()=>{setForm({...ch,lots:ch.lots?.join(", ")||"",budget:String(ch.budget),depenses:String(ch.depenses),dateDebut:ch.date_debut||ch.dateDebut||"",dateFin:ch.date_fin||ch.dateFin||""});setModal("edit");}} style={{...btnS,fontSize:12,padding:"8px 14px"}}>Modifier</button>
             <button onClick={()=>setDetailModal("share")} style={{...btnS,fontSize:12,padding:"8px 14px"}}>👥 Partager</button>
-          </div>
+          </div>}
         </div>
         {/* Budget bar */}
         <div style={{marginTop:16}}>
@@ -212,10 +212,10 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
 
       {/* ORDRES DE SERVICE */}
       <Section title="Ordres de Service" count={chOS.length} color="#8B5CF6">
-        <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap"}}>
+        {!readOnly && <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap"}}>
           <button onClick={()=>{const nextNum=`OS-2026-${String(chOS.length+1).padStart(3,"0")}`;setDetailForm({numero:nextNum,chantier_id:ch.id,date_emission:new Date().toISOString().split("T")[0],statut:"Brouillon",montant_ttc:0});setDetailModal("newOS");}} style={{background:"#8B5CF6",color:"#fff",border:"none",borderRadius:6,padding:"6px 12px",fontSize:11,fontWeight:700,cursor:"pointer"}}>+ Nouvel OS</button>
           <button onClick={()=>setDetailModal("useTemplate")} style={{background:"#8B5CF6",color:"#fff",border:"none",borderRadius:6,padding:"6px 12px",fontSize:11,fontWeight:700,cursor:"pointer",opacity:0.7}}>📋 Template</button>
-        </div>
+        </div>}
         {chOS.length===0 ? <p style={{color:"#94A3B8",fontSize:12}}>Aucun OS pour ce chantier</p> :
           chOS.map(os=>(
             // Sur mobile : colonne (titre au-dessus, boutons en dessous)
@@ -232,8 +232,8 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
               <div style={{display:"flex",gap:4,flexShrink:0,flexWrap:"wrap",justifyContent:m?"flex-start":"flex-end"}}>
                 <button onClick={()=>generateOSPdf({...os,chantier:ch.nom,adresse_chantier:ch.adresse})} title="PDF" style={detailBtn("#DC2626","#FEF2F2","#FECACA")}>📄 PDF</button>
                 <button onClick={()=>generateOSExcel({...os,chantier:ch.nom,adresse_chantier:ch.adresse})} title="Excel" style={detailBtn("#047857","#ECFDF5","#A7F3D0")}>📊 XLS</button>
-                <button onClick={async()=>{try{await SB.saveTemplate('os',`Template ${os.artisan_nom}`,`Template d'OS pour ${os.artisan_nom}`,{...os});addToast("Template créé","success");}catch(err){addToast("Erreur : "+(err?.message||"template"),"error");}}} title="Créer un template à partir de cet OS" style={detailBtn("#4338CA","#EEF2FF","#C7D2FE")}>💾 Template</button>
-                <button onClick={()=>{setDetailForm(os);setDetailModal("editOS");}} title="Modifier" style={detailBtn("#1D4ED8","#EFF6FF","#BFDBFE")}>✎ Modifier</button>
+                {!readOnly && <><button onClick={async()=>{try{await SB.saveTemplate('os',`Template ${os.artisan_nom}`,`Template d'OS pour ${os.artisan_nom}`,{...os});addToast("Template créé","success");}catch(err){addToast("Erreur : "+(err?.message||"template"),"error");}}} title="Créer un template à partir de cet OS" style={detailBtn("#4338CA","#EEF2FF","#C7D2FE")}>💾 Template</button>
+                <button onClick={()=>{setDetailForm(os);setDetailModal("editOS");}} title="Modifier" style={detailBtn("#1D4ED8","#EFF6FF","#BFDBFE")}>✎ Modifier</button></>}
               </div>
             </div>
           ))
@@ -242,9 +242,9 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
 
       {/* COMPTES RENDUS */}
       <Section title="Comptes Rendus" count={chCR.length} color="#3B82F6">
-        <div style={{display:"flex",gap:8,marginBottom:12}}>
+        {!readOnly && <div style={{display:"flex",gap:8,marginBottom:12}}>
           <button onClick={()=>{setDetailForm({chantierId:ch.id,date:new Date().toISOString().split("T")[0],numero:(chCR.length+1),resume:"",participants:"",decisions:""});setDetailModal("newCR");}} style={{background:"#3B82F6",color:"#fff",border:"none",borderRadius:6,padding:"6px 12px",fontSize:11,fontWeight:700,cursor:"pointer"}}>+ Nouveau CR</button>
-        </div>
+        </div>}
         {chCR.length===0 ? <p style={{color:"#94A3B8",fontSize:12}}>Aucun CR pour ce chantier</p> :
           chCR.sort((a,b)=>new Date(b.date)-new Date(a.date)).map(cr=>(
             <div key={cr.id} style={{background:"#fff",borderRadius:10,padding:12,marginBottom:8,boxShadow:"0 1px 2px rgba(0,0,0,0.04)",display:"flex",flexDirection:m?"column":"row",justifyContent:"space-between",alignItems:m?"stretch":"flex-start",gap:8,minWidth:0,overflow:"hidden"}}>
@@ -258,7 +258,7 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
               <div style={{display:"flex",gap:4,flexShrink:0,flexWrap:"wrap",justifyContent:m?"flex-start":"flex-end"}}>
                 <button onClick={()=>generateCRPdf(cr,ch)} title="PDF" style={detailBtn("#DC2626","#FEF2F2","#FECACA")}>📄 PDF</button>
                 <button onClick={()=>generateCRExcel(cr,ch)} title="Excel" style={detailBtn("#047857","#ECFDF5","#A7F3D0")}>📊 XLS</button>
-                <button onClick={()=>{setDetailForm(cr);setDetailModal("editCR");}} title="Modifier" style={detailBtn("#1D4ED8","#EFF6FF","#BFDBFE")}>✎ Modifier</button>
+                {!readOnly && <button onClick={()=>{setDetailForm(cr);setDetailModal("editCR");}} title="Modifier" style={detailBtn("#1D4ED8","#EFF6FF","#BFDBFE")}>✎ Modifier</button>}
               </div>
             </div>
           ))
@@ -267,9 +267,9 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
 
       {/* TÂCHES */}
       <Section title="Tâches" count={chTasks.length} color="#F59E0B">
-        <div style={{display:"flex",gap:8,marginBottom:12}}>
+        {!readOnly && <div style={{display:"flex",gap:8,marginBottom:12}}>
           <button onClick={()=>{setDetailForm({chantierId:ch.id,titre:"",lot:"",statut:"En attente",priorite:"En attente",echeance:new Date().toISOString().split("T")[0]});setDetailModal("newTask");}} style={{background:"#F59E0B",color:"#fff",border:"none",borderRadius:6,padding:"6px 12px",fontSize:11,fontWeight:700,cursor:"pointer"}}>+ Nouvelle tâche</button>
-        </div>
+        </div>}
         {chTasks.length===0 ? <p style={{color:"#94A3B8",fontSize:12}}>Aucune tâche pour ce chantier</p> :
           chTasks.map(t=>(
             <div key={t.id} style={{display:"flex",alignItems:"center",gap:10,background:"#fff",borderRadius:8,padding:"10px 12px",marginBottom:6,boxShadow:"0 1px 2px rgba(0,0,0,0.03)"}}>
@@ -281,7 +281,7 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
                 <div style={{fontSize:10,color:"#94A3B8"}}>{t.lot} • {fmtDate(t.echeance)}</div>
               </div>
               <Badge text={t.priorite} color={status[t.priorite]||"#64748B"}/>
-              <button onClick={()=>{setDetailForm(t);setDetailModal("editTask");}} style={{background:"#3B82F6",border:"none",borderRadius:5,padding:"4px 10px",cursor:"pointer",fontSize:9,fontWeight:700,color:"#fff",flexShrink:0}}>✎</button>
+              {!readOnly && <button onClick={()=>{setDetailForm(t);setDetailModal("editTask");}} style={{background:"#3B82F6",border:"none",borderRadius:5,padding:"4px 10px",cursor:"pointer",fontSize:9,fontWeight:700,color:"#fff",flexShrink:0}}>✎</button>}
             </div>
           ))
         }
@@ -318,8 +318,8 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
         </Section>
       )}
 
-      {/* NOTES INTERNES */}
-      <Section title="Notes internes" color="#64748B">
+      {/* NOTES INTERNES — cachées pour les clients (comme le placeholder l'indique) */}
+      {!readOnly && <Section title="Notes internes" color="#64748B">
         <div style={{background:"#FFFBEB",border:"1px solid #FDE68A",borderRadius:10,padding:14}}>
           <textarea
             value={detailForm.notes_internes ?? ch.notes_internes ?? ""}
@@ -331,7 +331,7 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
             <button onClick={async()=>{await SB.upsertChantier({...ch,notes_internes:detailForm.notes_internes??ch.notes_internes??""});setDetailForm({});reload();addToast("Notes enregistrées","success");}} style={{background:"#F59E0B",color:"#fff",border:"none",borderRadius:6,padding:"5px 14px",fontSize:11,fontWeight:700,cursor:"pointer"}}>Enregistrer</button>
           </div>
         </div>
-      </Section>
+      </Section>}
 
       {/* COMMENTAIRES - Using Phase 2 Component + Phase 3 Hook */}
       <CommentsSection
@@ -342,12 +342,12 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
         userRole={profile?.role}
       />
 
-      {/* PARTAGE - Using Phase 2 Component + Phase 3 Hook */}
-      <SharingPanel
+      {/* PARTAGE — masqué pour les clients MOA */}
+      {!readOnly && <SharingPanel
         shares={shares}
         onAddShare={addShare}
         onDeleteShare={deleteShare}
-      />
+      />}
 
       {/* MODALES POUR OS/CR/TÂCHES */}
       <Modal open={detailModal==="newOS"||detailModal==="editOS"} onClose={()=>setDetailModal(null)} title={detailModal==="newOS"?"Nouvel Ordre de Service":"Modifier l'OS"}>
@@ -414,9 +414,9 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
             style={{padding:"7px 10px 7px 28px",borderRadius:7,border:"1px solid #E2E8F0",fontSize:12,width:"100%",boxSizing:"border-box",fontFamily:"inherit"}}
           />
         </div>
-        <button onClick={openNew} title="Nouveau chantier (raccourci : n)" style={{...btnP,fontSize:12,display:"inline-flex",alignItems:"center",gap:4}}>
+        {!readOnly && <button onClick={openNew} title="Nouveau chantier (raccourci : n)" style={{...btnP,fontSize:12,display:"inline-flex",alignItems:"center",gap:4}}>
           <Icon d={I.plus} size={14} color="#fff"/> Nouveau
-        </button>
+        </button>}
       </div>
     </div>
     {/* Pills de filtre — statut */}
@@ -485,10 +485,10 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
                 <span>{(data.tasks||[]).filter(t=>(t.chantierId||t.chantier_id)===ch.id).length} tâches</span>
               </div>
             </div>
-            <div style={{display:"flex",gap:4}} onClick={e=>e.stopPropagation()}>
+            {!readOnly && <div style={{display:"flex",gap:4}} onClick={e=>e.stopPropagation()}>
               <button onClick={()=>{setForm({...ch,lots:ch.lots?.join(", ")||"",budget:String(ch.budget),depenses:String(ch.depenses),dateDebut:ch.date_debut||ch.dateDebut||"",dateFin:ch.date_fin||ch.dateFin||"",photo_couverture:ch.photo_couverture||"",notes_internes:ch.notes_internes||""});setModal("edit");}} style={{background:"#F8FAFC",border:"1px solid #E2E8F0",borderRadius:6,padding:5,cursor:"pointer"}}><Icon d={I.edit} size={14} color="#64748B"/></button>
               <button onClick={()=>handleDelete(ch)} style={{background:"#FEF2F2",border:"1px solid #FECACA",borderRadius:6,padding:5,cursor:"pointer"}}><Icon d={I.trash} size={14} color="#EF4444"/></button>
-            </div>
+            </div>}
           </div>
           <div style={{padding:`0 ${m?14:18}px ${m?14:18}px`,marginTop:-4}}>
             {(() => {
