@@ -483,6 +483,7 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
                 <span>{(data.ordresService||[]).filter(o=>o.chantier_id===ch.id).length} OS</span>
                 <span>{(data.compteRendus||[]).filter(c=>(c.chantierId||c.chantier_id)===ch.id).length} CR</span>
                 <span>{(data.tasks||[]).filter(t=>(t.chantierId||t.chantier_id)===ch.id).length} tâches</span>
+                <span>{(data.attachments||[]).filter(a=>a.chantier_id===ch.id).length} PJ</span>
               </div>
             </div>
             {!readOnly && <div style={{display:"flex",gap:4}} onClick={e=>e.stopPropagation()}>

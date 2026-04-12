@@ -23,7 +23,7 @@ export const LocalDB = {
 // ─── SUPABASE CRUD HELPERS ───
 export const SB = {
   async loadAll() {
-    const [ch, co, ta, pl, rv, cr, os] = await Promise.all([
+    const [ch, co, ta, pl, rv, cr, os, att] = await Promise.all([
       supabase.from('chantiers').select('*').order('created_at', { ascending: false }),
       supabase.from('contacts').select('*').order('nom'),
       supabase.from('taches').select('*').order('created_at', { ascending: false }),
@@ -31,6 +31,7 @@ export const SB = {
       supabase.from('rdv').select('*').order('date'),
       supabase.from('compte_rendus').select('*').order('date', { ascending: false }).limit(200),
       supabase.from('ordres_service').select('*').order('created_at', { ascending: false }).limit(200),
+      supabase.from('attachments').select('id,chantier_id').order('created_at', { ascending: false }),
     ]);
     if (ch.error) return { error: ch.error.message };
     return {
@@ -41,6 +42,7 @@ export const SB = {
       rdv: (rv.data || []).map(r => ({ ...r, chantierId: r.chantier_id, participants: r.participants || [] })),
       compteRendus: (cr.data || []).map(c => ({ ...c, chantierId: c.chantier_id })),
       ordresService: os.data || [],
+      attachments: att.data || [],
     };
   },
 
