@@ -1,28 +1,26 @@
 'use client'
 import { useState, useEffect, createContext, useContext, useRef } from 'react'
 import { supabase } from './supabaseClient'
+import { writeActivityLog } from './lib/activityLog'
 
-// Fire-and-forget : journalise une connexion/déconnexion dans activity_logs.
-// Silencieux si la table n'existe pas (migration pas encore appliquée).
-async function logSession(action, metadata = null, entityLabel = null) {
-  try {
-    const defaultLabels = {
-      login:            'Connexion',
-      logout:           'Déconnexion',
-      access_denied:    'Tentative non autorisée',
-      session_expired:  'Session expirée',
-    };
-    const { error } = await supabase.from('activity_logs').insert({
-      action,
-      entity_type: 'session',
-      entity_label: entityLabel || defaultLabels[action] || action,
-      metadata: metadata || null,
-      user_agent: (typeof navigator !== 'undefined' && navigator.userAgent)
-        ? navigator.userAgent.slice(0, 255)
-        : null,
-    });
-    if (error) console.warn('[logSession]', action, error.message);
-  } catch (err) { console.warn('[logSession] exception:', action, err?.message || err); }
+const SESSION_LABELS = {
+  login:            'Connexion',
+  logout:           'Déconnexion',
+  access_denied:    'Tentative non autorisée',
+  session_expired:  'Session expirée',
+};
+
+// Wrapper autour du helper centralisé. `blocking=true` force un await
+// sur l'insert : utile pour access_denied / logout où on risque de
+// perdre le log si signOut() invalide la session avant la fin de
+// l'insert réseau.
+function logSession(action, metadata = null, entityLabel = null, blocking = false) {
+  return writeActivityLog(supabase, {
+    action,
+    entity_type: 'session',
+    entity_label: entityLabel || SESSION_LABELS[action] || action,
+    metadata: metadata || null,
+  }, blocking);
 }
 
 // ─── AUTH CONTEXT ───
@@ -86,13 +84,13 @@ export function AuthProvider({ children }) {
               logSession('login', { provider: session.user.app_metadata?.provider || null })
             }
           } else {
-            // Log AVANT signOut : tant qu'on a la session Supabase, on peut
-            // écrire dans activity_logs (la RLS INSERT est ouverte aux
-            // authentifiés, peu importe que l'email soit dans authorized_users).
+            // Log AVANT signOut et AWAIT pour garantir l'insert avant
+            // que la session ne soit invalidée côté réseau (critique :
+            // c'est précisément ce genre d'événement qu'on veut tracer).
             await logSession('access_denied', {
               email: email || null,
               provider: session.user.app_metadata?.provider || null,
-            }, email ? `Tentative refusée — ${email}` : 'Tentative refusée')
+            }, email ? `Tentative refusée — ${email}` : 'Tentative refusée', true)
             setDenied(true)
             setUser(null)
             setProfile(null)
@@ -321,7 +319,9 @@ export function LoginPage() {
 // d'une expiration de session. AuthProvider le lit au SIGNED_OUT suivant.
 export async function logout() {
   try { sessionStorage.setItem('idm_voluntary_logout', '1') } catch {}
-  // Logger AVANT signOut : une fois déconnecté, RLS bloque l'insert.
-  await logSession('logout')
+  // Logger AVANT signOut en mode BLOCKING : une fois déconnecté, RLS
+  // bloque l'insert. Le await garantit que le log arrive en DB avant
+  // la fermeture de la session.
+  await logSession('logout', null, null, true)
   await supabase.auth.signOut()
 }

@@ -195,22 +195,27 @@ RÈGLES :
           const a=JSON.parse(act[1].trim());
           let actionLabel = "";
 
-          if(a.type==="add_chantier") { await SB.upsertChantier(a.data); actionLabel="Chantier créé"; }
-          else if(a.type==="add_task") { await SB.upsertTask(a.data); actionLabel="Tâche créée"; }
-          else if(a.type==="add_contact") { await SB.upsertContact(a.data); actionLabel="Contact créé"; }
-          else if(a.type==="update_contact") { await SB.upsertContact(a.data); actionLabel="Contact mis à jour"; }
-          else if(a.type==="add_cr") { await SB.upsertCR(a.data); actionLabel="Compte rendu créé"; }
-          else if(a.type==="update_cr") { await SB.upsertCR(a.data); actionLabel="Compte rendu mis à jour"; }
-          else if(a.type==="add_os" || a.type==="update_os") {
-            const prests = a.data.prestations || [];
-            let ht=0, tva=0;
-            prests.forEach(p => { const l=(parseFloat(p.quantite)||0)*(parseFloat(p.prix_unitaire)||0); ht+=l; tva+=l*(parseFloat(p.tva_taux)||20)/100; });
-            await SB.upsertOS({ ...a.data, montant_ht:ht, montant_tva:tva, montant_ttc:ht+tva });
-            actionLabel = a.type==="update_os" ? "Ordre de Service mis à jour" : "Ordre de Service créé";
+          // Tague le prochain log SB.upsert avec source=ai : évite
+          // de créer 2 entrées (le log métier + un "ai_action") et
+          // permet de filtrer après coup dans LogsV via metadata.
+          SB.setLogContext({ source: 'ai', action_type: a.type });
+          try {
+            if(a.type==="add_chantier") { await SB.upsertChantier(a.data); actionLabel="Chantier créé"; }
+            else if(a.type==="add_task") { await SB.upsertTask(a.data); actionLabel="Tâche créée"; }
+            else if(a.type==="add_contact") { await SB.upsertContact(a.data); actionLabel="Contact créé"; }
+            else if(a.type==="update_contact") { await SB.upsertContact(a.data); actionLabel="Contact mis à jour"; }
+            else if(a.type==="add_cr") { await SB.upsertCR(a.data); actionLabel="Compte rendu créé"; }
+            else if(a.type==="update_cr") { await SB.upsertCR(a.data); actionLabel="Compte rendu mis à jour"; }
+            else if(a.type==="add_os" || a.type==="update_os") {
+              const prests = a.data.prestations || [];
+              let ht=0, tva=0;
+              prests.forEach(p => { const l=(parseFloat(p.quantite)||0)*(parseFloat(p.prix_unitaire)||0); ht+=l; tva+=l*(parseFloat(p.tva_taux)||20)/100; });
+              await SB.upsertOS({ ...a.data, montant_ht:ht, montant_tva:tva, montant_ttc:ht+tva });
+              actionLabel = a.type==="update_os" ? "Ordre de Service mis à jour" : "Ordre de Service créé";
+            }
+          } finally {
+            SB.clearLogContext();
           }
-          // Trace complémentaire : "déclenché par l'assistant IA"
-          // (en plus du log automatique fait par SB.upsertXxx)
-          SB.log('ai_action', 'ai', null, actionLabel || a.type, { action_type: a.type });
           if(reload) await reload();
           text=text.replace(/<<<ACTION>>>[\s\S]*?<<<END_ACTION>>>/,"").trim()+`\n\n✅ **${actionLabel} dans Supabase !**`;
           if (actionLabel) addToast(actionLabel, "success");

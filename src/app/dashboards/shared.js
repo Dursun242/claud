@@ -1,6 +1,7 @@
 'use client'
 import { supabase } from '../supabaseClient'
 import { ProgressBar } from '../components'
+import { writeActivityLog, setLogContext, clearLogContext } from '../lib/activityLog'
 
 // ─── SOURCE UNIQUE : INFOS ENTREPRISE ───
 // Modifier ici = mis à jour partout (PDFs, sidebar, footer, assistant IA)
@@ -25,25 +26,17 @@ export const SB = {
   // ─── JOURNAL D'ACTIVITÉ (audit log) ───
   // Écriture "fire-and-forget" : n'empêche jamais une opération métier
   // de réussir si l'insert du log échoue (ex. table pas encore migrée).
-  async log(action, entityType, entityId = null, entityLabel = null, metadata = null) {
-    try {
-      const { error } = await supabase.from('activity_logs').insert({
-        action,
-        entity_type: entityType,
-        entity_id: entityId ? String(entityId) : null,
-        entity_label: entityLabel || null,
-        metadata: metadata || null,
-        user_agent: (typeof navigator !== 'undefined' && navigator.userAgent)
-          ? navigator.userAgent.slice(0, 255)
-          : null,
-      });
-      // Ne casse jamais le flux métier, mais expose l'erreur en console
-      // pour debug (RLS, migration manquante, etc.).
-      if (error) console.warn('[SB.log] insert failed:', action, entityType, error.message);
-    } catch (err) {
-      console.warn('[SB.log] exception:', action, entityType, err?.message || err);
-    }
+  log(action, entityType, entityId = null, entityLabel = null, metadata = null) {
+    // Délégation au helper centralisé (shortUserAgent, context, fire-and-forget)
+    return writeActivityLog(supabase, {
+      action, entity_type: entityType, entity_id: entityId, entity_label: entityLabel, metadata,
+    })
   },
+
+  // Expose le contexte pour que les callers (AIV, duplicate) puissent
+  // tagguer les prochains logs sans créer de doublons.
+  setLogContext,
+  clearLogContext,
 
   async getLogs({ limit = 200, before = null, userEmail = null, action = null, entityType = null, search = null } = {}) {
     let q = supabase
@@ -56,12 +49,62 @@ export const SB = {
     if (action) q = q.eq('action', action);
     if (entityType) q = q.eq('entity_type', entityType);
     if (search && search.trim()) {
-      const s = search.trim().replace(/[%,]/g, ' ');
-      q = q.or(`entity_label.ilike.%${s}%,user_prenom.ilike.%${s}%,user_email.ilike.%${s}%`);
+      // Sanitisation stricte : on garde uniquement les caractères qui ont
+      // du sens pour une recherche (alphanum, espaces, quelques séparateurs
+      // usuels). Tout caractère dangereux pour la syntaxe .or() de PostgREST
+      // (virgule, pourcentage, parenthèse, point-virgule, quote, slash, etc.)
+      // est retiré → pas de risque de contournement des filtres via injection
+      // PostgREST.
+      const s = search.trim()
+        .replace(/[^\p{L}\p{N}\s@.\-_+°']/gu, '')
+        .slice(0, 80)
+      if (s) {
+        // Échappe les single-quotes restantes en les dédoublant
+        const safe = s.replace(/'/g, "''")
+        q = q.or(`entity_label.ilike.%${safe}%,user_prenom.ilike.%${safe}%,user_email.ilike.%${safe}%`);
+      }
     }
     const { data, error } = await q;
-    if (error) throw new Error("Erreur chargement journal : " + error.message);
+    if (error) {
+      const msg = error.message || ''
+      // Détection spécifique "table manquante" pour UX dédiée dans LogsV
+      if (/relation.*activity_logs.*does not exist/i.test(msg) || error.code === '42P01') {
+        const e = new Error('Table activity_logs absente — exécute la migration 006.')
+        e.code = 'MIGRATION_MISSING'
+        throw e
+      }
+      throw new Error("Erreur chargement journal : " + msg);
+    }
     return data || [];
+  },
+
+  // Liste distincte des utilisateurs présents dans les logs (pour le
+  // filtre du LogsV). Utilise un helper DB si disponible, sinon un
+  // SELECT DISTINCT "à la main".
+  async getLogUsers() {
+    try {
+      const { data, error } = await supabase.rpc('activity_logs_distinct_users')
+      if (!error && Array.isArray(data)) return data
+    } catch (_) { /* fallback */ }
+    const { data, error } = await supabase
+      .from('activity_logs')
+      .select('user_email,user_prenom')
+      .not('user_email', 'is', null)
+      .limit(5000)
+    if (error) return []
+    const seen = new Map()
+    for (const row of (data || [])) {
+      if (row.user_email && !seen.has(row.user_email)) {
+        seen.set(row.user_email, row.user_prenom || row.user_email)
+      }
+    }
+    return [...seen.entries()].map(([email, prenom]) => ({ email, prenom }))
+  },
+
+  async purgeOldLogs(days = 90) {
+    const { data, error } = await supabase.rpc('purge_activity_logs', { p_days: days })
+    if (error) throw new Error('Purge impossible : ' + error.message)
+    return data ?? null
   },
 
   async loadAll() {
@@ -266,13 +309,14 @@ export const SB = {
     delete newCh.id;
     delete newCh.created_at;
     newCh.nom = newCh.nom + " (copie)";
-    const created = await this.upsertChantier(newCh);
-    // Log "duplicate" en plus du "create" fait par upsertChantier, pour
-    // garder une trace explicite de l'origine de la copie.
-    this.log('duplicate', 'chantier', created?.id || null, created?.nom || newCh.nom, {
-      source_id: chantier?.id || null, source_nom: chantier?.nom || null,
-    });
-    return created;
+    // Tague le prochain log de upsertChantier avec la source de la copie,
+    // évite de créer 2 entrées (create + duplicate) pour une seule action.
+    setLogContext({ source: 'duplicate', source_id: chantier?.id || null, source_nom: chantier?.nom || null });
+    try {
+      return await this.upsertChantier(newCh);
+    } finally {
+      clearLogContext();
+    }
   },
 
   // Comments

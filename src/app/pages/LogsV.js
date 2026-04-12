@@ -1,6 +1,8 @@
 'use client'
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { SB, btnS, inp, sel } from '../dashboards/shared'
+import { useToast } from '../contexts/ToastContext'
+import { useConfirm } from '../contexts/ConfirmContext'
 
 // ─── Journal d'activité (admin uniquement) ───
 // Affiche les connexions + modifications effectuées par les utilisateurs.
@@ -22,6 +24,7 @@ const ACTION_STYLES = {
   odoo_sign_send:  { bg: '#F5F3FF', color: '#6D28D9', border: '#DDD6FE', label: 'Envoi signature' },
   ai_action:       { bg: '#F0FDFA', color: '#0F766E', border: '#99F6E4', label: 'Action IA' },
   seed:            { bg: '#F1F5F9', color: '#475569', border: '#CBD5E1', label: 'Initialisation' },
+  export_csv:      { bg: '#F5F3FF', color: '#5B21B6', border: '#DDD6FE', label: 'Export CSV' },
 }
 const ENTITY_LABELS = {
   chantier:     'Chantier',
@@ -40,6 +43,7 @@ const ENTITY_LABELS = {
   photo_report: 'Reportage photo',
   system:       'Système',
   ai:           'Assistant IA',
+  activity_logs:'Journal',
 }
 
 function formatWhen(iso) {
@@ -62,6 +66,8 @@ function escapeCsv(val) {
 
 export default function LogsV({ m, profile, embedded = false }) {
   const isAdmin = profile?.role === 'admin'
+  const { addToast } = useToast()
+  const confirm = useConfirm()
 
   // Filtres
   const [search, setSearch] = useState('')
@@ -72,15 +78,20 @@ export default function LogsV({ m, profile, embedded = false }) {
   const [logs, setLogs] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  const [errorCode, setErrorCode] = useState(null)
   const [loadingMore, setLoadingMore] = useState(false)
   const [hasMore, setHasMore] = useState(false)
+  const [userOptions, setUserOptions] = useState([])    // chargé depuis la DB
+  const [expanded, setExpanded] = useState(new Set())   // ids avec metadata dépliée
+  const [exporting, setExporting] = useState(false)
+  const [purging, setPurging] = useState(false)
 
   const PAGE_SIZE = 200
 
   const load = useCallback(async (opts = {}) => {
     const { append = false, before = null } = opts
     append ? setLoadingMore(true) : setLoading(true)
-    setError(null)
+    setError(null); setErrorCode(null)
     try {
       const rows = await SB.getLogs({
         limit: PAGE_SIZE,
@@ -94,6 +105,7 @@ export default function LogsV({ m, profile, embedded = false }) {
       setLogs(prev => append ? [...prev, ...rows] : rows)
     } catch (err) {
       setError(err?.message || 'Chargement impossible.')
+      setErrorCode(err?.code || null)
       if (!append) setLogs([])
     } finally {
       append ? setLoadingMore(false) : setLoading(false)
@@ -107,39 +119,101 @@ export default function LogsV({ m, profile, embedded = false }) {
     return () => clearTimeout(t)
   }, [isAdmin, load, search])
 
-  // Liste des utilisateurs présents dans les logs actuels (pour le select)
-  const userOptions = useMemo(() => {
-    const seen = new Map()
-    for (const l of logs) {
-      if (l.user_email && !seen.has(l.user_email)) {
-        seen.set(l.user_email, l.user_prenom || l.user_email)
-      }
-    }
-    return [...seen.entries()].sort((a, b) => a[1].localeCompare(b[1]))
-  }, [logs])
+  // Liste complète des utilisateurs présents dans le journal (depuis la DB,
+  // pas juste les 200 logs chargés → filtre cohérent).
+  useEffect(() => {
+    if (!isAdmin) return
+    SB.getLogUsers()
+      .then(rows => setUserOptions((rows || []).sort((a, b) =>
+        (a.prenom || a.email).localeCompare(b.prenom || b.email))))
+      .catch(() => { /* fallback : userOptions reste vide */ })
+  }, [isAdmin])
 
-  const exportCsv = () => {
-    const headers = ['Date', 'Utilisateur', 'Email', 'Rôle', 'Action', 'Type', 'Libellé', 'ID']
-    const lines = [headers.join(';')]
-    for (const l of logs) {
-      lines.push([
-        formatWhen(l.created_at),
-        l.user_prenom || '',
-        l.user_email || '',
-        l.user_role || '',
-        ACTION_STYLES[l.action]?.label || l.action,
-        ENTITY_LABELS[l.entity_type] || l.entity_type || '',
-        l.entity_label || '',
-        l.entity_id || '',
-      ].map(escapeCsv).join(';'))
+  // Export CSV COMPLET : pagine côté serveur jusqu'à tout ramener
+  // (cap à 10 000 lignes pour protéger l'UX). Respecte les filtres
+  // actifs et trace l'export lui-même dans le journal.
+  const exportCsv = useCallback(async () => {
+    if (exporting) return
+    setExporting(true)
+    try {
+      const all = []
+      let before = null
+      const MAX = 10000
+      while (all.length < MAX) {
+        const rows = await SB.getLogs({
+          limit: 500, before,
+          userEmail: userFilter || null,
+          action: actionFilter || null,
+          entityType: entityFilter || null,
+          search: search || null,
+        })
+        if (!rows.length) break
+        all.push(...rows)
+        if (rows.length < 500) break
+        before = rows[rows.length - 1].created_at
+      }
+      const headers = ['Date', 'Utilisateur', 'Email', 'Rôle', 'Action', 'Type', 'Libellé', 'ID', 'Metadata', 'Appareil']
+      const lines = [headers.join(';')]
+      for (const l of all) {
+        lines.push([
+          formatWhen(l.created_at),
+          l.user_prenom || '', l.user_email || '', l.user_role || '',
+          ACTION_STYLES[l.action]?.label || l.action,
+          ENTITY_LABELS[l.entity_type] || l.entity_type || '',
+          l.entity_label || '', l.entity_id || '',
+          l.metadata ? JSON.stringify(l.metadata) : '',
+          l.user_agent || '',
+        ].map(escapeCsv).join(';'))
+      }
+      const blob = new Blob(['\uFEFF' + lines.join('\n')], { type: 'text/csv;charset=utf-8;' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `journal-activite-${new Date().toISOString().slice(0,10)}.csv`
+      document.body.appendChild(a); a.click(); a.remove()
+      URL.revokeObjectURL(url)
+      // Trace l'export dans le journal (auto-référent assumé)
+      SB.log('export_csv', 'activity_logs', null, `Export journal — ${all.length} lignes`, {
+        rows: all.length,
+        filters: {
+          user: userFilter || null, action: actionFilter || null,
+          entity: entityFilter || null, search: search || null,
+        },
+      })
+      addToast(`Export CSV — ${all.length} lignes`, 'success')
+    } catch (err) {
+      addToast('Export impossible : ' + (err?.message || 'erreur'), 'error')
+    } finally {
+      setExporting(false)
     }
-    const blob = new Blob(['\uFEFF' + lines.join('\n')], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `journal-activite-${new Date().toISOString().slice(0,10)}.csv`
-    document.body.appendChild(a); a.click(); a.remove()
-    URL.revokeObjectURL(url)
+  }, [exporting, userFilter, actionFilter, entityFilter, search, addToast])
+
+  const handlePurge = async () => {
+    const ok = await confirm({
+      title: 'Purger les logs anciens ?',
+      message: 'Supprime toutes les entrées du journal de plus de 90 jours. Action irréversible.',
+      confirmLabel: 'Purger (90j)',
+      danger: true,
+    })
+    if (!ok) return
+    setPurging(true)
+    try {
+      const n = await SB.purgeOldLogs(90)
+      addToast(`Journal purgé — ${n ?? '?'} entrée(s) supprimée(s)`, 'success')
+      load({ append: false })
+    } catch (err) {
+      addToast('Purge impossible : ' + (err?.message || 'erreur'), 'error')
+    } finally {
+      setPurging(false)
+    }
+  }
+
+  const toggleExpanded = (id) => {
+    setExpanded(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
   }
 
   const resetFilters = () => {
@@ -177,8 +251,11 @@ export default function LogsV({ m, profile, embedded = false }) {
           <button onClick={() => load({ append: false })} disabled={loading} title="Actualiser" style={{ ...btnS, fontSize: 12 }}>
             {loading ? '⏳ Chargement…' : '↻ Actualiser'}
           </button>
-          <button onClick={exportCsv} disabled={logs.length === 0} title="Exporter en CSV" style={{ ...btnS, fontSize: 12 }}>
-            ⬇ Export CSV
+          <button onClick={exportCsv} disabled={exporting || logs.length === 0} title="Exporter TOUT le journal filtré en CSV" style={{ ...btnS, fontSize: 12 }}>
+            {exporting ? '⏳ Export…' : '⬇ Export CSV'}
+          </button>
+          <button onClick={handlePurge} disabled={purging} title="Supprimer les entrées de plus de 90 jours" style={{ ...btnS, fontSize: 12, color: '#B91C1C' }}>
+            {purging ? '⏳ Purge…' : '🧹 Purger > 90j'}
           </button>
         </div>
       </div>
@@ -195,8 +272,8 @@ export default function LogsV({ m, profile, embedded = false }) {
           />
           <select value={userFilter} onChange={e => setUserFilter(e.target.value)} style={{ ...sel, fontSize: 12 }}>
             <option value="">👥 Tous les utilisateurs</option>
-            {userOptions.map(([email, prenom]) => (
-              <option key={email} value={email}>{prenom} ({email})</option>
+            {userOptions.map(u => (
+              <option key={u.email} value={u.email}>{u.prenom || u.email} ({u.email})</option>
             ))}
           </select>
           <select value={actionFilter} onChange={e => setActionFilter(e.target.value)} style={{ ...sel, fontSize: 12 }}>
@@ -226,7 +303,10 @@ export default function LogsV({ m, profile, embedded = false }) {
         <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 8, padding: "10px 14px", marginBottom: 12, fontSize: 13, color: "#DC2626" }}>
           ⚠ {error}
           <div style={{ fontSize: 11, marginTop: 4, color: '#94A3B8' }}>
-            Assure-toi que les migrations <code>006a</code> → <code>006e</code> (<code>activity_logs</code>) ont toutes été appliquées dans Supabase, dans l&apos;ordre.
+            {errorCode === 'MIGRATION_MISSING'
+              ? <>La table <code>activity_logs</code> n&apos;existe pas. Exécute la migration <code>007_activity_logs_consolidated.sql</code> dans Supabase (SQL Editor).</>
+              : <>Si l&apos;erreur persiste, vérifie que la migration <code>007_activity_logs_consolidated.sql</code> a bien été appliquée.</>
+            }
           </div>
         </div>
       )}
@@ -255,6 +335,8 @@ export default function LogsV({ m, profile, embedded = false }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {logs.map(l => {
             const a = ACTION_STYLES[l.action] || { bg: '#F1F5F9', color: '#475569', border: '#CBD5E1', label: l.action }
+            const src = l.metadata?.source
+            const isOpen = expanded.has(l.id)
             return (
               <div key={l.id} style={{ background: '#fff', borderRadius: 10, padding: 12, boxShadow: '0 1px 3px rgba(15,23,42,0.05)', borderLeft: `4px solid ${a.color}` }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6, gap: 8 }}>
@@ -269,7 +351,20 @@ export default function LogsV({ m, profile, embedded = false }) {
                 <div style={{ fontSize: 12, color: '#475569' }}>
                   <span style={{ fontWeight: 600 }}>{ENTITY_LABELS[l.entity_type] || l.entity_type || '—'}</span>
                   {l.entity_label && <> — {l.entity_label}</>}
+                  {src === 'ai' && <span style={sourceBadge}>🤖 IA</span>}
+                  {src === 'duplicate' && <span style={sourceBadge}>📋 Copie</span>}
                 </div>
+                {l.metadata && (
+                  <>
+                    <button onClick={() => toggleExpanded(l.id)}
+                      style={{ marginTop: 6, background: 'none', border: 'none', color: '#64748B', fontSize: 10, cursor: 'pointer', padding: 0, fontFamily: 'inherit', textDecoration: 'underline' }}>
+                      {isOpen ? '▾ Masquer les détails' : '▸ Afficher les détails'}
+                    </button>
+                    {isOpen && (
+                      <pre style={metaStyle}>{JSON.stringify(l.metadata, null, 2)}</pre>
+                    )}
+                  </>
+                )}
               </div>
             )
           })}
@@ -291,23 +386,46 @@ export default function LogsV({ m, profile, embedded = false }) {
               <tbody>
                 {logs.map((l, i) => {
                   const a = ACTION_STYLES[l.action] || { bg: '#F1F5F9', color: '#475569', border: '#CBD5E1', label: l.action }
+                  const hasMeta = l.metadata && Object.keys(l.metadata).length > 0
+                  const isOpen = expanded.has(l.id)
+                  const src = l.metadata?.source
                   return (
-                    <tr key={l.id} style={{ borderTop: i === 0 ? 'none' : '1px solid #F1F5F9' }}>
-                      <td style={{ ...tdStyle, whiteSpace: 'nowrap', color: '#64748B', fontSize: 12 }}>{formatWhen(l.created_at)}</td>
-                      <td style={tdStyle}>
-                        <div style={{ fontWeight: 600, color: '#0F172A' }}>{l.user_prenom || '—'}</div>
-                        <div style={{ fontSize: 11, color: '#94A3B8' }}>{l.user_email}</div>
-                      </td>
-                      <td style={tdStyle}>
-                        <span style={{ background: a.bg, color: a.color, border: `1px solid ${a.border}`, borderRadius: 5, padding: '3px 8px', fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap' }}>
-                          {a.label}
-                        </span>
-                      </td>
-                      <td style={{ ...tdStyle, color: '#475569' }}>
-                        {ENTITY_LABELS[l.entity_type] || l.entity_type || '—'}
-                      </td>
-                      <td style={{ ...tdStyle, color: '#334155' }}>{l.entity_label || '—'}</td>
-                    </tr>
+                    <React.Fragment key={l.id}>
+                      <tr style={{ borderTop: i === 0 ? 'none' : '1px solid #F1F5F9', cursor: hasMeta ? 'pointer' : 'default' }}
+                          onClick={() => hasMeta && toggleExpanded(l.id)}>
+                        <td style={{ ...tdStyle, whiteSpace: 'nowrap', color: '#64748B', fontSize: 12 }}>{formatWhen(l.created_at)}</td>
+                        <td style={tdStyle}>
+                          <div style={{ fontWeight: 600, color: '#0F172A' }}>{l.user_prenom || '—'}</div>
+                          <div style={{ fontSize: 11, color: '#94A3B8' }}>{l.user_email}</div>
+                        </td>
+                        <td style={tdStyle}>
+                          <span style={{ background: a.bg, color: a.color, border: `1px solid ${a.border}`, borderRadius: 5, padding: '3px 8px', fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap' }}>
+                            {a.label}
+                          </span>
+                        </td>
+                        <td style={{ ...tdStyle, color: '#475569' }}>
+                          {ENTITY_LABELS[l.entity_type] || l.entity_type || '—'}
+                        </td>
+                        <td style={{ ...tdStyle, color: '#334155' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 320 }}>
+                              {l.entity_label || '—'}
+                            </span>
+                            {src === 'ai' && <span style={sourceBadge}>🤖 IA</span>}
+                            {src === 'duplicate' && <span style={sourceBadge}>📋 Copie</span>}
+                            {hasMeta && <span style={{ fontSize: 10, color: '#94A3B8' }}>{isOpen ? '▾' : '▸'}</span>}
+                          </div>
+                        </td>
+                      </tr>
+                      {hasMeta && isOpen && (
+                        <tr style={{ background: '#F8FAFC', borderTop: '1px solid #E2E8F0' }}>
+                          <td colSpan={5} style={{ padding: '10px 14px' }}>
+                            <pre style={metaStyle}>{JSON.stringify(l.metadata, null, 2)}</pre>
+                            {l.user_agent && <div style={{ fontSize: 10, color: '#94A3B8', marginTop: 4 }}>Appareil : {l.user_agent}</div>}
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
                   )
                 })}
               </tbody>
@@ -337,3 +455,16 @@ export default function LogsV({ m, profile, embedded = false }) {
 
 const thStyle = { padding: '10px 14px', fontWeight: 700 }
 const tdStyle = { padding: '10px 14px', verticalAlign: 'top' }
+const sourceBadge = {
+  display: 'inline-flex', alignItems: 'center', gap: 3,
+  padding: '1px 6px', borderRadius: 4, background: '#F0FDFA',
+  border: '1px solid #99F6E4', color: '#0F766E',
+  fontSize: 9, fontWeight: 700, whiteSpace: 'nowrap',
+}
+const metaStyle = {
+  fontSize: 11, color: '#334155',
+  background: '#fff', border: '1px solid #E2E8F0',
+  borderRadius: 6, padding: '8px 10px', margin: 0,
+  overflowX: 'auto', maxWidth: '100%',
+  fontFamily: 'ui-monospace, "SF Mono", Menlo, monospace',
+}
