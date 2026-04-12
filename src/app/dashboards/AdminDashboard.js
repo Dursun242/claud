@@ -5,6 +5,9 @@ import { supabase } from '../supabaseClient'
 import { logout } from '../auth'
 import { FloatingMic } from '../components'
 import { DashboardSkeleton, PageSkeleton } from '../components/Skeleton'
+import KeyboardHelpModal from '../components/KeyboardHelpModal'
+import { useFloatingMic } from '../hooks/useFloatingMic'
+import { seedDemoData } from '../lib/seedDemoData'
 
 import { SB, defaultData, I, Icon, ApiBadge } from './shared'
 
@@ -39,65 +42,8 @@ export default function AdminDashboard({ user, profile = null }) {
   const [helpOpen, setHelpOpen] = useState(false);
   // Préfixe « g » en attente (style GitHub : g puis lettre = go to tab)
   const pendingGRef = useRef(null);
-  // Floating mic state
-  const [floatListening, setFloatListening] = useState(false);
-  const [floatTranscript, setFloatTranscript] = useState("");
-  const floatRecogRef = useRef(null);
-
-  const toggleFloatMic = useCallback(() => {
-    try {
-      const SR = typeof window !== 'undefined'
-        ? (window.SpeechRecognition || window.webkitSpeechRecognition)
-        : null;
-
-      if (!SR) {
-        alert("Reconnaissance vocale non supportée par ce navigateur.\n\nUtilisez Chrome, Edge ou Safari (pas Firefox ni Brave).");
-        return;
-      }
-
-      if (floatListening && floatRecogRef.current) {
-        floatRecogRef.current.stop();
-        setFloatListening(false);
-        return;
-      }
-
-      const r = new SR();
-      r.lang = "fr-FR";
-      r.continuous = true;
-      r.interimResults = true;
-      floatRecogRef.current = r;
-      let final = "";
-
-      r.onstart = () => {
-        setFloatListening(true);
-        setFloatTranscript("");
-      };
-      r.onresult = (ev) => {
-        let interim = "";
-        for (let i = ev.resultIndex; i < ev.results.length; i++) {
-          if (ev.results[i].isFinal) final += ev.results[i][0].transcript + " ";
-          else interim = ev.results[i][0].transcript;
-        }
-        setFloatTranscript(final + interim);
-      };
-      r.onerror = (ev) => {
-        console.error('[FloatingMic] recognition error', ev?.error);
-        setFloatListening(false);
-        if (ev?.error === 'not-allowed' || ev?.error === 'service-not-allowed') {
-          alert("Micro bloqué par le navigateur.\n\nAutorise l'accès au micro pour ce site dans les réglages du navigateur.");
-        }
-      };
-      r.onend = () => {
-        setFloatListening(false);
-        if (final.trim()) setFloatTranscript(final.trim());
-      };
-      r.start();
-    } catch (e) {
-      console.error('[FloatingMic] toggleFloatMic exception', e);
-      alert("Erreur lors du démarrage de la reconnaissance vocale :\n" + (e?.message || String(e)));
-      setFloatListening(false);
-    }
-  }, [floatListening]);
+  // Floating mic — logique extraite dans useFloatingMic hook
+  const { listening: floatListening, transcript: floatTranscript, setTranscript: setFloatTranscript, toggle: toggleFloatMic, clear: clearFloatMic } = useFloatingMic();
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
@@ -119,53 +65,12 @@ export default function AdminDashboard({ user, profile = null }) {
           setData(sbData);
         } else {
           // Seed données de démonstration (première connexion)
-          let insertedChIds = [];
-          try {
-            const chantierRows = defaultData.chantiers.map(({ id, dateDebut, dateFin, ...rest }) => ({
-              ...rest, date_debut: dateDebut || null, date_fin: dateFin || null
-            }));
-            const { data: insertedCh, error: errCh } = await supabase.from('chantiers').insert(chantierRows).select();
-            if (errCh) throw new Error("Erreur insert chantiers: " + errCh.message);
-            insertedChIds = (insertedCh || []).map(c => c.id);
-
-            const contactRows = defaultData.contacts.map(({ id, chantiers, ...rest }) => rest);
-            const { error: errCo } = await supabase.from('contacts').insert(contactRows).select();
-            if (errCo) throw new Error("Erreur insert contacts: " + errCo.message);
-
-            // Map ancien id → nouveau UUID pour lier les tâches
-            const chMap = {};
-            if (insertedCh) {
-              defaultData.chantiers.forEach((defCh, i) => {
-                if (insertedCh[i]) chMap[defCh.id] = insertedCh[i].id;
-              });
-            }
-
-            const taskRows = defaultData.tasks.map(({ id, chantierId, ...rest }) => ({
-              ...rest, chantier_id: chMap[chantierId] || null
-            })).filter(t => t.chantier_id);
-            if (taskRows.length > 0) {
-              const { error: errTa } = await supabase.from('taches').insert(taskRows);
-              if (errTa) throw new Error("Erreur insert tâches: " + errTa.message);
-            }
-
-            if (defaultData.compteRendus) {
-              const crRows = defaultData.compteRendus.map(({ id, chantierId, ...rest }) => ({
-                ...rest, chantier_id: chMap[chantierId] || null
-              })).filter(c => c.chantier_id);
-              if (crRows.length > 0) {
-                const { error: errCr } = await supabase.from('compte_rendus').insert(crRows);
-                if (errCr) throw new Error("Erreur insert CR: " + errCr.message);
-              }
-            }
-
+          // Logique extraite dans lib/seedDemoData.js
+          const seeded = await seedDemoData(supabase, defaultData);
+          if (seeded) {
             const freshData = await SB.loadAll();
             setData(freshData.chantiers.length > 0 ? freshData : defaultData);
-          } catch (seedErr) {
-            // Rollback : supprimer les chantiers insérés pour ne pas laisser la base à moitié remplie
-            if (insertedChIds.length > 0) {
-              await supabase.from('chantiers').delete().in('id', insertedChIds).catch(() => {});
-            }
-            console.error("Seed échoué, rollback effectué:", seedErr.message);
+          } else {
             setData(defaultData);
           }
         }
@@ -450,67 +355,13 @@ export default function AdminDashboard({ user, profile = null }) {
           onClick={toggleFloatMic}
           transcript={floatTranscript}
           isMobile={isMobile}
-          onSend={() => { setTab("ai"); /* transcript will be picked up by AIV */ }}
-          onClear={() => { setFloatTranscript(""); if (floatListening && floatRecogRef.current) { floatRecogRef.current.stop(); setFloatListening(false); } }}
+          onSend={() => { setTab("ai"); }}
+          onClear={clearFloatMic}
         />
       )}
 
       {/* KEYBOARD SHORTCUTS HELP — déclenché par « ? » */}
-      {helpOpen && (
-        <div onClick={()=>setHelpOpen(false)} style={{
-          position:"fixed",inset:0,background:"rgba(15,23,42,0.55)",backdropFilter:"blur(4px)",
-          zIndex:5000,display:"flex",alignItems:"center",justifyContent:"center",padding:16,
-          animation:"fadeIn .15s ease"
-        }}>
-          <div onClick={e=>e.stopPropagation()} style={{
-            background:"#fff",borderRadius:14,boxShadow:"0 20px 60px rgba(0,0,0,0.3)",
-            width:"100%",maxWidth:460,padding:"20px 24px 22px",fontFamily:"'DM Sans',sans-serif"
-          }}>
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}>
-              <div>
-                <div style={{fontSize:16,fontWeight:700,color:"#0F172A"}}>Raccourcis clavier</div>
-                <div style={{fontSize:11,color:"#64748B",marginTop:2}}>Naviguer plus vite dans l'app</div>
-              </div>
-              <button onClick={()=>setHelpOpen(false)} aria-label="Fermer" style={{background:"#F1F5F9",border:"none",width:28,height:28,borderRadius:6,cursor:"pointer",color:"#64748B",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center"}}>×</button>
-            </div>
-            <div style={{display:"flex",flexDirection:"column",gap:14}}>
-              <div>
-                <div style={{fontSize:10,fontWeight:700,color:"#94A3B8",letterSpacing:"0.08em",textTransform:"uppercase",marginBottom:6}}>Global</div>
-                {[
-                  {k:["Ctrl","K"], label:"Recherche globale"},
-                  {k:["/"],        label:"Focus la recherche"},
-                  {k:["?"],        label:"Afficher cette aide"},
-                  {k:["Esc"],      label:"Fermer / annuler"},
-                ].map((r,i)=>(
-                  <div key={i} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"6px 0"}}>
-                    <span style={{fontSize:13,color:"#334155"}}>{r.label}</span>
-                    <span style={{display:"flex",gap:4}}>{r.k.map((key,j)=>(<kbd key={j} style={kbdStyle}>{key}</kbd>))}</span>
-                  </div>
-                ))}
-              </div>
-              <div>
-                <div style={{fontSize:10,fontWeight:700,color:"#94A3B8",letterSpacing:"0.08em",textTransform:"uppercase",marginBottom:6}}>Aller à (appuie sur <kbd style={kbdStyle}>g</kbd> puis…)</div>
-                <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:"4px 16px"}}>
-                  {tabs.map(t=>(
-                    <div key={t.key} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"4px 0"}}>
-                      <span style={{fontSize:12,color:"#334155",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.label}</span>
-                      <kbd style={kbdStyle}>{t.sc}</kbd>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <KeyboardHelpModal open={helpOpen} onClose={() => setHelpOpen(false)} tabs={tabs} />
     </div>
   );
 }
-
-// Style partagé pour les touches affichées dans la modale d'aide
-const kbdStyle = {
-  display:"inline-flex",alignItems:"center",justifyContent:"center",
-  minWidth:22,height:22,padding:"0 6px",
-  background:"#F1F5F9",border:"1px solid #CBD5E1",borderBottomWidth:2,
-  borderRadius:5,fontSize:11,fontWeight:600,color:"#334155",fontFamily:"'DM Sans',sans-serif"
-};
