@@ -22,6 +22,7 @@ const dyn = (loader) => dynamic(loader, { loading: PageLoading, ssr: false })
 const LAST_TAB_KEY = 'idm_admin_tab'
 
 const AdminV = dyn(() => import('../pages/AdminV'))
+const LogsV = dyn(() => import('../pages/LogsV'))
 const DashboardV = dyn(() => import('../pages/DashboardV'))
 const QontoV = dyn(() => import('../pages/QontoV'))
 const ProjectsV = dyn(() => import('../pages/ProjectsV'))
@@ -212,7 +213,10 @@ export default function AdminDashboard({ user, profile = null }) {
     {key:"planning", label:"Planning",          icon:I.planning,  sc:"l"},
     {key:"contacts", label:"Annuaire",          icon:I.contacts,  sc:"c"},
     {key:"qonto",    label:"Qonto",             icon:null,        sc:"q", isQonto:true},
-    ...(profile?.role === 'admin' ? [{key:"admin",label:"🔒 Admin", icon:I.settings, sc:"s"}] : []),
+    ...(profile?.role === 'admin' ? [
+      {key:"admin",label:"🔒 Admin", icon:I.settings, sc:"s"},
+      {key:"logs", label:"📋 Journal", icon:I.reports, sc:"j"},
+    ] : []),
     {key:"ai",       label:"Assistant IA",      icon:I.ai,        sc:"a"},
   ], [profile?.role]);
 
@@ -402,6 +406,7 @@ export default function AdminDashboard({ user, profile = null }) {
           {tab==="reports"&&<ReportsV data={data} save={save} m={isMobile} reload={reload} focusId={focus?.id} focusTs={focus?.ts}/>}
           {tab==="os"&&<OrdresServiceV data={data} m={isMobile} reload={reload} focusId={focus?.id} focusTs={focus?.ts}/>}
           {tab==="admin"&&<AdminV m={isMobile} reload={reload} profile={profile}/>}
+          {tab==="logs"&&<LogsV m={isMobile} profile={profile}/>}
           {tab==="ai"&&<AIV data={data} save={save} m={isMobile} externalTranscript={floatTranscript} clearExternal={()=>setFloatTranscript("")} reload={reload}/>}
         </div>
       </main>
