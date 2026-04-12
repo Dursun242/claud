@@ -484,77 +484,106 @@ export async function generatePhotoReportPdf(chantier, photos) {
   y += 4
   doc.text(sanitize(`SIRET ${ENT.siret} — ${ENT.email}`), w / 2, y, { align: "center" })
 
-  // ─── PAGES PHOTOS (2 par page) ──────────────────────────────
-  const photoHeight = 105  // hauteur max d'une photo (mm)
-  const captionGap = 3
+  // ─── PAGES PHOTOS ──────────────────────────────────────────────
+  //
+  // Layout intelligent :
+  // - Photo portrait (height > width) + suivante aussi portrait
+  //   → côte à côte sur la même ligne (2 colonnes)
+  // - Photo paysage (width >= height) → pleine largeur
+  // - Photo portrait isolée (la suivante est paysage ou c'est la dernière)
+  //   → pleine largeur aussi
+  //
+  // Résultat : utilisation optimale de l'espace, moins de pages, PDF plus compact.
+  const gap = 8             // espace entre 2 colonnes (mm)
+  const colW = (usable - gap) / 2  // largeur d'une colonne (~86mm)
+  const maxRowH = 120       // hauteur max d'une rangée (mm)
+  let pageNum = 1
 
-  for (let i = 0; i < photos.length; i++) {
-    const photo = photos[i]
-    const isFirstOnPage = i % 2 === 0
+  const isPortrait = (p) => p.height > p.width
 
-    if (isFirstOnPage) {
-      doc.addPage()
-      // En-tête léger
-      doc.setFontSize(8)
-      doc.setFont("helvetica", "normal")
-      doc.setTextColor(...GRIS)
-      doc.text(sanitize(`${chantier.nom} — Reportage photo — ${today}`), margin, 10)
-      doc.text(sanitize(`Page ${Math.floor(i / 2) + 2}`), w - margin, 10, { align: "right" })
-      y = 18
-    }
-
-    if (!photo.base64) {
-      // Photo non chargée — placeholder texte
-      doc.setFillColor(...GRIS_CLAIR)
-      doc.rect(margin, y, usable, photoHeight, 'F')
-      doc.setFontSize(10)
-      doc.setTextColor(...GRIS)
-      doc.text("Photo non disponible", w / 2, y + photoHeight / 2, { align: "center" })
-    } else {
-      // Calculer les dimensions pour respecter le ratio de la photo
-      // tout en restant dans usable × photoHeight
-      try {
-        const imgProps = doc.getImageProperties(photo.base64)
-        const imgRatio = imgProps.width / imgProps.height
-        let imgW = usable
-        let imgH = imgW / imgRatio
-        if (imgH > photoHeight) {
-          imgH = photoHeight
-          imgW = imgH * imgRatio
-        }
-        // Centrer horizontalement
-        const imgX = margin + (usable - imgW) / 2
-        doc.addImage(photo.base64, 'JPEG', imgX, y, imgW, imgH)
-        // Cadre fin autour de la photo
-        doc.setDrawColor(203, 213, 225)
-        doc.setLineWidth(0.3)
-        doc.rect(imgX, y, imgW, imgH)
-      } catch {
-        doc.setFillColor(...GRIS_CLAIR)
-        doc.rect(margin, y, usable, photoHeight, 'F')
-        doc.setFontSize(9)
-        doc.setTextColor(...GRIS)
-        doc.text("Erreur chargement image", w / 2, y + photoHeight / 2, { align: "center" })
-      }
-    }
-
-    // Légende + date sous la photo
-    y += photoHeight + captionGap
-    if (photo.description) {
-      doc.setFontSize(10)
-      doc.setFont("helvetica", "bold")
-      doc.setTextColor(...NOIR)
-      const lines = doc.splitTextToSize(sanitize(photo.description), usable)
-      doc.text(lines, margin, y + 4)
-      y += lines.length * 4.5
-    }
+  // Helper : ajouter une nouvelle page avec en-tête léger
+  const addPhotoPage = () => {
+    doc.addPage()
+    pageNum++
     doc.setFontSize(8)
     doc.setFont("helvetica", "normal")
     doc.setTextColor(...GRIS)
-    doc.text(sanitize(fmtD(photo.date_photo)), margin, y + 4)
+    doc.text(sanitize(`${chantier.nom} — Reportage photo — ${today}`), margin, 10)
+    doc.text(sanitize(`Page ${pageNum}`), w - margin, 10, { align: "right" })
+    return 18  // y de départ après l'en-tête
+  }
 
-    // Espace avant la prochaine photo
-    y += 12
+  // Helper : dessiner une photo dans une zone (x, y, maxW, maxH)
+  const drawPhoto = (photo, x, photoY, maxW, maxH) => {
+    if (!photo.base64) return maxH
+    try {
+      const props = doc.getImageProperties(photo.base64)
+      const ratio = props.width / props.height
+      let imgW = maxW
+      let imgH = imgW / ratio
+      if (imgH > maxH) { imgH = maxH; imgW = imgH * ratio }
+      const imgX = x + (maxW - imgW) / 2  // centrer dans la colonne
+      doc.addImage(photo.base64, 'JPEG', imgX, photoY, imgW, imgH)
+      doc.setDrawColor(203, 213, 225)
+      doc.setLineWidth(0.3)
+      doc.rect(imgX, photoY, imgW, imgH)
+      return imgH
+    } catch {
+      return 0
+    }
+  }
+
+  // Helper : dessiner la légende sous une photo
+  const drawCaption = (photo, x, captionY, maxW) => {
+    let cy = captionY
+    if (photo.description) {
+      doc.setFontSize(9)
+      doc.setFont("helvetica", "bold")
+      doc.setTextColor(...NOIR)
+      const lines = doc.splitTextToSize(sanitize(photo.description), maxW)
+      doc.text(lines, x, cy + 3)
+      cy += lines.length * 4
+    }
+    doc.setFontSize(7)
+    doc.setFont("helvetica", "normal")
+    doc.setTextColor(...GRIS)
+    doc.text(sanitize(fmtD(photo.date_photo)), x, cy + 3)
+    return cy + 6
+  }
+
+  y = addPhotoPage()
+  let i = 0
+  while (i < photos.length) {
+    const photo = photos[i]
+    const next = i + 1 < photos.length ? photos[i + 1] : null
+
+    // Vérifier s'il reste assez de place sur la page
+    if (y > h - 50) y = addPhotoPage()
+
+    // ── Cas 1 : deux portraits côte à côte ──
+    if (isPortrait(photo) && next && isPortrait(next)) {
+      const rowH = Math.min(maxRowH, h - y - 30)
+      const h1 = drawPhoto(photo, margin, y, colW, rowH)
+      const h2 = drawPhoto(next, margin + colW + gap, y, colW, rowH)
+      const photoH = Math.max(h1, h2)
+
+      // Légendes sous chaque photo
+      const captionY = y + photoH + 2
+      const endY1 = drawCaption(photo, margin, captionY, colW)
+      const endY2 = drawCaption(next, margin + colW + gap, captionY, colW)
+      y = Math.max(endY1, endY2) + 8
+
+      i += 2
+    }
+    // ── Cas 2 : photo paysage ou portrait isolée → pleine largeur ──
+    else {
+      const rowH = Math.min(maxRowH, h - y - 30)
+      const photoH = drawPhoto(photo, margin, y, usable, rowH)
+      const captionY = y + photoH + 2
+      y = drawCaption(photo, margin, captionY, usable) + 8
+
+      i += 1
+    }
   }
 
   // ─── Pied de page sur la dernière page ───────────────────────
