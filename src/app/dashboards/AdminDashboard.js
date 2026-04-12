@@ -29,6 +29,7 @@ const ContactsV = dyn(() => import('../pages/ContactsV'))
 const ReportsV = dyn(() => import('../pages/ReportsV'))
 const OrdresServiceV = dyn(() => import('../pages/OrdresServiceV'))
 const AIV = dyn(() => import('../pages/AIV'))
+const PhotoReportsV = dyn(() => import('../pages/PhotoReportsV'))
 import GlobalSearch from '../components/GlobalSearch'
 
 // ═══════════════════════════════════════════
@@ -111,6 +112,7 @@ export default function AdminDashboard({ user, profile = null }) {
     {key:"tasks",    label:"Tâches",            icon:I.tasks,     sc:"t"},
     {key:"planning", label:"Planning",          icon:I.planning,  sc:"l"},
     {key:"contacts", label:"Annuaire",          icon:I.contacts,  sc:"c"},
+    {key:"photos",   label:"Rapports Photo",    icon:I.camera,    sc:"h"},
     {key:"qonto",    label:"Qonto",             icon:null,        sc:"q", isQonto:true},
     ...(profile?.role === 'admin' ? [{key:"admin",label:"🔒 Admin", icon:I.settings, sc:"s"}] : []),
     {key:"ai",       label:"Assistant IA",      icon:I.ai,        sc:"a"},
@@ -344,6 +346,7 @@ export default function AdminDashboard({ user, profile = null }) {
           {tab==="contacts"&&<ContactsV data={data} save={save} m={isMobile} reload={reload} focusId={focus?.id} focusTs={focus?.ts}/>}
           {tab==="reports"&&<ReportsV data={data} save={save} m={isMobile} reload={reload} focusId={focus?.id} focusTs={focus?.ts}/>}
           {tab==="os"&&<OrdresServiceV data={data} m={isMobile} reload={reload} focusId={focus?.id} focusTs={focus?.ts}/>}
+          {tab==="photos"&&<PhotoReportsV data={data} m={isMobile} reload={reload}/>}
           {tab==="admin"&&<AdminV m={isMobile} reload={reload} profile={profile}/>}
           {tab==="ai"&&<AIV data={data} save={save} m={isMobile} externalTranscript={floatTranscript} clearExternal={()=>setFloatTranscript("")} reload={reload}/>}
         </div>

@@ -414,3 +414,153 @@ export function generateCRExcel(cr, chantier) {
   link.download = `CR-${cr.numero||"X"}-${(chantier?.nom||"chantier").replace(/\s+/g, "_")}.csv`
   link.click()
 }
+
+// ═══════════════════════════════════════════
+// GÉNÉRATEUR PDF — RAPPORT PHOTO DE CHANTIER
+// ═══════════════════════════════════════════
+//
+// Prend un objet chantier + un tableau de photos (avec base64 pré-chargée)
+// et produit un rapport photo professionnel au format A4 :
+// - Page de garde : logo, nom chantier, adresse, client, date, nb photos
+// - Pages intérieures : 2 photos/page avec légende + date
+// - Pied de page : infos entreprise + pagination
+//
+// Les photos doivent être pré-chargées en base64 avant l'appel (le
+// composant PhotoReportsV s'en charge via fetch → canvas → base64).
+//
+export async function generatePhotoReportPdf(chantier, photos) {
+  const { jsPDF } = await loadJsPdf()
+  const doc = new jsPDF('p', 'mm', 'a4')
+  const w = doc.internal.pageSize.getWidth()   // 210mm
+  const h = doc.internal.pageSize.getHeight()   // 297mm
+  const margin = 15
+  const usable = w - margin * 2                 // 180mm
+  const today = fmtD(new Date())
+
+  // ─── PAGE DE GARDE ───────────────────────────────────────────
+  // Logo en haut
+  let y = 30
+  try { doc.addImage(LOGO_B64, 'JPEG', margin, y, 60, 17) } catch {}
+
+  // Titre
+  y = 80
+  doc.setFontSize(28)
+  doc.setFont("helvetica", "bold")
+  doc.setTextColor(...BLEU)
+  doc.text(sanitize("RAPPORT PHOTO"), w / 2, y, { align: "center" })
+
+  // Chantier info
+  y = 105
+  doc.setFontSize(18)
+  doc.setTextColor(...NOIR)
+  doc.text(sanitize(chantier.nom || "Chantier"), w / 2, y, { align: "center" })
+
+  y = 118
+  doc.setFontSize(12)
+  doc.setFont("helvetica", "normal")
+  doc.setTextColor(...GRIS)
+  if (chantier.adresse) doc.text(sanitize(chantier.adresse), w / 2, y, { align: "center" })
+  y += 8
+  if (chantier.client) doc.text(sanitize("Client : " + chantier.client), w / 2, y, { align: "center" })
+  y += 8
+  if (chantier.phase) doc.text(sanitize("Phase : " + chantier.phase), w / 2, y, { align: "center" })
+
+  // Date + compteur
+  y = 170
+  doc.setFontSize(11)
+  doc.setTextColor(...GRIS)
+  doc.text(sanitize(`Date du rapport : ${today}`), w / 2, y, { align: "center" })
+  y += 7
+  doc.text(sanitize(`${photos.length} photo${photos.length > 1 ? "s" : ""}`), w / 2, y, { align: "center" })
+
+  // Entreprise en bas de la page de garde
+  y = 260
+  doc.setFontSize(9)
+  doc.setTextColor(...GRIS)
+  doc.text(sanitize(ENT.nom), w / 2, y, { align: "center" })
+  doc.setFontSize(7.5)
+  y += 5
+  doc.text(sanitize(`${ENT.adresse}, ${ENT.cpVille}`), w / 2, y, { align: "center" })
+  y += 4
+  doc.text(sanitize(`SIRET ${ENT.siret} — ${ENT.email}`), w / 2, y, { align: "center" })
+
+  // ─── PAGES PHOTOS (2 par page) ──────────────────────────────
+  const photoHeight = 105  // hauteur max d'une photo (mm)
+  const captionGap = 3
+
+  for (let i = 0; i < photos.length; i++) {
+    const photo = photos[i]
+    const isFirstOnPage = i % 2 === 0
+
+    if (isFirstOnPage) {
+      doc.addPage()
+      // En-tête léger
+      doc.setFontSize(8)
+      doc.setFont("helvetica", "normal")
+      doc.setTextColor(...GRIS)
+      doc.text(sanitize(`${chantier.nom} — Rapport photo — ${today}`), margin, 10)
+      doc.text(sanitize(`Page ${Math.floor(i / 2) + 2}`), w - margin, 10, { align: "right" })
+      y = 18
+    }
+
+    if (!photo.base64) {
+      // Photo non chargée — placeholder texte
+      doc.setFillColor(...GRIS_CLAIR)
+      doc.rect(margin, y, usable, photoHeight, 'F')
+      doc.setFontSize(10)
+      doc.setTextColor(...GRIS)
+      doc.text("Photo non disponible", w / 2, y + photoHeight / 2, { align: "center" })
+    } else {
+      // Calculer les dimensions pour respecter le ratio de la photo
+      // tout en restant dans usable × photoHeight
+      try {
+        const imgProps = doc.getImageProperties(photo.base64)
+        const imgRatio = imgProps.width / imgProps.height
+        let imgW = usable
+        let imgH = imgW / imgRatio
+        if (imgH > photoHeight) {
+          imgH = photoHeight
+          imgW = imgH * imgRatio
+        }
+        // Centrer horizontalement
+        const imgX = margin + (usable - imgW) / 2
+        doc.addImage(photo.base64, 'JPEG', imgX, y, imgW, imgH)
+        // Cadre fin autour de la photo
+        doc.setDrawColor(203, 213, 225)
+        doc.setLineWidth(0.3)
+        doc.rect(imgX, y, imgW, imgH)
+      } catch {
+        doc.setFillColor(...GRIS_CLAIR)
+        doc.rect(margin, y, usable, photoHeight, 'F')
+        doc.setFontSize(9)
+        doc.setTextColor(...GRIS)
+        doc.text("Erreur chargement image", w / 2, y + photoHeight / 2, { align: "center" })
+      }
+    }
+
+    // Légende + date sous la photo
+    y += photoHeight + captionGap
+    if (photo.description) {
+      doc.setFontSize(10)
+      doc.setFont("helvetica", "bold")
+      doc.setTextColor(...NOIR)
+      const lines = doc.splitTextToSize(sanitize(photo.description), usable)
+      doc.text(lines, margin, y + 4)
+      y += lines.length * 4.5
+    }
+    doc.setFontSize(8)
+    doc.setFont("helvetica", "normal")
+    doc.setTextColor(...GRIS)
+    doc.text(sanitize(fmtD(photo.date_photo)), margin, y + 4)
+
+    // Espace avant la prochaine photo
+    y += 12
+  }
+
+  // ─── Pied de page sur la dernière page ───────────────────────
+  pied(doc, w, margin, h - 15)
+
+  // ─── Téléchargement ──────────────────────────────────────────
+  const slug = (chantier.nom || "chantier").replace(/\s+/g, "_").replace(/[^\w-]/g, "")
+  doc.save(`Rapport-Photo_${slug}_${new Date().toISOString().split("T")[0]}.pdf`)
+}
