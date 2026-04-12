@@ -263,9 +263,9 @@ export default function ClientDashboard({ user, profile = null }) {
             </div>
           )}
           {tab === 'dashboard' && <DashboardV     data={data} setTab={switchTab} m={isMobile} user={user} />}
-          {tab === 'projects'  && <ProjectsV      data={data} save={save} m={isMobile} reload={reload} user={user} profile={profile} />}
-          {tab === 'reports'   && <ReportsV       data={data} save={save} m={isMobile} reload={reload} />}
-          {tab === 'os'        && <OrdresServiceV data={data} m={isMobile} reload={reload} />}
+          {tab === 'projects'  && <ProjectsV      data={data} save={save} m={isMobile} reload={reload} user={user} profile={profile} readOnly />}
+          {tab === 'reports'   && <ReportsV       data={data} save={save} m={isMobile} reload={reload} readOnly />}
+          {tab === 'os'        && <OrdresServiceV data={data} m={isMobile} reload={reload} readOnly />}
           {tab === 'planning'  && <PlanningV      data={data} m={isMobile} />}
         </div>
       </main>

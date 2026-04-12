@@ -30,7 +30,7 @@ const osBtn = (color, bg, border) => ({
   fontFamily: "inherit",
 })
 
-export default function OrdresServiceV({data,m,reload,focusId,focusTs}) {
+export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly}) {
   const { addToast } = useToast();
   const confirm = useConfirm();
   const [modal,setModal]=useState(null);
@@ -630,7 +630,7 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs}) {
           <option value="amount_desc">💰 Montant ↓</option>
           <option value="amount_asc">💰 Montant ↑</option>
         </select>
-        <button
+        {!readOnly && <button
           onClick={() => devisInputRef.current?.click()}
           disabled={importing}
           style={{
@@ -655,7 +655,7 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs}) {
           ) : (
             <>📸 Importer devis</>
           )}
-        </button>
+        </button>}
         <button
           onClick={handleExportCSV}
           title="Exporter la liste filtrée au format CSV (Excel)"
@@ -670,7 +670,7 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs}) {
             opacity: filteredSortedOS.length === 0 ? 0.5 : 1,
           }}
         >⬇ CSV</button>
-        <button onClick={openNew} title="Nouvel OS (raccourci : n)" style={{...btnP,fontSize:12}}>+ Nouvel OS</button>
+        {!readOnly && <button onClick={openNew} title="Nouvel OS (raccourci : n)" style={{...btnP,fontSize:12}}>+ Nouvel OS</button>}
       </div>
     </div>
 
@@ -786,18 +786,18 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs}) {
                 ) : '📊 XLS'}
               </button>
               <button onClick={()=>handleEmail(os)} title="Envoyer par email" style={osBtn("#4338CA","#EEF2FF","#C7D2FE")}>✉ Email</button>
-              {os.odoo_sign_url ? (
+              {!readOnly && (os.odoo_sign_url ? (
                 <a href={os.odoo_sign_url} target="_blank" rel="noreferrer" title={`Signature : ${os.statut_signature||"Envoyé"}`}
                   style={{...osBtn("#6D28D9","#F5F3FF","#DDD6FE"), textDecoration:"none", display:"inline-flex", alignItems:"center"}}>
                   ✍ {os.statut_signature||"Signé"}
                 </a>
               ) : (
                 <button onClick={()=>openSignModal(os)} title="Envoyer pour signature Odoo" style={osBtn("#6D28D9","#F5F3FF","#DDD6FE")}>✍ Signature</button>
-              )}
-              <span style={{width:1,background:"#E2E8F0",margin:"2px 4px"}}/>
+              ))}
+              {!readOnly && <><span style={{width:1,background:"#E2E8F0",margin:"2px 4px"}}/>
               <button onClick={()=>handleDuplicate(os)} title="Dupliquer cet OS" style={osBtn("#B45309","#FFFBEB","#FDE68A")}>Dupliquer</button>
               <button onClick={()=>openEdit(os)} title="Modifier" style={osBtn("#1D4ED8","#EFF6FF","#BFDBFE")}>Modifier</button>
-              <button onClick={()=>handleDelete(os)} title="Supprimer" style={{...osBtn("#DC2626","#fff","#FECACA"),marginLeft:"auto"}}>Supprimer</button>
+              <button onClick={()=>handleDelete(os)} title="Supprimer" style={{...osBtn("#DC2626","#fff","#FECACA"),marginLeft:"auto"}}>Supprimer</button></>}
             </div>
           </div>
         );

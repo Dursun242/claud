@@ -20,7 +20,7 @@ const crBtn = (color, bg, border) => ({
   fontFamily: "inherit",
 })
 
-export default function ReportsV({data,save,m,reload,focusId,focusTs}) {
+export default function ReportsV({data,save,m,reload,focusId,focusTs,readOnly}) {
   const { addToast } = useToast()
   const confirm = useConfirm()
   const [modal, setModal] = useState(null)
@@ -163,7 +163,7 @@ export default function ReportsV({data,save,m,reload,focusId,focusTs}) {
           <option value="">🏗️ Tous les chantiers</option>
           {data.chantiers.map(c => <option key={c.id} value={c.id}>{c.nom}</option>)}
         </select>
-        <button onClick={openNew} title="Nouveau CR (raccourci : n)" style={{...btnP,fontSize:12}}>+ CR</button>
+        {!readOnly && <button onClick={openNew} title="Nouveau CR (raccourci : n)" style={{...btnP,fontSize:12}}>+ CR</button>}
       </div>
     </div>
 
@@ -208,8 +208,8 @@ export default function ReportsV({data,save,m,reload,focusId,focusTs}) {
                     <><span style={{display:"inline-block",width:10,height:10,border:"2px solid #A7F3D0",borderTopColor:"#047857",borderRadius:"50%",animation:"spin .8s linear infinite",marginRight:4,verticalAlign:"middle"}}/>Génération…</>
                   ) : '📊 XLS'}
                 </button>
-                <button onClick={()=>openEdit(cr)} title="Modifier" style={crBtn("#1D4ED8","#EFF6FF","#BFDBFE")}>✎ Modifier</button>
-                <button onClick={()=>handleDelete(cr)} title="Supprimer" style={crBtn("#DC2626","#fff","#FECACA")}>Supprimer</button>
+                {!readOnly && <button onClick={()=>openEdit(cr)} title="Modifier" style={crBtn("#1D4ED8","#EFF6FF","#BFDBFE")}>✎ Modifier</button>}
+                {!readOnly && <button onClick={()=>handleDelete(cr)} title="Supprimer" style={crBtn("#DC2626","#fff","#FECACA")}>Supprimer</button>}
               </div>
             </div>
             {cr.resume && <div style={{fontSize:13,color:"#334155",lineHeight:1.6,marginBottom:8}}>{cr.resume}</div>}
