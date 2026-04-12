@@ -204,7 +204,7 @@ export default function LogsV({ m, profile }) {
         <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 8, padding: "10px 14px", marginBottom: 12, fontSize: 13, color: "#DC2626" }}>
           ⚠ {error}
           <div style={{ fontSize: 11, marginTop: 4, color: '#94A3B8' }}>
-            Assure-toi que les migrations <code>006a</code>, <code>006b</code> et <code>006c</code> (<code>activity_logs</code>) ont été appliquées dans Supabase.
+            Assure-toi que les migrations <code>006a</code> → <code>006e</code> (<code>activity_logs</code>) ont toutes été appliquées dans Supabase, dans l&apos;ordre.
           </div>
         </div>
       )}
