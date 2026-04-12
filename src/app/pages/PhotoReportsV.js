@@ -126,21 +126,26 @@ export default function PhotoReportsV({ data, m }) {
   }
 
   // ── Générer le PDF + sauvegarder en pièce jointe du chantier ──
+  //
+  // ORDRE IMPORTANT (fix iOS Safari "Load failed") :
+  // 1. Générer le blob PDF en mémoire (pas de téléchargement)
+  // 2. Uploader vers le serveur (fetch /api/upload)
+  // 3. PUIS déclencher le téléchargement local
+  //
+  // Si on fait 2 et 3 en même temps, Safari interprète le download
+  // comme une "navigation" et tue le fetch en cours → "Load failed".
   const handleGeneratePdf = async () => {
     if (!chantier || photos.length === 0) return
     setGeneratingPdf(true)
     try {
-      // 1. Génère le PDF (télécharge automatiquement + retourne le blob)
+      // 1. Génère le blob PDF en mémoire (sans télécharger)
       const { blob, filename } = await generatePhotoReportPdf(chantier, photos)
 
-      // 2. Sauvegarder en pièce jointe du chantier via /api/upload
-      //    (utilise le service role key côté serveur — contourne les
-      //    policies RLS du bucket Storage qui bloquent l'upload direct)
+      // 2. Sauvegarde dans le dossier chantier AVANT de télécharger
+      let saved = false
       try {
         const { data: { session } } = await supabase.auth.getSession()
         const form = new FormData()
-        // Utiliser form.append(name, blob, filename) au lieu de new File()
-        // car le constructeur File() peut échouer sur certains navigateurs mobiles
         form.append('file', blob, filename)
         form.append('type', 'chantier')
         form.append('itemId', chantierId)
@@ -150,15 +155,24 @@ export default function PhotoReportsV({ data, m }) {
           headers: { 'Authorization': `Bearer ${session?.access_token || ''}` },
           body: form,
         })
+        if (res.ok) saved = true
+      } catch { /* upload échoué — on télécharge quand même */ }
 
-        if (res.ok) {
-          addToast('Reportage PDF enregistré dans le dossier chantier', 'success')
-        } else {
-          const err = await res.json().catch(() => ({}))
-          addToast('PDF téléchargé · Sauvegarde : ' + (err.error || `erreur ${res.status}`), 'warning', 5000)
-        }
-      } catch (saveErr) {
-        addToast('PDF téléchargé · Sauvegarde : ' + (saveErr?.message || 'erreur réseau'), 'warning', 5000)
+      // 3. Téléchargement local (après que le fetch soit terminé)
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      setTimeout(() => URL.revokeObjectURL(url), 200)
+
+      // 4. Toast résultat
+      if (saved) {
+        addToast('Reportage PDF téléchargé et enregistré dans le dossier chantier', 'success')
+      } else {
+        addToast('Reportage PDF téléchargé (sauvegarde dossier chantier non disponible)', 'warning', 5000)
       }
     } catch (err) {
       addToast('Erreur PDF : ' + (err?.message || 'génération impossible'), 'error')

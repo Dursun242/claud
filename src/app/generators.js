@@ -589,14 +589,11 @@ export async function generatePhotoReportPdf(chantier, photos) {
   // ─── Pied de page sur la dernière page ───────────────────────
   pied(doc, w, margin, h - 15)
 
-  // ─── Téléchargement + retour du blob (pour upload en pièce jointe) ──
+  // ─── Retour du blob SANS téléchargement auto ──
+  // Le téléchargement est déclenché par l'appelant APRÈS l'upload serveur.
+  // Raison : iOS Safari coupe les fetch en cours quand doc.save() trigger
+  // un download (interprété comme une "navigation").
   const slug = (chantier.nom || "chantier").replace(/\s+/g, "_").replace(/[^\w-]/g, "")
   const filename = `Reportage-Photo_${slug}_${new Date().toISOString().split("T")[0]}.pdf`
-
-  // Télécharge le fichier pour l'utilisateur
-  doc.save(filename)
-
-  // Retourne le blob + filename pour permettre à l'appelant de sauvegarder
-  // le PDF en pièce jointe du chantier (Supabase Storage + table attachments)
   return { blob: doc.output('blob'), filename }
 }
