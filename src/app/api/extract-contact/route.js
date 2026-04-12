@@ -5,6 +5,8 @@
 // avec les champs normalisés pour la table contacts, puis le renvoie au
 // client qui pré-remplit le formulaire.
 
+import { verifyAuth } from '@/app/lib/auth'
+
 // Rate limiting simple en mémoire (par IP) — même pattern que /api/claude
 const rateLimit = new Map();
 const LIMIT = 10; // plus conservateur que /api/claude car les extractions sont chères
@@ -28,25 +30,6 @@ setInterval(() => {
     if (now > entry.resetAt) rateLimit.delete(ip);
   }
 }, WINDOW_MS * 5);
-
-// Vérification auth minimale : JWT Supabase valide
-async function verifyAuth(request) {
-  const authHeader = request.headers.get('Authorization');
-  if (!authHeader?.startsWith('Bearer ')) return null;
-  const token = authHeader.replace('Bearer ', '');
-  try {
-    const { createClient } = await import('@supabase/supabase-js');
-    const client = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-      { auth: { persistSession: false } }
-    );
-    const { data: { user } } = await client.auth.getUser(token);
-    return user || null;
-  } catch {
-    return null;
-  }
-}
 
 const SYSTEM_PROMPT = `Tu es un assistant d'extraction de données de contact.
 

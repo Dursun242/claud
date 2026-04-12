@@ -8,6 +8,8 @@
 // - Rate limit en mémoire par IP en plus : 20 req/min, même pattern que
 //   /api/extract-*. Double filet de sécurité.
 
+import { verifyAuth } from '@/app/lib/auth'
+
 // Rate limiting simple en mémoire (par IP)
 const rateLimit = new Map(); // ip → { count, resetAt }
 const LIMIT = 20;
@@ -33,26 +35,6 @@ setInterval(() => {
     if (now > entry.resetAt) rateLimit.delete(ip);
   }
 }, WINDOW_MS * 5);
-
-// Vérification auth : Bearer token Supabase valide
-// Utilise le Anon key côté serveur juste pour décoder le JWT — pas besoin du service role.
-async function verifyAuth(request) {
-  const authHeader = request.headers.get('Authorization');
-  if (!authHeader?.startsWith('Bearer ')) return null;
-  const token = authHeader.replace('Bearer ', '');
-  try {
-    const { createClient } = await import('@supabase/supabase-js');
-    const client = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-      { auth: { persistSession: false } }
-    );
-    const { data: { user } } = await client.auth.getUser(token);
-    return user || null;
-  } catch {
-    return null;
-  }
-}
 
 export async function POST(request) {
   try {

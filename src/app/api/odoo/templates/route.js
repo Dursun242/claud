@@ -1,19 +1,6 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
 import { getSignTemplates, testConnection, inspectModel } from '../../../lib/odoo'
-
-async function verifyAuth(request) {
-  const auth = request.headers.get('Authorization')
-  if (!auth?.startsWith('Bearer ')) return null
-  const token = auth.replace('Bearer ', '')
-  const client = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-    { auth: { persistSession: false } }
-  )
-  const { data: { user } } = await client.auth.getUser(token)
-  return user || null
-}
+import { verifyAuth } from '@/app/lib/auth'
 
 // GET /api/odoo/templates — liste les templates Odoo Sign
 export async function GET(request) {

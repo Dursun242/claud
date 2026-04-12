@@ -6,6 +6,8 @@
 // La route retourne juste le JSON parsé — c'est le frontend qui décide
 // quoi en faire (pré-remplir le form, créer un contact si absent, etc.).
 
+import { verifyAuth } from '@/app/lib/auth'
+
 // Rate limiting simple en mémoire (par IP)
 const rateLimit = new Map();
 const LIMIT = 10; // conservateur : les extractions coûtent
@@ -29,25 +31,6 @@ setInterval(() => {
     if (now > entry.resetAt) rateLimit.delete(ip);
   }
 }, WINDOW_MS * 5);
-
-// Vérification auth minimale : JWT Supabase valide
-async function verifyAuth(request) {
-  const authHeader = request.headers.get('Authorization');
-  if (!authHeader?.startsWith('Bearer ')) return null;
-  const token = authHeader.replace('Bearer ', '');
-  try {
-    const { createClient } = await import('@supabase/supabase-js');
-    const client = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-      { auth: { persistSession: false } }
-    );
-    const { data: { user } } = await client.auth.getUser(token);
-    return user || null;
-  } catch {
-    return null;
-  }
-}
 
 const SYSTEM_PROMPT = `Tu es un assistant d'extraction de devis du secteur BTP français.
 

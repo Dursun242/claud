@@ -1,23 +1,10 @@
 import { createClient } from '@supabase/supabase-js'
+import { verifyAuth } from '@/app/lib/auth'
 
 function getAdminClient() {
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
   if (!serviceKey) throw new Error('SUPABASE_SERVICE_ROLE_KEY manquant dans les variables Vercel.')
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, serviceKey, { auth: { persistSession: false } })
-}
-
-// Vérifie le JWT Supabase et retourne l'utilisateur, ou null si invalide
-async function verifyAuth(request) {
-  const authHeader = request.headers.get('Authorization')
-  if (!authHeader?.startsWith('Bearer ')) return null
-  const token = authHeader.replace('Bearer ', '')
-  const client = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-    { auth: { persistSession: false } }
-  )
-  const { data: { user } } = await client.auth.getUser(token)
-  return user || null
 }
 
 // GET — liste les utilisateurs autorisés

@@ -13,24 +13,7 @@
 // (QontoV.saveToken) via le client Supabase direct (HTTPS mTLS).
 
 import { createClient } from '@supabase/supabase-js'
-
-// Vérification auth JWT Supabase
-async function verifyAuth(request) {
-  const authHeader = request.headers.get('Authorization')
-  if (!authHeader?.startsWith('Bearer ')) return null
-  const token = authHeader.replace('Bearer ', '')
-  try {
-    const client = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-      { auth: { persistSession: false } }
-    )
-    const { data: { user } } = await client.auth.getUser(token)
-    return user || null
-  } catch {
-    return null
-  }
-}
+import { verifyAuth } from '@/app/lib/auth'
 
 // Récupère le token Qonto stocké dans la table settings côté serveur.
 // Utilise le service role key pour bypasser les RLS.

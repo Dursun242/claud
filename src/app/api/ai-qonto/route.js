@@ -6,25 +6,9 @@
 //   (service role key), jamais passé dans le body HTTP.
 import { Anthropic } from "@anthropic-ai/sdk"
 import { createClient } from "@supabase/supabase-js"
+import { verifyAuth } from '@/app/lib/auth'
 
 const client = new Anthropic()
-
-async function verifyAuth(request) {
-  const authHeader = request.headers.get('Authorization')
-  if (!authHeader?.startsWith('Bearer ')) return null
-  const token = authHeader.replace('Bearer ', '')
-  try {
-    const sb = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-      { auth: { persistSession: false } }
-    )
-    const { data: { user } } = await sb.auth.getUser(token)
-    return user || null
-  } catch {
-    return null
-  }
-}
 
 async function getQontoToken() {
   const admin = createClient(

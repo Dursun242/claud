@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { verifyAuth } from '@/app/lib/auth'
 
 const ALLOWED_TYPES = [
   'image/jpeg', 'image/png', 'image/gif', 'image/webp',
@@ -9,19 +10,6 @@ const ALLOWED_TYPES = [
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
 ]
 const MAX_SIZE = 20 * 1024 * 1024 // 20 MB
-
-async function verifyAuth(request) {
-  const authHeader = request.headers.get('Authorization')
-  if (!authHeader?.startsWith('Bearer ')) return null
-  const token = authHeader.replace('Bearer ', '')
-  const client = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-    { auth: { persistSession: false } }
-  )
-  const { data: { user } } = await client.auth.getUser(token)
-  return user || null
-}
 
 export async function POST(request) {
   try {
