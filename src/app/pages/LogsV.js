@@ -16,13 +16,17 @@ const ACTION_STYLES = {
   delete: { bg: '#FEF2F2', color: '#B91C1C', border: '#FECACA', label: 'Suppression' },
 }
 const ENTITY_LABELS = {
-  chantier: 'Chantier',
-  contact:  'Contact',
-  task:     'Tâche',
-  cr:       'Compte rendu',
-  os:       'Ordre de service',
-  user:     'Utilisateur',
-  session:  'Session',
+  chantier:   'Chantier',
+  contact:    'Contact',
+  task:       'Tâche',
+  cr:         'Compte rendu',
+  os:         'Ordre de service',
+  attachment: 'Pièce jointe',
+  comment:    'Commentaire',
+  share:      'Partage',
+  template:   'Template',
+  user:       'Utilisateur',
+  session:    'Session',
 }
 
 function formatWhen(iso) {

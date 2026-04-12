@@ -222,6 +222,7 @@ export const SB = {
       file_size: file.size,
     }).select().single();
     if (attachError) throw new Error("Erreur enregistrement: " + attachError.message);
+    this.log('create', 'attachment', attachData.id, file.name, { parent_type: type, parent_id: itemId });
     return attachData;
   },
   async getAttachments(type, itemId) {
@@ -233,8 +234,11 @@ export const SB = {
     return data || [];
   },
   async deleteAttachment(id, filePath) {
+    // Récupère le nom du fichier avant suppression pour un libellé lisible
+    const { data: prev } = await supabase.from('attachments').select('file_name').eq('id', id).maybeSingle();
     await supabase.storage.from('attachments').remove([filePath]);
     await supabase.from('attachments').delete().eq('id', id);
+    this.log('delete', 'attachment', id, prev?.file_name || filePath || null);
   },
   async getAttachmentUrl(filePath) {
     const { data } = supabase.storage.from('attachments').getPublicUrl(filePath);
@@ -248,11 +252,14 @@ export const SB = {
     return data || [];
   },
   async saveTemplate(type, name, description, data) {
-    const { error } = await supabase.from('templates').insert({ type, name, description, data });
+    const { data: row, error } = await supabase.from('templates').insert({ type, name, description, data }).select().single();
     if (error) throw new Error("Erreur sauvegarde template: " + error.message);
+    this.log('create', 'template', row?.id || null, name, { template_type: type });
   },
   async deleteTemplate(id) {
+    const { data: prev } = await supabase.from('templates').select('name,type').eq('id', id).maybeSingle();
     await supabase.from('templates').delete().eq('id', id);
+    this.log('delete', 'template', id, prev?.name || null, prev?.type ? { template_type: prev.type } : null);
   },
   async duplicateChantier(chantier) {
     const newCh = { ...chantier };
@@ -269,8 +276,10 @@ export const SB = {
     else if (type === 'os') data.os_id = itemId;
     else if (type === 'cr') data.cr_id = itemId;
     else if (type === 'task') data.task_id = itemId;
-    const { error } = await supabase.from('comments').insert(data);
+    const { data: row, error } = await supabase.from('comments').insert(data).select().single();
     if (error) throw new Error("Erreur ajout commentaire: " + error.message);
+    const preview = content?.length > 60 ? content.slice(0, 57) + '…' : (content || '');
+    this.log('create', 'comment', row?.id || null, preview, { parent_type: type, parent_id: itemId });
   },
   async getComments(type, itemId) {
     const col = type === 'chantier' ? 'chantier_id' : type === 'os' ? 'os_id' : type === 'cr' ? 'cr_id' : 'task_id';
@@ -279,13 +288,17 @@ export const SB = {
     return data || [];
   },
   async deleteComment(id) {
+    const { data: prev } = await supabase.from('comments').select('content').eq('id', id).maybeSingle();
     await supabase.from('comments').delete().eq('id', id);
+    const preview = prev?.content?.length > 60 ? prev.content.slice(0, 57) + '…' : (prev?.content || '');
+    this.log('delete', 'comment', id, preview);
   },
 
   // Sharing
   async shareChantier(chantierId, email, permission = 'view') {
-    const { error } = await supabase.from('sharing').insert({ chantier_id: chantierId, shared_with_email: email, permission });
+    const { data: row, error } = await supabase.from('sharing').insert({ chantier_id: chantierId, shared_with_email: email, permission }).select().single();
     if (error) throw new Error("Erreur partage: " + error.message);
+    this.log('create', 'share', row?.id || null, `Partage avec ${email}`, { chantier_id: chantierId, permission });
   },
   async getShares(chantierId) {
     const { data, error } = await supabase.from('sharing').select('*').eq('chantier_id', chantierId);
@@ -293,7 +306,9 @@ export const SB = {
     return data || [];
   },
   async deleteShare(id) {
+    const { data: prev } = await supabase.from('sharing').select('shared_with_email,chantier_id').eq('id', id).maybeSingle();
     await supabase.from('sharing').delete().eq('id', id);
+    this.log('delete', 'share', id, prev?.shared_with_email ? `Partage avec ${prev.shared_with_email}` : null, prev?.chantier_id ? { chantier_id: prev.chantier_id } : null);
   },
 
   // ─── AUTHORIZED USERS MANAGEMENT ───
