@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
-import { btnP } from '../dashboards/shared'
+import { btnP, SB } from '../dashboards/shared'
 import { supabase } from '../supabaseClient'
 import { useToast } from '../contexts/ToastContext'
 import { useConfirm } from '../contexts/ConfirmContext'
@@ -101,9 +101,12 @@ export default function AdminV({ m, reload, profile }) {
     setLoading(true)
     try {
       await apiUsers('POST', { email: newEmail, prenom: newPrenom, nom: newNom, role: newRole })
+      const label = newRole === 'client' ? "Maître d'ouvrage" : newRole === 'admin' ? 'Admin' : 'Salarié'
+      SB.log('create', 'user', null, `${newPrenom} ${newNom || ''}`.trim() + ` — ${label}`, {
+        email: newEmail.trim().toLowerCase(), role: newRole,
+      })
       setNewEmail(""); setNewPrenom(""); setNewNom(""); setNewRole("salarie")
       await loadUsers()
-      const label = newRole === 'client' ? "Maître d'ouvrage" : newRole === 'admin' ? 'Admin' : 'Salarié'
       addToast(`${label} ajouté`, "success")
     } catch (err) {
       setAddError(err.message)
@@ -122,6 +125,9 @@ export default function AdminV({ m, reload, profile }) {
     if (!ok) return
     try {
       await apiUsers('DELETE', { id: u.id })
+      SB.log('delete', 'user', u.id, `${u.prenom || ''} ${u.nom || ''}`.trim(), {
+        email: u.email, role: u.role,
+      })
       await loadUsers()
       addToast("Accès retiré", "success")
     } catch (err) {
@@ -140,6 +146,7 @@ export default function AdminV({ m, reload, profile }) {
       const data = await res.json()
       if (data.ok) {
         setSetupMsg("✅ " + data.message)
+        SB.log('create', 'storage', 'attachments-bucket', 'Bucket Storage créé', { message: data.message })
         addToast("Bucket Storage créé", "success")
       } else {
         setSetupMsg("❌ " + data.error)

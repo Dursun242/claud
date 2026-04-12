@@ -208,6 +208,9 @@ RÈGLES :
             await SB.upsertOS({ ...a.data, montant_ht:ht, montant_tva:tva, montant_ttc:ht+tva });
             actionLabel = a.type==="update_os" ? "Ordre de Service mis à jour" : "Ordre de Service créé";
           }
+          // Trace complémentaire : "déclenché par l'assistant IA"
+          // (en plus du log automatique fait par SB.upsertXxx)
+          SB.log('ai_action', 'ai', null, actionLabel || a.type, { action_type: a.type });
           if(reload) await reload();
           text=text.replace(/<<<ACTION>>>[\s\S]*?<<<END_ACTION>>>/,"").trim()+`\n\n✅ **${actionLabel} dans Supabase !**`;
           if (actionLabel) addToast(actionLabel, "success");

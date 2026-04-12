@@ -62,12 +62,14 @@ export default function QontoV({m, data, reload}) {
     setError("");
     // Sauvegarde dans Supabase uniquement (pas de localStorage — token sensible)
     await supabase.from('settings').upsert({ key: 'qonto-token', value: t });
+    SB.log('update', 'settings', 'qonto-token', 'Qonto — connexion', { action: 'connect' });
     setSavedToken(t);
     // useEffect [savedToken] déclenchera automatiquement fetchAll()
   };
 
   const disconnect = async () => {
     await supabase.from('settings').delete().eq('key','qonto-token');
+    SB.log('delete', 'settings', 'qonto-token', 'Qonto — déconnexion', { action: 'disconnect' });
     setSavedToken(""); setToken(""); setConnected(false); setError("");
     setInvoices([]); setQuotes([]); setClients([]);
   };

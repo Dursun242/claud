@@ -58,6 +58,22 @@ export async function seedDemoData(supabase, defaultData) {
       }
     }
 
+    // Trace l'initialisation dans le journal d'activité (admin only)
+    try {
+      await supabase.from('activity_logs').insert({
+        action: 'seed',
+        entity_type: 'system',
+        entity_label: 'Initialisation données de démonstration',
+        metadata: {
+          chantiers: (defaultData.chantiers || []).length,
+          contacts:  (defaultData.contacts  || []).length,
+          tasks:     (defaultData.tasks     || []).length,
+          compteRendus: (defaultData.compteRendus || []).length,
+        },
+        user_agent: (typeof navigator !== 'undefined' && navigator.userAgent) ? navigator.userAgent.slice(0, 255) : null,
+      })
+    } catch (_) { /* silencieux */ }
+
     return true
   } catch (seedErr) {
     // Rollback : supprimer les chantiers insérés pour ne pas laisser la base à moitié remplie

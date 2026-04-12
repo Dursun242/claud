@@ -4,18 +4,25 @@ import { supabase } from './supabaseClient'
 
 // Fire-and-forget : journalise une connexion/déconnexion dans activity_logs.
 // Silencieux si la table n'existe pas (migration pas encore appliquée).
-async function logSession(action, metadata = null) {
+async function logSession(action, metadata = null, entityLabel = null) {
   try {
-    await supabase.from('activity_logs').insert({
+    const defaultLabels = {
+      login:            'Connexion',
+      logout:           'Déconnexion',
+      access_denied:    'Tentative non autorisée',
+      session_expired:  'Session expirée',
+    };
+    const { error } = await supabase.from('activity_logs').insert({
       action,
       entity_type: 'session',
-      entity_label: action === 'login' ? 'Connexion' : 'Déconnexion',
+      entity_label: entityLabel || defaultLabels[action] || action,
       metadata: metadata || null,
       user_agent: (typeof navigator !== 'undefined' && navigator.userAgent)
         ? navigator.userAgent.slice(0, 255)
         : null,
     });
-  } catch (_) { /* silencieux */ }
+    if (error) console.warn('[logSession]', action, error.message);
+  } catch (err) { console.warn('[logSession] exception:', action, err?.message || err); }
 }
 
 // ─── AUTH CONTEXT ───
@@ -79,6 +86,13 @@ export function AuthProvider({ children }) {
               logSession('login', { provider: session.user.app_metadata?.provider || null })
             }
           } else {
+            // Log AVANT signOut : tant qu'on a la session Supabase, on peut
+            // écrire dans activity_logs (la RLS INSERT est ouverte aux
+            // authentifiés, peu importe que l'email soit dans authorized_users).
+            await logSession('access_denied', {
+              email: email || null,
+              provider: session.user.app_metadata?.provider || null,
+            }, email ? `Tentative refusée — ${email}` : 'Tentative refusée')
             setDenied(true)
             setUser(null)
             setProfile(null)
@@ -116,8 +130,10 @@ export function AuthProvider({ children }) {
         supabase.auth.getSession().then(({ data: { session } }) => {
           // Si pas de session alors qu'on pensait être loggé → refresh
           if (!session && wasSignedInRef.current) {
-            supabase.auth.refreshSession().catch(() => {
-              // Le refresh a échoué → onAuthStateChange va déclencher l'état "expired"
+            supabase.auth.refreshSession().catch(async () => {
+              // Refresh raté : best effort pour tracer avant que la session
+              // ne soit totalement invalidée. onAuthStateChange fera le reste.
+              await logSession('session_expired', { reason: 'refresh_failed' })
             })
           }
         })

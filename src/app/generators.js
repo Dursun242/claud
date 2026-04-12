@@ -1,6 +1,6 @@
 'use client'
 import { LOGO_B64 } from './logo'
-import { COMPANY as ENT } from './dashboards/shared'
+import { COMPANY as ENT, SB } from './dashboards/shared'
 
 // Lazy-load jsPDF + plugin autotable : évite de charger ~180 KB au démarrage
 // de l'app. La promesse est mise en cache pour éviter les imports répétés.
@@ -255,6 +255,7 @@ export async function generateOSPdf(data) {
     return { totalHT, totalTVA, totalTTC, base64: doc.output('datauristring') }
   }
   doc.save(`${data.numero || 'OS'}.pdf`)
+  SB.log('generate_pdf', 'os', data.id || null, data.numero || 'OS', { format: 'pdf' })
   return { totalHT, totalTVA, totalTTC }
 }
 
@@ -340,6 +341,7 @@ export async function generateCRPdf(cr, chantier) {
 
   pied(doc, w, margin, y)
   doc.save(`CR-${cr.numero || "X"}-${(chantier?.nom || "chantier").replace(/\s+/g, "_")}.pdf`)
+  SB.log('generate_pdf', 'cr', cr.id || null, `CR n°${cr.numero || 'X'}`, { format: 'pdf', chantier_id: chantier?.id || null })
 }
 
 // ═══════════════════════════════════════════
@@ -382,6 +384,7 @@ export function generateOSExcel(data) {
   link.href = URL.createObjectURL(blob)
   link.download = `${data.numero || 'OS'}.csv`
   link.click()
+  SB.log('generate_excel', 'os', data.id || null, data.numero || 'OS', { format: 'xlsx' })
 }
 
 // ═══════════════════════════════════════════
@@ -413,6 +416,7 @@ export function generateCRExcel(cr, chantier) {
   link.href = URL.createObjectURL(blob)
   link.download = `CR-${cr.numero||"X"}-${(chantier?.nom||"chantier").replace(/\s+/g, "_")}.csv`
   link.click()
+  SB.log('generate_excel', 'cr', cr.id || null, `CR n°${cr.numero || 'X'}`, { format: 'xlsx', chantier_id: chantier?.id || null })
 }
 
 // ═══════════════════════════════════════════
@@ -595,5 +599,6 @@ export async function generatePhotoReportPdf(chantier, photos) {
   // un download (interprété comme une "navigation").
   const slug = (chantier.nom || "chantier").replace(/\s+/g, "_").replace(/[^\w-]/g, "")
   const filename = `Reportage-Photo_${slug}_${new Date().toISOString().split("T")[0]}.pdf`
+  SB.log('generate_pdf', 'photo_report', chantier?.id || null, `Reportage — ${chantier?.nom || 'Chantier'}`, { format: 'pdf', photo_count: (photos || []).length })
   return { blob: doc.output('blob'), filename }
 }

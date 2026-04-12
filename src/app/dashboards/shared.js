@@ -266,7 +266,13 @@ export const SB = {
     delete newCh.id;
     delete newCh.created_at;
     newCh.nom = newCh.nom + " (copie)";
-    return this.upsertChantier(newCh);
+    const created = await this.upsertChantier(newCh);
+    // Log "duplicate" en plus du "create" fait par upsertChantier, pour
+    // garder une trace explicite de l'origine de la copie.
+    this.log('duplicate', 'chantier', created?.id || null, created?.nom || newCh.nom, {
+      source_id: chantier?.id || null, source_nom: chantier?.nom || null,
+    });
+    return created;
   },
 
   // Comments

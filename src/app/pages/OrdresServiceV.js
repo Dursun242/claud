@@ -505,6 +505,11 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly})
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Erreur lors de la création');
+      SB.log('odoo_sign_send', 'os', signModal.id, `OS ${signModal.numero} — envoi signature`, {
+        reference: signModal.numero,
+        chantier_nom: ch?.nom || null,
+        signers: signers.map(s => ({ role: s.role, email: s.email })),
+      });
       setSignModal(null);
       reload();
       alert(`Demande de signature envoyée aux 3 signataires via Odoo Sign !`);
