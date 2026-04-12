@@ -1,8 +1,9 @@
 'use client'
 import { useState, useMemo, useRef } from 'react'
-import { fmtDate, btnP, btnS, sel, I, Icon } from '../dashboards/shared'
+import { fmtDate, btnP, btnS, sel } from '../dashboards/shared'
 import { useToast } from '../contexts/ToastContext'
 import { generatePhotoReportPdf } from '../generators'
+import { supabase } from '../supabaseClient'
 
 // Compresse une image à max 1600px de large et retourne une data URL base64
 function compressImage(file) {
@@ -120,13 +121,36 @@ export default function PhotoReportsV({ data, m }) {
     addToast('Photos effacées', 'info')
   }
 
-  // ── Générer le PDF ─────────────────────────────────────────────
+  // ── Générer le PDF + sauvegarder en pièce jointe du chantier ──
   const handleGeneratePdf = async () => {
     if (!chantier || photos.length === 0) return
     setGeneratingPdf(true)
     try {
-      await generatePhotoReportPdf(chantier, photos)
-      addToast(`Rapport PDF généré (${photos.length} photos)`, 'success')
+      // 1. Génère le PDF (télécharge automatiquement + retourne le blob)
+      const { blob, filename } = await generatePhotoReportPdf(chantier, photos)
+
+      // 2. Upload le PDF dans Supabase Storage (pièce jointe du chantier)
+      const storagePath = `reportages/${chantierId}/${filename}`
+      const { error: upErr } = await supabase.storage
+        .from('attachments')
+        .upload(storagePath, blob, { contentType: 'application/pdf', upsert: true })
+
+      if (upErr) {
+        // Upload échoué — on prévient mais le PDF est déjà téléchargé localement
+        addToast('PDF téléchargé mais pas sauvegardé dans le dossier chantier : ' + upErr.message, 'warning', 5000)
+      } else {
+        // 3. Créer l'entrée dans la table attachments
+        const { data: { session } } = await supabase.auth.getSession()
+        await supabase.from('attachments').insert({
+          chantier_id: chantierId,
+          file_path: storagePath,
+          file_name: filename,
+          file_type: 'application/pdf',
+          file_size: blob.size,
+          uploaded_by: session?.user?.email || 'system',
+        })
+        addToast(`Reportage PDF généré et enregistré dans le dossier chantier`, 'success')
+      }
     } catch (err) {
       addToast('Erreur PDF : ' + (err?.message || 'génération impossible'), 'error')
     } finally {
@@ -150,9 +174,9 @@ export default function PhotoReportsV({ data, m }) {
       {/* ── HEADER ── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: m ? 18 : 24, fontWeight: 700 }}>Rapport Photo</h1>
+          <h1 style={{ margin: 0, fontSize: m ? 18 : 24, fontWeight: 700 }}>Reportage Photo</h1>
           <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 2 }}>
-            Sélectionne jusqu'à {MAX_PHOTOS} photos et génère un PDF
+            Sélectionne jusqu'à {MAX_PHOTOS} photos puis génère le reportage PDF
           </div>
         </div>
       </div>
@@ -307,7 +331,7 @@ export default function PhotoReportsV({ data, m }) {
         }}>
           <div>
             <div style={{ fontSize: 11, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              3. Générer le rapport
+              3. Générer le reportage
             </div>
             <div style={{ fontSize: 12, color: '#334155', marginTop: 4 }}>
               <strong>{chantier?.nom}</strong> · {photos.length} photo{photos.length > 1 ? 's' : ''} · {fmtDate(new Date())}
@@ -326,7 +350,7 @@ export default function PhotoReportsV({ data, m }) {
           >
             {generatingPdf ? (
               <><span style={{ display: 'inline-block', width: 14, height: 14, border: '2px solid #fff4', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin .8s linear infinite' }} />Génération…</>
-            ) : '📄 Générer le rapport PDF'}
+            ) : '📄 Générer le reportage PDF'}
           </button>
         </div>
       )}

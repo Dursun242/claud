@@ -416,7 +416,7 @@ export function generateCRExcel(cr, chantier) {
 }
 
 // ═══════════════════════════════════════════
-// GÉNÉRATEUR PDF — RAPPORT PHOTO DE CHANTIER
+// GÉNÉRATEUR PDF — REPORTAGE PHOTO DE CHANTIER
 // ═══════════════════════════════════════════
 //
 // Prend un objet chantier + un tableau de photos (avec base64 pré-chargée)
@@ -447,7 +447,7 @@ export async function generatePhotoReportPdf(chantier, photos) {
   doc.setFontSize(28)
   doc.setFont("helvetica", "bold")
   doc.setTextColor(...BLEU)
-  doc.text(sanitize("RAPPORT PHOTO"), w / 2, y, { align: "center" })
+  doc.text(sanitize("REPORTAGE PHOTO"), w / 2, y, { align: "center" })
 
   // Chantier info
   y = 105
@@ -498,7 +498,7 @@ export async function generatePhotoReportPdf(chantier, photos) {
       doc.setFontSize(8)
       doc.setFont("helvetica", "normal")
       doc.setTextColor(...GRIS)
-      doc.text(sanitize(`${chantier.nom} — Rapport photo — ${today}`), margin, 10)
+      doc.text(sanitize(`${chantier.nom} — Reportage photo — ${today}`), margin, 10)
       doc.text(sanitize(`Page ${Math.floor(i / 2) + 2}`), w - margin, 10, { align: "right" })
       y = 18
     }
@@ -560,7 +560,14 @@ export async function generatePhotoReportPdf(chantier, photos) {
   // ─── Pied de page sur la dernière page ───────────────────────
   pied(doc, w, margin, h - 15)
 
-  // ─── Téléchargement ──────────────────────────────────────────
+  // ─── Téléchargement + retour du blob (pour upload en pièce jointe) ──
   const slug = (chantier.nom || "chantier").replace(/\s+/g, "_").replace(/[^\w-]/g, "")
-  doc.save(`Rapport-Photo_${slug}_${new Date().toISOString().split("T")[0]}.pdf`)
+  const filename = `Reportage-Photo_${slug}_${new Date().toISOString().split("T")[0]}.pdf`
+
+  // Télécharge le fichier pour l'utilisateur
+  doc.save(filename)
+
+  // Retourne le blob + filename pour permettre à l'appelant de sauvegarder
+  // le PDF en pièce jointe du chantier (Supabase Storage + table attachments)
+  return { blob: doc.output('blob'), filename }
 }

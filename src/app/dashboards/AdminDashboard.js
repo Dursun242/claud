@@ -112,7 +112,7 @@ export default function AdminDashboard({ user, profile = null }) {
     {key:"tasks",    label:"Tâches",            icon:I.tasks,     sc:"t"},
     {key:"planning", label:"Planning",          icon:I.planning,  sc:"l"},
     {key:"contacts", label:"Annuaire",          icon:I.contacts,  sc:"c"},
-    {key:"photos",   label:"Rapports Photo",    icon:I.camera,    sc:"h"},
+    {key:"photos",   label:"Reportage Photo",   icon:I.camera,    sc:"h"},
     {key:"qonto",    label:"Qonto",             icon:null,        sc:"q", isQonto:true},
     ...(profile?.role === 'admin' ? [{key:"admin",label:"🔒 Admin", icon:I.settings, sc:"s"}] : []),
     {key:"ai",       label:"Assistant IA",      icon:I.ai,        sc:"a"},
