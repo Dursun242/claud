@@ -133,27 +133,30 @@ export default function PhotoReportsV({ data, m }) {
       // 1. Génère le PDF (télécharge automatiquement + retourne le blob)
       const { blob, filename } = await generatePhotoReportPdf(chantier, photos)
 
-      // 2. Upload le PDF dans Supabase Storage (pièce jointe du chantier)
-      const storagePath = `reportages/${chantierId}/${filename}`
-      const { error: upErr } = await supabase.storage
-        .from('attachments')
-        .upload(storagePath, blob, { contentType: 'application/pdf', upsert: true })
-
-      if (upErr) {
-        // Upload échoué — on prévient mais le PDF est déjà téléchargé localement
-        addToast('PDF téléchargé mais pas sauvegardé dans le dossier chantier : ' + upErr.message, 'warning', 5000)
-      } else {
-        // 3. Créer l'entrée dans la table attachments
+      // 2. Sauvegarder en pièce jointe du chantier via /api/upload
+      //    (utilise le service role key côté serveur — contourne les
+      //    policies RLS du bucket Storage qui bloquent l'upload direct)
+      try {
         const { data: { session } } = await supabase.auth.getSession()
-        await supabase.from('attachments').insert({
-          chantier_id: chantierId,
-          file_path: storagePath,
-          file_name: filename,
-          file_type: 'application/pdf',
-          file_size: blob.size,
-          uploaded_by: session?.user?.email || 'system',
+        const form = new FormData()
+        form.append('file', new File([blob], filename, { type: 'application/pdf' }))
+        form.append('type', 'chantier')
+        form.append('itemId', chantierId)
+
+        const res = await fetch('/api/upload', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${session?.access_token || ''}` },
+          body: form,
         })
-        addToast(`Reportage PDF généré et enregistré dans le dossier chantier`, 'success')
+
+        if (res.ok) {
+          addToast('Reportage PDF généré et enregistré dans le dossier chantier', 'success')
+        } else {
+          const err = await res.json().catch(() => ({}))
+          addToast('PDF téléchargé · Sauvegarde chantier échouée : ' + (err.error || 'erreur'), 'warning', 5000)
+        }
+      } catch {
+        addToast('PDF téléchargé · Sauvegarde chantier indisponible', 'warning', 5000)
       }
     } catch (err) {
       addToast('Erreur PDF : ' + (err?.message || 'génération impossible'), 'error')
