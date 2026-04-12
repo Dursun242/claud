@@ -5,6 +5,14 @@
 -- suppressions effectuées par les utilisateurs. Visible uniquement
 -- des administrateurs (RLS), insertion possible par tout utilisateur
 -- authentifié pour ses propres actions.
+--
+-- ⚠️ SUR MOBILE (iOS / Safari) : le copier-coller d'un gros SQL est
+-- tronqué par le navigateur (cf. migration 005). Utilise plutôt les
+-- 3 petits fichiers :
+--   006a_activity_logs_table.sql   (table + index)
+--   006b_activity_logs_trigger.sql (fonction + trigger)
+--   006c_activity_logs_rls.sql     (RLS + policies)
+-- à exécuter dans cet ordre.
 -- ══════════════════════════════════════════════════════════════
 
 BEGIN;
