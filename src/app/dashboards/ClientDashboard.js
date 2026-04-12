@@ -45,12 +45,12 @@ export default function ClientDashboard({ user, profile = null }) {
   // Restauration du dernier onglet visité
   useEffect(() => {
     try {
-      const saved = typeof window !== 'undefined' ? localStorage.getItem(LAST_TAB_KEY) : null
+      const saved = typeof window !== 'undefined' ? sessionStorage.getItem(LAST_TAB_KEY) : null
       if (saved && TABS.some(t => t.key === saved)) setTab(saved)
     } catch { /* ignore */ }
   }, [])
   useEffect(() => {
-    try { if (typeof window !== 'undefined') localStorage.setItem(LAST_TAB_KEY, tab) } catch { /* ignore */ }
+    try { if (typeof window !== 'undefined') sessionStorage.setItem(LAST_TAB_KEY, tab) } catch { /* ignore */ }
   }, [tab])
 
   // Chargement données filtrées par client

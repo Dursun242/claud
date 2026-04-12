@@ -49,6 +49,9 @@ export function Skeleton({ width = '100%', height = 12, radius = 6, style = {} }
 }
 
 // ─── Dashboard complet (sidebar + main) ──────────────────────
+// Sur mobile (< 768px), la sidebar est cachée via CSS media query
+// (cohérent avec le vrai layout où elle est un overlay déclenché
+// par le hamburger). On affiche un header mobile à la place.
 export function DashboardSkeleton({ role = 'admin' }) {
   const isClient = role === 'client'
   const tabCount = isClient ? 5 : 10
@@ -65,10 +68,36 @@ export function DashboardSkeleton({ role = 'admin' }) {
         overflow: 'hidden',
       }}
     >
-      <style>{SHIMMER_STYLE}</style>
+      <style>{SHIMMER_STYLE}{`
+        @media (max-width: 768px) {
+          [data-skel-sidebar] { display: none !important; }
+          [data-skel-mobile-header] { display: flex !important; }
+          [data-skel-main] { padding: 16px !important; padding-top: 64px !important; }
+          [data-skel-grid4] { grid-template-columns: repeat(2, 1fr) !important; }
+          [data-skel-grid3] { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
 
-      {/* ── Sidebar (gradient foncé, identique au vrai layout) ── */}
+      {/* ── Mobile header (visible uniquement < 768px) ── */}
+      <div
+        data-skel-mobile-header
+        style={{
+          display: 'none', /* visible via media query */
+          position: 'fixed', top: 0, left: 0, right: 0, height: 52,
+          background: '#fff', borderBottom: '1px solid #E2E8F0',
+          alignItems: 'center', padding: '0 16px', zIndex: 997, gap: 10,
+        }}
+      >
+        <Skeleton width={24} height={24} radius={4} />
+        <div style={{ flex: 1 }}>
+          <Skeleton width={90} height={10} style={{ marginBottom: 4 }} />
+          <Skeleton width={140} height={16} />
+        </div>
+      </div>
+
+      {/* ── Sidebar (gradient foncé — cachée sur mobile via CSS) ── */}
       <aside
+        data-skel-sidebar
         aria-hidden="true"
         style={{
           width: 240,
@@ -113,7 +142,7 @@ export function DashboardSkeleton({ role = 'admin' }) {
       </aside>
 
       {/* ── Main content ── */}
-      <main style={{ flex: 1, padding: 24, overflow: 'hidden' }}>
+      <main data-skel-main style={{ flex: 1, padding: 24, overflow: 'hidden' }}>
         {/* Header / greeting */}
         <div style={{ marginBottom: 22 }}>
           <Skeleton width={240} height={28} />
@@ -121,8 +150,9 @@ export function DashboardSkeleton({ role = 'admin' }) {
           <Skeleton width={160} height={12} />
         </div>
 
-        {/* Quick actions (4 tiles) */}
+        {/* Quick actions (4 tiles → 2 on mobile) */}
         <div
+          data-skel-grid4
           style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(4, 1fr)',
@@ -152,8 +182,9 @@ export function DashboardSkeleton({ role = 'admin' }) {
           ))}
         </div>
 
-        {/* KPIs (4 chiffres clés) */}
+        {/* KPIs (4 chiffres clés → 2 on mobile) */}
         <div
+          data-skel-grid4
           style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(4, 1fr)',
@@ -193,7 +224,7 @@ export function DashboardSkeleton({ role = 'admin' }) {
         >
           <Skeleton width={180} height={18} />
           <div style={{ height: 14 }} />
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+          <div data-skel-grid3 style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
             {Array.from({ length: 3 }).map((_, i) => (
               <div
                 key={i}

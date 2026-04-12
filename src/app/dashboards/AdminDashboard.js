@@ -123,18 +123,19 @@ export default function AdminDashboard({ user, profile = null }) {
     setSidebarOpen(false); // ferme toujours sur mobile, no-op sur desktop
   }, []);
 
-  // ─── Persistance : on restaure le dernier onglet visité au chargement ───
+  // ─── Persistance de l'onglet actif ───
+  // sessionStorage (pas localStorage) : l'onglet survit au refresh mais se
+  // reset quand on ferme l'app/l'onglet → on atterrit toujours sur Dashboard
+  // au cold start, ce qui est le comportement attendu.
   useEffect(() => {
     try {
-      const saved = typeof window !== 'undefined' ? localStorage.getItem(LAST_TAB_KEY) : null;
+      const saved = typeof window !== 'undefined' ? sessionStorage.getItem(LAST_TAB_KEY) : null;
       if (saved && tabs.some(t => t.key === saved)) setTab(saved);
     } catch { /* ignore */ }
-    // on ne dépend que de tabs (qui change avec le rôle) — exécuté une fois après mount
   }, [tabs]);
 
-  // … et on sauvegarde à chaque changement
   useEffect(() => {
-    try { if (typeof window !== 'undefined') localStorage.setItem(LAST_TAB_KEY, tab); } catch { /* ignore */ }
+    try { if (typeof window !== 'undefined') sessionStorage.setItem(LAST_TAB_KEY, tab); } catch { /* ignore */ }
   }, [tab]);
 
   // ─── Raccourcis clavier globaux ───
