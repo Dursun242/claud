@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../supabaseClient'
 import { useToast } from '../contexts/ToastContext'
+import { useConfirm } from '../contexts/ConfirmContext'
 
 /**
  * Hook useSharing
@@ -9,6 +10,7 @@ import { useToast } from '../contexts/ToastContext'
  */
 export function useSharing(itemId) {
   const { addToast } = useToast()
+  const confirm = useConfirm()
   const [shares, setShares] = useState([])
   const [loading, setLoading] = useState(false)
 
@@ -69,7 +71,8 @@ export function useSharing(itemId) {
 
   // Supprimer un partage
   const deleteShare = async (id) => {
-    if (!window.confirm('Retirer cet accès?')) return
+    const ok = await confirm({ title: "Retirer cet accès ?", message: "Cette personne ne pourra plus consulter cet élément.", confirmLabel: "Retirer", danger: true })
+    if (!ok) return
 
     try {
       await supabase.from('sharing').delete().eq('id', id)

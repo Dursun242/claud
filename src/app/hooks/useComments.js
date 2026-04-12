@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../supabaseClient'
 import { useToast } from '../contexts/ToastContext'
+import { useConfirm } from '../contexts/ConfirmContext'
 
 /**
  * Hook useComments
@@ -9,6 +10,7 @@ import { useToast } from '../contexts/ToastContext'
  */
 export function useComments(type, itemId, currentUserEmail) {
   const { addToast } = useToast()
+  const confirm = useConfirm()
   const [comments, setComments] = useState([])
   const [loading, setLoading] = useState(false)
 
@@ -84,7 +86,8 @@ export function useComments(type, itemId, currentUserEmail) {
 
   // Supprimer un commentaire
   const deleteComment = async (id) => {
-    if (!window.confirm('Supprimer ce commentaire?')) return
+    const ok = await confirm({ title: 'Supprimer ce commentaire ?', confirmLabel: 'Supprimer', danger: true })
+    if (!ok) return
 
     try {
       await supabase.from('comments').delete().eq('id', id)

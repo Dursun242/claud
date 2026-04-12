@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../supabaseClient'
 import { useToast } from '../contexts/ToastContext'
+import { useConfirm } from '../contexts/ConfirmContext'
 
 /**
  * Hook useAttachments
@@ -9,6 +10,7 @@ import { useToast } from '../contexts/ToastContext'
  */
 export function useAttachments(type, itemId) {
   const { addToast } = useToast()
+  const confirm = useConfirm()
   const [attachments, setAttachments] = useState([])
   const [loading, setLoading] = useState(false)
 
@@ -71,7 +73,8 @@ export function useAttachments(type, itemId) {
 
   // Supprimer un attachment
   const deleteAttachment = async (id, filePath) => {
-    if (!window.confirm('Supprimer ce fichier?')) return
+    const ok = await confirm({ title: 'Supprimer ce fichier ?', message: 'Le fichier sera définitivement supprimé du stockage.', confirmLabel: 'Supprimer', danger: true })
+    if (!ok) return
 
     try {
       // Supprimer du storage
