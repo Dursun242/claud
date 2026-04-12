@@ -4,6 +4,7 @@ import { btnP, SB } from '../dashboards/shared'
 import { supabase } from '../supabaseClient'
 import { useToast } from '../contexts/ToastContext'
 import { useConfirm } from '../contexts/ConfirmContext'
+import LogsV from './LogsV'
 
 async function apiUsers(method, body) {
   const { data: { session } } = await supabase.auth.getSession()
@@ -32,6 +33,7 @@ export default function AdminV({ m, reload, profile }) {
   const confirm = useConfirm()
   // ⚠️ Tous les hooks doivent être appelés avant tout early return
   // (règles des hooks React). Le garde d'accès admin est plus bas.
+  const [subtab, setSubtab] = useState('users')  // 'users' | 'logs'
   const [users, setUsers] = useState([])
   const [newEmail, setNewEmail] = useState("")
   const [newPrenom, setNewPrenom] = useState("")
@@ -163,9 +165,39 @@ export default function AdminV({ m, reload, profile }) {
   const hasFilters = !!(q || roleFilter !== "all")
   const getInitials = (u) => ((u.prenom?.[0] || "") + (u.nom?.[0] || "")).toUpperCase() || (u.email?.[0] || "?").toUpperCase()
 
+  const tabBtn = (active) => ({
+    padding: "8px 14px",
+    border: "none",
+    borderBottom: `2px solid ${active ? "#1E3A5F" : "transparent"}`,
+    background: "transparent",
+    cursor: "pointer",
+    fontFamily: "inherit",
+    fontSize: 13,
+    fontWeight: active ? 700 : 500,
+    color: active ? "#0F172A" : "#64748B",
+    transition: "color .15s, border-color .15s",
+  })
+
   return (
     <div>
-      <h1 style={{ margin: "0 0 16px", fontSize: m ? 18 : 24, fontWeight: 700 }}>🔒 Gestion des accès</h1>
+      <h1 style={{ margin: "0 0 4px", fontSize: m ? 18 : 24, fontWeight: 700 }}>
+        🔒 Administration
+      </h1>
+      <div style={{ fontSize: 11, color: "#94A3B8", marginBottom: 14 }}>
+        Gestion des accès et journal d&apos;activité — admin uniquement.
+      </div>
+
+      {/* Sous-navigation : Utilisateurs / Journal */}
+      <div style={{ display: "flex", gap: 4, marginBottom: 18, borderBottom: "1px solid #E2E8F0", flexWrap: "wrap" }}>
+        <button onClick={() => setSubtab('users')} style={tabBtn(subtab === 'users')}>
+          👥 Utilisateurs
+        </button>
+        <button onClick={() => setSubtab('logs')} style={tabBtn(subtab === 'logs')}>
+          📋 Journal d&apos;activité
+        </button>
+      </div>
+
+      {subtab === 'logs' ? <LogsV m={m} profile={profile} embedded /> : (<>
 
       {/* CONFIGURATION STORAGE */}
       <div style={{ background: "#fff", borderRadius: 14, padding: m ? 14 : 18, boxShadow: "0 1px 3px rgba(15,23,42,0.06)", marginBottom: 18, border: "1.5px solid #E0F2FE" }}>
@@ -328,6 +360,7 @@ export default function AdminV({ m, reload, profile }) {
           )}
         </div>
       </div>
+      </>)}
     </div>
   )
 }

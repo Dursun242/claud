@@ -60,7 +60,7 @@ function escapeCsv(val) {
   return s
 }
 
-export default function LogsV({ m, profile }) {
+export default function LogsV({ m, profile, embedded = false }) {
   const isAdmin = profile?.role === 'admin'
 
   // Filtres
@@ -162,9 +162,14 @@ export default function LogsV({ m, profile }) {
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 8 }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: m ? 18 : 24, fontWeight: 700 }}>📋 Journal d&apos;activité</h1>
-          <div style={{ fontSize: 11, color: "#94A3B8", marginTop: 2 }}>
-            Connexions, créations, modifications et suppressions — admin uniquement.
+          {!embedded && (
+            <h1 style={{ margin: 0, fontSize: m ? 18 : 24, fontWeight: 700 }}>📋 Journal d&apos;activité</h1>
+          )}
+          <div style={{ fontSize: 11, color: "#94A3B8", marginTop: embedded ? 0 : 2 }}>
+            {embedded
+              ? <>Connexions, créations, modifications et suppressions.</>
+              : <>Connexions, créations, modifications et suppressions — admin uniquement.</>
+            }
             {logs.length > 0 && <> · <strong>{logs.length}</strong> entrée{logs.length > 1 ? 's' : ''}{hasMore ? ' (+)' : ''}</>}
           </div>
         </div>
