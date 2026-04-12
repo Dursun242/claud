@@ -2,6 +2,22 @@
 import { useState, useEffect, createContext, useContext, useRef } from 'react'
 import { supabase } from './supabaseClient'
 
+// Fire-and-forget : journalise une connexion/déconnexion dans activity_logs.
+// Silencieux si la table n'existe pas (migration pas encore appliquée).
+async function logSession(action, metadata = null) {
+  try {
+    await supabase.from('activity_logs').insert({
+      action,
+      entity_type: 'session',
+      entity_label: action === 'login' ? 'Connexion' : 'Déconnexion',
+      metadata: metadata || null,
+      user_agent: (typeof navigator !== 'undefined' && navigator.userAgent)
+        ? navigator.userAgent.slice(0, 255)
+        : null,
+    });
+  } catch (_) { /* silencieux */ }
+}
+
 // ─── AUTH CONTEXT ───
 const AuthContext = createContext(null)
 
@@ -57,6 +73,11 @@ export function AuthProvider({ children }) {
             setProfile(profile)
             setDenied(false)
             setExpired(false)
+            // Log uniquement les vraies connexions (pas les restaurations de session
+            // ni les refresh de token) pour éviter de polluer le journal.
+            if (event === 'SIGNED_IN') {
+              logSession('login', { provider: session.user.app_metadata?.provider || null })
+            }
           } else {
             setDenied(true)
             setUser(null)
@@ -284,5 +305,7 @@ export function LoginPage() {
 // d'une expiration de session. AuthProvider le lit au SIGNED_OUT suivant.
 export async function logout() {
   try { sessionStorage.setItem('idm_voluntary_logout', '1') } catch {}
+  // Logger AVANT signOut : une fois déconnecté, RLS bloque l'insert.
+  await logSession('logout')
   await supabase.auth.signOut()
 }

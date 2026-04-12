@@ -22,6 +22,43 @@ export const LocalDB = {
 
 // ─── SUPABASE CRUD HELPERS ───
 export const SB = {
+  // ─── JOURNAL D'ACTIVITÉ (audit log) ───
+  // Écriture "fire-and-forget" : n'empêche jamais une opération métier
+  // de réussir si l'insert du log échoue (ex. table pas encore migrée).
+  async log(action, entityType, entityId = null, entityLabel = null, metadata = null) {
+    try {
+      await supabase.from('activity_logs').insert({
+        action,
+        entity_type: entityType,
+        entity_id: entityId ? String(entityId) : null,
+        entity_label: entityLabel || null,
+        metadata: metadata || null,
+        user_agent: (typeof navigator !== 'undefined' && navigator.userAgent)
+          ? navigator.userAgent.slice(0, 255)
+          : null,
+      });
+    } catch (_) { /* silencieux : ne jamais bloquer l'UX */ }
+  },
+
+  async getLogs({ limit = 200, before = null, userEmail = null, action = null, entityType = null, search = null } = {}) {
+    let q = supabase
+      .from('activity_logs')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(Math.min(Math.max(Number(limit) || 200, 1), 500));
+    if (before) q = q.lt('created_at', before);
+    if (userEmail) q = q.eq('user_email', userEmail.toLowerCase().trim());
+    if (action) q = q.eq('action', action);
+    if (entityType) q = q.eq('entity_type', entityType);
+    if (search && search.trim()) {
+      const s = search.trim().replace(/[%,]/g, ' ');
+      q = q.or(`entity_label.ilike.%${s}%,user_prenom.ilike.%${s}%,user_email.ilike.%${s}%`);
+    }
+    const { data, error } = await q;
+    if (error) throw new Error("Erreur chargement journal : " + error.message);
+    return data || [];
+  },
+
   async loadAll() {
     const [ch, co, ta, pl, rv, cr, os, att] = await Promise.all([
       supabase.from('chantiers').select('*').order('created_at', { ascending: false }),
@@ -52,14 +89,20 @@ export const SB = {
     if (ch.id && String(ch.id).length > 10) {
       const { data, error } = await supabase.from('chantiers').update(row).eq('id', ch.id).select().single();
       if (error) throw new Error("Erreur mise à jour chantier : " + error.message);
+      this.log('update', 'chantier', data.id, data.nom);
       return data;
     } else {
       const { data, error } = await supabase.from('chantiers').insert(row).select().single();
       if (error) throw new Error("Erreur création chantier : " + error.message);
+      this.log('create', 'chantier', data.id, data.nom);
       return data;
     }
   },
-  async deleteChantier(id) { await supabase.from('chantiers').delete().eq('id', id); },
+  async deleteChantier(id) {
+    const { data: prev } = await supabase.from('chantiers').select('nom').eq('id', id).maybeSingle();
+    await supabase.from('chantiers').delete().eq('id', id);
+    this.log('delete', 'chantier', id, prev?.nom || null);
+  },
 
   // Contacts
   async upsertContact(c) {
@@ -78,14 +121,20 @@ export const SB = {
     if (c.id && String(c.id).length > 10) {
       const { data, error } = await supabase.from('contacts').update(row).eq('id', c.id).select().single();
       if (error) throw new Error("Erreur mise à jour contact : " + error.message);
+      this.log('update', 'contact', data.id, data.nom);
       return data;
     } else {
       const { data, error } = await supabase.from('contacts').insert(row).select().single();
       if (error) throw new Error("Erreur création contact : " + error.message);
+      this.log('create', 'contact', data.id, data.nom);
       return data;
     }
   },
-  async deleteContact(id) { await supabase.from('contacts').delete().eq('id', id); },
+  async deleteContact(id) {
+    const { data: prev } = await supabase.from('contacts').select('nom').eq('id', id).maybeSingle();
+    await supabase.from('contacts').delete().eq('id', id);
+    this.log('delete', 'contact', id, prev?.nom || null);
+  },
 
   // Tâches
   async upsertTask(t) {
@@ -94,14 +143,20 @@ export const SB = {
     if (t.id && String(t.id).length > 10) {
       const { data, error } = await supabase.from('taches').update(row).eq('id', t.id).select().single();
       if (error) throw new Error("Erreur mise à jour tâche : " + error.message);
+      this.log('update', 'task', data.id, data.titre);
       return data;
     } else {
       const { data, error } = await supabase.from('taches').insert(row).select().single();
       if (error) throw new Error("Erreur création tâche : " + error.message);
+      this.log('create', 'task', data.id, data.titre);
       return data;
     }
   },
-  async deleteTask(id) { await supabase.from('taches').delete().eq('id', id); },
+  async deleteTask(id) {
+    const { data: prev } = await supabase.from('taches').select('titre').eq('id', id).maybeSingle();
+    await supabase.from('taches').delete().eq('id', id);
+    this.log('delete', 'task', id, prev?.titre || null);
+  },
 
   // Comptes Rendus
   async upsertCR(cr) {
@@ -110,14 +165,21 @@ export const SB = {
     if (cr.id && String(cr.id).length > 10) {
       const { data, error } = await supabase.from('compte_rendus').update(row).eq('id', cr.id).select().single();
       if (error) throw new Error("Erreur mise à jour CR : " + error.message);
+      this.log('update', 'cr', data.id, `CR n°${data.numero}`);
       return data;
     } else {
       const { data, error } = await supabase.from('compte_rendus').insert(row).select().single();
       if (error) throw new Error("Erreur création CR : " + error.message);
+      this.log('create', 'cr', data.id, `CR n°${data.numero}`);
       return data;
     }
   },
-  async deleteCR(id) { const { error } = await supabase.from('compte_rendus').delete().eq('id', id); if (error) console.error("❌ Delete CR:", error.message); },
+  async deleteCR(id) {
+    const { data: prev } = await supabase.from('compte_rendus').select('numero').eq('id', id).maybeSingle();
+    const { error } = await supabase.from('compte_rendus').delete().eq('id', id);
+    if (error) { console.error("❌ Delete CR:", error.message); return; }
+    this.log('delete', 'cr', id, prev?.numero ? `CR n°${prev.numero}` : null);
+  },
 
   // Ordres de Service
   async upsertOS(os) {
@@ -125,14 +187,21 @@ export const SB = {
     if (os.id && String(os.id).length > 10) {
       const { data, error } = await supabase.from('ordres_service').update(row).eq('id', os.id).select().single();
       if (error) throw new Error("Erreur mise à jour OS : " + error.message);
+      this.log('update', 'os', data.id, data.numero);
       return data;
     } else {
       const { data, error } = await supabase.from('ordres_service').insert(row).select().single();
       if (error) throw new Error("Erreur création OS : " + error.message);
+      this.log('create', 'os', data.id, data.numero);
       return data;
     }
   },
-  async deleteOS(id) { const { error } = await supabase.from('ordres_service').delete().eq('id', id); if (error) console.error("❌ Delete OS:", error.message); },
+  async deleteOS(id) {
+    const { data: prev } = await supabase.from('ordres_service').select('numero').eq('id', id).maybeSingle();
+    const { error } = await supabase.from('ordres_service').delete().eq('id', id);
+    if (error) { console.error("❌ Delete OS:", error.message); return; }
+    this.log('delete', 'os', id, prev?.numero || null);
+  },
 
   // Attachments
   async uploadAttachment(file, type, itemId) {
