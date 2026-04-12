@@ -27,7 +27,7 @@ export const SB = {
   // de réussir si l'insert du log échoue (ex. table pas encore migrée).
   async log(action, entityType, entityId = null, entityLabel = null, metadata = null) {
     try {
-      await supabase.from('activity_logs').insert({
+      const { error } = await supabase.from('activity_logs').insert({
         action,
         entity_type: entityType,
         entity_id: entityId ? String(entityId) : null,
@@ -37,7 +37,12 @@ export const SB = {
           ? navigator.userAgent.slice(0, 255)
           : null,
       });
-    } catch (_) { /* silencieux : ne jamais bloquer l'UX */ }
+      // Ne casse jamais le flux métier, mais expose l'erreur en console
+      // pour debug (RLS, migration manquante, etc.).
+      if (error) console.warn('[SB.log] insert failed:', action, entityType, error.message);
+    } catch (err) {
+      console.warn('[SB.log] exception:', action, entityType, err?.message || err);
+    }
   },
 
   async getLogs({ limit = 200, before = null, userEmail = null, action = null, entityType = null, search = null } = {}) {
