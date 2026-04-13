@@ -211,13 +211,24 @@ export default function NotificationBell({ userEmail, onNavigate }) {
                           fontSize: 12,
                           fontWeight: unread ? 700 : 500,
                           color: '#0F172A',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
                           display: '-webkit-box',
                           WebkitLineClamp: 2,
                           WebkitBoxOrient: 'vertical',
+                          overflow: 'hidden',
                         }}>{n.title}</div>
-                        <div style={{ fontSize: 10, color: '#94A3B8', marginTop: 2 }}>
+                        {n.body && (
+                          <div style={{
+                            fontSize: 11,
+                            color: '#475569',
+                            marginTop: 3,
+                            lineHeight: 1.35,
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden',
+                          }}>{n.body}</div>
+                        )}
+                        <div style={{ fontSize: 10, color: '#94A3B8', marginTop: 3 }}>
                           {relativeTime(n.created_at)}
                         </div>
                       </div>
