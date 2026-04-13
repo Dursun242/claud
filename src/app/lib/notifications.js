@@ -139,11 +139,12 @@ async function resolveActorDisplay(actorEmail) {
 }
 
 /**
- * Résout la liste des destinataires :
+ * Résout la liste des destinataires. Chaque panneau "Activité récente"
+ * fonctionne comme un journal historique : chaque utilisateur voit
+ * tout ce qui le concerne, y compris ses propres actions.
+ *
  *   - Staff (admin/salarié) : TOUS les actifs, y compris l'acteur.
- *     → sert de journal historique partagé pour toute la boîte.
- *   - Client (MOA)          : le MOA du chantier, sauf si c'est lui
- *     qui a déclenché l'action (évite l'auto-notif "tu as créé X").
+ *   - Client (MOA) du chantier : inclus y compris s'il est l'acteur.
  */
 async function resolveRecipients({ chantierId, actorEmail }) {
   const recipients = new Set()
@@ -159,7 +160,7 @@ async function resolveRecipients({ chantierId, actorEmail }) {
     if (e) recipients.add(e)
   })
 
-  // Client MOA du chantier (matching prénom) — sauf l'acteur (pas d'auto-notif)
+  // Client MOA du chantier (matching prénom)
   if (chantierId) {
     const { data: ch } = await supabase
       .from('chantiers')
@@ -176,7 +177,7 @@ async function resolveRecipients({ chantierId, actorEmail }) {
       ;(clients || []).forEach(u => {
         const prenom = (u.prenom || '').toLowerCase().trim()
         const e = (u.email || '').toLowerCase().trim()
-        if (prenom && e && prenom === clientFirstName && e !== actorEmail) {
+        if (prenom && e && prenom === clientFirstName) {
           recipients.add(e)
         }
       })
