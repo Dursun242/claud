@@ -3,11 +3,31 @@ import { useRef, useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
 import { useConfirm } from '../contexts/ConfirmContext'
 
-// Miniature avec URL signée (bucket privé — valide 1h)
-function AttachmentThumb({ att, onDelete }) {
+// Formatage humain d'une taille en octets (123 Ko, 4.2 Mo…)
+function formatSize(bytes) {
+  if (!bytes && bytes !== 0) return ''
+  if (bytes < 1024) return `${bytes} o`
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} Ko`
+  return `${(bytes / 1024 / 1024).toFixed(1)} Mo`
+}
+
+// Couleur + icône selon le type de fichier
+function kindFor(fileName) {
+  const n = (fileName || '').toLowerCase()
+  if (/\.(jpg|jpeg|png|gif|webp|heic|heif)$/.test(n)) return { icon: '🖼️', color: '#10B981', bg: '#ECFDF5', label: 'IMG' }
+  if (/\.pdf$/.test(n))                                return { icon: '📄', color: '#DC2626', bg: '#FEF2F2', label: 'PDF' }
+  if (/\.(xls|xlsx|csv)$/.test(n))                     return { icon: '📊', color: '#047857', bg: '#ECFDF5', label: 'XLS' }
+  if (/\.(doc|docx)$/.test(n))                         return { icon: '📝', color: '#1D4ED8', bg: '#EFF6FF', label: 'DOC' }
+  if (/\.(zip|rar|7z)$/.test(n))                       return { icon: '🗜️', color: '#B45309', bg: '#FFFBEB', label: 'ZIP' }
+  return { icon: '📎', color: '#64748B', bg: '#F1F5F9', label: 'FILE' }
+}
+
+// Ligne compacte : icône/miniature, nom, taille, bouton supprimer
+function AttachmentRow({ att, onDelete }) {
   const confirm = useConfirm()
   const [url, setUrl] = useState('')
-  const isImg = /\.(jpg|jpeg|png|gif|webp)$/i.test(att.file_name)
+  const isImg = /\.(jpg|jpeg|png|gif|webp|heic|heif)$/i.test(att.file_name)
+  const kind = kindFor(att.file_name)
 
   useEffect(() => {
     let cancelled = false
@@ -18,64 +38,94 @@ function AttachmentThumb({ att, onDelete }) {
     return () => { cancelled = true }
   }, [att.file_path])
 
-  const icon = /\.pdf$/i.test(att.file_name) ? '📄'
-    : /\.(xls|xlsx|csv)$/i.test(att.file_name) ? '📊'
-    : /\.(doc|docx)$/i.test(att.file_name) ? '📝'
-    : '📎'
-
-  const confirmDelete = async () => {
+  const confirmDelete = async (e) => {
+    e.preventDefault()
+    e.stopPropagation()
     const ok = await confirm({
       title: `Supprimer « ${att.file_name} » ?`,
-      message: "Ce fichier sera définitivement supprimé du stockage.",
-      confirmLabel: "Supprimer",
+      message: 'Ce fichier sera définitivement supprimé du stockage.',
+      confirmLabel: 'Supprimer',
       danger: true,
     })
     if (ok) onDelete(att.id, att.file_path)
   }
 
   return (
-    <div style={{ position: 'relative', background: '#F8FAFC', borderRadius: 8, padding: 6, textAlign: 'center', border: '1px solid #E2E8F0' }}>
-      {isImg ? (
-        url ? (
-          <a href={url} target="_blank" rel="noopener noreferrer" title={`Ouvrir ${att.file_name}`}>
-            <img src={url} style={{ width: '100%', height: 64, objectFit: 'cover', borderRadius: 5, display: 'block' }} alt={att.file_name} />
-          </a>
-        ) : (
-          <div style={{ width: '100%', height: 64, background: '#E2E8F0', borderRadius: 5, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, color: '#94A3B8' }}>
-            <span style={{ animation: 'spin 1s linear infinite', display: 'inline-block' }}>⏳</span>
-          </div>
-        )
+    <a
+      href={url || '#'}
+      target="_blank"
+      rel="noopener noreferrer"
+      title={`Ouvrir ${att.file_name}`}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 10,
+        padding: '8px 10px',
+        background: '#fff',
+        borderRadius: 8,
+        textDecoration: 'none',
+        color: 'inherit',
+        border: '1px solid #E2E8F0',
+        transition: 'background .12s, border-color .12s',
+      }}
+      onMouseEnter={(e) => { e.currentTarget.style.background = '#F8FAFC'; e.currentTarget.style.borderColor = '#CBD5E1' }}
+      onMouseLeave={(e) => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.borderColor = '#E2E8F0' }}
+    >
+      {/* Icône / miniature */}
+      {isImg && url ? (
+        <img
+          src={url}
+          alt=""
+          style={{ width: 36, height: 36, objectFit: 'cover', borderRadius: 6, flexShrink: 0, background: '#F1F5F9' }}
+        />
       ) : (
-        <a href={url || '#'} target="_blank" rel="noopener noreferrer" title={`Télécharger ${att.file_name}`} style={{ textDecoration: 'none', display: 'block', padding: '16px 0' }}>
-          <div style={{ fontSize: 28 }}>{icon}</div>
-        </a>
+        <div style={{
+          width: 36, height: 36, minWidth: 36, flexShrink: 0,
+          borderRadius: 6, background: kind.bg,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 18, lineHeight: 1,
+        }}>{kind.icon}</div>
       )}
+
+      {/* Nom + taille */}
+      <div style={{ flex: '1 1 0', minWidth: 0 }}>
+        <div style={{
+          fontSize: 12, fontWeight: 600, color: '#0F172A',
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        }}>{att.file_name}</div>
+        <div style={{ fontSize: 10, color: '#94A3B8', marginTop: 1, display: 'flex', gap: 6, alignItems: 'center' }}>
+          <span style={{ color: kind.color, fontWeight: 700, letterSpacing: '0.04em' }}>{kind.label}</span>
+          {att.file_size ? <span>· {formatSize(att.file_size)}</span> : null}
+        </div>
+      </div>
+
+      {/* Bouton supprimer — discret, pas en négatif rouge */}
       <button
+        type="button"
         onClick={confirmDelete}
         aria-label={`Supprimer ${att.file_name}`}
         title="Supprimer"
         style={{
-          position: 'absolute', top: -5, right: -5,
-          background: '#fff', color: '#DC2626',
-          border: '1px solid #FECACA',
-          borderRadius: '50%', width: 20, height: 20,
-          cursor: 'pointer', fontSize: 11,
+          background: 'transparent',
+          border: 'none',
+          color: '#94A3B8',
+          cursor: 'pointer',
+          padding: 6,
+          borderRadius: 6,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          boxShadow: '0 1px 3px rgba(15,23,42,0.15)',
-          padding: 0, lineHeight: 1, fontFamily: 'inherit',
+          fontSize: 14, lineHeight: 1,
+          flexShrink: 0,
+          fontFamily: 'inherit',
         }}
+        onMouseEnter={(e) => { e.currentTarget.style.background = '#FEF2F2'; e.currentTarget.style.color = '#DC2626' }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#94A3B8' }}
       >✕</button>
-      <div title={att.file_name} style={{ fontSize: 9, color: '#64748B', marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-        {att.file_name}
-      </div>
-    </div>
+    </a>
   )
 }
 
 /**
  * Composant AttachmentsSection
  * Gère l'upload, l'affichage et la suppression des pièces jointes.
- * Supporte maintenant le drag & drop des fichiers.
+ * Supporte le drag & drop des fichiers.
  */
 export default function AttachmentsSection({ attachments = [], onUpload, onDelete, loading = false }) {
   const fileInputRef = useRef(null)
@@ -83,7 +133,6 @@ export default function AttachmentsSection({ attachments = [], onUpload, onDelet
 
   const handleFiles = async (files) => {
     if (!files || files.length === 0) return
-    // Upload séquentiel pour garder un ordre déterministe et voir les erreurs
     for (const file of files) {
       try { await onUpload(file) }
       catch (err) { console.error('Upload failed:', err) }
@@ -155,9 +204,7 @@ export default function AttachmentsSection({ attachments = [], onUpload, onDelet
           onDragLeave={() => setDragOver(false)}
           onDrop={handleDrop}
           style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill,minmax(88px,1fr))',
-            gap: 8,
+            display: 'flex', flexDirection: 'column', gap: 6,
             padding: dragOver ? 6 : 0,
             border: dragOver ? '2px dashed #3B82F6' : '2px dashed transparent',
             background: dragOver ? '#EFF6FF' : 'transparent',
@@ -166,7 +213,7 @@ export default function AttachmentsSection({ attachments = [], onUpload, onDelet
           }}
         >
           {attachments.map((att) => (
-            <AttachmentThumb key={att.id} att={att} onDelete={onDelete} />
+            <AttachmentRow key={att.id} att={att} onDelete={onDelete} />
           ))}
         </div>
       )}
