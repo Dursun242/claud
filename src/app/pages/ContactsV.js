@@ -452,7 +452,7 @@ export default function ContactsV({data,save,m,reload,focusId,focusTs}) {
 
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14,flexWrap:"wrap",gap:8}}>
       <div>
-        <h1 style={{margin:0,fontSize:m?18:24,fontWeight:700}}>Annuaire</h1>
+        <h1 style={{margin:0,fontSize:m?18:24,fontWeight:700}}>Contacts</h1>
         <p style={{margin:"2px 0 0",fontSize:12,color:"#94A3B8"}}>
           {data.contacts.length} contact{data.contacts.length>1?"s":""}
           {(q || tf !== "all") && <> · <strong>{list.length}</strong> affiché{list.length>1?"s":""}</>}
