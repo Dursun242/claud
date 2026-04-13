@@ -18,6 +18,9 @@ export function useNotifications(userEmail) {
   const [items, setItems] = useState([])
   const [unreadCount, setUnreadCount] = useState(0)
   const [loading, setLoading] = useState(false)
+  // incrémenté à chaque INSERT realtime → permet à l'UI de réagir
+  // (ex: ouvrir le panneau automatiquement, jouer un son, etc.)
+  const [newItemSignal, setNewItemSignal] = useState(0)
   const channelRef = useRef(null)
 
   const email = (userEmail || '').toLowerCase().trim()
@@ -59,7 +62,13 @@ export function useNotifications(userEmail) {
         schema: 'public',
         table: 'notifications',
         filter: `recipient_email=eq.${email}`,
-      }, () => { load() })
+      }, (payload) => {
+        load()
+        // Seuls les INSERT déclenchent le signal "nouvelle activité"
+        if (payload?.eventType === 'INSERT') {
+          setNewItemSignal((n) => n + 1)
+        }
+      })
       .subscribe()
     channelRef.current = channel
     return () => {
@@ -89,5 +98,5 @@ export function useNotifications(userEmail) {
     }
   }, [email, load])
 
-  return { items, unreadCount, loading, markAsRead, markAllRead, reload: load }
+  return { items, unreadCount, loading, newItemSignal, markAsRead, markAllRead, reload: load }
 }

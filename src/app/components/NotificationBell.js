@@ -35,9 +35,25 @@ const ICONS = {
  * @param {Function} props.onNavigate — (tab, notif) → naviguer vers la ressource
  */
 export default function NotificationBell({ userEmail, onNavigate }) {
-  const { items, unreadCount, markAsRead, markAllRead } = useNotifications(userEmail)
+  const { items, unreadCount, markAsRead, markAllRead, newItemSignal } = useNotifications(userEmail)
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
+  const autoOpenedRef = useRef(false)
+
+  // Auto-ouverture au premier chargement (même si la liste est vide → on
+  // affichera "Rien de nouveau pour le moment")
+  useEffect(() => {
+    if (!userEmail || autoOpenedRef.current) return
+    autoOpenedRef.current = true
+    // Petit délai pour laisser l'UI se monter proprement avant d'afficher
+    const t = setTimeout(() => setOpen(true), 400)
+    return () => clearTimeout(t)
+  }, [userEmail])
+
+  // Auto-ouverture à chaque nouvelle activité reçue en temps réel
+  useEffect(() => {
+    if (newItemSignal > 0) setOpen(true)
+  }, [newItemSignal])
 
   // Ferme le panneau au clic extérieur
   useEffect(() => {
