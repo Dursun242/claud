@@ -446,8 +446,23 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly})
 
   const handleDuplicate = async (os) => {
     try {
-      const { id: _id, created_at: _created_at, ...rest } = os;
-      await SB.upsertOS({ ...rest, numero: nextNum(), statut: "Brouillon", date_emission: new Date().toISOString().split("T")[0] });
+      const {
+        id: _id,
+        created_at: _created_at,
+        odoo_sign_id: _odoo_sign_id,
+        odoo_sign_url: _odoo_sign_url,
+        statut_signature: _statut_signature,
+        ...rest
+      } = os;
+      await SB.upsertOS({
+        ...rest,
+        numero: nextNum(),
+        statut: "Brouillon",
+        date_emission: new Date().toISOString().split("T")[0],
+        odoo_sign_id: null,
+        odoo_sign_url: null,
+        statut_signature: null,
+      });
       reload();
       addToast("OS dupliqué en brouillon", "success");
     } catch (err) {
