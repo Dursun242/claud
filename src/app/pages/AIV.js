@@ -7,10 +7,15 @@ import { useToast } from '../contexts/ToastContext'
 import { supabase } from '../supabaseClient'
 
 // Message d'accueil de l'assistant (identique après un reset)
-const WELCOME_MESSAGE = {
+const welcomeForAdmin = (name) => ({
   role: "assistant",
-  content: `Bonjour ${COMPANY.gerant} ! Je suis l'assistant IA d'**ID Maîtrise**.\n\nJe peux tout faire :\n• **"Crée un OS pour le chantier Friboulet, artisan Lefèvre..."** → Ordre de Service\n• **"Rédige un CR pour Les Voiles, présents : Lefèvre, Costa..."** → Compte Rendu\n• **"Nouveau chantier Villa Dupont, budget 200 000€..."** → Chantier\n• **"Ajoute une tâche urgente..."** → Tâche\n• **"Résumé avancement du chantier Les Voiles"** → Analyse\n\nParlez ou tapez !`,
-}
+  content: `Bonjour ${name} ! Je suis l'assistant IA d'**ID Maîtrise**.\n\nJe peux tout faire :\n• **"Crée un OS pour le chantier Friboulet, artisan Lefèvre..."** → Ordre de Service\n• **"Rédige un CR pour Les Voiles, présents : Lefèvre, Costa..."** → Compte Rendu\n• **"Nouveau chantier Villa Dupont, budget 200 000€..."** → Chantier\n• **"Ajoute une tâche urgente..."** → Tâche\n• **"Résumé avancement du chantier Les Voiles"** → Analyse\n\nParlez ou tapez !`,
+})
+
+const welcomeForClient = (name) => ({
+  role: "assistant",
+  content: `Bonjour ${name} ! Je suis l'assistant IA d'**ID Maîtrise**.\n\nJe peux vous aider sur votre chantier :\n• **"Ajoute une tâche : peindre le mur côté cour"** → Nouvelle tâche\n• **"Où en est mon chantier ?"** → Résumé d'avancement\n• **"Liste mes tâches en cours"** → Recherche\n• **"Quels sont les derniers comptes rendus ?"** → Analyse\n\nParlez ou tapez !`,
+})
 
 // Prépare un résumé des données pour l'IA — évite d'envoyer les champs inutiles ou trop lourds
 function prepareDataForAI(data) {
@@ -40,8 +45,14 @@ function prepareDataForAI(data) {
   }
 }
 
-export default function AIV({data,save,m,externalTranscript,clearExternal,reload}) {
+export default function AIV({data,save,m,externalTranscript,clearExternal,reload,user,profile,clientMode=false}) {
   const { addToast } = useToast();
+  // Nom à afficher dans le message d'accueil
+  const displayName = profile?.prenom
+    || user?.user_metadata?.full_name?.split(' ')[0]
+    || (clientMode ? '' : COMPANY.gerant);
+  const WELCOME_MESSAGE = clientMode ? welcomeForClient(displayName) : welcomeForAdmin(displayName);
+
   const [messages,setMessages]=useState([WELCOME_MESSAGE]);
   const [input,setInput]=useState("");
   const [loading,setLoading]=useState(false);
@@ -126,7 +137,7 @@ export default function AIV({data,save,m,externalTranscript,clearExternal,reload
     setMessages(prev=>[...prev,{role:"user",content:userMsg}]); setLoading(true);
 
     try {
-      const sys = `Tu es l'assistant IA d'ID Maîtrise, maîtrise d'œuvre BTP au Havre (9 Rue Henry Genestal, 76600). Le gérant est Dursun. Tu gères le quotidien des chantiers.
+      const sysAdmin = `Tu es l'assistant IA d'ID Maîtrise, maîtrise d'œuvre BTP au Havre (9 Rue Henry Genestal, 76600). Le gérant est Dursun. Tu gères le quotidien des chantiers.
 
 DONNÉES ACTUELLES (Supabase): ${JSON.stringify(prepareDataForAI(data),null,0)}
 
@@ -168,6 +179,42 @@ RÈGLES :
 - Le bloc <<<ACTION>>> doit contenir un JSON valide sur une seule ligne ou multiligne — pas de commentaires ni de texte dans le JSON
 - Quand on te demande un résumé/avancement, analyse les données et donne un point clair sans bloc action`;
 
+      const sysClient = `Tu es l'assistant IA d'ID Maîtrise, maîtrise d'œuvre BTP au Havre. L'utilisateur est un MOA (maître d'ouvrage), il suit SON chantier.
+
+DONNÉES ACTUELLES (uniquement les chantiers du client): ${JSON.stringify(prepareDataForAI(data),null,0)}
+
+TU PEUX :
+1. Créer une nouvelle tâche sur le chantier du client (bloc action add_task)
+2. Résumer l'avancement de son chantier (budget, phase, tâches, derniers CR)
+3. Lister, rechercher et analyser ses données
+
+TU NE PEUX PAS et tu dois poliment REFUSER si on te demande de :
+- Créer ou modifier un Ordre de Service (OS) — réservé au MOE
+- Créer ou modifier un Compte Rendu (CR) — réservé au MOE
+- Créer ou modifier un chantier — réservé au MOE
+- Créer ou modifier un contact — réservé au MOE
+- Supprimer une tâche — demander au MOE
+
+Réponse type en cas de demande non autorisée : "Cette action est réservée à votre maître d'œuvre (ID Maîtrise). N'hésitez pas à lui en parler directement."
+
+FORMAT OBLIGATOIRE DU BLOC ACTION (copie exactement cette syntaxe) :
+<<<ACTION>>>
+{"type":"add_task", "data":{...}}
+<<<END_ACTION>>>
+
+SEUL BLOC ACTION AUTORISÉ :
+
+add_task: {"type":"add_task","data":{"chantier_id":"UUID-DU-CHANTIER","titre":"...","priorite":"Urgent|Normale|Faible","statut":"Planifié","echeance":"YYYY-MM-DD","lot":"..."}}
+
+RÈGLES :
+- Réponds TOUJOURS en français, concis et respectueux
+- Utilise TOUJOURS le vrai UUID du chantier présent dans les données
+- Si le client n'a qu'un seul chantier, utilise-le automatiquement pour la tâche
+- Pour les questions/résumés, analyse et réponds clairement sans bloc action
+- Le bloc <<<ACTION>>> doit contenir un JSON valide — pas de commentaires`;
+
+      const sys = clientMode ? sysClient : sysAdmin;
+
 
       // JWT Supabase requis par /api/claude pour éviter que n'importe qui
       // avec l'URL puisse drainer notre quota Anthropic.
@@ -200,6 +247,12 @@ RÈGLES :
           // permet de filtrer après coup dans LogsV via metadata.
           SB.setLogContext({ source: 'ai', action_type: a.type });
           try {
+            // En mode client, seule la création de tâche est autorisée.
+            // Les autres actions sont refusées même si l'IA essaie (garde-fou UX
+            // en plus des RLS Supabase qui bloqueraient aussi).
+            if (clientMode && a.type !== 'add_task') {
+              throw new Error("Cette action est réservée à votre maître d'œuvre.")
+            }
             if(a.type==="add_chantier") { await SB.upsertChantier(a.data); actionLabel="Chantier créé"; }
             else if(a.type==="add_task") { await SB.upsertTask(a.data); actionLabel="Tâche créée"; }
             else if(a.type==="add_contact") { await SB.upsertContact(a.data); actionLabel="Contact créé"; }

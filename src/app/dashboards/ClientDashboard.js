@@ -4,6 +4,8 @@ import dynamic from 'next/dynamic'
 import { logout } from '../auth'
 import { SB, defaultData, I, Icon } from './shared'
 import { DashboardSkeleton, PageSkeleton } from '../components/Skeleton'
+import { FloatingMic } from '../components'
+import { useFloatingMic } from '../hooks/useFloatingMic'
 
 // Lazy-load des pages — chunks séparés par onglet
 const dyn = (loader) => dynamic(loader, { loading: PageSkeleton, ssr: false })
@@ -14,6 +16,7 @@ const ReportsV       = dyn(() => import('../pages/ReportsV'))
 const OrdresServiceV = dyn(() => import('../pages/OrdresServiceV'))
 const PlanningV      = dyn(() => import('../pages/PlanningV'))
 const TasksV         = dyn(() => import('../pages/TasksV'))
+const AIV            = dyn(() => import('../pages/AIV'))
 // Onglets disponibles pour le maître d'ouvrage (avec raccourci clavier « g + sc »)
 // Note : OS utilise I.os (presse-papier) pour se distinguer visuellement des Comptes Rendus (I.reports)
 const TABS = [
@@ -23,6 +26,7 @@ const TABS = [
   { key:'reports',   label:'Comptes Rendus',     icon:I.reports,   sc:'r' },
   { key:'os',        label:'Ordres de Service',  icon:I.os,        sc:'o' },
   { key:'planning',  label:'Planning',           icon:I.planning,  sc:'l' },
+  { key:'ai',        label:'Assistant IA',       icon:I.ai,        sc:'a' },
 ]
 
 const LAST_TAB_KEY = 'idm_client_tab'
@@ -73,6 +77,9 @@ export default function ClientDashboard({ user, profile = null }) {
   }, [profile?.prenom, profile?.nom])
 
   const save = useCallback(async (d) => { setData(d) }, [])
+
+  // Floating mic (reconnaissance vocale → assistant IA)
+  const { listening: floatListening, transcript: floatTranscript, setTranscript: setFloatTranscript, toggle: toggleFloatMic, clear: clearFloatMic } = useFloatingMic()
 
   const switchTab = useCallback((k) => {
     setTab(k)
@@ -270,8 +277,21 @@ export default function ClientDashboard({ user, profile = null }) {
           {tab === 'reports'   && <ReportsV       data={data} save={save} m={isMobile} reload={reload} readOnly />}
           {tab === 'os'        && <OrdresServiceV data={data} m={isMobile} reload={reload} readOnly />}
           {tab === 'planning'  && <PlanningV      data={data} m={isMobile} />}
+          {tab === 'ai'        && <AIV            data={data} save={save} m={isMobile} reload={reload} user={user} profile={profile} clientMode externalTranscript={floatTranscript} clearExternal={()=>setFloatTranscript("")} />}
         </div>
       </main>
+
+      {/* FLOATING NEON MIC — visible sur tous les onglets sauf "ai" (qui a son propre micro inline) */}
+      {tab !== 'ai' && (
+        <FloatingMic
+          listening={floatListening}
+          onClick={toggleFloatMic}
+          transcript={floatTranscript}
+          isMobile={isMobile}
+          onSend={() => { setTab('ai') }}
+          onClear={clearFloatMic}
+        />
+      )}
 
       {/* Aide clavier (déclenchée par « ? ») */}
       {helpOpen && (
