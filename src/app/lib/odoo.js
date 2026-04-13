@@ -85,12 +85,27 @@ export async function getTemplateRoles(templateId) {
 /** Trouve ou crée un partenaire Odoo par email */
 export async function findOrCreatePartner({ name, email }) {
   if (!email) throw new Error('Email requis pour créer un signataire')
+  // Sanitize du name : évite que la string "undefined" ne soit écrite en DB
+  const cleanName = (name && String(name).trim() && String(name).trim().toLowerCase() !== 'undefined')
+    ? String(name).trim()
+    : email
   const existing = await execute('res.partner', 'search_read', [[['email', '=', email]]], {
     fields: ['id', 'name'],
     limit: 1,
   })
-  if (existing.length) return existing[0].id
-  return execute('res.partner', 'create', [{ name: name || email, email }])
+  if (existing.length) {
+    const currentName = existing[0].name
+    // Mise à jour si le name existant est foireux ("undefined", vide, ou égal à l'email)
+    const needsUpdate = !currentName
+      || currentName === 'undefined'
+      || currentName === email
+    if (needsUpdate && cleanName !== currentName) {
+      try { await execute('res.partner', 'write', [[existing[0].id], { name: cleanName }]) }
+      catch (_) {}
+    }
+    return existing[0].id
+  }
+  return execute('res.partner', 'create', [{ name: cleanName, email }])
 }
 
 /**
@@ -225,10 +240,10 @@ export async function createSignRequestFromPdf({ pdfBase64, reference, operation
     console.warn('[OdooSign] purge sign.items préexistants:', e.message)
   }
 
-  // ── D : Rôles (find or create) — noms uniques pour éviter les collisions ─
-  // Préfixe "IDM" pour ne pas dépendre des rôles par défaut Odoo dont le nom
-  // peut varier (apostrophe typographique, traduction, etc.)
-  const ROLE_NAMES = { MOE: 'IDM - MOE', MOA: "IDM - Maître d'ouvrage", Entreprise: 'IDM - Entreprise' }
+  // ── D : Rôles (find or create) ───────────────────────────────────────────
+  // Noms courts sans apostrophe : pas de collision avec les rôles Odoo par
+  // défaut (Customer, Employee…) et rendu propre dans le PDF signé.
+  const ROLE_NAMES = { MOE: 'MOE', MOA: 'MOA', Entreprise: 'Entreprise' }
   const roleIds = {}
   for (const [key, label] of Object.entries(ROLE_NAMES)) {
     const found = await execute('sign.item.role', 'search_read', [[['name', '=', label]]], {
