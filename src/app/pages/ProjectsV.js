@@ -1,10 +1,9 @@
 'use client'
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { SB, Icon, I, phase, status, fmtDate, fmtMoney, pct, FF, inp, sel, btnP, btnS, PBar } from '../dashboards/shared'
-import { Badge, Modal, AttachmentsSection, CommentsSection, SharingPanel, TemplateSelector } from '../components'
+import { Badge, Modal, AttachmentsSection, CommentsSection, TemplateSelector } from '../components'
 import { useAttachments } from '../hooks/useAttachments'
 import { useComments } from '../hooks/useComments'
-import { useSharing } from '../hooks/useSharing'
 import { generateOSPdf, generateCRPdf, generateOSExcel, generateCRExcel } from '../generators'
 import { useToast } from '../contexts/ToastContext'
 import { useConfirm } from '../contexts/ConfirmContext'
@@ -42,7 +41,6 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
   // Phase 3 Hooks - Replaces 9 useState calls + useEffect
   const { attachments, uploadAttachment, deleteAttachment } = useAttachments('chantier', selected);
   const { comments, addComment, deleteComment } = useComments('chantier', selected, user?.email);
-  const { shares, addShare, deleteShare } = useSharing(selected);
 
   // Dérivées memoizées : évite de recalculer à chaque frappe dans un input.
   // Recalculées uniquement si data ou selected change.
@@ -341,13 +339,6 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
         currentUser={user}
         userRole={profile?.role}
       />
-
-      {/* PARTAGE — masqué pour les clients MOA */}
-      {!readOnly && <SharingPanel
-        shares={shares}
-        onAddShare={addShare}
-        onDeleteShare={deleteShare}
-      />}
 
       {/* MODALES POUR OS/CR/TÂCHES */}
       <Modal open={detailModal==="newOS"||detailModal==="editOS"} onClose={()=>setDetailModal(null)} title={detailModal==="newOS"?"Nouvel Ordre de Service":"Modifier l'OS"}>

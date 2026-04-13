@@ -14,7 +14,6 @@ export { default as Modal } from './Modal'
 // Feature components
 export { default as AttachmentsSection } from './AttachmentsSection'
 export { default as CommentsSection } from './CommentsSection'
-export { default as SharingPanel } from './SharingPanel'
 
 // Microphone components
 export { default as FloatingMic } from './FloatingMic'

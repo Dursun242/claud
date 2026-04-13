@@ -344,23 +344,6 @@ export const SB = {
     this.log('delete', 'comment', id, preview);
   },
 
-  // Sharing
-  async shareChantier(chantierId, email, permission = 'view') {
-    const { data: row, error } = await supabase.from('sharing').insert({ chantier_id: chantierId, shared_with_email: email, permission }).select().single();
-    if (error) throw new Error("Erreur partage: " + error.message);
-    this.log('create', 'share', row?.id || null, `Partage avec ${email}`, { chantier_id: chantierId, permission });
-  },
-  async getShares(chantierId) {
-    const { data, error } = await supabase.from('sharing').select('*').eq('chantier_id', chantierId);
-    if (error) throw new Error("Erreur chargement partages: " + error.message);
-    return data || [];
-  },
-  async deleteShare(id) {
-    const { data: prev } = await supabase.from('sharing').select('shared_with_email,chantier_id').eq('id', id).maybeSingle();
-    await supabase.from('sharing').delete().eq('id', id);
-    this.log('delete', 'share', id, prev?.shared_with_email ? `Partage avec ${prev.shared_with_email}` : null, prev?.chantier_id ? { chantier_id: prev.chantier_id } : null);
-  },
-
   // ─── AUTHORIZED USERS MANAGEMENT ───
   async getAuthorizedUsers() {
     const { data, error } = await supabase.from('authorized_users').select('*').order('prenom');
