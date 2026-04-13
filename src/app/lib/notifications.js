@@ -139,14 +139,16 @@ async function resolveActorDisplay(actorEmail) {
 }
 
 /**
- * Récupère la liste des destinataires :
- *   - Tous les admins/salariés actifs (sauf l'acteur)
- *   - Le(s) client(s) MOA du chantier concerné (matching prénom → authorized_users)
+ * Résout la liste des destinataires :
+ *   - Staff (admin/salarié) : TOUS les actifs, y compris l'acteur.
+ *     → sert de journal historique partagé pour toute la boîte.
+ *   - Client (MOA)          : le MOA du chantier, sauf si c'est lui
+ *     qui a déclenché l'action (évite l'auto-notif "tu as créé X").
  */
 async function resolveRecipients({ chantierId, actorEmail }) {
   const recipients = new Set()
 
-  // Staff (admin + salarié actifs)
+  // Staff (admin + salarié actifs) — TOUS, y compris l'acteur
   const { data: staff } = await supabase
     .from('authorized_users')
     .select('email, role, actif')
@@ -154,10 +156,10 @@ async function resolveRecipients({ chantierId, actorEmail }) {
     .in('role', ['admin', 'salarié', 'salarie'])
   ;(staff || []).forEach(u => {
     const e = (u.email || '').toLowerCase().trim()
-    if (e && e !== actorEmail) recipients.add(e)
+    if (e) recipients.add(e)
   })
 
-  // Client MOA du chantier (matching prénom)
+  // Client MOA du chantier (matching prénom) — sauf l'acteur (pas d'auto-notif)
   if (chantierId) {
     const { data: ch } = await supabase
       .from('chantiers')
