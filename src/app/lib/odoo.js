@@ -85,23 +85,27 @@ export async function getTemplateRoles(templateId) {
 /** Trouve ou crée un partenaire Odoo par email */
 export async function findOrCreatePartner({ name, email }) {
   if (!email) throw new Error('Email requis pour créer un signataire')
-  // Sanitize du name : évite que la string "undefined" ne soit écrite en DB
-  const cleanName = (name && String(name).trim() && String(name).trim().toLowerCase() !== 'undefined')
-    ? String(name).trim()
-    : email
+  // On ne considère un nom "réel" que s'il est fourni, non vide, et différent
+  // de la string "undefined" (piège classique JS → sérialisation).
+  const haveRealName = !!(name && String(name).trim() && String(name).trim().toLowerCase() !== 'undefined')
+  const cleanName = haveRealName ? String(name).trim() : email
   const existing = await execute('res.partner', 'search_read', [[['email', '=', email]]], {
     fields: ['id', 'name'],
     limit: 1,
   })
   if (existing.length) {
     const currentName = existing[0].name
-    // Mise à jour si le name existant est foireux ("undefined", vide, ou égal à l'email)
-    const needsUpdate = !currentName
-      || currentName === 'undefined'
-      || currentName === email
-    if (needsUpdate && cleanName !== currentName) {
+    // On met à jour le partner si :
+    //   a) on a un vrai nom fourni ET qu'il diffère du nom actuel → on utilise
+    //      toujours la donnée la plus fraîche venant de l'app.
+    //   b) OU le nom actuel est foireux ("undefined", vide, email) → on corrige
+    //      même si on n'a pas de meilleur nom, en mettant l'email faute de mieux.
+    const currentIsBroken = !currentName || currentName === 'undefined' || currentName === email
+    const shouldUpdate = (haveRealName && cleanName !== currentName)
+      || (currentIsBroken && cleanName !== currentName)
+    if (shouldUpdate) {
       try { await execute('res.partner', 'write', [[existing[0].id], { name: cleanName }]) }
-      catch (_) {}
+      catch (e) { console.warn('[OdooSign] update partner name échoué:', e.message) }
     }
     return existing[0].id
   }
