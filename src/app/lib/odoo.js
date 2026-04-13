@@ -199,43 +199,59 @@ export async function createSignRequestFromPdf({ pdfBase64, reference, operation
   const docRead = await execute('sign.document', 'read', [[signDocId]], { fields: ['id', 'attachment_id'] })
   if (!docRead[0]?.attachment_id) throw new Error('sign.document créé sans attachment_id')
 
-  // ── D : Rôles (find or create) ───────────────────────────────────────────
-  const ROLE_NAMES = { MOE: 'MOE', MOA: "Maître d'ouvrage", Entreprise: 'Entreprise' }
-  const existingRoles = await execute('sign.item.role', 'search_read', [[]], { fields: ['id', 'name'] })
+  // ── C-bis : nettoyage sign.items auto-générés ─────────────────────────────
+  // Odoo peut créer automatiquement des sign.items (rôle "Customer") lors de
+  // la création du sign.document depuis un PDF. On purge tout pour ne garder
+  // que nos 3 zones MOE/MOA/Entreprise.
+  try {
+    const existingItems = await execute('sign.item', 'search', [[['template_id', '=', templateId]]])
+    if (existingItems.length) {
+      await execute('sign.item', 'unlink', [existingItems])
+    }
+  } catch (e) {
+    console.warn('[OdooSign] purge sign.items préexistants:', e.message)
+  }
 
+  // ── D : Rôles (find or create) — noms uniques pour éviter les collisions ─
+  // Préfixe "IDM" pour ne pas dépendre des rôles par défaut Odoo dont le nom
+  // peut varier (apostrophe typographique, traduction, etc.)
+  const ROLE_NAMES = { MOE: 'IDM - MOE', MOA: "IDM - Maître d'ouvrage", Entreprise: 'IDM - Entreprise' }
   const roleIds = {}
   for (const [key, label] of Object.entries(ROLE_NAMES)) {
-    const found = existingRoles.find(r => r.name.toLowerCase() === label.toLowerCase())
-    if (found) {
-      roleIds[key] = found.id
+    const found = await execute('sign.item.role', 'search_read', [[['name', '=', label]]], {
+      fields: ['id', 'name'], limit: 1,
+    })
+    if (found.length) {
+      roleIds[key] = found[0].id
     } else {
-      try { roleIds[key] = await execute('sign.item.role', 'create', [{ name: label }]) }
-      catch (e) { roleIds[key] = existingRoles[0]?.id; console.warn('[OdooSign] fallback rôle pour', key) }
+      roleIds[key] = await execute('sign.item.role', 'create', [{ name: label }])
     }
   }
 
-  // ── E : sign.item.type + zones de signature ──────────────────────────────
-  const signTypes = await execute('sign.item.type', 'search_read', [[]], { fields: ['id', 'name'], limit: 1 })
+  // ── E : sign.item.type + zones de signature (FAIL FAST si échec) ─────────
+  const signTypes = await execute('sign.item.type', 'search_read', [[['item_type', '=', 'signature']]], {
+    fields: ['id', 'name'], limit: 1,
+  })
   const signTypeId = signTypes[0]?.id
+    || (await execute('sign.item.type', 'search_read', [[]], { fields: ['id'], limit: 1 }))[0]?.id
+  if (!signTypeId) throw new Error('Aucun sign.item.type disponible dans Odoo — module Sign mal configuré')
 
   const ZONES = [
     { role: 'MOE',        posX: 0.03, posY: 0.82 },
     { role: 'MOA',        posX: 0.37, posY: 0.82 },
     { role: 'Entreprise', posX: 0.68, posY: 0.82 },
   ]
-  if (signTypeId) {
-    for (const z of ZONES) {
-      const rId = roleIds[z.role]
-      if (!rId) continue
-      try {
-        await execute('sign.item', 'create', [{
-          template_id: templateId, responsible_id: rId,
-          required: true, type_id: signTypeId,
-          posX: z.posX, posY: z.posY, width: 0.28, height: 0.12, page: 1,
-        }])
-      } catch (e) {
-        console.warn('[OdooSign] sign.item', z.role, 'échec:', e.message)
-      }
+  for (const z of ZONES) {
+    const rId = roleIds[z.role]
+    if (!rId) throw new Error(`Rôle Odoo manquant pour ${z.role}`)
+    try {
+      await execute('sign.item', 'create', [{
+        template_id: templateId, responsible_id: rId,
+        required: true, type_id: signTypeId,
+        posX: z.posX, posY: z.posY, width: 0.28, height: 0.12, page: 1,
+      }])
+    } catch (e) {
+      throw new Error(`Création zone signature ${z.role} échouée : ${e.message}`)
     }
   }
 
@@ -255,21 +271,14 @@ export async function createSignRequestFromPdf({ pdfBase64, reference, operation
   }
 
   // ── G : request_items couvrant EXACTEMENT les rôles du template ───────────
-  let requestItems
-  if (requiredRoleIds.length > 0) {
-    // Template a des sign.items → couvrir exactement ces rôles
-    const fallbackPartnerId = Object.values(roleToPartner)[0]
-    requestItems = requiredRoleIds.map(rId => {
-      const partnerId = roleToPartner[rId] ?? fallbackPartnerId
-      if (!partnerId) return null
-      return [0, 0, { partner_id: partnerId, role_id: rId }]
-    }).filter(Boolean)
-  } else {
-    // Template sans sign.items → ajouter tous les signataires avec leurs rôles
-    requestItems = Object.entries(roleToPartner).map(([rId, partnerId]) =>
-      [0, 0, { partner_id: partnerId, role_id: parseInt(rId) }]
-    )
+  // Validation stricte : chaque rôle du template DOIT avoir un partenaire
+  const missingRoles = requiredRoleIds.filter(rId => !roleToPartner[rId])
+  if (missingRoles.length) {
+    const reverseLookup = Object.fromEntries(Object.entries(roleIds).map(([k, v]) => [v, k]))
+    const missingNames = missingRoles.map(rId => reverseLookup[rId] || `role#${rId}`)
+    throw new Error(`Signataire manquant pour : ${missingNames.join(', ')}`)
   }
+  const requestItems = requiredRoleIds.map(rId => [0, 0, { partner_id: roleToPartner[rId], role_id: rId }])
 
   if (!requestItems.length) throw new Error('Aucun request_item à créer — vérifiez les emails et rôles')
 
