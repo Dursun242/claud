@@ -829,6 +829,7 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly})
               {!readOnly && (os.odoo_sign_url ? (
                 <>
                   <a href={os.odoo_sign_url} target="_blank" rel="noreferrer" title={`Signature : ${os.statut_signature||"Envoyé"}`}
+                    onClick={()=>{ try { SB.log('view_sign_request', 'os', os.id, `OS ${os.numero} — consultation signature`, { statut_signature: os.statut_signature || null }) } catch(_) {} }}
                     style={{...osBtn("#6D28D9","#F5F3FF","#DDD6FE"), textDecoration:"none", display:"inline-flex", alignItems:"center"}}>
                     ✍ {os.statut_signature||"Signé"}
                   </a>

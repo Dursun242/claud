@@ -2,6 +2,7 @@
 import { useRef, useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
 import { useConfirm } from '../contexts/ConfirmContext'
+import { SB } from '../dashboards/shared'
 
 // Formatage humain d'une taille en octets (123 Ko, 4.2 Mo…)
 function formatSize(bytes) {
@@ -50,12 +51,24 @@ function AttachmentRow({ att, onDelete }) {
     if (ok) onDelete(att.id, att.file_path)
   }
 
+  // Log la consultation du fichier (une fois par clic, pas de double fire)
+  const logOpen = () => {
+    try {
+      SB.log('view_attachment', 'attachment', att.id, att.file_name, {
+        file_name: att.file_name,
+        file_size: att.file_size || null,
+        kind: kind.label,
+      })
+    } catch (_) { /* silencieux — l'ouverture du fichier ne doit pas être bloquée */ }
+  }
+
   return (
     <a
       href={url || '#'}
       target="_blank"
       rel="noopener noreferrer"
       title={`Ouvrir ${att.file_name}`}
+      onClick={logOpen}
       style={{
         display: 'flex', alignItems: 'center', gap: 10,
         padding: '8px 10px',
