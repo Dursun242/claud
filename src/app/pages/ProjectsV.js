@@ -419,8 +419,8 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
         </button>}
       </div>
     </div>
-    {/* Pills de filtre — statut */}
-    <div style={{display:"flex",gap:6,marginBottom:8,flexWrap:"wrap",overflowX:m?"auto":"visible",paddingBottom:m?4:0}}>
+    {/* Pills de filtre — statut (masqué en vue client) */}
+    {!readOnly && <div style={{display:"flex",gap:6,marginBottom:8,flexWrap:"wrap",overflowX:m?"auto":"visible",paddingBottom:m?4:0}}>
       <span style={{fontSize:10,fontWeight:700,color:"#94A3B8",textTransform:"uppercase",letterSpacing:"0.05em",alignSelf:"center",marginRight:4}}>Statut</span>
       <button onClick={()=>setFilterStatut("")} style={pillStyle(filterStatut==="", "#1E3A5F")}>
         <span style={pillDot(filterStatut==="", "#64748B")}/>Tous
@@ -434,9 +434,9 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
           </button>
         );
       })}
-    </div>
-    {/* Pills de filtre — phase */}
-    <div style={{display:"flex",gap:6,marginBottom:14,flexWrap:"wrap",overflowX:m?"auto":"visible",paddingBottom:m?4:0}}>
+    </div>}
+    {/* Pills de filtre — phase (masqué en vue client) */}
+    {!readOnly && <div style={{display:"flex",gap:6,marginBottom:14,flexWrap:"wrap",overflowX:m?"auto":"visible",paddingBottom:m?4:0}}>
       <span style={{fontSize:10,fontWeight:700,color:"#94A3B8",textTransform:"uppercase",letterSpacing:"0.05em",alignSelf:"center",marginRight:4}}>Phase</span>
       <button onClick={()=>setFilterPhase("")} style={pillStyle(filterPhase==="", "#1E3A5F")}>
         <span style={pillDot(filterPhase==="", "#64748B")}/>Toutes
@@ -450,7 +450,7 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
           </button>
         );
       })}
-    </div>
+    </div>}
     {chantiersFiltered.length === 0 ? (
       <div style={{background:"#fff",borderRadius:12,padding:"40px 24px",textAlign:"center",boxShadow:"0 1px 3px rgba(0,0,0,0.04)"}}>
         <div style={{fontSize:36,marginBottom:8,opacity:0.5}}>🏗️</div>
