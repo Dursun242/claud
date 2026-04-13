@@ -190,17 +190,13 @@ export async function createSignRequestFromPdf({ pdfBase64, reference, operation
   }])
   console.log('[OdooSign] A — attId:', attId)
 
-  // ── B : sign.template ────────────────────────────────────────────────────
-  const templateId = await execute('sign.template', 'create', [{ name: filename }])
-  console.log('[OdooSign] B — templateId:', templateId)
-
-  // ── C : sign.document ────────────────────────────────────────────────────
-  const signDocId = await execute('sign.document', 'create', [{
-    name: filename, template_id: templateId, attachment_id: attId,
+  // ── B : sign.template (lié directement à l'attachment) ───────────────────
+  // sign.document n'existe pas dans Odoo Sign standard — attachment_id suffit
+  const templateId = await execute('sign.template', 'create', [{
+    name: filename,
+    attachment_id: attId,
   }])
-  const docRead = await execute('sign.document', 'read', [[signDocId]], { fields: ['id', 'attachment_id'] })
-  if (!docRead[0]?.attachment_id) throw new Error('sign.document créé sans attachment_id')
-  console.log('[OdooSign] C — signDocId:', signDocId)
+  console.log('[OdooSign] B — templateId:', templateId)
 
   // ── D : Rôles (find or create) ───────────────────────────────────────────
   const ROLE_NAMES = { MOE: 'MOE', MOA: "Maître d'ouvrage", Entreprise: 'Entreprise' }
@@ -236,7 +232,7 @@ export async function createSignRequestFromPdf({ pdfBase64, reference, operation
         const iId = await execute('sign.item', 'create', [{
           template_id: templateId, responsible_id: rId,
           required: true, type_id: signTypeId,
-          posX: z.posX, posY: z.posY, width: 0.28, height: 0.12, page: 1,
+          pos_x: z.posX, pos_y: z.posY, width: 0.28, height: 0.12, page: 1,
         }])
         console.log('[OdooSign] E — sign.item', z.role, '→', iId)
       } catch (e) {
