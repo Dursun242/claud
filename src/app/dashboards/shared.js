@@ -2,6 +2,15 @@
 import { supabase } from '../supabaseClient'
 import { ProgressBar } from '../components'
 import { writeActivityLog, setLogContext, clearLogContext } from '../lib/activityLog'
+import { createNotifications } from '../lib/notifications'
+
+// Helper : récupère l'email de l'utilisateur courant (best effort)
+async function currentActorEmail() {
+  try {
+    const { data: { session } } = await supabase.auth.getSession()
+    return (session?.user?.email || '').toLowerCase().trim() || null
+  } catch (_) { return null }
+}
 
 // ─── SOURCE UNIQUE : INFOS ENTREPRISE ───
 // Modifier ici = mis à jour partout (PDFs, sidebar, footer, assistant IA)
@@ -143,6 +152,10 @@ export const SB = {
       const { data, error } = await supabase.from('chantiers').insert(row).select().single();
       if (error) throw new Error("Erreur création chantier : " + error.message);
       this.log('create', 'chantier', data.id, data.nom);
+      currentActorEmail().then(actor => createNotifications({
+        entityType: 'chantier', entityId: data.id, chantierId: data.id,
+        action: 'create', data, actorEmail: actor,
+      }))
       return data;
     }
   },
@@ -197,6 +210,10 @@ export const SB = {
       const { data, error } = await supabase.from('taches').insert(row).select().single();
       if (error) throw new Error("Erreur création tâche : " + error.message);
       this.log('create', 'task', data.id, data.titre);
+      currentActorEmail().then(actor => createNotifications({
+        entityType: 'task', entityId: data.id, chantierId: data.chantier_id,
+        action: 'create', data, actorEmail: actor,
+      }))
       return data;
     }
   },
@@ -219,6 +236,10 @@ export const SB = {
       const { data, error } = await supabase.from('compte_rendus').insert(row).select().single();
       if (error) throw new Error("Erreur création CR : " + error.message);
       this.log('create', 'cr', data.id, `CR n°${data.numero}`);
+      currentActorEmail().then(actor => createNotifications({
+        entityType: 'cr', entityId: data.id, chantierId: data.chantier_id,
+        action: 'create', data, actorEmail: actor,
+      }))
       return data;
     }
   },
@@ -241,6 +262,10 @@ export const SB = {
       const { data, error } = await supabase.from('ordres_service').insert(row).select().single();
       if (error) throw new Error("Erreur création OS : " + error.message);
       this.log('create', 'os', data.id, data.numero);
+      currentActorEmail().then(actor => createNotifications({
+        entityType: 'os', entityId: data.id, chantierId: data.chantier_id,
+        action: 'create', data, actorEmail: actor,
+      }))
       return data;
     }
   },
@@ -266,6 +291,16 @@ export const SB = {
     }).select().single();
     if (attachError) throw new Error("Erreur enregistrement: " + attachError.message);
     this.log('create', 'attachment', attachData.id, file.name, { parent_type: type, parent_id: itemId });
+    // Résolution du chantier_id pour router la notif correctement
+    let chId = null
+    if (type === 'chantier') chId = itemId
+    else if (type === 'os')  { const { data: os } = await supabase.from('ordres_service').select('chantier_id').eq('id', itemId).maybeSingle(); chId = os?.chantier_id || null }
+    else if (type === 'cr')  { const { data: cr } = await supabase.from('compte_rendus').select('chantier_id').eq('id', itemId).maybeSingle(); chId = cr?.chantier_id || null }
+    else if (type === 'task'){ const { data: t } = await supabase.from('taches').select('chantier_id').eq('id', itemId).maybeSingle(); chId = t?.chantier_id || null }
+    currentActorEmail().then(actor => createNotifications({
+      entityType: 'attachment', entityId: attachData.id, chantierId: chId,
+      action: 'create', data: attachData, actorEmail: actor,
+    }))
     return attachData;
   },
   async getAttachments(type, itemId) {

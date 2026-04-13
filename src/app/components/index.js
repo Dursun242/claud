@@ -19,5 +19,8 @@ export { default as CommentsSection } from './CommentsSection'
 export { default as FloatingMic } from './FloatingMic'
 export { default as MicButtonInline } from './MicButtonInline'
 
+// Notifications
+export { default as NotificationBell } from './NotificationBell'
+
 // Template management
 export { default as TemplateSelector } from './TemplateSelector'

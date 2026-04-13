@@ -4,7 +4,7 @@ import dynamic from 'next/dynamic'
 import { logout } from '../auth'
 import { SB, defaultData, I, Icon } from './shared'
 import { DashboardSkeleton, PageSkeleton } from '../components/Skeleton'
-import { FloatingMic } from '../components'
+import { FloatingMic, NotificationBell } from '../components'
 import { useFloatingMic } from '../hooks/useFloatingMic'
 
 // Lazy-load des pages — chunks séparés par onglet
@@ -256,6 +256,12 @@ export default function ClientDashboard({ user, profile = null }) {
                 {TABS.find(t => t.key === tab)?.label}
               </span>
             </div>
+            <NotificationBell userEmail={user?.email} onNavigate={(nextTab)=>switchTab(nextTab)} />
+          </div>
+        )}
+        {!isMobile && (
+          <div style={{ position:'fixed', top:12, right:24, zIndex:998 }}>
+            <NotificationBell userEmail={user?.email} onNavigate={(nextTab)=>switchTab(nextTab)} />
           </div>
         )}
 

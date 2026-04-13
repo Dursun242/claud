@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import dynamic from 'next/dynamic'
 import { supabase } from '../supabaseClient'
 import { logout } from '../auth'
-import { FloatingMic } from '../components'
+import { FloatingMic, NotificationBell } from '../components'
 import { DashboardSkeleton, PageSkeleton } from '../components/Skeleton'
 import KeyboardHelpModal from '../components/KeyboardHelpModal'
 import { useFloatingMic } from '../hooks/useFloatingMic'
@@ -335,6 +335,12 @@ export default function AdminDashboard({ user, profile = null }) {
                 {tabs.find(t=>t.key===tab)?.label}
               </span>
             </div>
+            <NotificationBell userEmail={user?.email} onNavigate={(nextTab)=>switchTab(nextTab)} />
+          </div>
+        )}
+        {!isMobile && (
+          <div style={{position:"fixed",top:12,right:24,zIndex:998}}>
+            <NotificationBell userEmail={user?.email} onNavigate={(nextTab)=>switchTab(nextTab)} />
           </div>
         )}
         <div style={{animation:"fadeIn .3s ease",maxWidth:1200}}>
