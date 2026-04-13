@@ -536,6 +536,25 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly})
     }
   };
 
+  const handleResetSign = async (os) => {
+    const ok = await confirm({
+      title: "Réinitialiser la signature",
+      message: `Supprimer le lien Odoo Sign et le statut de signature sur l'OS ${os.numero} ?\n\nLa demande Odoo existante n'est pas annulée côté Odoo (à faire manuellement si besoin).`,
+      confirmLabel: "Réinitialiser",
+    });
+    if (!ok) return;
+    try {
+      await SB.upsertOS({ ...os, odoo_sign_id: null, odoo_sign_url: null, statut_signature: null });
+      SB.log('odoo_sign_reset', 'os', os.id, `OS ${os.numero} — reset signature`, {
+        previous_sign_id: os.odoo_sign_id || null,
+      });
+      reload();
+      addToast("Signature réinitialisée", "success");
+    } catch (err) {
+      addToast("Erreur : " + (err?.message || "impossible de réinitialiser"), "error");
+    }
+  };
+
   const handleEmail = (os) => {
     const ch = data.chantiers.find(c=>c.id===os.chantier_id);
     const subject = encodeURIComponent(`Ordre de Service ${os.numero} — ${ch?.nom || ""}`);
@@ -808,10 +827,14 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly})
               </button>
               <button onClick={()=>handleEmail(os)} title="Envoyer par email" style={osBtn("#4338CA","#EEF2FF","#C7D2FE")}>✉ Email</button>
               {!readOnly && (os.odoo_sign_url ? (
-                <a href={os.odoo_sign_url} target="_blank" rel="noreferrer" title={`Signature : ${os.statut_signature||"Envoyé"}`}
-                  style={{...osBtn("#6D28D9","#F5F3FF","#DDD6FE"), textDecoration:"none", display:"inline-flex", alignItems:"center"}}>
-                  ✍ {os.statut_signature||"Signé"}
-                </a>
+                <>
+                  <a href={os.odoo_sign_url} target="_blank" rel="noreferrer" title={`Signature : ${os.statut_signature||"Envoyé"}`}
+                    style={{...osBtn("#6D28D9","#F5F3FF","#DDD6FE"), textDecoration:"none", display:"inline-flex", alignItems:"center"}}>
+                    ✍ {os.statut_signature||"Signé"}
+                  </a>
+                  <button onClick={()=>handleResetSign(os)} title="Réinitialiser la signature (efface le lien Odoo)"
+                    style={osBtn("#64748B","#F8FAFC","#E2E8F0")}>↺</button>
+                </>
               ) : (
                 <button onClick={()=>openSignModal(os)} title="Envoyer pour signature Odoo" style={osBtn("#6D28D9","#F5F3FF","#DDD6FE")}>✍ Signature</button>
               ))}
