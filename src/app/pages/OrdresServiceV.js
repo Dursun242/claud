@@ -231,6 +231,12 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly})
 
     setImporting(true);
     setImportError("");
+    try {
+      SB.log('import_photo', 'os', null, `Import devis par photo — ${file.name}`, {
+        file_name: file.name,
+        file_size: file.size,
+      });
+    } catch (_) {}
 
     try {
       // 1. Resize + base64
@@ -454,15 +460,24 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly})
         statut_signature: _statut_signature,
         ...rest
       } = os;
-      await SB.upsertOS({
-        ...rest,
-        numero: nextNum(),
-        statut: "Brouillon",
-        date_emission: new Date().toISOString().split("T")[0],
-        odoo_sign_id: null,
-        odoo_sign_url: null,
-        statut_signature: null,
-      });
+      const newNumero = nextNum();
+      SB.setLogContext({ source: 'duplicate', source_id: os.id, source_numero: os.numero });
+      try {
+        await SB.upsertOS({
+          ...rest,
+          numero: newNumero,
+          statut: "Brouillon",
+          date_emission: new Date().toISOString().split("T")[0],
+          odoo_sign_id: null,
+          odoo_sign_url: null,
+          statut_signature: null,
+        });
+      } finally {
+        SB.clearLogContext();
+      }
+      try {
+        SB.log('duplicate', 'os', os.id, `OS ${os.numero} dupliqué → ${newNumero}`, { from_numero: os.numero, new_numero: newNumero });
+      } catch (_) {}
       reload();
       addToast("OS dupliqué en brouillon", "success");
     } catch (err) {
@@ -567,6 +582,12 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly})
     );
     const to = encodeURIComponent(os.artisan_email || "");
     window.open(`mailto:${to}?subject=${subject}&body=${body}`);
+    try {
+      SB.log('send_email', 'os', os.id, `OS ${os.numero} — email → ${os.artisan_email || 'destinataire'}`, {
+        to: os.artisan_email || null,
+        chantier_nom: ch?.nom || null,
+      });
+    } catch (_) {}
   };
 
   // Map chantier_id → chantier : évite les .find() O(N*M) dans les listes

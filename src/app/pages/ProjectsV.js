@@ -462,7 +462,7 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
     ) : (
     <div style={{display:"grid",gap:12}}>
       {chantiersFiltered.map(ch=>(
-        <div key={ch.id} onClick={()=>setSelected(ch.id)} style={{background:"#fff",borderRadius:12,overflow:"hidden",boxShadow:"0 1px 3px rgba(0,0,0,0.06)",borderLeft:`4px solid ${phase[ch.phase]||"#94A3B8"}`,cursor:"pointer",transition:"all .2s"}}
+        <div key={ch.id} onClick={()=>{ setSelected(ch.id); try { SB.log('view', 'chantier', ch.id, `Ouverture chantier — ${ch.nom}`, { phase: ch.phase || null, statut: ch.statut || null }) } catch(_) {} }} style={{background:"#fff",borderRadius:12,overflow:"hidden",boxShadow:"0 1px 3px rgba(0,0,0,0.06)",borderLeft:`4px solid ${phase[ch.phase]||"#94A3B8"}`,cursor:"pointer",transition:"all .2s"}}
           onMouseEnter={e=>{e.currentTarget.style.boxShadow="0 4px 12px rgba(0,0,0,0.1)";e.currentTarget.style.transform="translateX(4px)";}}
           onMouseLeave={e=>{e.currentTarget.style.boxShadow="0 1px 3px rgba(0,0,0,0.06)";e.currentTarget.style.transform="";}}>
           {ch.photo_couverture && <div style={{height:80,overflow:"hidden"}}><img src={ch.photo_couverture} alt={ch.nom} style={{width:"100%",height:"100%",objectFit:"cover"}}/></div>}

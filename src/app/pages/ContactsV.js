@@ -34,11 +34,17 @@ export default function ContactsV({data,save,m,reload,focusId,focusTs}) {
 
   // Copy-to-clipboard : un clic sur SIRET/email/tel copie la valeur
   // dans le presse-papier et affiche un toast de confirmation.
-  const copyToClipboard = async (value, label) => {
+  const copyToClipboard = async (value, label, contact) => {
     if (!value) return;
     try {
       await navigator.clipboard.writeText(value);
       addToast(`${label} copié : ${value}`, "success", 2000);
+      try {
+        SB.log('copy', 'contact', contact?.id || null, `${label} — ${contact?.nom || 'contact'}`, {
+          field: label.toLowerCase(),
+          preview: String(value).slice(0, 40),
+        });
+      } catch (_) {}
     } catch {
       addToast("Impossible de copier — clipboard non supporté", "warning");
     }
@@ -74,6 +80,9 @@ export default function ContactsV({data,save,m,reload,focusId,focusTs}) {
     const today = new Date().toISOString().split('T')[0];
     downloadCSV(`contacts_${today}.csv`, csv);
     addToast(`${list.length} contact${list.length > 1 ? 's' : ''} exporté${list.length > 1 ? 's' : ''}`, "success");
+    try {
+      SB.log('export_csv', 'contact', null, `Export annuaire — ${list.length} contacts`, { count: list.length });
+    } catch (_) {}
   };
   const list=data.contacts.filter(c=>{
     if(pendingDeleteIds.has(c.id)) return false;
@@ -288,6 +297,9 @@ export default function ContactsV({data,save,m,reload,focusId,focusTs}) {
       const isSiret = /^\d{14}$/.test(v.replace(/\s/g,""));
       const cleanSiret = v.replace(/\s/g,"");
       const qs = isSiret ? `siret=${cleanSiret}` : `q=${encodeURIComponent(v)}`;
+      try {
+        SB.log('search_pappers', 'contact', null, `Recherche Pappers — ${v}`, { query: v, type: isSiret ? 'siret' : 'text' });
+      } catch (_) {}
       const res = await fetchPappers(qs);
       const json = await res.json();
       if (!res.ok) { setPError(json.error || "Erreur Pappers"); return; }
@@ -368,6 +380,12 @@ export default function ContactsV({data,save,m,reload,focusId,focusTs}) {
 
     setImporting(true);
     setImportError("");
+    try {
+      SB.log('import_photo', 'contact', null, `Import contact par photo — ${file.name}`, {
+        file_name: file.name,
+        file_size: file.size,
+      });
+    } catch (_) {}
 
     try {
       // 1. Redimensionne + convertit en base64
@@ -605,9 +623,9 @@ export default function ContactsV({data,save,m,reload,focusId,focusTs}) {
               {/* Coordonnées : cliquer sur le lien appelle/envoie, cliquer sur
                   l'icône 📋 à droite copie la valeur dans le presse-papier. */}
               <div style={{display:"flex",flexWrap:"wrap",gap:"4px 10px",fontSize:11,marginTop:4}}>
-                {c.tel && <ContactInfoLink href={`tel:${c.tel.replace(/\s/g,"")}`} onCopy={() => copyToClipboard(c.tel, "Téléphone")} label={`📱 ${c.tel}`}/>}
-                {c.tel_fixe && <ContactInfoLink href={`tel:${c.tel_fixe.replace(/\s/g,"")}`} onCopy={() => copyToClipboard(c.tel_fixe, "Téléphone fixe")} label={`☎ ${c.tel_fixe}`}/>}
-                {c.email && <ContactInfoLink href={`mailto:${c.email}`} onCopy={() => copyToClipboard(c.email, "Email")} label={`✉ ${c.email}`} maxWidth={220}/>}
+                {c.tel && <ContactInfoLink href={`tel:${c.tel.replace(/\s/g,"")}`} onTap={()=>{ try { SB.log('contact_tap', 'contact', c.id, `Appel → ${c.nom}`, { field: 'tel', value: c.tel }) } catch(_) {} }} onCopy={() => copyToClipboard(c.tel, "Téléphone", c)} label={`📱 ${c.tel}`}/>}
+                {c.tel_fixe && <ContactInfoLink href={`tel:${c.tel_fixe.replace(/\s/g,"")}`} onTap={()=>{ try { SB.log('contact_tap', 'contact', c.id, `Appel fixe → ${c.nom}`, { field: 'tel_fixe', value: c.tel_fixe }) } catch(_) {} }} onCopy={() => copyToClipboard(c.tel_fixe, "Téléphone fixe", c)} label={`☎ ${c.tel_fixe}`}/>}
+                {c.email && <ContactInfoLink href={`mailto:${c.email}`} onTap={()=>{ try { SB.log('contact_tap', 'contact', c.id, `Email → ${c.nom}`, { field: 'email', value: c.email }) } catch(_) {} }} onCopy={() => copyToClipboard(c.email, "Email", c)} label={`✉ ${c.email}`} maxWidth={220}/>}
               </div>
               {(c.ville||c.adresse) && (
                 <div style={{fontSize:10,color:"#94A3B8",marginTop:3,display:"inline-flex",alignItems:"center",gap:5}}>
@@ -618,7 +636,7 @@ export default function ContactsV({data,save,m,reload,focusId,focusTs}) {
               {c.siret && (
                 <div style={{fontSize:10,color:"#94A3B8",marginTop:2,display:"inline-flex",alignItems:"center",gap:5}}>
                   SIRET : {c.siret}
-                  <CopyIconBtn onClick={() => copyToClipboard(c.siret, "SIRET")}/>
+                  <CopyIconBtn onClick={() => copyToClipboard(c.siret, "SIRET", c)}/>
                 </div>
               )}
               {c.qualifications && <div style={{fontSize:10,color:"#3B82F6",marginTop:2,fontWeight:600}}>🏅 {c.qualifications}</div>}
@@ -872,12 +890,12 @@ export default function ContactsV({data,save,m,reload,focusId,focusTs}) {
 
 // Lien cliquable (tel: / mailto:) avec bouton copie à droite.
 // Le clic sur le lien ouvre l'app native ; le clic sur 📋 copie la valeur.
-function ContactInfoLink({ href, onCopy, label, maxWidth }) {
+function ContactInfoLink({ href, onCopy, onTap, label, maxWidth }) {
   return (
     <span style={{display:"inline-flex",alignItems:"center",gap:4}}>
       <a
         href={href}
-        onClick={e => e.stopPropagation()}
+        onClick={e => { e.stopPropagation(); onTap?.(); }}
         style={{
           color:"#1D4ED8",textDecoration:"none",fontWeight:500,
           overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",
