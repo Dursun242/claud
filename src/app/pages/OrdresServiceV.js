@@ -483,6 +483,7 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly})
     try {
       // Enrichissement identique à handlePdf/handleExcel pour que le PDF
       // envoyé pour signature affiche bien la société en gros
+      const ch = signModal.ch;
       const enriched = enrichOsForPdf(signModal);
       const pdfResult = await generateOSPdf({ ...enriched, returnBase64: true });
       if (!pdfResult?.base64) throw new Error("Impossible de générer le PDF de l'OS");
