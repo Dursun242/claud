@@ -13,11 +13,13 @@ const ProjectsV      = dyn(() => import('../pages/ProjectsV'))
 const ReportsV       = dyn(() => import('../pages/ReportsV'))
 const OrdresServiceV = dyn(() => import('../pages/OrdresServiceV'))
 const PlanningV      = dyn(() => import('../pages/PlanningV'))
+const TasksV         = dyn(() => import('../pages/TasksV'))
 // Onglets disponibles pour le maître d'ouvrage (avec raccourci clavier « g + sc »)
 // Note : OS utilise I.os (presse-papier) pour se distinguer visuellement des Comptes Rendus (I.reports)
 const TABS = [
   { key:'dashboard', label:'Tableau de bord',   icon:I.dashboard, sc:'d' },
   { key:'projects',  label:'Mes Chantiers',      icon:I.projects,  sc:'p' },
+  { key:'tasks',     label:'Tâches',             icon:I.tasks,     sc:'t' },
   { key:'reports',   label:'Comptes Rendus',     icon:I.reports,   sc:'r' },
   { key:'os',        label:'Ordres de Service',  icon:I.os,        sc:'o' },
   { key:'planning',  label:'Planning',           icon:I.planning,  sc:'l' },
@@ -264,6 +266,7 @@ export default function ClientDashboard({ user, profile = null }) {
           )}
           {tab === 'dashboard' && <DashboardV     data={data} setTab={switchTab} m={isMobile} user={user} />}
           {tab === 'projects'  && <ProjectsV      data={data} save={save} m={isMobile} reload={reload} user={user} profile={profile} readOnly />}
+          {tab === 'tasks'     && <TasksV         data={data} save={save} m={isMobile} reload={reload} />}
           {tab === 'reports'   && <ReportsV       data={data} save={save} m={isMobile} reload={reload} readOnly />}
           {tab === 'os'        && <OrdresServiceV data={data} m={isMobile} reload={reload} readOnly />}
           {tab === 'planning'  && <PlanningV      data={data} m={isMobile} />}

@@ -263,11 +263,11 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
         }
       </Section>
 
-      {/* TÂCHES */}
+      {/* TÂCHES — clients autorisés à créer/modifier leurs tâches */}
       <Section title="Tâches" count={chTasks.length} color="#F59E0B">
-        {!readOnly && <div style={{display:"flex",gap:8,marginBottom:12}}>
+        <div style={{display:"flex",gap:8,marginBottom:12}}>
           <button onClick={()=>{setDetailForm({chantierId:ch.id,titre:"",lot:"",statut:"En attente",priorite:"En attente",echeance:new Date().toISOString().split("T")[0]});setDetailModal("newTask");}} style={{background:"#F59E0B",color:"#fff",border:"none",borderRadius:6,padding:"6px 12px",fontSize:11,fontWeight:700,cursor:"pointer"}}>+ Nouvelle tâche</button>
-        </div>}
+        </div>
         {chTasks.length===0 ? <p style={{color:"#94A3B8",fontSize:12}}>Aucune tâche pour ce chantier</p> :
           chTasks.map(t=>(
             <div key={t.id} style={{display:"flex",alignItems:"center",gap:10,background:"#fff",borderRadius:8,padding:"10px 12px",marginBottom:6,boxShadow:"0 1px 2px rgba(0,0,0,0.03)"}}>
@@ -279,7 +279,7 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
                 <div style={{fontSize:10,color:"#94A3B8"}}>{t.lot} • {fmtDate(t.echeance)}</div>
               </div>
               <Badge text={t.priorite} color={status[t.priorite]||"#64748B"}/>
-              {!readOnly && <button onClick={()=>{setDetailForm(t);setDetailModal("editTask");}} style={{background:"#3B82F6",border:"none",borderRadius:5,padding:"4px 10px",cursor:"pointer",fontSize:9,fontWeight:700,color:"#fff",flexShrink:0}}>✎</button>}
+              <button onClick={()=>{setDetailForm(t);setDetailModal("editTask");}} style={{background:"#3B82F6",border:"none",borderRadius:5,padding:"4px 10px",cursor:"pointer",fontSize:9,fontWeight:700,color:"#fff",flexShrink:0}}>✎</button>
             </div>
           ))
         }
