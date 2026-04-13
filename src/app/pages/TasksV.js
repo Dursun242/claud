@@ -224,11 +224,12 @@ export default function TasksV({data,save,m,reload,focusId,focusTs}) {
             overflow:"hidden",         // dernière ligne de défense anti-overflow
           }}>
             <button onClick={()=>toggle(t)} title="Changer le statut" aria-label={`Marquer comme ${t.statut==="Terminé"?"à faire":"terminée"}`} style={{
-              width:24,height:24,borderRadius:"50%",
+              width:24,height:24,minWidth:24,minHeight:24,borderRadius:"50%",
               border:`2px solid ${status[t.statut]||"#CBD5E1"}`,
               background:t.statut==="Terminé"?"#10B981":"transparent",
               display:"flex",alignItems:"center",justifyContent:"center",
               cursor:"pointer",flexShrink:0,padding:0,
+              boxSizing:"border-box",appearance:"none",WebkitAppearance:"none",
             }}>
               {t.statut==="Terminé" && <Icon d={I.check} size={12} color="#fff"/>}
             </button>

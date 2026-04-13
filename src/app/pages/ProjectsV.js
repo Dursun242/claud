@@ -271,7 +271,7 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
         {chTasks.length===0 ? <p style={{color:"#94A3B8",fontSize:12}}>Aucune tâche pour ce chantier</p> :
           chTasks.map(t=>(
             <div key={t.id} style={{display:"flex",alignItems:"center",gap:10,background:"#fff",borderRadius:8,padding:"10px 12px",marginBottom:6,boxShadow:"0 1px 2px rgba(0,0,0,0.03)"}}>
-              <button onClick={()=>{const updated={...t,statut:t.statut==="Terminé"?"En attente":"Terminé"};SB.upsertTask(updated);reload();}} style={{width:20,height:20,borderRadius:"50%",border:`2px solid ${status[t.statut]||"#CBD5E1"}`,background:t.statut==="Terminé"?"#10B981":"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,cursor:"pointer",padding:0}}>
+              <button onClick={()=>{const updated={...t,statut:t.statut==="Terminé"?"En attente":"Terminé"};SB.upsertTask(updated);reload();}} style={{width:20,height:20,minWidth:20,minHeight:20,borderRadius:"50%",border:`2px solid ${status[t.statut]||"#CBD5E1"}`,background:t.statut==="Terminé"?"#10B981":"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,cursor:"pointer",padding:0,boxSizing:"border-box",appearance:"none",WebkitAppearance:"none"}}>
                 {t.statut==="Terminé" && <Icon d={I.check} size={10} color="#fff"/>}
               </button>
               <div style={{flex:1,opacity:t.statut==="Terminé"?0.5:1}}>
