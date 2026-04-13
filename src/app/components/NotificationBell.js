@@ -68,45 +68,49 @@ export default function NotificationBell({ userEmail, onNavigate }) {
     <div ref={ref} style={{ position: 'relative', display: 'inline-block' }}>
       <button
         onClick={() => setOpen(o => !o)}
-        aria-label="Notifications"
-        title="Notifications"
+        aria-label="Activité récente"
+        title="Activité récente"
         style={{
           position: 'relative',
-          background: 'none',
-          border: 'none',
+          background: open ? '#F1F5F9' : '#fff',
+          border: '1px solid #E2E8F0',
           cursor: 'pointer',
-          padding: 6,
-          borderRadius: 8,
-          color: '#334155',
-          fontSize: 20,
-          lineHeight: 1,
+          width: 36, height: 36,
+          borderRadius: 10,
+          color: unreadCount > 0 ? '#3B82F6' : '#334155',
           fontFamily: 'inherit',
           display: 'inline-flex',
           alignItems: 'center',
           justifyContent: 'center',
+          boxShadow: '0 1px 2px rgba(15,23,42,0.04)',
+          transition: 'background .15s, border-color .15s, color .15s',
         }}
-        onMouseEnter={(e) => { e.currentTarget.style.background = '#F1F5F9' }}
-        onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
+        onMouseEnter={(e) => { e.currentTarget.style.background = '#F1F5F9'; e.currentTarget.style.borderColor = '#CBD5E1' }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = open ? '#F1F5F9' : '#fff'; e.currentTarget.style.borderColor = '#E2E8F0' }}
       >
-        🔔
+        {/* Icône "activity" (ligne de pouls / ECG) — plus moderne qu'une cloche */}
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+        </svg>
         {unreadCount > 0 && (
           <span style={{
             position: 'absolute',
-            top: 0,
-            right: 0,
+            top: -4,
+            right: -4,
             background: '#DC2626',
             color: '#fff',
             borderRadius: 999,
-            minWidth: 16,
-            height: 16,
-            padding: '0 4px',
-            fontSize: 9,
+            minWidth: 18,
+            height: 18,
+            padding: '0 5px',
+            fontSize: 10,
             fontWeight: 800,
             display: 'inline-flex',
             alignItems: 'center',
             justifyContent: 'center',
             border: '2px solid #fff',
             boxSizing: 'content-box',
+            lineHeight: 1,
           }}>{badge}</span>
         )}
       </button>
@@ -133,7 +137,7 @@ export default function NotificationBell({ userEmail, onNavigate }) {
             justifyContent: 'space-between',
           }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A' }}>
-              Notifications{unreadCount > 0 ? ` (${unreadCount} non lue${unreadCount > 1 ? 's' : ''})` : ''}
+              Activité récente{unreadCount > 0 ? ` · ${unreadCount} nouveau${unreadCount > 1 ? 'x' : ''}` : ''}
             </div>
             {unreadCount > 0 && (
               <button
@@ -154,8 +158,10 @@ export default function NotificationBell({ userEmail, onNavigate }) {
 
           {items.length === 0 ? (
             <div style={{ padding: 28, textAlign: 'center', color: '#94A3B8', fontSize: 12 }}>
-              <div style={{ fontSize: 28, marginBottom: 6, opacity: 0.5 }}>🔔</div>
-              Aucune notification
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 6 }} aria-hidden="true">
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+              </svg>
+              <div>Rien de nouveau pour le moment</div>
             </div>
           ) : (
             <ul style={{ listStyle: 'none', margin: 0, padding: 0, maxHeight: 400, overflowY: 'auto' }}>
