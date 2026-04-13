@@ -199,12 +199,25 @@ export async function createSignRequestFromPdf({ pdfBase64, reference, operation
   const docRead = await execute('sign.document', 'read', [[signDocId]], { fields: ['id', 'attachment_id'] })
   if (!docRead[0]?.attachment_id) throw new Error('sign.document créé sans attachment_id')
 
-  // ── C-bis : nettoyage sign.items auto-générés ─────────────────────────────
+  // ── C-bis : détection du champ de rattachement sign.item ─────────────────
+  // Selon la version d'Odoo, sign.item est rattaché à template_id ou à
+  // document_id. On introspecte une fois pour le déterminer.
+  let signItemFields
+  try {
+    signItemFields = await execute('sign.item', 'fields_get', [['template_id', 'document_id']], {
+      attributes: ['string', 'required'],
+    })
+  } catch (_) { signItemFields = {} }
+  const useDocumentId = !!signItemFields.document_id
+  const parentField = useDocumentId ? 'document_id' : 'template_id'
+  const parentId = useDocumentId ? signDocId : templateId
+
+  // ── C-ter : nettoyage sign.items auto-générés ─────────────────────────────
   // Odoo peut créer automatiquement des sign.items (rôle "Customer") lors de
   // la création du sign.document depuis un PDF. On purge tout pour ne garder
   // que nos 3 zones MOE/MOA/Entreprise.
   try {
-    const existingItems = await execute('sign.item', 'search', [[['template_id', '=', templateId]]])
+    const existingItems = await execute('sign.item', 'search', [[[parentField, '=', parentId]]])
     if (existingItems.length) {
       await execute('sign.item', 'unlink', [existingItems])
     }
@@ -246,7 +259,8 @@ export async function createSignRequestFromPdf({ pdfBase64, reference, operation
     if (!rId) throw new Error(`Rôle Odoo manquant pour ${z.role}`)
     try {
       await execute('sign.item', 'create', [{
-        template_id: templateId, responsible_id: rId,
+        [parentField]: parentId,
+        responsible_id: rId,
         required: true, type_id: signTypeId,
         posX: z.posX, posY: z.posY, width: 0.28, height: 0.12, page: 1,
       }])
@@ -257,7 +271,7 @@ export async function createSignRequestFromPdf({ pdfBase64, reference, operation
 
   // ── Lire les rôles RÉELS du template (source de vérité pour Odoo) ─────────
   const templateItems = await execute('sign.item', 'search_read',
-    [[['template_id', '=', templateId]]],
+    [[[parentField, '=', parentId]]],
     { fields: ['id', 'responsible_id'] }
   )
   const requiredRoleIds = [...new Set(templateItems.map(i => i.responsible_id?.[0]).filter(Boolean))]
