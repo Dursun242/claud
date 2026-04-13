@@ -13,12 +13,21 @@
 -- L'app remplit la table côté JS au moment d'un SB.upsert*.
 --
 -- Dépendances : helpers is_staff(), auth_email() de la migration 005.
+--
+-- NOTE : une table `notifications` pré-existante (ex : résiduelle
+-- d'un plugin ou d'un test) est supprimée au début pour garantir un
+-- schéma propre. Le code app ne référence cette table nulle part
+-- avant cette migration, donc pas de risque de perte de données
+-- métier.
 -- ══════════════════════════════════════════════════════════════
 
 BEGIN;
 
+-- Supprime une éventuelle ancienne table avec un autre schéma
+DROP TABLE IF EXISTS notifications CASCADE;
+
 -- Création de la table
-CREATE TABLE IF NOT EXISTS notifications (
+CREATE TABLE notifications (
   id               UUID        DEFAULT gen_random_uuid() PRIMARY KEY,
   recipient_email  TEXT        NOT NULL,
   actor_email      TEXT,
@@ -34,19 +43,14 @@ CREATE TABLE IF NOT EXISTS notifications (
 );
 
 -- Index pour charger rapidement les notifs d'un user, triées par date DESC
-CREATE INDEX IF NOT EXISTS idx_notifications_recipient_created
+CREATE INDEX idx_notifications_recipient_created
   ON notifications (lower(recipient_email), created_at DESC);
 
 -- Index pour compter les non-lues
-CREATE INDEX IF NOT EXISTS idx_notifications_unread
+CREATE INDEX idx_notifications_unread
   ON notifications (lower(recipient_email)) WHERE read_at IS NULL;
 
 -- ─── RLS ─────────────────────────────────────────────────────────
-DROP POLICY IF EXISTS "notifications_select"        ON notifications;
-DROP POLICY IF EXISTS "notifications_insert"        ON notifications;
-DROP POLICY IF EXISTS "notifications_update_read"   ON notifications;
-DROP POLICY IF EXISTS "notifications_delete"        ON notifications;
-
 ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
 
 -- SELECT : chaque utilisateur ne voit que SES notifications
@@ -63,8 +67,7 @@ CREATE POLICY "notifications_insert" ON notifications FOR INSERT TO authenticate
     OR public.is_staff()
   );
 
--- UPDATE : seulement son propre read_at (on ne vérifie pas le diff exact,
--- juste que la ligne appartient bien à l'utilisateur)
+-- UPDATE : seulement sur sa propre ligne (read_at)
 CREATE POLICY "notifications_update_read" ON notifications FOR UPDATE TO authenticated
   USING (lower(trim(recipient_email)) = public.auth_email())
   WITH CHECK (lower(trim(recipient_email)) = public.auth_email());
