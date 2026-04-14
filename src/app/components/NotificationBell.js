@@ -43,9 +43,9 @@ export default function NotificationBell({ userEmail, onNavigate }) {
   const autoOpenedRef = useRef(false)
   const closeTimerRef = useRef(null)
 
-  // Fermeture automatique : 6s après ouverture si pas d'interaction.
+  // Fermeture automatique : 3s après ouverture si pas d'interaction.
   // Le timer se réinitialise au survol → tant que l'user regarde, ça reste.
-  const AUTO_CLOSE_MS = 6000
+  const AUTO_CLOSE_MS = 3000
   const armCloseTimer = () => {
     clearTimeout(closeTimerRef.current)
     closeTimerRef.current = setTimeout(() => setOpen(false), AUTO_CLOSE_MS)
