@@ -91,22 +91,23 @@ export default function PhotoReportsV({ data, m }) {
     }
     if (newPhotos.length > 0) {
       setPhotos(prev => [...prev, ...newPhotos])
-      addToast(`${newPhotos.length} photo${newPhotos.length > 1 ? 's' : ''} ajoutée${newPhotos.length > 1 ? 's' : ''}`, 'success')
+      const pl = newPhotos.length
+      addToast(`${pl} photo${pl > 1 ? 's' : ''} ajoutée${pl > 1 ? 's' : ''}`, 'success')
     }
     setLoading(false)
   }
 
-  // ── Modifier la description ────────────────────────────────────
+  // ── Modifier la description ──────────
   const updateDesc = (id, desc) => {
     setPhotos(prev => prev.map(p => p.id === id ? { ...p, description: desc } : p))
   }
 
-  // ── Supprimer une photo ────────────────────────────────────────
+  // ── Supprimer une photo ─────────────
   const removePhoto = (id) => {
     setPhotos(prev => prev.filter(p => p.id !== id))
   }
 
-  // ── Déplacer une photo (haut / bas) ────────────────────────────
+  // ── Déplacer une photo (haut / bas) ──
   const movePhoto = (id, direction) => {
     setPhotos(prev => {
       const idx = prev.findIndex(p => p.id === id)
@@ -119,7 +120,7 @@ export default function PhotoReportsV({ data, m }) {
     })
   }
 
-  // ── Tout effacer ───────────────────────────────────────────────
+  // ── Tout effacer ─────────────────────
   const clearAll = () => {
     setPhotos([])
     addToast('Photos effacées', 'info')
@@ -195,7 +196,10 @@ export default function PhotoReportsV({ data, m }) {
       />
 
       {/* ── HEADER ── */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
+      <div style={{
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        marginBottom: 16, flexWrap: 'wrap', gap: 8
+      }}>
         <div>
           <h1 style={{ margin: 0, fontSize: m ? 18 : 24, fontWeight: 700 }}>Reportage Photo</h1>
           <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 2 }}>
@@ -209,7 +213,10 @@ export default function PhotoReportsV({ data, m }) {
         background: '#fff', borderRadius: 12, padding: m ? 14 : 18,
         boxShadow: '0 1px 3px rgba(15,23,42,0.06)', marginBottom: 14,
       }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
+        <div style={{
+          fontSize: 11, fontWeight: 700, color: '#94A3B8',
+          textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8
+        }}>
           1. Chantier
         </div>
         <select
@@ -233,8 +240,14 @@ export default function PhotoReportsV({ data, m }) {
         background: '#fff', borderRadius: 12, padding: m ? 14 : 18,
         boxShadow: '0 1px 3px rgba(15,23,42,0.06)', marginBottom: 14,
       }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+        <div style={{
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          marginBottom: 10, flexWrap: 'wrap', gap: 8
+        }}>
+          <div style={{
+            fontSize: 11, fontWeight: 700, color: '#94A3B8',
+            textTransform: 'uppercase', letterSpacing: '0.05em'
+          }}>
             2. Photos ({photos.length}/{MAX_PHOTOS})
           </div>
           <div style={{ display: 'flex', gap: 6 }}>
@@ -254,7 +267,14 @@ export default function PhotoReportsV({ data, m }) {
               }}
             >
               {loading ? (
-                <><span style={{ display: 'inline-block', width: 12, height: 12, border: '2px solid #fff4', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin .8s linear infinite' }} />Chargement…</>
+                <>
+                  <span style={{
+                    display: 'inline-block', width: 12, height: 12,
+                    border: '2px solid #fff4', borderTopColor: '#fff',
+                    borderRadius: '50%', animation: 'spin .8s linear infinite'
+                  }} />
+                  Chargement…
+                </>
               ) : photos.length >= MAX_PHOTOS ? (
                 `${MAX_PHOTOS} max atteint`
               ) : (
@@ -272,8 +292,14 @@ export default function PhotoReportsV({ data, m }) {
               padding: '40px 20px', textAlign: 'center', cursor: 'pointer',
               transition: 'border-color .15s, background .15s',
             }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = '#3B82F6'; e.currentTarget.style.background = '#EFF6FF' }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = '#E2E8F0'; e.currentTarget.style.background = 'transparent' }}
+            onMouseEnter={e => {
+              e.currentTarget.style.borderColor = '#3B82F6'
+              e.currentTarget.style.background = '#EFF6FF'
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.borderColor = '#E2E8F0'
+              e.currentTarget.style.background = 'transparent'
+            }}
           >
             <div style={{ fontSize: 36, marginBottom: 8, opacity: 0.5 }}>📸</div>
             <div style={{ fontSize: 14, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
@@ -323,18 +349,33 @@ export default function PhotoReportsV({ data, m }) {
                       onClick={() => movePhoto(photo.id, -1)}
                       disabled={idx === 0}
                       title="Monter"
-                      style={{ background: '#F1F5F9', border: '1px solid #E2E8F0', borderRadius: 5, padding: '3px 8px', cursor: idx === 0 ? 'not-allowed' : 'pointer', fontSize: 11, opacity: idx === 0 ? 0.3 : 1, fontFamily: 'inherit' }}
+                      style={{
+                        background: '#F1F5F9', border: '1px solid #E2E8F0',
+                        borderRadius: 5, padding: '3px 8px', fontFamily: 'inherit',
+                        cursor: idx === 0 ? 'not-allowed' : 'pointer',
+                        fontSize: 11, opacity: idx === 0 ? 0.3 : 1
+                      }}
                     >↑</button>
                     <button
                       onClick={() => movePhoto(photo.id, 1)}
                       disabled={idx === photos.length - 1}
                       title="Descendre"
-                      style={{ background: '#F1F5F9', border: '1px solid #E2E8F0', borderRadius: 5, padding: '3px 8px', cursor: idx === photos.length - 1 ? 'not-allowed' : 'pointer', fontSize: 11, opacity: idx === photos.length - 1 ? 0.3 : 1, fontFamily: 'inherit' }}
+                      style={{
+                        background: '#F1F5F9', border: '1px solid #E2E8F0',
+                        borderRadius: 5, padding: '3px 8px', fontFamily: 'inherit',
+                        cursor: idx === photos.length - 1 ? 'not-allowed' : 'pointer',
+                        fontSize: 11, opacity: idx === photos.length - 1 ? 0.3 : 1
+                      }}
                     >↓</button>
                     <button
                       onClick={() => removePhoto(photo.id)}
                       title="Retirer"
-                      style={{ background: '#fff', border: '1px solid #FECACA', borderRadius: 5, padding: '3px 8px', cursor: 'pointer', fontSize: 11, color: '#DC2626', fontFamily: 'inherit', marginLeft: 'auto' }}
+                      style={{
+                        background: '#fff', border: '1px solid #FECACA',
+                        borderRadius: 5, padding: '3px 8px', cursor: 'pointer',
+                        fontSize: 11, color: '#DC2626', fontFamily: 'inherit',
+                        marginLeft: 'auto'
+                      }}
                     >✕ Retirer</button>
                   </div>
                 </div>
@@ -353,11 +394,16 @@ export default function PhotoReportsV({ data, m }) {
           flexWrap: 'wrap', gap: 10,
         }}>
           <div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <div style={{
+            fontSize: 11, fontWeight: 700, color: '#94A3B8',
+            textTransform: 'uppercase', letterSpacing: '0.05em'
+          }}>
               3. Générer le reportage
             </div>
             <div style={{ fontSize: 12, color: '#334155', marginTop: 4 }}>
-              <strong>{chantier?.nom}</strong> · {photos.length} photo{photos.length > 1 ? 's' : ''} · {fmtDate(new Date())}
+              <strong>{chantier?.nom}</strong>{' '}
+              · {photos.length} photo{photos.length > 1 ? 's' : ''}{' '}
+              · {fmtDate(new Date())}
             </div>
           </div>
           <button
@@ -372,7 +418,14 @@ export default function PhotoReportsV({ data, m }) {
             }}
           >
             {generatingPdf ? (
-              <><span style={{ display: 'inline-block', width: 14, height: 14, border: '2px solid #fff4', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin .8s linear infinite' }} />Génération…</>
+              <>
+                <span style={{
+                  display: 'inline-block', width: 14, height: 14,
+                  border: '2px solid #fff4', borderTopColor: '#fff',
+                  borderRadius: '50%', animation: 'spin .8s linear infinite'
+                }} />
+                Génération…
+              </>
             ) : '📄 Générer le reportage PDF'}
           </button>
         </div>
