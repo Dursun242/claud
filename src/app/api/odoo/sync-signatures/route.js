@@ -23,7 +23,17 @@ export async function GET(request) {
   if (!user) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
 
   const { searchParams } = new URL(request.url)
-  const osId = searchParams.get('osId')
+  const rawOsId = searchParams.get('osId')
+  // Validation : si osId est fourni, il doit être un entier strictement positif.
+  // `null` est OK (sync global), mais '0' ou 'abc' doivent être rejetés.
+  let osId = null
+  if (rawOsId !== null) {
+    const parsed = parseInt(rawOsId, 10)
+    if (!Number.isInteger(parsed) || parsed <= 0) {
+      return NextResponse.json({ error: 'osId invalide' }, { status: 400 })
+    }
+    osId = parsed
+  }
 
   // On exige SERVICE_ROLE_KEY explicitement : un fallback vers ANON_KEY
   // masquerait un défaut de configuration en production (les mises à jour

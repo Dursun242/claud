@@ -138,13 +138,27 @@ export async function POST(request) {
       return Response.json({ error: 'Email et prénom requis.' }, { status: 400 })
     }
 
+    // Validation stricte des inputs — sans quoi un admin compromis pourrait
+    // insérer un rôle arbitraire ('superadmin', null…) ou un email malformé.
+    const cleanEmail = email.trim().toLowerCase()
+    // Regex email permissive mais correcte pour 99% des cas (RFC 5322 complet
+    // inutile ici — Supabase revalide côté auth).
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+      return Response.json({ error: 'Email invalide.' }, { status: 400 })
+    }
+    const ALLOWED_ROLES = ['admin', 'salarié', 'salarie', 'client']
+    const cleanRole = role || 'salarie'
+    if (!ALLOWED_ROLES.includes(cleanRole)) {
+      return Response.json({ error: 'Rôle invalide.' }, { status: 400 })
+    }
+
     const { data, error } = await supabaseAdmin
       .from('authorized_users')
       .upsert({
-        email: email.trim().toLowerCase(),
+        email: cleanEmail,
         prenom: prenom.trim(),
         nom: (nom || '').trim(),
-        role: role || 'salarie',
+        role: cleanRole,
         actif: true,
       }, { onConflict: 'email' })
       .select()

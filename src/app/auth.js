@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, createContext, useContext, useRef } from 'react'
+import Image from 'next/image'
 import { supabase } from './supabaseClient'
 import { writeActivityLog } from './lib/activityLog'
 
@@ -217,7 +218,7 @@ export function LoginPage() {
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           margin: '0 auto 20px', boxShadow: '0 4px 16px rgba(0,0,0,0.08)', overflow: 'hidden',
         }}>
-          <img src="/icon-192.png" alt="ID Maîtrise" style={{ width: 60, height: 60, objectFit: 'contain' }} />
+          <Image src="/icon-192.png" alt="ID Maîtrise" width={60} height={60} priority style={{ objectFit: 'contain' }} />
         </div>
 
         <h1 style={{ margin: '0 0 4px', fontSize: 26, fontWeight: 700, color: '#0F172A' }}>ID Maîtrise</h1>

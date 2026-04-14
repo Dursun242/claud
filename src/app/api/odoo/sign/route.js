@@ -62,8 +62,10 @@ export async function GET(request) {
   if (!user) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
 
   const { searchParams } = new URL(request.url)
-  const requestId = parseInt(searchParams.get('requestId'))
-  if (!requestId) return NextResponse.json({ error: 'requestId requis' }, { status: 400 })
+  const requestId = parseInt(searchParams.get('requestId'), 10)
+  if (!Number.isInteger(requestId) || requestId <= 0) {
+    return NextResponse.json({ error: 'requestId invalide' }, { status: 400 })
+  }
 
   try {
     const status = await getSignRequestStatus(requestId)

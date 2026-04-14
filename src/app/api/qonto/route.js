@@ -19,7 +19,12 @@ import { verifyAuth } from '@/app/lib/auth'
 // Utilise le service role key pour bypasser les RLS.
 let _qontoTokenCache = null
 let _qontoTokenCachedAt = 0
-const TOKEN_CACHE_TTL = 30_000 // 30s — évite de SELECT Supabase à chaque appel
+// TTL court (5s) : le SELECT Supabase prend ~100ms et n'est pas un bottleneck,
+// mais un TTL plus long allongerait la fenêtre entre une révocation du token
+// côté Qonto et sa détection ici. 5s = on couvre les rafales d'appels
+// parallèles (fetchAll en fait 3) sans garder le token trop longtemps
+// en RAM du process.
+const TOKEN_CACHE_TTL = 5_000
 
 async function getQontoToken() {
   // Cache court pour limiter le nombre de SELECT Supabase en rafale
