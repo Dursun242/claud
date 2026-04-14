@@ -111,7 +111,12 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusId, focusTs]);
 
-  const openNew=()=>{setForm({nom:"",client:"",adresse:"",phase:"Hors d'air",statut:"Planifié",budget:"",dateDebut:"",dateFin:"",lots:"",photo_couverture:"",notes_internes:""});setModal("new");};
+  const openNew=()=>{
+    setForm({nom:"",client:"",adresse:"",phase:"Hors d'air",
+      statut:"Planifié",budget:"",dateDebut:"",dateFin:"",
+      lots:"",photo_couverture:"",notes_internes:""});
+    setModal("new");
+  };
   const [saving,setSaving]=useState(false);
 
   // Raccourci clavier « n » pour créer un chantier (hors saisie, hors modale,
@@ -135,7 +140,10 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
     if(saving) return;
     setSaving(true);
     try {
-      const e={...form,budget:Number(form.budget)||0,lots:typeof form.lots==="string"?(form.lots||"").split(",").map(l=>l.trim()).filter(Boolean):form.lots||[]};
+      const lots = typeof form.lots === "string"
+        ? (form.lots||"").split(",").map(l=>l.trim()).filter(Boolean)
+        : form.lots||[];
+      const e = {...form, budget:Number(form.budget)||0, lots};
       await SB.upsertChantier(e);
       setModal(null);
       reload();
@@ -182,7 +190,12 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
 
     return (<div>
       {/* Back button + Header */}
-      <button onClick={()=>setSelected(null)} style={{background:"none",border:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:6,color:"#3B82F6",fontSize:13,fontWeight:600,marginBottom:16,fontFamily:"inherit",padding:0}}>
+      <button onClick={()=>setSelected(null)} style={{
+        background:"none",border:"none",cursor:"pointer",
+        display:"flex",alignItems:"center",gap:6,
+        color:"#3B82F6",fontSize:13,fontWeight:600,
+        marginBottom:16,fontFamily:"inherit",padding:0
+      }}>
         ← Retour aux chantiers
       </button>
 
@@ -196,7 +209,12 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
       )}
 
       {/* Chantier Header Card */}
-      <div style={{background:"#fff",borderRadius:14,padding:m?16:24,boxShadow:"0 2px 8px rgba(0,0,0,0.06)",borderLeft:`5px solid ${phase[ch.phase]||"#3B82F6"}`,marginBottom:20}}>
+      <div style={{
+        background:"#fff",borderRadius:14,padding:m?16:24,
+        boxShadow:"0 2px 8px rgba(0,0,0,0.06)",
+        borderLeft:`5px solid ${phase[ch.phase]||"#3B82F6"}`,
+        marginBottom:20
+      }}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:12}}>
           <div>
             <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:6,flexWrap:"wrap"}}>
@@ -211,7 +229,14 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
           </div>
           {!readOnly && <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
             <button onClick={async()=>{await SB.duplicateChantier(ch);reload();}} style={{...btnS,fontSize:12,padding:"8px 14px"}}>Dupliquer</button>
-            <button onClick={()=>{setForm({...ch,lots:ch.lots?.join(", ")||"",budget:String(ch.budget||""),dateDebut:ch.date_debut||ch.dateDebut||"",dateFin:ch.date_fin||ch.dateFin||""});setModal("edit");}} style={{...btnS,fontSize:12,padding:"8px 14px"}}>Modifier</button>
+            <button onClick={()=>{
+              setForm({...ch,
+                lots:ch.lots?.join(", ")||"",
+                budget:String(ch.budget||""),
+                dateDebut:ch.date_debut||ch.dateDebut||"",
+                dateFin:ch.date_fin||ch.dateFin||""
+              });setModal("edit");
+            }} style={{...btnS,fontSize:12,padding:"8px 14px"}}>Modifier</button>
             <button onClick={()=>setDetailModal("share")} style={{...btnS,fontSize:12,padding:"8px 14px"}}>👥 Partager</button>
           </div>}
         </div>
@@ -265,27 +290,66 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
       {/* ORDRES DE SERVICE */}
       <Section title="Ordres de Service" count={chOS.length} color="#8B5CF6">
         {!readOnly && <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap"}}>
-          <button onClick={()=>{const nextNum=`OS-2026-${String(chOS.length+1).padStart(3,"0")}`;setDetailForm({numero:nextNum,chantier_id:ch.id,date_emission:new Date().toISOString().split("T")[0],statut:"Brouillon",montant_ttc:0});setDetailModal("newOS");}} style={{background:"#8B5CF6",color:"#fff",border:"none",borderRadius:6,padding:"6px 12px",fontSize:11,fontWeight:700,cursor:"pointer"}}>+ Nouvel OS</button>
-          <button onClick={()=>setDetailModal("useTemplate")} style={{background:"#8B5CF6",color:"#fff",border:"none",borderRadius:6,padding:"6px 12px",fontSize:11,fontWeight:700,cursor:"pointer",opacity:0.7}}>📋 Template</button>
+          <button onClick={()=>{
+            const nextNum=`OS-2026-${String(chOS.length+1).padStart(3,"0")}`;
+            setDetailForm({
+              numero:nextNum,chantier_id:ch.id,
+              date_emission:new Date().toISOString().split("T")[0],
+              statut:"Brouillon",montant_ttc:0
+            });setDetailModal("newOS");
+          }} style={{background:"#8B5CF6",color:"#fff",border:"none",
+            borderRadius:6,padding:"6px 12px",
+            fontSize:11,fontWeight:700,cursor:"pointer"}}>+ Nouvel OS</button>
+          <button onClick={()=>setDetailModal("useTemplate")} style={{
+            background:"#8B5CF6",color:"#fff",border:"none",borderRadius:6,
+            padding:"6px 12px",fontSize:11,fontWeight:700,
+            cursor:"pointer",opacity:0.7}}>📋 Template</button>
         </div>}
         {chOS.length===0 ? <p style={{color:"#94A3B8",fontSize:12}}>Aucun OS pour ce chantier</p> :
           chOS.map(os=>(
             // Sur mobile : colonne (titre au-dessus, boutons en dessous)
             // Sur desktop : ligne (titre à gauche, boutons à droite)
-            <div key={os.id} style={{background:"#fff",borderRadius:10,padding:12,marginBottom:8,boxShadow:"0 1px 2px rgba(0,0,0,0.04)",display:"flex",flexDirection:m?"column":"row",justifyContent:"space-between",alignItems:m?"stretch":"flex-start",gap:m?8:8,minWidth:0,overflow:"hidden"}}>
+            <div key={os.id} style={{
+              background:"#fff",borderRadius:10,padding:12,marginBottom:8,
+              boxShadow:"0 1px 2px rgba(0,0,0,0.04)",
+              display:"flex",flexDirection:m?"column":"row",
+              justifyContent:"space-between",
+              alignItems:m?"stretch":"flex-start",
+              gap:8,minWidth:0,overflow:"hidden"
+            }}>
               <div style={{flex:"1 1 0",minWidth:0}}>
                 <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2,flexWrap:"wrap"}}>
                   <span style={{fontWeight:700,fontSize:13,color:"#0F172A",whiteSpace:"nowrap"}}>{os.numero}</span>
-                  <Badge text={os.statut||"Brouillon"} color={{"Brouillon":"#94A3B8","Émis":"#3B82F6","Signé":"#8B5CF6","En cours":"#F59E0B","Terminé":"#10B981","Annulé":"#EF4444"}[os.statut]||"#94A3B8"}/>
+                  <Badge text={os.statut||"Brouillon"} color={{
+                    "Brouillon":"#94A3B8","Émis":"#3B82F6","Signé":"#8B5CF6",
+                    "En cours":"#F59E0B","Terminé":"#10B981","Annulé":"#EF4444"
+                  }[os.statut]||"#94A3B8"}/>
                 </div>
-                <div style={{fontSize:11,color:"#64748B",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{os.artisan_nom} • {(os.prestations||[]).length} prestation(s) • {fmtDate(os.date_emission)}</div>
+                <div style={{
+                  fontSize:11,color:"#64748B",overflow:"hidden",
+                  textOverflow:"ellipsis",whiteSpace:"nowrap"
+                }}>{os.artisan_nom} • {(os.prestations||[]).length} prestation(s) • {fmtDate(os.date_emission)}</div>
                 <div style={{fontSize:16,fontWeight:700,color:"#1E3A5F",marginTop:4}}>{fmtMoney(os.montant_ttc||0)}</div>
               </div>
               <div style={{display:"flex",gap:4,flexShrink:0,flexWrap:"wrap",justifyContent:m?"flex-start":"flex-end"}}>
                 <button onClick={()=>generateOSPdf({...os,chantier:ch.nom,adresse_chantier:ch.adresse})} title="PDF" style={detailBtn("#DC2626","#FEF2F2","#FECACA")}>📄 PDF</button>
                 <button onClick={()=>generateOSExcel({...os,chantier:ch.nom,adresse_chantier:ch.adresse})} title="Excel" style={detailBtn("#047857","#ECFDF5","#A7F3D0")}>📊 XLS</button>
-                {!readOnly && <><button onClick={async()=>{try{await SB.saveTemplate('os',`Template ${os.artisan_nom}`,`Template d'OS pour ${os.artisan_nom}`,{...os});addToast("Template créé","success");}catch(err){addToast("Erreur : "+(err?.message||"template"),"error");}}} title="Créer un template à partir de cet OS" style={detailBtn("#4338CA","#EEF2FF","#C7D2FE")}>💾 Template</button>
-                <button onClick={()=>{setDetailForm(os);setDetailModal("editOS");}} title="Modifier" style={detailBtn("#1D4ED8","#EFF6FF","#BFDBFE")}>✎ Modifier</button></>}
+                {!readOnly && <>
+                  <button onClick={async()=>{
+                    try{
+                      await SB.saveTemplate('os',
+                        `Template ${os.artisan_nom}`,
+                        `Template d'OS pour ${os.artisan_nom}`,{...os});
+                      addToast("Template créé","success");
+                    }catch(err){
+                      addToast("Erreur : "+(err?.message||"template"),"error");
+                    }
+                  }} title="Créer un template à partir de cet OS"
+                  style={detailBtn("#4338CA","#EEF2FF","#C7D2FE")}>💾 Template</button>
+                  <button onClick={()=>{setDetailForm(os);setDetailModal("editOS");}}
+                    title="Modifier"
+                    style={detailBtn("#1D4ED8","#EFF6FF","#BFDBFE")}>✎ Modifier</button>
+                </>}
               </div>
             </div>
           ))
@@ -295,11 +359,26 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
       {/* COMPTES RENDUS */}
       <Section title="Comptes Rendus" count={chCR.length} color="#3B82F6">
         {!readOnly && <div style={{display:"flex",gap:8,marginBottom:12}}>
-          <button onClick={()=>{setDetailForm({chantierId:ch.id,date:new Date().toISOString().split("T")[0],numero:(chCR.length+1),resume:"",participants:"",decisions:""});setDetailModal("newCR");}} style={{background:"#3B82F6",color:"#fff",border:"none",borderRadius:6,padding:"6px 12px",fontSize:11,fontWeight:700,cursor:"pointer"}}>+ Nouveau CR</button>
+          <button onClick={()=>{
+            setDetailForm({chantierId:ch.id,
+              date:new Date().toISOString().split("T")[0],
+              numero:(chCR.length+1),
+              resume:"",participants:"",decisions:""
+            });setDetailModal("newCR");
+          }} style={{background:"#3B82F6",color:"#fff",border:"none",
+            borderRadius:6,padding:"6px 12px",
+            fontSize:11,fontWeight:700,cursor:"pointer"}}>+ Nouveau CR</button>
         </div>}
         {chCR.length===0 ? <p style={{color:"#94A3B8",fontSize:12}}>Aucun CR pour ce chantier</p> :
           chCR.sort((a,b)=>new Date(b.date)-new Date(a.date)).map(cr=>(
-            <div key={cr.id} style={{background:"#fff",borderRadius:10,padding:12,marginBottom:8,boxShadow:"0 1px 2px rgba(0,0,0,0.04)",display:"flex",flexDirection:m?"column":"row",justifyContent:"space-between",alignItems:m?"stretch":"flex-start",gap:8,minWidth:0,overflow:"hidden"}}>
+            <div key={cr.id} style={{
+              background:"#fff",borderRadius:10,padding:12,marginBottom:8,
+              boxShadow:"0 1px 2px rgba(0,0,0,0.04)",
+              display:"flex",flexDirection:m?"column":"row",
+              justifyContent:"space-between",
+              alignItems:m?"stretch":"flex-start",
+              gap:8,minWidth:0,overflow:"hidden"
+            }}>
               <div style={{flex:"1 1 0",minWidth:0}}>
                 <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2,flexWrap:"wrap"}}>
                   <span style={{background:"#1E3A5F",color:"#fff",borderRadius:5,padding:"2px 8px",fontSize:11,fontWeight:700,whiteSpace:"nowrap"}}>CR n°{cr.numero}</span>
@@ -320,12 +399,32 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
       {/* TÂCHES — clients autorisés à créer/modifier leurs tâches */}
       <Section title="Tâches" count={chTasks.length} color="#F59E0B">
         <div style={{display:"flex",gap:8,marginBottom:12}}>
-          <button onClick={()=>{setDetailForm({chantierId:ch.id,titre:"",lot:"",statut:"En attente",priorite:"En attente",echeance:new Date().toISOString().split("T")[0]});setDetailModal("newTask");}} style={{background:"#F59E0B",color:"#fff",border:"none",borderRadius:6,padding:"6px 12px",fontSize:11,fontWeight:700,cursor:"pointer"}}>+ Nouvelle tâche</button>
+          <button onClick={()=>{
+            setDetailForm({chantierId:ch.id,titre:"",lot:"",
+              statut:"En attente",priorite:"En attente",
+              echeance:new Date().toISOString().split("T")[0]
+            });setDetailModal("newTask");
+          }} style={{background:"#F59E0B",color:"#fff",border:"none",
+            borderRadius:6,padding:"6px 12px",
+            fontSize:11,fontWeight:700,cursor:"pointer"}}>+ Nouvelle tâche</button>
         </div>
         {chTasks.length===0 ? <p style={{color:"#94A3B8",fontSize:12}}>Aucune tâche pour ce chantier</p> :
           chTasks.map(t=>(
             <div key={t.id} style={{display:"flex",alignItems:"center",gap:10,background:"#fff",borderRadius:8,padding:"10px 12px",marginBottom:6,boxShadow:"0 1px 2px rgba(0,0,0,0.03)"}}>
-              <button onClick={()=>{const updated={...t,statut:t.statut==="Terminé"?"En attente":"Terminé"};SB.upsertTask(updated);reload();}} style={{width:20,height:20,minWidth:20,minHeight:20,borderRadius:"50%",border:`2px solid ${status[t.statut]||"#CBD5E1"}`,background:t.statut==="Terminé"?"#10B981":"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,cursor:"pointer",padding:0,boxSizing:"border-box",appearance:"none",WebkitAppearance:"none"}}>
+              <button
+                onClick={()=>{
+                  const updated={...t,statut:t.statut==="Terminé"?"En attente":"Terminé"};
+                  SB.upsertTask(updated);reload();
+                }}
+                style={{
+                  width:20,height:20,minWidth:20,minHeight:20,
+                  borderRadius:"50%",
+                  border:`2px solid ${status[t.statut]||"#CBD5E1"}`,
+                  background:t.statut==="Terminé"?"#10B981":"transparent",
+                  display:"flex",alignItems:"center",justifyContent:"center",
+                  flexShrink:0,cursor:"pointer",padding:0,
+                  boxSizing:"border-box",appearance:"none",WebkitAppearance:"none"
+                }}>
                 {t.statut==="Terminé" && <Icon d={I.check} size={10} color="#fff"/>}
               </button>
               <div style={{flex:1,opacity:t.statut==="Terminé"?0.5:1}}>
@@ -333,7 +432,10 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
                 <div style={{fontSize:10,color:"#94A3B8"}}>{t.lot} • {fmtDate(t.echeance)}</div>
               </div>
               <Badge text={t.priorite} color={status[t.priorite]||"#64748B"}/>
-              <button onClick={()=>{setDetailForm(t);setDetailModal("editTask");}} style={{background:"#3B82F6",border:"none",borderRadius:5,padding:"4px 10px",cursor:"pointer",fontSize:9,fontWeight:700,color:"#fff",flexShrink:0}}>✎</button>
+              <button onClick={()=>{setDetailForm(t);setDetailModal("editTask");}}
+                style={{background:"#3B82F6",border:"none",borderRadius:5,
+                  padding:"4px 10px",cursor:"pointer",fontSize:9,
+                  fontWeight:700,color:"#fff",flexShrink:0}}>✎</button>
             </div>
           ))
         }
@@ -349,8 +451,20 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
         )}
         {intervenants.length===0 && !clientContact ? <p style={{color:"#94A3B8",fontSize:12}}>Aucun intervenant lié via les OS</p> :
           intervenants.map(c=>(
-            <div key={c.id} style={{background:"#fff",borderRadius:8,padding:12,marginBottom:6,boxShadow:"0 1px 2px rgba(0,0,0,0.03)",borderLeft:`3px solid ${{"Artisan":"#F59E0B","Sous-traitant":"#8B5CF6","Prestataire":"#EC4899","Fournisseur":"#10B981"}[c.type]||"#94A3B8"}`}}>
-              <div style={{display:"flex",alignItems:"center",gap:6}}><span style={{fontWeight:700,fontSize:13}}>{c.nom}</span><Badge text={c.type} color={{"Artisan":"#F59E0B","Sous-traitant":"#8B5CF6","Fournisseur":"#10B981"}[c.type]||"#94A3B8"}/></div>
+            <div key={c.id} style={{
+              background:"#fff",borderRadius:8,padding:12,marginBottom:6,
+              boxShadow:"0 1px 2px rgba(0,0,0,0.03)",
+              borderLeft:`3px solid ${
+                {"Artisan":"#F59E0B","Sous-traitant":"#8B5CF6",
+                 "Prestataire":"#EC4899","Fournisseur":"#10B981"}[c.type]||"#94A3B8"
+              }`
+            }}>
+              <div style={{display:"flex",alignItems:"center",gap:6}}>
+                <span style={{fontWeight:700,fontSize:13}}>{c.nom}</span>
+                <Badge text={c.type} color={{
+                  "Artisan":"#F59E0B","Sous-traitant":"#8B5CF6","Fournisseur":"#10B981"
+                }[c.type]||"#94A3B8"}/>
+              </div>
               <div style={{fontSize:11,color:"#64748B"}}>{c.specialite||c.societe||""}</div>
               <div style={{fontSize:11,color:"#94A3B8",marginTop:2}}>{c.tel} • {c.email}</div>
             </div>
@@ -362,9 +476,24 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
       {chPlanning.length>0 && (
         <Section title="Planning" count={chPlanning.length} color="#6366F1">
           {chPlanning.map(p=>(
-            <div key={p.id} style={{display:"flex",alignItems:"center",gap:12,background:"#fff",borderRadius:8,padding:"10px 14px",marginBottom:6,boxShadow:"0 1px 2px rgba(0,0,0,0.03)"}}>
-              <div style={{flex:1}}><div style={{fontSize:13,fontWeight:600,color:"#0F172A"}}>{p.tache}</div><div style={{fontSize:10,color:"#94A3B8"}}>{p.lot} • {fmtDate(p.debut)} → {fmtDate(p.fin)}</div></div>
-              <div style={{width:80}}><PBar value={p.avancement} max={100} color="#6366F1" h={6}/><div style={{fontSize:10,fontWeight:700,color:"#6366F1",textAlign:"right",marginTop:2}}>{p.avancement}%</div></div>
+            <div key={p.id} style={{
+              display:"flex",alignItems:"center",gap:12,
+              background:"#fff",borderRadius:8,padding:"10px 14px",
+              marginBottom:6,boxShadow:"0 1px 2px rgba(0,0,0,0.03)"
+            }}>
+              <div style={{flex:1}}>
+                <div style={{fontSize:13,fontWeight:600,color:"#0F172A"}}>{p.tache}</div>
+                <div style={{fontSize:10,color:"#94A3B8"}}>
+                  {p.lot} • {fmtDate(p.debut)} → {fmtDate(p.fin)}
+                </div>
+              </div>
+              <div style={{width:80}}>
+                <PBar value={p.avancement} max={100} color="#6366F1" h={6}/>
+                <div style={{
+                  fontSize:10,fontWeight:700,color:"#6366F1",
+                  textAlign:"right",marginTop:2
+                }}>{p.avancement}%</div>
+              </div>
             </div>
           ))}
         </Section>
@@ -380,7 +509,13 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
             style={{width:"100%",minHeight:80,border:"none",background:"transparent",fontSize:13,fontFamily:"inherit",resize:"vertical",outline:"none",color:"#92400E",boxSizing:"border-box"}}
           />
           <div style={{display:"flex",justifyContent:"flex-end",marginTop:6}}>
-            <button onClick={async()=>{await SB.upsertChantier({...ch,notes_internes:detailForm.notes_internes??ch.notes_internes??""});setDetailForm({});reload();addToast("Notes enregistrées","success");}} style={{background:"#F59E0B",color:"#fff",border:"none",borderRadius:6,padding:"5px 14px",fontSize:11,fontWeight:700,cursor:"pointer"}}>Enregistrer</button>
+            <button onClick={async()=>{
+              await SB.upsertChantier({...ch,
+                notes_internes:detailForm.notes_internes??ch.notes_internes??""
+              });setDetailForm({});reload();addToast("Notes enregistrées","success");
+            }} style={{background:"#F59E0B",color:"#fff",border:"none",
+              borderRadius:6,padding:"5px 14px",
+              fontSize:11,fontWeight:700,cursor:"pointer"}}>Enregistrer</button>
           </div>
         </div>
       </Section>}
@@ -395,18 +530,46 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
       />
 
       {/* MODALES POUR OS/CR/TÂCHES */}
-      <Modal open={detailModal==="newOS"||detailModal==="editOS"} onClose={()=>setDetailModal(null)} title={detailModal==="newOS"?"Nouvel Ordre de Service":"Modifier l'OS"}>
+      <Modal
+        open={detailModal==="newOS"||detailModal==="editOS"}
+        onClose={()=>setDetailModal(null)}
+        title={detailModal==="newOS"?"Nouvel Ordre de Service":"Modifier l'OS"}
+      >
         <div style={{display:"grid",gridTemplateColumns:m?"1fr":"1fr 1fr",gap:"0 12px"}}>
           <FF label="N° OS"><input style={inp} value={detailForm.numero||""} onChange={e=>setDetailForm({...detailForm,numero:e.target.value})}/></FF>
-          <FF label="Artisan"><select style={sel} value={detailForm.artisan_nom||""} onChange={e=>setDetailForm({...detailForm,artisan_nom:e.target.value})}><option value="">— Sélectionner —</option>{data.contacts.filter(c=>c.type==="Artisan").map(a=><option key={a.id} value={a.nom}>{a.nom}</option>)}</select></FF>
+          <FF label="Artisan">
+            <select style={sel} value={detailForm.artisan_nom||""}
+              onChange={e=>setDetailForm({...detailForm,artisan_nom:e.target.value})}>
+              <option value="">— Sélectionner —</option>
+              {data.contacts.filter(c=>c.type==="Artisan").map(a=>(
+                <option key={a.id} value={a.nom}>{a.nom}</option>
+              ))}
+            </select>
+          </FF>
           <FF label="Date émission"><input type="date" style={inp} value={detailForm.date_emission||""} onChange={e=>setDetailForm({...detailForm,date_emission:e.target.value})}/></FF>
           <FF label="Montant TTC €"><input type="number" style={inp} value={detailForm.montant_ttc||""} onChange={e=>setDetailForm({...detailForm,montant_ttc:Number(e.target.value)})}/></FF>
-          <FF label="Statut"><select style={sel} value={detailForm.statut||"Brouillon"} onChange={e=>setDetailForm({...detailForm,statut:e.target.value})}><option>Brouillon</option><option>Émis</option><option>Signé</option><option>En cours</option><option>Terminé</option></select></FF>
+          <FF label="Statut">
+            <select style={sel} value={detailForm.statut||"Brouillon"}
+              onChange={e=>setDetailForm({...detailForm,statut:e.target.value})}>
+              <option>Brouillon</option><option>Émis</option>
+              <option>Signé</option><option>En cours</option><option>Terminé</option>
+            </select>
+          </FF>
         </div>
-        <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginTop:12}}><button onClick={()=>setDetailModal(null)} style={btnS}>Annuler</button><button onClick={async()=>{await SB.upsertOS({...detailForm,chantier_id:ch.id});setDetailModal(null);reload();}} style={btnP}>Enregistrer</button></div>
+        <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginTop:12}}>
+          <button onClick={()=>setDetailModal(null)} style={btnS}>Annuler</button>
+          <button onClick={async()=>{
+            await SB.upsertOS({...detailForm,chantier_id:ch.id});
+            setDetailModal(null);reload();
+          }} style={btnP}>Enregistrer</button>
+        </div>
       </Modal>
 
-      <Modal open={detailModal==="newCR"||detailModal==="editCR"} onClose={()=>setDetailModal(null)} title={detailModal==="newCR"?"Nouveau Compte Rendu":"Modifier le CR"}>
+      <Modal
+        open={detailModal==="newCR"||detailModal==="editCR"}
+        onClose={()=>setDetailModal(null)}
+        title={detailModal==="newCR"?"Nouveau Compte Rendu":"Modifier le CR"}
+      >
         <div style={{display:"grid",gridTemplateColumns:m?"1fr":"1fr 1fr",gap:"0 12px"}}>
           <FF label="Date"><input type="date" style={inp} value={detailForm.date||""} onChange={e=>setDetailForm({...detailForm,date:e.target.value})}/></FF>
           <FF label="N°"><input type="number" style={inp} value={detailForm.numero||""} onChange={e=>setDetailForm({...detailForm,numero:e.target.value})}/></FF>
@@ -414,18 +577,44 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
         <FF label="Résumé"><textarea style={{...inp,minHeight:70,resize:"vertical"}} value={detailForm.resume||""} onChange={e=>setDetailForm({...detailForm,resume:e.target.value})}/></FF>
         <FF label="Participants"><input style={inp} value={detailForm.participants||""} onChange={e=>setDetailForm({...detailForm,participants:e.target.value})}/></FF>
         <FF label="Décisions"><textarea style={{...inp,minHeight:50,resize:"vertical"}} value={detailForm.decisions||""} onChange={e=>setDetailForm({...detailForm,decisions:e.target.value})}/></FF>
-        <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginTop:12}}><button onClick={()=>setDetailModal(null)} style={btnS}>Annuler</button><button onClick={async()=>{await SB.upsertCR({...detailForm,chantierId:ch.id});setDetailModal(null);reload();}} style={btnP}>Enregistrer</button></div>
+        <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginTop:12}}>
+          <button onClick={()=>setDetailModal(null)} style={btnS}>Annuler</button>
+          <button onClick={async()=>{
+            await SB.upsertCR({...detailForm,chantierId:ch.id});
+            setDetailModal(null);reload();
+          }} style={btnP}>Enregistrer</button>
+        </div>
       </Modal>
 
-      <Modal open={detailModal==="newTask"||detailModal==="editTask"} onClose={()=>setDetailModal(null)} title={detailModal==="newTask"?"Nouvelle tâche":"Modifier la tâche"}>
+      <Modal
+        open={detailModal==="newTask"||detailModal==="editTask"}
+        onClose={()=>setDetailModal(null)}
+        title={detailModal==="newTask"?"Nouvelle tâche":"Modifier la tâche"}
+      >
         <div style={{display:"grid",gridTemplateColumns:m?"1fr":"1fr 1fr",gap:"0 12px"}}>
           <FF label="Titre"><input style={inp} value={detailForm.titre||""} onChange={e=>setDetailForm({...detailForm,titre:e.target.value})}/></FF>
           <FF label="Lot"><input style={inp} value={detailForm.lot||""} onChange={e=>setDetailForm({...detailForm,lot:e.target.value})}/></FF>
           <FF label="Échéance"><input type="date" style={inp} value={detailForm.echeance||""} onChange={e=>setDetailForm({...detailForm,echeance:e.target.value})}/></FF>
-          <FF label="Priorité"><select style={sel} value={detailForm.priorite||"En attente"} onChange={e=>setDetailForm({...detailForm,priorite:e.target.value})}><option>Urgent</option><option>En cours</option><option>En attente</option></select></FF>
-          <FF label="Statut"><select style={sel} value={detailForm.statut||"En attente"} onChange={e=>setDetailForm({...detailForm,statut:e.target.value})}><option>En attente</option><option>En cours</option><option>Terminé</option></select></FF>
+          <FF label="Priorité">
+            <select style={sel} value={detailForm.priorite||"En attente"}
+              onChange={e=>setDetailForm({...detailForm,priorite:e.target.value})}>
+              <option>Urgent</option><option>En cours</option><option>En attente</option>
+            </select>
+          </FF>
+          <FF label="Statut">
+            <select style={sel} value={detailForm.statut||"En attente"}
+              onChange={e=>setDetailForm({...detailForm,statut:e.target.value})}>
+              <option>En attente</option><option>En cours</option><option>Terminé</option>
+            </select>
+          </FF>
         </div>
-        <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginTop:12}}><button onClick={()=>setDetailModal(null)} style={btnS}>Annuler</button><button onClick={async()=>{await SB.upsertTask({...detailForm,chantierId:ch.id});setDetailModal(null);reload();}} style={btnP}>Enregistrer</button></div>
+        <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginTop:12}}>
+          <button onClick={()=>setDetailModal(null)} style={btnS}>Annuler</button>
+          <button onClick={async()=>{
+            await SB.upsertTask({...detailForm,chantierId:ch.id});
+            setDetailModal(null);reload();
+          }} style={btnP}>Enregistrer</button>
+        </div>
       </Modal>
 
       <Modal open={detailModal==="useTemplate"} onClose={()=>setDetailModal(null)} title="Utiliser un template d'OS">
@@ -449,7 +638,14 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
       </div>
       <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
         <div style={{position:"relative",width:m?"100%":260}}>
-          <svg style={{position:"absolute",left:9,top:"50%",transform:"translateY(-50%)",opacity:0.5}} width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2.5"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+          <svg style={{
+            position:"absolute",left:9,top:"50%",
+            transform:"translateY(-50%)",opacity:0.5
+          }} width="13" height="13" viewBox="0 0 24 24"
+            fill="none" stroke="#64748B" strokeWidth="2.5">
+            <circle cx="11" cy="11" r="8"/>
+            <path d="M21 21l-4.35-4.35"/>
+          </svg>
           <input
             ref={searchInputRef}
             type="search"
@@ -516,13 +712,44 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
     ) : (
     <div style={{display:"grid",gap:12}}>
       {chantiersFiltered.map(ch=>(
-        <div key={ch.id} onClick={()=>{ setSelected(ch.id); try { SB.log('view', 'chantier', ch.id, `Ouverture chantier — ${ch.nom}`, { phase: ch.phase || null, statut: ch.statut || null }) } catch(_) {} }} style={{background:"#fff",borderRadius:12,overflow:"hidden",boxShadow:"0 1px 3px rgba(0,0,0,0.06)",borderLeft:`4px solid ${phase[ch.phase]||"#94A3B8"}`,cursor:"pointer",transition:"all .2s"}}
-          onMouseEnter={e=>{e.currentTarget.style.boxShadow="0 4px 12px rgba(0,0,0,0.1)";e.currentTarget.style.transform="translateX(4px)";}}
-          onMouseLeave={e=>{e.currentTarget.style.boxShadow="0 1px 3px rgba(0,0,0,0.06)";e.currentTarget.style.transform="";}}>
-          {ch.photo_couverture && <div style={{height:80,overflow:"hidden"}}><img src={ch.photo_couverture} alt={ch.nom} style={{width:"100%",height:"100%",objectFit:"cover"}}/></div>}
+        <div key={ch.id}
+          onClick={()=>{
+            setSelected(ch.id);
+            try {
+              SB.log('view','chantier',ch.id,`Ouverture chantier — ${ch.nom}`,
+                {phase:ch.phase||null,statut:ch.statut||null})
+            } catch(_) {}
+          }}
+          style={{
+            background:"#fff",borderRadius:12,overflow:"hidden",
+            boxShadow:"0 1px 3px rgba(0,0,0,0.06)",
+            borderLeft:`4px solid ${phase[ch.phase]||"#94A3B8"}`,
+            cursor:"pointer",transition:"all .2s"
+          }}
+          onMouseEnter={e=>{
+            e.currentTarget.style.boxShadow="0 4px 12px rgba(0,0,0,0.1)";
+            e.currentTarget.style.transform="translateX(4px)";
+          }}
+          onMouseLeave={e=>{
+            e.currentTarget.style.boxShadow="0 1px 3px rgba(0,0,0,0.06)";
+            e.currentTarget.style.transform="";
+          }}>
+          {ch.photo_couverture && (
+            <div style={{height:80,overflow:"hidden"}}>
+              <img src={ch.photo_couverture} alt={ch.nom}
+                style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+            </div>
+          )}
           <div style={{padding:m?14:18,display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:8}}>
             <div style={{flex:1,minWidth:200}}>
-              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4,flexWrap:"wrap"}}><span style={{fontSize:m?14:16,fontWeight:700}}>{ch.nom}</span><Badge text={ch.phase} color={phase[ch.phase]||"#64748B"}/><Badge text={ch.statut} color={status[ch.statut]||"#64748B"}/></div>
+              <div style={{
+                display:"flex",alignItems:"center",gap:8,
+                marginBottom:4,flexWrap:"wrap"
+              }}>
+                <span style={{fontSize:m?14:16,fontWeight:700}}>{ch.nom}</span>
+                <Badge text={ch.phase} color={phase[ch.phase]||"#64748B"}/>
+                <Badge text={ch.statut} color={status[ch.statut]||"#64748B"}/>
+              </div>
               <div style={{fontSize:12,color:"#64748B"}}>{ch.client} — {ch.adresse}</div>
               <div style={{display:"flex",gap:12,marginTop:4,fontSize:11,color:"#94A3B8"}}>
                 <span>{(data.ordresService||[]).filter(o=>o.chantier_id===ch.id).length} OS</span>
@@ -532,8 +759,23 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
               </div>
             </div>
             {!readOnly && <div style={{display:"flex",gap:4}} onClick={e=>e.stopPropagation()}>
-              <button onClick={()=>{setForm({...ch,lots:ch.lots?.join(", ")||"",budget:String(ch.budget||""),dateDebut:ch.date_debut||ch.dateDebut||"",dateFin:ch.date_fin||ch.dateFin||"",photo_couverture:ch.photo_couverture||"",notes_internes:ch.notes_internes||""});setModal("edit");}} style={{background:"#F8FAFC",border:"1px solid #E2E8F0",borderRadius:6,padding:5,cursor:"pointer"}}><Icon d={I.edit} size={14} color="#64748B"/></button>
-              <button onClick={()=>handleDelete(ch)} style={{background:"#FEF2F2",border:"1px solid #FECACA",borderRadius:6,padding:5,cursor:"pointer"}}><Icon d={I.trash} size={14} color="#EF4444"/></button>
+              <button onClick={()=>{
+                setForm({...ch,
+                  lots:ch.lots?.join(", ")||"",
+                  budget:String(ch.budget||""),
+                  dateDebut:ch.date_debut||ch.dateDebut||"",
+                  dateFin:ch.date_fin||ch.dateFin||"",
+                  photo_couverture:ch.photo_couverture||"",
+                  notes_internes:ch.notes_internes||""
+                });setModal("edit");
+              }} style={{background:"#F8FAFC",border:"1px solid #E2E8F0",
+                borderRadius:6,padding:5,cursor:"pointer"}}>
+                <Icon d={I.edit} size={14} color="#64748B"/>
+              </button>
+              <button onClick={()=>handleDelete(ch)} style={{
+                background:"#FEF2F2",border:"1px solid #FECACA",
+                borderRadius:6,padding:5,cursor:"pointer"
+              }}><Icon d={I.trash} size={14} color="#EF4444"/></button>
             </div>}
           </div>
           <div style={{padding:`0 ${m?14:18}px ${m?14:18}px`,marginTop:-4}}>
@@ -566,7 +808,14 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
         <FF label="Nom"><input style={inp} value={form.nom||""} onChange={e=>setForm({...form,nom:e.target.value})}/></FF>
         <FF label="Client"><input style={inp} value={form.client||""} onChange={e=>setForm({...form,client:e.target.value})}/></FF>
         <FF label="Adresse"><input style={inp} value={form.adresse||""} onChange={e=>setForm({...form,adresse:e.target.value})}/></FF>
-        <FF label="Phase"><select style={sel} value={form.phase||""} onChange={e=>setForm({...form,phase:e.target.value})}><option>Hors d'air</option><option>Technique</option><option>Finitions</option><option>Avant-projet</option><option>Études</option><option>Gros œuvre</option></select></FF>
+        <FF label="Phase">
+          <select style={sel} value={form.phase||""}
+            onChange={e=>setForm({...form,phase:e.target.value})}>
+            <option>Hors d'air</option><option>Technique</option>
+            <option>Finitions</option><option>Avant-projet</option>
+            <option>Études</option><option>Gros œuvre</option>
+          </select>
+        </FF>
         <FF label="Statut"><select style={sel} value={form.statut||""} onChange={e=>setForm({...form,statut:e.target.value})}><option>Planifié</option><option>En cours</option><option>En attente</option><option>Terminé</option></select></FF>
         <FF label="Budget €" hint="Les dépenses sont calculées automatiquement depuis les OS du chantier"><input type="number" style={inp} value={form.budget||""} onChange={e=>setForm({...form,budget:e.target.value})}/></FF>
         <FF label="Début"><input type="date" style={inp} value={form.dateDebut||""} onChange={e=>setForm({...form,dateDebut:e.target.value})}/></FF>
@@ -575,7 +824,13 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
         <FF label="Photo de couverture (URL)" style={{gridColumn:"1 / -1"}}><input style={inp} value={form.photo_couverture||""} onChange={e=>setForm({...form,photo_couverture:e.target.value})} placeholder="https://... ou laisser vide"/></FF>
       </div>
       <FF label="Notes internes"><textarea style={{...inp,minHeight:60,resize:"vertical"}} value={form.notes_internes||""} onChange={e=>setForm({...form,notes_internes:e.target.value})} placeholder="Remarques internes (non visibles par le client)..."/></FF>
-      <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginTop:14}}><button onClick={()=>setModal(null)} style={btnS}>Annuler</button><button onClick={handleSave} disabled={saving} style={{...btnP,opacity:saving?0.7:1}}>{saving?"⏳ Enregistrement…":"Enregistrer"}</button></div>
+      <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginTop:14}}>
+        <button onClick={()=>setModal(null)} style={btnS}>Annuler</button>
+        <button onClick={handleSave} disabled={saving}
+          style={{...btnP,opacity:saving?0.7:1}}>
+          {saving?"⏳ Enregistrement…":"Enregistrer"}
+        </button>
+      </div>
     </Modal>
   </div>);
 }
