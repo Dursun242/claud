@@ -25,6 +25,7 @@ const ICONS = {
   task:       '✓',
   attachment: '📎',
   comment:    '💬',
+  signature:  '✍️',
 }
 
 /**
@@ -134,83 +135,105 @@ export default function NotificationBell({ userEmail, onNavigate }) {
       {open && (
         <div style={{
           position: 'absolute',
-          top: 'calc(100% + 6px)',
+          top: 'calc(100% + 8px)',
           right: 0,
-          width: 340,
-          maxWidth: '90vw',
+          width: 380,
+          maxWidth: '92vw',
           background: '#fff',
-          borderRadius: 12,
+          borderRadius: 14,
           border: '1px solid #E2E8F0',
-          boxShadow: '0 10px 40px rgba(15,23,42,0.12)',
+          boxShadow: '0 20px 50px rgba(15,23,42,0.15), 0 4px 12px rgba(15,23,42,0.06)',
           zIndex: 5000,
           overflow: 'hidden',
+          animation: 'fadeInDown .2s ease',
         }}>
+          <style>{`@keyframes fadeInDown{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}`}</style>
           <div style={{
-            padding: '12px 14px',
-            borderBottom: '1px solid #E2E8F0',
+            padding: '16px 18px',
+            borderBottom: '1px solid #F1F5F9',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
+            gap: 10,
           }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A' }}>
-              Activité récente{unreadCount > 0 ? ` · ${unreadCount} nouveau${unreadCount > 1 ? 'x' : ''}` : ''}
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#0F172A', letterSpacing: '-0.01em' }}>
+                Activité récente
+              </div>
+              {unreadCount > 0 && (
+                <div style={{ fontSize: 11, color: '#3B82F6', fontWeight: 600, marginTop: 2 }}>
+                  {unreadCount} nouveau{unreadCount > 1 ? 'x' : ''}
+                </div>
+              )}
             </div>
             {unreadCount > 0 && (
               <button
                 onClick={markAllRead}
                 style={{
-                  background: 'none',
-                  border: 'none',
-                  color: '#3B82F6',
+                  background: '#EFF6FF',
+                  border: '1px solid #BFDBFE',
+                  color: '#1D4ED8',
                   cursor: 'pointer',
                   fontSize: 11,
                   fontWeight: 600,
-                  padding: 0,
+                  padding: '5px 10px',
+                  borderRadius: 6,
                   fontFamily: 'inherit',
+                  whiteSpace: 'nowrap',
                 }}
               >Tout marquer lu</button>
             )}
           </div>
 
           {items.length === 0 ? (
-            <div style={{ padding: 28, textAlign: 'center', color: '#94A3B8', fontSize: 12 }}>
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 6 }} aria-hidden="true">
+            <div style={{ padding: '40px 20px', textAlign: 'center', color: '#94A3B8', fontSize: 13 }}>
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 10 }} aria-hidden="true">
                 <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
               </svg>
-              <div>Rien de nouveau pour le moment</div>
+              <div style={{ fontWeight: 600, color: '#64748B', marginBottom: 3 }}>Tout est calme</div>
+              <div style={{ fontSize: 11 }}>Aucune nouvelle activité pour le moment</div>
             </div>
           ) : (
-            <ul style={{ listStyle: 'none', margin: 0, padding: 0, maxHeight: 400, overflowY: 'auto' }}>
-              {items.map((n) => {
+            <ul style={{ listStyle: 'none', margin: 0, padding: 6, maxHeight: 480, overflowY: 'auto' }}>
+              {items.map((n, idx) => {
                 const unread = !n.read_at
+                const isLast = idx === items.length - 1
                 return (
-                  <li key={n.id}>
+                  <li key={n.id} style={{ marginBottom: isLast ? 0 : 2 }}>
                     <button
                       onClick={() => handleClick(n)}
                       style={{
                         width: '100%',
                         textAlign: 'left',
-                        background: unread ? '#EFF6FF' : '#fff',
-                        border: 'none',
-                        borderBottom: '1px solid #F1F5F9',
-                        padding: '10px 14px',
+                        background: unread ? '#F0F7FF' : '#fff',
+                        border: unread ? '1px solid #DBEAFE' : '1px solid transparent',
+                        borderRadius: 10,
+                        padding: '12px 14px',
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'flex-start',
-                        gap: 10,
+                        gap: 12,
                         fontFamily: 'inherit',
+                        transition: 'background .12s, border-color .12s',
                       }}
-                      onMouseEnter={(e) => { e.currentTarget.style.background = unread ? '#DBEAFE' : '#F8FAFC' }}
-                      onMouseLeave={(e) => { e.currentTarget.style.background = unread ? '#EFF6FF' : '#fff' }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = unread ? '#E0EEFF' : '#F8FAFC' }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = unread ? '#F0F7FF' : '#fff' }}
                     >
-                      <span style={{ fontSize: 18, lineHeight: 1, flexShrink: 0, marginTop: 1 }}>
+                      <span style={{
+                        fontSize: 18, lineHeight: 1, flexShrink: 0,
+                        width: 34, height: 34,
+                        borderRadius: 8,
+                        background: unread ? '#DBEAFE' : '#F1F5F9',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}>
                         {ICONS[n.entity_type] || '•'}
                       </span>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{
-                          fontSize: 12,
-                          fontWeight: unread ? 700 : 500,
+                          fontSize: 13,
+                          fontWeight: unread ? 600 : 500,
                           color: '#0F172A',
+                          lineHeight: 1.4,
                           display: '-webkit-box',
                           WebkitLineClamp: 2,
                           WebkitBoxOrient: 'vertical',
@@ -219,23 +242,23 @@ export default function NotificationBell({ userEmail, onNavigate }) {
                         {n.body && (
                           <div style={{
                             fontSize: 11,
-                            color: '#475569',
-                            marginTop: 3,
-                            lineHeight: 1.35,
+                            color: '#64748B',
+                            marginTop: 5,
+                            lineHeight: 1.45,
                             display: '-webkit-box',
                             WebkitLineClamp: 2,
                             WebkitBoxOrient: 'vertical',
                             overflow: 'hidden',
                           }}>{n.body}</div>
                         )}
-                        <div style={{ fontSize: 10, color: '#94A3B8', marginTop: 3 }}>
+                        <div style={{ fontSize: 10, color: '#94A3B8', marginTop: 6, fontWeight: 500 }}>
                           {relativeTime(n.created_at)}
                         </div>
                       </div>
                       {unread && (
                         <span style={{
                           width: 8, height: 8, borderRadius: '50%',
-                          background: '#3B82F6', flexShrink: 0, marginTop: 6,
+                          background: '#3B82F6', flexShrink: 0, marginTop: 13,
                         }}/>
                       )}
                     </button>

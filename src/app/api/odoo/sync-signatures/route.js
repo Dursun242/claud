@@ -67,11 +67,12 @@ export async function GET(request) {
     const odoo = byRequestId.get(os.odoo_sign_id)
     if (!odoo) continue
     if (odoo.statut_signature !== os.statut_signature) {
-      // Met aussi à jour le statut principal si la signature est finalisée
+      // On met à jour UNIQUEMENT statut_signature. Le statut principal de
+      // l'OS (Brouillon / Émis / En cours / Terminé) n'est pas touché
+      // automatiquement — c'est au gérant de le faire évoluer manuellement
+      // selon le cycle de vie du chantier, pour éviter les sauts bizarres
+      // type "Brouillon → Signé".
       const patch = { statut_signature: odoo.statut_signature }
-      if (odoo.statut_signature === 'Signé' && os.statut !== 'Signé' && os.statut !== 'En cours' && os.statut !== 'Terminé') {
-        patch.statut = 'Signé'
-      }
       const { error: upErr } = await supabase
         .from('ordres_service')
         .update(patch)
