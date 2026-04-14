@@ -234,8 +234,8 @@ export function LoginPage() {
               <span>🔒</span> Accès refusé
             </div>
             <div style={{ fontSize: 12, color: '#991B1B', lineHeight: 1.5 }}>
-              Votre compte Google n&apos;est pas autorisé pour cet espace.<br/>
-              Demande à ton administrateur de t&apos;ajouter via{' '}
+              Votre compte Google n&apos;est pas autorisé pour le moment.<br/>
+              Contactez-nous à{' '}
               <a href="mailto:contact@id-maitrise.com" style={{ color: '#7C2D12', fontWeight: 600 }}>contact@id-maitrise.com</a>.
             </div>
           </div>

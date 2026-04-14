@@ -31,14 +31,19 @@ export async function GET(request) {
       return Response.json({ error: 'Erreur serveur' }, { status: 500 })
     }
 
-    // Auto-provisioning démo : email inconnu + mode démo ON → création client
+    // Auto-provisioning démo : email inconnu → création client "DémoMOA"
+    // automatiquement, SAUF si demo_mode est explicitement 'off' (cas où
+    // l'admin veut fermer l'accès temporairement, par ex. pendant une
+    // maintenance commerciale ou pour ne pas pourrir les logs en période
+    // calme). Par défaut = ouvert : zéro friction pour les prospects.
     if (!caller && email) {
       const { data: setting } = await supabaseAdmin
         .from('settings')
         .select('value')
         .eq('key', 'demo_mode')
         .maybeSingle()
-      if (setting?.value === 'on') {
+      const closed = setting?.value === 'off'
+      if (!closed) {
         const { data: created, error: createErr } = await supabaseAdmin
           .from('authorized_users')
           .insert({

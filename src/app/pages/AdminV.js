@@ -67,6 +67,7 @@ export default function AdminV({ m, reload, profile }) {
   }, [isAdmin, loadUsers])
 
   // Charge l'état du mode démo au montage (admin uniquement)
+  // Convention : demo_mode = 'off' → fermé. Tout autre valeur (null, 'on', autre) → ouvert par défaut.
   useEffect(() => {
     if (!isAdmin) return
     ;(async () => {
@@ -77,20 +78,25 @@ export default function AdminV({ m, reload, profile }) {
         })
         if (res.ok) {
           const json = await res.json()
-          setDemoMode(!!json.enabled)
+          // json.enabled reflète 'on' — si absent ou différent, on considère ouvert
+          setDemoMode(json.enabled !== false) // ouvert par défaut
+        } else {
+          setDemoMode(true) // fallback : considéré ouvert
         }
-      } catch (_) {}
+      } catch (_) {
+        setDemoMode(true)
+      }
     })()
   }, [isAdmin])
 
   const handleToggleDemoMode = async () => {
     const next = !demoMode
     const ok = await confirm({
-      title: next ? 'Activer le mode démo ?' : 'Désactiver le mode démo ?',
+      title: next ? 'Rouvrir l\'accès démo ?' : 'Fermer l\'accès démo ?',
       message: next
-        ? "Tout compte Google qui se connectera sera automatiquement ajouté comme client MOA et verra le chantier démo. Toutes ses actions seront tracées dans le Journal."
-        : "Les nouveaux comptes Google inconnus seront à nouveau refusés. Les comptes démo déjà créés restent actifs — supprime-les depuis la liste des utilisateurs si besoin.",
-      confirmLabel: next ? 'Activer' : 'Désactiver',
+        ? "Les comptes Google inconnus pourront à nouveau se connecter et accéder automatiquement au chantier démo."
+        : "Les nouveaux comptes Google inconnus seront refusés (accès démo coupé). Les comptes démo déjà créés restent actifs — désactive-les dans la liste Utilisateurs si besoin.",
+      confirmLabel: next ? 'Rouvrir' : 'Fermer',
       danger: !next,
     })
     if (!ok) return
@@ -105,7 +111,7 @@ export default function AdminV({ m, reload, profile }) {
       const json = await res.json()
       if (!res.ok) throw new Error(json.error || 'Erreur')
       setDemoMode(!!json.enabled)
-      addToast(next ? 'Mode démo activé' : 'Mode démo désactivé', 'success')
+      addToast(next ? 'Accès démo rouvert' : 'Accès démo fermé', 'success')
     } catch (err) {
       addToast('Erreur : ' + err.message, 'error')
     } finally {
@@ -302,13 +308,11 @@ export default function AdminV({ m, reload, profile }) {
       }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 10 }}>
           <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, display: "flex", alignItems: "center", gap: 8 }}>
-            🎯 Mode démo commercial
-            {demoMode && (
-              <span style={{
-                background: "#10B981", color: "#fff", fontSize: 10, fontWeight: 700,
-                padding: "3px 8px", borderRadius: 999, letterSpacing: "0.05em",
-              }}>ACTIF</span>
-            )}
+            🎯 Accès démo public
+            <span style={{
+              background: demoMode ? "#10B981" : "#94A3B8", color: "#fff", fontSize: 10, fontWeight: 700,
+              padding: "3px 8px", borderRadius: 999, letterSpacing: "0.05em",
+            }}>{demoMode ? "OUVERT" : "FERMÉ"}</span>
           </h2>
           <button
             onClick={handleToggleDemoMode}
@@ -321,7 +325,7 @@ export default function AdminV({ m, reload, profile }) {
               opacity: demoBusy ? 0.6 : 1,
               transition: "background .2s",
             }}
-            aria-label={demoMode ? "Désactiver le mode démo" : "Activer le mode démo"}
+            aria-label={demoMode ? "Fermer l'accès démo" : "Rouvrir l'accès démo"}
           >
             <span style={{
               position: "absolute", top: 3, left: demoMode ? 27 : 3,
@@ -332,11 +336,19 @@ export default function AdminV({ m, reload, profile }) {
           </button>
         </div>
         <p style={{ margin: "0 0 12px", fontSize: 12, color: "#475569", lineHeight: 1.55 }}>
-          Quand le mode est <strong>ACTIF</strong>, tout compte Google qui se connecte sera automatiquement
-          inscrit comme client <strong>DémoMOA</strong> et accèdera au chantier démo <em>Villa Moreau</em>.
-          Toutes ses actions (créations, consultations, clics) sont tracées dans le Journal d&apos;activité.
-          {demoMode && (
-            <><br/><br/><strong style={{ color: "#059669" }}>⚠ Désactive-le après ta démo</strong> pour refermer l&apos;accès public.</>
+          {demoMode ? (
+            <>
+              <strong>Accès démo ouvert par défaut.</strong> Tout compte Google qui se connecte et n&apos;est pas déjà
+              autorisé est automatiquement inscrit comme client <strong>DémoMOA</strong> et accède au chantier démo{' '}
+              <em>Villa Moreau</em>. Toutes ses actions sont tracées dans le Journal.
+              <br/><br/>
+              Tu peux fermer l&apos;accès temporairement (ex: période de maintenance commerciale) en basculant le switch.
+            </>
+          ) : (
+            <>
+              <strong style={{ color: "#475569" }}>Accès démo fermé</strong>. Les comptes Google inconnus sont refusés.
+              Réactive-le quand tu es prêt à recevoir des prospects.
+            </>
           )}
         </p>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
