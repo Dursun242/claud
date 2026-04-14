@@ -495,8 +495,14 @@ export const fmtTime = s => new Date(s).toLocaleTimeString("fr-FR",{hour:"2-digi
 export const fmtDayFr = s => new Date(s).toLocaleDateString("fr-FR",{weekday:"short",day:"numeric",month:"short"});
 
 // ─── SHARED COMPONENTS ───
-export function FF({label,children}) {
-  return <div style={{marginBottom:12}}><label style={{display:"block",fontSize:11,fontWeight:600,color:"#64748B",marginBottom:3,textTransform:"uppercase",letterSpacing:"0.05em"}}>{label}</label>{children}</div>;
+export function FF({label,hint,children}) {
+  return (
+    <div style={{marginBottom:12}}>
+      <label style={{display:"block",fontSize:11,fontWeight:600,color:"#64748B",marginBottom:3,textTransform:"uppercase",letterSpacing:"0.05em"}}>{label}</label>
+      {children}
+      {hint && <div style={{fontSize:10,color:"#94A3B8",marginTop:4,fontStyle:"italic"}}>{hint}</div>}
+    </div>
+  );
 }
 export const inp = {width:"100%",padding:"8px 12px",border:"1.5px solid #E2E8F0",borderRadius:8,fontSize:14,outline:"none",fontFamily:"inherit",boxSizing:"border-box"};
 export const sel = {...inp,background:"#fff"};

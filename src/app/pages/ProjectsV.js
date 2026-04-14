@@ -60,7 +60,32 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
     const contactMap = new Map((data.contacts || []).map(c => [c.nom, c]));
     const intervenants = artisanNames.map(name => contactMap.get(name)).filter(Boolean);
     const clientContact = contactMap.get(ch.client);
-    return { chTasks, chOS, chCR, chPlanning, intervenants, clientContact };
+
+    // Calculs budget ↔ OS (temps réel, basé sur les statuts OS)
+    // - Engagé       : OS hors Brouillon/Annulé (= envoyés/signés/en cours/terminés)
+    // - Réalisé      : OS en Terminé (= travaux finis)
+    // - En brouillon : OS en Brouillon (informatif, pas engagé)
+    const sum = (arr) => arr.reduce((s, o) => s + (Number(o.montant_ttc) || 0), 0);
+    const osEngages = chOS.filter(o => o.statut !== 'Brouillon' && o.statut !== 'Annulé');
+    const osRealises = chOS.filter(o => o.statut === 'Terminé');
+    const osBrouillons = chOS.filter(o => o.statut === 'Brouillon');
+    const budget = Number(ch.budget) || 0;
+    const engageMontant = sum(osEngages);
+    const realiseMontant = sum(osRealises);
+    const brouillonMontant = sum(osBrouillons);
+    const resteEngager = Math.max(0, budget - engageMontant);
+    const depassement = Math.max(0, engageMontant - budget);
+    const finances = {
+      budget,
+      engageMontant, engageCount: osEngages.length,
+      realiseMontant, realiseCount: osRealises.length,
+      brouillonMontant, brouillonCount: osBrouillons.length,
+      resteEngager,
+      depassement,
+      ratio: budget > 0 ? Math.round((engageMontant / budget) * 100) : 0,
+    };
+
+    return { chTasks, chOS, chCR, chPlanning, intervenants, clientContact, finances };
   }, [selectedChantier, data.tasks, data.ordresService, data.compteRendus, data.planning, data.contacts]);
 
   const chantiersFiltered = useMemo(() => {
@@ -86,7 +111,7 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusId, focusTs]);
 
-  const openNew=()=>{setForm({nom:"",client:"",adresse:"",phase:"Hors d'air",statut:"Planifié",budget:"",depenses:0,dateDebut:"",dateFin:"",lots:"",photo_couverture:"",notes_internes:""});setModal("new");};
+  const openNew=()=>{setForm({nom:"",client:"",adresse:"",phase:"Hors d'air",statut:"Planifié",budget:"",dateDebut:"",dateFin:"",lots:"",photo_couverture:"",notes_internes:""});setModal("new");};
   const [saving,setSaving]=useState(false);
 
   // Raccourci clavier « n » pour créer un chantier (hors saisie, hors modale,
@@ -110,7 +135,7 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
     if(saving) return;
     setSaving(true);
     try {
-      const e={...form,budget:Number(form.budget)||0,depenses:Number(form.depenses)||0,lots:typeof form.lots==="string"?(form.lots||"").split(",").map(l=>l.trim()).filter(Boolean):form.lots||[]};
+      const e={...form,budget:Number(form.budget)||0,lots:typeof form.lots==="string"?(form.lots||"").split(",").map(l=>l.trim()).filter(Boolean):form.lots||[]};
       await SB.upsertChantier(e);
       setModal(null);
       reload();
@@ -139,10 +164,11 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
     if (!ch) { setSelected(null); return null; }
 
     // Données dérivées memoizées (voir useMemo plus haut)
-    const { chTasks, chOS, chCR, chPlanning, intervenants, clientContact } = selectedRelated;
+    const { chTasks, chOS, chCR, chPlanning, intervenants, clientContact, finances } = selectedRelated;
 
-    const ratio = pct(ch.depenses, ch.budget);
-    const budgetColor = ratio>85?"#EF4444":ratio>60?"#F59E0B":"#10B981";
+    // Couleur selon engagement : rouge si dépassement ou >85%, orange 60-85%, vert sinon
+    const ratio = finances.ratio;
+    const budgetColor = finances.depassement > 0 ? "#EF4444" : ratio > 85 ? "#EF4444" : ratio > 60 ? "#F59E0B" : "#10B981";
 
     const Section = ({title, count, color, children}) => (
       <div style={{marginBottom:20}}>
@@ -185,19 +211,47 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
           </div>
           {!readOnly && <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
             <button onClick={async()=>{await SB.duplicateChantier(ch);reload();}} style={{...btnS,fontSize:12,padding:"8px 14px"}}>Dupliquer</button>
-            <button onClick={()=>{setForm({...ch,lots:ch.lots?.join(", ")||"",budget:String(ch.budget),depenses:String(ch.depenses),dateDebut:ch.date_debut||ch.dateDebut||"",dateFin:ch.date_fin||ch.dateFin||""});setModal("edit");}} style={{...btnS,fontSize:12,padding:"8px 14px"}}>Modifier</button>
+            <button onClick={()=>{setForm({...ch,lots:ch.lots?.join(", ")||"",budget:String(ch.budget||""),dateDebut:ch.date_debut||ch.dateDebut||"",dateFin:ch.date_fin||ch.dateFin||""});setModal("edit");}} style={{...btnS,fontSize:12,padding:"8px 14px"}}>Modifier</button>
             <button onClick={()=>setDetailModal("share")} style={{...btnS,fontSize:12,padding:"8px 14px"}}>👥 Partager</button>
           </div>}
         </div>
-        {/* Budget bar */}
+        {/* Budget — calculé en temps réel depuis les OS du chantier */}
         <div style={{marginTop:16}}>
           <div style={{display:"grid",gridTemplateColumns:m?"repeat(2,1fr)":"repeat(4,1fr)",gap:12,marginBottom:12}}>
-            <div style={{background:"#F8FAFC",borderRadius:8,padding:10}}><div style={{fontSize:10,color:"#94A3B8",fontWeight:600,textTransform:"uppercase"}}>Budget</div><div style={{fontSize:18,fontWeight:700,color:"#0F172A"}}>{fmtMoney(ch.budget)}</div></div>
-            <div style={{background:"#F8FAFC",borderRadius:8,padding:10}}><div style={{fontSize:10,color:"#94A3B8",fontWeight:600,textTransform:"uppercase"}}>Dépensé</div><div style={{fontSize:18,fontWeight:700,color:budgetColor}}>{fmtMoney(ch.depenses)}</div></div>
-            <div style={{background:"#F8FAFC",borderRadius:8,padding:10}}><div style={{fontSize:10,color:"#94A3B8",fontWeight:600,textTransform:"uppercase"}}>Reste</div><div style={{fontSize:18,fontWeight:700,color:"#0F172A"}}>{fmtMoney(ch.budget-ch.depenses)}</div></div>
-            <div style={{background:"#F8FAFC",borderRadius:8,padding:10}}><div style={{fontSize:10,color:"#94A3B8",fontWeight:600,textTransform:"uppercase"}}>Avancement</div><div style={{fontSize:18,fontWeight:700,color:budgetColor}}>{ratio}%</div></div>
+            <div style={{background:"#F8FAFC",borderRadius:8,padding:10}}>
+              <div style={{fontSize:10,color:"#94A3B8",fontWeight:600,textTransform:"uppercase"}}>Budget</div>
+              <div style={{fontSize:18,fontWeight:700,color:"#0F172A"}}>{fmtMoney(finances.budget)}</div>
+            </div>
+            <div style={{background:"#F8FAFC",borderRadius:8,padding:10}} title={`${finances.engageCount} OS engagés (hors brouillon/annulé)`}>
+              <div style={{fontSize:10,color:"#94A3B8",fontWeight:600,textTransform:"uppercase"}}>Engagé (OS)</div>
+              <div style={{fontSize:18,fontWeight:700,color:budgetColor}}>{fmtMoney(finances.engageMontant)}</div>
+              <div style={{fontSize:10,color:"#94A3B8",marginTop:2}}>{finances.engageCount} OS · dont {finances.realiseCount} terminé{finances.realiseCount>1?"s":""}</div>
+            </div>
+            <div style={{background:"#F8FAFC",borderRadius:8,padding:10}}>
+              <div style={{fontSize:10,color:"#94A3B8",fontWeight:600,textTransform:"uppercase"}}>
+                {finances.depassement > 0 ? "Dépassement" : "Reste à engager"}
+              </div>
+              <div style={{fontSize:18,fontWeight:700,color:finances.depassement > 0 ? "#EF4444" : "#0F172A"}}>
+                {finances.depassement > 0 ? "+" + fmtMoney(finances.depassement) : fmtMoney(finances.resteEngager)}
+              </div>
+            </div>
+            <div style={{background:"#F8FAFC",borderRadius:8,padding:10}}>
+              <div style={{fontSize:10,color:"#94A3B8",fontWeight:600,textTransform:"uppercase"}}>Avancement</div>
+              <div style={{fontSize:18,fontWeight:700,color:budgetColor}}>{ratio}%</div>
+            </div>
           </div>
-          <PBar value={ch.depenses} max={ch.budget} color={budgetColor} h={10}/>
+          <PBar value={finances.engageMontant} max={finances.budget || finances.engageMontant || 1} color={budgetColor} h={10}/>
+          {finances.brouillonMontant > 0 && (
+            <div style={{marginTop:8,fontSize:11,color:"#64748B",display:"flex",alignItems:"center",gap:6}}>
+              <span style={{width:8,height:8,borderRadius:"50%",background:"#94A3B8"}}/>
+              {finances.brouillonCount} OS en brouillon : {fmtMoney(finances.brouillonMontant)} (non engagés)
+            </div>
+          )}
+          {finances.depassement > 0 && (
+            <div style={{marginTop:8,fontSize:12,color:"#B91C1C",background:"#FEF2F2",border:"1px solid #FECACA",borderRadius:6,padding:"8px 10px",fontWeight:600}}>
+              ⚠ Budget dépassé de {fmtMoney(finances.depassement)} — revoir le budget ou les OS
+            </div>
+          )}
         </div>
       </div>
 
@@ -478,7 +532,7 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
               </div>
             </div>
             {!readOnly && <div style={{display:"flex",gap:4}} onClick={e=>e.stopPropagation()}>
-              <button onClick={()=>{setForm({...ch,lots:ch.lots?.join(", ")||"",budget:String(ch.budget),depenses:String(ch.depenses),dateDebut:ch.date_debut||ch.dateDebut||"",dateFin:ch.date_fin||ch.dateFin||"",photo_couverture:ch.photo_couverture||"",notes_internes:ch.notes_internes||""});setModal("edit");}} style={{background:"#F8FAFC",border:"1px solid #E2E8F0",borderRadius:6,padding:5,cursor:"pointer"}}><Icon d={I.edit} size={14} color="#64748B"/></button>
+              <button onClick={()=>{setForm({...ch,lots:ch.lots?.join(", ")||"",budget:String(ch.budget||""),dateDebut:ch.date_debut||ch.dateDebut||"",dateFin:ch.date_fin||ch.dateFin||"",photo_couverture:ch.photo_couverture||"",notes_internes:ch.notes_internes||""});setModal("edit");}} style={{background:"#F8FAFC",border:"1px solid #E2E8F0",borderRadius:6,padding:5,cursor:"pointer"}}><Icon d={I.edit} size={14} color="#64748B"/></button>
               <button onClick={()=>handleDelete(ch)} style={{background:"#FEF2F2",border:"1px solid #FECACA",borderRadius:6,padding:5,cursor:"pointer"}}><Icon d={I.trash} size={14} color="#EF4444"/></button>
             </div>}
           </div>
@@ -514,8 +568,7 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
         <FF label="Adresse"><input style={inp} value={form.adresse||""} onChange={e=>setForm({...form,adresse:e.target.value})}/></FF>
         <FF label="Phase"><select style={sel} value={form.phase||""} onChange={e=>setForm({...form,phase:e.target.value})}><option>Hors d'air</option><option>Technique</option><option>Finitions</option><option>Avant-projet</option><option>Études</option><option>Gros œuvre</option></select></FF>
         <FF label="Statut"><select style={sel} value={form.statut||""} onChange={e=>setForm({...form,statut:e.target.value})}><option>Planifié</option><option>En cours</option><option>En attente</option><option>Terminé</option></select></FF>
-        <FF label="Budget €"><input type="number" style={inp} value={form.budget||""} onChange={e=>setForm({...form,budget:e.target.value})}/></FF>
-        <FF label="Dépenses €"><input type="number" style={inp} value={form.depenses||""} onChange={e=>setForm({...form,depenses:e.target.value})}/></FF>
+        <FF label="Budget €" hint="Les dépenses sont calculées automatiquement depuis les OS du chantier"><input type="number" style={inp} value={form.budget||""} onChange={e=>setForm({...form,budget:e.target.value})}/></FF>
         <FF label="Début"><input type="date" style={inp} value={form.dateDebut||""} onChange={e=>setForm({...form,dateDebut:e.target.value})}/></FF>
         <FF label="Fin"><input type="date" style={inp} value={form.dateFin||""} onChange={e=>setForm({...form,dateFin:e.target.value})}/></FF>
         <FF label="Lots (virgules)"><input style={inp} value={form.lots||""} onChange={e=>setForm({...form,lots:e.target.value})}/></FF>
