@@ -50,6 +50,46 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly})
   const [importError, setImportError] = useState("");
   const devisInputRef = useRef(null);
   const searchInputRef = useRef(null);
+  // Sync signatures Odoo → Supabase (auto au mount + manuel)
+  const [syncingSigs, setSyncingSigs] = useState(false);
+  const syncedOnceRef = useRef(false);
+
+  const handleSyncSignatures = useCallback(async (silent = false) => {
+    if (syncingSigs) return;
+    setSyncingSigs(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch('/api/odoo/sync-signatures', {
+        headers: { 'Authorization': `Bearer ${session?.access_token || ''}` },
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Erreur sync');
+      if (!silent) {
+        if (json.updated > 0) {
+          addToast(`${json.updated} signature${json.updated > 1 ? 's' : ''} mise${json.updated > 1 ? 's' : ''} à jour`, 'success');
+          reload?.();
+        } else {
+          addToast('Signatures à jour — aucun changement', 'info');
+        }
+      } else if (json.updated > 0) {
+        // En mode silencieux (auto au mount), on reload quand même si des maj
+        reload?.();
+      }
+    } catch (err) {
+      if (!silent) addToast('Erreur sync : ' + err.message, 'error');
+      console.warn('[sync-signatures]', err.message);
+    } finally {
+      setSyncingSigs(false);
+    }
+  }, [syncingSigs, addToast, reload]);
+
+  // Sync auto (silencieux) une fois par session au premier montage de la page OS
+  useEffect(() => {
+    if (syncedOnceRef.current) return;
+    syncedOnceRef.current = true;
+    handleSyncSignatures(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Delete avec undo (5s pour annuler)
   const { pendingIds: pendingDeleteIds, scheduleDelete } = useUndoableDelete({
@@ -731,6 +771,25 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly})
             opacity: filteredSortedOS.length === 0 ? 0.5 : 1,
           }}
         >⬇ CSV</button>
+        {!readOnly && (
+          <button
+            onClick={() => handleSyncSignatures(false)}
+            disabled={syncingSigs}
+            title="Actualiser les statuts de signature depuis Odoo"
+            style={{
+              background:'#F5F3FF', color:'#6D28D9', border:'1px solid #DDD6FE',
+              borderRadius:6, padding:'8px 12px', fontSize:12, fontWeight:600,
+              cursor: syncingSigs ? 'wait' : 'pointer',
+              opacity: syncingSigs ? 0.6 : 1,
+              fontFamily: 'inherit',
+              display:'inline-flex', alignItems:'center', gap:6,
+            }}
+          >
+            {syncingSigs ? (
+              <><span style={{display:'inline-block',width:10,height:10,border:'2px solid #DDD6FE',borderTopColor:'#6D28D9',borderRadius:'50%',animation:'spin .8s linear infinite'}}/>Sync…</>
+            ) : '🔄 Signatures'}
+          </button>
+        )}
         {!readOnly && <button onClick={openNew} title="Nouvel OS (raccourci : n)" style={{...btnP,fontSize:12}}>+ Nouvel OS</button>}
       </div>
     </div>

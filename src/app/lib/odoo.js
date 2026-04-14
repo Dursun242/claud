@@ -348,11 +348,70 @@ export async function createSignRequestFromPdf({ pdfBase64, reference, operation
   return { requestId, signUrl: `${ODOO_URL}/odoo/sign/${requestId}`, state: 'sent', subject }
 }
 
-/** Vérifie le statut d'une demande de signature */
+/** Vérifie le statut d'une demande de signature + qui a signé */
 export async function getSignRequestStatus(requestId) {
   const data = await execute('sign.request', 'read', [[requestId]], {
-    fields: ['id', 'state', 'reference'],
+    fields: ['id', 'state', 'reference', 'request_item_ids'],
   })
   if (!data.length) throw new Error('Demande de signature introuvable')
-  return data[0]
+  const req = data[0]
+
+  // Détail par signataire : id, état, nom partner, rôle, date de signature
+  let items = []
+  if (req.request_item_ids?.length) {
+    items = await execute('sign.request.item', 'read', [req.request_item_ids], {
+      fields: ['id', 'state', 'partner_id', 'role_id', 'signing_date'],
+    })
+  }
+  return { ...req, items }
+}
+
+/**
+ * Pour un ensemble de requestIds, retourne leur statut consolidé.
+ * state Odoo : 'sent' | 'signed' | 'canceled' | 'expired' | 'refused'
+ *
+ * Mapping vers notre statut_signature :
+ *   - 'Signé'                si state = 'signed' (tous ont signé)
+ *   - 'Partiellement signé'  si au moins 1 item signé mais pas tous
+ *   - 'Envoyé'               si aucun item signé encore
+ *   - 'Refusé'               si state = 'refused'
+ *   - 'Expiré'               si state = 'expired'
+ *   - 'Annulé'               si state = 'canceled'
+ */
+export async function getSignRequestsStatusBulk(requestIds) {
+  if (!requestIds?.length) return []
+  const reqs = await execute('sign.request', 'read', [requestIds], {
+    fields: ['id', 'state', 'reference', 'request_item_ids'],
+  })
+  // Un seul round-trip pour charger TOUS les items
+  const allItemIds = reqs.flatMap(r => r.request_item_ids || [])
+  let itemsById = new Map()
+  if (allItemIds.length) {
+    const items = await execute('sign.request.item', 'read', [allItemIds], {
+      fields: ['id', 'state', 'partner_id', 'role_id', 'signing_date'],
+    })
+    itemsById = new Map(items.map(i => [i.id, i]))
+  }
+
+  return reqs.map(r => {
+    const myItems = (r.request_item_ids || []).map(id => itemsById.get(id)).filter(Boolean)
+    const total = myItems.length
+    const signed = myItems.filter(i => i.state === 'signed' || i.state === 'completed').length
+
+    let statut = 'Envoyé'
+    if (r.state === 'signed')        statut = 'Signé'
+    else if (r.state === 'refused')  statut = 'Refusé'
+    else if (r.state === 'expired')  statut = 'Expiré'
+    else if (r.state === 'canceled') statut = 'Annulé'
+    else if (signed > 0 && signed < total) statut = 'Partiellement signé'
+
+    return {
+      requestId: r.id,
+      state: r.state,
+      statut_signature: statut,
+      signed_count: signed,
+      total_count: total,
+      items: myItems,
+    }
+  })
 }
