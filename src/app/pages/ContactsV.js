@@ -5,19 +5,32 @@ import { Badge, Modal } from '../components'
 import { useToast } from '../contexts/ToastContext'
 import { useConfirm } from '../contexts/ConfirmContext'
 import { useUndoableDelete } from '../hooks/useUndoableDelete'
-import { validateSiret, validatePhoneFR, validateEmail, validateIban, validateCodePostalFR, validateTvaIntra } from '../lib/validators'
+import {
+  validateSiret, validatePhoneFR, validateEmail,
+  validateIban, validateCodePostalFR, validateTvaIntra
+} from '../lib/validators'
 import { buildCSV, downloadCSV } from '../lib/csv'
 import { supabase } from '../supabaseClient'
 
-const TYPE_COLORS = {Artisan:"#F59E0B",Client:"#3B82F6",Fournisseur:"#10B981","Sous-traitant":"#8B5CF6",Prestataire:"#EC4899",MOA:"#0EA5E9",Architecte:"#6366F1",BET:"#14B8A6"}
+const TYPE_COLORS = {
+  Artisan:"#F59E0B",Client:"#3B82F6",Fournisseur:"#10B981",
+  "Sous-traitant":"#8B5CF6",Prestataire:"#EC4899",
+  MOA:"#0EA5E9",Architecte:"#6366F1",BET:"#14B8A6"
+}
 const TYPES = ["Artisan","Sous-traitant","Prestataire","Client","Fournisseur","MOA","Architecte","BET"]
 
 export default function ContactsV({data,save,m,reload,focusId,focusTs}) {
   const { addToast } = useToast();
   const confirm = useConfirm();
-  const [modal,setModal]=useState(null);const [form,setForm]=useState({});const [tf,setTf]=useState("all");const [q,setQ]=useState("");
+  const [modal,setModal]=useState(null);
+  const [form,setForm]=useState({});
+  const [tf,setTf]=useState("all");
+  const [q,setQ]=useState("");
   const [formError, setFormError] = useState("");
-  const [pSearch,setPSearch]=useState("");const [pLoading,setPLoading]=useState(false);const [pResults,setPResults]=useState(null);const [pError,setPError]=useState("");
+  const [pSearch,setPSearch]=useState("");
+  const [pLoading,setPLoading]=useState(false);
+  const [pResults,setPResults]=useState(null);
+  const [pError,setPError]=useState("");
   // États import par photo
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState("");
@@ -89,13 +102,31 @@ export default function ContactsV({data,save,m,reload,focusId,focusTs}) {
     if(tf!=="all"&&c.type!==tf) return false;
     if(!q) return true;
     const search=q.toLowerCase();
-    return (c.nom||"").toLowerCase().includes(search)||(c.specialite||"").toLowerCase().includes(search)||(c.societe||"").toLowerCase().includes(search)||(c.ville||"").toLowerCase().includes(search)||(c.email||"").toLowerCase().includes(search)||(c.siret||"").includes(search);
+    return (
+      (c.nom||"").toLowerCase().includes(search)||
+      (c.specialite||"").toLowerCase().includes(search)||
+      (c.societe||"").toLowerCase().includes(search)||
+      (c.ville||"").toLowerCase().includes(search)||
+      (c.email||"").toLowerCase().includes(search)||
+      (c.siret||"").includes(search)
+    );
   });
 
-  const emptyForm = {nom:"",type:"Artisan",specialite:"",societe:"",fonction:"",tel:"",tel_fixe:"",email:"",adresse:"",code_postal:"",ville:"",siret:"",tva_intra:"",assurance_decennale:"",assurance_validite:"",iban:"",qualifications:"",site_web:"",note:0,actif:true,notes:""};
+  const emptyForm = {
+    nom:"",type:"Artisan",specialite:"",societe:"",fonction:"",
+    tel:"",tel_fixe:"",email:"",adresse:"",code_postal:"",ville:"",
+    siret:"",tva_intra:"",assurance_decennale:"",assurance_validite:"",
+    iban:"",qualifications:"",site_web:"",note:0,actif:true,notes:""
+  };
 
-  const openNew=()=>{setForm(emptyForm);setPSearch("");setPResults(null);setPError("");setFormError("");setModal("new");};
-  const openEdit=(c)=>{setForm({...c});setPSearch("");setPResults(null);setPError("");setFormError("");setModal("edit");};
+  const openNew=()=>{
+    setForm(emptyForm);setPSearch("");setPResults(null);
+    setPError("");setFormError("");setModal("new");
+  };
+  const openEdit=(c)=>{
+    setForm({...c});setPSearch("");setPResults(null);
+    setPError("");setFormError("");setModal("edit");
+  };
   const closeModal=()=>{setModal(null);setFormError("");};
 
   // Raccourci clavier « n » pour créer un contact (sauf si on tape ou modale ouverte)
@@ -175,7 +206,8 @@ export default function ContactsV({data,save,m,reload,focusId,focusTs}) {
   const handleDelete = async (c) => {
     const ok = await confirm({
       title: `Supprimer ${c.nom} ?`,
-      message: "Tu pourras annuler cette suppression pendant 5 secondes. Les OS liés à ce contact ne seront pas supprimés mais perdront l'association.",
+      message: "Tu pourras annuler cette suppression pendant 5 secondes." +
+        " Les OS liés à ce contact ne seront pas supprimés mais perdront l'association.",
       confirmLabel: "Supprimer",
       danger: true,
     });
@@ -240,7 +272,7 @@ export default function ContactsV({data,save,m,reload,focusId,focusTs}) {
     setPError("");
   };
 
-  // ── Helper Pappers avec auth JWT ─────────────────────────────
+  // ── Helper Pappers avec auth JWT ──────────
   // Centralise les appels à /api/pappers en y injectant le Bearer token.
   const fetchPappers = async (queryString) => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -298,7 +330,9 @@ export default function ContactsV({data,save,m,reload,focusId,focusTs}) {
       const cleanSiret = v.replace(/\s/g,"");
       const qs = isSiret ? `siret=${cleanSiret}` : `q=${encodeURIComponent(v)}`;
       try {
-        SB.log('search_pappers', 'contact', null, `Recherche Pappers — ${v}`, { query: v, type: isSiret ? 'siret' : 'text' });
+        SB.log('search_pappers', 'contact', null,
+          `Recherche Pappers — ${v}`,
+          { query: v, type: isSiret ? 'siret' : 'text' });
       } catch (_) {}
       const res = await fetchPappers(qs);
       const json = await res.json();
@@ -320,7 +354,7 @@ export default function ContactsV({data,save,m,reload,focusId,focusTs}) {
     finally { setPLoading(false); }
   };
 
-  // ─── Import par photo (Claude Vision) ─────────────────────────
+  // ─── Import par photo (Claude Vision) ─────
   //
   // Resize une image via canvas pour rester sous 1600px de largeur
   // et ≤ 5 Mo. Retourne { base64, mediaType }.
@@ -415,7 +449,9 @@ export default function ContactsV({data,save,m,reload,focusId,focusTs}) {
 
       const extracted = json.data || {};
       if (!extracted || Object.keys(extracted).length === 0) {
-        setImportError("Aucune information de contact n'a pu être détectée sur cette image. Essayez une photo plus nette.");
+        setImportError(
+          "Aucune information de contact n'a pu être détectée sur cette image. Essayez une photo plus nette."
+        );
         return;
       }
 
@@ -468,7 +504,10 @@ export default function ContactsV({data,save,m,reload,focusId,focusTs}) {
       style={{display:"none"}}
     />
 
-    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14,flexWrap:"wrap",gap:8}}>
+    <div style={{
+      display:"flex",justifyContent:"space-between",alignItems:"center",
+      marginBottom:14,flexWrap:"wrap",gap:8
+    }}>
       <div>
         <h1 style={{margin:0,fontSize:m?18:24,fontWeight:700}}>Contacts</h1>
         <p style={{margin:"2px 0 0",fontSize:12,color:"#94A3B8"}}>
@@ -492,11 +531,18 @@ export default function ContactsV({data,save,m,reload,focusId,focusTs}) {
             alignItems:"center",
             gap:6,
           }}
-          title="Importer un contact depuis une photo ou une capture d'écran (carte de visite, signature email, iOS Contacts, SMS, WhatsApp…)"
+          title={
+            "Importer un contact depuis une photo ou une capture d'écran" +
+            " (carte de visite, signature email, iOS Contacts, SMS, WhatsApp…)"
+          }
         >
           {importing ? (
             <>
-              <span style={{display:"inline-block",width:12,height:12,border:"2px solid #C7D2FE",borderTopColor:"#4F46E5",borderRadius:"50%",animation:"spin 0.8s linear infinite"}}/>
+              <span style={{
+                display:"inline-block",width:12,height:12,
+                border:"2px solid #C7D2FE",borderTopColor:"#4F46E5",
+                borderRadius:"50%",animation:"spin 0.8s linear infinite"
+              }}/>
               Extraction…
             </>
           ) : (
@@ -517,7 +563,9 @@ export default function ContactsV({data,save,m,reload,focusId,focusTs}) {
             opacity: list.length === 0 ? 0.5 : 1,
           }}
         >⬇ CSV</button>
-        <button onClick={openNew} title="Nouveau contact (raccourci : n)" style={{...btnP,fontSize:12}}>+ Nouveau contact</button>
+        <button onClick={openNew}
+          title="Nouveau contact (raccourci : n)"
+          style={{...btnP,fontSize:12}}>+ Nouveau contact</button>
       </div>
     </div>
 
@@ -536,14 +584,20 @@ export default function ContactsV({data,save,m,reload,focusId,focusTs}) {
         gap:8,
       }}>
         <span>{importError}</span>
-        <button onClick={()=>setImportError("")} style={{background:"none",border:"none",cursor:"pointer",color:"#DC2626",fontSize:16,padding:0}}>✕</button>
+        <button onClick={()=>setImportError("")} style={{
+          background:"none",border:"none",cursor:"pointer",
+          color:"#DC2626",fontSize:16,padding:0
+        }}>✕</button>
       </div>
     )}
 
     {/* Search + Filters */}
     <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap"}}>
       <div style={{position:"relative",flex:1,minWidth:200}}>
-        <span style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",pointerEvents:"none"}}><Icon d={I.search} size={14} color="#94A3B8"/></span>
+        <span style={{
+          position:"absolute",left:10,top:"50%",
+          transform:"translateY(-50%)",pointerEvents:"none"
+        }}><Icon d={I.search} size={14} color="#94A3B8"/></span>
         <input
           ref={searchInputRef}
           type="search"
@@ -554,7 +608,10 @@ export default function ContactsV({data,save,m,reload,focusId,focusTs}) {
         />
       </div>
     </div>
-    <div style={{display:"flex",gap:6,marginBottom:14,flexWrap:"wrap",overflowX:m?"auto":"visible",paddingBottom:m?4:0}}>
+    <div style={{
+      display:"flex",gap:6,marginBottom:14,flexWrap:"wrap",
+      overflowX:m?"auto":"visible",paddingBottom:m?4:0
+    }}>
       <button onClick={()=>setTf("all")} style={{
         display:"inline-flex",alignItems:"center",gap:6,
         padding:"5px 11px",borderRadius:999,fontSize:11,fontWeight:600,
@@ -563,7 +620,10 @@ export default function ContactsV({data,save,m,reload,focusId,focusTs}) {
         color:tf==="all"?"#fff":"#334155",cursor:"pointer",fontFamily:"inherit",
         transition:"background .15s, color .15s, border-color .15s",whiteSpace:"nowrap",
       }}>
-        <span style={{width:7,height:7,borderRadius:"50%",background:tf==="all"?"#fff":"#64748B",opacity:tf==="all"?0.8:1}}/>
+        <span style={{
+          width:7,height:7,borderRadius:"50%",
+          background:tf==="all"?"#fff":"#64748B",opacity:tf==="all"?0.8:1
+        }}/>
         Tous <span style={{fontSize:10,opacity:0.75,fontWeight:500}}>{data.contacts.length}</span>
       </button>
       {Object.entries(stats).map(([type,count])=>{
@@ -587,50 +647,97 @@ export default function ContactsV({data,save,m,reload,focusId,focusTs}) {
 
     {/* Contact Cards */}
     {list.length === 0 ? (
-      <div style={{background:"#fff",borderRadius:12,padding:"40px 24px",textAlign:"center",boxShadow:"0 1px 3px rgba(0,0,0,0.04)"}}>
+      <div style={{
+        background:"#fff",borderRadius:12,padding:"40px 24px",
+        textAlign:"center",boxShadow:"0 1px 3px rgba(0,0,0,0.04)"
+      }}>
         <div style={{fontSize:36,marginBottom:8,opacity:0.5}}>👤</div>
         {data.contacts.length === 0 ? (
           <>
             <div style={{fontSize:14,fontWeight:700,color:"#334155",marginBottom:4}}>Aucun contact pour l'instant</div>
-            <div style={{fontSize:12,color:"#94A3B8",marginBottom:14}}>Crée ton premier contact ou importe-en un depuis une photo/capture.</div>
+            <div style={{fontSize:12,color:"#94A3B8",marginBottom:14}}>
+              Crée ton premier contact ou importe-en un depuis une photo/capture.
+            </div>
             <div style={{display:"flex",gap:8,justifyContent:"center",flexWrap:"wrap"}}>
               <button onClick={openNew} style={{...btnP,fontSize:12}}>+ Nouveau contact</button>
-              <button onClick={()=>fileInputRef.current?.click()} style={{...btnS,fontSize:12}}>📸 Importer une photo</button>
+              <button onClick={()=>fileInputRef.current?.click()}
+                style={{...btnS,fontSize:12}}>📸 Importer une photo</button>
             </div>
           </>
         ) : (
           <>
             <div style={{fontSize:14,fontWeight:700,color:"#334155",marginBottom:4}}>Aucun résultat</div>
-            <div style={{fontSize:12,color:"#94A3B8",marginBottom:14}}>Essaie d'élargir ta recherche ou de changer de filtre.</div>
-            <button onClick={()=>{setQ("");setTf("all");}} style={{...btnS,fontSize:12}}>Réinitialiser les filtres</button>
+            <div style={{fontSize:12,color:"#94A3B8",marginBottom:14}}>
+              Essaie d&apos;élargir ta recherche ou de changer de filtre.
+            </div>
+            <button onClick={()=>{setQ("");setTf("all");}}
+              style={{...btnS,fontSize:12}}>Réinitialiser les filtres</button>
           </>
         )}
       </div>
     ) : (
     <div style={{display:"grid",gridTemplateColumns:m?"1fr":"1fr 1fr",gap:10}}>
       {list.map(c=>(
-        <div key={c.id} style={{background:"#fff",borderRadius:12,padding:m?14:16,boxShadow:"0 1px 3px rgba(15,23,42,0.05)",borderLeft:`4px solid ${tc[c.type]||"#94A3B8"}`,opacity:c.actif===false?0.55:1}}>
+        <div key={c.id} style={{
+          background:"#fff",borderRadius:12,padding:m?14:16,
+          boxShadow:"0 1px 3px rgba(15,23,42,0.05)",
+          borderLeft:`4px solid ${tc[c.type]||"#94A3B8"}`,
+          opacity:c.actif===false?0.55:1
+        }}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8}}>
             <div style={{flex:1,minWidth:0}}>
               <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:3,flexWrap:"wrap"}}>
                 <span style={{fontSize:15,fontWeight:700,color:"#0F172A"}}>{c.nom}</span>
                 <Badge text={c.type} color={tc[c.type]||"#94A3B8"}/>
                 {c.actif===false && <Badge text="Inactif" color="#94A3B8"/>}
-                {c.note>0 && <span title={`${c.note}/5`} style={{fontSize:11,color:"#F59E0B"}}>{"★".repeat(c.note)}{"☆".repeat(5-c.note)}</span>}
+                {c.note>0 && (
+                  <span title={`${c.note}/5`} style={{fontSize:11,color:"#F59E0B"}}>
+                    {"★".repeat(c.note)}{"☆".repeat(5-c.note)}
+                  </span>
+                )}
               </div>
               {c.societe && <div style={{fontSize:12,fontWeight:600,color:"#334155",marginBottom:2}}>{c.societe}</div>}
-              {c.specialite && <div style={{fontSize:11,color:"#64748B",marginBottom:4}}>{c.specialite}{c.fonction?` — ${c.fonction}`:""}</div>}
+              {c.specialite && (
+                <div style={{fontSize:11,color:"#64748B",marginBottom:4}}>
+                  {c.specialite}{c.fonction?` — ${c.fonction}`:""}
+                </div>
+              )}
               {/* Coordonnées : cliquer sur le lien appelle/envoie, cliquer sur
                   l'icône 📋 à droite copie la valeur dans le presse-papier. */}
               <div style={{display:"flex",flexWrap:"wrap",gap:"4px 10px",fontSize:11,marginTop:4}}>
-                {c.tel && <ContactInfoLink href={`tel:${c.tel.replace(/\s/g,"")}`} onTap={()=>{ try { SB.log('contact_tap', 'contact', c.id, `Appel → ${c.nom}`, { field: 'tel', value: c.tel }) } catch(_) {} }} onCopy={() => copyToClipboard(c.tel, "Téléphone", c)} label={`📱 ${c.tel}`}/>}
-                {c.tel_fixe && <ContactInfoLink href={`tel:${c.tel_fixe.replace(/\s/g,"")}`} onTap={()=>{ try { SB.log('contact_tap', 'contact', c.id, `Appel fixe → ${c.nom}`, { field: 'tel_fixe', value: c.tel_fixe }) } catch(_) {} }} onCopy={() => copyToClipboard(c.tel_fixe, "Téléphone fixe", c)} label={`☎ ${c.tel_fixe}`}/>}
-                {c.email && <ContactInfoLink href={`mailto:${c.email}`} onTap={()=>{ try { SB.log('contact_tap', 'contact', c.id, `Email → ${c.nom}`, { field: 'email', value: c.email }) } catch(_) {} }} onCopy={() => copyToClipboard(c.email, "Email", c)} label={`✉ ${c.email}`} maxWidth={220}/>}
+                {c.tel && (
+                  <ContactInfoLink href={`tel:${c.tel.replace(/\s/g,"")}`}
+                    onTap={()=>{ try {
+                      SB.log('contact_tap', 'contact', c.id, `Appel → ${c.nom}`, { field: 'tel', value: c.tel })
+                    } catch(_) {} }}
+                    onCopy={() => copyToClipboard(c.tel, "Téléphone", c)}
+                    label={`📱 ${c.tel}`}/>
+                )}
+                {c.tel_fixe && (
+                  <ContactInfoLink href={`tel:${c.tel_fixe.replace(/\s/g,"")}`}
+                    onTap={()=>{ try {
+                      SB.log('contact_tap', 'contact', c.id,
+                        `Appel fixe → ${c.nom}`,
+                        { field: 'tel_fixe', value: c.tel_fixe })
+                    } catch(_) {} }}
+                    onCopy={() => copyToClipboard(c.tel_fixe, "Téléphone fixe", c)}
+                    label={`☎ ${c.tel_fixe}`}/>
+                )}
+                {c.email && (
+                  <ContactInfoLink href={`mailto:${c.email}`}
+                    onTap={()=>{ try {
+                      SB.log('contact_tap', 'contact', c.id, `Email → ${c.nom}`, { field: 'email', value: c.email })
+                    } catch(_) {} }}
+                    onCopy={() => copyToClipboard(c.email, "Email", c)}
+                    label={`✉ ${c.email}`} maxWidth={220}/>
+                )}
               </div>
               {(c.ville||c.adresse) && (
                 <div style={{fontSize:10,color:"#94A3B8",marginTop:3,display:"inline-flex",alignItems:"center",gap:5}}>
                   📍 {[c.adresse,c.code_postal,c.ville].filter(Boolean).join(", ")}
-                  <CopyIconBtn onClick={() => copyToClipboard([c.adresse,c.code_postal,c.ville].filter(Boolean).join(", "), "Adresse")}/>
+                  <CopyIconBtn onClick={() =>
+                    copyToClipboard([c.adresse,c.code_postal,c.ville].filter(Boolean).join(", "), "Adresse")
+                  }/>
                 </div>
               )}
               {c.siret && (
@@ -639,13 +746,25 @@ export default function ContactsV({data,save,m,reload,focusId,focusTs}) {
                   <CopyIconBtn onClick={() => copyToClipboard(c.siret, "SIRET", c)}/>
                 </div>
               )}
-              {c.qualifications && <div style={{fontSize:10,color:"#3B82F6",marginTop:2,fontWeight:600}}>🏅 {c.qualifications}</div>}
+              {c.qualifications && (
+                <div style={{fontSize:10,color:"#3B82F6",marginTop:2,fontWeight:600}}>
+                  🏅 {c.qualifications}
+                </div>
+              )}
             </div>
             <div style={{display:"flex",flexDirection:"column",gap:4,flexShrink:0}}>
-              <button onClick={()=>openEdit(c)} title="Modifier" style={{background:"#F1F5F9",border:"1px solid #E2E8F0",borderRadius:6,cursor:"pointer",padding:"5px 7px",display:"flex",alignItems:"center",justifyContent:"center"}}>
+              <button onClick={()=>openEdit(c)} title="Modifier" style={{
+                background:"#F1F5F9",border:"1px solid #E2E8F0",borderRadius:6,
+                cursor:"pointer",padding:"5px 7px",
+                display:"flex",alignItems:"center",justifyContent:"center"
+              }}>
                 <Icon d={I.edit} size={13} color="#475569"/>
               </button>
-              <button onClick={()=>handleDelete(c)} title="Supprimer" style={{background:"#fff",border:"1px solid #FECACA",borderRadius:6,cursor:"pointer",padding:"5px 7px",display:"flex",alignItems:"center",justifyContent:"center"}}>
+              <button onClick={()=>handleDelete(c)} title="Supprimer" style={{
+                background:"#fff",border:"1px solid #FECACA",borderRadius:6,
+                cursor:"pointer",padding:"5px 7px",
+                display:"flex",alignItems:"center",justifyContent:"center"
+              }}>
                 <Icon d={I.trash} size={13} color="#DC2626"/>
               </button>
             </div>
@@ -660,11 +779,16 @@ export default function ContactsV({data,save,m,reload,focusId,focusTs}) {
 
       {/* ── IMPORT PAR PHOTO (visible uniquement en création) ── */}
       {modal==="new" && (
-        <div style={{background:"#EEF2FF",border:"1.5px solid #C7D2FE",borderRadius:10,padding:"12px 14px",marginBottom:12}}>
+        <div style={{
+          background:"#EEF2FF",border:"1.5px solid #C7D2FE",
+          borderRadius:10,padding:"12px 14px",marginBottom:12
+        }}>
           <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8,flexWrap:"wrap"}}>
             <span style={{fontSize:15}}>📸</span>
             <span style={{fontSize:12,fontWeight:700,color:"#4338CA"}}>Import par photo ou capture d'écran</span>
-            <span style={{fontSize:10,color:"#818CF8",width:"100%"}}>Carte de visite, signature email, contact iOS, SMS, WhatsApp…</span>
+            <span style={{fontSize:10,color:"#818CF8",width:"100%"}}>
+              Carte de visite, signature email, contact iOS, SMS, WhatsApp…
+            </span>
           </div>
           <button
             onClick={() => fileInputRef.current?.click()}
@@ -689,7 +813,11 @@ export default function ContactsV({data,save,m,reload,focusId,focusTs}) {
           >
             {importing ? (
               <>
-                <span style={{display:"inline-block",width:12,height:12,border:"2px solid #C7D2FE",borderTopColor:"#4F46E5",borderRadius:"50%",animation:"spin 0.8s linear infinite"}}/>
+                <span style={{
+                display:"inline-block",width:12,height:12,
+                border:"2px solid #C7D2FE",borderTopColor:"#4F46E5",
+                borderRadius:"50%",animation:"spin 0.8s linear infinite"
+              }}/>
                 Extraction en cours…
               </>
             ) : (
@@ -703,11 +831,20 @@ export default function ContactsV({data,save,m,reload,focusId,focusTs}) {
       )}
 
       {/* ── RECHERCHE PAPPERS ── */}
-      <div style={{background:"#EFF6FF",border:"1.5px solid #BFDBFE",borderRadius:10,padding:"12px 14px",marginBottom:16}}>
+      <div style={{
+        background:"#EFF6FF",border:"1.5px solid #BFDBFE",
+        borderRadius:10,padding:"12px 14px",marginBottom:16
+      }}>
         <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24"
+            fill="none" stroke="#3B82F6" strokeWidth="2">
+            <circle cx="11" cy="11" r="8"/>
+            <path d="M21 21l-4.35-4.35"/>
+          </svg>
           <span style={{fontSize:12,fontWeight:700,color:"#1E40AF"}}>Recherche Pappers</span>
-          <span style={{fontSize:10,color:"#60A5FA",width:"100%"}}>SIRET (14 chiffres), nom d'entreprise ou nom d'un dirigeant</span>
+          <span style={{fontSize:10,color:"#60A5FA",width:"100%"}}>
+            SIRET (14 chiffres), nom d&apos;entreprise ou nom d&apos;un dirigeant
+          </span>
         </div>
         <div style={{display:"flex",gap:8}}>
           <input
@@ -720,7 +857,10 @@ export default function ContactsV({data,save,m,reload,focusId,focusTs}) {
           <button
             onClick={searchPappers}
             disabled={pLoading||!pSearch.trim()}
-            style={{...btnP,background:"#3B82F6",padding:"8px 16px",fontSize:12,opacity:pLoading||!pSearch.trim()?0.6:1,whiteSpace:"nowrap"}}
+            style={{
+              ...btnP,background:"#3B82F6",padding:"8px 16px",fontSize:12,
+              opacity:pLoading||!pSearch.trim()?0.6:1,whiteSpace:"nowrap"
+            }}
           >{pLoading?"Recherche...":"Rechercher"}</button>
         </div>
         {pError && <div style={{marginTop:8,fontSize:11,color:"#EF4444"}}>{pError}</div>}
@@ -730,7 +870,10 @@ export default function ContactsV({data,save,m,reload,focusId,focusTs}) {
             {/* ── Section ENTREPRISES ── */}
             {pResults.companies?.length > 0 && (
               <div>
-                <div style={{fontSize:11,color:"#64748B",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.03em",marginBottom:6}}>
+                <div style={{
+                  fontSize:11,color:"#64748B",fontWeight:700,
+                  textTransform:"uppercase",letterSpacing:"0.03em",marginBottom:6
+                }}>
                   🏢 Entreprises ({pResults.companies.length})
                 </div>
                 <div style={{display:"flex",flexDirection:"column",gap:6}}>
@@ -738,11 +881,26 @@ export default function ContactsV({data,save,m,reload,focusId,focusTs}) {
                     const siege = r.siege||{};
                     return (
                       <button key={`c-${i}`} onClick={()=>importEntrepriseFromSearch(r)} disabled={pLoading}
-                        style={{background:"#fff",border:"1.5px solid #BFDBFE",borderRadius:8,padding:"8px 12px",cursor:pLoading?"wait":"pointer",textAlign:"left",display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,fontFamily:"inherit",opacity:pLoading?0.6:1}}>
+                        style={{
+                          background:"#fff",border:"1.5px solid #BFDBFE",
+                          borderRadius:8,padding:"8px 12px",
+                          cursor:pLoading?"wait":"pointer",textAlign:"left",
+                          display:"flex",justifyContent:"space-between",
+                          alignItems:"center",gap:8,fontFamily:"inherit",
+                          opacity:pLoading?0.6:1
+                        }}>
                         <div>
-                          <div style={{fontSize:13,fontWeight:700,color:"#0F172A"}}>{r.denomination||r.nom_entreprise}</div>
-                          <div style={{fontSize:10,color:"#64748B"}}>{siege.code_postal} {siege.ville} — SIRET {r.siret}</div>
-                          {r.libelle_activite_principale&&<div style={{fontSize:10,color:"#94A3B8"}}>{r.libelle_activite_principale}</div>}
+                          <div style={{fontSize:13,fontWeight:700,color:"#0F172A"}}>
+                            {r.denomination||r.nom_entreprise}
+                          </div>
+                          <div style={{fontSize:10,color:"#64748B"}}>
+                            {siege.code_postal} {siege.ville} — SIRET {r.siret}
+                          </div>
+                          {r.libelle_activite_principale && (
+                            <div style={{fontSize:10,color:"#94A3B8"}}>
+                              {r.libelle_activite_principale}
+                            </div>
+                          )}
                         </div>
                         <span style={{fontSize:11,color:"#3B82F6",fontWeight:600,flexShrink:0}}>Importer →</span>
                       </button>
@@ -755,7 +913,10 @@ export default function ContactsV({data,save,m,reload,focusId,focusTs}) {
             {/* ── Section DIRIGEANTS ── */}
             {pResults.dirigeants?.length > 0 && (
               <div>
-                <div style={{fontSize:11,color:"#64748B",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.03em",marginBottom:6}}>
+                <div style={{
+                  fontSize:11,color:"#64748B",fontWeight:700,
+                  textTransform:"uppercase",letterSpacing:"0.03em",marginBottom:6
+                }}>
                   👤 Dirigeants ({pResults.dirigeants.length})
                 </div>
                 <div style={{display:"flex",flexDirection:"column",gap:6}}>
@@ -779,16 +940,33 @@ export default function ContactsV({data,save,m,reload,focusId,focusTs}) {
                           key={`d-${i}-${j}`}
                           onClick={() => importDirigeantFromSearch(dirigeantInfo, ent)}
                           disabled={pLoading}
-                          style={{background:"#fff",border:"1.5px solid #C7D2FE",borderRadius:8,padding:"8px 12px",cursor:pLoading?"wait":"pointer",textAlign:"left",display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,fontFamily:"inherit",opacity:pLoading?0.6:1}}
+                          style={{
+                            background:"#fff",border:"1.5px solid #C7D2FE",
+                            borderRadius:8,padding:"8px 12px",
+                            cursor:pLoading?"wait":"pointer",textAlign:"left",
+                            display:"flex",justifyContent:"space-between",
+                            alignItems:"center",gap:8,
+                            fontFamily:"inherit",opacity:pLoading?0.6:1
+                          }}
                         >
                           <div>
                             <div style={{fontSize:13,fontWeight:700,color:"#0F172A"}}>
                               {fullName}
-                              {dirigeantInfo.qualite && <span style={{fontSize:10,color:"#6366F1",fontWeight:600,marginLeft:6}}>({dirigeantInfo.qualite})</span>}
+                              {dirigeantInfo.qualite && (
+                                <span style={{
+                                  fontSize:10,color:"#6366F1",
+                                  fontWeight:600,marginLeft:6
+                                }}>({dirigeantInfo.qualite})</span>
+                              )}
                             </div>
-                            <div style={{fontSize:11,fontWeight:600,color:"#4338CA"}}>{ent.denomination || ent.nom_entreprise}</div>
+                            <div style={{fontSize:11,fontWeight:600,color:"#4338CA"}}>
+                              {ent.denomination || ent.nom_entreprise}
+                            </div>
                             <div style={{fontSize:10,color:"#64748B"}}>
-                              {[siege.code_postal || ent.code_postal, siege.ville || ent.ville].filter(Boolean).join(" ")}
+                              {[
+                                siege.code_postal || ent.code_postal,
+                                siege.ville || ent.ville,
+                              ].filter(Boolean).join(" ")}
                               {ent.siret && <> — SIRET {ent.siret}</>}
                             </div>
                           </div>
@@ -806,66 +984,148 @@ export default function ContactsV({data,save,m,reload,focusId,focusTs}) {
       </div>
 
       {/* Identité */}
-      <div style={{fontSize:11,fontWeight:700,color:"#1E3A5F",textTransform:"uppercase",marginBottom:8,marginTop:4}}>Identité</div>
+      <div style={{
+        fontSize:11,fontWeight:700,color:"#1E3A5F",
+        textTransform:"uppercase",marginBottom:8,marginTop:4
+      }}>Identité</div>
       <div style={{display:"grid",gridTemplateColumns:m?"1fr":"1fr 1fr 1fr",gap:"0 12px"}}>
-        <FF label="Nom / Prénom *"><input style={inp} value={form.nom||""} onChange={e=>setForm({...form,nom:e.target.value})}/></FF>
-        <FF label="Société / Raison sociale"><input style={inp} value={form.societe||""} onChange={e=>setForm({...form,societe:e.target.value})}/></FF>
+        <FF label="Nom / Prénom *">
+          <input style={inp} value={form.nom||""}
+            onChange={e=>setForm({...form,nom:e.target.value})}/>
+        </FF>
+        <FF label="Société / Raison sociale">
+          <input style={inp} value={form.societe||""}
+            onChange={e=>setForm({...form,societe:e.target.value})}/>
+        </FF>
         <FF label="Type"><select style={sel} value={form.type||""} onChange={e=>setForm({...form,type:e.target.value})}>
           {types.map(t=><option key={t} value={t}>{t}</option>)}
         </select></FF>
       </div>
       <div style={{display:"grid",gridTemplateColumns:m?"1fr":"1fr 1fr",gap:"0 12px"}}>
-        <FF label="Spécialité / Métier"><input style={inp} value={form.specialite||""} onChange={e=>setForm({...form,specialite:e.target.value})} placeholder="Ex: Électricité CFO/CFA, Gros œuvre..."/></FF>
-        <FF label="Fonction"><input style={inp} value={form.fonction||""} onChange={e=>setForm({...form,fonction:e.target.value})} placeholder="Ex: Gérant, Conducteur de travaux..."/></FF>
+        <FF label="Spécialité / Métier">
+          <input style={inp} value={form.specialite||""}
+            onChange={e=>setForm({...form,specialite:e.target.value})}
+            placeholder="Ex: Électricité CFO/CFA, Gros œuvre..."/>
+        </FF>
+        <FF label="Fonction">
+          <input style={inp} value={form.fonction||""}
+            onChange={e=>setForm({...form,fonction:e.target.value})}
+            placeholder="Ex: Gérant, Conducteur de travaux..."/>
+        </FF>
       </div>
 
       {/* Coordonnées */}
-      <div style={{fontSize:11,fontWeight:700,color:"#1E3A5F",textTransform:"uppercase",marginBottom:8,marginTop:12}}>Coordonnées</div>
+      <div style={{
+        fontSize:11,fontWeight:700,color:"#1E3A5F",
+        textTransform:"uppercase",marginBottom:8,marginTop:12
+      }}>Coordonnées</div>
       <div style={{display:"grid",gridTemplateColumns:m?"1fr":"1fr 1fr 1fr",gap:"0 12px"}}>
-        <FF label="Tél. mobile"><input style={inp} value={form.tel||""} onChange={e=>setForm({...form,tel:e.target.value})} placeholder="06 ..."/></FF>
-        <FF label="Tél. fixe"><input style={inp} value={form.tel_fixe||""} onChange={e=>setForm({...form,tel_fixe:e.target.value})} placeholder="02 35 ..."/></FF>
-        <FF label="Email"><input type="email" style={inp} value={form.email||""} onChange={e=>setForm({...form,email:e.target.value})}/></FF>
+        <FF label="Tél. mobile">
+          <input style={inp} value={form.tel||""}
+            onChange={e=>setForm({...form,tel:e.target.value})}
+            placeholder="06 ..."/>
+        </FF>
+        <FF label="Tél. fixe">
+          <input style={inp} value={form.tel_fixe||""}
+            onChange={e=>setForm({...form,tel_fixe:e.target.value})}
+            placeholder="02 35 ..."/>
+        </FF>
+        <FF label="Email">
+          <input type="email" style={inp} value={form.email||""}
+            onChange={e=>setForm({...form,email:e.target.value})}/>
+        </FF>
       </div>
       <div style={{display:"grid",gridTemplateColumns:m?"1fr":"2fr 1fr 1fr",gap:"0 12px"}}>
-        <FF label="Adresse"><input style={inp} value={form.adresse||""} onChange={e=>setForm({...form,adresse:e.target.value})}/></FF>
-        <FF label="Code postal"><input style={inp} value={form.code_postal||""} onChange={e=>setForm({...form,code_postal:e.target.value})}/></FF>
-        <FF label="Ville"><input style={inp} value={form.ville||""} onChange={e=>setForm({...form,ville:e.target.value})}/></FF>
+        <FF label="Adresse">
+          <input style={inp} value={form.adresse||""}
+            onChange={e=>setForm({...form,adresse:e.target.value})}/>
+        </FF>
+        <FF label="Code postal">
+          <input style={inp} value={form.code_postal||""}
+            onChange={e=>setForm({...form,code_postal:e.target.value})}/>
+        </FF>
+        <FF label="Ville">
+          <input style={inp} value={form.ville||""}
+            onChange={e=>setForm({...form,ville:e.target.value})}/>
+        </FF>
       </div>
-      <FF label="Site web"><input style={inp} value={form.site_web||""} onChange={e=>setForm({...form,site_web:e.target.value})} placeholder="https://..."/></FF>
+      <FF label="Site web">
+        <input style={inp} value={form.site_web||""}
+          onChange={e=>setForm({...form,site_web:e.target.value})}
+          placeholder="https://..."/>
+      </FF>
 
       {/* Administratif */}
-      <div style={{fontSize:11,fontWeight:700,color:"#1E3A5F",textTransform:"uppercase",marginBottom:8,marginTop:12}}>Administratif</div>
+      <div style={{
+        fontSize:11,fontWeight:700,color:"#1E3A5F",
+        textTransform:"uppercase",marginBottom:8,marginTop:12
+      }}>Administratif</div>
       <div style={{display:"grid",gridTemplateColumns:m?"1fr":"1fr 1fr",gap:"0 12px"}}>
-        <FF label="SIRET"><input style={inp} value={form.siret||""} onChange={e=>setForm({...form,siret:e.target.value})} placeholder="XXX XXX XXX XXXXX"/></FF>
-        <FF label="TVA intracommunautaire"><input style={inp} value={form.tva_intra||""} onChange={e=>setForm({...form,tva_intra:e.target.value})} placeholder="FR XX XXXXXXXXX"/></FF>
+        <FF label="SIRET">
+          <input style={inp} value={form.siret||""}
+            onChange={e=>setForm({...form,siret:e.target.value})}
+            placeholder="XXX XXX XXX XXXXX"/>
+        </FF>
+        <FF label="TVA intracommunautaire">
+          <input style={inp} value={form.tva_intra||""}
+            onChange={e=>setForm({...form,tva_intra:e.target.value})}
+            placeholder="FR XX XXXXXXXXX"/>
+        </FF>
       </div>
       <div style={{display:"grid",gridTemplateColumns:m?"1fr":"1fr 1fr",gap:"0 12px"}}>
-        <FF label="Assurance décennale"><input style={inp} value={form.assurance_decennale||""} onChange={e=>setForm({...form,assurance_decennale:e.target.value})} placeholder="N° police + assureur"/></FF>
-        <FF label="Validité assurance"><input type="date" style={inp} value={form.assurance_validite||""} onChange={e=>setForm({...form,assurance_validite:e.target.value})}/></FF>
+        <FF label="Assurance décennale">
+          <input style={inp} value={form.assurance_decennale||""}
+            onChange={e=>setForm({...form,assurance_decennale:e.target.value})}
+            placeholder="N° police + assureur"/>
+        </FF>
+        <FF label="Validité assurance">
+          <input type="date" style={inp} value={form.assurance_validite||""}
+            onChange={e=>setForm({...form,assurance_validite:e.target.value})}/>
+        </FF>
       </div>
       <div style={{display:"grid",gridTemplateColumns:m?"1fr":"1fr 1fr",gap:"0 12px"}}>
-        <FF label="IBAN"><input style={inp} value={form.iban||""} onChange={e=>setForm({...form,iban:e.target.value})} placeholder="FR76 XXXX ..."/></FF>
-        <FF label="Qualifications (Qualibat, RGE...)"><input style={inp} value={form.qualifications||""} onChange={e=>setForm({...form,qualifications:e.target.value})}/></FF>
+        <FF label="IBAN">
+          <input style={inp} value={form.iban||""}
+            onChange={e=>setForm({...form,iban:e.target.value})}
+            placeholder="FR76 XXXX ..."/>
+        </FF>
+        <FF label="Qualifications (Qualibat, RGE...)">
+          <input style={inp} value={form.qualifications||""}
+            onChange={e=>setForm({...form,qualifications:e.target.value})}/>
+        </FF>
       </div>
 
       {/* Évaluation */}
-      <div style={{fontSize:11,fontWeight:700,color:"#1E3A5F",textTransform:"uppercase",marginBottom:8,marginTop:12}}>Évaluation</div>
+      <div style={{
+        fontSize:11,fontWeight:700,color:"#1E3A5F",
+        textTransform:"uppercase",marginBottom:8,marginTop:12
+      }}>Évaluation</div>
       <div style={{display:"grid",gridTemplateColumns:m?"1fr":"1fr 1fr 1fr",gap:"0 12px"}}>
         <FF label="Note (étoiles)">
           <div style={{display:"flex",gap:4}}>
             {[1,2,3,4,5].map(n=>(
-              <button key={n} onClick={()=>setForm({...form,note:form.note===n?0:n})} style={{background:"none",border:"none",cursor:"pointer",fontSize:22,color:n<=(form.note||0)?"#F59E0B":"#E2E8F0"}}>★</button>
+              <button key={n}
+                onClick={()=>setForm({...form,note:form.note===n?0:n})}
+                style={{background:"none",border:"none",cursor:"pointer",
+                  fontSize:22,
+                  color:n<=(form.note||0)?"#F59E0B":"#E2E8F0"}}>★</button>
             ))}
           </div>
         </FF>
         <FF label="Statut">
           <label style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",fontSize:13}}>
-            <input type="checkbox" checked={form.actif!==false} onChange={e=>setForm({...form,actif:e.target.checked})}/>
+            <input type="checkbox" checked={form.actif!==false}
+              onChange={e=>setForm({...form,actif:e.target.checked})}/>
             {form.actif!==false?"Actif":"Inactif"}
           </label>
         </FF>
       </div>
-      <FF label="Notes / Remarques"><textarea style={{...inp,minHeight:50,resize:"vertical"}} value={form.notes||""} onChange={e=>setForm({...form,notes:e.target.value})} placeholder="Notes internes..."/></FF>
+      <FF label="Notes / Remarques">
+        <textarea style={{...inp,minHeight:50,resize:"vertical"}}
+          value={form.notes||""}
+          onChange={e=>setForm({...form,notes:e.target.value})}
+          placeholder="Notes internes..."/>
+      </FF>
 
       {formError && (
         <div style={{
@@ -875,7 +1135,9 @@ export default function ContactsV({data,save,m,reload,focusId,focusTs}) {
         }}>
           <span style={{fontSize:14}}>⚠</span>
           <span style={{flex:1}}>{formError}</span>
-          <button onClick={()=>setFormError("")} aria-label="Fermer" style={{background:"none",border:"none",cursor:"pointer",color:"#DC2626",fontSize:14,padding:0,lineHeight:1}}>✕</button>
+          <button onClick={()=>setFormError("")} aria-label="Fermer"
+            style={{background:"none",border:"none",cursor:"pointer",
+              color:"#DC2626",fontSize:14,padding:0,lineHeight:1}}>✕</button>
         </div>
       )}
       <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginTop:14}}>
@@ -886,7 +1148,7 @@ export default function ContactsV({data,save,m,reload,focusId,focusTs}) {
   </div>);
 }
 
-// ─── Composants helpers copy-to-clipboard ──────────────────────────
+// ─── Composants helpers copy-to-clipboard ───────────────
 
 // Lien cliquable (tel: / mailto:) avec bouton copie à droite.
 // Le clic sur le lien ouvre l'app native ; le clic sur 📋 copie la valeur.
@@ -924,7 +1186,9 @@ function CopyIconBtn({ onClick }) {
       onMouseEnter={e => { e.currentTarget.style.opacity = 1; e.currentTarget.style.color = "#3B82F6"; }}
       onMouseLeave={e => { e.currentTarget.style.opacity = 0.7; e.currentTarget.style.color = "#94A3B8"; }}
     >
-      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" strokeWidth="2.5"
+        strokeLinecap="round" strokeLinejoin="round">
         <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
         <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
       </svg>
