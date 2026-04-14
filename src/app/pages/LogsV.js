@@ -161,7 +161,10 @@ export default function LogsV({ m, profile, embedded = false }) {
         if (rows.length < 500) break
         before = rows[rows.length - 1].created_at
       }
-      const headers = ['Date', 'Utilisateur', 'Email', 'Rôle', 'Action', 'Type', 'Libellé', 'ID', 'Metadata', 'Appareil']
+      const headers = [
+        'Date', 'Utilisateur', 'Email', 'Rôle', 'Action',
+        'Type', 'Libellé', 'ID', 'Metadata', 'Appareil'
+      ]
       const lines = [headers.join(';')]
       for (const l of all) {
         lines.push([
@@ -231,9 +234,14 @@ export default function LogsV({ m, profile, embedded = false }) {
 
   if (!isAdmin) {
     return (
-      <div style={{ background: "#FEF2F2", borderRadius: 14, padding: 40, textAlign: "center", border: "1.5px solid #FECACA" }}>
+      <div style={{
+        background: "#FEF2F2", borderRadius: 14, padding: 40,
+        textAlign: "center", border: "1.5px solid #FECACA"
+      }}>
         <h1 style={{ margin: "0 0 10px", fontSize: 20, fontWeight: 700, color: "#DC2626" }}>🔒 Accès refusé</h1>
-        <p style={{ margin: 0, color: "#94A3B8", fontSize: 14 }}>Seuls les administrateurs peuvent consulter le journal d&apos;activité.</p>
+        <p style={{ margin: 0, color: "#94A3B8", fontSize: 14 }}>
+          Seuls les administrateurs peuvent consulter le journal d&apos;activité.
+        </p>
       </div>
     )
   }
@@ -243,7 +251,10 @@ export default function LogsV({ m, profile, embedded = false }) {
   return (
     <div>
       {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 8 }}>
+      <div style={{
+        display: "flex", justifyContent: "space-between", alignItems: "center",
+        marginBottom: 14, flexWrap: "wrap", gap: 8
+      }}>
         <div>
           {!embedded && (
             <h1 style={{ margin: 0, fontSize: m ? 18 : 24, fontWeight: 700 }}>📋 Journal d&apos;activité</h1>
@@ -253,24 +264,36 @@ export default function LogsV({ m, profile, embedded = false }) {
               ? <>Connexions, créations, modifications et suppressions.</>
               : <>Connexions, créations, modifications et suppressions — admin uniquement.</>
             }
-            {logs.length > 0 && <> · <strong>{logs.length}</strong> entrée{logs.length > 1 ? 's' : ''}{hasMore ? ' (+)' : ''}</>}
+            {logs.length > 0 && (
+              <> · <strong>{logs.length}</strong>
+                entrée{logs.length > 1 ? 's' : ''}{hasMore ? ' (+)' : ''}
+              </>
+            )}
           </div>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <button onClick={() => load({ append: false })} disabled={loading} title="Actualiser" style={{ ...btnS, fontSize: 12 }}>
+          <button onClick={() => load({ append: false })} disabled={loading}
+            title="Actualiser" style={{ ...btnS, fontSize: 12 }}>
             {loading ? '⏳ Chargement…' : '↻ Actualiser'}
           </button>
-          <button onClick={exportCsv} disabled={exporting || logs.length === 0} title="Exporter TOUT le journal filtré en CSV" style={{ ...btnS, fontSize: 12 }}>
+          <button onClick={exportCsv} disabled={exporting || logs.length === 0}
+            title="Exporter TOUT le journal filtré en CSV"
+            style={{ ...btnS, fontSize: 12 }}>
             {exporting ? '⏳ Export…' : '⬇ Export CSV'}
           </button>
-          <button onClick={handlePurge} disabled={purging} title="Supprimer les entrées de plus de 90 jours" style={{ ...btnS, fontSize: 12, color: '#B91C1C' }}>
+          <button onClick={handlePurge} disabled={purging}
+            title="Supprimer les entrées de plus de 90 jours"
+            style={{ ...btnS, fontSize: 12, color: '#B91C1C' }}>
             {purging ? '⏳ Purge…' : '🧹 Purger > 90j'}
           </button>
         </div>
       </div>
 
       {/* Filtres */}
-      <div style={{ background: "#fff", borderRadius: 12, padding: m ? 12 : 14, boxShadow: "0 1px 3px rgba(0,0,0,0.04)", marginBottom: 12 }}>
+      <div style={{
+        background: "#fff", borderRadius: 12, padding: m ? 12 : 14,
+        boxShadow: "0 1px 3px rgba(0,0,0,0.04)", marginBottom: 12
+      }}>
         <div style={{ display: "grid", gridTemplateColumns: m ? "1fr" : "1.5fr 1fr 1fr 1fr", gap: 10 }}>
           <input
             type="search"
@@ -300,7 +323,10 @@ export default function LogsV({ m, profile, embedded = false }) {
         </div>
         {hasFilters && (
           <div style={{ marginTop: 8, textAlign: 'right' }}>
-            <button onClick={resetFilters} style={{ background: 'none', border: 'none', color: '#64748B', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'underline' }}>
+            <button onClick={resetFilters} style={{
+              background: 'none', border: 'none', color: '#64748B',
+              fontSize: 11, cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'underline'
+            }}>
               Réinitialiser les filtres
             </button>
           </div>
@@ -309,12 +335,18 @@ export default function LogsV({ m, profile, embedded = false }) {
 
       {/* Erreur */}
       {error && (
-        <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 8, padding: "10px 14px", marginBottom: 12, fontSize: 13, color: "#DC2626" }}>
+        <div style={{
+          background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 8,
+          padding: "10px 14px", marginBottom: 12, fontSize: 13, color: "#DC2626"
+        }}>
           ⚠ {error}
           <div style={{ fontSize: 11, marginTop: 4, color: '#94A3B8' }}>
             {errorCode === 'MIGRATION_MISSING'
-              ? <>La table <code>activity_logs</code> n&apos;existe pas. Exécute la migration <code>007_activity_logs_consolidated.sql</code> dans Supabase (SQL Editor).</>
-              : <>Si l&apos;erreur persiste, vérifie que la migration <code>007_activity_logs_consolidated.sql</code> a bien été appliquée.</>
+              ? <>La table <code>activity_logs</code> n&apos;existe pas.{' '}
+                Exécute la migration <code>007_activity_logs_consolidated.sql</code>{' '}
+                dans Supabase (SQL Editor).</>
+              : <>Si l&apos;erreur persiste, vérifie que la migration{' '}
+                <code>007_activity_logs_consolidated.sql</code> a bien été appliquée.</>
             }
           </div>
         </div>
@@ -322,12 +354,22 @@ export default function LogsV({ m, profile, embedded = false }) {
 
       {/* Table */}
       {loading ? (
-        <div style={{ background: "#fff", borderRadius: 12, padding: "40px 24px", textAlign: "center", color: "#94A3B8", fontSize: 13 }}>
-          <div style={{ width: 32, height: 32, border: "3px solid #E2E8F0", borderTopColor: "#1E3A5F", borderRadius: "50%", animation: "spin .9s linear infinite", margin: "0 auto 10px" }} />
+        <div style={{
+          background: "#fff", borderRadius: 12, padding: "40px 24px",
+          textAlign: "center", color: "#94A3B8", fontSize: 13
+        }}>
+          <div style={{
+            width: 32, height: 32, border: "3px solid #E2E8F0",
+            borderTopColor: "#1E3A5F", borderRadius: "50%",
+            animation: "spin .9s linear infinite", margin: "0 auto 10px"
+          }} />
           Chargement du journal…
         </div>
       ) : logs.length === 0 ? (
-        <div style={{ background: "#fff", borderRadius: 12, padding: "40px 24px", textAlign: "center", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+        <div style={{
+          background: "#fff", borderRadius: 12, padding: "40px 24px",
+          textAlign: "center", boxShadow: "0 1px 3px rgba(0,0,0,0.04)"
+        }}>
           <div style={{ fontSize: 36, marginBottom: 8, opacity: 0.5 }}>📋</div>
           <div style={{ fontSize: 14, fontWeight: 700, color: "#334155", marginBottom: 4 }}>
             {hasFilters ? 'Aucun résultat' : 'Journal vide'}
@@ -335,7 +377,8 @@ export default function LogsV({ m, profile, embedded = false }) {
           <div style={{ fontSize: 12, color: "#94A3B8", marginBottom: 14 }}>
             {hasFilters
               ? "Essaie d'élargir les filtres."
-              : "Les actions des utilisateurs apparaîtront ici dès qu'ils se connecteront ou modifieront des données."}
+              : "Les actions des utilisateurs apparaîtront ici dès qu'ils se connecteront" +
+                " ou modifieront des données."}
           </div>
           {hasFilters && <button onClick={resetFilters} style={{ ...btnS, fontSize: 12 }}>Réinitialiser</button>}
         </div>
@@ -347,15 +390,27 @@ export default function LogsV({ m, profile, embedded = false }) {
             const src = l.metadata?.source
             const isOpen = expanded.has(l.id)
             return (
-              <div key={l.id} style={{ background: '#fff', borderRadius: 10, padding: 12, boxShadow: '0 1px 3px rgba(15,23,42,0.05)', borderLeft: `4px solid ${a.color}` }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6, gap: 8 }}>
-                  <span style={{ background: a.bg, color: a.color, border: `1px solid ${a.border}`, borderRadius: 5, padding: '2px 8px', fontSize: 10, fontWeight: 700 }}>
+              <div key={l.id} style={{
+                background: '#fff', borderRadius: 10, padding: 12,
+                boxShadow: '0 1px 3px rgba(15,23,42,0.05)',
+                borderLeft: `4px solid ${a.color}`
+              }}>
+                <div style={{
+                  display: 'flex', justifyContent: 'space-between',
+                  alignItems: 'center', marginBottom: 6, gap: 8
+                }}>
+                  <span style={{
+                    background: a.bg, color: a.color,
+                    border: `1px solid ${a.border}`, borderRadius: 5,
+                    padding: '2px 8px', fontSize: 10, fontWeight: 700
+                  }}>
                     {a.label}
                   </span>
                   <span style={{ fontSize: 10, color: '#94A3B8' }}>{formatWhen(l.created_at)}</span>
                 </div>
                 <div style={{ fontSize: 13, fontWeight: 600, color: '#0F172A', marginBottom: 2 }}>
-                  {l.user_prenom || '—'} <span style={{ fontSize: 11, fontWeight: 400, color: '#94A3B8' }}>· {l.user_email}</span>
+                  {l.user_prenom || '—'}{' '}
+                  <span style={{ fontSize: 11, fontWeight: 400, color: '#94A3B8' }}>· {l.user_email}</span>
                 </div>
                 <div style={{ fontSize: 12, color: '#475569' }}>
                   <span style={{ fontWeight: 600 }}>{ENTITY_LABELS[l.entity_type] || l.entity_type || '—'}</span>
@@ -366,7 +421,11 @@ export default function LogsV({ m, profile, embedded = false }) {
                 {l.metadata && (
                   <>
                     <button onClick={() => toggleExpanded(l.id)}
-                      style={{ marginTop: 6, background: 'none', border: 'none', color: '#64748B', fontSize: 10, cursor: 'pointer', padding: 0, fontFamily: 'inherit', textDecoration: 'underline' }}>
+                      style={{
+                        marginTop: 6, background: 'none', border: 'none',
+                        color: '#64748B', fontSize: 10, cursor: 'pointer',
+                        padding: 0, fontFamily: 'inherit', textDecoration: 'underline'
+                      }}>
                       {isOpen ? '▾ Masquer les détails' : '▸ Afficher les détails'}
                     </button>
                     {isOpen && (
@@ -380,11 +439,17 @@ export default function LogsV({ m, profile, embedded = false }) {
         </div>
       ) : (
         // Vue table (desktop)
-        <div style={{ background: '#fff', borderRadius: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.04)', overflow: 'hidden' }}>
+        <div style={{
+          background: '#fff', borderRadius: 12,
+          boxShadow: '0 1px 3px rgba(0,0,0,0.04)', overflow: 'hidden'
+        }}>
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead>
-                <tr style={{ background: '#F8FAFC', textAlign: 'left', fontSize: 11, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                <tr style={{
+                  background: '#F8FAFC', textAlign: 'left', fontSize: 11,
+                  color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em'
+                }}>
                   <th style={thStyle}>Date</th>
                   <th style={thStyle}>Utilisateur</th>
                   <th style={thStyle}>Action</th>
@@ -394,21 +459,28 @@ export default function LogsV({ m, profile, embedded = false }) {
               </thead>
               <tbody>
                 {logs.map((l, i) => {
-                  const a = ACTION_STYLES[l.action] || { bg: '#F1F5F9', color: '#475569', border: '#CBD5E1', label: l.action }
+                  const a = ACTION_STYLES[l.action] ||
+                    { bg: '#F1F5F9', color: '#475569', border: '#CBD5E1', label: l.action }
                   const hasMeta = l.metadata && Object.keys(l.metadata).length > 0
                   const isOpen = expanded.has(l.id)
                   const src = l.metadata?.source
                   return (
                     <React.Fragment key={l.id}>
-                      <tr style={{ borderTop: i === 0 ? 'none' : '1px solid #F1F5F9', cursor: hasMeta ? 'pointer' : 'default' }}
+                      <tr style={{ borderTop: i === 0 ? 'none' : '1px solid #F1F5F9',
+                        cursor: hasMeta ? 'pointer' : 'default' }}
                           onClick={() => hasMeta && toggleExpanded(l.id)}>
-                        <td style={{ ...tdStyle, whiteSpace: 'nowrap', color: '#64748B', fontSize: 12 }}>{formatWhen(l.created_at)}</td>
+                        <td style={{ ...tdStyle, whiteSpace: 'nowrap',
+                          color: '#64748B', fontSize: 12 }}>{formatWhen(l.created_at)}</td>
                         <td style={tdStyle}>
                           <div style={{ fontWeight: 600, color: '#0F172A' }}>{l.user_prenom || '—'}</div>
                           <div style={{ fontSize: 11, color: '#94A3B8' }}>{l.user_email}</div>
                         </td>
                         <td style={tdStyle}>
-                          <span style={{ background: a.bg, color: a.color, border: `1px solid ${a.border}`, borderRadius: 5, padding: '3px 8px', fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap' }}>
+                          <span style={{
+                            background: a.bg, color: a.color,
+                            border: `1px solid ${a.border}`, borderRadius: 5,
+                            padding: '3px 8px', fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap'
+                          }}>
                             {a.label}
                           </span>
                         </td>
@@ -417,12 +489,19 @@ export default function LogsV({ m, profile, embedded = false }) {
                         </td>
                         <td style={{ ...tdStyle, color: '#334155' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 320 }}>
+                            <span style={{
+                              overflow: 'hidden', textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap', maxWidth: 320
+                            }}>
                               {l.entity_label || '—'}
                             </span>
                             {src === 'ai' && <span style={sourceBadge}>🤖 IA</span>}
                             {src === 'duplicate' && <span style={sourceBadge}>📋 Copie</span>}
-                            {hasMeta && <span style={{ fontSize: 10, color: '#94A3B8' }}>{isOpen ? '▾' : '▸'}</span>}
+                            {hasMeta && (
+                              <span style={{ fontSize: 10, color: '#94A3B8' }}>
+                                {isOpen ? '▾' : '▸'}
+                              </span>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -430,7 +509,11 @@ export default function LogsV({ m, profile, embedded = false }) {
                         <tr style={{ background: '#F8FAFC', borderTop: '1px solid #E2E8F0' }}>
                           <td colSpan={5} style={{ padding: '10px 14px' }}>
                             <pre style={metaStyle}>{JSON.stringify(l.metadata, null, 2)}</pre>
-                            {l.user_agent && <div style={{ fontSize: 10, color: '#94A3B8', marginTop: 4 }}>Appareil : {l.user_agent}</div>}
+                            {l.user_agent && (
+                              <div style={{ fontSize: 10, color: '#94A3B8', marginTop: 4 }}>
+                                Appareil : {l.user_agent}
+                              </div>
+                            )}
                           </td>
                         </tr>
                       )}
