@@ -122,15 +122,20 @@ export const SB = {
       supabase.from('attachments').select('id,chantier_id').order('created_at', { ascending: false }),
     ]);
     if (ch.error) return { error: ch.error.message };
+    // Filtrage : on masque les chantiers démo pour les admins/salariés.
+    // Seul le MOA DémoMOA les voit (via loadForClient plus bas).
+    const nonDemoChantiers = (ch.data || []).filter(c => !c.is_demo);
+    const demoIds = new Set((ch.data || []).filter(c => c.is_demo).map(c => c.id));
+    const notDemoChantier = (item) => !item?.chantier_id || !demoIds.has(item.chantier_id);
     return {
-      chantiers: (ch.data || []).map(c => ({ ...c, lots: c.lots || [] })),
+      chantiers: nonDemoChantiers.map(c => ({ ...c, lots: c.lots || [] })),
       contacts: (co.data || []).map(c => ({ ...c, chantiers: [] })),
-      tasks: (ta.data || []).map(t => ({ ...t, chantierId: t.chantier_id })),
-      planning: (pl.data || []).map(p => ({ ...p, chantierId: p.chantier_id })),
-      rdv: (rv.data || []).map(r => ({ ...r, chantierId: r.chantier_id, participants: r.participants || [] })),
-      compteRendus: (cr.data || []).map(c => ({ ...c, chantierId: c.chantier_id })),
-      ordresService: os.data || [],
-      attachments: att.data || [],
+      tasks: (ta.data || []).filter(notDemoChantier).map(t => ({ ...t, chantierId: t.chantier_id })),
+      planning: (pl.data || []).filter(notDemoChantier).map(p => ({ ...p, chantierId: p.chantier_id })),
+      rdv: (rv.data || []).filter(notDemoChantier).map(r => ({ ...r, chantierId: r.chantier_id, participants: r.participants || [] })),
+      compteRendus: (cr.data || []).filter(notDemoChantier).map(c => ({ ...c, chantierId: c.chantier_id })),
+      ordresService: (os.data || []).filter(notDemoChantier),
+      attachments: (att.data || []).filter(notDemoChantier),
     };
   },
 
