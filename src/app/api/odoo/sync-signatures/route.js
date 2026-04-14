@@ -25,9 +25,18 @@ export async function GET(request) {
   const { searchParams } = new URL(request.url)
   const osId = searchParams.get('osId')
 
+  // On exige SERVICE_ROLE_KEY explicitement : un fallback vers ANON_KEY
+  // masquerait un défaut de configuration en production (les mises à jour
+  // passeraient en mode RLS restreint au lieu de bypass admin).
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return NextResponse.json(
+      { error: 'SUPABASE_SERVICE_ROLE_KEY manquant côté serveur' },
+      { status: 500 }
+    )
+  }
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    process.env.SUPABASE_SERVICE_ROLE_KEY
   )
 
   // 1. Liste les OS à synchroniser

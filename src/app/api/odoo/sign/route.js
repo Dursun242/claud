@@ -30,11 +30,17 @@ export async function POST(request) {
       result = await createSignRequest({ templateId, signerName, signerEmail, reference })
     }
 
-    // Mettre à jour l'OS dans Supabase avec l'ID de la demande Odoo
+    // Mettre à jour l'OS dans Supabase avec l'ID de la demande Odoo.
+    // On exige SERVICE_ROLE_KEY explicitement : un fallback vers ANON_KEY
+    // ferait silencieusement passer l'écriture en mode RLS restreint,
+    // ce qui masquerait un défaut de configuration en production.
     if (osId) {
+      if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+        throw new Error('SUPABASE_SERVICE_ROLE_KEY manquant côté serveur')
+      }
       const supabase = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL,
-        process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+        process.env.SUPABASE_SERVICE_ROLE_KEY
       )
       await supabase.from('ordres_service').update({
         odoo_sign_id: result.requestId,

@@ -117,20 +117,21 @@ function tabFor(entityType) {
 /**
  * Résout le display-name de l'acteur (prénom + rôle) depuis authorized_users,
  * fallback sur le local-part de l'email.
+ *
+ * Passe par la RPC `get_user_display` (SECURITY DEFINER, migration 018)
+ * pour éviter d'exposer un SELECT direct sur authorized_users aux clients.
  */
 async function resolveActorDisplay(actorEmail) {
   if (!actorEmail) return null
   try {
     const { data } = await supabase
-      .from('authorized_users')
-      .select('prenom, nom, role')
-      .ilike('email', actorEmail)
-      .maybeSingle()
-    if (data) {
-      const name = [data.prenom, data.nom].filter(Boolean).join(' ').trim() || actorEmail.split('@')[0]
-      const role = data.role === 'admin' ? 'admin'
-        : data.role === 'salarié' || data.role === 'salarie' ? 'salarié'
-        : data.role === 'client' ? 'client'
+      .rpc('get_user_display', { p_email: actorEmail })
+    const row = Array.isArray(data) ? data[0] : data
+    if (row) {
+      const name = [row.prenom, row.nom].filter(Boolean).join(' ').trim() || actorEmail.split('@')[0]
+      const role = row.role === 'admin' ? 'admin'
+        : row.role === 'salarié' || row.role === 'salarie' ? 'salarié'
+        : row.role === 'client' ? 'client'
         : null
       return role ? `${name} (${role})` : name
     }
@@ -149,18 +150,15 @@ async function resolveActorDisplay(actorEmail) {
 async function resolveRecipients({ chantierId, actorEmail }) {
   const recipients = new Set()
 
-  // Staff (admin + salarié actifs) — TOUS, y compris l'acteur
-  const { data: staff } = await supabase
-    .from('authorized_users')
-    .select('email, role, actif')
-    .eq('actif', true)
-    .in('role', ['admin', 'salarié', 'salarie'])
+  // Staff (admin + salarié actifs) via RPC SECURITY DEFINER (migration 018)
+  // — évite d'exposer un SELECT direct sur authorized_users aux clients.
+  const { data: staff } = await supabase.rpc('get_staff_recipients')
   ;(staff || []).forEach(u => {
     const e = (u.email || '').toLowerCase().trim()
     if (e) recipients.add(e)
   })
 
-  // Client MOA du chantier (matching prénom)
+  // Client MOA du chantier (matching prénom) — même logique via RPC.
   if (chantierId) {
     const { data: ch } = await supabase
       .from('chantiers')
@@ -170,16 +168,10 @@ async function resolveRecipients({ chantierId, actorEmail }) {
     const clientFirstName = (ch?.client || '').toLowerCase().trim()
     if (clientFirstName) {
       const { data: clients } = await supabase
-        .from('authorized_users')
-        .select('email, prenom, role, actif')
-        .eq('actif', true)
-        .eq('role', 'client')
+        .rpc('get_client_recipients_by_firstname', { p_firstname: clientFirstName })
       ;(clients || []).forEach(u => {
-        const prenom = (u.prenom || '').toLowerCase().trim()
         const e = (u.email || '').toLowerCase().trim()
-        if (prenom && e && prenom === clientFirstName) {
-          recipients.add(e)
-        }
+        if (e) recipients.add(e)
       })
     }
   }
