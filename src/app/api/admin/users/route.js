@@ -10,6 +10,8 @@ function getAdminClient() {
 // GET — liste les utilisateurs autorisés
 // - Admin : liste complète
 // - User normal : uniquement son propre profil (évite la fuite d'infos collègues)
+// - Si le mode démo est ACTIVÉ et que l'email connecté n'existe pas en DB,
+//   on l'auto-inscrit comme client "DémoMOA" (accès au chantier démo).
 export async function GET(request) {
   try {
     const user = await verifyAuth(request)
@@ -19,7 +21,7 @@ export async function GET(request) {
 
     // Récupère d'abord le profil du caller pour vérifier son rôle
     const email = user.email?.trim().toLowerCase()
-    const { data: caller, error: callerErr } = await supabaseAdmin
+    let { data: caller, error: callerErr } = await supabaseAdmin
       .from('authorized_users')
       .select('*')
       .eq('email', email)
@@ -27,6 +29,43 @@ export async function GET(request) {
     if (callerErr) {
       console.error('[admin/users GET] caller lookup:', callerErr)
       return Response.json({ error: 'Erreur serveur' }, { status: 500 })
+    }
+
+    // Auto-provisioning démo : email inconnu + mode démo ON → création client
+    if (!caller && email) {
+      const { data: setting } = await supabaseAdmin
+        .from('settings')
+        .select('value')
+        .eq('key', 'demo_mode')
+        .maybeSingle()
+      if (setting?.value === 'on') {
+        const { data: created, error: createErr } = await supabaseAdmin
+          .from('authorized_users')
+          .insert({
+            email,
+            prenom: 'DémoMOA',
+            nom: 'Prospect',
+            role: 'client',
+            actif: true,
+          })
+          .select()
+          .single()
+        if (!createErr && created) {
+          caller = created
+          // Log audit : trace l'auto-inscription démo pour que le gérant voie
+          // dans Admin → Journal quels prospects ont testé l'app.
+          await supabaseAdmin.from('activity_logs').insert({
+            user_email: email,
+            action: 'demo_signup',
+            entity_type: 'user',
+            entity_id: created.id,
+            entity_label: `Prospect démo — ${email}`,
+            metadata: { provider: user.app_metadata?.provider || null },
+          }).then(() => {}, () => {})
+        } else if (createErr) {
+          console.error('[admin/users GET] demo auto-provisioning:', createErr)
+        }
+      }
     }
 
     // User non-admin : on ne renvoie que son propre profil

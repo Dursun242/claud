@@ -43,6 +43,10 @@ export default function AdminV({ m, reload, profile }) {
   const [addError, setAddError] = useState("")
   const [setupLoading, setSetupLoading] = useState(false)
   const [setupMsg, setSetupMsg] = useState("")
+  // Mode démo
+  const [demoMode, setDemoMode] = useState(false)
+  const [demoBusy, setDemoBusy] = useState(false)
+  const [demoResetBusy, setDemoResetBusy] = useState(false)
   const [q, setQ] = useState("")
   const [roleFilter, setRoleFilter] = useState("all")
   const searchInputRef = useRef(null)
@@ -61,6 +65,79 @@ export default function AdminV({ m, reload, profile }) {
   useEffect(() => {
     if (isAdmin) loadUsers()
   }, [isAdmin, loadUsers])
+
+  // Charge l'état du mode démo au montage (admin uniquement)
+  useEffect(() => {
+    if (!isAdmin) return
+    ;(async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        const res = await fetch('/api/admin/demo-mode', {
+          headers: { 'Authorization': `Bearer ${session?.access_token || ''}` },
+        })
+        if (res.ok) {
+          const json = await res.json()
+          setDemoMode(!!json.enabled)
+        }
+      } catch (_) {}
+    })()
+  }, [isAdmin])
+
+  const handleToggleDemoMode = async () => {
+    const next = !demoMode
+    const ok = await confirm({
+      title: next ? 'Activer le mode démo ?' : 'Désactiver le mode démo ?',
+      message: next
+        ? "Tout compte Google qui se connectera sera automatiquement ajouté comme client MOA et verra le chantier démo. Toutes ses actions seront tracées dans le Journal."
+        : "Les nouveaux comptes Google inconnus seront à nouveau refusés. Les comptes démo déjà créés restent actifs — supprime-les depuis la liste des utilisateurs si besoin.",
+      confirmLabel: next ? 'Activer' : 'Désactiver',
+      danger: !next,
+    })
+    if (!ok) return
+    setDemoBusy(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch('/api/admin/demo-mode', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token || ''}` },
+        body: JSON.stringify({ enabled: next }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'Erreur')
+      setDemoMode(!!json.enabled)
+      addToast(next ? 'Mode démo activé' : 'Mode démo désactivé', 'success')
+    } catch (err) {
+      addToast('Erreur : ' + err.message, 'error')
+    } finally {
+      setDemoBusy(false)
+    }
+  }
+
+  const handleResetDemoData = async () => {
+    const ok = await confirm({
+      title: 'Réinitialiser les données démo ?',
+      message: "Le chantier « Villa Moreau » et toutes ses OS / CR / tâches vont être supprimés puis recréés à neuf. Les comptes démo (utilisateurs) ne sont pas touchés.",
+      confirmLabel: 'Réinitialiser',
+      danger: true,
+    })
+    if (!ok) return
+    setDemoResetBusy(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch('/api/admin/reset-demo-data', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${session?.access_token || ''}` },
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'Erreur')
+      addToast('Données démo réinitialisées', 'success')
+      reload?.()
+    } catch (err) {
+      addToast('Erreur : ' + err.message, 'error')
+    } finally {
+      setDemoResetBusy(false)
+    }
+  }
 
   const filteredUsers = useMemo(() => {
     const s = q.toLowerCase().trim()
@@ -213,6 +290,79 @@ export default function AdminV({ m, reload, profile }) {
         {!setupMsg && <div style={{ marginTop: 10, fontSize: 11, color: "#94A3B8" }}>
           Si l&apos;erreur persiste : Supabase Dashboard → Storage → New bucket → nom : <strong>attachments</strong>
         </div>}
+      </div>
+
+      {/* MODE DÉMO */}
+      <div style={{
+        background: demoMode ? "linear-gradient(135deg, #ECFDF5 0%, #F0FDF4 100%)" : "#fff",
+        borderRadius: 14, padding: m ? 14 : 18,
+        boxShadow: "0 1px 3px rgba(15,23,42,0.06)", marginBottom: 18,
+        border: `1.5px solid ${demoMode ? "#10B981" : "#E2E8F0"}`,
+        transition: "border-color .2s, background .2s",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 10 }}>
+          <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, display: "flex", alignItems: "center", gap: 8 }}>
+            🎯 Mode démo commercial
+            {demoMode && (
+              <span style={{
+                background: "#10B981", color: "#fff", fontSize: 10, fontWeight: 700,
+                padding: "3px 8px", borderRadius: 999, letterSpacing: "0.05em",
+              }}>ACTIF</span>
+            )}
+          </h2>
+          <button
+            onClick={handleToggleDemoMode}
+            disabled={demoBusy}
+            style={{
+              background: demoMode ? "#10B981" : "#E2E8F0",
+              border: "none", borderRadius: 999, width: 52, height: 28,
+              cursor: demoBusy ? "wait" : "pointer",
+              position: "relative", flexShrink: 0,
+              opacity: demoBusy ? 0.6 : 1,
+              transition: "background .2s",
+            }}
+            aria-label={demoMode ? "Désactiver le mode démo" : "Activer le mode démo"}
+          >
+            <span style={{
+              position: "absolute", top: 3, left: demoMode ? 27 : 3,
+              width: 22, height: 22, borderRadius: "50%",
+              background: "#fff", transition: "left .2s",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+            }}/>
+          </button>
+        </div>
+        <p style={{ margin: "0 0 12px", fontSize: 12, color: "#475569", lineHeight: 1.55 }}>
+          Quand le mode est <strong>ACTIF</strong>, tout compte Google qui se connecte sera automatiquement
+          inscrit comme client <strong>DémoMOA</strong> et accèdera au chantier démo <em>Villa Moreau</em>.
+          Toutes ses actions (créations, consultations, clics) sont tracées dans le Journal d&apos;activité.
+          {demoMode && (
+            <><br/><br/><strong style={{ color: "#059669" }}>⚠ Désactive-le après ta démo</strong> pour refermer l&apos;accès public.</>
+          )}
+        </p>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <button
+            onClick={handleResetDemoData}
+            disabled={demoResetBusy}
+            style={{
+              background: "#FFFBEB", color: "#B45309",
+              border: "1px solid #FDE68A",
+              borderRadius: 8, padding: "8px 12px", fontSize: 12, fontWeight: 600,
+              cursor: demoResetBusy ? "wait" : "pointer",
+              fontFamily: "inherit",
+              opacity: demoResetBusy ? 0.6 : 1,
+            }}
+          >
+            {demoResetBusy ? "⏳ Reset…" : "🔄 Réinitialiser les données démo"}
+          </button>
+          <div style={{ fontSize: 10, color: "#94A3B8", alignSelf: "center", flex: "1 1 200px", minWidth: 180, lineHeight: 1.4 }}>
+            Recrée le chantier Villa Moreau + 3 OS + 2 CR + 4 tâches. Utile entre deux rendez-vous.
+          </div>
+        </div>
+        <div style={{ marginTop: 12, padding: 10, background: "rgba(15,23,42,0.03)", borderRadius: 8, fontSize: 11, color: "#64748B" }}>
+          <strong>Compte démo partagé</strong> (pour les prospects sans Google) :<br/>
+          <code style={{ fontSize: 11 }}>demo-moa@id-maitrise.com</code> — à créer manuellement dans{" "}
+          <em>Supabase → Authentication → Users</em> avec un mot de passe simple.
+        </div>
       </div>
 
       {/* AJOUTER UN UTILISATEUR */}
