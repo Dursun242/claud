@@ -32,43 +32,66 @@ export async function GET(request) {
     }
 
     // Auto-provisioning démo : email inconnu → création client "DémoMOA"
-    // automatiquement, SAUF si demo_mode est explicitement 'off' (cas où
-    // l'admin veut fermer l'accès temporairement, par ex. pendant une
-    // maintenance commerciale ou pour ne pas pourrir les logs en période
-    // calme). Par défaut = ouvert : zéro friction pour les prospects.
-    if (!caller && email) {
+    // automatiquement, SAUF si demo_mode est explicitement 'off'.
+    // On gère aussi le cas d'un ancien compte démo DÉSACTIVÉ qu'on réactive
+    // automatiquement (pour qu'un prospect qui revient n'ait pas à
+    // redemander l'accès manuellement).
+    if (email) {
       const { data: setting } = await supabaseAdmin
         .from('settings')
         .select('value')
         .eq('key', 'demo_mode')
         .maybeSingle()
-      const closed = setting?.value === 'off'
-      if (!closed) {
-        const { data: created, error: createErr } = await supabaseAdmin
-          .from('authorized_users')
-          .insert({
-            email,
-            prenom: 'DémoMOA',
-            nom: 'Prospect',
-            role: 'client',
-            actif: true,
-          })
-          .select()
-          .single()
-        if (!createErr && created) {
-          caller = created
-          // Log audit : trace l'auto-inscription démo pour que le gérant voie
-          // dans Admin → Journal quels prospects ont testé l'app.
-          await supabaseAdmin.from('activity_logs').insert({
-            user_email: email,
-            action: 'demo_signup',
-            entity_type: 'user',
-            entity_id: created.id,
-            entity_label: `Prospect démo — ${email}`,
-            metadata: { provider: user.app_metadata?.provider || null },
-          }).then(() => {}, () => {})
-        } else if (createErr) {
-          console.error('[admin/users GET] demo auto-provisioning:', createErr)
+      const demoOpen = setting?.value !== 'off'
+
+      if (demoOpen) {
+        // Cas A : email inconnu → création client DémoMOA
+        if (!caller) {
+          const { data: created, error: createErr } = await supabaseAdmin
+            .from('authorized_users')
+            .insert({
+              email,
+              prenom: 'DémoMOA',
+              nom: 'Prospect',
+              role: 'client',
+              actif: true,
+            })
+            .select()
+            .single()
+          if (!createErr && created) {
+            caller = created
+            await supabaseAdmin.from('activity_logs').insert({
+              user_email: email,
+              action: 'demo_signup',
+              entity_type: 'user',
+              entity_id: created.id,
+              entity_label: `Prospect démo — ${email}`,
+              metadata: { provider: user.app_metadata?.provider || null },
+            }).then(() => {}, () => {})
+          } else if (createErr) {
+            console.error('[admin/users GET] demo auto-provisioning:', createErr)
+          }
+        }
+        // Cas B : ancien compte démo désactivé → on le réactive.
+        // IMPORTANT : on ne réactive QUE les comptes tagués DémoMOA pour
+        // ne pas ressusciter un salarié qu'on avait volontairement coupé.
+        else if (caller.actif === false && caller.prenom === 'DémoMOA' && caller.role === 'client') {
+          const { data: reactivated } = await supabaseAdmin
+            .from('authorized_users')
+            .update({ actif: true })
+            .eq('id', caller.id)
+            .select()
+            .single()
+          if (reactivated) {
+            caller = reactivated
+            await supabaseAdmin.from('activity_logs').insert({
+              user_email: email,
+              action: 'demo_reactivate',
+              entity_type: 'user',
+              entity_id: reactivated.id,
+              entity_label: `Réactivation compte démo — ${email}`,
+            }).then(() => {}, () => {})
+          }
         }
       }
     }
