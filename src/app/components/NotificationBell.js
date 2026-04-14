@@ -38,8 +38,26 @@ const ICONS = {
 export default function NotificationBell({ userEmail, onNavigate }) {
   const { items, unreadCount, markAsRead, markAllRead, newItemSignal } = useNotifications(userEmail)
   const [open, setOpen] = useState(false)
+  const [hovering, setHovering] = useState(false)
   const ref = useRef(null)
   const autoOpenedRef = useRef(false)
+  const closeTimerRef = useRef(null)
+
+  // Fermeture automatique : 6s après ouverture si pas d'interaction.
+  // Le timer se réinitialise au survol → tant que l'user regarde, ça reste.
+  const AUTO_CLOSE_MS = 6000
+  const armCloseTimer = () => {
+    clearTimeout(closeTimerRef.current)
+    closeTimerRef.current = setTimeout(() => setOpen(false), AUTO_CLOSE_MS)
+  }
+  const cancelCloseTimer = () => clearTimeout(closeTimerRef.current)
+
+  useEffect(() => {
+    if (open && !hovering) armCloseTimer()
+    else cancelCloseTimer()
+    return cancelCloseTimer
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, hovering])
 
   // Auto-ouverture au premier chargement (même si la liste est vide → on
   // affichera "Rien de nouveau pour le moment")
@@ -133,107 +151,124 @@ export default function NotificationBell({ userEmail, onNavigate }) {
       </button>
 
       {open && (
-        <div style={{
-          position: 'absolute',
-          top: 'calc(100% + 8px)',
-          right: 0,
-          width: 380,
-          maxWidth: '92vw',
-          background: '#fff',
-          borderRadius: 14,
-          border: '1px solid #E2E8F0',
-          boxShadow: '0 20px 50px rgba(15,23,42,0.15), 0 4px 12px rgba(15,23,42,0.06)',
-          zIndex: 5000,
-          overflow: 'hidden',
-          animation: 'fadeInDown .2s ease',
-        }}>
-          <style>{`@keyframes fadeInDown{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}`}</style>
+        <div
+          onMouseEnter={() => setHovering(true)}
+          onMouseLeave={() => setHovering(false)}
+          style={{
+            position: 'absolute',
+            top: 'calc(100% + 10px)',
+            right: 0,
+            width: 320,
+            maxWidth: '92vw',
+            background: 'rgba(255, 255, 255, 0.72)',
+            backdropFilter: 'blur(24px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+            borderRadius: 16,
+            border: '1px solid rgba(255, 255, 255, 0.6)',
+            boxShadow: '0 24px 60px rgba(15,23,42,0.18), 0 4px 12px rgba(15,23,42,0.06), inset 0 1px 0 rgba(255,255,255,0.7)',
+            zIndex: 5000,
+            overflow: 'hidden',
+            animation: 'fadeInDown .22s cubic-bezier(.2,.9,.3,1.2)',
+          }}>
+          <style>{`@keyframes fadeInDown{from{opacity:0;transform:translateY(-8px) scale(.98)}to{opacity:1;transform:none}}`}</style>
+          {/* Auto-close progress bar (subtle) */}
+          {!hovering && (
+            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'rgba(59,130,246,0.08)', overflow: 'hidden' }}>
+              <div style={{
+                height: '100%',
+                background: 'linear-gradient(90deg, #3B82F6, #8B5CF6)',
+                animation: `shrinkLeft ${AUTO_CLOSE_MS}ms linear forwards`,
+                transformOrigin: 'left',
+              }}/>
+              <style>{`@keyframes shrinkLeft{from{transform:scaleX(1)}to{transform:scaleX(0)}}`}</style>
+            </div>
+          )}
+
           <div style={{
-            padding: '16px 18px',
-            borderBottom: '1px solid #F1F5F9',
+            padding: '12px 14px 10px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             gap: 10,
           }}>
-            <div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: '#0F172A', letterSpacing: '-0.01em' }}>
-                Activité récente
-              </div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, minWidth: 0 }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: '#0F172A', letterSpacing: '-0.01em' }}>
+                Activité
+              </span>
               {unreadCount > 0 && (
-                <div style={{ fontSize: 11, color: '#3B82F6', fontWeight: 600, marginTop: 2 }}>
-                  {unreadCount} nouveau{unreadCount > 1 ? 'x' : ''}
-                </div>
+                <span style={{
+                  fontSize: 10, fontWeight: 700, color: '#3B82F6',
+                  background: 'rgba(59,130,246,0.12)',
+                  padding: '2px 7px', borderRadius: 999, lineHeight: 1.4,
+                }}>{unreadCount} nouveau{unreadCount > 1 ? 'x' : ''}</span>
               )}
             </div>
             {unreadCount > 0 && (
               <button
                 onClick={markAllRead}
                 style={{
-                  background: '#EFF6FF',
-                  border: '1px solid #BFDBFE',
-                  color: '#1D4ED8',
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#3B82F6',
                   cursor: 'pointer',
-                  fontSize: 11,
+                  fontSize: 10,
                   fontWeight: 600,
-                  padding: '5px 10px',
-                  borderRadius: 6,
+                  padding: '4px 6px',
+                  borderRadius: 5,
                   fontFamily: 'inherit',
                   whiteSpace: 'nowrap',
                 }}
-              >Tout marquer lu</button>
+              >Tout lu</button>
             )}
           </div>
 
           {items.length === 0 ? (
-            <div style={{ padding: '40px 20px', textAlign: 'center', color: '#94A3B8', fontSize: 13 }}>
-              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 10 }} aria-hidden="true">
+            <div style={{ padding: '24px 16px 28px', textAlign: 'center', color: '#94A3B8', fontSize: 12 }}>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 6, opacity: 0.7 }} aria-hidden="true">
                 <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
               </svg>
-              <div style={{ fontWeight: 600, color: '#64748B', marginBottom: 3 }}>Tout est calme</div>
-              <div style={{ fontSize: 11 }}>Aucune nouvelle activité pour le moment</div>
+              <div style={{ fontWeight: 600, color: '#64748B', fontSize: 12 }}>Tout est calme</div>
             </div>
           ) : (
-            <ul style={{ listStyle: 'none', margin: 0, padding: 6, maxHeight: 480, overflowY: 'auto' }}>
-              {items.map((n, idx) => {
+            <ul style={{ listStyle: 'none', margin: 0, padding: '2px 6px 8px', maxHeight: 420, overflowY: 'auto' }}>
+              {items.map((n) => {
                 const unread = !n.read_at
-                const isLast = idx === items.length - 1
                 return (
-                  <li key={n.id} style={{ marginBottom: isLast ? 0 : 2 }}>
+                  <li key={n.id} style={{ marginBottom: 2 }}>
                     <button
                       onClick={() => handleClick(n)}
                       style={{
                         width: '100%',
                         textAlign: 'left',
-                        background: unread ? '#F0F7FF' : '#fff',
-                        border: unread ? '1px solid #DBEAFE' : '1px solid transparent',
+                        background: unread ? 'rgba(59,130,246,0.08)' : 'transparent',
+                        border: 'none',
                         borderRadius: 10,
-                        padding: '12px 14px',
+                        padding: '10px 12px',
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'flex-start',
-                        gap: 12,
+                        gap: 10,
                         fontFamily: 'inherit',
-                        transition: 'background .12s, border-color .12s',
+                        transition: 'background .12s',
                       }}
-                      onMouseEnter={(e) => { e.currentTarget.style.background = unread ? '#E0EEFF' : '#F8FAFC' }}
-                      onMouseLeave={(e) => { e.currentTarget.style.background = unread ? '#F0F7FF' : '#fff' }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = unread ? 'rgba(59,130,246,0.14)' : 'rgba(15,23,42,0.04)' }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = unread ? 'rgba(59,130,246,0.08)' : 'transparent' }}
                     >
                       <span style={{
-                        fontSize: 18, lineHeight: 1, flexShrink: 0,
-                        width: 34, height: 34,
+                        fontSize: 15, lineHeight: 1, flexShrink: 0,
+                        width: 28, height: 28,
                         borderRadius: 8,
-                        background: unread ? '#DBEAFE' : '#F1F5F9',
+                        background: unread ? 'rgba(59,130,246,0.15)' : 'rgba(15,23,42,0.06)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                       }}>
                         {ICONS[n.entity_type] || '•'}
                       </span>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{
-                          fontSize: 13,
+                          fontSize: 12,
                           fontWeight: unread ? 600 : 500,
                           color: '#0F172A',
-                          lineHeight: 1.4,
+                          lineHeight: 1.35,
                           display: '-webkit-box',
                           WebkitLineClamp: 2,
                           WebkitBoxOrient: 'vertical',
@@ -241,24 +276,25 @@ export default function NotificationBell({ userEmail, onNavigate }) {
                         }}>{n.title}</div>
                         {n.body && (
                           <div style={{
-                            fontSize: 11,
+                            fontSize: 10,
                             color: '#64748B',
-                            marginTop: 5,
-                            lineHeight: 1.45,
+                            marginTop: 3,
+                            lineHeight: 1.4,
                             display: '-webkit-box',
-                            WebkitLineClamp: 2,
+                            WebkitLineClamp: 1,
                             WebkitBoxOrient: 'vertical',
                             overflow: 'hidden',
                           }}>{n.body}</div>
                         )}
-                        <div style={{ fontSize: 10, color: '#94A3B8', marginTop: 6, fontWeight: 500 }}>
+                        <div style={{ fontSize: 9, color: '#94A3B8', marginTop: 4, fontWeight: 500, letterSpacing: '0.02em' }}>
                           {relativeTime(n.created_at)}
                         </div>
                       </div>
                       {unread && (
                         <span style={{
-                          width: 8, height: 8, borderRadius: '50%',
-                          background: '#3B82F6', flexShrink: 0, marginTop: 13,
+                          width: 6, height: 6, borderRadius: '50%',
+                          background: '#3B82F6', flexShrink: 0, marginTop: 12,
+                          boxShadow: '0 0 0 3px rgba(59,130,246,0.2)',
                         }}/>
                       )}
                     </button>
