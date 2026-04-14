@@ -85,12 +85,15 @@ function pied(doc, w, margin, y) {
   y += 3
   doc.setFontSize(6)
   doc.setTextColor(148, 163, 184)
-  doc.text(`${ENT.nom} — ${ENT.adresse}, ${ENT.cpVille} — SIRET ${ENT.siret} — ${ENT.assurance}`, w / 2, y, { align: "center" })
+  doc.text(
+    `${ENT.nom} — ${ENT.adresse}, ${ENT.cpVille} — SIRET ${ENT.siret} — ${ENT.assurance}`,
+    w / 2, y, { align: "center" }
+  )
 }
 
-// ═══════════════════════════════════════════
+// ══════════════════════════════════════
 // GÉNÉRATEUR PDF — ORDRE DE SERVICE
-// ═══════════════════════════════════════════
+// ══════════════════════════════════════
 export async function generateOSPdf(data) {
   const { jsPDF, autoTable } = await loadJsPdf()
   const doc = new jsPDF('p', 'mm', 'a4')
@@ -206,7 +209,14 @@ export async function generateOSPdf(data) {
     headStyles: { fillColor: BLEU, textColor: [255,255,255], fontStyle: 'bold', fontSize: 7.5 },
     bodyStyles: { fontSize: 7.5, textColor: NOIR },
     alternateRowStyles: { fillColor: GRIS_CLAIR },
-    columnStyles: { 0:{cellWidth:usable*0.44}, 1:{cellWidth:usable*0.09,halign:'center'}, 2:{cellWidth:usable*0.07,halign:'center'}, 3:{cellWidth:usable*0.14,halign:'right'}, 4:{cellWidth:usable*0.09,halign:'center'}, 5:{cellWidth:usable*0.17,halign:'right'} },
+    columnStyles: {
+      0:{cellWidth:usable*0.44},
+      1:{cellWidth:usable*0.09,halign:'center'},
+      2:{cellWidth:usable*0.07,halign:'center'},
+      3:{cellWidth:usable*0.14,halign:'right'},
+      4:{cellWidth:usable*0.09,halign:'center'},
+      5:{cellWidth:usable*0.17,halign:'right'}
+    },
     styles: { lineWidth: 0.2, lineColor: [226,232,240] },
   })
   y = doc.lastAutoTable.finalY + 3
@@ -217,7 +227,11 @@ export async function generateOSPdf(data) {
   doc.setFontSize(8.5); doc.setFont("helvetica", "bold"); doc.setTextColor(...NOIR)
   doc.text("Total HT", tx, y); doc.text(fmtM(totalHT), w - margin, y, { align: "right" }); y += 4
   doc.setFont("helvetica", "normal")
-  Object.entries(tvaMap).sort().forEach(([t, m]) => { doc.text(`TVA ${t}%`, tx, y); doc.text(fmtM(m), w - margin, y, { align: "right" }); y += 4 })
+  Object.entries(tvaMap).sort().forEach(([t, m]) => {
+    doc.text(`TVA ${t}%`, tx, y)
+    doc.text(fmtM(m), w - margin, y, { align: "right" })
+    y += 4
+  })
   doc.setDrawColor(...BLEU); doc.setLineWidth(0.5); doc.line(tx, y, w - margin, y); y += 1
   doc.setFillColor(238, 242, 255); doc.rect(tx, y, usable * 0.45, 7, 'F'); y += 5
   doc.setFontSize(11); doc.setFont("helvetica", "bold"); doc.setTextColor(...BLEU)
@@ -228,7 +242,8 @@ export async function generateOSPdf(data) {
     doc.setFontSize(9); doc.setFont("helvetica", "bold"); doc.setTextColor(...BLEU)
     doc.text("OBSERVATIONS", margin, y); y += 4
     doc.setFontSize(7.5); doc.setFont("helvetica", "normal"); doc.setTextColor(...NOIR)
-    const ol = doc.splitTextToSize(sanitize(data.observations), usable); doc.text(ol, margin, y); y += ol.length * 3.2 + 4
+    const ol = doc.splitTextToSize(sanitize(data.observations), usable)
+    doc.text(ol, margin, y); y += ol.length * 3.2 + 4
   }
 
   // Conditions
@@ -243,7 +258,11 @@ export async function generateOSPdf(data) {
   if (y > 245) { doc.addPage(); y = 20 }
   doc.setDrawColor(226,232,240); doc.setLineWidth(0.3); doc.line(margin, y, w - margin, y); y += 5
   const sw = (usable - 6) / 3
-  ;[{ t:"Le Maître d'œuvre", n:ENT.nom }, { t:"L'Entreprise", n:data.artisan_nom||"" }, { t:"Le Maître d'ouvrage", n:data.client_nom||"" }].forEach((s, i) => {
+  ;[
+    { t:"Le Maître d'œuvre", n:ENT.nom },
+    { t:"L'Entreprise", n:data.artisan_nom||"" },
+    { t:"Le Maître d'ouvrage", n:data.client_nom||"" }
+  ].forEach((s, i) => {
     const sx = margin + i * (sw + 3); doc.rect(sx, y, sw, 24)
     doc.setFontSize(7.5); doc.setFont("helvetica", "bold"); doc.setTextColor(...NOIR); doc.text(s.t, sx + 2, y + 4)
     doc.setFont("helvetica", "normal"); doc.setTextColor(...GRIS); doc.text(s.n, sx + 2, y + 8)
@@ -259,9 +278,9 @@ export async function generateOSPdf(data) {
   return { totalHT, totalTVA, totalTTC }
 }
 
-// ═══════════════════════════════════════════
+// ══════════════════════════════════════
 // GÉNÉRATEUR PDF — COMPTE RENDU DE CHANTIER
-// ═══════════════════════════════════════════
+// ══════════════════════════════════════
 export async function generateCRPdf(cr, chantier) {
   const { jsPDF } = await loadJsPdf()
   const doc = new jsPDF('p', 'mm', 'a4')
@@ -295,18 +314,25 @@ export async function generateCRPdf(cr, chantier) {
   doc.setFontSize(10); doc.setFont("helvetica", "bold"); doc.setTextColor(...NOIR)
   doc.text(chantier?.nom || "—", margin + 28, y + 5)
   doc.setFontSize(7.5); doc.setFont("helvetica", "bold"); doc.setTextColor(...GRIS)
-  doc.text("Client :", margin + 3, y + 11); doc.setFont("helvetica", "normal"); doc.setTextColor(...NOIR); doc.text(chantier?.client || "—", margin + 18, y + 11)
+  doc.text("Client :", margin + 3, y + 11)
+  doc.setFont("helvetica", "normal"); doc.setTextColor(...NOIR)
+  doc.text(chantier?.client || "—", margin + 18, y + 11)
   doc.setFont("helvetica", "bold"); doc.setTextColor(...GRIS)
-  doc.text("Date :", margin + usable/2, y + 5); doc.setFont("helvetica", "normal"); doc.setTextColor(...NOIR); doc.text(fmtD(cr.date), margin + usable/2 + 13, y + 5)
+  doc.text("Date :", margin + usable/2, y + 5)
+  doc.setFont("helvetica", "normal"); doc.setTextColor(...NOIR)
+  doc.text(fmtD(cr.date), margin + usable/2 + 13, y + 5)
   doc.setFont("helvetica", "bold"); doc.setTextColor(...GRIS)
-  doc.text("Phase :", margin + usable/2, y + 11); doc.setFont("helvetica", "normal"); doc.setTextColor(...NOIR); doc.text(chantier?.phase || "—", margin + usable/2 + 15, y + 11)
+  doc.text("Phase :", margin + usable/2, y + 11)
+  doc.setFont("helvetica", "normal"); doc.setTextColor(...NOIR)
+  doc.text(chantier?.phase || "—", margin + usable/2 + 15, y + 11)
   y += 22
 
   // Participants
   doc.setFontSize(9); doc.setFont("helvetica", "bold"); doc.setTextColor(...BLEU)
   doc.text("PARTICIPANTS / PRÉSENTS", margin, y); y += 5
   doc.setFontSize(8.5); doc.setFont("helvetica", "normal"); doc.setTextColor(...NOIR)
-  const pLines = doc.splitTextToSize(sanitize(cr.participants) || "—", usable); doc.text(pLines, margin, y); y += pLines.length * 3.8 + 5
+  const pLines = doc.splitTextToSize(sanitize(cr.participants) || "—", usable)
+  doc.text(pLines, margin, y); y += pLines.length * 3.8 + 5
 
   // Résumé
   doc.setFontSize(9); doc.setFont("helvetica", "bold"); doc.setTextColor(...BLEU)
@@ -341,12 +367,13 @@ export async function generateCRPdf(cr, chantier) {
 
   pied(doc, w, margin, y)
   doc.save(`CR-${cr.numero || "X"}-${(chantier?.nom || "chantier").replace(/\s+/g, "_")}.pdf`)
-  SB.log('generate_pdf', 'cr', cr.id || null, `CR n°${cr.numero || 'X'}`, { format: 'pdf', chantier_id: chantier?.id || null })
+  SB.log('generate_pdf', 'cr', cr.id || null,
+    `CR n°${cr.numero || 'X'}`, { format: 'pdf', chantier_id: chantier?.id || null })
 }
 
-// ═══════════════════════════════════════════
+// ══════════════════════════════════════
 // GÉNÉRATEUR EXCEL — ORDRE DE SERVICE
-// ═══════════════════════════════════════════
+// ══════════════════════════════════════
 export function generateOSExcel(data) {
   // Build CSV content (universally compatible, opens in Excel)
   const prestations = data.prestations || []
@@ -370,7 +397,9 @@ export function generateOSExcel(data) {
   csv += `Date fin prévue;${fmtD(data.date_fin_prevue)}\n`
   csv += `\n`
   csv += `Description;Unité;Quantité;Prix Unitaire HT;TVA;Total HT;Montant TVA\n`
-  rows.forEach(r => { csv += `${r[0]};${r[1]};${r[2]};${r[3].toFixed(2)};${r[4]};${r[5].toFixed(2)};${r[6].toFixed(2)}\n` })
+  rows.forEach(r => {
+    csv += `${r[0]};${r[1]};${r[2]};${r[3].toFixed(2)};${r[4]};${r[5].toFixed(2)};${r[6].toFixed(2)}\n`
+  })
   csv += `\n`
   csv += `;;;;;Total HT;${totalHT.toFixed(2)}\n`
   csv += `;;;;;Total TVA;${totalTVA.toFixed(2)}\n`
@@ -387,9 +416,9 @@ export function generateOSExcel(data) {
   SB.log('generate_excel', 'os', data.id || null, data.numero || 'OS', { format: 'xlsx' })
 }
 
-// ═══════════════════════════════════════════
+// ══════════════════════════════════════
 // GÉNÉRATEUR EXCEL — COMPTE RENDU
-// ═══════════════════════════════════════════
+// ══════════════════════════════════════
 export function generateCRExcel(cr, chantier) {
   let csv = "\uFEFF"
   csv += `COMPTE RENDU DE CHANTIER;N°${cr.numero||""}\n`
@@ -416,12 +445,13 @@ export function generateCRExcel(cr, chantier) {
   link.href = URL.createObjectURL(blob)
   link.download = `CR-${cr.numero||"X"}-${(chantier?.nom||"chantier").replace(/\s+/g, "_")}.csv`
   link.click()
-  SB.log('generate_excel', 'cr', cr.id || null, `CR n°${cr.numero || 'X'}`, { format: 'xlsx', chantier_id: chantier?.id || null })
+  SB.log('generate_excel', 'cr', cr.id || null,
+    `CR n°${cr.numero || 'X'}`, { format: 'xlsx', chantier_id: chantier?.id || null })
 }
 
-// ═══════════════════════════════════════════
+// ══════════════════════════════════════
 // GÉNÉRATEUR PDF — REPORTAGE PHOTO DE CHANTIER
-// ═══════════════════════════════════════════
+// ══════════════════════════════════════
 //
 // Prend un objet chantier + un tableau de photos (avec base64 pré-chargée)
 // et produit un rapport photo professionnel au format A4 :
@@ -441,7 +471,7 @@ export async function generatePhotoReportPdf(chantier, photos) {
   const usable = w - margin * 2                 // 180mm
   const today = fmtD(new Date())
 
-  // ─── PAGE DE GARDE ───────────────────────────────────────────
+  // ─── PAGE DE GARDE ──────────────────
   // Logo en haut
   let y = 30
   try { doc.addImage(LOGO_B64, 'JPEG', margin, y, 60, 17) } catch {}
@@ -488,7 +518,7 @@ export async function generatePhotoReportPdf(chantier, photos) {
   y += 4
   doc.text(sanitize(`SIRET ${ENT.siret} — ${ENT.email}`), w / 2, y, { align: "center" })
 
-  // ─── PAGES PHOTOS ──────────────────────────────────────────────
+  // ─── PAGES PHOTOS ─────────────────────
   //
   // Layout intelligent :
   // - Photo portrait (height > width) + suivante aussi portrait
@@ -599,6 +629,8 @@ export async function generatePhotoReportPdf(chantier, photos) {
   // un download (interprété comme une "navigation").
   const slug = (chantier.nom || "chantier").replace(/\s+/g, "_").replace(/[^\w-]/g, "")
   const filename = `Reportage-Photo_${slug}_${new Date().toISOString().split("T")[0]}.pdf`
-  SB.log('generate_pdf', 'photo_report', chantier?.id || null, `Reportage — ${chantier?.nom || 'Chantier'}`, { format: 'pdf', photo_count: (photos || []).length })
+  SB.log('generate_pdf', 'photo_report', chantier?.id || null,
+    `Reportage — ${chantier?.nom || 'Chantier'}`,
+    { format: 'pdf', photo_count: (photos || []).length })
   return { blob: doc.output('blob'), filename }
 }
