@@ -335,7 +335,7 @@ export default function AdminDashboard({ user, profile = null }) {
                 {tabs.find(t=>t.key===tab)?.label}
               </span>
             </div>
-            <NotificationBell userEmail={user?.email} onNavigate={(nextTab)=>switchTab(nextTab)} />
+            <NotificationBell userEmail={user?.email} onNavigate={(nextTab)=>switchTab(nextTab)} isMobile />
           </div>
         )}
         {!isMobile && (

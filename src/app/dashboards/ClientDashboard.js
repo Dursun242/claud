@@ -256,7 +256,7 @@ export default function ClientDashboard({ user, profile = null }) {
                 {TABS.find(t => t.key === tab)?.label}
               </span>
             </div>
-            <NotificationBell userEmail={user?.email} onNavigate={(nextTab)=>switchTab(nextTab)} />
+            <NotificationBell userEmail={user?.email} onNavigate={(nextTab)=>switchTab(nextTab)} isMobile />
           </div>
         )}
         {!isMobile && (
