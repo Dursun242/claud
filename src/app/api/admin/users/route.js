@@ -69,7 +69,16 @@ export async function GET(request) {
               metadata: { provider: user.app_metadata?.provider || null },
             }).then(() => {}, () => {})
           } else if (createErr) {
+            // Conflit probable (deux requêtes simultanées au même instant — race
+            // condition courante après OAuth Google qui tire plusieurs SIGNED_IN).
+            // On relit simplement le compte existant plutôt que de refuser l'accès.
             console.error('[admin/users GET] demo auto-provisioning:', createErr)
+            const { data: existing } = await supabaseAdmin
+              .from('authorized_users')
+              .select('*')
+              .eq('email', email)
+              .maybeSingle()
+            if (existing) caller = existing
           }
         }
         // Cas B : ancien compte démo désactivé → on le réactive.
