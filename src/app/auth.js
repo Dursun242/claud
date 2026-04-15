@@ -338,15 +338,23 @@ export function LoginPage() {
           Accès réservé aux collaborateurs et maîtres d&apos;ouvrage ID Maîtrise
         </p>
 
-        <p style={{
-          margin: '12px 0 0', fontSize: 12, color: '#64748B',
-          lineHeight: 1.5,
+        <div style={{
+          margin: '16px 0 0',
+          background: 'linear-gradient(135deg, #EFF6FF 0%, #F0FDF4 100%)',
+          border: '1.5px solid #BFDBFE',
+          borderRadius: 10,
+          padding: '12px 14px',
+          textAlign: 'left',
         }}>
-          Pas encore client ?{' '}
-          <span style={{ color: '#3B82F6', fontWeight: 600 }}>
-            Connectez-vous pour découvrir la démo gratuitement.
-          </span>
-        </p>
+          <div style={{ fontSize: 13, fontWeight: 700, color: '#1D4ED8', marginBottom: 4 }}>
+            🎯 Pas encore client ID Maîtrise ?
+          </div>
+          <div style={{ fontSize: 12, color: '#334155', lineHeight: 1.6 }}>
+            Découvrez l&apos;outil <strong>gratuitement en mode démo</strong>
+            {' '}— cliquez sur <strong>Se connecter avec Google</strong>
+            {' '}avec n&apos;importe quel compte Gmail.
+          </div>
+        </div>
 
         <div style={{ marginTop: 32, paddingTop: 20, borderTop: '1px solid #F1F5F9' }}>
           <p style={{ margin: 0, fontSize: 10, color: '#94A3B8' }}>
