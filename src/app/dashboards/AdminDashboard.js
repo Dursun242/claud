@@ -271,19 +271,12 @@ export default function AdminDashboard({ user, profile = null }) {
         }
       `}</style>
 
-      {/* MOBILE OVERLAY */}
-      {isMobile && sidebarOpen && (
-        <div style={{
-          position:"fixed",inset:0,background:"rgba(0,0,0,0.4)",zIndex:998
-        }} onClick={()=>setSidebarOpen(false)} />
-      )}
-
-      {/* SIDEBAR */}
-      <nav aria-label="Navigation principale" style={{
-        width:isMobile?260:240,position:isMobile?"fixed":"relative",left:isMobile?(sidebarOpen?0:-280):0,top:0,bottom:0,
+      {/* SIDEBAR (desktop uniquement) */}
+      {!isMobile && <nav aria-label="Navigation principale" style={{
+        width:240,position:"relative",
         background:"linear-gradient(195deg,#0F172A,#1E3A5F)",
         color:"#fff",display:"flex",flexDirection:"column",flexShrink:0,
-        zIndex:999,transition:"left .3s ease",boxShadow:isMobile&&sidebarOpen?"4px 0 20px rgba(0,0,0,0.3)":"none"
+        zIndex:999,
       }}>
         <div style={{padding:"20px 16px 16px",borderBottom:"1px solid rgba(255,255,255,0.08)"}}>
           <div style={{fontSize:18,fontWeight:700}}>ID MAÎTRISE</div>
@@ -381,7 +374,7 @@ export default function AdminDashboard({ user, profile = null }) {
             SARL ID MAITRISE<br/>9 Rue Henry Genestal, 76600 Le Havre
           </div>
         </div>
-      </nav>
+      </nav>}
 
       {/* MAIN CONTENT */}
       {/* overflowX: hidden + minWidth: 0 → empêche le débordement horizontal
@@ -389,24 +382,16 @@ export default function AdminDashboard({ user, profile = null }) {
           flex sur mobile) */}
       <main id="main-content" aria-label="Contenu principal" style={{
         flex:1,minWidth:0,overflowX:"hidden",overflowY:"auto",
-        padding:isMobile?16:24,paddingTop:isMobile?60:24
+        padding:isMobile?"60px 16px 74px":24,paddingTop:isMobile?60:24
       }}>
-        {/* MOBILE HEADER — affiche clairement l'onglet actif */}
+        {/* MOBILE HEADER — titre onglet actif + notifications */}
         {isMobile && (
           <div style={{
             position:"fixed",top:0,left:0,right:0,height:52,
             background:"#fff",borderBottom:"1px solid #E2E8F0",
-            display:"flex",alignItems:"center",padding:"0 12px",
+            display:"flex",alignItems:"center",padding:"0 16px",
             zIndex:997,gap:10,boxShadow:"0 1px 3px rgba(15,23,42,0.04)"
           }}>
-            <button onClick={()=>setSidebarOpen(true)} aria-label="Ouvrir le menu"
-              style={{
-                background:"none",border:"none",cursor:"pointer",
-                padding:6,borderRadius:6,display:"flex",
-                alignItems:"center",justifyContent:"center"
-              }}>
-              <Icon d={I.menu} size={22} color="#0F172A"/>
-            </button>
             <div style={{flex:1,minWidth:0,display:"flex",flexDirection:"column",lineHeight:1.15}}>
               <span style={{
                 fontSize:10,fontWeight:600,color:"#94A3B8",
@@ -449,6 +434,110 @@ export default function AdminDashboard({ user, profile = null }) {
             clearExternal={()=>setFloatTranscript("")} reload={reload}/>}
         </div>
       </main>
+
+      {/* BOTTOM NAVIGATION (mobile uniquement) */}
+      {isMobile && (() => {
+        // 5 onglets principaux + "Plus" pour les autres
+        const primary = tabs.filter(t => ['dashboard','projects','os','tasks','ai'].includes(t.key))
+        const secondary = tabs.filter(t => !['dashboard','projects','os','tasks','ai'].includes(t.key))
+        const moreActive = secondary.some(t => t.key === tab)
+        return (
+          <>
+            {/* Bottom sheet "Plus" */}
+            {sidebarOpen && (
+              <>
+                <div onClick={()=>setSidebarOpen(false)} style={{
+                  position:'fixed',inset:0,background:'rgba(0,0,0,0.35)',zIndex:1000
+                }}/>
+                <div style={{
+                  position:'fixed',bottom:0,left:0,right:0,zIndex:1001,
+                  background:'#fff',borderRadius:'16px 16px 0 0',
+                  padding:'12px 16px 24px',
+                  boxShadow:'0 -8px 32px rgba(0,0,0,0.12)',
+                }}>
+                  <div style={{
+                    width:36,height:4,borderRadius:2,background:'#E2E8F0',
+                    margin:'0 auto 16px',
+                  }}/>
+                  <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:8}}>
+                    {secondary.map(t => {
+                      const active = tab === t.key
+                      return (
+                        <button key={t.key} onClick={()=>{switchTab(t.key);setSidebarOpen(false)}} style={{
+                          display:'flex',flexDirection:'column',alignItems:'center',
+                          gap:6,padding:'10px 4px',border:'none',
+                          background:active?'#EFF6FF':'#F8FAFC',borderRadius:10,
+                          cursor:'pointer',fontFamily:'inherit',
+                        }}>
+                          {t.icon
+                            ? <Icon d={t.icon} size={22} color={active?'#3B82F6':'#64748B'}/>
+                            : <span style={{fontSize:16,color:active?'#3B82F6':'#64748B'}}>✦</span>
+                          }
+                          <span style={{fontSize:10,fontWeight:active?700:500,color:active?'#3B82F6':'#475569',textAlign:'center'}}>
+                            {t.label}
+                          </span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              </>
+            )}
+            <nav aria-label="Navigation principale" style={{
+              position:'fixed',bottom:0,left:0,right:0,
+              background:'#fff',borderTop:'1px solid #E2E8F0',
+              display:'flex',zIndex:999,
+              boxShadow:'0 -2px 8px rgba(0,0,0,0.06)',
+              paddingBottom:'env(safe-area-inset-bottom)',
+            }}>
+              {primary.map(t => {
+                const active = tab === t.key
+                const shortLabel = {'dashboard':'Accueil','projects':'Chantiers','os':'OS','tasks':'Tâches','ai':'IA'}[t.key] || t.label
+                return (
+                  <button key={t.key} onClick={()=>switchTab(t.key)}
+                    aria-current={active?'page':undefined}
+                    style={{
+                      flex:1,display:'flex',flexDirection:'column',
+                      alignItems:'center',justifyContent:'center',
+                      padding:'7px 2px 6px',border:'none',background:'none',
+                      cursor:'pointer',fontFamily:'inherit',minWidth:0,position:'relative',
+                    }}>
+                    {active && <span style={{
+                      position:'absolute',top:0,left:'25%',right:'25%',
+                      height:2,borderRadius:2,background:'#3B82F6'
+                    }}/>}
+                    {t.icon
+                      ? <Icon d={t.icon} size={20} color={active?'#3B82F6':'#94A3B8'}/>
+                      : <span style={{fontSize:14,color:active?'#3B82F6':'#94A3B8'}}>✦</span>
+                    }
+                    <span style={{
+                      fontSize:9,fontWeight:active?700:500,
+                      color:active?'#3B82F6':'#94A3B8',
+                      marginTop:2,
+                    }}>{shortLabel}</span>
+                  </button>
+                )
+              })}
+              {/* Bouton "Plus" */}
+              <button onClick={()=>setSidebarOpen(s=>!s)}
+                aria-label="Plus d'options"
+                style={{
+                  flex:1,display:'flex',flexDirection:'column',
+                  alignItems:'center',justifyContent:'center',
+                  padding:'7px 2px 6px',border:'none',background:'none',
+                  cursor:'pointer',fontFamily:'inherit',minWidth:0,position:'relative',
+                }}>
+                {moreActive && <span style={{
+                  position:'absolute',top:0,left:'25%',right:'25%',
+                  height:2,borderRadius:2,background:'#3B82F6'
+                }}/>}
+                <Icon d={I.menu} size={20} color={moreActive?'#3B82F6':'#94A3B8'}/>
+                <span style={{fontSize:9,fontWeight:moreActive?700:500,color:moreActive?'#3B82F6':'#94A3B8',marginTop:2}}>Plus</span>
+              </button>
+            </nav>
+          </>
+        )
+      })()}
 
       {/* FLOATING NEON MIC — visible on ALL tabs */}
       {tab !== "ai" && (
