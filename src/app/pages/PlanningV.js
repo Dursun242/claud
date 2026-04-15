@@ -143,22 +143,7 @@ export default function PlanningV({ data, m }) {
     }
   }, [onMove, onUp])
 
-  // ─── État vide ────────────────────────────────────────
-  if (!planData.length) {
-    return (
-      <div>
-        <h1 style={{ margin: '0 0 16px', fontSize: m ? 18 : 24, fontWeight: 700 }}>Planning</h1>
-        <div style={{ background: '#fff', borderRadius: 12, padding: '40px 24px', textAlign: 'center', boxShadow: '0 1px 3px rgba(15,23,42,0.06)' }}>
-          <div style={{ fontSize: 36, marginBottom: 8, opacity: 0.5 }}>📅</div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: '#334155', marginBottom: 4 }}>Planning vide</div>
-          <div style={{ fontSize: 12, color: '#94A3B8' }}>
-            Ajoute des tâches planifiées depuis la fiche d'un chantier pour les voir apparaître ici.
-          </div>
-        </div>
-      </div>
-    )
-  }
-
+  const isEmpty  = planData.length === 0
   const totalW   = totalDays * pxDay
   const showToday = todayPct >= 0 && todayPct <= 100
 
@@ -203,7 +188,16 @@ export default function PlanningV({ data, m }) {
         </div>
       </div>
 
-      {view === 'list' ? (
+      {isEmpty ? (
+        /* ══ ÉTAT VIDE ══════════════════════════════════ */
+        <div style={{ background: '#fff', borderRadius: 12, padding: '40px 24px', textAlign: 'center', boxShadow: '0 1px 3px rgba(15,23,42,0.06)' }}>
+          <div style={{ fontSize: 36, marginBottom: 8, opacity: 0.4 }}>📅</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: '#334155', marginBottom: 4 }}>Planning vide</div>
+          <div style={{ fontSize: 12, color: '#94A3B8' }}>
+            Ajoute des tâches planifiées depuis la fiche d'un chantier pour les voir apparaître ici.
+          </div>
+        </div>
+      ) : view === 'list' ? (
         /* ══ VUE LISTE (originale) ══════════════════════ */
         <div style={{ background: '#fff', borderRadius: 12, padding: m ? 12 : 18, boxShadow: '0 1px 3px rgba(15,23,42,0.06)', overflowX: 'auto' }}>
           <div style={{ display: 'flex', alignItems: 'center', marginBottom: 10, paddingBottom: 10, borderBottom: '1px dashed #E2E8F0', minWidth: m ? 500 : 'auto' }}>
