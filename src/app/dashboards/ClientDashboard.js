@@ -193,13 +193,13 @@ export default function ClientDashboard({ user, profile = null }) {
         flexShrink:0,
       }}>
         {/* Logo */}
-        <div style={{ padding:'24px 20px 16px', borderBottom:'1px solid rgba(255,255,255,0.07)' }}>
+        <div style={{ padding:'16px 20px 12px', borderBottom:'1px solid rgba(255,255,255,0.07)' }}>
           <div style={{ fontSize:16, fontWeight:800, color:'#fff', letterSpacing:1, marginBottom:2 }}>ID MAÎTRISE</div>
           <div style={{ fontSize:9, color:'#64748B', letterSpacing:2, textTransform:'uppercase' }}>Espace Client</div>
         </div>
 
         {/* Navigation */}
-        <nav style={{ flex:1, padding:'12px 10px', overflowY:'auto' }}>
+        <nav style={{ flex:1, padding:'6px 10px', overflowY:'auto' }}>
           {TABS.map(t => {
             const active = tab === t.key
             return (
@@ -212,7 +212,7 @@ export default function ClientDashboard({ user, profile = null }) {
                 style={{
                 position:'relative',
                 width:'100%', textAlign:'left', display:'flex', alignItems:'center', gap:10,
-                padding:'10px 12px 10px 16px', marginBottom:2,
+                padding:'7px 12px 7px 16px', marginBottom:1,
                 border:'none', borderRadius:8, cursor:'pointer',
                 fontFamily:'inherit',
                 background:active?'rgba(255,255,255,0.10)':'transparent',
