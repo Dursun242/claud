@@ -338,6 +338,16 @@ export function LoginPage() {
           Accès réservé aux collaborateurs et maîtres d&apos;ouvrage ID Maîtrise
         </p>
 
+        <p style={{
+          margin: '12px 0 0', fontSize: 12, color: '#64748B',
+          lineHeight: 1.5,
+        }}>
+          Pas encore client ?{' '}
+          <span style={{ color: '#3B82F6', fontWeight: 600 }}>
+            Connectez-vous pour découvrir la démo gratuitement.
+          </span>
+        </p>
+
         <div style={{ marginTop: 32, paddingTop: 20, borderTop: '1px solid #F1F5F9' }}>
           <p style={{ margin: 0, fontSize: 10, color: '#94A3B8' }}>
             SARL ID MAÎTRISE — 9 Rue Henry Genestal, 76600 Le Havre<br />
