@@ -69,7 +69,15 @@ export async function GET(request) {
               metadata: { provider: user.app_metadata?.provider || null },
             }).then(() => {}, () => {})
           } else if (createErr) {
+            // Conflit probable (deux requêtes simultanées — race condition OAuth).
+            // On relit le compte existant plutôt que de refuser l'accès.
             console.error('[admin/users GET] demo auto-provisioning:', createErr)
+            const { data: existing } = await supabaseAdmin
+              .from('authorized_users')
+              .select('*')
+              .eq('email', email)
+              .maybeSingle()
+            if (existing) caller = existing
           }
         }
         // Cas B : ancien compte démo désactivé → on le réactive.
