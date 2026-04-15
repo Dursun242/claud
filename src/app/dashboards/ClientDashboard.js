@@ -174,12 +174,23 @@ export default function ClientDashboard({ user, profile = null }) {
         }
       `}</style>
 
-      {/* ── Sidebar (desktop uniquement) ── */}
-      {!isMobile && <aside aria-label="Navigation principale" style={{
-        width:240, position:'relative',
+      {/* ── Overlay mobile ── */}
+      {isMobile && sidebarOpen && (
+        <div onClick={() => setSidebarOpen(false)} style={{
+          position:'fixed', inset:0,
+          background:'rgba(0,0,0,0.4)', zIndex:998
+        }} />
+      )}
+
+      {/* ── Sidebar ── */}
+      <aside aria-label="Navigation principale" style={{
+        width:280, position:isMobile?'fixed':'relative',
+        left:isMobile?(sidebarOpen?0:-300):0, top:0, bottom:0,
         background:'linear-gradient(180deg,#0F172A 0%,#1E293B 100%)',
         display:'flex', flexDirection:'column',
-        zIndex:999, flexShrink:0,
+        zIndex:999, transition:'left .25s ease',
+        boxShadow:isMobile&&sidebarOpen?'4px 0 24px rgba(0,0,0,0.35)':'none',
+        flexShrink:0,
       }}>
         {/* Logo */}
         <div style={{ padding:'24px 20px 16px', borderBottom:'1px solid rgba(255,255,255,0.07)' }}>
@@ -267,26 +278,33 @@ export default function ClientDashboard({ user, profile = null }) {
             SARL ID MAÎTRISE · Le Havre
           </div>
         </div>
-      </aside>}
+      </aside>
 
       {/* ── Contenu principal ── */}
       <main id="main-content" aria-label="Contenu principal" style={{
         flex:1, minWidth:0, overflowX:'hidden', overflowY:'auto',
-        padding:isMobile?'60px 16px 74px':24, paddingTop:isMobile?60:24
+        padding:isMobile?16:24, paddingTop:isMobile?60:24
       }}>
-        {/* Topbar mobile — titre de l'onglet actif + notifications */}
+        {/* Topbar mobile */}
         {isMobile && (
           <div style={{
             position:'fixed', top:0, left:0, right:0, height:52,
             background:'#fff', borderBottom:'1px solid #E2E8F0',
-            display:'flex', alignItems:'center', padding:'0 16px',
+            display:'flex', alignItems:'center', padding:'0 12px',
             zIndex:997, boxShadow:'0 1px 3px rgba(15,23,42,0.04)', gap:10
           }}>
+            <button onClick={() => setSidebarOpen(s => !s)}
+              aria-label="Ouvrir le menu"
+              style={{
+                background:'none', border:'none', fontSize:22,
+                cursor:'pointer', color:'#334155', padding:'6px 8px', borderRadius:6,
+                lineHeight:1,
+              }}>☰</button>
             <div style={{ flex:1, minWidth:0, display:'flex', flexDirection:'column', lineHeight:1.15 }}>
               <span style={{
                 fontSize:10, fontWeight:600, color:'#94A3B8',
                 letterSpacing:'0.06em', textTransform:'uppercase'
-              }}>ID Maîtrise</span>
+              }}>Espace client</span>
               <span style={{
                 fontSize:15, fontWeight:700, color:'#0F172A',
                 overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'
@@ -335,48 +353,6 @@ export default function ClientDashboard({ user, profile = null }) {
             clearExternal={()=>setFloatTranscript("")} />}
         </div>
       </main>
-
-      {/* BOTTOM NAVIGATION (mobile uniquement) */}
-      {isMobile && (
-        <nav aria-label="Navigation principale" style={{
-          position:'fixed', bottom:0, left:0, right:0,
-          background:'#fff', borderTop:'1px solid #E2E8F0',
-          display:'flex', zIndex:999,
-          boxShadow:'0 -2px 8px rgba(0,0,0,0.06)',
-          paddingBottom:'env(safe-area-inset-bottom)',
-        }}>
-          {TABS.map(t => {
-            const active = tab === t.key
-            const shortLabel = t.label.replace('Tableau de bord','Accueil').replace('Comptes Rendus','CR').replace('Ordres de Service','OS').replace('Assistant IA','IA').split(' ')[0]
-            return (
-              <button key={t.key} onClick={() => switchTab(t.key)}
-                aria-current={active ? 'page' : undefined}
-                style={{
-                  flex:1, display:'flex', flexDirection:'column',
-                  alignItems:'center', justifyContent:'center',
-                  padding:'7px 2px 6px', border:'none', background:'none',
-                  cursor:'pointer', fontFamily:'inherit', minWidth:0,
-                  position:'relative',
-                }}>
-                {active && <span style={{
-                  position:'absolute', top:0, left:'25%', right:'25%',
-                  height:2, borderRadius:2, background:'#3B82F6'
-                }}/>}
-                {t.icon
-                  ? <Icon d={t.icon} size={20} color={active ? '#3B82F6' : '#94A3B8'} />
-                  : <span style={{fontSize:14,color:active?'#3B82F6':'#94A3B8'}}>✦</span>
-                }
-                <span style={{
-                  fontSize:9, fontWeight:active?700:500,
-                  color:active?'#3B82F6':'#94A3B8',
-                  marginTop:2, overflow:'hidden', textOverflow:'ellipsis',
-                  whiteSpace:'nowrap', maxWidth:'100%',
-                }}>{shortLabel}</span>
-              </button>
-            )
-          })}
-        </nav>
-      )}
 
       {/* FLOATING NEON MIC — visible sur tous les onglets sauf "ai" (qui a son propre micro inline) */}
       {tab !== 'ai' && (
