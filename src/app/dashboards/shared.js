@@ -123,9 +123,16 @@ export const SB = {
     ]);
     if (ch.error) return { error: ch.error.message };
     // Filtrage : on masque les chantiers démo pour les admins/salariés.
-    // Seul le MOA DémoMOA les voit (via loadForClient plus bas).
-    const nonDemoChantiers = (ch.data || []).filter(c => !c.is_demo);
-    const demoIds = new Set((ch.data || []).filter(c => c.is_demo).map(c => c.id));
+    // Double protection : is_demo=true (flag DB) OU UUID fixe connu
+    // (fallback si la migration is_demo n'est pas encore appliquée en prod).
+    const DEMO_UUIDS = new Set([
+      '11111111-1111-4111-8111-111111111d01', // Villa Moreau
+      '22222222-2222-4222-8222-222222222d02', // Maison Petit
+      '33333333-3333-4333-8333-333333333d03', // Pharmacie Normandie
+    ]);
+    const isDemo = (c) => c.is_demo || DEMO_UUIDS.has(c.id);
+    const nonDemoChantiers = (ch.data || []).filter(c => !isDemo(c));
+    const demoIds = new Set((ch.data || []).filter(isDemo).map(c => c.id));
     const notDemoChantier = (item) => !item?.chantier_id || !demoIds.has(item.chantier_id);
     return {
       chantiers: nonDemoChantiers.map(c => ({ ...c, lots: c.lots || [] })),
