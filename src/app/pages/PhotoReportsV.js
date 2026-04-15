@@ -46,6 +46,7 @@ export default function PhotoReportsV({ data, m }) {
   const { addToast } = useToast()
   const [chantierId, setChantierId] = useState(data.chantiers[0]?.id || '')
   const [photos, setPhotos] = useState([]) // [{ id, base64, description, date_photo, width, height }]
+  const [meteo, setMeteo] = useState('')
   const [loading, setLoading] = useState(false)
   const [generatingPdf, setGeneratingPdf] = useState(false)
   const fileInputRef = useRef(null)
@@ -140,7 +141,7 @@ export default function PhotoReportsV({ data, m }) {
     try {
       // 1. Génère le blob PDF en mémoire (sans télécharger)
       const { generatePhotoReportPdf } = await import('../generators')
-      const { blob, filename } = await generatePhotoReportPdf(chantier, photos)
+      const { blob, filename } = await generatePhotoReportPdf(chantier, photos, { meteo })
 
       // 2. Sauvegarde dans le dossier chantier AVANT de télécharger
       let saved = false
@@ -233,6 +234,22 @@ export default function PhotoReportsV({ data, m }) {
             {chantier.adresse} · Phase : {chantier.phase} · Statut : {chantier.statut}
           </div>
         )}
+        <div style={{ marginTop: 14 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
+            Météo (optionnel)
+          </div>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {['', '☀️ Ensoleillé', '🌤 Nuageux', '🌧 Pluvieux', '🌩 Orageux', '❄️ Neigeux', '💨 Venteux'].map(opt => (
+              <button key={opt} onClick={() => setMeteo(opt)} style={{
+                background: meteo === opt ? '#1E3A5F' : '#F8FAFC',
+                color: meteo === opt ? '#fff' : '#334155',
+                border: `1.5px solid ${meteo === opt ? '#1E3A5F' : '#E2E8F0'}`,
+                borderRadius: 20, padding: '5px 12px', fontSize: 12,
+                cursor: 'pointer', fontFamily: 'inherit', transition: 'all .12s',
+              }}>{opt || '— Aucune'}</button>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* ── ÉTAPE 2 : Sélection des photos ── */}
@@ -403,7 +420,7 @@ export default function PhotoReportsV({ data, m }) {
             <div style={{ fontSize: 12, color: '#334155', marginTop: 4 }}>
               <strong>{chantier?.nom}</strong>{' '}
               · {photos.length} photo{photos.length > 1 ? 's' : ''}{' '}
-              · {fmtDate(new Date())}
+              · {fmtDate(new Date())}{meteo ? ` · ${meteo}` : ''}
             </div>
           </div>
           <button

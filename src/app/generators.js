@@ -462,7 +462,8 @@ export function generateCRExcel(cr, chantier) {
 // Les photos doivent être pré-chargées en base64 avant l'appel (le
 // composant PhotoReportsV s'en charge via fetch → canvas → base64).
 //
-export async function generatePhotoReportPdf(chantier, photos) {
+export async function generatePhotoReportPdf(chantier, photos, opts = {}) {
+  const { meteo } = opts
   const { jsPDF } = await loadJsPdf()
   const doc = new jsPDF('p', 'mm', 'a4')
   const w = doc.internal.pageSize.getWidth()   // 210mm
@@ -499,12 +500,16 @@ export async function generatePhotoReportPdf(chantier, photos) {
   y += 8
   if (chantier.phase) doc.text(sanitize("Phase : " + chantier.phase), w / 2, y, { align: "center" })
 
-  // Date + compteur
+  // Date + météo + compteur
   y = 170
   doc.setFontSize(11)
   doc.setTextColor(...GRIS)
   doc.text(sanitize(`Date du rapport : ${today}`), w / 2, y, { align: "center" })
   y += 7
+  if (meteo) {
+    doc.text(sanitize(`Météo : ${meteo}`), w / 2, y, { align: "center" })
+    y += 7
+  }
   doc.text(sanitize(`${photos.length} photo${photos.length > 1 ? "s" : ""}`), w / 2, y, { align: "center" })
 
   // Entreprise en bas de la page de garde
@@ -542,7 +547,10 @@ export async function generatePhotoReportPdf(chantier, photos) {
     doc.setFontSize(8)
     doc.setFont("helvetica", "normal")
     doc.setTextColor(...GRIS)
-    doc.text(sanitize(`${chantier.nom} — Reportage photo — ${today}`), margin, 10)
+    const headerLeft = meteo
+      ? sanitize(`${chantier.nom} — Reportage photo — ${today} — ${meteo}`)
+      : sanitize(`${chantier.nom} — Reportage photo — ${today}`)
+    doc.text(headerLeft, margin, 10)
     doc.text(sanitize(`Page ${pageNum}`), w - margin, 10, { align: "right" })
     return 18  // y de départ après l'en-tête
   }
