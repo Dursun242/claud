@@ -1,5 +1,5 @@
 'use client'
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import { SB, Icon, I, FF, inp, sel, btnP, btnS } from '../dashboards/shared'
 import { Badge, Modal } from '../components'
 import { useToast } from '../contexts/ToastContext'
@@ -97,20 +97,22 @@ export default function ContactsV({data,save,m,reload,focusId,focusTs}) {
       SB.log('export_csv', 'contact', null, `Export annuaire — ${list.length} contacts`, { count: list.length });
     } catch (_) {}
   };
-  const list=data.contacts.filter(c=>{
-    if(pendingDeleteIds.has(c.id)) return false;
-    if(tf!=="all"&&c.type!==tf) return false;
-    if(!q) return true;
-    const search=q.toLowerCase();
-    return (
-      (c.nom||"").toLowerCase().includes(search)||
-      (c.specialite||"").toLowerCase().includes(search)||
-      (c.societe||"").toLowerCase().includes(search)||
-      (c.ville||"").toLowerCase().includes(search)||
-      (c.email||"").toLowerCase().includes(search)||
-      (c.siret||"").includes(search)
-    );
-  });
+  const list = useMemo(() => {
+    const search = q.toLowerCase();
+    return (data.contacts || []).filter(c => {
+      if (pendingDeleteIds.has(c.id)) return false;
+      if (tf !== "all" && c.type !== tf) return false;
+      if (!q) return true;
+      return (
+        (c.nom||"").toLowerCase().includes(search) ||
+        (c.specialite||"").toLowerCase().includes(search) ||
+        (c.societe||"").toLowerCase().includes(search) ||
+        (c.ville||"").toLowerCase().includes(search) ||
+        (c.email||"").toLowerCase().includes(search) ||
+        (c.siret||"").includes(search)
+      );
+    });
+  }, [data.contacts, q, tf, pendingDeleteIds]);
 
   const emptyForm = {
     nom:"",type:"Artisan",specialite:"",societe:"",fonction:"",

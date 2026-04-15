@@ -6,10 +6,7 @@ import { useToast } from '../contexts/ToastContext'
 import { useConfirm } from '../contexts/ConfirmContext'
 import { useUndoableDelete } from '../hooks/useUndoableDelete'
 import { buildCSV, downloadCSV, formatDateFR, formatMoneyFR } from '../lib/csv'
-import { generateOSPdf, generateOSExcel } from '../generators'
-import { createClient } from '@supabase/supabase-js'
-
-const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+import { supabase } from '../supabaseClient'
 
 // Ordre canonique des statuts (utilisé dans le filtre et le dropdown de tri)
 const OS_STATUSES = ["Brouillon","Émis","Signé","En cours","Terminé","Annulé"]
@@ -483,6 +480,7 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly})
     if (generating) return;
     setGenerating({ id: os.id, kind: 'pdf' });
     try {
+      const { generateOSPdf } = await import('../generators');
       await generateOSPdf(enrichOsForPdf(os));
       addToast(`PDF ${os.numero} généré`, 'success');
     } catch (err) {
@@ -496,6 +494,7 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly})
     if (generating) return;
     setGenerating({ id: os.id, kind: 'xls' });
     try {
+      const { generateOSExcel } = await import('../generators');
       await generateOSExcel(enrichOsForPdf(os));
       addToast(`Excel ${os.numero} généré`, 'success');
     } catch (err) {
@@ -587,6 +586,7 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly})
       // envoyé pour signature affiche bien la société en gros
       const ch = signModal.ch;
       const enriched = enrichOsForPdf(signModal);
+      const { generateOSPdf } = await import('../generators');
       const pdfResult = await generateOSPdf({ ...enriched, returnBase64: true });
       if (!pdfResult?.base64) throw new Error("Impossible de générer le PDF de l'OS");
       const signers = [

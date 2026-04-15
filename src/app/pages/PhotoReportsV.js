@@ -2,7 +2,6 @@
 import { useState, useMemo, useRef } from 'react'
 import { fmtDate, btnP, btnS, sel } from '../dashboards/shared'
 import { useToast } from '../contexts/ToastContext'
-import { generatePhotoReportPdf } from '../generators'
 import { supabase } from '../supabaseClient'
 
 // Compresse une image à max 1600px de large et retourne une data URL base64
@@ -140,6 +139,7 @@ export default function PhotoReportsV({ data, m }) {
     setGeneratingPdf(true)
     try {
       // 1. Génère le blob PDF en mémoire (sans télécharger)
+      const { generatePhotoReportPdf } = await import('../generators')
       const { blob, filename } = await generatePhotoReportPdf(chantier, photos)
 
       // 2. Sauvegarde dans le dossier chantier AVANT de télécharger

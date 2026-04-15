@@ -269,6 +269,15 @@ export default function DashboardV({data,setTab,m,user}) {
               {urgentTasks.length} urgente{urgentTasks.length>1?"s":""}
             </span>
           )}
+          {overdueTasks.length>0&&(
+            <span style={{
+              background:"#F59E0B", color:"#fff",
+              borderRadius:6, padding:"2px 8px",
+              fontSize:11, fontWeight:700
+            }}>
+              {overdueTasks.length} en retard
+            </span>
+          )}
         </div>
         {allActiveTasks.length>0 && (
           <button
@@ -290,7 +299,11 @@ export default function DashboardV({data,setTab,m,user}) {
             {allActiveTasks.slice(0,5).map((t,i)=>{
               const ch=chantierById.get(t.chantierId||t.chantier_id);
               const isUrgent=t.priorite==="Urgent";
+              const today=new Date().toISOString().split("T")[0];
+              const isOverdue=!isUrgent&&t.echeance&&t.echeance<today;
               const isLast = i === Math.min(4, allActiveTasks.length - 1);
+              const dotColor = isUrgent?"#EF4444":isOverdue?"#F59E0B":"#CBD5E1";
+              const titleColor = isUrgent?"#EF4444":isOverdue?"#B45309":"#0F172A";
               return(
                 <div key={t.id} onClick={()=>setTab("tasks",t.id)} style={{
                   cursor:"pointer", padding:"8px 0",
@@ -299,18 +312,25 @@ export default function DashboardV({data,setTab,m,user}) {
                 }}>
                   <span style={{
                     width:6, height:6, borderRadius:"50%",
-                    background:isUrgent?"#EF4444":"#CBD5E1", flexShrink:0
+                    background:dotColor, flexShrink:0
                   }}/>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{
-                      fontSize:12, fontWeight:isUrgent?700:600,
-                      color:isUrgent?"#EF4444":"#0F172A",
+                      fontSize:12, fontWeight:(isUrgent||isOverdue)?700:600,
+                      color:titleColor,
                       overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"
                     }}>{t.titre}</div>
                     <div style={{
                       fontSize:10, color:"#94A3B8", marginTop:2,
                       overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"
-                    }}>{ch?.nom || "—"}</div>
+                    }}>
+                      {ch?.nom || "—"}
+                      {isOverdue&&(
+                        <span style={{
+                          color:"#F59E0B",fontWeight:700,marginLeft:6
+                        }}>⚠ Éch. dépassée</span>
+                      )}
+                    </div>
                   </div>
                   <span style={{fontSize:14,color:"#CBD5E1",flexShrink:0}}>›</span>
                 </div>

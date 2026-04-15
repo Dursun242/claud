@@ -5,7 +5,6 @@ import { Modal } from '../components'
 import { useToast } from '../contexts/ToastContext'
 import { useConfirm } from '../contexts/ConfirmContext'
 import { useUndoableDelete } from '../hooks/useUndoableDelete'
-import { generateCRPdf, generateCRExcel } from '../generators'
 
 // Style doux pour les boutons d'action sur les cartes CR
 const crBtn = (color, bg, border) => ({
@@ -42,14 +41,14 @@ export default function ReportsV({data,save,m,reload,focusId,focusTs,readOnly}) 
   const handlePdf = async (cr, ch) => {
     if (generating) return
     setGenerating({ id: cr.id, kind: 'pdf' })
-    try { await generateCRPdf(cr, ch); addToast(`PDF CR n°${cr.numero} généré`, 'success') }
+    try { const { generateCRPdf } = await import('../generators'); await generateCRPdf(cr, ch); addToast(`PDF CR n°${cr.numero} généré`, 'success') }
     catch (err) { addToast('Erreur PDF : ' + (err?.message || 'génération impossible'), 'error') }
     finally { setGenerating(null) }
   }
   const handleExcel = async (cr, ch) => {
     if (generating) return
     setGenerating({ id: cr.id, kind: 'xls' })
-    try { await generateCRExcel(cr, ch); addToast(`Excel CR n°${cr.numero} généré`, 'success') }
+    try { const { generateCRExcel } = await import('../generators'); await generateCRExcel(cr, ch); addToast(`Excel CR n°${cr.numero} généré`, 'success') }
     catch (err) { addToast('Erreur Excel : ' + (err?.message || 'génération impossible'), 'error') }
     finally { setGenerating(null) }
   }
