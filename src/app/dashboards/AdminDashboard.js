@@ -287,14 +287,14 @@ export default function AdminDashboard({ user, profile = null }) {
         zIndex:999,transition:"left .25s ease",
         boxShadow:isMobile&&sidebarOpen?"4px 0 24px rgba(0,0,0,0.35)":"none"
       }}>
-        <div style={{padding:"20px 16px 16px",borderBottom:"1px solid rgba(255,255,255,0.08)"}}>
-          <div style={{fontSize:18,fontWeight:700}}>ID MAÎTRISE</div>
+        <div style={{padding:"16px 16px 12px",borderBottom:"1px solid rgba(255,255,255,0.08)"}}>
+          <div style={{fontSize:17,fontWeight:700}}>ID MAÎTRISE</div>
           <div style={{
             fontSize:10,color:"#94A3B8",marginTop:2,letterSpacing:"0.05em"
           }}>MAÎTRISE D'ŒUVRE • LE HAVRE</div>
         </div>
         <GlobalSearch data={data} onNavigate={switchTab} />
-        <div style={{flex:1,padding:"10px 8px",display:"flex",flexDirection:"column",gap:2,overflow:"auto"}}>
+        <div style={{flex:1,padding:"6px 8px",display:"flex",flexDirection:"column",gap:1,overflow:"auto"}}>
           {tabs.map(t=>{
             const active = tab===t.key;
             // Couleur d'accent : bleu pour tout, violet pour Qonto (distinction API)
@@ -309,7 +309,7 @@ export default function AdminDashboard({ user, profile = null }) {
                 style={{
                 position:"relative",
                 display:"flex",alignItems:"center",gap:9,
-                padding:"9px 11px 9px 14px",border:"none",
+                padding:"7px 11px 7px 14px",border:"none",
                 borderRadius:7,cursor:"pointer",
                 fontFamily:"inherit",fontSize:12.5,
                 fontWeight:active?600:400,
