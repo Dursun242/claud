@@ -266,8 +266,7 @@ export default function AdminDashboard({ user, profile = null }) {
         @media (max-width: 768px){
           input:not([type="checkbox"]):not([type="radio"]),select,textarea{font-size:16px !important}
           /* Touch targets minimum 36px sur mobile pour les boutons d'action */
-          button:not([aria-label="Copier"]):not([aria-label="Fermer"])
-          :not([aria-label="Fermer la notification"]){min-height:36px}
+          button:not([aria-label="Copier"]):not([aria-label="Fermer"]):not([aria-label="Fermer la notification"]):not([data-nav]){min-height:36px}
         }
       `}</style>
 
@@ -302,6 +301,7 @@ export default function AdminDashboard({ user, profile = null }) {
             return (
               <button
                 key={t.key}
+                data-nav
                 onClick={()=>switchTab(t.key)}
                 title={`${t.label} (g ${t.sc})`}
                 aria-current={active ? "page" : undefined}
