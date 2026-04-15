@@ -9,12 +9,23 @@ import { supabase } from '../supabaseClient'
 // Message d'accueil de l'assistant (identique après un reset)
 const welcomeForAdmin = (name) => ({
   role: "assistant",
-  content: `Bonjour ${name} ! Je suis l'assistant IA d'**ID Maîtrise**.\n\nJe peux tout faire :\n• **"Crée un OS pour le chantier Friboulet, artisan Lefèvre..."** → Ordre de Service\n• **"Rédige un CR pour Les Voiles, présents : Lefèvre, Costa..."** → Compte Rendu\n• **"Nouveau chantier Villa Dupont, budget 200 000€..."** → Chantier\n• **"Ajoute une tâche urgente..."** → Tâche\n• **"Résumé avancement du chantier Les Voiles"** → Analyse\n\nParlez ou tapez !`,
+  content: `Bonjour ${name} ! Je suis l'assistant IA d'**ID Maîtrise**.\n\n` +
+    `Je peux tout faire :\n` +
+    `• **"Crée un OS pour le chantier Friboulet, artisan Lefèvre..."** → Ordre de Service\n` +
+    `• **"Rédige un CR pour Les Voiles, présents : Lefèvre, Costa..."** → Compte Rendu\n` +
+    `• **"Nouveau chantier Villa Dupont, budget 200 000€..."** → Chantier\n` +
+    `• **"Ajoute une tâche urgente..."** → Tâche\n` +
+    `• **"Résumé avancement du chantier Les Voiles"** → Analyse\n\nParlez ou tapez !`,
 })
 
 const welcomeForClient = (name) => ({
   role: "assistant",
-  content: `Bonjour ${name} ! Je suis l'assistant IA d'**ID Maîtrise**.\n\nJe peux vous aider sur votre chantier :\n• **"Ajoute une tâche : peindre le mur côté cour"** → Nouvelle tâche\n• **"Où en est mon chantier ?"** → Résumé d'avancement\n• **"Liste mes tâches en cours"** → Recherche\n• **"Quels sont les derniers comptes rendus ?"** → Analyse\n\nParlez ou tapez !`,
+  content: `Bonjour ${name} ! Je suis l'assistant IA d'**ID Maîtrise**.\n\n` +
+    `Je peux vous aider sur votre chantier :\n` +
+    `• **"Ajoute une tâche : peindre le mur côté cour"** → Nouvelle tâche\n` +
+    `• **"Où en est mon chantier ?"** → Résumé d'avancement\n` +
+    `• **"Liste mes tâches en cours"** → Recherche\n` +
+    `• **"Quels sont les derniers comptes rendus ?"** → Analyse\n\nParlez ou tapez !`,
 })
 
 // Prépare un résumé des données pour l'IA — évite d'envoyer les champs inutiles ou trop lourds
@@ -137,7 +148,8 @@ export default function AIV({data,save,m,externalTranscript,clearExternal,reload
     setMessages(prev=>[...prev,{role:"user",content:userMsg}]); setLoading(true);
 
     try {
-      const sysAdmin = `Tu es l'assistant IA d'ID Maîtrise, maîtrise d'œuvre BTP au Havre (9 Rue Henry Genestal, 76600). Le gérant est Dursun. Tu gères le quotidien des chantiers.
+      const sysAdmin = `Tu es l'assistant IA d'ID Maîtrise, maîtrise d'œuvre BTP au Havre
+(9 Rue Henry Genestal, 76600). Le gérant est Dursun. Tu gères le quotidien des chantiers.
 
 DONNÉES ACTUELLES (Supabase): ${JSON.stringify(prepareDataForAI(data),null,0)}
 
@@ -146,7 +158,9 @@ TU PEUX TOUT FAIRE :
 2. Résumer l'avancement d'un chantier (budget consommé, tâches en cours)
 3. Lister, rechercher et analyser toutes les données
 
-RÈGLE ABSOLUE : Lorsque l'utilisateur te demande de créer ou modifier quelque chose (OS, CR, chantier, tâche, contact), tu DOIS OBLIGATOIREMENT inclure un bloc action dans ta réponse. Sans ce bloc, rien n'est enregistré en base de données.
+RÈGLE ABSOLUE : Lorsque l'utilisateur te demande de créer ou modifier quelque chose
+(OS, CR, chantier, tâche, contact), tu DOIS OBLIGATOIREMENT inclure un bloc action
+dans ta réponse. Sans ce bloc, rien n'est enregistré en base de données.
 
 FORMAT OBLIGATOIRE DU BLOC ACTION (copie exactement cette syntaxe) :
 <<<ACTION>>>
@@ -155,31 +169,59 @@ FORMAT OBLIGATOIRE DU BLOC ACTION (copie exactement cette syntaxe) :
 
 TYPES D'ACTIONS DISPONIBLES :
 
-add_chantier: {"type":"add_chantier","data":{"nom":"...","client":"...","adresse":"...","phase":"...","statut":"Planifié","budget":0,"dateDebut":"YYYY-MM-DD","dateFin":"YYYY-MM-DD","lots":["..."]}}
+add_chantier: {"type":"add_chantier","data":{
+  "nom":"...","client":"...","adresse":"...","phase":"...",
+  "statut":"Planifié","budget":0,"dateDebut":"YYYY-MM-DD",
+  "dateFin":"YYYY-MM-DD","lots":["..."]}}
 
-add_task: {"type":"add_task","data":{"chantier_id":"UUID-DU-CHANTIER","titre":"...","priorite":"Urgent","statut":"Planifié","echeance":"YYYY-MM-DD","lot":"..."}}
+add_task: {"type":"add_task","data":{
+  "chantier_id":"UUID-DU-CHANTIER","titre":"...",
+  "priorite":"Urgent","statut":"Planifié","echeance":"YYYY-MM-DD","lot":"..."}}
 
-add_contact: {"type":"add_contact","data":{"nom":"...","type":"Artisan","specialite":"...","tel":"...","email":"...","adresse":"...","siret":"...","notes":"..."}}
+add_contact: {"type":"add_contact","data":{
+  "nom":"...","type":"Artisan","specialite":"...",
+  "tel":"...","email":"...","adresse":"...","siret":"...","notes":"..."}}
 
-update_contact: {"type":"update_contact","data":{"id":"UUID-EXISTANT","nom":"...","type":"...","specialite":"...","tel":"...","email":"...","adresse":"...","siret":"...","notes":"..."}}
+update_contact: {"type":"update_contact","data":{
+  "id":"UUID-EXISTANT","nom":"...","type":"...","specialite":"...",
+  "tel":"...","email":"...","adresse":"...","siret":"...","notes":"..."}}
 
-add_cr: {"type":"add_cr","data":{"chantier_id":"UUID-DU-CHANTIER","date":"YYYY-MM-DD","numero":1,"resume":"...","participants":"Nom1, Nom2","decisions":"..."}}
+add_cr: {"type":"add_cr","data":{
+  "chantier_id":"UUID-DU-CHANTIER","date":"YYYY-MM-DD","numero":1,
+  "resume":"...","participants":"Nom1, Nom2","decisions":"..."}}
 
-update_cr: {"type":"update_cr","data":{"id":"UUID-EXISTANT","chantier_id":"UUID-DU-CHANTIER","date":"YYYY-MM-DD","numero":1,"resume":"...","participants":"...","decisions":"..."}}
+update_cr: {"type":"update_cr","data":{
+  "id":"UUID-EXISTANT","chantier_id":"UUID-DU-CHANTIER",
+  "date":"YYYY-MM-DD","numero":1,"resume":"...","participants":"...","decisions":"..."}}
 
-add_os: {"type":"add_os","data":{"numero":"OS-2026-001","chantier_id":"UUID-DU-CHANTIER","client_nom":"...","client_adresse":"...","artisan_nom":"...","artisan_specialite":"...","artisan_tel":"...","artisan_email":"...","artisan_siret":"...","date_emission":"YYYY-MM-DD","date_intervention":"YYYY-MM-DD","date_fin_prevue":"YYYY-MM-DD","prestations":[{"description":"...","unite":"m²","quantite":10,"prix_unitaire":45.00,"tva_taux":20}],"observations":"...","conditions":"Paiement à 30 jours.","statut":"Émis"}}
+add_os: {"type":"add_os","data":{
+  "numero":"OS-2026-001","chantier_id":"UUID-DU-CHANTIER",
+  "client_nom":"...","client_adresse":"...","artisan_nom":"...",
+  "artisan_specialite":"...","artisan_tel":"...","artisan_email":"...","artisan_siret":"...",
+  "date_emission":"YYYY-MM-DD","date_intervention":"YYYY-MM-DD","date_fin_prevue":"YYYY-MM-DD",
+  "prestations":[{"description":"...","unite":"m²","quantite":10,"prix_unitaire":45.00,"tva_taux":20}],
+  "observations":"...","conditions":"Paiement à 30 jours.","statut":"Émis"}}
 
-update_os: {"type":"update_os","data":{"id":"UUID-EXISTANT","numero":"OS-2026-001","chantier_id":"UUID-DU-CHANTIER","client_nom":"...","artisan_nom":"...","artisan_specialite":"...","artisan_tel":"...","artisan_email":"...","artisan_siret":"...","date_emission":"YYYY-MM-DD","date_intervention":"YYYY-MM-DD","date_fin_prevue":"YYYY-MM-DD","prestations":[{"description":"...","unite":"m²","quantite":10,"prix_unitaire":45.00,"tva_taux":20}],"observations":"...","conditions":"...","statut":"..."}}
+update_os: {"type":"update_os","data":{
+  "id":"UUID-EXISTANT","numero":"OS-2026-001","chantier_id":"UUID-DU-CHANTIER",
+  "client_nom":"...","artisan_nom":"...","artisan_specialite":"...",
+  "artisan_tel":"...","artisan_email":"...","artisan_siret":"...",
+  "date_emission":"YYYY-MM-DD","date_intervention":"YYYY-MM-DD","date_fin_prevue":"YYYY-MM-DD",
+  "prestations":[{"description":"...","unite":"m²","quantite":10,"prix_unitaire":45.00,"tva_taux":20}],
+  "observations":"...","conditions":"...","statut":"..."}}
 
 RÈGLES :
 - Réponds TOUJOURS en français, concis et professionnel
 - Utilise TOUJOURS les vrais UUID des chantiers/contacts présents dans les données ci-dessus
-- Pour les OS, les montants (montant_ht, montant_tva, montant_ttc) sont calculés automatiquement par le système depuis les prestations — ne les inclus pas dans le JSON
+- Pour les OS, les montants (montant_ht, montant_tva, montant_ttc) sont calculés
+  automatiquement par le système depuis les prestations — ne les inclus pas dans le JSON
 - Si le chantier demandé n'existe pas dans les données, indique-le clairement
-- Le bloc <<<ACTION>>> doit contenir un JSON valide sur une seule ligne ou multiligne — pas de commentaires ni de texte dans le JSON
+- Le bloc <<<ACTION>>> doit contenir un JSON valide sur une seule ligne ou multiligne
+  — pas de commentaires ni de texte dans le JSON
 - Quand on te demande un résumé/avancement, analyse les données et donne un point clair sans bloc action`;
 
-      const sysClient = `Tu es l'assistant IA d'ID Maîtrise, maîtrise d'œuvre BTP au Havre. L'utilisateur est un MOA (maître d'ouvrage), il suit SON chantier.
+      const sysClient = `Tu es l'assistant IA d'ID Maîtrise, maîtrise d'œuvre BTP au Havre.
+L'utilisateur est un MOA (maître d'ouvrage), il suit SON chantier.
 
 DONNÉES ACTUELLES (uniquement les chantiers du client): ${JSON.stringify(prepareDataForAI(data),null,0)}
 
@@ -195,7 +237,8 @@ TU NE PEUX PAS et tu dois poliment REFUSER si on te demande de :
 - Créer ou modifier un contact — réservé au MOE
 - Supprimer une tâche — demander au MOE
 
-Réponse type en cas de demande non autorisée : "Cette action est réservée à votre maître d'œuvre (ID Maîtrise). N'hésitez pas à lui en parler directement."
+Réponse type en cas de demande non autorisée :
+"Cette action est réservée à votre maître d'œuvre (ID Maîtrise). N'hésitez pas à lui en parler directement."
 
 FORMAT OBLIGATOIRE DU BLOC ACTION (copie exactement cette syntaxe) :
 <<<ACTION>>>
@@ -204,7 +247,9 @@ FORMAT OBLIGATOIRE DU BLOC ACTION (copie exactement cette syntaxe) :
 
 SEUL BLOC ACTION AUTORISÉ :
 
-add_task: {"type":"add_task","data":{"chantier_id":"UUID-DU-CHANTIER","titre":"...","priorite":"Urgent|Normale|Faible","statut":"Planifié","echeance":"YYYY-MM-DD","lot":"..."}}
+add_task: {"type":"add_task","data":{
+  "chantier_id":"UUID-DU-CHANTIER","titre":"...",
+  "priorite":"Urgent|Normale|Faible","statut":"Planifié","echeance":"YYYY-MM-DD","lot":"..."}}
 
 RÈGLES :
 - Réponds TOUJOURS en français, concis et respectueux
@@ -226,7 +271,10 @@ RÈGLES :
           "Authorization": `Bearer ${session?.access_token || ''}`,
         },
         body: JSON.stringify({ model:"claude-haiku-4-5-20251001", max_tokens:4000, system:sys,
-          messages:messages.filter((m,i)=>m.role!=="assistant"||i>0).concat([{role:"user",content:userMsg}]).map(m=>({role:m.role,content:m.content})),
+          messages:messages
+            .filter((m,i)=>m.role!=="assistant"||i>0)
+            .concat([{role:"user",content:userMsg}])
+            .map(m=>({role:m.role,content:m.content})),
         }),
       });
       if (!response.ok) {
@@ -262,7 +310,10 @@ RÈGLES :
             else if(a.type==="add_os" || a.type==="update_os") {
               const prests = a.data.prestations || [];
               let ht=0, tva=0;
-              prests.forEach(p => { const l=(parseFloat(p.quantite)||0)*(parseFloat(p.prix_unitaire)||0); ht+=l; tva+=l*(parseFloat(p.tva_taux)||20)/100; });
+              prests.forEach(p => {
+                const l=(parseFloat(p.quantite)||0)*(parseFloat(p.prix_unitaire)||0)
+                ht+=l; tva+=l*(parseFloat(p.tva_taux)||20)/100;
+              });
               await SB.upsertOS({ ...a.data, montant_ht:ht, montant_tva:tva, montant_ttc:ht+tva });
               actionLabel = a.type==="update_os" ? "Ordre de Service mis à jour" : "Ordre de Service créé";
             }
@@ -270,11 +321,13 @@ RÈGLES :
             SB.clearLogContext();
           }
           if(reload) await reload();
-          text=text.replace(/<<<ACTION>>>[\s\S]*?<<<END_ACTION>>>/,"").trim()+`\n\n✅ **${actionLabel} dans Supabase !**`;
+          text=text.replace(/<<<ACTION>>>[\s\S]*?<<<END_ACTION>>>/,"").trim()
+            +`\n\n✅ **${actionLabel} dans Supabase !**`;
           if (actionLabel) addToast(actionLabel, "success");
         } catch(err) {
           console.error("❌ Action error:", err);
-          text=text.replace(/<<<ACTION>>>[\s\S]*?<<<END_ACTION>>>/,"").trim()+`\n\n❌ **Erreur Supabase :** ${err.message}`;
+          text=text.replace(/<<<ACTION>>>[\s\S]*?<<<END_ACTION>>>/,"").trim()
+            +`\n\n❌ **Erreur Supabase :** ${err.message}`;
           addToast("Erreur : " + err.message, "error");
         }
       }
@@ -293,9 +346,17 @@ RÈGLES :
       ul: ({node, ...props}) => <ul style={{marginLeft:"20px",marginTop:0,marginBottom:"6px"}} {...props}/>,
       ol: ({node, ...props}) => <ol style={{marginLeft:"20px",marginTop:0,marginBottom:"6px"}} {...props}/>,
       code: ({node, inline, ...props}) => inline
-        ? <code style={{background:"#F1F5F9",padding:"2px 6px",borderRadius:4,fontSize:"0.9em",fontFamily:"monospace"}} {...props}/>
-        : <pre style={{background:"#F1F5F9",padding:"10px",borderRadius:6,overflow:"auto",marginTop:"6px",marginBottom:"6px"}}><code {...props}/></pre>,
-      a: ({node, ...props}) => <a style={{color:"#3B82F6",textDecoration:"underline",cursor:"pointer"}} target="_blank" rel="noopener noreferrer" {...props}/>
+        ? <code style={{
+            background:"#F1F5F9",padding:"2px 6px",
+            borderRadius:4,fontSize:"0.9em",fontFamily:"monospace"
+          }} {...props}/>
+        : <pre style={{
+            background:"#F1F5F9",padding:"10px",borderRadius:6,
+            overflow:"auto",marginTop:"6px",marginBottom:"6px"
+          }}><code {...props}/></pre>,
+      a: ({node, ...props}) => <a
+        style={{color:"#3B82F6",textDecoration:"underline",cursor:"pointer"}}
+        target="_blank" rel="noopener noreferrer" {...props}/>
     }}>
       {text}
     </ReactMarkdown>
@@ -325,10 +386,24 @@ RÈGLES :
       </div>
 
       {/* CHAT */}
-      <div style={{flex:1,overflow:"auto",background:"#fff",borderRadius:12,padding:m?12:18,boxShadow:"0 1px 3px rgba(0,0,0,0.06)",marginBottom:12}}>
+      <div style={{
+        flex:1,overflow:"auto",background:"#fff",borderRadius:12,
+        padding:m?12:18,boxShadow:"0 1px 3px rgba(0,0,0,0.06)",marginBottom:12
+      }}>
         {messages.map((msg,i)=>(
-          <div key={i} style={{display:"flex",justifyContent:msg.role==="user"?"flex-end":"flex-start",marginBottom:10}}>
-            <div style={{maxWidth:m?"88%":"75%",padding:"10px 14px",borderRadius:msg.role==="user"?"12px 12px 3px 12px":"12px 12px 12px 3px",background:msg.role==="user"?"linear-gradient(135deg,#1E3A5F,#2563EB)":"#F8FAFC",color:msg.role==="user"?"#fff":"#334155",fontSize:13,lineHeight:1.6,border:msg.role==="user"?"none":"1px solid #E2E8F0"}}>
+          <div key={i} style={{
+            display:"flex",
+            justifyContent:msg.role==="user"?"flex-end":"flex-start",
+            marginBottom:10
+          }}>
+            <div style={{
+              maxWidth:m?"88%":"75%",padding:"10px 14px",
+              borderRadius:msg.role==="user"?"12px 12px 3px 12px":"12px 12px 12px 3px",
+              background:msg.role==="user"?"linear-gradient(135deg,#1E3A5F,#2563EB)":"#F8FAFC",
+              color:msg.role==="user"?"#fff":"#334155",
+              fontSize:13,lineHeight:1.6,
+              border:msg.role==="user"?"none":"1px solid #E2E8F0"
+            }}>
               {msg.role==="assistant"?renderMd(msg.content):msg.content}
             </div>
           </div>
@@ -336,7 +411,12 @@ RÈGLES :
         {loading && (
           <div style={{display:"flex",alignItems:"center",gap:8,padding:10}}>
             <div style={{display:"flex",gap:5}}>
-              {[0,1,2].map(i=><div key={i} style={{width:7,height:7,borderRadius:"50%",background:"#94A3B8",animation:`pulse 1.4s ease-in-out ${i*.2}s infinite`}}/>)}
+              {[0,1,2].map(i=>(
+                <div key={i} style={{
+                  width:7,height:7,borderRadius:"50%",background:"#94A3B8",
+                  animation:`pulse 1.4s ease-in-out ${i*.2}s infinite`
+                }}/>
+              ))}
             </div>
             <span style={{fontSize:11,color:"#94A3B8",fontStyle:"italic"}}>Claude réfléchit…</span>
           </div>
@@ -355,7 +435,10 @@ RÈGLES :
             if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
           }}
           rows={1}
-          placeholder={listening?"🎙️ Je vous écoute…":"Tape ou appuie sur le micro · Shift+Entrée = nouvelle ligne"}
+          placeholder={listening
+            ?"🎙️ Je vous écoute…"
+            :"Tape ou appuie sur le micro · Shift+Entrée = nouvelle ligne"
+          }
           style={{
             ...inp,flex:1,padding:"12px 16px",fontSize:14,borderRadius:12,
             background:listening?"#FEF2F2":"#fff",
@@ -365,7 +448,11 @@ RÈGLES :
             fontFamily:"inherit",lineHeight:1.4,
           }}
         />
-        <button onClick={sendMessage} disabled={loading||!input.trim()} style={{...btnP,padding:"12px 16px",borderRadius:12,opacity:(loading||!input.trim())?.6:1,display:"flex",alignItems:"center",gap:5}}>
+        <button onClick={sendMessage} disabled={loading||!input.trim()} style={{
+          ...btnP,padding:"12px 16px",borderRadius:12,
+          opacity:(loading||!input.trim())?.6:1,
+          display:"flex",alignItems:"center",gap:5
+        }}>
           <Icon d={I.send} size={16} color="#fff"/>{!m&&"Envoyer"}
         </button>
       </div>

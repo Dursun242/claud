@@ -73,13 +73,20 @@ export default function ClientDashboard({ user, profile = null }) {
   }, [profile?.prenom, profile?.nom])
 
   const reload = useCallback(async () => {
-    try { const sbData = await SB.loadForClient(profile?.prenom, profile?.nom); setData(sbData) } catch { /* silently fail */ }
+    try {
+      const sbData = await SB.loadForClient(profile?.prenom, profile?.nom);
+      setData(sbData)
+    } catch { /* silently fail */ }
   }, [profile?.prenom, profile?.nom])
 
   const save = useCallback(async (d) => { setData(d) }, [])
 
   // Floating mic (reconnaissance vocale → assistant IA)
-  const { listening: floatListening, transcript: floatTranscript, setTranscript: setFloatTranscript, toggle: toggleFloatMic, clear: clearFloatMic } = useFloatingMic()
+  const {
+    listening: floatListening, transcript: floatTranscript,
+    setTranscript: setFloatTranscript, toggle: toggleFloatMic,
+    clear: clearFloatMic
+  } = useFloatingMic()
 
   const switchTab = useCallback((k) => {
     setTab(k)
@@ -128,7 +135,11 @@ export default function ClientDashboard({ user, profile = null }) {
   if (loading || !data) return <DashboardSkeleton role="client" />
 
   return (
-    <div style={{ display:'flex', height:'100vh', fontFamily:"'DM Sans',sans-serif", background:'#F1F5F9', overflow:'hidden' }}>
+    <div style={{
+      display:'flex', height:'100vh',
+      fontFamily:"'DM Sans',sans-serif",
+      background:'#F1F5F9', overflow:'hidden'
+    }}>
       {/* Skip link a11y */}
       <a href="#main-content" style={{
         position:'absolute', left:-9999, top:0,
@@ -147,19 +158,28 @@ export default function ClientDashboard({ user, profile = null }) {
         input:focus,select:focus,textarea:focus{border-color:#3B82F6!important;outline:none}
         :focus{outline:none}
         :focus-visible{outline:2px solid #3B82F6 !important;outline-offset:2px;border-radius:4px}
-        button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:2px solid #3B82F6 !important;outline-offset:2px}
+        button:focus-visible,a:focus-visible,
+        [role="button"]:focus-visible{outline:2px solid #3B82F6 !important;outline-offset:2px}
         @media (prefers-reduced-motion: reduce){
-          *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important}
+          *,*::before,*::after{
+            animation-duration:.01ms !important;
+            animation-iteration-count:1 !important;
+            transition-duration:.01ms !important
+          }
         }
         @media (max-width: 768px){
           input:not([type="checkbox"]):not([type="radio"]),select,textarea{font-size:16px !important}
-          button:not([aria-label="Copier"]):not([aria-label="Fermer"]):not([aria-label="Fermer la notification"]){min-height:36px}
+          button:not([aria-label="Copier"]):not([aria-label="Fermer"])
+          :not([aria-label="Fermer la notification"]){min-height:36px}
         }
       `}</style>
 
       {/* ── Overlay mobile ── */}
       {isMobile && sidebarOpen && (
-        <div onClick={() => setSidebarOpen(false)} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.4)', zIndex:998 }} />
+        <div onClick={() => setSidebarOpen(false)} style={{
+          position:'fixed', inset:0,
+          background:'rgba(0,0,0,0.4)', zIndex:998
+        }} />
       )}
 
       {/* ── Sidebar ── */}
@@ -192,7 +212,9 @@ export default function ClientDashboard({ user, profile = null }) {
                 style={{
                 position:'relative',
                 width:'100%', textAlign:'left', display:'flex', alignItems:'center', gap:10,
-                padding:'10px 12px 10px 16px', marginBottom:2, border:'none', borderRadius:8, cursor:'pointer', fontFamily:'inherit',
+                padding:'10px 12px 10px 16px', marginBottom:2,
+                border:'none', borderRadius:8, cursor:'pointer',
+                fontFamily:'inherit',
                 background:active?'rgba(255,255,255,0.10)':'transparent',
                 color:active?'#fff':'#94A3B8',
                 fontWeight:active?600:400, fontSize:13, transition:'background .15s, color .15s',
@@ -216,16 +238,30 @@ export default function ClientDashboard({ user, profile = null }) {
           {user && (
             <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:10 }}>
               {user.user_metadata?.avatar_url
-                ? <img src={user.user_metadata.avatar_url} style={{ width:28, height:28, borderRadius:'50%', border:'2px solid rgba(255,255,255,0.15)' }} alt="" />
-                : <div style={{ width:28, height:28, borderRadius:'50%', background:'#3B82F6', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, color:'#fff' }}>
+                ? <img src={user.user_metadata.avatar_url} style={{
+                    width:28, height:28, borderRadius:'50%',
+                    border:'2px solid rgba(255,255,255,0.15)'
+                  }} alt="" />
+                : <div style={{
+                    width:28, height:28, borderRadius:'50%',
+                    background:'#3B82F6', display:'flex',
+                    alignItems:'center', justifyContent:'center',
+                    fontSize:11, fontWeight:700, color:'#fff'
+                  }}>
                     {(user.user_metadata?.full_name || user.email || '?')[0].toUpperCase()}
                   </div>
               }
               <div style={{ minWidth:0 }}>
-                <div style={{ fontSize:11, fontWeight:600, color:'#fff', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                <div style={{
+                  fontSize:11, fontWeight:600, color:'#fff',
+                  overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'
+                }}>
                   {user.user_metadata?.full_name || user.email}
                 </div>
-                <div style={{ fontSize:9, color:'#64748B', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                <div style={{
+                  fontSize:9, color:'#64748B',
+                  overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'
+                }}>
                   Maître d&apos;Ouvrage
                 </div>
               </div>
@@ -245,14 +281,33 @@ export default function ClientDashboard({ user, profile = null }) {
       </aside>
 
       {/* ── Contenu principal ── */}
-      <main id="main-content" aria-label="Contenu principal" style={{ flex:1, minWidth:0, overflowX:'hidden', overflowY:'auto', padding:isMobile?16:24, paddingTop:isMobile?60:24 }}>
+      <main id="main-content" aria-label="Contenu principal" style={{
+        flex:1, minWidth:0, overflowX:'hidden', overflowY:'auto',
+        padding:isMobile?16:24, paddingTop:isMobile?60:24
+      }}>
         {/* Topbar mobile — affiche clairement l'onglet actif */}
         {isMobile && (
-          <div style={{ position:'fixed', top:0, left:0, right:0, height:52, background:'#fff', borderBottom:'1px solid #E2E8F0', display:'flex', alignItems:'center', padding:'0 12px', zIndex:997, boxShadow:'0 1px 3px rgba(15,23,42,0.04)', gap:10 }}>
-            <button onClick={() => setSidebarOpen(s => !s)} aria-label="Ouvrir le menu" style={{ background:'none', border:'none', fontSize:20, cursor:'pointer', color:'#334155', padding:6, borderRadius:6 }}>☰</button>
+          <div style={{
+            position:'fixed', top:0, left:0, right:0, height:52,
+            background:'#fff', borderBottom:'1px solid #E2E8F0',
+            display:'flex', alignItems:'center', padding:'0 12px',
+            zIndex:997, boxShadow:'0 1px 3px rgba(15,23,42,0.04)', gap:10
+          }}>
+            <button onClick={() => setSidebarOpen(s => !s)}
+              aria-label="Ouvrir le menu"
+              style={{
+                background:'none', border:'none', fontSize:20,
+                cursor:'pointer', color:'#334155', padding:6, borderRadius:6
+              }}>☰</button>
             <div style={{ flex:1, minWidth:0, display:'flex', flexDirection:'column', lineHeight:1.15 }}>
-              <span style={{ fontSize:10, fontWeight:600, color:'#94A3B8', letterSpacing:'0.06em', textTransform:'uppercase' }}>Espace client</span>
-              <span style={{ fontSize:15, fontWeight:700, color:'#0F172A', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+              <span style={{
+                fontSize:10, fontWeight:600, color:'#94A3B8',
+                letterSpacing:'0.06em', textTransform:'uppercase'
+              }}>Espace client</span>
+              <span style={{
+                fontSize:15, fontWeight:700, color:'#0F172A',
+                overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'
+              }}>
                 {TABS.find(t => t.key === tab)?.label}
               </span>
             </div>
@@ -268,22 +323,33 @@ export default function ClientDashboard({ user, profile = null }) {
         <div style={{ animation:'fadeIn .25s ease', maxWidth:1200, margin:'0 auto' }}>
           {/* Aucun chantier associé */}
           {!data?.chantiers?.length && (
-            <div style={{ background:'#FFF7ED', border:'1px solid #FED7AA', borderRadius:14, padding:28, marginBottom:20, textAlign:'center' }}>
+            <div style={{
+              background:'#FFF7ED', border:'1px solid #FED7AA',
+              borderRadius:14, padding:28, marginBottom:20, textAlign:'center'
+            }}>
               <div style={{ fontSize:32, marginBottom:8 }}>🔗</div>
-              <div style={{ fontWeight:700, fontSize:15, color:'#92400E', marginBottom:6 }}>Aucun chantier associé</div>
+              <div style={{ fontWeight:700, fontSize:15, color:'#92400E', marginBottom:6 }}>
+                Aucun chantier associé
+              </div>
               <div style={{ fontSize:13, color:'#B45309', lineHeight:1.7 }}>
                 Votre compte n&apos;est pas encore lié à un chantier.<br/>
-                L&apos;administrateur doit renseigner votre prénom (<strong>{profile?.prenom}</strong>) dans le champ &quot;Client&quot; du chantier concerné.
+                L&apos;administrateur doit renseigner votre prénom{" "}
+                (<strong>{profile?.prenom}</strong>) dans le champ{" "}
+                &quot;Client&quot; du chantier concerné.
               </div>
             </div>
           )}
           {tab === 'dashboard' && <DashboardV     data={data} setTab={switchTab} m={isMobile} user={user} />}
-          {tab === 'projects'  && <ProjectsV      data={data} save={save} m={isMobile} reload={reload} user={user} profile={profile} readOnly />}
+          {tab === 'projects' && <ProjectsV data={data} save={save} m={isMobile}
+            reload={reload} user={user} profile={profile} readOnly />}
           {tab === 'tasks'     && <TasksV         data={data} save={save} m={isMobile} reload={reload} />}
           {tab === 'reports'   && <ReportsV       data={data} save={save} m={isMobile} reload={reload} readOnly />}
           {tab === 'os'        && <OrdresServiceV data={data} m={isMobile} reload={reload} readOnly />}
           {tab === 'planning'  && <PlanningV      data={data} m={isMobile} />}
-          {tab === 'ai'        && <AIV            data={data} save={save} m={isMobile} reload={reload} user={user} profile={profile} clientMode externalTranscript={floatTranscript} clearExternal={()=>setFloatTranscript("")} />}
+          {tab === 'ai' && <AIV data={data} save={save} m={isMobile}
+            reload={reload} user={user} profile={profile} clientMode
+            externalTranscript={floatTranscript}
+            clearExternal={()=>setFloatTranscript("")} />}
         </div>
       </main>
 
@@ -315,19 +381,30 @@ export default function ClientDashboard({ user, profile = null }) {
                 <div style={{ fontSize:16, fontWeight:700, color:'#0F172A' }}>Raccourcis clavier</div>
                 <div style={{ fontSize:11, color:'#64748B', marginTop:2 }}>Naviguer plus vite dans l&apos;app</div>
               </div>
-              <button onClick={() => setHelpOpen(false)} aria-label="Fermer" style={{ background:'#F1F5F9', border:'none', width:28, height:28, borderRadius:6, cursor:'pointer', color:'#64748B', fontSize:16 }}>×</button>
+              <button onClick={() => setHelpOpen(false)} aria-label="Fermer"
+                style={{
+                  background:'#F1F5F9', border:'none', width:28, height:28,
+                  borderRadius:6, cursor:'pointer', color:'#64748B', fontSize:16
+                }}>×</button>
             </div>
-            <div style={{ fontSize:10, fontWeight:700, color:'#94A3B8', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:6 }}>
+            <div style={{
+              fontSize:10, fontWeight:700, color:'#94A3B8',
+              letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:6
+            }}>
               Aller à (appuie sur <kbd style={kbdStyleC}>g</kbd> puis…)
             </div>
             {TABS.map(t => (
-              <div key={t.key} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'6px 0' }}>
+              <div key={t.key} style={{
+                display:'flex', alignItems:'center',
+                justifyContent:'space-between', padding:'6px 0'
+              }}>
                 <span style={{ fontSize:13, color:'#334155' }}>{t.label}</span>
                 <kbd style={kbdStyleC}>{t.sc}</kbd>
               </div>
             ))}
             <div style={{ fontSize:10, color:'#94A3B8', marginTop:10, borderTop:'1px solid #E2E8F0', paddingTop:10 }}>
-              Appuie sur <kbd style={kbdStyleC}>?</kbd> à tout moment pour réouvrir cette aide · <kbd style={kbdStyleC}>Esc</kbd> pour fermer
+              Appuie sur <kbd style={kbdStyleC}>?</kbd> à tout moment pour réouvrir
+              cette aide · <kbd style={kbdStyleC}>Esc</kbd> pour fermer
             </div>
           </div>
         </div>

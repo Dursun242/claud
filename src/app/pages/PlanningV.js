@@ -11,6 +11,12 @@ export default function PlanningV({data,m}) {
       : (data.planning || []).filter(p => p.chantierId === filter || p.chantier_id === filter)
   ), [filter, data.planning])
 
+  const chantierById = useMemo(() => {
+    const m = new Map()
+    ;(data.chantiers || []).forEach(c => m.set(c.id, c))
+    return m
+  }, [data.chantiers])
+
   if (!data.planning || data.planning.length === 0) {
     return (<div>
       <h1 style={{margin:"0 0 16px",fontSize:m?18:24,fontWeight:700}}>Planning</h1>
@@ -67,7 +73,7 @@ export default function PlanningV({data,m}) {
       {items.length === 0 ? (
         <div style={{textAlign:"center",color:"#94A3B8",padding:"24px 0",fontSize:13}}>Aucune tâche pour ce chantier.</div>
       ) : items.map(p => {
-        const ch = data.chantiers.find(c => c.id === (p.chantierId || p.chantier_id))
+        const ch = chantierById.get(p.chantierId || p.chantier_id)
         const s = Math.max(0, Math.ceil((new Date(p.debut) - min) / 864e5))
         const d = Math.max(1, Math.ceil((new Date(p.fin) - new Date(p.debut)) / 864e5) + 1)
         const c = phase[ch?.phase] || "#3B82F6"

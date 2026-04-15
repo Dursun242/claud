@@ -95,7 +95,8 @@ export default function AdminV({ m, reload, profile }) {
       title: next ? 'Rouvrir l\'accès démo ?' : 'Fermer l\'accès démo ?',
       message: next
         ? "Les comptes Google inconnus pourront à nouveau se connecter et accéder automatiquement au chantier démo."
-        : "Les nouveaux comptes Google inconnus seront refusés (accès démo coupé). Les comptes démo déjà créés restent actifs — désactive-les dans la liste Utilisateurs si besoin.",
+        : "Les nouveaux comptes Google inconnus seront refusés (accès démo coupé). " +
+          "Les comptes démo déjà créés restent actifs — désactive-les dans la liste Utilisateurs si besoin.",
       confirmLabel: next ? 'Rouvrir' : 'Fermer',
       danger: !next,
     })
@@ -122,7 +123,8 @@ export default function AdminV({ m, reload, profile }) {
   const handleResetDemoData = async () => {
     const ok = await confirm({
       title: 'Réinitialiser les données démo ?',
-      message: "Le chantier « Villa Moreau » et toutes ses OS / CR / tâches vont être supprimés puis recréés à neuf. Les comptes démo (utilisateurs) ne sont pas touchés.",
+      message: "Le chantier « Villa Moreau » et toutes ses OS / CR / tâches " +
+        "vont être supprimés puis recréés à neuf. Les comptes démo (utilisateurs) ne sont pas touchés.",
       confirmLabel: 'Réinitialiser',
       danger: true,
     })
@@ -166,10 +168,15 @@ export default function AdminV({ m, reload, profile }) {
 
   if (!isAdmin) {
     return (
-      <div style={{ background: "#FEF2F2", borderRadius: 14, padding: 40, textAlign: "center", border: "1.5px solid #FECACA" }}>
+      <div style={{
+        background: "#FEF2F2", borderRadius: 14, padding: 40,
+        textAlign: "center", border: "1.5px solid #FECACA"
+      }}>
         <div style={{ fontSize: 36, marginBottom: 10 }}>🔒</div>
         <h1 style={{ margin: "0 0 10px", fontSize: 20, fontWeight: 700, color: "#DC2626" }}>Accès refusé</h1>
-        <p style={{ margin: 0, color: "#94A3B8", fontSize: 14 }}>Seuls les administrateurs peuvent accéder à cette section.</p>
+        <p style={{ margin: 0, color: "#94A3B8", fontSize: 14 }}>
+          Seuls les administrateurs peuvent accéder à cette section.
+        </p>
       </div>
     )
   }
@@ -246,7 +253,9 @@ export default function AdminV({ m, reload, profile }) {
   }
 
   const hasFilters = !!(q || roleFilter !== "all")
-  const getInitials = (u) => ((u.prenom?.[0] || "") + (u.nom?.[0] || "")).toUpperCase() || (u.email?.[0] || "?").toUpperCase()
+  const getInitials = (u) =>
+    ((u.prenom?.[0] || "") + (u.nom?.[0] || "")).toUpperCase() ||
+    (u.email?.[0] || "?").toUpperCase()
 
   const tabBtn = (active) => ({
     padding: "8px 14px",
@@ -283,18 +292,32 @@ export default function AdminV({ m, reload, profile }) {
       {subtab === 'logs' ? <LogsV m={m} profile={profile} embedded /> : (<>
 
       {/* CONFIGURATION STORAGE */}
-      <div style={{ background: "#fff", borderRadius: 14, padding: m ? 14 : 18, boxShadow: "0 1px 3px rgba(15,23,42,0.06)", marginBottom: 18, border: "1.5px solid #E0F2FE" }}>
+      <div style={{
+        background: "#fff", borderRadius: 14, padding: m ? 14 : 18,
+        boxShadow: "0 1px 3px rgba(15,23,42,0.06)", marginBottom: 18,
+        border: "1.5px solid #E0F2FE"
+      }}>
         <h2 style={{ margin: "0 0 8px", fontSize: 15, fontWeight: 700 }}>🗂 Configuration pièces jointes</h2>
         <p style={{ margin: "0 0 12px", fontSize: 13, color: "#64748B", lineHeight: 1.6 }}>
-          Si vous obtenez <strong>&quot;Bucket not found&quot;</strong> lors d&apos;un upload, cliquez sur ce bouton.<br />
-          <span style={{ fontSize: 11, color: "#94A3B8" }}>Nécessite <code>SUPABASE_SERVICE_ROLE_KEY</code> dans les variables Vercel.</span>
+          Si vous obtenez <strong>&quot;Bucket not found&quot;</strong>{' '}
+          lors d&apos;un upload, cliquez sur ce bouton.<br />
+          <span style={{ fontSize: 11, color: "#94A3B8" }}>
+            Nécessite <code>SUPABASE_SERVICE_ROLE_KEY</code> dans les variables Vercel.
+          </span>
         </p>
-        <button onClick={handleSetupStorage} disabled={setupLoading} style={{ ...btnP, fontSize: 12, opacity: setupLoading ? 0.7 : 1 }}>
+        <button onClick={handleSetupStorage} disabled={setupLoading}
+          style={{ ...btnP, fontSize: 12, opacity: setupLoading ? 0.7 : 1 }}>
           {setupLoading ? "⏳ Configuration…" : "⚙️ Créer le bucket Storage"}
         </button>
-        {setupMsg && <div style={{ marginTop: 10, fontSize: 13, color: setupMsg.startsWith("✅") ? "#10B981" : "#EF4444" }}>{setupMsg}</div>}
+        {setupMsg && (
+          <div style={{
+            marginTop: 10, fontSize: 13,
+            color: setupMsg.startsWith("✅") ? "#10B981" : "#EF4444"
+          }}>{setupMsg}</div>
+        )}
         {!setupMsg && <div style={{ marginTop: 10, fontSize: 11, color: "#94A3B8" }}>
-          Si l&apos;erreur persiste : Supabase Dashboard → Storage → New bucket → nom : <strong>attachments</strong>
+          Si l&apos;erreur persiste : Supabase Dashboard → Storage →{' '}
+          New bucket → nom : <strong>attachments</strong>
         </div>}
       </div>
 
@@ -306,7 +329,10 @@ export default function AdminV({ m, reload, profile }) {
         border: `1.5px solid ${demoMode ? "#10B981" : "#E2E8F0"}`,
         transition: "border-color .2s, background .2s",
       }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 10 }}>
+        <div style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          gap: 12, flexWrap: "wrap", marginBottom: 10
+        }}>
           <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, display: "flex", alignItems: "center", gap: 8 }}>
             🎯 Accès démo public
             <span style={{
@@ -338,15 +364,19 @@ export default function AdminV({ m, reload, profile }) {
         <p style={{ margin: "0 0 12px", fontSize: 12, color: "#475569", lineHeight: 1.55 }}>
           {demoMode ? (
             <>
-              <strong>Accès démo ouvert par défaut.</strong> Tout compte Google qui se connecte et n&apos;est pas déjà
-              autorisé est automatiquement inscrit comme client <strong>DémoMOA</strong> et accède au chantier démo{' '}
+              <strong>Accès démo ouvert par défaut.</strong>{' '}
+              Tout compte Google qui se connecte et n&apos;est pas déjà
+              autorisé est automatiquement inscrit comme client{' '}
+              <strong>DémoMOA</strong> et accède au chantier démo{' '}
               <em>Villa Moreau</em>. Toutes ses actions sont tracées dans le Journal.
               <br/><br/>
-              Tu peux fermer l&apos;accès temporairement (ex: période de maintenance commerciale) en basculant le switch.
+              Tu peux fermer l&apos;accès temporairement
+              (ex: période de maintenance commerciale) en basculant le switch.
             </>
           ) : (
             <>
-              <strong style={{ color: "#475569" }}>Accès démo fermé</strong>. Les comptes Google inconnus sont refusés.
+              <strong style={{ color: "#475569" }}>Accès démo fermé</strong>.
+              Les comptes Google inconnus sont refusés.
               Réactive-le quand tu es prêt à recevoir des prospects.
             </>
           )}
@@ -366,11 +396,17 @@ export default function AdminV({ m, reload, profile }) {
           >
             {demoResetBusy ? "⏳ Reset…" : "🔄 Réinitialiser les données démo"}
           </button>
-          <div style={{ fontSize: 10, color: "#94A3B8", alignSelf: "center", flex: "1 1 200px", minWidth: 180, lineHeight: 1.4 }}>
+          <div style={{
+            fontSize: 10, color: "#94A3B8", alignSelf: "center",
+            flex: "1 1 200px", minWidth: 180, lineHeight: 1.4
+          }}>
             Recrée le chantier Villa Moreau + 3 OS + 2 CR + 4 tâches. Utile entre deux rendez-vous.
           </div>
         </div>
-        <div style={{ marginTop: 12, padding: 10, background: "rgba(15,23,42,0.03)", borderRadius: 8, fontSize: 11, color: "#64748B" }}>
+        <div style={{
+          marginTop: 12, padding: 10, background: "rgba(15,23,42,0.03)",
+          borderRadius: 8, fontSize: 11, color: "#64748B"
+        }}>
           <strong>Compte démo partagé</strong> (pour les prospects sans Google) :<br/>
           <code style={{ fontSize: 11 }}>demo-moa@id-maitrise.com</code> — à créer manuellement dans{" "}
           <em>Supabase → Authentication → Users</em> avec un mot de passe simple.
@@ -378,15 +414,28 @@ export default function AdminV({ m, reload, profile }) {
       </div>
 
       {/* AJOUTER UN UTILISATEUR */}
-      <div style={{ background: "#fff", borderRadius: 14, padding: m ? 14 : 18, boxShadow: "0 1px 3px rgba(15,23,42,0.06)", marginBottom: 18 }}>
+      <div style={{
+        background: "#fff", borderRadius: 14, padding: m ? 14 : 18,
+        boxShadow: "0 1px 3px rgba(15,23,42,0.06)", marginBottom: 18
+      }}>
         <h2 style={{ margin: "0 0 12px", fontSize: 15, fontWeight: 700 }}>➕ Ajouter un utilisateur</h2>
         <div style={{ display: "grid", gridTemplateColumns: m ? "1fr" : "repeat(3,1fr)", gap: 10, marginBottom: 10 }}>
-          <input type="email" placeholder="email@exemple.com" value={newEmail} onChange={e => setNewEmail(e.target.value)}
-            style={{ padding: "10px 12px", border: "1.5px solid #E2E8F0", borderRadius: 8, fontSize: 13, fontFamily: "inherit", outline: "none" }}/>
+          <input type="email" placeholder="email@exemple.com"
+            value={newEmail} onChange={e => setNewEmail(e.target.value)}
+            style={{
+            padding: "10px 12px", border: "1.5px solid #E2E8F0",
+            borderRadius: 8, fontSize: 13, fontFamily: "inherit", outline: "none"
+          }}/>
           <input type="text" placeholder="Prénom *" value={newPrenom} onChange={e => setNewPrenom(e.target.value)}
-            style={{ padding: "10px 12px", border: "1.5px solid #E2E8F0", borderRadius: 8, fontSize: 13, fontFamily: "inherit", outline: "none" }}/>
+            style={{
+            padding: "10px 12px", border: "1.5px solid #E2E8F0",
+            borderRadius: 8, fontSize: 13, fontFamily: "inherit", outline: "none"
+          }}/>
           <input type="text" placeholder="Nom (optionnel)" value={newNom} onChange={e => setNewNom(e.target.value)}
-            style={{ padding: "10px 12px", border: "1.5px solid #E2E8F0", borderRadius: 8, fontSize: 13, fontFamily: "inherit", outline: "none" }}/>
+            style={{
+            padding: "10px 12px", border: "1.5px solid #E2E8F0",
+            borderRadius: 8, fontSize: 13, fontFamily: "inherit", outline: "none"
+          }}/>
         </div>
         <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
           {[
@@ -416,7 +465,10 @@ export default function AdminV({ m, reload, profile }) {
           }}>
             <span style={{fontSize:14}}>⚠</span>
             <span style={{flex:1}}>{addError}</span>
-            <button onClick={()=>setAddError("")} aria-label="Fermer" style={{background:"none",border:"none",cursor:"pointer",color:"#DC2626",fontSize:14,padding:0,lineHeight:1}}>✕</button>
+            <button onClick={()=>setAddError("")} aria-label="Fermer" style={{
+              background:"none",border:"none",cursor:"pointer",
+              color:"#DC2626",fontSize:14,padding:0,lineHeight:1
+            }}>✕</button>
           </div>
         )}
         <button onClick={handleAdd} disabled={loading} style={{ ...btnP, fontSize: 12, opacity: loading ? 0.7 : 1 }}>
@@ -425,18 +477,34 @@ export default function AdminV({ m, reload, profile }) {
       </div>
 
       {/* LISTE DES UTILISATEURS */}
-      <div style={{ background: "#fff", borderRadius: 14, padding: m ? 14 : 18, boxShadow: "0 1px 3px rgba(15,23,42,0.06)" }}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14,flexWrap:"wrap",gap:10}}>
+      <div style={{
+        background: "#fff", borderRadius: 14, padding: m ? 14 : 18,
+        boxShadow: "0 1px 3px rgba(15,23,42,0.06)"
+      }}>
+        <div style={{
+          display:"flex",justifyContent:"space-between",alignItems:"center",
+          marginBottom:14,flexWrap:"wrap",gap:10
+        }}>
           <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700 }}>👥 Utilisateurs autorisés ({users.length})</h2>
           <div style={{position:"relative",width:m?"100%":240}}>
-            <svg style={{position:"absolute",left:9,top:"50%",transform:"translateY(-50%)",opacity:0.5}} width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2.5"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+            <svg style={{position:"absolute",left:9,top:"50%",
+              transform:"translateY(-50%)",opacity:0.5}}
+              width="13" height="13" viewBox="0 0 24 24"
+              fill="none" stroke="#64748B" strokeWidth="2.5">
+              <circle cx="11" cy="11" r="8"/>
+              <path d="M21 21l-4.35-4.35"/>
+            </svg>
             <input
               ref={searchInputRef}
               type="search"
               placeholder="Rechercher nom, email…"
               value={q}
               onChange={e => setQ(e.target.value)}
-              style={{padding:"7px 10px 7px 28px",borderRadius:7,border:"1px solid #E2E8F0",fontSize:12,width:"100%",boxSizing:"border-box",fontFamily:"inherit"}}
+              style={{
+                padding:"7px 10px 7px 28px",borderRadius:7,
+                border:"1px solid #E2E8F0",fontSize:12,width:"100%",
+                boxSizing:"border-box",fontFamily:"inherit"
+              }}
             />
           </div>
         </div>
@@ -498,10 +566,16 @@ export default function AdminV({ m, reload, profile }) {
                     fontSize: 13, fontWeight: 700, flexShrink: 0,
                   }}>{getInitials(u)}</div>
                   <div style={{flex:1,minWidth:0}}>
-                    <div style={{ fontWeight: 700, fontSize: 13, color: "#0F172A", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                    <div style={{
+                      fontWeight: 700, fontSize: 13, color: "#0F172A",
+                      overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"
+                    }}>
                       {u.prenom} {u.nom || ""}
                     </div>
-                    <div style={{ fontSize: 11, color: "#64748B", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                    <div style={{
+                      fontSize: 11, color: "#64748B",
+                      overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"
+                    }}>
                       {u.email}
                     </div>
                     <div style={{ fontSize: 10, color: meta.color, marginTop: 2, fontWeight:600 }}>

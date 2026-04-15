@@ -49,7 +49,10 @@ function search(data, query) {
       c.specialite?.toLowerCase().includes(q) ||
       c.email?.toLowerCase().includes(q) ||
       c.tel?.toLowerCase().includes(q)
-    ).slice(0, 4).map(c => ({ id: c.id, primary: c.nom, secondary: `${c.type || ''} · ${c.specialite || c.email || ''}` })),
+    ).slice(0, 4).map(c => ({
+      id: c.id, primary: c.nom,
+      secondary: `${c.type || ''} · ${c.specialite || c.email || ''}`
+    })),
 
     tasks: (data.tasks || []).filter(t =>
       t.titre?.toLowerCase().includes(q) ||
@@ -60,7 +63,10 @@ function search(data, query) {
       String(c.numero).includes(q) ||
       c.resume?.toLowerCase().includes(q) ||
       c.participants?.toLowerCase().includes(q)
-    ).slice(0, 4).map(c => ({ id: c.id, primary: `CR n°${c.numero}`, secondary: (c.resume || '').slice(0, 60) + '…' })),
+    ).slice(0, 4).map(c => ({
+      id: c.id, primary: `CR n°${c.numero}`,
+      secondary: (c.resume || '').slice(0, 60) + '…'
+    })),
   }
 }
 
@@ -131,7 +137,13 @@ export default function GlobalSearch({ data, onNavigate }) {
     <div ref={boxRef} style={{ position: 'relative', padding: '8px 8px 4px' }}>
       {/* Barre de recherche */}
       <div style={{ position: 'relative' }}>
-        <svg style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', opacity: 0.4 }} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+        <svg style={{ position: 'absolute', left: 10, top: '50%',
+          transform: 'translateY(-50%)', opacity: 0.4 }}
+          width="14" height="14" viewBox="0 0 24 24"
+          fill="none" stroke="#fff" strokeWidth="2.5">
+          <circle cx="11" cy="11" r="8"/>
+          <path d="M21 21l-4.35-4.35"/>
+        </svg>
         <input
           ref={inputRef}
           data-global-search-input
@@ -151,7 +163,11 @@ export default function GlobalSearch({ data, onNavigate }) {
           }}
         />
         {query && (
-          <button onClick={() => { setQuery(''); setOpen(false) }} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer', fontSize: 14, padding: 0, lineHeight: 1 }}>✕</button>
+          <button onClick={() => { setQuery(''); setOpen(false) }} style={{
+            position: 'absolute', right: 8, top: '50%',
+            transform: 'translateY(-50%)', background: 'none', border: 'none',
+            color: '#94A3B8', cursor: 'pointer', fontSize: 14, padding: 0, lineHeight: 1
+          }}>✕</button>
         )}
       </div>
 
@@ -166,9 +182,16 @@ export default function GlobalSearch({ data, onNavigate }) {
           {/* ── Mode récents (query vide) ── */}
           {showRecents && (
             <div>
-              <div style={{ padding: '8px 14px 4px', fontSize: 10, fontWeight: 700, color: '#94A3B8', letterSpacing: '0.08em', textTransform: 'uppercase', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+              <div style={{
+                padding: '8px 14px 4px', fontSize: 10, fontWeight: 700, color: '#94A3B8',
+                letterSpacing: '0.08em', textTransform: 'uppercase',
+                display:'flex', alignItems:'center', justifyContent:'space-between'
+              }}>
                 <span>⏱ Récents</span>
-                <span style={{ fontSize: 9, color:'#475569', fontWeight:500, textTransform:'none', letterSpacing:0 }}>Tape 2 lettres pour chercher</span>
+                <span style={{
+                  fontSize: 9, color:'#475569', fontWeight:500,
+                  textTransform:'none', letterSpacing:0
+                }}>Tape 2 lettres pour chercher</span>
               </div>
               {recents.map((r) => {
                 const cat = CATEGORIES.find(c => c.key === r.catKey) || CATEGORIES[0]
@@ -187,7 +210,10 @@ export default function GlobalSearch({ data, onNavigate }) {
                       <span style={{ color: cat.color, marginRight: 6 }}>{cat.icon}</span>
                       {r.primary}
                     </div>
-                    <div style={{ fontSize: 10, color: '#64748B', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.secondary}</div>
+                    <div style={{
+                      fontSize: 10, color: '#64748B', marginTop: 1,
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
+                    }}>{r.secondary}</div>
                   </button>
                 )
               })}
@@ -206,7 +232,10 @@ export default function GlobalSearch({ data, onNavigate }) {
                 if (items.length === 0) return null
                 return (
                   <div key={cat.key}>
-                    <div style={{ padding: '8px 14px 4px', fontSize: 10, fontWeight: 700, color: cat.color, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                    <div style={{
+                      padding: '8px 14px 4px', fontSize: 10, fontWeight: 700,
+                      color: cat.color, letterSpacing: '0.08em', textTransform: 'uppercase'
+                    }}>
                       {cat.icon} {cat.label}
                     </div>
                     {items.map((item) => {
@@ -214,7 +243,8 @@ export default function GlobalSearch({ data, onNavigate }) {
                       const isActive = globalIdx === activeIdx
                       return (
                         <button key={item.id}
-                          onClick={() => handleNavigate(cat.tab, item.id, { primary: item.primary, secondary: item.secondary, catKey: cat.key })}
+                          onClick={() => handleNavigate(cat.tab, item.id,
+                            { primary: item.primary, secondary: item.secondary, catKey: cat.key })}
                           onMouseEnter={() => setActive(globalIdx)}
                           style={{
                             display: 'block', width: '100%', textAlign: 'left',
@@ -223,7 +253,10 @@ export default function GlobalSearch({ data, onNavigate }) {
                             borderLeft: isActive ? `3px solid ${cat.color}` : '3px solid transparent',
                           }}>
                           <div style={{ fontSize: 12, fontWeight: 600, color: '#E2E8F0' }}>{item.primary}</div>
-                          <div style={{ fontSize: 10, color: '#64748B', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.secondary}</div>
+                          <div style={{
+                            fontSize: 10, color: '#64748B', marginTop: 1,
+                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
+                          }}>{item.secondary}</div>
                         </button>
                       )
                     })}
@@ -233,7 +266,10 @@ export default function GlobalSearch({ data, onNavigate }) {
             )
           )}
           {query.length >= 2 && totalCount > 0 && (
-            <div style={{ padding: '6px 14px 8px', fontSize: 10, color: '#475569', borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: 4 }}>
+            <div style={{
+              padding: '6px 14px 8px', fontSize: 10, color: '#475569',
+              borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: 4
+            }}>
               {totalCount} résultat{totalCount > 1 ? 's' : ''} — ↑↓ naviguer · Entrée sélectionner
             </div>
           )}

@@ -45,11 +45,16 @@ L'image peut être de différents types :
 - Photo d'un panneau de chantier ou d'une camionnette avec les coordonnées d'un artisan
 
 Adapte ton extraction au type d'image :
-- Capture SMS/WhatsApp : le nom est généralement en haut, le numéro peut être visible en cliquant sur le nom. Si tu ne vois que le numéro, mets-le dans tel et laisse nom vide (l'utilisateur le remplira).
-- Capture iOS Contacts : les champs sont clairement labellisés (mobile, domicile, travail, email…), extrais-les tels quels.
-- Panneau de chantier : le nom de la société est généralement le plus visible, le métier aussi (ex: "Plomberie Dupont — Dépannage 24/7").
+- Capture SMS/WhatsApp : le nom est généralement en haut, le numéro peut être visible
+  en cliquant sur le nom. Si tu ne vois que le numéro, mets-le dans tel et laisse nom vide
+  (l'utilisateur le remplira).
+- Capture iOS Contacts : les champs sont clairement labellisés
+  (mobile, domicile, travail, email…), extrais-les tels quels.
+- Panneau de chantier : le nom de la société est généralement le plus visible,
+  le métier aussi (ex: "Plomberie Dupont — Dépannage 24/7").
 
-Retourne EXCLUSIVEMENT un objet JSON strict, sans aucun texte avant ou après, sans backticks, sans commentaires, sans markdown. Le JSON doit suivre ce schéma :
+Retourne EXCLUSIVEMENT un objet JSON strict, sans aucun texte avant ou après,
+sans backticks, sans commentaires, sans markdown. Le JSON doit suivre ce schéma :
 
 {
   "nom": "Nom complet de la personne, ou nom de l'entreprise si pas de personne identifiée",
@@ -70,13 +75,19 @@ Retourne EXCLUSIVEMENT un objet JSON strict, sans aucun texte avant ou après, s
 }
 
 RÈGLES STRICTES :
-- Tous les champs sont optionnels. Si une info n'est PAS visible ou PAS certaine, OMETS le champ entièrement. Ne mets jamais null, ne mets jamais une chaîne vide.
-- Pour "type", devine selon le contexte métier : Plombier/Électricien/Maçon = "Artisan", Architecte = "Architecte", Bureau d'études = "BET", fournisseur de matériaux = "Fournisseur". Si impossible à deviner, utilise "Artisan".
+- Tous les champs sont optionnels. Si une info n'est PAS visible ou PAS certaine,
+  OMETS le champ entièrement. Ne mets jamais null, ne mets jamais une chaîne vide.
+- Pour "type", devine selon le contexte métier : Plombier/Électricien/Maçon = "Artisan",
+  Architecte = "Architecte", Bureau d'études = "BET", fournisseur de matériaux = "Fournisseur".
+  Si impossible à deviner, utilise "Artisan".
 - Pour les numéros de téléphone, garde le format français avec espaces (ex: "06 12 34 56 78" ou "02 35 12 34 56").
-- Distingue bien tel mobile (06/07) et tel_fixe (01-05, 08, 09). Si un seul numéro et tu n'es pas sûr, mets dans "tel".
+- Distingue bien tel mobile (06/07) et tel_fixe (01-05, 08, 09).
+  Si un seul numéro et tu n'es pas sûr, mets dans "tel".
 - Pour le code_postal, exactement 5 chiffres sans espace.
-- Si plusieurs contacts sont visibles (ex: signature avec 2 personnes en CC), extrais UNIQUEMENT le contact principal/central/le plus visible.
-- Si l'image ne contient AUCUNE information de contact exploitable (image floue, photo hors sujet, texte illisible), retourne un objet vide : {}
+- Si plusieurs contacts sont visibles (ex: signature avec 2 personnes en CC),
+  extrais UNIQUEMENT le contact principal/central/le plus visible.
+- Si l'image ne contient AUCUNE information de contact exploitable
+  (image floue, photo hors sujet, texte illisible), retourne un objet vide : {}
 - Retourne UNIQUEMENT le JSON, rien d'autre. Pas de préfixe "Voici :", pas de suffixe, pas de backticks.`;
 
 export async function POST(request) {
@@ -143,7 +154,8 @@ export async function POST(request) {
               },
               {
                 type: 'text',
-                text: 'Extrais les informations du contact principal de cette image et retourne-les au format JSON strict comme indiqué.',
+                text: 'Extrais les informations du contact principal de cette image' +
+                  ' et retourne-les au format JSON strict comme indiqué.',
               },
             ],
           },

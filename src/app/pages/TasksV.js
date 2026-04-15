@@ -66,7 +66,10 @@ export default function TasksV({data,save,m,reload,focusId,focusTs}) {
   }, [data.tasks])
 
   const openNew = () => {
-    setForm({ chantierId: data.chantiers[0]?.id || "", titre: "", priorite: "En cours", statut: "Planifié", echeance: "", lot: "" })
+    setForm({
+      chantierId: data.chantiers[0]?.id || "", titre: "",
+      priorite: "En cours", statut: "Planifié", echeance: "", lot: ""
+    })
     setFormError("")
     setModal("new")
   }
@@ -141,7 +144,10 @@ export default function TasksV({data,save,m,reload,focusId,focusTs}) {
   const isOverdue = (t) => t.echeance && t.echeance < todayISO && t.statut !== "Terminé"
 
   return (<div>
-    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,flexWrap:"wrap",gap:8}}>
+    <div style={{
+      display:"flex",justifyContent:"space-between",alignItems:"center",
+      marginBottom:12,flexWrap:"wrap",gap:8
+    }}>
       <div>
         <h1 style={{margin:0,fontSize:m?18:24,fontWeight:700}}>Tâches</h1>
         <div style={{fontSize:11,color:"#94A3B8",marginTop:2}}>
@@ -151,22 +157,36 @@ export default function TasksV({data,save,m,reload,focusId,focusTs}) {
       </div>
       <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
         <div style={{position:"relative",width:m?"100%":240}}>
-          <svg style={{position:"absolute",left:9,top:"50%",transform:"translateY(-50%)",opacity:0.5}} width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2.5"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+          <svg style={{position:"absolute",left:9,top:"50%",
+            transform:"translateY(-50%)",opacity:0.5}}
+            width="13" height="13" viewBox="0 0 24 24"
+            fill="none" stroke="#64748B" strokeWidth="2.5">
+            <circle cx="11" cy="11" r="8"/>
+            <path d="M21 21l-4.35-4.35"/>
+          </svg>
           <input
             ref={searchInputRef}
             type="search"
             placeholder="Rechercher titre, lot, chantier… (tape /)"
             value={q}
             onChange={e=>setQ(e.target.value)}
-            style={{padding:"7px 10px 7px 28px",borderRadius:7,border:"1px solid #E2E8F0",fontSize:12,width:"100%",boxSizing:"border-box",fontFamily:"inherit"}}
+            style={{
+              padding:"7px 10px 7px 28px",borderRadius:7,
+              border:"1px solid #E2E8F0",fontSize:12,width:"100%",
+              boxSizing:"border-box",fontFamily:"inherit"
+            }}
           />
         </div>
-        <button onClick={openNew} title="Nouvelle tâche (raccourci : n)" style={{...btnP,fontSize:12,padding:"8px 14px"}}>+ Tâche</button>
+        <button onClick={openNew} title="Nouvelle tâche (raccourci : n)"
+          style={{...btnP,fontSize:12,padding:"8px 14px"}}>+ Tâche</button>
       </div>
     </div>
 
     {/* Pills de filtre par statut */}
-    <div style={{display:"flex",gap:6,marginBottom:14,flexWrap:"wrap",overflowX:m?"auto":"visible",paddingBottom:m?4:0}}>
+    <div style={{
+      display:"flex",gap:6,marginBottom:14,flexWrap:"wrap",
+      overflowX:m?"auto":"visible",paddingBottom:m?4:0
+    }}>
       {[{k:"all",l:"Toutes",c:"#64748B"},
         {k:"En cours",l:"En cours",c:status["En cours"]||"#3B82F6"},
         {k:"Planifié",l:"Planifiées",c:status["Planifié"]||"#8B5CF6"},
@@ -191,18 +211,26 @@ export default function TasksV({data,save,m,reload,focusId,focusTs}) {
     </div>
 
     {filteredTasks.length === 0 ? (
-      <div style={{background:"#fff",borderRadius:12,padding:"40px 24px",textAlign:"center",boxShadow:"0 1px 3px rgba(0,0,0,0.04)"}}>
+      <div style={{
+        background:"#fff",borderRadius:12,padding:"40px 24px",
+        textAlign:"center",boxShadow:"0 1px 3px rgba(0,0,0,0.04)"
+      }}>
         <div style={{fontSize:36,marginBottom:8,opacity:0.5}}>✓</div>
         {hasFilters ? (
           <>
             <div style={{fontSize:14,fontWeight:700,color:"#334155",marginBottom:4}}>Aucun résultat</div>
-            <div style={{fontSize:12,color:"#94A3B8",marginBottom:14}}>Essaie d'élargir ta recherche ou de changer de filtre.</div>
-            <button onClick={()=>{setQ("");setFilter("all")}} style={{...btnS,fontSize:12}}>Réinitialiser les filtres</button>
+            <div style={{fontSize:12,color:"#94A3B8",marginBottom:14}}>
+              Essaie d&apos;élargir ta recherche ou de changer de filtre.
+            </div>
+            <button onClick={()=>{setQ("");setFilter("all")}}
+              style={{...btnS,fontSize:12}}>Réinitialiser les filtres</button>
           </>
         ) : (
           <>
             <div style={{fontSize:14,fontWeight:700,color:"#334155",marginBottom:4}}>Aucune tâche 🎉</div>
-            <div style={{fontSize:12,color:"#94A3B8",marginBottom:14}}>Crée ta première tâche pour commencer à suivre le travail.</div>
+            <div style={{fontSize:12,color:"#94A3B8",marginBottom:14}}>
+              Crée ta première tâche pour commencer à suivre le travail.
+            </div>
             <button onClick={openNew} style={{...btnP,fontSize:12}}>+ Nouvelle tâche</button>
           </>
         )}
@@ -223,7 +251,9 @@ export default function TasksV({data,save,m,reload,focusId,focusTs}) {
             minWidth:0,                // important : autorise le shrink des enfants
             overflow:"hidden",         // dernière ligne de défense anti-overflow
           }}>
-            <button onClick={()=>toggle(t)} title="Changer le statut" aria-label={`Marquer comme ${t.statut==="Terminé"?"à faire":"terminée"}`} style={{
+            <button onClick={()=>toggle(t)} title="Changer le statut"
+              aria-label={`Marquer comme ${t.statut==="Terminé"?"à faire":"terminée"}`}
+              style={{
               width:24,height:24,minWidth:24,minHeight:24,borderRadius:"50%",
               border:`2px solid ${status[t.statut]||"#CBD5E1"}`,
               background:t.statut==="Terminé"?"#10B981":"transparent",
@@ -233,24 +263,48 @@ export default function TasksV({data,save,m,reload,focusId,focusTs}) {
             }}>
               {t.statut==="Terminé" && <Icon d={I.check} size={12} color="#fff"/>}
             </button>
-            <div onClick={()=>openEdit(t)} style={{flex:"1 1 0",minWidth:0,cursor:"pointer",opacity:t.statut==="Terminé"?0.5:1}}>
-              <div style={{fontSize:13,fontWeight:600,color:"#0F172A",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",textDecoration:t.statut==="Terminé"?"line-through":"none"}}>{t.titre}</div>
+            <div onClick={()=>openEdit(t)}
+              style={{flex:"1 1 0",minWidth:0,cursor:"pointer",opacity:t.statut==="Terminé"?0.5:1}}>
+              <div style={{
+                fontSize:13,fontWeight:600,color:"#0F172A",
+                overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",
+                textDecoration:t.statut==="Terminé"?"line-through":"none"
+              }}>{t.titre}</div>
               <div style={{fontSize:10,color:"#94A3B8",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
                 {ch?.nom || "—"}{t.lot ? ` · ${t.lot}` : ""}
               </div>
             </div>
             {/* Sur mobile, on n'affiche que le pictogramme pour économiser la largeur */}
             {overdue && (
-              <span title="En retard" style={{fontSize:10,fontWeight:700,color:"#DC2626",background:"#FEF2F2",border:"1px solid #FECACA",borderRadius:999,padding:m?"2px 5px":"2px 7px",whiteSpace:"nowrap",flexShrink:0}}>
+              <span title="En retard" style={{
+                fontSize:10,fontWeight:700,color:"#DC2626",
+                background:"#FEF2F2",border:"1px solid #FECACA",borderRadius:999,
+                padding:m?"2px 5px":"2px 7px",whiteSpace:"nowrap",flexShrink:0
+              }}>
                 {m ? "⚠" : "⚠ Retard"}
               </span>
             )}
             {!m && <Badge text={t.priorite} color={status[t.priorite]||"#64748B"}/>}
-            {!m && <span style={{fontSize:11,color:overdue?"#DC2626":"#94A3B8",fontWeight:overdue?600:400,whiteSpace:"nowrap"}}>{fmtDate(t.echeance)}</span>}
-            <button onClick={()=>openEdit(t)} title="Modifier" aria-label="Modifier la tâche" style={{background:"#F1F5F9",border:"1px solid #E2E8F0",borderRadius:6,cursor:"pointer",padding:"4px 6px",display:"flex",flexShrink:0}}>
+            {!m && (
+              <span style={{
+                fontSize:11,color:overdue?"#DC2626":"#94A3B8",
+                fontWeight:overdue?600:400,whiteSpace:"nowrap"
+              }}>{fmtDate(t.echeance)}</span>
+            )}
+            <button onClick={()=>openEdit(t)} title="Modifier"
+              aria-label="Modifier la tâche" style={{
+              background:"#F1F5F9",border:"1px solid #E2E8F0",
+              borderRadius:6,cursor:"pointer",padding:"4px 6px",
+              display:"flex",flexShrink:0
+            }}>
               <Icon d={I.edit} size={12} color="#475569"/>
             </button>
-            <button onClick={()=>handleDelete(t)} title="Supprimer" aria-label="Supprimer la tâche" style={{background:"#fff",border:"1px solid #FECACA",borderRadius:6,cursor:"pointer",padding:"4px 6px",display:"flex",flexShrink:0}}>
+            <button onClick={()=>handleDelete(t)} title="Supprimer"
+              aria-label="Supprimer la tâche" style={{
+              background:"#fff",border:"1px solid #FECACA",
+              borderRadius:6,cursor:"pointer",padding:"4px 6px",
+              display:"flex",flexShrink:0
+            }}>
               <Icon d={I.trash} size={12} color="#DC2626"/>
             </button>
           </div>
@@ -260,16 +314,37 @@ export default function TasksV({data,save,m,reload,focusId,focusTs}) {
     )}
 
     <Modal open={!!modal} onClose={closeModal} title={modal==="new"?"Nouvelle tâche":"Modifier la tâche"}>
-      <FF label="Chantier *"><select style={sel} value={form.chantierId||""} onChange={e=>setForm({...form,chantierId:e.target.value})}>
+      <FF label="Chantier *">
+        <select style={sel} value={form.chantierId||""}
+          onChange={e=>setForm({...form,chantierId:e.target.value})}>
         <option value="">— Sélectionner —</option>
         {data.chantiers.map(c=><option key={c.id} value={c.id}>{c.nom}</option>)}
       </select></FF>
-      <FF label="Titre *"><input style={inp} value={form.titre||""} onChange={e=>setForm({...form,titre:e.target.value})}/></FF>
+      <FF label="Titre *">
+        <input style={inp} value={form.titre||""}
+          onChange={e=>setForm({...form,titre:e.target.value})}/>
+      </FF>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0 12px"}}>
-        <FF label="Lot"><input style={inp} value={form.lot||""} onChange={e=>setForm({...form,lot:e.target.value})}/></FF>
-        <FF label="Échéance"><input type="date" style={inp} value={form.echeance||""} onChange={e=>setForm({...form,echeance:e.target.value})}/></FF>
-        <FF label="Priorité"><select style={sel} value={form.priorite||""} onChange={e=>setForm({...form,priorite:e.target.value})}><option>Urgent</option><option>En cours</option><option>En attente</option></select></FF>
-        <FF label="Statut"><select style={sel} value={form.statut||""} onChange={e=>setForm({...form,statut:e.target.value})}><option>Planifié</option><option>En cours</option><option>Terminé</option></select></FF>
+        <FF label="Lot">
+          <input style={inp} value={form.lot||""}
+            onChange={e=>setForm({...form,lot:e.target.value})}/>
+        </FF>
+        <FF label="Échéance">
+          <input type="date" style={inp} value={form.echeance||""}
+            onChange={e=>setForm({...form,echeance:e.target.value})}/>
+        </FF>
+        <FF label="Priorité">
+          <select style={sel} value={form.priorite||""}
+            onChange={e=>setForm({...form,priorite:e.target.value})}>
+            <option>Urgent</option><option>En cours</option><option>En attente</option>
+          </select>
+        </FF>
+        <FF label="Statut">
+          <select style={sel} value={form.statut||""}
+            onChange={e=>setForm({...form,statut:e.target.value})}>
+            <option>Planifié</option><option>En cours</option><option>Terminé</option>
+          </select>
+        </FF>
       </div>
       {formError && (
         <div style={{
@@ -279,7 +354,10 @@ export default function TasksV({data,save,m,reload,focusId,focusTs}) {
         }}>
           <span style={{fontSize:14}}>⚠</span>
           <span style={{flex:1}}>{formError}</span>
-          <button onClick={()=>setFormError("")} aria-label="Fermer" style={{background:"none",border:"none",cursor:"pointer",color:"#DC2626",fontSize:14,padding:0,lineHeight:1}}>✕</button>
+          <button onClick={()=>setFormError("")} aria-label="Fermer" style={{
+            background:"none",border:"none",cursor:"pointer",
+            color:"#DC2626",fontSize:14,padding:0,lineHeight:1
+          }}>✕</button>
         </div>
       )}
       <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginTop:12}}>

@@ -45,7 +45,7 @@ async function execute(model, method, args = [], kwargs = {}) {
   return jsonrpc('object', 'execute_kw', [ODOO_DB, uid, ODOO_API_KEY, model, method, args, kwargs])
 }
 
-// ─── Méthodes publiques ────────────────────────────────────────────────────────
+// ─── Méthodes publiques ──────────────────────
 
 /** Teste la connexion Odoo */
 /** Inspecte les champs d'un modèle Odoo (diagnostic) */
@@ -201,17 +201,19 @@ export async function createSignRequestFromPdf({ pdfBase64, reference, operation
     const s = signers?.find(x => x.role === role)
     if (!s?.email) throw new Error(`Email obligatoire pour le rôle ${ROLE_LABELS[role]}`)
   }
-  if (signers.length !== 3) throw new Error(`3 signataires requis (MOE, Maître d'ouvrage, Entreprise), ${signers.length} fourni(s)`)
+  if (signers.length !== 3) throw new Error(
+    `3 signataires requis (MOE, Maître d'ouvrage, Entreprise), ${signers.length} fourni(s)`
+  )
 
-  // ── A : ir.attachment ────────────────────────────────────────────────────
+  // ── A : ir.attachment ─────────────────
   const attId = await execute('ir.attachment', 'create', [{
     name: filename, type: 'binary', datas: b64, mimetype: 'application/pdf',
   }])
 
-  // ── B : sign.template ────────────────────────────────────────────────────
+  // ── B : sign.template ─────────────────
   const templateId = await execute('sign.template', 'create', [{ name: filename }])
 
-  // ── C : sign.document ────────────────────────────────────────────────────
+  // ── C : sign.document ─────────────────
   const signDocId = await execute('sign.document', 'create', [{
     name: filename, template_id: templateId, attachment_id: attId,
   }])
@@ -231,7 +233,7 @@ export async function createSignRequestFromPdf({ pdfBase64, reference, operation
   const parentField = useDocumentId ? 'document_id' : 'template_id'
   const parentId = useDocumentId ? signDocId : templateId
 
-  // ── C-ter : nettoyage sign.items auto-générés ─────────────────────────────
+  // ── C-ter : nettoyage sign.items auto-générés ──
   // Odoo peut créer automatiquement des sign.items (rôle "Customer") lors de
   // la création du sign.document depuis un PDF. On purge tout pour ne garder
   // que nos 3 zones MOE/MOA/Entreprise.
@@ -244,7 +246,7 @@ export async function createSignRequestFromPdf({ pdfBase64, reference, operation
     console.warn('[OdooSign] purge sign.items préexistants:', e.message)
   }
 
-  // ── D : Rôles (find or create) ───────────────────────────────────────────
+  // ── D : Rôles (find or create) ────────
   // Noms courts sans apostrophe : pas de collision avec les rôles Odoo par
   // défaut (Customer, Employee…) et rendu propre dans le PDF signé.
   const ROLE_NAMES = { MOE: 'MOE', MOA: 'MOA', Entreprise: 'Entreprise' }
@@ -295,7 +297,7 @@ export async function createSignRequestFromPdf({ pdfBase64, reference, operation
   )
   const requiredRoleIds = [...new Set(templateItems.map(i => i.responsible_id?.[0]).filter(Boolean))]
 
-  // ── F : Partenaires ──────────────────────────────────────────────────────
+  // ── F : Partenaires ────────────────────
   const roleToPartner = {}
   for (const s of signers) {
     if (!s.email) continue
@@ -315,14 +317,14 @@ export async function createSignRequestFromPdf({ pdfBase64, reference, operation
 
   if (!requestItems.length) throw new Error('Aucun request_item à créer — vérifiez les emails et rôles')
 
-  // ── H : sign.request ─────────────────────────────────────────────────────
+  // ── H : sign.request ───────────────────
   const requestId = await execute('sign.request', 'create', [{
     template_id: templateId,
     reference: reference || '',
     request_item_ids: requestItems,
   }])
 
-  // ── I : Subject + email_from avant envoi ─────────────────────────────────
+  // ── I : Subject + email_from avant envoi ──
   try {
     await execute('sign.request', 'write', [[requestId], {
       subject,
@@ -334,7 +336,7 @@ export async function createSignRequestFromPdf({ pdfBase64, reference, operation
     catch (e) { console.warn('[OdooSign] subject non supporté:', e.message) }
   }
 
-  // ── J : Envoi ─────────────────────────────────────────────────────────────
+  // ── J : Envoi ──────────────────────────
   let sent = false
   for (const m of ['action_send_request', 'send_signature_accesses', 'action_sign_send']) {
     try { await execute('sign.request', m, [[requestId]]); sent = true; break }

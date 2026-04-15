@@ -44,7 +44,11 @@ export default function AdminDashboard({ user, profile = null }) {
   // Préfixe « g » en attente (style GitHub : g puis lettre = go to tab)
   const pendingGRef = useRef(null);
   // Floating mic — logique extraite dans useFloatingMic hook
-  const { listening: floatListening, transcript: floatTranscript, setTranscript: setFloatTranscript, toggle: toggleFloatMic, clear: clearFloatMic } = useFloatingMic();
+  const {
+    listening: floatListening, transcript: floatTranscript,
+    setTranscript: setFloatTranscript, toggle: toggleFloatMic,
+    clear: clearFloatMic
+  } = useFloatingMic();
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
@@ -203,7 +207,11 @@ export default function AdminDashboard({ user, profile = null }) {
   if (loading || !data) return <DashboardSkeleton role="admin" />;
 
   return (
-    <div style={{display:"flex",height:"100vh",fontFamily:"'DM Sans',sans-serif",background:"#F1F5F9",overflow:"hidden"}}>
+    <div style={{
+      display:"flex",height:"100vh",
+      fontFamily:"'DM Sans',sans-serif",
+      background:"#F1F5F9",overflow:"hidden"
+    }}>
       {/* Skip link a11y : caché visuellement mais accessible au focus clavier */}
       <a href="#main-content" style={{
         position:"absolute",left:-9999,top:0,
@@ -217,9 +225,23 @@ export default function AdminDashboard({ user, profile = null }) {
       <style>{`
 @keyframes spin{to{transform:rotate(360deg)}}
         @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
-        @keyframes heartbeat{0%,100%{transform:scale(1)}15%{transform:scale(1.18)}30%{transform:scale(1)}45%{transform:scale(1.12)}60%{transform:scale(1)}}
+        @keyframes heartbeat{
+          0%,100%{transform:scale(1)}15%{transform:scale(1.18)}
+          30%{transform:scale(1)}45%{transform:scale(1.12)}60%{transform:scale(1)}
+        }
         @keyframes ripple{0%{transform:scale(1);opacity:1}100%{transform:scale(1.8);opacity:0}}
-        @keyframes neonBreathing{0%,100%{box-shadow:0 0 12px rgba(0,255,136,0.3),0 0 30px rgba(0,255,136,0.15),0 0 60px rgba(0,255,136,0.07);border-color:rgba(0,255,136,0.3)}50%{box-shadow:0 0 18px rgba(0,255,136,0.5),0 0 45px rgba(0,255,136,0.25),0 0 90px rgba(0,255,136,0.12);border-color:rgba(0,255,136,0.5)}}
+        @keyframes neonBreathing{
+          0%,100%{
+            box-shadow:0 0 12px rgba(0,255,136,0.3),
+              0 0 30px rgba(0,255,136,0.15),0 0 60px rgba(0,255,136,0.07);
+            border-color:rgba(0,255,136,0.3)
+          }
+          50%{
+            box-shadow:0 0 18px rgba(0,255,136,0.5),
+              0 0 45px rgba(0,255,136,0.25),0 0 90px rgba(0,255,136,0.12);
+            border-color:rgba(0,255,136,0.5)
+          }
+        }
         @keyframes neonRing{0%,100%{opacity:0.4;transform:scale(1)}50%{opacity:0.8;transform:scale(1.05)}}
         @keyframes neonPulse{0%,100%{opacity:1;box-shadow:0 0 3px #00FF88}50%{opacity:0.5;box-shadow:0 0 8px #00FF88}}
         @keyframes pulse{0%,80%,100%{opacity:.3;transform:scale(.8)}40%{opacity:1;transform:scale(1)}}
@@ -230,31 +252,44 @@ export default function AdminDashboard({ user, profile = null }) {
         /* A11y : focus ring clavier uniquement (pas sur les clics souris) */
         :focus{outline:none}
         :focus-visible{outline:2px solid #3B82F6 !important;outline-offset:2px;border-radius:4px}
-        button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:2px solid #3B82F6 !important;outline-offset:2px}
+        button:focus-visible,a:focus-visible,
+        [role="button"]:focus-visible{outline:2px solid #3B82F6 !important;outline-offset:2px}
         /* Respect prefers-reduced-motion : désactive les animations décoratives */
         @media (prefers-reduced-motion: reduce){
-          *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important}
+          *,*::before,*::after{
+            animation-duration:.01ms !important;
+            animation-iteration-count:1 !important;
+            transition-duration:.01ms !important
+          }
         }
         /* Mobile : inputs à 16px minimum pour éviter l'auto-zoom iOS Safari */
         @media (max-width: 768px){
           input:not([type="checkbox"]):not([type="radio"]),select,textarea{font-size:16px !important}
           /* Touch targets minimum 36px sur mobile pour les boutons d'action */
-          button:not([aria-label="Copier"]):not([aria-label="Fermer"]):not([aria-label="Fermer la notification"]){min-height:36px}
+          button:not([aria-label="Copier"]):not([aria-label="Fermer"])
+          :not([aria-label="Fermer la notification"]){min-height:36px}
         }
       `}</style>
 
       {/* MOBILE OVERLAY */}
-      {isMobile && sidebarOpen && <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.4)",zIndex:998}} onClick={()=>setSidebarOpen(false)} />}
+      {isMobile && sidebarOpen && (
+        <div style={{
+          position:"fixed",inset:0,background:"rgba(0,0,0,0.4)",zIndex:998
+        }} onClick={()=>setSidebarOpen(false)} />
+      )}
 
       {/* SIDEBAR */}
       <nav aria-label="Navigation principale" style={{
         width:isMobile?260:240,position:isMobile?"fixed":"relative",left:isMobile?(sidebarOpen?0:-280):0,top:0,bottom:0,
-        background:"linear-gradient(195deg,#0F172A,#1E3A5F)",color:"#fff",display:"flex",flexDirection:"column",flexShrink:0,
+        background:"linear-gradient(195deg,#0F172A,#1E3A5F)",
+        color:"#fff",display:"flex",flexDirection:"column",flexShrink:0,
         zIndex:999,transition:"left .3s ease",boxShadow:isMobile&&sidebarOpen?"4px 0 20px rgba(0,0,0,0.3)":"none"
       }}>
         <div style={{padding:"20px 16px 16px",borderBottom:"1px solid rgba(255,255,255,0.08)"}}>
           <div style={{fontSize:18,fontWeight:700}}>ID MAÎTRISE</div>
-          <div style={{fontSize:10,color:"#94A3B8",marginTop:2,letterSpacing:"0.05em"}}>MAÎTRISE D'ŒUVRE • LE HAVRE</div>
+          <div style={{
+            fontSize:10,color:"#94A3B8",marginTop:2,letterSpacing:"0.05em"
+          }}>MAÎTRISE D'ŒUVRE • LE HAVRE</div>
         </div>
         <GlobalSearch data={data} onNavigate={switchTab} />
         <div style={{flex:1,padding:"10px 8px",display:"flex",flexDirection:"column",gap:2,overflow:"auto"}}>
@@ -272,7 +307,9 @@ export default function AdminDashboard({ user, profile = null }) {
                 style={{
                 position:"relative",
                 display:"flex",alignItems:"center",gap:9,
-                padding:"9px 11px 9px 14px",border:"none",borderRadius:7,cursor:"pointer",fontFamily:"inherit",fontSize:12.5,
+                padding:"9px 11px 9px 14px",border:"none",
+                borderRadius:7,cursor:"pointer",
+                fontFamily:"inherit",fontSize:12.5,
                 fontWeight:active?600:400,
                 color:active?"#fff":"#94A3B8",
                 background:active?"rgba(255,255,255,0.10)":"transparent",
@@ -289,13 +326,21 @@ export default function AdminDashboard({ user, profile = null }) {
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                     <circle cx="12" cy="12" r="9" stroke={accent} strokeWidth="2"/>
                     <path d="M15 15l3 3" stroke={accent} strokeWidth="2" strokeLinecap="round"/>
-                    <path d="M9 12l2 2 4-4" stroke={accent} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M9 12l2 2 4-4" stroke={accent} strokeWidth="2"
+                      strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                 ) : (
                   <Icon d={t.icon} size={16} color={active?accent:"#64748B"}/>
                 )}
                 <span style={{flex:1}}>{t.label}</span>
-                {t.isQonto && <span style={{display:"inline-flex",alignItems:"center",gap:3,padding:"2px 7px",borderRadius:5,background:"linear-gradient(135deg,#7C3AED,#A855F7)",color:"#fff",fontSize:8,fontWeight:800,letterSpacing:"0.1em"}}>API</span>}
+                {t.isQonto && (
+                  <span style={{
+                    display:"inline-flex",alignItems:"center",gap:3,
+                    padding:"2px 7px",borderRadius:5,
+                    background:"linear-gradient(135deg,#7C3AED,#A855F7)",
+                    color:"#fff",fontSize:8,fontWeight:800,letterSpacing:"0.1em"
+                  }}>API</span>
+                )}
               </button>
             );
           })}
@@ -304,17 +349,37 @@ export default function AdminDashboard({ user, profile = null }) {
         <div style={{padding:"12px 16px",borderTop:"1px solid rgba(255,255,255,0.08)"}}>
           {user && (
             <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
-              {user.user_metadata?.avatar_url && <img src={user.user_metadata.avatar_url} style={{width:28,height:28,borderRadius:"50%",border:"2px solid rgba(255,255,255,0.15)"}} alt=""/>}
+              {user.user_metadata?.avatar_url && (
+                <img src={user.user_metadata.avatar_url}
+                  style={{
+                    width:28,height:28,borderRadius:"50%",
+                    border:"2px solid rgba(255,255,255,0.15)"
+                  }} alt=""/>
+              )}
               <div style={{flex:1,minWidth:0}}>
-                <div style={{fontSize:11,fontWeight:600,color:"#fff",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{user.user_metadata?.full_name || user.email}</div>
-                <div style={{fontSize:9,color:"#64748B",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{user.email}</div>
+                <div style={{
+                  fontSize:11,fontWeight:600,color:"#fff",
+                  overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"
+                }}>{user.user_metadata?.full_name || user.email}</div>
+                <div style={{
+                  fontSize:9,color:"#64748B",
+                  overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"
+                }}>{user.email}</div>
               </div>
             </div>
           )}
-          <button onClick={logout} style={{width:"100%",padding:"6px 10px",borderRadius:6,border:"1px solid rgba(255,255,255,0.1)",background:"rgba(255,255,255,0.05)",color:"#94A3B8",fontSize:10,cursor:"pointer",fontFamily:"inherit",fontWeight:500}}>
+          <button onClick={logout} style={{
+            width:"100%",padding:"6px 10px",borderRadius:6,
+            border:"1px solid rgba(255,255,255,0.1)",
+            background:"rgba(255,255,255,0.05)",
+            color:"#94A3B8",fontSize:10,cursor:"pointer",
+            fontFamily:"inherit",fontWeight:500
+          }}>
             Déconnexion
           </button>
-          <div style={{fontSize:9,color:"#475569",marginTop:6}}>SARL ID MAITRISE<br/>9 Rue Henry Genestal, 76600 Le Havre</div>
+          <div style={{fontSize:9,color:"#475569",marginTop:6}}>
+            SARL ID MAITRISE<br/>9 Rue Henry Genestal, 76600 Le Havre
+          </div>
         </div>
       </nav>
 
@@ -322,16 +387,35 @@ export default function AdminDashboard({ user, profile = null }) {
       {/* overflowX: hidden + minWidth: 0 → empêche le débordement horizontal
           quand un enfant est trop large (sécurité contre les bugs de layout
           flex sur mobile) */}
-      <main id="main-content" aria-label="Contenu principal" style={{flex:1,minWidth:0,overflowX:"hidden",overflowY:"auto",padding:isMobile?16:24,paddingTop:isMobile?60:24}}>
+      <main id="main-content" aria-label="Contenu principal" style={{
+        flex:1,minWidth:0,overflowX:"hidden",overflowY:"auto",
+        padding:isMobile?16:24,paddingTop:isMobile?60:24
+      }}>
         {/* MOBILE HEADER — affiche clairement l'onglet actif */}
         {isMobile && (
-          <div style={{position:"fixed",top:0,left:0,right:0,height:52,background:"#fff",borderBottom:"1px solid #E2E8F0",display:"flex",alignItems:"center",padding:"0 12px",zIndex:997,gap:10,boxShadow:"0 1px 3px rgba(15,23,42,0.04)"}}>
-            <button onClick={()=>setSidebarOpen(true)} aria-label="Ouvrir le menu" style={{background:"none",border:"none",cursor:"pointer",padding:6,borderRadius:6,display:"flex",alignItems:"center",justifyContent:"center"}}>
+          <div style={{
+            position:"fixed",top:0,left:0,right:0,height:52,
+            background:"#fff",borderBottom:"1px solid #E2E8F0",
+            display:"flex",alignItems:"center",padding:"0 12px",
+            zIndex:997,gap:10,boxShadow:"0 1px 3px rgba(15,23,42,0.04)"
+          }}>
+            <button onClick={()=>setSidebarOpen(true)} aria-label="Ouvrir le menu"
+              style={{
+                background:"none",border:"none",cursor:"pointer",
+                padding:6,borderRadius:6,display:"flex",
+                alignItems:"center",justifyContent:"center"
+              }}>
               <Icon d={I.menu} size={22} color="#0F172A"/>
             </button>
             <div style={{flex:1,minWidth:0,display:"flex",flexDirection:"column",lineHeight:1.15}}>
-              <span style={{fontSize:10,fontWeight:600,color:"#94A3B8",letterSpacing:"0.06em",textTransform:"uppercase"}}>ID Maîtrise</span>
-              <span style={{fontSize:15,fontWeight:700,color:"#0F172A",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+              <span style={{
+                fontSize:10,fontWeight:600,color:"#94A3B8",
+                letterSpacing:"0.06em",textTransform:"uppercase"
+              }}>ID Maîtrise</span>
+              <span style={{
+                fontSize:15,fontWeight:700,color:"#0F172A",
+                overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"
+              }}>
                 {tabs.find(t=>t.key===tab)?.label}
               </span>
             </div>
@@ -346,15 +430,23 @@ export default function AdminDashboard({ user, profile = null }) {
         <div style={{animation:"fadeIn .3s ease",maxWidth:1200}}>
           {tab==="dashboard"&&<DashboardV data={data} setTab={switchTab} m={isMobile} user={user}/>}
           {tab==="qonto"&&<QontoV m={isMobile} data={data} reload={reload}/>}
-          {tab==="projects"&&<ProjectsV data={data} save={save} m={isMobile} reload={reload} user={user} profile={profile} focusId={focus?.id} focusTs={focus?.ts}/>}
+          {tab==="projects"&&<ProjectsV data={data} save={save} m={isMobile}
+            reload={reload} user={user} profile={profile}
+            focusId={focus?.id} focusTs={focus?.ts}/>}
           {tab==="planning"&&<PlanningV data={data} m={isMobile}/>}
-          {tab==="tasks"&&<TasksV data={data} save={save} m={isMobile} reload={reload} focusId={focus?.id} focusTs={focus?.ts}/>}
-          {tab==="contacts"&&<ContactsV data={data} save={save} m={isMobile} reload={reload} focusId={focus?.id} focusTs={focus?.ts}/>}
-          {tab==="reports"&&<ReportsV data={data} save={save} m={isMobile} reload={reload} focusId={focus?.id} focusTs={focus?.ts}/>}
-          {tab==="os"&&<OrdresServiceV data={data} m={isMobile} reload={reload} focusId={focus?.id} focusTs={focus?.ts}/>}
+          {tab==="tasks"&&<TasksV data={data} save={save} m={isMobile}
+            reload={reload} focusId={focus?.id} focusTs={focus?.ts}/>}
+          {tab==="contacts"&&<ContactsV data={data} save={save} m={isMobile}
+            reload={reload} focusId={focus?.id} focusTs={focus?.ts}/>}
+          {tab==="reports"&&<ReportsV data={data} save={save} m={isMobile}
+            reload={reload} focusId={focus?.id} focusTs={focus?.ts}/>}
+          {tab==="os"&&<OrdresServiceV data={data} m={isMobile}
+            reload={reload} focusId={focus?.id} focusTs={focus?.ts}/>}
           {tab==="photos"&&<PhotoReportsV data={data} m={isMobile} reload={reload}/>}
           {tab==="admin"&&<AdminV m={isMobile} reload={reload} profile={profile}/>}
-          {tab==="ai"&&<AIV data={data} save={save} m={isMobile} externalTranscript={floatTranscript} clearExternal={()=>setFloatTranscript("")} reload={reload}/>}
+          {tab==="ai"&&<AIV data={data} save={save} m={isMobile}
+            externalTranscript={floatTranscript}
+            clearExternal={()=>setFloatTranscript("")} reload={reload}/>}
         </div>
       </main>
 
