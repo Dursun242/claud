@@ -453,12 +453,22 @@ function PVNewForm({ chantierId, chantier, ordresService = [], clientContact, on
 
     setSaving(true)
     try {
+      // Récupérer le token d'authentification
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.access_token) {
+        addToast('Session expirée, reconnectez-vous', 'error')
+        return
+      }
+
       // Générer le PDF pour la signature
       const pdfBase64 = generatePVPdfBase64(form)
 
       const res = await fetch('/api/pv-reception/create', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
         body: JSON.stringify({
           chantierId,
           titre: form.titre,
