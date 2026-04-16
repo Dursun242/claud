@@ -192,6 +192,17 @@ async function resolveRecipients({ chantierId, actorEmail }) {
  */
 export async function createNotifications({ entityType, entityId, chantierId, action = 'create', data, actorEmail }) {
   try {
+    // Exclure les notifications pour les chantiers démo
+    const DEMO_UUIDS = new Set([
+      '11111111-1111-4111-8111-111111111d01', // Villa Moreau
+      '22222222-2222-4222-8222-222222222d02', // Maison Petit
+      '33333333-3333-4333-8333-333333333d03', // Pharmacie Normandie
+    ])
+
+    if (chantierId && DEMO_UUIDS.has(chantierId)) {
+      return // Silencieusement ignoré
+    }
+
     const actor = (actorEmail || '').toLowerCase().trim()
     // Récupère le nom du chantier + nom de l'acteur (best-effort, parallélisé)
     const [chResult, actorDisplay] = await Promise.all([
