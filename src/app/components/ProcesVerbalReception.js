@@ -401,7 +401,6 @@ export default function ProcesVerbalReception({ chantierId, chantier, ordresServ
 
 function PVNewForm({ chantierId, chantier, ordresService = [], clientContact, onClose, onSuccess }) {
   const [form, setForm] = useState({
-    numero: '',
     titre: '',
     description: '',
     dateReception: '',
@@ -409,6 +408,9 @@ function PVNewForm({ chantierId, chantier, ordresService = [], clientContact, on
     signataireMotEmail: '',
     signataireEntrepriseEmail: '',
     osId: '',
+    decision: '',
+    motifRefus: '',
+    reservesAcceptation: ''
   })
   const [saving, setSaving] = useState(false)
   const { addToast } = useToast()
@@ -428,8 +430,20 @@ function PVNewForm({ chantierId, chantier, ordresService = [], clientContact, on
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!form.numero || !form.titre) {
-      addToast('Numéro et titre requis', 'error')
+    if (!form.titre || !form.osId) {
+      addToast('Titre et OS requis', 'error')
+      return
+    }
+    if (!form.decision) {
+      addToast('Sélectionnez une décision', 'error')
+      return
+    }
+    if (form.decision === 'Refusé' && !form.motifRefus) {
+      addToast('Motif de refus requis', 'error')
+      return
+    }
+    if (form.decision === 'Accepté avec réserve' && !form.reservesAcceptation) {
+      addToast('Précisez les réserves', 'error')
       return
     }
 
@@ -443,7 +457,16 @@ function PVNewForm({ chantierId, chantier, ordresService = [], clientContact, on
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           chantierId,
-          ...form,
+          titre: form.titre,
+          description: form.description,
+          dateReception: form.dateReception,
+          signataireMoeEmail: form.signataireMoeEmail,
+          signataireMotEmail: form.signataireMotEmail,
+          signataireEntrepriseEmail: form.signataireEntrepriseEmail,
+          osId: form.osId,
+          decision: form.decision,
+          motifRefus: form.decision === 'Refusé' ? form.motifRefus : null,
+          reservesAcceptation: form.decision === 'Accepté avec réserve' ? form.reservesAcceptation : null,
           pdfBase64,
           operationName: `PV - ${form.titre}`
         })
@@ -451,7 +474,7 @@ function PVNewForm({ chantierId, chantier, ordresService = [], clientContact, on
 
       if (!res.ok) throw new Error('Erreur création')
       const data = await res.json()
-      addToast('PV créé et envoyé en signature', 'success')
+      addToast(`PV créé: ${data.numero}`, 'success')
       onSuccess()
     } catch (err) {
       addToast('Erreur: ' + err.message, 'error')
@@ -486,15 +509,7 @@ function PVNewForm({ chantierId, chantier, ordresService = [], clientContact, on
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <input
             type="text"
-            placeholder="Numéro (ex: PV-2024-001)"
-            value={form.numero}
-            onChange={(e) => setForm({ ...form, numero: e.target.value })}
-            style={{ padding: '8px 12px', border: '1px solid #E2E8F0', borderRadius: 6, fontSize: 12, fontFamily: 'inherit' }}
-            required
-          />
-          <input
-            type="text"
-            placeholder="Titre"
+            placeholder="Titre du PV"
             value={form.titre}
             onChange={(e) => setForm({ ...form, titre: e.target.value })}
             style={{ padding: '8px 12px', border: '1px solid #E2E8F0', borderRadius: 6, fontSize: 12, fontFamily: 'inherit' }}
@@ -504,7 +519,7 @@ function PVNewForm({ chantierId, chantier, ordresService = [], clientContact, on
             placeholder="Description (optionnelle)"
             value={form.description}
             onChange={(e) => setForm({ ...form, description: e.target.value })}
-            style={{ padding: '8px 12px', border: '1px solid #E2E8F0', borderRadius: 6, fontSize: 12, fontFamily: 'inherit', minHeight: 80, resize: 'vertical' }}
+            style={{ padding: '8px 12px', border: '1px solid #E2E8F0', borderRadius: 6, fontSize: 12, fontFamily: 'inherit', minHeight: 60, resize: 'vertical' }}
           />
           <input
             type="date"
@@ -517,7 +532,7 @@ function PVNewForm({ chantierId, chantier, ordresService = [], clientContact, on
             <div style={{ fontSize: 11, fontWeight: 600, color: '#64748B', marginBottom: 8 }}>SIGNATAIRES</div>
 
             {/* Sélection OS/Entreprise */}
-            {ordresService.filter(os => os.statut === 'Signé').length > 0 && (
+            {ordresService.filter(os => os.statut === 'Signé' && !os.pv_id).length > 0 ? (
               <>
                 <label style={{ display: 'block', fontSize: 11, color: '#64748B', marginBottom: 4, fontWeight: 600 }}>
                   Ordre de Service à livrer
@@ -534,15 +549,20 @@ function PVNewForm({ chantierId, chantier, ordresService = [], clientContact, on
                     })
                   }}
                   style={{ padding: '8px 12px', border: '1px solid #E2E8F0', borderRadius: 6, fontSize: 12, fontFamily: 'inherit', width: '100%', marginBottom: 12 }}
+                  required
                 >
                   <option value="">-- Sélectionner une entreprise --</option>
-                  {ordresService.filter(os => os.statut === 'Signé').map(os => (
+                  {ordresService.filter(os => os.statut === 'Signé' && !os.pv_id).map(os => (
                     <option key={os.id} value={os.id}>
                       {os.artisan_nom || os.artisan_email || 'Sans nom'}
                     </option>
                   ))}
                 </select>
               </>
+            ) : (
+              <div style={{ padding: 12, background: '#FEF2F2', border: '1px solid #FED7AA', borderRadius: 6, fontSize: 12, color: '#DC2626' }}>
+                Tous les OS signés ont déjà un PV de réception
+              </div>
             )}
 
             <label style={{ display: 'block', fontSize: 11, color: '#64748B', marginBottom: 4, fontWeight: 600 }}>
@@ -583,6 +603,85 @@ function PVNewForm({ chantierId, chantier, ordresService = [], clientContact, on
             />
           </div>
 
+          {/* DÉCISION IMMÉDIATE */}
+          <div style={{ borderTop: '1px solid #E2E8F0', paddingTop: 12, marginTop: 12 }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: '#0F172A', marginBottom: 12 }}>
+              DÉCISION FINALE
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {[
+                { value: 'Accepté', label: '✓ Accepté sans réserve', color: '#059669' },
+                { value: 'Accepté avec réserve', label: '⚠️ Accepté avec réserve', color: '#D97706' },
+                { value: 'Refusé', label: '✕ Refusé', color: '#DC2626' }
+              ].map(opt => (
+                <label key={opt.value} style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  padding: '10px 12px',
+                  border: form.decision === opt.value ? `2px solid ${opt.color}` : '1px solid #E2E8F0',
+                  borderRadius: 6,
+                  cursor: 'pointer',
+                  background: form.decision === opt.value ? 'rgba(0,0,0,0.02)' : '#fff',
+                  fontSize: 12
+                }}>
+                  <input
+                    type="radio"
+                    name="decision"
+                    value={opt.value}
+                    checked={form.decision === opt.value}
+                    onChange={(e) => setForm({ ...form, decision: e.target.value, motifRefus: '', reservesAcceptation: '' })}
+                    style={{ cursor: 'pointer' }}
+                  />
+                  <span style={{ color: opt.color, fontWeight: 600 }}>
+                    {opt.label}
+                  </span>
+                </label>
+              ))}
+            </div>
+
+            {/* Motif refus */}
+            {form.decision === 'Refusé' && (
+              <textarea
+                placeholder="Motif du refus..."
+                value={form.motifRefus}
+                onChange={(e) => setForm({ ...form, motifRefus: e.target.value })}
+                style={{
+                  width: '100%',
+                  padding: 8,
+                  border: '1px solid #E2E8F0',
+                  borderRadius: 6,
+                  fontSize: 12,
+                  fontFamily: 'inherit',
+                  resize: 'vertical',
+                  minHeight: 80,
+                  marginTop: 12
+                }}
+              />
+            )}
+
+            {/* Réserves acceptation */}
+            {form.decision === 'Accepté avec réserve' && (
+              <textarea
+                placeholder="Précisez les réserves..."
+                value={form.reservesAcceptation}
+                onChange={(e) => setForm({ ...form, reservesAcceptation: e.target.value })}
+                style={{
+                  width: '100%',
+                  padding: 8,
+                  border: '1px solid #E2E8F0',
+                  borderRadius: 6,
+                  fontSize: 12,
+                  fontFamily: 'inherit',
+                  resize: 'vertical',
+                  minHeight: 80,
+                  marginTop: 12
+                }}
+              />
+            )}
+          </div>
+
           <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
             <button
               type="button"
@@ -617,7 +716,7 @@ function PVNewForm({ chantierId, chantier, ordresService = [], clientContact, on
                 opacity: saving ? 0.6 : 1
               }}
             >
-              {saving ? 'Création...' : 'Créer et signer'}
+              {saving ? 'Création...' : 'Créer et envoyer en signature'}
             </button>
           </div>
         </form>

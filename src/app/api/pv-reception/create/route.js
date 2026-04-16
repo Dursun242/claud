@@ -23,13 +23,13 @@ export async function POST(request) {
 
     const body = await request.json()
     const {
-      chantierId, numero, titre, description, dateReception,
+      chantierId, titre, description, dateReception,
       signataireMoeEmail, signataireMotEmail, signataireEntrepriseEmail,
-      pdfBase64, operationName
+      pdfBase64, operationName, osId, decision, motifRefus, reservesAcceptation
     } = body
 
-    if (!chantierId || !numero || !titre) {
-      return Response.json({ error: 'Champs requis: chantierId, numero, titre' }, { status: 400 })
+    if (!chantierId || !titre) {
+      return Response.json({ error: 'Champs requis: chantierId, titre' }, { status: 400 })
     }
 
     if (!pdfBase64) {
@@ -38,9 +38,23 @@ export async function POST(request) {
 
     const supa = adminClient()
 
-    // Créer le PV en base
+    // Générer le numéro automatiquement: PV-YYYY-XXX
+    const now = new Date()
+    const year = now.getFullYear()
+    const { data: existingPVs, error: countErr } = await supa
+      .from('proces_verbaux_reception')
+      .select('numero', { count: 'exact' })
+      .eq('chantier_id', chantierId)
+      .ilike('numero', `PV-${year}-%`)
+
+    if (countErr) console.error('[pv-creation] count erreur:', countErr)
+    const nextNum = (existingPVs?.length || 0) + 1
+    const numero = `PV-${year}-${String(nextNum).padStart(3, '0')}`
+
+    // Créer le PV en base avec décision immédiate si fournie
     const { data: pv, error: pvErr } = await supa.from('proces_verbaux_reception').insert({
       chantier_id: chantierId,
+      os_id: osId || null,
       numero,
       titre,
       description: description || null,
@@ -49,12 +63,27 @@ export async function POST(request) {
       signataire_moa_email: signataireMotEmail,
       signataire_entreprise_email: signataireEntrepriseEmail,
       statut_signature: 'Brouillon',
-      statut_reception: 'En attente'
+      statut_reception: decision && decision !== 'En attente' ? decision : 'En attente',
+      motif_refus: (decision === 'Refusé' ? motifRefus : null) || null,
+      reserves_acceptation: (decision === 'Accepté avec réserve' ? reservesAcceptation : null) || null,
+      decision_immediat: !!decision
     }).select().single()
 
     if (pvErr) {
       console.error('[pv-creation] insert erreur:', pvErr)
       return Response.json({ error: 'Erreur création PV' }, { status: 500 })
+    }
+
+    // Si OS spécifié, mettre à jour l'OS pour lier le PV
+    if (osId) {
+      const { error: osUpdateErr } = await supa
+        .from('ordres_service')
+        .update({ pv_id: pv.id })
+        .eq('id', osId)
+
+      if (osUpdateErr) {
+        console.error('[pv-creation] os update erreur:', osUpdateErr)
+      }
     }
 
     // Envoyer en signature Odoo avec 3 signataires
@@ -72,7 +101,7 @@ export async function POST(request) {
     try {
       signResult = await createSignRequestFromPdf({
         pdfBase64,
-        reference: `PV-${numero}`,
+        reference: `${numero}`,
         operationName: operationName || `PV Réception - ${titre}`,
         signers
       })
@@ -112,8 +141,9 @@ export async function POST(request) {
     return Response.json({
       ok: true,
       pvId: pv.id,
+      numero,
       signUrl: signResult.signUrl,
-      message: 'PV créé et envoyé en signature'
+      message: decision ? `PV créé avec décision: ${decision}` : 'PV créé et envoyé en signature'
     })
   } catch (err) {
     console.error('[pv-creation exception]', err)

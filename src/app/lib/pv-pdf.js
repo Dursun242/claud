@@ -3,13 +3,15 @@
 export function generatePVPdfBase64(pvData) {
   // Format: PDF simple en text (à améliorer avec jsPDF si besoin)
   const {
-    numero,
     titre,
     description,
     dateReception,
     signataireMoeEmail,
     signataireMotEmail,
-    signataireEntrepriseEmail
+    signataireEntrepriseEmail,
+    decision,
+    motifRefus,
+    reservesAcceptation
   } = pvData
 
   const today = new Date().toLocaleDateString('fr-FR', {
@@ -18,12 +20,11 @@ export function generatePVPdfBase64(pvData) {
     year: 'numeric'
   })
 
-  const content = `
+  let content = `
 ================================================================================
                    PROCÈS-VERBAL DE RÉCEPTION
 ================================================================================
 
-Référence:          ${numero}
 Titre:              ${titre}
 Date de création:   ${today}
 Date de réception:  ${dateReception || 'Non spécifiée'}
@@ -49,7 +50,30 @@ Signature: ________________________     Date: ________________
 Entreprise:
 Email: ${signataireEntrepriseEmail || 'Non renseigné'}
 Signature: ________________________     Date: ________________
+`
 
+  if (decision) {
+    content += `
+================================================================================
+                        DÉCISION
+================================================================================
+
+Statut: ${decision}
+`
+    if (decision === 'Accepté avec réserve' && reservesAcceptation) {
+      content += `
+Réserves:
+${reservesAcceptation}
+`
+    }
+    if (decision === 'Refusé' && motifRefus) {
+      content += `
+Motif de refus:
+${motifRefus}
+`
+    }
+  } else {
+    content += `
 ================================================================================
                    À REMPLIR LORS DE LA RÉCEPTION
 ================================================================================
@@ -62,17 +86,18 @@ Statut de réception:
 Observations/Réserves:
 ________________________________________________________________________________
 ________________________________________________________________________________
-________________________________________________________________________________
 
 Motif de refus (si refusé):
 ________________________________________________________________________________
 ________________________________________________________________________________
+`
+  }
 
+  content += `
 ================================================================================
 Généré le ${today}
 Document à conserver pour les archives
-================================================================================
-  `.trim()
+================================================================================`
 
   // Convertir en base64 (simple, pas de vraie génération PDF)
   // Note: Pour une vraie génération PDF, utiliser jsPDF
