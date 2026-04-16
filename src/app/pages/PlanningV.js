@@ -91,6 +91,7 @@ export default function PlanningV({ data, m, reload }) {
   const dragRef   = useRef(null)  // { id, type, startX, origDebut, origFin }
   const pxDayRef  = useRef(pxDay)
   const osRef     = useRef(null)  // ref stable pour le handler de drag
+  const scrollRef = useRef(null)  // ref pour l'élément scrollable Gantt
 
   useEffect(() => { pxDayRef.current = pxDay }, [pxDay])
 
@@ -233,6 +234,13 @@ export default function PlanningV({ data, m, reload }) {
   const totalW    = totalDays * pxDay
   const showToday = todayPct >= 0 && todayPct <= 100
 
+  // Scroller jusqu'à aujourd'hui
+  const scrollToToday = useCallback(() => {
+    if (!scrollRef.current || !showToday) return
+    const todayX = (todayPct / 100) * totalW - 200
+    scrollRef.current.scrollLeft = Math.max(0, todayX)
+  }, [showToday, todayPct, totalW])
+
   // Y a-t-il au moins un OS planifié dans les chantiers filtrés ?
   const hasData = filteredChantiers.some(c => (osByChantier.get(c.id) || []).length > 0)
 
@@ -269,6 +277,16 @@ export default function PlanningV({ data, m, reload }) {
               }}>{lbl}</button>
             ))}
           </div>
+          {/* Bouton Aujourd'hui (Gantt uniquement) */}
+          {view === 'gantt' && (
+            <button onClick={scrollToToday} disabled={!showToday} style={{
+              padding: '4px 12px', border: '1px solid #E2E8F0', borderRadius: 6, cursor: showToday ? 'pointer' : 'not-allowed',
+              fontSize: 11, fontWeight: 600, fontFamily: 'inherit',
+              background: '#fff', color: showToday ? '#0F172A' : '#CBD5E1',
+              opacity: showToday ? 1 : 0.5,
+              transition: 'all .15s',
+            }}>📍 Aujourd'hui</button>
+          )}
           {/* Filtre chantier */}
           <select style={{ ...sel, width: 'auto' }} value={filter} onChange={e => setFilter(e.target.value)}>
             <option value="all">🏗️ Tous les chantiers</option>
@@ -300,7 +318,7 @@ export default function PlanningV({ data, m, reload }) {
             {saving && <span style={{ color: '#3B82F6', fontWeight: 600 }}>💾 Sauvegarde…</span>}
           </div>
 
-          <div style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: m ? '65vh' : '72vh' }}>
+          <div ref={scrollRef} style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: m ? '65vh' : '72vh' }}>
             <div style={{ display: 'inline-block', minWidth: '100%', position: 'relative' }}>
 
               {/* ── En-tête mois (sticky) ── */}
