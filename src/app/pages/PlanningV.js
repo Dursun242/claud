@@ -280,8 +280,6 @@ export default function PlanningV({ data, m, reload }) {
               }}>{lbl}</button>
             ))}
           </div>
-<<<<<<< HEAD
-=======
           {/* Bouton Aujourd'hui (Gantt uniquement) */}
           {view === 'gantt' && (
             <button onClick={scrollToToday} disabled={!showToday} style={{
@@ -292,7 +290,6 @@ export default function PlanningV({ data, m, reload }) {
               transition: 'all .15s',
             }}>📍 Aujourd'hui</button>
           )}
->>>>>>> 9961db3 (Ajouter le bouton 'Aujourd'hui' sur le planning Gantt)
           {/* Filtre chantier */}
           <select style={{ ...sel, width: 'auto' }} value={filter} onChange={e => setFilter(e.target.value)}>
             <option value="all">🏗️ Tous les chantiers</option>
@@ -324,11 +321,7 @@ export default function PlanningV({ data, m, reload }) {
             {saving && <span style={{ color: '#3B82F6', fontWeight: 600 }}>💾 Sauvegarde…</span>}
           </div>
 
-<<<<<<< HEAD
-          <div style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: m ? '65vh' : '72vh' }}>
-=======
           <div ref={scrollRef} style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: m ? '65vh' : '72vh' }}>
->>>>>>> 9961db3 (Ajouter le bouton 'Aujourd'hui' sur le planning Gantt)
             <div style={{ display: 'inline-block', minWidth: '100%', position: 'relative' }}>
 
               {/* ── En-tête mois (sticky) ── */}
