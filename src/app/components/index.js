@@ -15,6 +15,7 @@ export { default as Modal } from './Modal'
 export { default as AttachmentsSection } from './AttachmentsSection'
 export { default as CommentsSection } from './CommentsSection'
 export { default as DocumentSearch } from './DocumentSearch'
+export { default as ProcesVerbalReception } from './ProcesVerbalReception'
 
 // Microphone components
 export { default as FloatingMic } from './FloatingMic'

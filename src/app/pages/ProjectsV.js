@@ -4,7 +4,7 @@ import {
   SB, Icon, I, phase, status, fmtDate, fmtMoney, pct,
   FF, inp, sel, btnP, btnS, PBar
 } from '../dashboards/shared'
-import { Badge, Modal, AttachmentsSection, CommentsSection, TemplateSelector } from '../components'
+import { Badge, Modal, AttachmentsSection, CommentsSection, TemplateSelector, ProcesVerbalReception } from '../components'
 import { useAttachments } from '../hooks/useAttachments'
 import { useComments } from '../hooks/useComments'
 import { generateOSPdf, generateCRPdf, generateOSExcel, generateCRExcel } from '../generators'
@@ -601,6 +601,14 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
         currentUser={user}
         userRole={profile?.role}
       />
+
+      {/* PROCÈS-VERBAUX DE RÉCEPTION */}
+      {selectedChantier && (
+        <ProcesVerbalReception
+          chantierId={selectedChantier.id}
+          onRefresh={reload}
+        />
+      )}
 
       {/* MODALES POUR OS/CR/TÂCHES */}
       <Modal
