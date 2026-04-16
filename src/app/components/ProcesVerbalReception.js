@@ -297,7 +297,7 @@ function PVDetail({ pv, onClose, onDecision }) {
   )
 }
 
-export default function ProcesVerbalReception({ chantierId, onRefresh }) {
+export default function ProcesVerbalReception({ chantierId, chantier, ordresService = [], clientContact, onRefresh }) {
   const [pvs, setPvs] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedPv, setSelectedPv] = useState(null)
@@ -384,6 +384,9 @@ export default function ProcesVerbalReception({ chantierId, onRefresh }) {
       {showNewForm && (
         <PVNewForm
           chantierId={chantierId}
+          chantier={chantier}
+          ordresService={ordresService}
+          clientContact={clientContact}
           onClose={() => setShowNewForm(false)}
           onSuccess={() => {
             setShowNewForm(false)
@@ -396,7 +399,7 @@ export default function ProcesVerbalReception({ chantierId, onRefresh }) {
   )
 }
 
-function PVNewForm({ chantierId, onClose, onSuccess }) {
+function PVNewForm({ chantierId, chantier, ordresService = [], clientContact, onClose, onSuccess }) {
   const [form, setForm] = useState({
     numero: '',
     titre: '',
@@ -405,9 +408,23 @@ function PVNewForm({ chantierId, onClose, onSuccess }) {
     signataireMoeEmail: '',
     signataireMotEmail: '',
     signataireEntrepriseEmail: '',
+    osId: '',
   })
   const [saving, setSaving] = useState(false)
   const { addToast } = useToast()
+
+  useEffect(() => {
+    const moeEmail = 'contact@id-maitrise.com'
+    const moaEmail = clientContact?.email || ''
+    const today = new Date().toISOString().split('T')[0]
+
+    setForm(f => ({
+      ...f,
+      signataireMoeEmail: moeEmail,
+      signataireMotEmail: moaEmail,
+      dateReception: today
+    }))
+  }, [clientContact])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -498,26 +515,71 @@ function PVNewForm({ chantierId, onClose, onSuccess }) {
 
           <div style={{ borderTop: '1px solid #E2E8F0', paddingTop: 12, marginTop: 12 }}>
             <div style={{ fontSize: 11, fontWeight: 600, color: '#64748B', marginBottom: 8 }}>SIGNATAIRES</div>
+
+            {/* Sélection OS/Entreprise */}
+            {ordresService.filter(os => os.statut === 'Signé').length > 0 && (
+              <>
+                <label style={{ display: 'block', fontSize: 11, color: '#64748B', marginBottom: 4, fontWeight: 600 }}>
+                  Ordre de Service à livrer
+                </label>
+                <select
+                  value={form.osId}
+                  onChange={(e) => {
+                    const osId = e.target.value
+                    const selected = ordresService.find(os => os.id === osId)
+                    setForm({
+                      ...form,
+                      osId,
+                      signataireEntrepriseEmail: selected?.artisan_email || ''
+                    })
+                  }}
+                  style={{ padding: '8px 12px', border: '1px solid #E2E8F0', borderRadius: 6, fontSize: 12, fontFamily: 'inherit', width: '100%', marginBottom: 12 }}
+                >
+                  <option value="">-- Sélectionner une entreprise --</option>
+                  {ordresService.filter(os => os.statut === 'Signé').map(os => (
+                    <option key={os.id} value={os.id}>
+                      {os.artisan_nom || os.artisan_email || 'Sans nom'}
+                    </option>
+                  ))}
+                </select>
+              </>
+            )}
+
+            <label style={{ display: 'block', fontSize: 11, color: '#64748B', marginBottom: 4, fontWeight: 600 }}>
+              Email MOE (Maître d'œuvre) {form.signataireMoeEmail ? '✓' : ''}
+            </label>
             <input
               type="email"
-              placeholder="Email MOE (Maître d'œuvre)"
               value={form.signataireMoeEmail}
               onChange={(e) => setForm({ ...form, signataireMoeEmail: e.target.value })}
-              style={{ padding: '8px 12px', border: '1px solid #E2E8F0', borderRadius: 6, fontSize: 12, fontFamily: 'inherit', width: '100%', marginBottom: 8 }}
+              style={{ padding: '8px 12px', border: '1px solid #E2E8F0', borderRadius: 6, fontSize: 12, fontFamily: 'inherit', width: '100%', marginBottom: 12 }}
+              placeholder="ID MAÎTRISE"
+              disabled
             />
+
+            <label style={{ display: 'block', fontSize: 11, color: '#64748B', marginBottom: 4, fontWeight: 600 }}>
+              Email MOA (Maître d'ouvrage) {form.signataireMotEmail ? '✓' : ''}
+            </label>
             <input
               type="email"
-              placeholder="Email MOA (Maître d'ouvrage)"
               value={form.signataireMotEmail}
               onChange={(e) => setForm({ ...form, signataireMotEmail: e.target.value })}
-              style={{ padding: '8px 12px', border: '1px solid #E2E8F0', borderRadius: 6, fontSize: 12, fontFamily: 'inherit', width: '100%', marginBottom: 8 }}
+              style={{ padding: '8px 12px', border: '1px solid #E2E8F0', borderRadius: 6, fontSize: 12, fontFamily: 'inherit', width: '100%', marginBottom: 12 }}
+              placeholder="Client du chantier"
+              disabled={!!clientContact}
             />
+
+            <label style={{ display: 'block', fontSize: 11, color: '#64748B', marginBottom: 4, fontWeight: 600 }}>
+              Email Entreprise {form.signataireEntrepriseEmail ? '✓' : ''}
+            </label>
             <input
               type="email"
-              placeholder="Email Entreprise"
               value={form.signataireEntrepriseEmail}
               onChange={(e) => setForm({ ...form, signataireEntrepriseEmail: e.target.value })}
               style={{ padding: '8px 12px', border: '1px solid #E2E8F0', borderRadius: 6, fontSize: 12, fontFamily: 'inherit', width: '100%' }}
+              placeholder="Sélectionnez un OS signé"
+              disabled={!!form.osId}
+              required
             />
           </div>
 

@@ -603,9 +603,12 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
       />
 
       {/* PROCÈS-VERBAUX DE RÉCEPTION */}
-      {selectedChantier && (
+      {selectedChantier && selectedRelated && (
         <ProcesVerbalReception
           chantierId={selectedChantier.id}
+          chantier={selectedChantier}
+          ordresService={selectedRelated.chOS || []}
+          clientContact={selectedRelated.clientContact}
           onRefresh={reload}
         />
       )}
