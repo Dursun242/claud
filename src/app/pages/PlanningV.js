@@ -161,6 +161,12 @@ export default function PlanningV({ data, m, reload }) {
 
   // ─── Drag & Drop (sauvegarde sur ordres_service) ───────────
   const onBarDown = useCallback((e, os, type) => {
+    // Verrouiller les OS signés
+    if (os.statut === 'Signé') {
+      e.preventDefault()
+      e.stopPropagation()
+      return
+    }
     e.preventDefault()
     e.stopPropagation()
     const x = e.touches ? e.touches[0].clientX : e.clientX
@@ -234,16 +240,12 @@ export default function PlanningV({ data, m, reload }) {
   const totalW    = totalDays * pxDay
   const showToday = todayPct >= 0 && todayPct <= 100
 
-<<<<<<< HEAD
-=======
   // Scroller jusqu'à aujourd'hui
   const scrollToToday = useCallback(() => {
     if (!scrollRef.current || !showToday) return
     const todayX = (todayPct / 100) * totalW - 200
     scrollRef.current.scrollLeft = Math.max(0, todayX)
   }, [showToday, todayPct, totalW])
-
->>>>>>> 9961db3 (Ajouter le bouton 'Aujourd'hui' sur le planning Gantt)
   // Y a-t-il au moins un OS planifié dans les chantiers filtrés ?
   const hasData = filteredChantiers.some(c => (osByChantier.get(c.id) || []).length > 0)
 
@@ -417,7 +419,7 @@ export default function PlanningV({ data, m, reload }) {
                             <div
                               onMouseDown={e => onBarDown(e, os, 'move')}
                               onTouchStart={e => onBarDown(e, os, 'move')}
-                              title={`${os.artisan_specialite || os.artisan_nom} — ${fmtDate(os.date_intervention)} → ${fmtDate(os.date_fin_prevue)}`}
+                              title={`${os.artisan_specialite || os.artisan_nom} — ${fmtDate(os.date_intervention)} → ${fmtDate(os.date_fin_prevue)}${os.statut === 'Signé' ? ' (verrouillé)' : ''}`}
                               style={{
                                 position: 'absolute',
                                 left: barLeft, width: barWidth,
@@ -425,13 +427,14 @@ export default function PlanningV({ data, m, reload }) {
                                 borderRadius: 5,
                                 background: isActive ? osColor + 'cc' : osColor + '2e',
                                 border: `1.5px solid ${osColor}`,
-                                cursor: isActive ? 'grabbing' : 'grab',
+                                cursor: os.statut === 'Signé' ? 'not-allowed' : isActive ? 'grabbing' : 'grab',
                                 zIndex: isActive ? 5 : 2,
-                                opacity: isSaving ? 0.6 : 1,
+                                opacity: isSaving ? 0.6 : os.statut === 'Signé' ? 0.5 : 1,
                                 transition: isSaving ? 'opacity .3s' : isActive ? 'none' : 'box-shadow .15s',
                                 boxShadow: isActive ? `0 3px 14px ${osColor}55` : 'none',
                                 userSelect: 'none', touchAction: 'none',
                                 overflow: 'visible',
+                                filter: os.statut === 'Signé' ? 'grayscale(30%)' : 'none',
                               }}
                             >
                               {/* Libellé dans la barre */}
@@ -441,14 +444,16 @@ export default function PlanningV({ data, m, reload }) {
                                 </span>
                               )}
 
-                              {/* Poignée de redimensionnement (bord droit) */}
-                              <div
-                                onMouseDown={e => { e.stopPropagation(); onBarDown(e, os, 'resize') }}
-                                onTouchStart={e => { e.stopPropagation(); onBarDown(e, os, 'resize') }}
-                                style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 8, cursor: 'ew-resize', borderRadius: '0 4px 4px 0', background: osColor + '33', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                              >
-                                <div style={{ width: 2, height: 10, background: osColor, borderRadius: 1, opacity: 0.7 }} />
-                              </div>
+                              {/* Poignée de redimensionnement (bord droit) - cachée si signé */}
+                              {os.statut !== 'Signé' && (
+                                <div
+                                  onMouseDown={e => { e.stopPropagation(); onBarDown(e, os, 'resize') }}
+                                  onTouchStart={e => { e.stopPropagation(); onBarDown(e, os, 'resize') }}
+                                  style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 8, cursor: 'ew-resize', borderRadius: '0 4px 4px 0', background: osColor + '33', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                >
+                                  <div style={{ width: 2, height: 10, background: osColor, borderRadius: 1, opacity: 0.7 }} />
+                                </div>
+                              )}
 
                               {/* Tooltip dates pendant le drag */}
                               {isActive && (
