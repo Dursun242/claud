@@ -476,8 +476,8 @@ function PVNewForm({ chantierId, chantier, ordresService = [], clientContact, on
         })
       })
 
-      if (!res.ok) throw new Error('Erreur création')
       const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Erreur création')
       addToast(`PV créé: ${data.numero}`, 'success')
       onSuccess()
     } catch (err) {
