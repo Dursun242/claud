@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../supabaseClient'
 import { useToast } from '../contexts/ToastContext'
+import { generatePVPdfBase64 } from '../lib/pv-pdf'
 
 function formatDate(iso) {
   if (!iso) return '—'
@@ -417,8 +418,8 @@ function PVNewForm({ chantierId, onClose, onSuccess }) {
 
     setSaving(true)
     try {
-      // Générer un PDF simple (mock - à adapter avec une vraie génération)
-      const pdfBase64 = await generatePVPdf(form)
+      // Générer le PDF pour la signature
+      const pdfBase64 = generatePVPdfBase64(form)
 
       const res = await fetch('/api/pv-reception/create', {
         method: 'POST',
@@ -561,27 +562,4 @@ function PVNewForm({ chantierId, onClose, onSuccess }) {
       </div>
     </div>
   )
-}
-
-// Générer un PDF simple (mock - à remplacer par une vraie génération)
-async function generatePVPdf(form) {
-  const text = `
-    PROCÈS-VERBAL DE RÉCEPTION
-
-    Numéro: ${form.numero}
-    Titre: ${form.titre}
-    Date: ${form.dateReception}
-
-    Description:
-    ${form.description}
-
-    Signataires:
-    - MOE: ${form.signataireMoeEmail}
-    - MOA: ${form.signataireMotEmail}
-    - Entreprise: ${form.signataireEntrepriseEmail}
-  `.trim()
-
-  // Mock: retourner un base64 simple (à remplacer avec jsPDF ou une vraie lib)
-  const encoded = btoa(unescape(encodeURIComponent(text)))
-  return encoded
 }
