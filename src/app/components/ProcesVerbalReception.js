@@ -430,19 +430,23 @@ function PVNewForm({ chantierId, chantier, ordresService = [], clientContact, on
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!form.titre || !form.osId) {
+    if (!form.titre?.trim() || !form.osId) {
       addToast('Titre et OS requis', 'error')
+      return
+    }
+    if (!form.signataireMoeEmail || !form.signataireMotEmail || !form.signataireEntrepriseEmail) {
+      addToast('Email MOE, MOA et Entreprise requis', 'error')
       return
     }
     if (!form.decision) {
       addToast('Sélectionnez une décision', 'error')
       return
     }
-    if (form.decision === 'Refusé' && !form.motifRefus) {
+    if (form.decision === 'Refusé' && !form.motifRefus?.trim()) {
       addToast('Motif de refus requis', 'error')
       return
     }
-    if (form.decision === 'Accepté avec réserve' && !form.reservesAcceptation) {
+    if (form.decision === 'Accepté avec réserve' && !form.reservesAcceptation?.trim()) {
       addToast('Précisez les réserves', 'error')
       return
     }
@@ -585,8 +589,8 @@ function PVNewForm({ chantierId, chantier, ordresService = [], clientContact, on
               value={form.signataireMotEmail}
               onChange={(e) => setForm({ ...form, signataireMotEmail: e.target.value })}
               style={{ padding: '8px 12px', border: '1px solid #E2E8F0', borderRadius: 6, fontSize: 12, fontFamily: 'inherit', width: '100%', marginBottom: 12 }}
-              placeholder="Client du chantier"
-              disabled={!!clientContact}
+              placeholder="Email du client du chantier"
+              required
             />
 
             <label style={{ display: 'block', fontSize: 11, color: '#64748B', marginBottom: 4, fontWeight: 600 }}>

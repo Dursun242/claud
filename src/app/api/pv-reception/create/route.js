@@ -28,15 +28,46 @@ export async function POST(request) {
       pdfBase64, operationName, osId, decision, motifRefus, reservesAcceptation
     } = body
 
-    if (!chantierId || !titre) {
-      return Response.json({ error: 'Champs requis: chantierId, titre' }, { status: 400 })
+    if (!chantierId || !titre || !osId) {
+      return Response.json({ error: 'Champs requis: chantierId, titre, osId' }, { status: 400 })
     }
 
     if (!pdfBase64) {
       return Response.json({ error: 'PDF requis pour la signature' }, { status: 400 })
     }
 
+    if (!signataireMoeEmail || !signataireMotEmail || !signataireEntrepriseEmail) {
+      return Response.json({ error: 'Tous les emails signataires requis' }, { status: 400 })
+    }
+
+    if (decision && !['Accepté', 'Accepté avec réserve', 'Refusé'].includes(decision)) {
+      return Response.json({ error: 'Décision invalide' }, { status: 400 })
+    }
+
+    if (decision === 'Refusé' && !motifRefus) {
+      return Response.json({ error: 'Motif de refus requis' }, { status: 400 })
+    }
+
+    if (decision === 'Accepté avec réserve' && !reservesAcceptation) {
+      return Response.json({ error: 'Réserves requises' }, { status: 400 })
+    }
+
     const supa = adminClient()
+
+    // Vérifier que l'OS existe et n'a pas déjà un PV
+    const { data: os, error: osCheckErr } = await supa
+      .from('ordres_service')
+      .select('id, pv_id')
+      .eq('id', osId)
+      .single()
+
+    if (osCheckErr || !os) {
+      return Response.json({ error: 'OS non trouvé' }, { status: 404 })
+    }
+
+    if (os.pv_id) {
+      return Response.json({ error: 'Cet OS a déjà un PV de réception' }, { status: 400 })
+    }
 
     // Générer le numéro automatiquement: PV-YYYY-XXX
     const now = new Date()

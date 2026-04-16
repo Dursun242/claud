@@ -29,6 +29,12 @@ export async function POST(request) {
       }, { status: 400 })
     }
 
+    if (decision === 'Refusé' && !motifRefus) {
+      return Response.json({
+        error: 'Motif de refus requis pour un refus'
+      }, { status: 400 })
+    }
+
     const supa = adminClient()
 
     // Récupérer le PV

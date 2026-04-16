@@ -27,7 +27,8 @@ export async function GET(request) {
       .from('proces_verbaux_reception')
       .select('*')
       .eq('chantier_id', chantierId)
-      .order('date_creation', { ascending: false })
+      .order('created_at', { ascending: false })
+      .limit(100)
 
     if (error) {
       console.error('[pv-list] erreur:', error)
