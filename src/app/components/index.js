@@ -14,6 +14,7 @@ export { default as Modal } from './Modal'
 // Feature components
 export { default as AttachmentsSection } from './AttachmentsSection'
 export { default as CommentsSection } from './CommentsSection'
+export { default as DocumentSearch } from './DocumentSearch'
 
 // Microphone components
 export { default as FloatingMic } from './FloatingMic'
