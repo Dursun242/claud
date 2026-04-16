@@ -43,7 +43,7 @@ export async function POST(request) {
     const year = now.getFullYear()
     const { data: existingPVs, error: countErr } = await supa
       .from('proces_verbaux_reception')
-      .select('numero', { count: 'exact' })
+      .select('numero')
       .eq('chantier_id', chantierId)
       .ilike('numero', `PV-${year}-%`)
 
