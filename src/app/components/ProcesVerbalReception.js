@@ -566,7 +566,7 @@ function PVNewForm({ chantierId, chantier, clientContact, ordresService = [], on
           entrepriseSiret: form.entrepriseSiret || '',
           decision: form.decision,
           motifRefus: form.decision === 'Refusé' ? form.motifRefus : null,
-          reservesAcceptation: form.decision === 'Accepté avec réserve' ? form.reservesAcceptation : null
+          reservesAcceptation: form.decision === 'Accepté avec réserve' ? (Array.isArray(form.reservesAcceptation) ? form.reservesAcceptation.filter(r => r?.trim()).map((r, i) => `Ligne ${i + 1}: ${r}`).join('\n') : form.reservesAcceptation) : null
         })
         const blob = doc.output('blob')
         const buffer = await blob.arrayBuffer()
