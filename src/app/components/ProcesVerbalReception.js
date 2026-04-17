@@ -385,7 +385,6 @@ export default function ProcesVerbalReception({ chantierId, chantier, ordresServ
         <PVNewForm
           chantierId={chantierId}
           chantier={chantier}
-          ordresService={ordresService}
           clientContact={clientContact}
           onClose={() => setShowNewForm(false)}
           onSuccess={() => {
@@ -399,7 +398,7 @@ export default function ProcesVerbalReception({ chantierId, chantier, ordresServ
   )
 }
 
-function PVNewForm({ chantierId, chantier, ordresService = [], clientContact, onClose, onSuccess }) {
+function PVNewForm({ chantierId, chantier, clientContact, onClose, onSuccess }) {
   const [form, setForm] = useState({
     titre: '',
     description: '',
@@ -407,7 +406,6 @@ function PVNewForm({ chantierId, chantier, ordresService = [], clientContact, on
     signataireMoeEmail: '',
     signataireMotEmail: '',
     signataireEntrepriseEmail: '',
-    osId: '',
     decision: '',
     motifRefus: '',
     reservesAcceptation: ''
@@ -430,12 +428,8 @@ function PVNewForm({ chantierId, chantier, ordresService = [], clientContact, on
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!form.titre?.trim() || !form.osId) {
-      addToast('Titre et OS requis', 'error')
-      return
-    }
-    if (!form.signataireMoeEmail || !form.signataireMotEmail || !form.signataireEntrepriseEmail) {
-      addToast('Email MOE, MOA et Entreprise requis', 'error')
+    if (!form.titre?.trim() || !form.signataireMoeEmail || !form.signataireMotEmail || !form.signataireEntrepriseEmail) {
+      addToast('Titre et emails signataires requis', 'error')
       return
     }
     if (!form.decision) {
@@ -484,7 +478,6 @@ function PVNewForm({ chantierId, chantier, ordresService = [], clientContact, on
           signataireMoeEmail: form.signataireMoeEmail,
           signataireMotEmail: form.signataireMotEmail,
           signataireEntrepriseEmail: form.signataireEntrepriseEmail,
-          osId: form.osId,
           decision: form.decision,
           motifRefus: form.decision === 'Refusé' ? form.motifRefus : null,
           reservesAcceptation: form.decision === 'Accepté avec réserve' ? form.reservesAcceptation : null,
@@ -552,39 +545,6 @@ function PVNewForm({ chantierId, chantier, ordresService = [], clientContact, on
           <div style={{ borderTop: '1px solid #E2E8F0', paddingTop: 12, marginTop: 12 }}>
             <div style={{ fontSize: 11, fontWeight: 600, color: '#64748B', marginBottom: 8 }}>SIGNATAIRES</div>
 
-            {/* Sélection OS/Entreprise */}
-            {ordresService.filter(os => os.statut === 'Signé' && !os.pv_id).length > 0 ? (
-              <>
-                <label style={{ display: 'block', fontSize: 11, color: '#64748B', marginBottom: 4, fontWeight: 600 }}>
-                  Ordre de Service à livrer
-                </label>
-                <select
-                  value={form.osId}
-                  onChange={(e) => {
-                    const osId = e.target.value
-                    const selected = ordresService.find(os => os.id === osId)
-                    setForm({
-                      ...form,
-                      osId,
-                      signataireEntrepriseEmail: selected?.artisan_email || ''
-                    })
-                  }}
-                  style={{ padding: '8px 12px', border: '1px solid #E2E8F0', borderRadius: 6, fontSize: 12, fontFamily: 'inherit', width: '100%', marginBottom: 12 }}
-                  required
-                >
-                  <option value="">-- Sélectionner une entreprise --</option>
-                  {ordresService.filter(os => os.statut === 'Signé' && !os.pv_id).map(os => (
-                    <option key={os.id} value={os.id}>
-                      {os.artisan_nom || os.artisan_email || 'Sans nom'}
-                    </option>
-                  ))}
-                </select>
-              </>
-            ) : (
-              <div style={{ padding: 12, background: '#FEF2F2', border: '1px solid #FED7AA', borderRadius: 6, fontSize: 12, color: '#DC2626' }}>
-                Tous les OS signés ont déjà un PV de réception
-              </div>
-            )}
 
             <label style={{ display: 'block', fontSize: 11, color: '#64748B', marginBottom: 4, fontWeight: 600 }}>
               Email MOE (Maître d'œuvre) {form.signataireMoeEmail ? '✓' : ''}
@@ -618,8 +578,7 @@ function PVNewForm({ chantierId, chantier, ordresService = [], clientContact, on
               value={form.signataireEntrepriseEmail}
               onChange={(e) => setForm({ ...form, signataireEntrepriseEmail: e.target.value })}
               style={{ padding: '8px 12px', border: '1px solid #E2E8F0', borderRadius: 6, fontSize: 12, fontFamily: 'inherit', width: '100%' }}
-              placeholder="Sélectionnez un OS signé"
-              disabled={!!form.osId}
+              placeholder="Email de l'entreprise"
               required
             />
           </div>

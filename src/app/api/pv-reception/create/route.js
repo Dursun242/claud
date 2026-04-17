@@ -25,11 +25,11 @@ export async function POST(request) {
     const {
       chantierId, titre, description, dateReception,
       signataireMoeEmail, signataireMotEmail, signataireEntrepriseEmail,
-      pdfBase64, operationName, osId, decision, motifRefus, reservesAcceptation
+      pdfBase64, operationName, decision, motifRefus, reservesAcceptation
     } = body
 
-    if (!chantierId || !titre || !osId) {
-      return Response.json({ error: 'Champs requis: chantierId, titre, osId' }, { status: 400 })
+    if (!chantierId || !titre) {
+      return Response.json({ error: 'Champs requis: chantierId, titre' }, { status: 400 })
     }
 
     if (!pdfBase64) {
@@ -54,21 +54,6 @@ export async function POST(request) {
 
     const supa = adminClient()
 
-    // Vérifier que l'OS existe et n'a pas déjà un PV
-    const { data: os, error: osCheckErr } = await supa
-      .from('ordres_service')
-      .select('id, pv_id')
-      .eq('id', osId)
-      .single()
-
-    if (osCheckErr || !os) {
-      return Response.json({ error: 'OS non trouvé' }, { status: 404 })
-    }
-
-    if (os.pv_id) {
-      return Response.json({ error: 'Cet OS a déjà un PV de réception' }, { status: 400 })
-    }
-
     // Générer le numéro automatiquement: PV-YYYY-XXX
     const now = new Date()
     const year = now.getFullYear()
@@ -85,7 +70,6 @@ export async function POST(request) {
     // Créer le PV en base avec décision immédiate si fournie
     const { data: pv, error: pvErr } = await supa.from('proces_verbaux_reception').insert({
       chantier_id: chantierId,
-      os_id: osId || null,
       numero,
       titre,
       description: description || null,
@@ -103,18 +87,6 @@ export async function POST(request) {
     if (pvErr) {
       console.error('[pv-creation] insert erreur:', pvErr)
       return Response.json({ error: 'Erreur création PV' }, { status: 500 })
-    }
-
-    // Si OS spécifié, mettre à jour l'OS pour lier le PV
-    if (osId) {
-      const { error: osUpdateErr } = await supa
-        .from('ordres_service')
-        .update({ pv_id: pv.id })
-        .eq('id', osId)
-
-      if (osUpdateErr) {
-        console.error('[pv-creation] os update erreur:', osUpdateErr)
-      }
     }
 
     // Envoyer en signature Odoo avec 3 signataires
