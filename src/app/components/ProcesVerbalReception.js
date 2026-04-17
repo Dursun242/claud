@@ -460,8 +460,15 @@ function PVNewForm({ chantierId, chantier, ordresService = [], clientContact, on
         return
       }
 
-      // Générer le PDF pour la signature
-      const pdfBase64 = generatePVPdfBase64(form)
+      // Générer le PDF pour la signature (async)
+      let pdfBase64
+      try {
+        pdfBase64 = await generatePVPdfBase64(form)
+      } catch (pdfErr) {
+        addToast('Erreur génération PDF: ' + pdfErr.message, 'error')
+        setSaving(false)
+        return
+      }
 
       const res = await fetch('/api/pv-reception/create', {
         method: 'POST',
