@@ -195,20 +195,31 @@ export async function createSignRequestFromPdf({ pdfBase64, reference, operation
   }
 
   const filename = `${reference || 'OS'}.pdf`
+  // Le sujet reste neutre (pas préfixé "OS") car la fonction est aussi utilisée
+  // par les PV de réception. La référence elle-même contient déjà le type
+  // (ex: "OS-2026-020" ou "PV-2026-001").
   const subject = operationName
-    ? `Signature requise – OS ${reference} – ${operationName}`
-    : `Signature requise – OS ${reference}`
+    ? `Signature requise – ${reference} – ${operationName}`
+    : `Signature requise – ${reference}`
 
-  // Validation stricte : 3 signataires obligatoires
-  const REQUIRED_ROLES = ['MOE', 'MOA', 'Entreprise']
-  const ROLE_LABELS = { MOE: 'MOE (Id Maîtrise)', MOA: "Maître d'ouvrage", Entreprise: 'Entreprise' }
-  for (const role of REQUIRED_ROLES) {
-    const s = signers?.find(x => x.role === role)
-    if (!s?.email) throw new Error(`Email obligatoire pour le rôle ${ROLE_LABELS[role]}`)
+  // Validation des signataires fournis.
+  // Les callers décident qui est obligatoire (OS passe MOE+MOA+Entreprise,
+  // PV passe MOE+MOA, Entreprise optionnelle). On s'assure seulement que :
+  //   - il y a au moins un signataire avec email,
+  //   - chaque signataire fourni a bien un email valide,
+  //   - le rôle est dans la liste connue { MOE, MOA, Entreprise }.
+  const KNOWN_ROLES = ['MOE', 'MOA', 'Entreprise']
+  const cleanSigners = (signers || []).filter(s => s && s.email)
+  if (!cleanSigners.length) {
+    throw new Error('Au moins un signataire avec email requis')
   }
-  if (signers.length !== 3) throw new Error(
-    `3 signataires requis (MOE, Maître d'ouvrage, Entreprise), ${signers.length} fourni(s)`
-  )
+  for (const s of cleanSigners) {
+    if (!KNOWN_ROLES.includes(s.role)) {
+      throw new Error(`Rôle signataire inconnu : ${s.role} (attendu : ${KNOWN_ROLES.join(', ')})`)
+    }
+  }
+  // Rôles effectivement à faire signer (dédupliqués)
+  const activeRoles = [...new Set(cleanSigners.map(s => s.role))]
 
   // ── A : ir.attachment ─────────────────
   const attId = await execute('ir.attachment', 'create', [{
@@ -254,9 +265,13 @@ export async function createSignRequestFromPdf({ pdfBase64, reference, operation
   // ── D : Rôles (find or create) ────────
   // Noms courts sans apostrophe : pas de collision avec les rôles Odoo par
   // défaut (Customer, Employee…) et rendu propre dans le PDF signé.
+  // On ne crée que les rôles réellement utilisés (activeRoles) pour éviter
+  // des zones de signature orphelines quand un rôle est optionnel (ex PV
+  // sans Entreprise).
   const ROLE_NAMES = { MOE: 'MOE', MOA: 'MOA', Entreprise: 'Entreprise' }
   const roleIds = {}
-  for (const [key, label] of Object.entries(ROLE_NAMES)) {
+  for (const key of activeRoles) {
+    const label = ROLE_NAMES[key]
     const found = await execute('sign.item.role', 'search_read', [[['name', '=', label]]], {
       fields: ['id', 'name'], limit: 1,
     })
@@ -275,11 +290,21 @@ export async function createSignRequestFromPdf({ pdfBase64, reference, operation
     || (await execute('sign.item.type', 'search_read', [[]], { fields: ['id'], limit: 1 }))[0]?.id
   if (!signTypeId) throw new Error('Aucun sign.item.type disponible dans Odoo — module Sign mal configuré')
 
-  const ZONES = [
-    { role: 'MOE',        posX: 0.03, posY: 0.82 },
-    { role: 'MOA',        posX: 0.37, posY: 0.82 },
-    { role: 'Entreprise', posX: 0.68, posY: 0.82 },
-  ]
+  // Positions X possibles pour une ligne de signatures en bas de page.
+  // On répartit uniformément selon le nombre de rôles actifs (1, 2 ou 3)
+  // pour garder un rendu propre même si Entreprise est absent (cas PV).
+  const ROLE_ORDER = ['MOE', 'MOA', 'Entreprise']
+  const orderedRoles = ROLE_ORDER.filter(r => activeRoles.includes(r))
+  const N = orderedRoles.length
+  const ZONE_WIDTH = 0.28
+  const ZONE_HEIGHT = 0.12
+  const totalWidth = 0.94
+  const slot = totalWidth / N
+  const ZONES = orderedRoles.map((role, i) => ({
+    role,
+    posX: 0.03 + i * slot + (slot - ZONE_WIDTH) / 2,
+    posY: 0.82,
+  }))
   for (const z of ZONES) {
     const rId = roleIds[z.role]
     if (!rId) throw new Error(`Rôle Odoo manquant pour ${z.role}`)
@@ -288,7 +313,7 @@ export async function createSignRequestFromPdf({ pdfBase64, reference, operation
         [parentField]: parentId,
         responsible_id: rId,
         required: true, type_id: signTypeId,
-        posX: z.posX, posY: z.posY, width: 0.28, height: 0.12, page: 1,
+        posX: z.posX, posY: z.posY, width: ZONE_WIDTH, height: ZONE_HEIGHT, page: 1,
       }])
     } catch (e) {
       throw new Error(`Création zone signature ${z.role} échouée : ${e.message}`)
