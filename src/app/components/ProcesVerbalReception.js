@@ -323,7 +323,7 @@ export default function ProcesVerbalReception({ chantierId, chantier, ordresServ
   }, [loadPVs])
 
   return (
-    <div style={{ background: '#fff', borderRadius: 12, boxShadow: '0 1px 3px rgba(15,23,42,0.06)', overflow: 'hidden' }}>
+    <div style={{ background: '#fff', borderRadius: 12, boxShadow: '0 1px 3px rgba(15,23,42,0.06)', overflow: 'hidden', marginBottom: 20 }}>
       {/* En-tête */}
       <div style={{ padding: '12px 16px', borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>

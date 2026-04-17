@@ -452,6 +452,17 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
         }
       </Section>
 
+      {/* PROCÈS-VERBAUX DE RÉCEPTION — juste avant les tâches, comme OS/CR */}
+      {selectedChantier && selectedRelated && (
+        <ProcesVerbalReception
+          chantierId={selectedChantier.id}
+          chantier={selectedChantier}
+          ordresService={selectedRelated.chOS || []}
+          clientContact={selectedRelated.clientContact}
+          onRefresh={reload}
+        />
+      )}
+
       {/* TÂCHES — clients autorisés à créer/modifier leurs tâches */}
       <Section title="Tâches" count={chTasks.length} color="#F59E0B">
         <div style={{display:"flex",gap:8,marginBottom:12}}>
@@ -601,17 +612,6 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
         currentUser={user}
         userRole={profile?.role}
       />
-
-      {/* PROCÈS-VERBAUX DE RÉCEPTION */}
-      {selectedChantier && selectedRelated && (
-        <ProcesVerbalReception
-          chantierId={selectedChantier.id}
-          chantier={selectedChantier}
-          ordresService={selectedRelated.chOS || []}
-          clientContact={selectedRelated.clientContact}
-          onRefresh={reload}
-        />
-      )}
 
       {/* MODALES POUR OS/CR/TÂCHES */}
       <Modal
