@@ -447,3 +447,62 @@ export async function getSignRequestsStatusBulk(requestIds) {
     }
   })
 }
+
+/**
+ * Récupère le PDF signé final d'une sign.request.
+ *
+ * Selon la version d'Odoo, le document signé est exposé différemment :
+ *   - `completed_document` : champ Binary sur sign.request (versions récentes)
+ *   - `ir.attachment` rattaché via res_model='sign.request' + res_id
+ *
+ * On essaie les deux et on retourne le premier qui marche.
+ *
+ * @param {number} requestId
+ * @returns {Promise<{ base64: string, filename: string, mimetype: string } | null>}
+ */
+export async function getCompletedDocument(requestId) {
+  if (!requestId) return null
+
+  // Vérifier d'abord le statut — inutile d'essayer si pas encore signé.
+  const [req] = await execute('sign.request', 'read', [[requestId]], {
+    fields: ['id', 'state', 'reference', 'completed_document'],
+  })
+  if (!req) return null
+  if (req.state !== 'signed') return null
+
+  const refName = req.reference || `signature-${requestId}`
+  const baseFilename = `${refName}.pdf`
+
+  // Cas 1 : champ completed_document directement sur sign.request
+  if (req.completed_document) {
+    return {
+      base64: req.completed_document,
+      filename: baseFilename,
+      mimetype: 'application/pdf',
+    }
+  }
+
+  // Cas 2 : attachments rattachés à sign.request
+  const attachments = await execute(
+    'ir.attachment',
+    'search_read',
+    [[['res_model', '=', 'sign.request'], ['res_id', '=', requestId]]],
+    { fields: ['id', 'name', 'datas', 'mimetype'] }
+  )
+  if (!attachments.length) return null
+
+  // Priorité aux PDF, et au nom qui contient "signed" ou "completed" si dispo
+  attachments.sort((a, b) => {
+    const aSigned = /sign|complet/i.test(a.name) ? 0 : 1
+    const bSigned = /sign|complet/i.test(b.name) ? 0 : 1
+    return aSigned - bSigned
+  })
+  const best = attachments.find(a => a.mimetype === 'application/pdf') || attachments[0]
+  if (!best?.datas) return null
+
+  return {
+    base64: best.datas,
+    filename: best.name || baseFilename,
+    mimetype: best.mimetype || 'application/pdf',
+  }
+}

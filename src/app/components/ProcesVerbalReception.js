@@ -119,6 +119,42 @@ function PVDetail({ pv, onClose, onDecision }) {
     }
   }
 
+  const [downloadingSigned, setDownloadingSigned] = useState(false)
+
+  // Télécharge le PDF signé final depuis Odoo.
+  // On passe par fetch() + blob pour pouvoir envoyer le JWT Supabase en
+  // header (un simple <a href> ne passerait pas l'Authorization).
+  const handleDownloadSigned = async () => {
+    if (!pv.odoo_sign_id) return
+    setDownloadingSigned(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch(`/api/odoo/signed-pdf?requestId=${pv.odoo_sign_id}`, {
+        headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {},
+      })
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}))
+        throw new Error(errData.error || `HTTP ${res.status}`)
+      }
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${pv.numero}-signe.pdf`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      // Libérer l'URL objet après un délai court (le navigateur a le temps
+      // d'initier le téléchargement).
+      setTimeout(() => URL.revokeObjectURL(url), 5000)
+      addToast('PDF signé téléchargé', 'success')
+    } catch (err) {
+      addToast('Erreur téléchargement: ' + err.message, 'error')
+    } finally {
+      setDownloadingSigned(false)
+    }
+  }
+
   return (
     <div style={{
       position: 'fixed',
@@ -158,7 +194,7 @@ function PVDetail({ pv, onClose, onDecision }) {
         </div>
 
         {/* Infos */}
-        <div style={{ background: '#F8FAFC', borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 12 }}>
+        <div style={{ background: '#F8FAFC', borderRadius: 8, padding: 12, marginBottom: 12, fontSize: 12 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
               <div style={{ color: '#94A3B8', fontSize: 10, fontWeight: 600 }}>DATE RÉCEPTION</div>
@@ -174,6 +210,50 @@ function PVDetail({ pv, onClose, onDecision }) {
             </div>
           </div>
         </div>
+
+        {/* Actions document : lien Odoo + téléchargement PDF signé */}
+        {(pv.odoo_sign_url || pv.statut_signature === 'Signé') && (
+          <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+            {pv.odoo_sign_url && (
+              <a
+                href={pv.odoo_sign_url}
+                target="_blank"
+                rel="noreferrer"
+                style={{
+                  padding: '8px 12px',
+                  background: '#EEF2FF',
+                  color: '#4338CA',
+                  border: '1px solid #C7D2FE',
+                  borderRadius: 6,
+                  fontSize: 12,
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                }}
+              >
+                📎 Voir sur Odoo
+              </a>
+            )}
+            {pv.statut_signature === 'Signé' && (
+              <button
+                onClick={handleDownloadSigned}
+                disabled={downloadingSigned}
+                style={{
+                  padding: '8px 12px',
+                  background: '#ECFDF5',
+                  color: '#059669',
+                  border: '1px solid #A7F3D0',
+                  borderRadius: 6,
+                  fontSize: 12,
+                  fontWeight: 600,
+                  cursor: downloadingSigned ? 'wait' : 'pointer',
+                  opacity: downloadingSigned ? 0.6 : 1,
+                }}
+              >
+                {downloadingSigned ? '⏳ Téléchargement…' : '📥 PDF signé'}
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Description */}
         {pv.description && (
