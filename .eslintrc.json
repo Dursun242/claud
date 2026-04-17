@@ -3,7 +3,11 @@
   "rules": {
     "react-hooks/exhaustive-deps": "warn",
     "react/no-unescaped-entities": "off",
-    "no-console": ["warn", { "allow": ["warn", "error"] }],
+    "react/jsx-key": "error",
+    "no-console": ["error", { "allow": ["warn", "error"] }],
+    "no-debugger": "error",
+    "no-alert": "warn",
+    "eqeqeq": ["error", "smart"],
     "no-unused-vars": ["warn", { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }]
   }
 }

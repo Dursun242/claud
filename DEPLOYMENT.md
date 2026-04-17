@@ -7,7 +7,7 @@
 Branch: `main`
 Tag: `v3.0-major-refactor`
 Build: ✅ Verified
-Tests: ✅ Passing
+Tests: ⚠️ Not implemented yet (see TODO in roadmap)
 
 ## What's New in v3.0
 
@@ -67,7 +67,7 @@ npm run build
 - [x] Performance optimized
 - [x] All imports working
 - [x] Toast system integrated
-- [x] Components tested
+- [ ] Components tested (no automated tests yet)
 - [x] Hooks working
 
 ## Environment Variables Required
