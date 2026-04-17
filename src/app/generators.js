@@ -256,7 +256,6 @@ export async function generatePVPdf(pvData) {
 
   // === SIGNATURES ===
   y += 8
-  if (y > h - 45) y = h - 45
 
   doc.setFontSize(9)
   doc.setFont("helvetica", "bold")
@@ -269,22 +268,12 @@ export async function generatePVPdf(pvData) {
   const sig2X = margin + signColW + 2
   const sig3X = margin + signColW * 2 + 4
 
-  doc.setDrawColor(150, 150, 150)
-  doc.setLineWidth(0.4)
-  doc.setFillColor(250, 250, 250)
-
-  const signH = 20
-  doc.rect(sig1X, y, signColW, signH, 'FD')
-  doc.rect(sig2X, y, signColW, signH, 'FD')
-  doc.rect(sig3X, y, signColW, signH, 'FD')
-
-  y += signH + 3
   doc.setFontSize(8)
   doc.setFont("helvetica", "bold")
   doc.setTextColor(...NOIR)
-  doc.text("Maître d'œuvre", sig1X + 2, y)
-  doc.text("Maître d'ouvrage", sig2X + 2, y)
-  doc.text("Entreprise", sig3X + 2, y)
+  doc.text("Maître d'œuvre", sig1X, y)
+  doc.text("Maître d'ouvrage", sig2X, y)
+  doc.text("Entreprise", sig3X, y)
 
   // Pied de page
   pied(doc, w, margin, h - 12)
