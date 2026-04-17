@@ -64,6 +64,234 @@ const fmtM = (n) => {
   return (num < 0 ? "-" : "") + withSep + "," + dec + " \u20AC"
 }
 
+// ══════════════════════════════════════
+// GÉNÉRATEUR PDF — PROCÈS-VERBAL DE RÉCEPTION
+// ══════════════════════════════════════
+export async function generatePVPdf(pvData) {
+  const { jsPDF } = await loadJsPdf()
+  const doc = new jsPDF('p', 'mm', 'a4')
+  const w = doc.internal.pageSize.getWidth()
+  const h = doc.internal.pageSize.getHeight()
+  const margin = 18
+  const usable = w - margin * 2
+
+  let y = 12
+
+  // === EN-TÊTE ===
+  try { doc.addImage(LOGO_B64, 'JPEG', margin, y - 5, 48, 14) } catch(e) {}
+
+  doc.setFontSize(16)
+  doc.setFont("helvetica", "bold")
+  doc.setTextColor(...BLEU)
+  doc.text("PROCÈS-VERBAL", w - margin, y, { align: "right" })
+  doc.setFontSize(11)
+  doc.setTextColor(...BLEU_CLAIR)
+  doc.text("DE RÉCEPTION", w - margin, y + 6, { align: "right" })
+  doc.setFontSize(12)
+  doc.text(pvData.numero || "PV-XXXX-000", w - margin, y + 11, { align: "right" })
+
+  // Infos entreprise
+  y = 24
+  doc.setFontSize(7)
+  doc.setFont("helvetica", "normal")
+  doc.setTextColor(...GRIS)
+  doc.text(`${ENT.adresse}, ${ENT.cpVille} — SIRET: ${ENT.siret}`, margin, y)
+  doc.text(`${ENT.email} — ${ENT.assurance}`, margin, y + 3.5)
+
+  // Séparateur
+  y = 31
+  doc.setDrawColor(...BLEU)
+  doc.setLineWidth(0.7)
+  doc.line(margin, y, w - margin, y)
+  y += 6
+
+  // === CHANTIER ===
+  doc.setFontSize(9)
+  doc.setFont("helvetica", "bold")
+  doc.setTextColor(...BLEU)
+  doc.text("CHANTIER", margin, y)
+  y += 4
+  doc.setFontSize(10)
+  doc.setFont("helvetica", "bold")
+  doc.setTextColor(...NOIR)
+  doc.text(pvData.chantierNom || "—", margin, y)
+  y += 4
+  doc.setFontSize(7.5)
+  doc.setFont("helvetica", "normal")
+  doc.setTextColor(...GRIS)
+  doc.text(pvData.chantierAdresse || "", margin, y)
+  y += 8
+
+  // === MAÎTRE D'OUVRAGE & ENTREPRISE (2 colonnes) ===
+  const colW = usable / 2 - 2
+  const col1X = margin
+  const col2X = margin + colW + 4
+
+  // Boîtes MOA et Entreprise
+  doc.setDrawColor(210, 213, 220)
+  doc.setLineWidth(0.3)
+  doc.rect(col1X, y, colW, 28)
+  doc.rect(col2X, y, colW, 28)
+
+  // MOA (Maître d'ouvrage)
+  doc.setFontSize(7.5)
+  doc.setFont("helvetica", "bold")
+  doc.setTextColor(...BLEU)
+  doc.text("MAÎTRE D'OUVRAGE", col1X + 2, y + 4)
+  doc.setFontSize(9)
+  doc.setFont("helvetica", "bold")
+  doc.setTextColor(...NOIR)
+  doc.text(pvData.signataireMotEmail || "—", col1X + 2, y + 10)
+
+  // Entreprise (Intervenant)
+  doc.setFontSize(7.5)
+  doc.setFont("helvetica", "bold")
+  doc.setTextColor(...BLEU)
+  doc.text("ENTREPRISE", col2X + 2, y + 4)
+  doc.setFontSize(9)
+  doc.setFont("helvetica", "bold")
+  doc.setTextColor(...NOIR)
+  const entrepriseNom = pvData.entrepriseSociete || pvData.signataireEntrepriseEmail || "—"
+  doc.text(entrepriseNom, col2X + 2, y + 10)
+
+  // Coordonnées entreprise
+  doc.setFontSize(7)
+  doc.setFont("helvetica", "normal")
+  doc.setTextColor(...GRIS)
+
+  const coordLines = []
+  if (pvData.entrepriseAdresse) coordLines.push(pvData.entrepriseAdresse)
+  if (pvData.entrepriseCP && pvData.entrepriseVille) coordLines.push(`${pvData.entrepriseCP} ${pvData.entrepriseVille}`)
+  if (pvData.entrepriseTel) coordLines.push(`Tel: ${pvData.entrepriseTel}`)
+  if (pvData.entrepriseEmail) coordLines.push(pvData.entrepriseEmail)
+  if (pvData.entrepriseSiret) coordLines.push(`SIRET: ${pvData.entrepriseSiret}`)
+
+  let coordY = y + 15
+  coordLines.forEach(line => {
+    doc.text(line, col2X + 2, coordY)
+    coordY += 3
+  })
+
+  y += 32
+
+  // === INFO TRAVAUX ===
+  doc.setFontSize(9)
+  doc.setFont("helvetica", "bold")
+  doc.setTextColor(...BLEU)
+  doc.text("OBJET DU PROCÈS-VERBAL", margin, y)
+  y += 5
+
+  doc.setFontSize(9)
+  doc.setFont("helvetica", "normal")
+  doc.setTextColor(...NOIR)
+  const titleLines = doc.splitTextToSize(sanitize(pvData.titre || ""), usable)
+  doc.text(titleLines, margin, y)
+  y += titleLines.length * 4 + 3
+
+  if (pvData.description) {
+    doc.setFontSize(8.5)
+    doc.setTextColor(...GRIS)
+    const descLines = doc.splitTextToSize(sanitize(pvData.description), usable)
+    doc.text(descLines, margin, y)
+    y += descLines.length * 3.5 + 5
+  }
+
+  // === DÉCISION ===
+  if (pvData.decision) {
+    y += 3
+    doc.setFontSize(9)
+    doc.setFont("helvetica", "bold")
+    doc.setTextColor(...BLEU)
+    doc.text("DÉCISION", margin, y)
+    y += 5
+
+    const decisionEmoji = {
+      'Accepté': '✓',
+      'Accepté avec réserve': '⚠',
+      'Refusé': '✕'
+    }
+    const decisionColors = {
+      'Accepté': [34, 139, 34],
+      'Accepté avec réserve': [255, 140, 0],
+      'Refusé': [220, 20, 60]
+    }
+
+    const emoji = decisionEmoji[pvData.decision] || '•'
+    const dColor = decisionColors[pvData.decision] || NOIR
+
+    doc.setFontSize(11)
+    doc.setFont("helvetica", "bold")
+    doc.setTextColor(...dColor)
+    doc.text(`${emoji}  ${pvData.decision}`, margin, y)
+    y += 6
+
+    if (pvData.decision === 'Accepté avec réserve' && pvData.reservesAcceptation) {
+      doc.setFontSize(8.5)
+      doc.setFont("helvetica", "bold")
+      doc.setTextColor(...NOIR)
+      doc.text("Réserves :", margin, y)
+      y += 3
+      doc.setFont("helvetica", "normal")
+      doc.setFontSize(8)
+      doc.setTextColor(...GRIS)
+      const resLines = doc.splitTextToSize(sanitize(pvData.reservesAcceptation), usable)
+      doc.text(resLines, margin, y)
+      y += resLines.length * 3.5 + 3
+    }
+
+    if (pvData.decision === 'Refusé' && pvData.motifRefus) {
+      doc.setFontSize(8.5)
+      doc.setFont("helvetica", "bold")
+      doc.setTextColor(...NOIR)
+      doc.text("Motif du refus :", margin, y)
+      y += 3
+      doc.setFont("helvetica", "normal")
+      doc.setFontSize(8)
+      doc.setTextColor(...GRIS)
+      const motifLines = doc.splitTextToSize(sanitize(pvData.motifRefus), usable)
+      doc.text(motifLines, margin, y)
+      y += motifLines.length * 3.5 + 3
+    }
+  }
+
+  // === SIGNATURES ===
+  y += 8
+  if (y > h - 45) y = h - 45
+
+  doc.setFontSize(9)
+  doc.setFont("helvetica", "bold")
+  doc.setTextColor(...BLEU)
+  doc.text("SIGNATURES", margin, y)
+  y += 6
+
+  const signColW = usable / 3 - 1
+  const sig1X = margin
+  const sig2X = margin + signColW + 2
+  const sig3X = margin + signColW * 2 + 4
+
+  doc.setDrawColor(150, 150, 150)
+  doc.setLineWidth(0.4)
+  doc.setFillColor(250, 250, 250)
+
+  const signH = 20
+  doc.rect(sig1X, y, signColW, signH, 'FD')
+  doc.rect(sig2X, y, signColW, signH, 'FD')
+  doc.rect(sig3X, y, signColW, signH, 'FD')
+
+  y += signH + 3
+  doc.setFontSize(8)
+  doc.setFont("helvetica", "bold")
+  doc.setTextColor(...NOIR)
+  doc.text("Maître d'œuvre", sig1X + 2, y)
+  doc.text("Maître d'ouvrage", sig2X + 2, y)
+  doc.text("Entreprise", sig3X + 2, y)
+
+  // Pied de page
+  pied(doc, w, margin, h - 12)
+
+  return doc
+}
+
 function entete(doc, w, margin) {
   let y = 12
   // Logo ID Maîtrise

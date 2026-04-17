@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../supabaseClient'
 import { useToast } from '../contexts/ToastContext'
-import { generatePVPdfBase64 } from '../lib/pv-pdf'
+import { generatePVPdf } from '../generators'
 
 function formatDate(iso) {
   if (!iso) return '—'
@@ -386,6 +386,7 @@ export default function ProcesVerbalReception({ chantierId, chantier, ordresServ
           chantierId={chantierId}
           chantier={chantier}
           clientContact={clientContact}
+          ordresService={ordresService}
           onClose={() => setShowNewForm(false)}
           onSuccess={() => {
             setShowNewForm(false)
@@ -398,7 +399,7 @@ export default function ProcesVerbalReception({ chantierId, chantier, ordresServ
   )
 }
 
-function PVNewForm({ chantierId, chantier, clientContact, onClose, onSuccess }) {
+function PVNewForm({ chantierId, chantier, clientContact, ordresService = [], onClose, onSuccess }) {
   const [form, setForm] = useState({
     titre: '',
     description: '',
@@ -406,10 +407,14 @@ function PVNewForm({ chantierId, chantier, clientContact, onClose, onSuccess }) 
     signataireMoeEmail: '',
     signataireMotEmail: '',
     signataireEntrepriseEmail: '',
+    selectedIntervenant: null,
     decision: '',
     motifRefus: '',
     reservesAcceptation: ''
   })
+  const [intervenants, setIntervenants] = useState([])
+  const [showPreview, setShowPreview] = useState(false)
+  const [previewPdf, setPreviewPdf] = useState(null)
   const [saving, setSaving] = useState(false)
   const { addToast } = useToast()
 
@@ -424,7 +429,93 @@ function PVNewForm({ chantierId, chantier, clientContact, onClose, onSuccess }) 
       signataireMotEmail: moaEmail,
       dateReception: today
     }))
-  }, [clientContact])
+
+    // Charger les intervenants du chantier depuis les OS
+    const artisanNames = [...new Set(ordresService.map(o => o.artisan_nom).filter(Boolean))]
+    setIntervenants(artisanNames.map(name => ({ nom: name })))
+  }, [clientContact, ordresService])
+
+  // Quand on sélectionne un intervenant, remplir les coordonnées
+  const handleIntervenantSelect = async (artisanNom) => {
+    if (!artisanNom) {
+      setForm(f => ({
+        ...f,
+        selectedIntervenant: null,
+        signataireEntrepriseEmail: '',
+        entrepriseSociete: '',
+        entrepriseAdresse: '',
+        entrepriseCP: '',
+        entrepriseVille: '',
+        entrepriseTel: '',
+        entrepriseEmail: '',
+        entrepriseSiret: ''
+      }))
+      return
+    }
+
+    // Trouver le contact correspondant
+    try {
+      const { data: contacts } = await supabase
+        .from('contacts')
+        .select('*')
+        .eq('nom', artisanNom)
+        .single()
+
+      if (contacts) {
+        setForm(f => ({
+          ...f,
+          selectedIntervenant: artisanNom,
+          signataireEntrepriseEmail: contacts.email || artisanNom,
+          entrepriseSociete: contacts.societe || contacts.nom || '',
+          entrepriseAdresse: contacts.adresse || '',
+          entrepriseCP: contacts.code_postal || '',
+          entrepriseVille: contacts.ville || '',
+          entrepriseTel: contacts.tel || '',
+          entrepriseEmail: contacts.email || '',
+          entrepriseSiret: contacts.siret || ''
+        }))
+      }
+    } catch (err) {
+      console.warn('Erreur récupération intervenant:', err)
+      setForm(f => ({
+        ...f,
+        selectedIntervenant: artisanNom,
+        signataireEntrepriseEmail: artisanNom
+      }))
+    }
+  }
+
+  // Générer aperçu PDF
+  const generatePreview = async () => {
+    try {
+      const doc = await generatePVPdf({
+        numero: `PV-${new Date().getFullYear()}-000`,
+        titre: form.titre,
+        description: form.description,
+        dateReception: form.dateReception,
+        chantierNom: chantier?.nom || '',
+        chantierAdresse: chantier?.adresse || '',
+        signataireMotEmail: form.signataireMotEmail,
+        signataireEntrepriseEmail: form.signataireEntrepriseEmail,
+        entrepriseSociete: form.entrepriseSociete,
+        entrepriseAdresse: form.entrepriseAdresse,
+        entrepriseCP: form.entrepriseCP,
+        entrepriseVille: form.entrepriseVille,
+        entrepriseTel: form.entrepriseTel,
+        entrepriseEmail: form.entrepriseEmail,
+        entrepriseSiret: form.entrepriseSiret,
+        decision: form.decision,
+        motifRefus: form.decision === 'Refusé' ? form.motifRefus : null,
+        reservesAcceptation: form.decision === 'Accepté avec réserve' ? form.reservesAcceptation : null
+      })
+      const blob = doc.output('blob')
+      const pdfUrl = URL.createObjectURL(blob)
+      setPreviewPdf(pdfUrl)
+      setShowPreview(true)
+    } catch (err) {
+      addToast('Erreur génération aperçu: ' + err.message, 'error')
+    }
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -454,10 +545,37 @@ function PVNewForm({ chantierId, chantier, clientContact, onClose, onSuccess }) 
         return
       }
 
-      // Générer le PDF pour la signature (async)
+      // Générer le PDF pour la signature
       let pdfBase64
       try {
-        pdfBase64 = await generatePVPdfBase64(form)
+        const doc = await generatePVPdf({
+          numero: `PV-${new Date().getFullYear()}-000`,
+          titre: form.titre,
+          description: form.description,
+          dateReception: form.dateReception,
+          chantierNom: chantier?.nom || '',
+          chantierAdresse: chantier?.adresse || '',
+          signataireMotEmail: form.signataireMotEmail,
+          signataireEntrepriseEmail: form.signataireEntrepriseEmail,
+          entrepriseSociete: form.entrepriseSociete || '',
+          entrepriseAdresse: form.entrepriseAdresse || '',
+          entrepriseCP: form.entrepriseCP || '',
+          entrepriseVille: form.entrepriseVille || '',
+          entrepriseTel: form.entrepriseTel || '',
+          entrepriseEmail: form.entrepriseEmail || '',
+          entrepriseSiret: form.entrepriseSiret || '',
+          decision: form.decision,
+          motifRefus: form.decision === 'Refusé' ? form.motifRefus : null,
+          reservesAcceptation: form.decision === 'Accepté avec réserve' ? form.reservesAcceptation : null
+        })
+        const blob = doc.output('blob')
+        const buffer = await blob.arrayBuffer()
+        const bytes = new Uint8Array(buffer)
+        let binaryString = ''
+        for (let i = 0; i < bytes.length; i++) {
+          binaryString += String.fromCharCode(bytes[i])
+        }
+        pdfBase64 = btoa(binaryString)
       } catch (pdfErr) {
         addToast('Erreur génération PDF: ' + pdfErr.message, 'error')
         setSaving(false)
@@ -543,8 +661,33 @@ function PVNewForm({ chantierId, chantier, clientContact, onClose, onSuccess }) 
           />
 
           <div style={{ borderTop: '1px solid #E2E8F0', paddingTop: 12, marginTop: 12 }}>
-            <div style={{ fontSize: 11, fontWeight: 600, color: '#64748B', marginBottom: 8 }}>SIGNATAIRES</div>
+            <div style={{ fontSize: 11, fontWeight: 600, color: '#64748B', marginBottom: 12 }}>SIGNATAIRES</div>
 
+            <label style={{ display: 'block', fontSize: 11, color: '#64748B', marginBottom: 4, fontWeight: 600 }}>
+              Sélectionner l'intervenant/entreprise
+            </label>
+            <select
+              value={form.selectedIntervenant || ''}
+              onChange={(e) => handleIntervenantSelect(e.target.value || null)}
+              style={{ padding: '8px 12px', border: '1px solid #E2E8F0', borderRadius: 6, fontSize: 12, fontFamily: 'inherit', width: '100%', marginBottom: 12 }}
+            >
+              <option value="">-- Sélectionner une entreprise --</option>
+              {intervenants.map(int => (
+                <option key={int.nom} value={int.nom}>{int.nom}</option>
+              ))}
+            </select>
+
+            {form.selectedIntervenant && (
+              <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 6, padding: 12, marginBottom: 12, fontSize: 10 }}>
+                <div style={{ fontWeight: 600, color: '#0F172A', marginBottom: 6 }}>Coordonnées entreprise</div>
+                {form.entrepriseSociete && <div>{form.entrepriseSociete}</div>}
+                {form.entrepriseAdresse && <div>{form.entrepriseAdresse}</div>}
+                {(form.entrepriseCP || form.entrepriseVille) && <div>{form.entrepriseCP} {form.entrepriseVille}</div>}
+                {form.entrepriseTel && <div>Tel: {form.entrepriseTel}</div>}
+                {form.entrepriseEmail && <div>Email: {form.entrepriseEmail}</div>}
+                {form.entrepriseSiret && <div>SIRET: {form.entrepriseSiret}</div>}
+              </div>
+            )}
 
             <label style={{ display: 'block', fontSize: 11, color: '#64748B', marginBottom: 4, fontWeight: 600 }}>
               Email MOE (Maître d'œuvre) {form.signataireMoeEmail ? '✓' : ''}
@@ -681,12 +824,29 @@ function PVNewForm({ chantierId, chantier, clientContact, onClose, onSuccess }) 
               Annuler
             </button>
             <button
+              type="button"
+              onClick={generatePreview}
+              style={{
+                flex: 1,
+                padding: '8px 12px',
+                background: '#3B82F6',
+                color: '#fff',
+                border: 'none',
+                borderRadius: 6,
+                fontSize: 12,
+                fontWeight: 600,
+                cursor: 'pointer'
+              }}
+            >
+              👁️ Voir aperçu
+            </button>
+            <button
               type="submit"
               disabled={saving}
               style={{
                 flex: 1,
                 padding: '8px 12px',
-                background: '#0F172A',
+                background: '#1E3A5F',
                 color: '#fff',
                 border: 'none',
                 borderRadius: 6,
@@ -696,11 +856,48 @@ function PVNewForm({ chantierId, chantier, clientContact, onClose, onSuccess }) 
                 opacity: saving ? 0.6 : 1
               }}
             >
-              {saving ? 'Création...' : 'Créer et envoyer en signature'}
+              {saving ? 'Création...' : '✓ Envoyer en signature'}
             </button>
           </div>
         </form>
       </div>
+
+      {/* Modal prévisualisation PDF */}
+      {showPreview && previewPdf && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0,0,0,0.7)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 2000
+        }} onClick={() => setShowPreview(false)}>
+          <div style={{
+            background: '#fff',
+            borderRadius: 12,
+            width: '90%',
+            maxWidth: '800px',
+            height: '90vh',
+            display: 'flex',
+            flexDirection: 'column',
+            boxShadow: '0 20px 25px rgba(0,0,0,0.2)'
+          }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ padding: 16, borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>Aperçu du PV</h3>
+              <button onClick={() => setShowPreview(false)} style={{ background: 'none', border: 'none', fontSize: 24, cursor: 'pointer', color: '#94A3B8' }}>×</button>
+            </div>
+            <iframe
+              src={previewPdf}
+              style={{
+                flex: 1,
+                border: 'none',
+                borderRadius: '0 0 12px 12px'
+              }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   )
 }
