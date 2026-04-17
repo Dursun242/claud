@@ -4,8 +4,19 @@
 import { createClient } from '@supabase/supabase-js'
 import { verifyAuth } from '@/app/lib/auth'
 
+// Client Supabase qui propage le JWT de l'utilisateur dans chaque appel.
+// Le 2e argument doit être l'ANON_KEY (clé d'API publique), pas le JWT —
+// le JWT va dans le header Authorization global pour que les RLS policies
+// voient le bon auth.uid().
 function getUserClient(token) {
-  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, token)
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    {
+      global: { headers: { Authorization: `Bearer ${token}` } },
+      auth: { persistSession: false, autoRefreshToken: false },
+    }
+  )
 }
 
 export async function GET(request) {
@@ -21,7 +32,8 @@ export async function GET(request) {
     }
 
     const token = request.headers.get('authorization')?.replace('Bearer ', '')
-    const supa = getUserClient(token || '')
+    if (!token) return Response.json({ error: 'Token manquant' }, { status: 401 })
+    const supa = getUserClient(token)
 
     const { data: pvs, error } = await supa
       .from('proces_verbaux_reception')

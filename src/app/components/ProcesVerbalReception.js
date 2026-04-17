@@ -369,12 +369,24 @@ export default function ProcesVerbalReception({ chantierId, chantier, ordresServ
   const loadPVs = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch(`/api/pv-reception/list?chantierId=${chantierId}`)
+      // /api/pv-reception/list est protégé par verifyAuth → on doit envoyer
+      // le JWT Supabase en header, sinon la route répond 401 et on affiche
+      // une liste vide alors que des PV existent en base.
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch(`/api/pv-reception/list?chantierId=${chantierId}`, {
+        headers: session?.access_token
+          ? { Authorization: `Bearer ${session.access_token}` }
+          : {},
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.error || `HTTP ${res.status}`)
+      }
       const data = await res.json()
       setPvs(data.data || [])
     } catch (err) {
       console.error('Erreur chargement PV:', err)
-      addToast('Erreur chargement PV', 'error')
+      addToast('Erreur chargement PV: ' + err.message, 'error')
     } finally {
       setLoading(false)
     }
