@@ -410,7 +410,7 @@ function PVNewForm({ chantierId, chantier, clientContact, ordresService = [], on
     selectedIntervenant: null,
     decision: '',
     motifRefus: '',
-    reservesAcceptation: ''
+    reservesAcceptation: ['']
   })
   const [intervenants, setIntervenants] = useState([])
   const [showPreview, setShowPreview] = useState(false)
@@ -506,7 +506,7 @@ function PVNewForm({ chantierId, chantier, clientContact, ordresService = [], on
         entrepriseSiret: form.entrepriseSiret,
         decision: form.decision,
         motifRefus: form.decision === 'Refusé' ? form.motifRefus : null,
-        reservesAcceptation: form.decision === 'Accepté avec réserve' ? form.reservesAcceptation : null
+        reservesAcceptation: form.decision === 'Accepté avec réserve' ? form.reservesAcceptation.filter(r => r?.trim()).map((r, i) => `Ligne ${i + 1}: ${r}`).join('\n') : null
       })
       const blob = doc.output('blob')
       const pdfUrl = URL.createObjectURL(blob)
@@ -598,7 +598,7 @@ function PVNewForm({ chantierId, chantier, clientContact, ordresService = [], on
           signataireEntrepriseEmail: form.signataireEntrepriseEmail,
           decision: form.decision,
           motifRefus: form.decision === 'Refusé' ? form.motifRefus : null,
-          reservesAcceptation: form.decision === 'Accepté avec réserve' ? form.reservesAcceptation : null,
+          reservesAcceptation: form.decision === 'Accepté avec réserve' ? form.reservesAcceptation.filter(r => r?.trim()).map((r, i) => `Ligne ${i + 1}: ${r}`).join('\n') : null,
           pdfBase64,
           operationName: `PV - ${form.titre}`
         })
@@ -786,22 +786,77 @@ function PVNewForm({ chantierId, chantier, clientContact, ordresService = [], on
 
             {/* Réserves acceptation */}
             {form.decision === 'Accepté avec réserve' && (
-              <textarea
-                placeholder="Précisez les réserves..."
-                value={form.reservesAcceptation}
-                onChange={(e) => setForm({ ...form, reservesAcceptation: e.target.value })}
-                style={{
-                  width: '100%',
-                  padding: 8,
-                  border: '1px solid #E2E8F0',
-                  borderRadius: 6,
-                  fontSize: 12,
-                  fontFamily: 'inherit',
-                  resize: 'vertical',
-                  minHeight: 80,
-                  marginTop: 12
-                }}
-              />
+              <div style={{ marginTop: 12 }}>
+                <div style={{ fontSize: 11, fontWeight: 600, color: '#0F172A', marginBottom: 8 }}>
+                  Réserves mentionnées
+                </div>
+                {form.reservesAcceptation.map((reserve, idx) => (
+                  <div key={idx} style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'flex-start' }}>
+                    <div style={{ minWidth: 50, fontSize: 11, fontWeight: 600, color: '#64748B', paddingTop: 9 }}>
+                      Ligne {idx + 1}:
+                    </div>
+                    <textarea
+                      value={reserve}
+                      onChange={(e) => {
+                        const newReserves = [...form.reservesAcceptation]
+                        newReserves[idx] = e.target.value
+                        setForm({ ...form, reservesAcceptation: newReserves })
+                      }}
+                      placeholder={`Précisez la réserve ${idx + 1}...`}
+                      style={{
+                        flex: 1,
+                        padding: 8,
+                        border: '1px solid #E2E8F0',
+                        borderRadius: 6,
+                        fontSize: 12,
+                        fontFamily: 'inherit',
+                        resize: 'vertical',
+                        minHeight: 60
+                      }}
+                    />
+                    {form.reservesAcceptation.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newReserves = form.reservesAcceptation.filter((_, i) => i !== idx)
+                          setForm({ ...form, reservesAcceptation: newReserves })
+                        }}
+                        style={{
+                          padding: '6px 10px',
+                          background: '#FEE2E2',
+                          color: '#DC2626',
+                          border: '1px solid #FCA5A5',
+                          borderRadius: 6,
+                          fontSize: 12,
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          marginTop: 8
+                        }}
+                      >
+                        −
+                      </button>
+                    )}
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, reservesAcceptation: [...form.reservesAcceptation, ''] })}
+                  style={{
+                    padding: '8px 12px',
+                    background: '#DBEAFE',
+                    color: '#0284C7',
+                    border: '1px solid #7DD3FC',
+                    borderRadius: 6,
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    width: '100%',
+                    marginTop: 8
+                  }}
+                >
+                  + Ajouter une réserve
+                </button>
+              </div>
             )}
           </div>
 
