@@ -36,8 +36,8 @@ export async function POST(request) {
       return Response.json({ error: 'PDF requis pour la signature' }, { status: 400 })
     }
 
-    if (!signataireMoeEmail || !signataireMotEmail || !signataireEntrepriseEmail) {
-      return Response.json({ error: 'Tous les emails signataires requis' }, { status: 400 })
+    if (!signataireMoeEmail || !signataireMotEmail) {
+      return Response.json({ error: 'MOE et MOA requis' }, { status: 400 })
     }
 
     if (decision && !['Accepté', 'Accepté avec réserve', 'Refusé'].includes(decision)) {

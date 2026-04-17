@@ -519,8 +519,8 @@ function PVNewForm({ chantierId, chantier, clientContact, ordresService = [], on
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!form.titre?.trim() || !form.signataireMoeEmail || !form.signataireMotEmail || !form.signataireEntrepriseEmail) {
-      addToast('Titre et emails signataires requis', 'error')
+    if (!form.titre?.trim() || !form.signataireMoeEmail || !form.signataireMotEmail) {
+      addToast('Titre, MOE et MOA requis', 'error')
       return
     }
     if (!form.decision) {
@@ -714,7 +714,7 @@ function PVNewForm({ chantierId, chantier, clientContact, ordresService = [], on
             />
 
             <label style={{ display: 'block', fontSize: 11, color: '#64748B', marginBottom: 4, fontWeight: 600 }}>
-              Email Entreprise {form.signataireEntrepriseEmail ? '✓' : ''}
+              Email Entreprise {form.signataireEntrepriseEmail ? '✓' : '(optionnel)'}
             </label>
             <input
               type="email"
@@ -722,7 +722,6 @@ function PVNewForm({ chantierId, chantier, clientContact, ordresService = [], on
               onChange={(e) => setForm({ ...form, signataireEntrepriseEmail: e.target.value })}
               style={{ padding: '8px 12px', border: '1px solid #E2E8F0', borderRadius: 6, fontSize: 12, fontFamily: 'inherit', width: '100%' }}
               placeholder="Email de l'entreprise"
-              required
             />
           </div>
 
