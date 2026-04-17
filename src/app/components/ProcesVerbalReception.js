@@ -790,7 +790,7 @@ function PVNewForm({ chantierId, chantier, clientContact, ordresService = [], on
                 <div style={{ fontSize: 11, fontWeight: 600, color: '#0F172A', marginBottom: 8 }}>
                   Réserves mentionnées
                 </div>
-                {form.reservesAcceptation.map((reserve, idx) => (
+                {(Array.isArray(form.reservesAcceptation) ? form.reservesAcceptation : [form.reservesAcceptation || '']).map((reserve, idx) => (
                   <div key={idx} style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'flex-start' }}>
                     <div style={{ minWidth: 50, fontSize: 11, fontWeight: 600, color: '#64748B', paddingTop: 9 }}>
                       Ligne {idx + 1}:
@@ -798,9 +798,9 @@ function PVNewForm({ chantierId, chantier, clientContact, ordresService = [], on
                     <textarea
                       value={reserve}
                       onChange={(e) => {
-                        const newReserves = [...form.reservesAcceptation]
-                        newReserves[idx] = e.target.value
-                        setForm({ ...form, reservesAcceptation: newReserves })
+                        const reserves = Array.isArray(form.reservesAcceptation) ? [...form.reservesAcceptation] : [form.reservesAcceptation || '']
+                        reserves[idx] = e.target.value
+                        setForm({ ...form, reservesAcceptation: reserves })
                       }}
                       placeholder={`Précisez la réserve ${idx + 1}...`}
                       style={{
@@ -814,11 +814,12 @@ function PVNewForm({ chantierId, chantier, clientContact, ordresService = [], on
                         minHeight: 60
                       }}
                     />
-                    {form.reservesAcceptation.length > 1 && (
+                    {(Array.isArray(form.reservesAcceptation) ? form.reservesAcceptation : [form.reservesAcceptation || '']).length > 1 && (
                       <button
                         type="button"
                         onClick={() => {
-                          const newReserves = form.reservesAcceptation.filter((_, i) => i !== idx)
+                          const reserves = Array.isArray(form.reservesAcceptation) ? form.reservesAcceptation : [form.reservesAcceptation || '']
+                          const newReserves = reserves.filter((_, i) => i !== idx)
                           setForm({ ...form, reservesAcceptation: newReserves })
                         }}
                         style={{
@@ -840,7 +841,10 @@ function PVNewForm({ chantierId, chantier, clientContact, ordresService = [], on
                 ))}
                 <button
                   type="button"
-                  onClick={() => setForm({ ...form, reservesAcceptation: [...form.reservesAcceptation, ''] })}
+                  onClick={() => {
+                    const reserves = Array.isArray(form.reservesAcceptation) ? form.reservesAcceptation : [form.reservesAcceptation || '']
+                    setForm({ ...form, reservesAcceptation: [...reserves, ''] })
+                  }}
                   style={{
                     padding: '8px 12px',
                     background: '#DBEAFE',
