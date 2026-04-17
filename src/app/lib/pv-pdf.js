@@ -24,9 +24,8 @@ export async function generatePVPdfBase64(pvData) {
     const doc = new jsPDF()
 
     const pageWidth = doc.internal.pageSize.getWidth()
-    const pageHeight = doc.internal.pageSize.getHeight()
     const margin = 15
-    let yPos = 10
+    let yPos = 8
 
     // === BANDE HAUTE NOIRE ===
     doc.setFillColor(0, 0, 0)
@@ -34,219 +33,152 @@ export async function generatePVPdfBase64(pvData) {
 
     // === EN-TÊTE PROFESSIONNEL ===
     doc.setFillColor(245, 245, 245)
-    doc.rect(0, 3, pageWidth, 28, 'F')
+    doc.rect(0, 3, pageWidth, 24, 'F')
 
     // Logo + Texte
-    doc.setFontSize(18)
+    doc.setFontSize(16)
     doc.setFont(undefined, 'bold')
     doc.setTextColor(0, 0, 0)
-    doc.text('id', margin + 2, yPos + 10)
+    doc.text('id', margin + 2, yPos + 9)
 
     doc.setTextColor(210, 105, 30)
-    doc.text('Maîtrise', margin + 11, yPos + 10)
+    doc.text('Maîtrise', margin + 8, yPos + 9)
 
-    doc.setFontSize(10)
+    doc.setFontSize(9)
     doc.setTextColor(100, 100, 100)
     doc.setFont(undefined, 'normal')
-    doc.text('Ingénierie de la construction', margin + 2, yPos + 15)
+    doc.text('Ingénierie de la construction', margin + 2, yPos + 13)
 
     // Infos MOE à droite
-    doc.setFontSize(9)
-    doc.setTextColor(50, 50, 50)
-    const rightX = pageWidth - margin - 55
-    doc.setFont(undefined, 'bold')
-    doc.text('ID MAÎTRISE', rightX, yPos + 8)
-    doc.setFont(undefined, 'normal')
     doc.setFontSize(8)
-    doc.text('contact@id-maitrise.com', rightX, yPos + 13)
-    doc.text('www.id-maitrise.com', rightX, yPos + 17)
-
-    yPos = 35
-
-    // === NUMÉRO ET TITRE ===
-    doc.setFontSize(24)
+    doc.setTextColor(50, 50, 50)
+    const rightX = pageWidth - margin - 50
     doc.setFont(undefined, 'bold')
-    doc.setTextColor(210, 105, 30)
-    doc.text('PV', margin, yPos)
-
-    doc.setFontSize(12)
-    doc.setTextColor(0, 0, 0)
-    doc.text(pvData.numero || 'PV-XXXX-000', margin + 15, yPos)
-
-    yPos += 12
-
-    // === TITRE PRINCIPAL ===
-    doc.setFontSize(14)
-    doc.setFont(undefined, 'bold')
-    doc.setTextColor(40, 40, 40)
-    doc.text('PROCÈS-VERBAL DE RÉCEPTION', margin, yPos)
-    yPos += 8
-
-    // Séparateur
-    doc.setDrawColor(210, 105, 30)
-    doc.setLineWidth(1)
-    doc.line(margin, yPos, pageWidth - margin, yPos)
-    yPos += 8
-
-    // === CONTENU PRINCIPALE ===
-    doc.setFontSize(10)
-
-    // Infos document
+    doc.text('ID MAÎTRISE', rightX, yPos + 7)
     doc.setFont(undefined, 'normal')
+    doc.setFontSize(7.5)
+    doc.text('contact@id-maitrise.com', rightX, yPos + 11)
+    doc.text('www.id-maitrise.com', rightX, yPos + 14)
+
+    yPos = 32
+
+    // === TITRE CENTRÉ ===
+    doc.setFontSize(13)
+    doc.setFont(undefined, 'bold')
     doc.setTextColor(0, 0, 0)
+    doc.text('PROCÈS-VERBAL DE RÉCEPTION DES TRAVAUX', pageWidth / 2, yPos, { align: 'center' })
+    yPos += 10
+
+    // === TEXTE JURIDIQUE INTRO ===
     doc.setFontSize(9)
-
-    doc.text('Titre :', margin, yPos)
-    doc.setFont(undefined, 'bold')
-    doc.setTextColor(210, 105, 30)
-    const titleLines = doc.splitTextToSize(pvData.titre || '', pageWidth - margin - 35)
-    doc.text(titleLines, margin + 25, yPos)
-    yPos += titleLines.length * 4 + 2
-
     doc.setFont(undefined, 'normal')
     doc.setTextColor(0, 0, 0)
-    doc.text('Date :', margin, yPos)
-    doc.setFont(undefined, 'bold')
-    doc.setTextColor(210, 105, 30)
-    doc.text(pvData.dateReception || new Date().toLocaleDateString('fr-FR'), margin + 25, yPos)
-    yPos += 6
 
-    // Description
-    if (pvData.description?.trim()) {
-      doc.setFont(undefined, 'normal')
-      doc.setTextColor(0, 0, 0)
-      doc.text('Description :', margin, yPos)
-      yPos += 4
-      doc.setFontSize(8.5)
-      doc.setTextColor(80, 80, 80)
-      const descLines = doc.splitTextToSize(pvData.description, pageWidth - margin * 2)
-      doc.text(descLines, margin, yPos)
-      yPos += descLines.length * 3.5 + 4
-    }
+    const introText = `Je, soussigné : ${pvData.signataireMotEmail || '......................................'}, maître d'ouvrage, après avoir procédé à la visite des travaux effectués par l'entreprise :`
+    const introLines = doc.splitTextToSize(introText, pageWidth - margin * 2)
+    doc.text(introLines, margin, yPos)
+    yPos += introLines.length * 4 + 3
 
-    yPos += 4
+    const entrepriseText = pvData.signataireMoeEmail || '......................................'
+    const entLines = doc.splitTextToSize(entrepriseText, pageWidth - margin * 2)
+    doc.text(entLines, margin, yPos)
+    yPos += entLines.length * 4 + 4
 
-    // === BOX SIGNATAIRES ===
-    doc.setDrawColor(210, 105, 30)
-    doc.setFillColor(255, 250, 240)
-    doc.setLineWidth(1)
-    doc.rect(margin, yPos, pageWidth - margin * 2, 25, 'FD')
-
-    doc.setFont(undefined, 'bold')
-    doc.setFontSize(10)
-    doc.setTextColor(210, 105, 30)
-    doc.text('SIGNATAIRES', margin + 3, yPos + 4)
-
-    doc.setFont(undefined, 'normal')
-    doc.setFontSize(8.5)
-    doc.setTextColor(0, 0, 0)
-    const colWidth = (pageWidth - margin * 2) / 3
-    const sigX1 = margin + 2
-    const sigX2 = margin + colWidth + 2
-    const sigX3 = margin + colWidth * 2 + 2
-
-    if (pvData.signataireMoeEmail) {
-      doc.setFont(undefined, 'bold')
-      doc.text('MOE', sigX1, yPos + 9)
-      doc.setFont(undefined, 'normal')
-      doc.setFontSize(8)
-      doc.text(pvData.signataireMoeEmail, sigX1, yPos + 13)
-    }
-    if (pvData.signataireMotEmail) {
-      doc.setFont(undefined, 'bold')
-      doc.setFontSize(8.5)
-      doc.text('MOA', sigX2, yPos + 9)
-      doc.setFont(undefined, 'normal')
-      doc.setFontSize(8)
-      doc.text(pvData.signataireMotEmail, sigX2, yPos + 13)
-    }
-    if (pvData.signataireEntrepriseEmail) {
-      doc.setFont(undefined, 'bold')
-      doc.setFontSize(8.5)
-      doc.text('Entreprise', sigX3, yPos + 9)
-      doc.setFont(undefined, 'normal')
-      doc.setFontSize(8)
-      doc.text(pvData.signataireEntrepriseEmail, sigX3, yPos + 13)
-    }
-
-    yPos += 30
-
-    // === DÉCISION ===
-    if (pvData.decision) {
-      const decisionColors = {
-        'Accepté': [34, 139, 34],
-        'Accepté avec réserve': [255, 140, 0],
-        'Refusé': [220, 20, 60]
-      }
-      const decisionEmoji = {
-        'Accepté': '✓',
-        'Accepté avec réserve': '⚠',
-        'Refusé': '✕'
-      }
-      const dColor = decisionColors[pvData.decision] || [0, 0, 0]
-
-      doc.setDrawColor(...dColor)
-      doc.setFillColor(255, 250, 240)
-      doc.setLineWidth(1.5)
-      doc.rect(margin, yPos, pageWidth - margin * 2, 20, 'FD')
-
-      const emoji = decisionEmoji[pvData.decision] || '•'
-      doc.setFont(undefined, 'bold')
-      doc.setFontSize(12)
-      doc.setTextColor(...dColor)
-      doc.text(`${emoji}  ${pvData.decision}`, margin + 5, yPos + 7)
-
-      if (pvData.decision === 'Accepté avec réserve' && pvData.reservesAcceptation?.trim()) {
-        doc.setFont(undefined, 'bold')
-        doc.setFontSize(8)
-        doc.text('Réserves :', margin + 5, yPos + 12)
-        doc.setFont(undefined, 'normal')
-        doc.setFontSize(7.5)
-        const rLines = doc.splitTextToSize(pvData.reservesAcceptation, pageWidth - margin * 2 - 10)
-        doc.text(rLines, margin + 5, yPos + 15)
-      } else if (pvData.decision === 'Refusé' && pvData.motifRefus?.trim()) {
-        doc.setFont(undefined, 'bold')
-        doc.setFontSize(8)
-        doc.text('Motif :', margin + 5, yPos + 12)
-        doc.setFont(undefined, 'normal')
-        doc.setFontSize(7.5)
-        const mLines = doc.splitTextToSize(pvData.motifRefus, pageWidth - margin * 2 - 10)
-        doc.text(mLines, margin + 5, yPos + 15)
-      }
-
-      yPos += 25
-    }
-
+    // Titre du marché
+    doc.text(`au titre du marché faisant objet du devis N° ${pvData.numero || '......................'}`, margin, yPos)
     yPos += 5
 
-    // === SIGNATURES ===
+    doc.text(`relatif aux travaux : ${pvData.titre || '......................................'}`, margin, yPos)
+    yPos += 5
+
+    doc.text(`en présence du représentant de l'entreprise : ${pvData.signataireEntrepriseEmail || '......................................'}`, margin, yPos)
+    yPos += 5
+
     doc.setFont(undefined, 'bold')
-    doc.setFontSize(9)
-    doc.setTextColor(210, 105, 30)
-    doc.text('SIGNATURES', margin, yPos)
+    doc.text('déclare que :', margin, yPos)
+    yPos += 6
+
+    // === CASES À COCHER ===
+    doc.setFont(undefined, 'normal')
+    doc.setFontSize(8.5)
+
+    const checkboxSize = 3
+    const checkboxX = margin + 1
+
+    // Case 1: Sans réserve
+    doc.rect(checkboxX, yPos, checkboxSize, checkboxSize)
+    if (pvData.decision === 'Accepté') {
+      doc.setFont(undefined, 'bold')
+      doc.text('✓', checkboxX + 0.8, yPos + 2.2)
+      doc.setFont(undefined, 'normal')
+    }
+    doc.text('La réception est prononcée sans réserve, avec effet à la date du .......................', checkboxX + 6, yPos + 1.5)
+    yPos += 5
+
+    // Case 2: Avec réserve
+    doc.rect(checkboxX, yPos, checkboxSize, checkboxSize)
+    if (pvData.decision === 'Accepté avec réserve') {
+      doc.setFont(undefined, 'bold')
+      doc.text('✓', checkboxX + 0.8, yPos + 2.2)
+      doc.setFont(undefined, 'normal')
+    }
+    const reserveText = 'La réception est prononcée avec réserve avec effet à la date du ....................... assortie des réserves mentionnées dans l\'état des réserves ci-joint. Si la réception est prononcée avec réserves, un état de ces dernières, jointes en page suivante, est dressé et précisé le délai dans lequel les travaux qu\'elles impliquent seront exécutés.'
+    const reserveLines = doc.splitTextToSize(reserveText, pageWidth - margin - checkboxX - 8)
+    doc.text(reserveLines, checkboxX + 6, yPos + 1.5)
+    yPos += reserveLines.length * 3.2 + 2
+
+    // Case 3: Refusée
+    doc.rect(checkboxX, yPos, checkboxSize, checkboxSize)
+    if (pvData.decision === 'Refusé') {
+      doc.setFont(undefined, 'bold')
+      doc.text('✓', checkboxX + 0.8, yPos + 2.2)
+      doc.setFont(undefined, 'normal')
+    }
+    doc.text('La réception est refusée - différée pour les motifs suivants : (rayez la mention inutile)', checkboxX + 6, yPos + 1.5)
+    yPos += 5
+
+    if (pvData.decision === 'Refusé' && pvData.motifRefus?.trim()) {
+      const motifLines = doc.splitTextToSize(pvData.motifRefus, pageWidth - margin * 2)
+      doc.text(motifLines, margin, yPos)
+      yPos += motifLines.length * 3.5 + 2
+    } else {
+      yPos += 8
+    }
+
+    yPos += 3
+
+    // === TEXTE JURIDIQUE FIN ===
+    doc.setFontSize(8.5)
+    doc.setFont(undefined, 'bold')
+    const garantiesText = 'Garanties : les garanties découlant des articles 1792, 1792-2 et 1792-3 du Code Civil commencent à courir à compter de la signature du présent procès-verbal.'
+    const garantiesLines = doc.splitTextToSize(garantiesText, pageWidth - margin * 2)
+    doc.text(garantiesLines, margin, yPos)
+    yPos += garantiesLines.length * 3 + 2
+
+    doc.setFont(undefined, 'normal')
+    const signatureText = 'La signature du procès-verbal de réception et le règlement des travaux autorisent le client soussigné à prendre possession de l\'ouvrage.'
+    const sigLines = doc.splitTextToSize(signatureText, pageWidth - margin * 2)
+    doc.text(sigLines, margin, yPos)
+    yPos += sigLines.length * 3 + 4
+
+    doc.text(`Fait à ${pvData.dateReception || '..............................'} le ${pvData.dateReception || '.....................'}`, margin, yPos)
+    yPos += 4
+
+    doc.text('en .......... exemplaires, dont un est remis à chacune des parties.', margin, yPos)
     yPos += 8
 
-    const signBoxHeight = 20
-    const signColWidth = (pageWidth - margin * 2) / 3
+    // === SIGNATURES FINALES ===
+    const signColWidth = (pageWidth - margin * 2) / 2
+    doc.setFontSize(9)
+    doc.setFont(undefined, 'normal')
+    doc.text('Signature de l\'entreprise', margin, yPos + 20)
+    doc.text('Signature du maître de l\'ouvrage', margin + signColWidth, yPos + 20)
 
     // Boîtes signatures
-    doc.setDrawColor(150, 150, 150)
+    doc.setDrawColor(0, 0, 0)
     doc.setLineWidth(0.5)
-    doc.setFillColor(250, 250, 250)
-
-    const sigBoxes = [
-      { x: margin, label: 'Maître d\'œuvre' },
-      { x: margin + signColWidth, label: 'Maître d\'ouvrage' },
-      { x: margin + signColWidth * 2, label: 'Entreprise' }
-    ]
-
-    sigBoxes.forEach(box => {
-      doc.rect(box.x, yPos, signColWidth - 2, signBoxHeight, 'FD')
-      doc.setFont(undefined, 'bold')
-      doc.setFontSize(8)
-      doc.setTextColor(50, 50, 50)
-      doc.text(box.label, box.x + 2, yPos + signBoxHeight + 2)
-    })
+    doc.rect(margin, yPos, signColWidth - 2, 18)
+    doc.rect(margin + signColWidth, yPos, signColWidth - 2, 18)
 
     // Convertir en base64
     const pdfData = doc.output('arraybuffer')
