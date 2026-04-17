@@ -6,6 +6,7 @@
 // client qui pré-remplit le formulaire.
 
 import { verifyAuth } from '@/app/lib/auth'
+import { fetchWithRetry } from '@/app/lib/fetchWithRetry'
 
 // Rate limiting simple en mémoire (par IP) — même pattern que /api/claude
 const rateLimit = new Map();
@@ -129,8 +130,9 @@ export async function POST(request) {
     }
 
     // Appel Claude Vision
-    const anthropicResponse = await fetch('https://api.anthropic.com/v1/messages', {
+    const anthropicResponse = await fetchWithRetry('https://api.anthropic.com/v1/messages', {
       method: 'POST',
+      timeoutMs: 30000,
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': ANTHROPIC_API_KEY,

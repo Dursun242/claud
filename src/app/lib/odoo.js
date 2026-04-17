@@ -3,6 +3,8 @@
  * Utilisé côté serveur uniquement (routes API Next.js)
  */
 
+import { fetchWithRetry } from './fetchWithRetry'
+
 const ODOO_URL = process.env.ODOO_URL
 const ODOO_DB = process.env.ODOO_DB
 const ODOO_USER = process.env.ODOO_USER
@@ -12,7 +14,7 @@ async function jsonrpc(service, method, args) {
   if (!ODOO_URL) throw new Error('Variable ODOO_URL manquante dans Vercel')
   let res
   try {
-    res = await fetch(`${ODOO_URL}/jsonrpc`, {
+    res = await fetchWithRetry(`${ODOO_URL}/jsonrpc`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -21,6 +23,9 @@ async function jsonrpc(service, method, args) {
       },
       body: JSON.stringify({ jsonrpc: '2.0', method: 'call', id: Date.now(), params: { service, method, args } }),
       cache: 'no-store',
+      // Odoo Sign peut être long sur des actions lourdes (création sign.request
+      // avec PDF 10-20 Mo) : 30s au lieu du défaut 15s.
+      timeoutMs: 30000,
     })
   } catch (err) {
     throw new Error(`Connexion Odoo impossible (${ODOO_URL}) : ${err.message}`)

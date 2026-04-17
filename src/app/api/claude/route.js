@@ -9,6 +9,10 @@
 //   /api/extract-*. Double filet de sécurité.
 
 import { verifyAuth } from '@/app/lib/auth'
+import { fetchWithRetry } from '@/app/lib/fetchWithRetry'
+import { createLogger } from '@/app/lib/logger'
+
+const log = createLogger('claude')
 
 // Rate limiting simple en mémoire (par IP)
 const rateLimit = new Map(); // ip → { count, resetAt }
@@ -63,7 +67,7 @@ export async function POST(request) {
       );
     }
 
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
+    const response = await fetchWithRetry("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -76,11 +80,13 @@ export async function POST(request) {
         system: body.system || "",
         messages: body.messages || [],
       }),
+      // Claude peut prendre ~20s sur une vision ou un long prompt ; on laisse 30s
+      timeoutMs: 30000,
     });
 
     if (!response.ok) {
       const errorText = await response.text().catch(() => '');
-      console.error(`[claude] Anthropic ${response.status} ${errorText}`);
+      log.error(`Anthropic ${response.status}`, errorText);
       return Response.json(
         { error: 'Erreur du service IA' },
         { status: response.status }
@@ -91,7 +97,7 @@ export async function POST(request) {
     return Response.json(data);
 
   } catch (error) {
-    console.error('[claude] exception:', error);
+    log.error('exception', error?.message || error);
     return Response.json(
       { error: 'Erreur serveur' },
       { status: 500 }

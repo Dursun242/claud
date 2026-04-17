@@ -7,6 +7,7 @@
 import { Anthropic } from "@anthropic-ai/sdk"
 import { createClient } from "@supabase/supabase-js"
 import { verifyAuth } from '@/app/lib/auth'
+import { fetchWithRetry } from '@/app/lib/fetchWithRetry'
 
 const client = new Anthropic()
 
@@ -43,13 +44,14 @@ export async function POST(request) {
     }
 
     // 3. Récupérer les factures de Qonto
-    const invoicesResponse = await fetch(
+    const invoicesResponse = await fetchWithRetry(
       `https://thirdparty.qonto.com/v2/client_invoices`,
       {
         headers: {
           Authorization: qontoToken,
           "Content-Type": "application/json",
         },
+        timeoutMs: 15000,
       }
     )
 

@@ -7,6 +7,7 @@
 // quoi en faire (pré-remplir le form, créer un contact si absent, etc.).
 
 import { verifyAuth } from '@/app/lib/auth'
+import { fetchWithRetry } from '@/app/lib/fetchWithRetry'
 
 // Rate limiting simple en mémoire (par IP)
 const rateLimit = new Map();
@@ -154,8 +155,9 @@ export async function POST(request) {
     }
 
     // Appel Claude Vision (Haiku 4.5 — même modèle que extract-contact)
-    const anthropicResponse = await fetch('https://api.anthropic.com/v1/messages', {
+    const anthropicResponse = await fetchWithRetry('https://api.anthropic.com/v1/messages', {
       method: 'POST',
+      timeoutMs: 30000,
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': ANTHROPIC_API_KEY,

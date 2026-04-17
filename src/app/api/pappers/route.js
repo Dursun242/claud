@@ -1,4 +1,8 @@
 import { verifyAuth } from '@/app/lib/auth'
+import { fetchWithRetry } from '@/app/lib/fetchWithRetry'
+import { createLogger } from '@/app/lib/logger'
+
+const log = createLogger('pappers')
 
 export async function GET(request) {
   try {
@@ -14,7 +18,7 @@ export async function GET(request) {
 
     const apiKey = process.env.PAPPERS_API_KEY;
     if (!apiKey) {
-      console.error('[pappers] PAPPERS_API_KEY manquante');
+      log.error('PAPPERS_API_KEY manquante');
       return Response.json({ error: 'Configuration serveur invalide' }, { status: 500 });
     }
 
@@ -22,10 +26,13 @@ export async function GET(request) {
     // Renvoie l'entreprise complète (avec representants, NAF, siege, etc.)
     if (siret) {
       const params = new URLSearchParams({ api_token: apiKey, siret });
-      const response = await fetch(`https://api.pappers.fr/v2/entreprise?${params.toString()}`);
+      const response = await fetchWithRetry(
+        `https://api.pappers.fr/v2/entreprise?${params.toString()}`,
+        { timeoutMs: 12000 }
+      );
       if (!response.ok) {
         const errText = await response.text().catch(() => '');
-        console.error(`[pappers siret] ${response.status} ${errText}`);
+        log.error(`siret ${response.status}`, errText);
         return Response.json(
           { error: 'Erreur lors de la requête Pappers' },
           { status: response.status }
@@ -45,8 +52,8 @@ export async function GET(request) {
       };
 
       const [companiesRes, dirigeantsRes] = await Promise.allSettled([
-        fetch(makeUrl('recherche')),
-        fetch(makeUrl('recherche-dirigeants')),
+        fetchWithRetry(makeUrl('recherche'), { timeoutMs: 12000 }),
+        fetchWithRetry(makeUrl('recherche-dirigeants'), { timeoutMs: 12000 }),
       ]);
 
       // ─── Parsing des entreprises ───
@@ -59,10 +66,10 @@ export async function GET(request) {
           companiesOk = true;
         } else {
           const errText = await companiesRes.value.text().catch(() => '');
-          console.error(`[pappers recherche] ${companiesRes.value.status} ${errText}`);
+          log.error(`recherche ${companiesRes.value.status}`, errText);
         }
       } else {
-        console.error('[pappers recherche] network error', companiesRes.reason);
+        log.error('recherche network error', companiesRes.reason?.message);
       }
 
       // ─── Parsing des dirigeants (non-bloquant) ───
@@ -74,9 +81,9 @@ export async function GET(request) {
         dirigeants = data.resultats || [];
       } else if (dirigeantsRes.status === 'fulfilled') {
         const errText = await dirigeantsRes.value.text().catch(() => '');
-        console.warn(`[pappers recherche-dirigeants] ${dirigeantsRes.value.status} ${errText}`);
+        log.warn(`recherche-dirigeants ${dirigeantsRes.value.status}`, errText);
       } else {
-        console.warn('[pappers recherche-dirigeants] network error', dirigeantsRes.reason);
+        log.warn('recherche-dirigeants network error', dirigeantsRes.reason?.message);
       }
 
       // Si les DEUX ont échoué (et pas juste vide) → erreur serveur
@@ -90,7 +97,7 @@ export async function GET(request) {
     return Response.json({ error: "Paramètre 'siret' ou 'q' requis" }, { status: 400 });
 
   } catch (error) {
-    console.error('[pappers] exception:', error);
+    log.error('exception', error?.message || error);
     return Response.json({ error: 'Erreur serveur' }, { status: 500 });
   }
 }

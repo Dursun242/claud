@@ -14,6 +14,10 @@
 
 import { createClient } from '@supabase/supabase-js'
 import { verifyAuth } from '@/app/lib/auth'
+import { fetchWithRetry } from '@/app/lib/fetchWithRetry'
+import { createLogger } from '@/app/lib/logger'
+
+const log = createLogger('qonto')
 
 // Récupère le token Qonto stocké dans la table settings côté serveur.
 // Utilise le service role key pour bypasser les RLS.
@@ -83,16 +87,17 @@ export async function POST(request) {
 
     // 4. Appel Qonto (le header Authorization attendu par Qonto est
     //    directement "login:secret-key" — pas de "Bearer " devant)
-    const response = await fetch(`https://thirdparty.qonto.com/v2/${endpoint}`, {
+    const response = await fetchWithRetry(`https://thirdparty.qonto.com/v2/${endpoint}`, {
       headers: {
         'Authorization': qontoToken,
         'Content-Type': 'application/json',
       },
+      timeoutMs: 15000,
     })
 
     if (!response.ok) {
       const errText = await response.text().catch(() => '')
-      console.error(`[qonto] ${response.status} ${errText}`)
+      log.error(`${response.status}`, errText)
       // Si 401 → le token stocké n'est plus valide, on invalide le cache
       if (response.status === 401) _qontoTokenCache = null
       return Response.json({ error: 'Erreur Qonto' }, { status: response.status })
@@ -102,7 +107,7 @@ export async function POST(request) {
     return Response.json(data)
 
   } catch (error) {
-    console.error('[qonto] proxy exception:', error)
+    log.error('proxy exception', error?.message || error)
     return Response.json({ error: 'Erreur serveur' }, { status: 500 })
   }
 }
