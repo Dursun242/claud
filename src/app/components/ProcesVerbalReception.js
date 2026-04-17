@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../supabaseClient'
 import { useToast } from '../contexts/ToastContext'
 import { generatePVPdf } from '../generators'
+import Section from './Section'
 
 function formatDate(iso) {
   if (!iso) return '—'
@@ -33,6 +34,8 @@ function PVRow({ pv, onDetail }) {
   const sigStatus = statusColor(pv.statut_signature)
   const decStatus = decisionColor(pv.statut_reception)
 
+  // Carte blanche à la OS/CR : fond blanc, borderRadius 10, boxShadow léger,
+  // flex-wrap pour les badges afin que ça tienne sur mobile étroit.
   return (
     <button
       onClick={() => onDetail(pv)}
@@ -40,63 +43,42 @@ function PVRow({ pv, onDetail }) {
         width: '100%',
         display: 'flex',
         alignItems: 'center',
-        gap: 12,
-        padding: '12px 14px',
-        borderBottom: '1px solid #F1F5F9',
-        background: 'transparent',
+        gap: 10,
+        padding: '10px 12px',
+        marginBottom: 8,
+        background: '#fff',
         border: 'none',
+        borderRadius: 10,
+        boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
         cursor: 'pointer',
         textAlign: 'left',
-        transition: 'background .12s',
+        flexWrap: 'wrap',
       }}
-      onMouseEnter={(e) => e.currentTarget.style.background = '#F8FAFC'}
-      onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
     >
-      {/* Numéro */}
-      <div style={{ minWidth: 100, fontWeight: 600, fontSize: 12, color: '#0F172A' }}>
-        {pv.numero}
-      </div>
-
-      {/* Titre */}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 12, fontWeight: 600, color: '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {pv.titre}
+      <div style={{ flex: '1 1 0', minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2, flexWrap: 'wrap' }}>
+          <span style={{ fontWeight: 700, fontSize: 13, color: '#0F172A', whiteSpace: 'nowrap' }}>
+            {pv.numero}
+          </span>
+          <span style={{
+            padding: '3px 7px', background: sigStatus.bg, color: sigStatus.color,
+            borderRadius: 6, fontSize: 10, fontWeight: 700, whiteSpace: 'nowrap',
+          }}>
+            {sigStatus.icon} {pv.statut_signature}
+          </span>
+          <span style={{
+            padding: '3px 7px', background: decStatus.bg, color: decStatus.color,
+            borderRadius: 6, fontSize: 10, fontWeight: 700, whiteSpace: 'nowrap',
+          }}>
+            {decStatus.icon} {pv.statut_reception}
+          </span>
         </div>
-        <div style={{ fontSize: 10, color: '#94A3B8', marginTop: 2 }}>
-          {formatDate(pv.date_reception)}
+        <div style={{
+          fontSize: 11, color: '#64748B',
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        }}>
+          {pv.titre} • {formatDate(pv.date_reception)}
         </div>
-      </div>
-
-      {/* Statut signature */}
-      <div style={{
-        padding: '4px 8px',
-        background: sigStatus.bg,
-        color: sigStatus.color,
-        borderRadius: 6,
-        fontSize: 10,
-        fontWeight: 600,
-        display: 'flex',
-        alignItems: 'center',
-        gap: 4,
-        whiteSpace: 'nowrap'
-      }}>
-        {sigStatus.icon} {pv.statut_signature}
-      </div>
-
-      {/* Statut décision */}
-      <div style={{
-        padding: '4px 8px',
-        background: decStatus.bg,
-        color: decStatus.color,
-        borderRadius: 6,
-        fontSize: 10,
-        fontWeight: 600,
-        display: 'flex',
-        alignItems: 'center',
-        gap: 4,
-        whiteSpace: 'nowrap'
-      }}>
-        {decStatus.icon} {pv.statut_reception}
       </div>
     </button>
   )
@@ -322,51 +304,37 @@ export default function ProcesVerbalReception({ chantierId, chantier, ordresServ
     loadPVs()
   }, [loadPVs])
 
-  return (
-    <div style={{ background: '#fff', borderRadius: 12, boxShadow: '0 1px 3px rgba(15,23,42,0.06)', overflow: 'hidden', marginBottom: 20 }}>
-      {/* En-tête */}
-      <div style={{ padding: '12px 16px', borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <h2 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#0F172A' }}>
-            Procès-verbaux de réception
-          </h2>
-          <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 2 }}>
-            {pvs.length} PV{pvs.length !== 1 ? 's' : ''}
-          </div>
-        </div>
-        <button
-          onClick={() => setShowNewForm(true)}
-          style={{
-            padding: '6px 12px',
-            background: '#0F172A',
-            color: '#fff',
-            border: 'none',
-            borderRadius: 6,
-            fontSize: 11,
-            fontWeight: 600,
-            cursor: 'pointer'
-          }}
-        >
-          + Nouveau PV
-        </button>
-      </div>
+  // Wrapper Section aligné sur Ordres de Service / Comptes Rendus :
+  // titre + badge compteur coloré, fond transparent, bouton d'action
+  // au-dessus de la liste, cartes blanches en dessous.
+  const PV_COLOR = '#14B8A6'
 
-      {/* Liste */}
-      {loading ? (
-        <div style={{ padding: 20, textAlign: 'center', color: '#94A3B8', fontSize: 12 }}>
-          Chargement...
+  return (
+    <>
+      <Section title="Procès-verbaux de réception" count={pvs.length} color={PV_COLOR}>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+          <button
+            onClick={() => setShowNewForm(true)}
+            style={{
+              background: PV_COLOR, color: '#fff', border: 'none',
+              borderRadius: 6, padding: '6px 12px',
+              fontSize: 11, fontWeight: 700, cursor: 'pointer'
+            }}
+          >
+            + Nouveau PV
+          </button>
         </div>
-      ) : pvs.length === 0 ? (
-        <div style={{ padding: 20, textAlign: 'center', color: '#94A3B8', fontSize: 12 }}>
-          Aucun PV de réception
-        </div>
-      ) : (
-        <div style={{ maxHeight: 400, overflowY: 'auto' }}>
-          {pvs.map((pv) => (
+
+        {loading ? (
+          <p style={{ color: '#94A3B8', fontSize: 12 }}>Chargement…</p>
+        ) : pvs.length === 0 ? (
+          <p style={{ color: '#94A3B8', fontSize: 12 }}>Aucun PV pour ce chantier</p>
+        ) : (
+          pvs.map((pv) => (
             <PVRow key={pv.id} pv={pv} onDetail={setSelectedPv} />
-          ))}
-        </div>
-      )}
+          ))
+        )}
+      </Section>
 
       {/* Détails */}
       {selectedPv && (
@@ -395,7 +363,7 @@ export default function ProcesVerbalReception({ chantierId, chantier, ordresServ
           }}
         />
       )}
-    </div>
+    </>
   )
 }
 
