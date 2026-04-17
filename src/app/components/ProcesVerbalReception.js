@@ -606,7 +606,27 @@ function PVNewForm({ chantierId, chantier, clientContact, ordresService = [], on
 
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Erreur création')
-      addToast(`PV créé: ${data.numero}`, 'success')
+
+      // Confirmation visible de l'envoi en signature : on liste les
+      // destinataires et on expose un bouton pour ouvrir la demande Odoo.
+      const recipients = [
+        form.signataireMoeEmail,
+        form.signataireMotEmail,
+        form.signataireEntrepriseEmail,
+      ].filter(Boolean)
+      const recipientCount = recipients.length
+      const msg = data.signUrl
+        ? `✅ PV ${data.numero} envoyé en signature à ${recipientCount} signataire${recipientCount > 1 ? 's' : ''}`
+        : `✅ PV ${data.numero} créé`
+      addToast(msg, 'success', {
+        duration: 7000,
+        ...(data.signUrl ? {
+          action: {
+            label: 'Voir la demande',
+            onClick: () => window.open(data.signUrl, '_blank', 'noopener'),
+          },
+        } : {}),
+      })
       onSuccess()
     } catch (err) {
       addToast('Erreur: ' + err.message, 'error')
