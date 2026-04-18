@@ -24,6 +24,7 @@ Exécuter dans cet ordre exact sur une base vierge (Supabase Dashboard → SQL E
 | 016 | `016_chantier_is_demo_flag.sql` | Flag `is_demo` sur chantier |
 | 017 | `017_fix_notify_triggers_array_concat.sql` | Fix triggers notifs |
 | 018 | `018_authorized_users_restrict_select.sql` | Durcissement RLS authorized_users |
+| 019 | `019_client_user_id.sql` | **[P0 sécu]** Match client → chantier par UUID au lieu de prénom. Dual-support (nouveau UUID + fallback prénom pour migration en douceur). Voir `019_README.md` avant application. |
 
 ## Fichiers NON séquentiels (à ne PAS appliquer en séquence)
 
