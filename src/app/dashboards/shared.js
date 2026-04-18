@@ -711,7 +711,10 @@ export function FF({label,hint,children}) {
 }
 export const inp = {
   width:"100%", padding:"8px 12px", border:"1.5px solid #E2E8F0",
-  borderRadius:8, fontSize:14, outline:"none",
+  // fontSize 16px minimum : en dessous iOS Safari déclenche un auto-zoom
+  // quand l'utilisateur focus un input, ce qui laisse la page zoomée
+  // (et provoque un scroll horizontal) même après avoir perdu le focus.
+  borderRadius:8, fontSize:16, outline:"none",
   fontFamily:"inherit", boxSizing:"border-box"
 };
 export const sel = {...inp,background:"#fff"};

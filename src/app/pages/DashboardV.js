@@ -70,7 +70,10 @@ export default function DashboardV({data,setTab,m,user}) {
     {/* HEADER */}
     <div style={{marginBottom:22}}>
       <h1 style={{
-        margin:0, fontSize:m?22:28, fontWeight:700, color:"#0F172A"
+        margin:0, fontSize:m?22:28, fontWeight:700, color:"#0F172A",
+        // Force le wrapping pour les prénoms longs (ex: noms composés, adresse
+        // email utilisée en fallback) — évite tout débordement horizontal.
+        wordBreak:"break-word", overflowWrap:"anywhere"
       }}>{getGreeting()} {firstName}</h1>
       <p style={{
         margin:"6px 0 0", color:"#64748B",

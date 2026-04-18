@@ -30,6 +30,25 @@ export default function RootLayout({ children }) {
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" />
       </head>
       <body style={{ margin: 0, padding: 0 }}>
+        {/* Filet de sécurité global :
+            - html/body bloqués en largeur viewport pour éviter qu'un enfant
+              trop large n'oblige la page à scroller horizontalement ;
+            - text-size-adjust: 100% sur iOS/Android pour ne pas agrandir
+              le texte en mode paysage ou après un auto-zoom.
+            - input/select/textarea font-size 16px minimum pour désactiver
+              l'auto-zoom d'iOS Safari au focus (reproductible à partir de
+              14px — cf. shared.js). */}
+        <style>{`
+          html, body {
+            overflow-x: hidden;
+            max-width: 100vw;
+            -webkit-text-size-adjust: 100%;
+            text-size-adjust: 100%;
+          }
+          @media (max-width: 640px) {
+            input, select, textarea { font-size: 16px; }
+          }
+        `}</style>
         <RootWrapper>{children}</RootWrapper>
       </body>
     </html>
