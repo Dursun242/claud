@@ -10,6 +10,7 @@ import { useComments } from '../hooks/useComments'
 import { generateOSPdf, generateCRPdf, generateOSExcel, generateCRExcel } from '../generators'
 import { useToast } from '../contexts/ToastContext'
 import { useConfirm } from '../contexts/ConfirmContext'
+import { computeChantierFinances } from '../lib/chantierFinances'
 
 // Listes canoniques utilisées pour les pills de filtre
 const PROJECT_STATUSES = ["Planifié","En cours","En attente","Terminé"]
@@ -64,29 +65,10 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
     const intervenants = artisanNames.map(name => contactMap.get(name)).filter(Boolean);
     const clientContact = contactMap.get(ch.client);
 
-    // Calculs budget ↔ OS (temps réel, basé sur les statuts OS)
-    // - Engagé       : OS hors Brouillon/Annulé (= envoyés/signés/en cours/terminés)
-    // - Réalisé      : OS en Terminé (= travaux finis)
-    // - En brouillon : OS en Brouillon (informatif, pas engagé)
-    const sum = (arr) => arr.reduce((s, o) => s + (Number(o.montant_ttc) || 0), 0);
-    const osEngages = chOS.filter(o => o.statut !== 'Brouillon' && o.statut !== 'Annulé');
-    const osRealises = chOS.filter(o => o.statut === 'Terminé');
-    const osBrouillons = chOS.filter(o => o.statut === 'Brouillon');
-    const budget = Number(ch.budget) || 0;
-    const engageMontant = sum(osEngages);
-    const realiseMontant = sum(osRealises);
-    const brouillonMontant = sum(osBrouillons);
-    const resteEngager = Math.max(0, budget - engageMontant);
-    const depassement = Math.max(0, engageMontant - budget);
-    const finances = {
-      budget,
-      engageMontant, engageCount: osEngages.length,
-      realiseMontant, realiseCount: osRealises.length,
-      brouillonMontant, brouillonCount: osBrouillons.length,
-      resteEngager,
-      depassement,
-      ratio: budget > 0 ? Math.round((engageMontant / budget) * 100) : 0,
-    };
+    // Calculs budget ↔ OS : logique métier centralisée dans
+    // lib/chantierFinances.js pour que tous les écrans partagent
+    // la même définition de "engagé / réalisé / brouillon".
+    const finances = computeChantierFinances(ch.budget, chOS);
 
     return { chTasks, chOS, chCR, chPlanning, intervenants, clientContact, finances };
   }, [selectedChantier, data.tasks, data.ordresService, data.compteRendus, data.planning, data.contacts]);

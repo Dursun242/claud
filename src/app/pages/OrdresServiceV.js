@@ -1,12 +1,14 @@
 'use client'
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { SB, Icon, I, fmtDate, fmtMoney, FF, inp, sel, btnP, btnS } from '../dashboards/shared'
-import { Badge, Modal } from '../components'
+import { Badge, Modal, OSSignatureModal } from '../components'
 import { useToast } from '../contexts/ToastContext'
 import { useConfirm } from '../contexts/ConfirmContext'
 import { useUndoableDelete } from '../hooks/useUndoableDelete'
 import { buildCSV, downloadCSV, formatDateFR, formatMoneyFR } from '../lib/csv'
 import { supabase } from '../supabaseClient'
+import { useImportDevis } from '../hooks/useImportDevis'
+import { usePrestationManager } from '../hooks/usePrestationManager'
 
 // Ordre canonique des statuts (utilisé dans le filtre et le dropdown de tri)
 const OS_STATUSES = ["Brouillon","Émis","Signé","En cours","Terminé","Annulé"]
@@ -35,7 +37,15 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly})
   const confirm = useConfirm();
   const [modal,setModal]=useState(null);
   const [form,setForm]=useState({});
-  const [prestations,setPrestations]=useState([]);
+  // Prestations + calcul HT/TVA/TTC — voir hooks/usePrestationManager.js
+  const {
+    prestations,
+    setPrestations,
+    addPrestation,
+    removePrestation,
+    updatePrestation,
+    totals,
+  } = usePrestationManager([]);
   const [searchOS,setSearchOS]=useState("");
   const [statusFilter,setStatusFilter]=useState("all"); // "all" | un des OS_STATUSES
   const [sortBy,setSortBy]=useState("date_desc");       // date_desc | date_asc | amount_desc | amount_asc
@@ -49,11 +59,25 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly})
   });
   const [signSending,setSignSending]=useState(false);
   const [signError,setSignError]=useState("");
-  // Import devis par photo
-  const [importing, setImporting] = useState(false);
-  const [importError, setImportError] = useState("");
-  const devisInputRef = useRef(null);
   const searchInputRef = useRef(null);
+
+  // Import devis par photo (Claude Vision) — voir hooks/useImportDevis.js
+  const {
+    importing,
+    importError,
+    setImportError,
+    devisInputRef,
+    handleImportDevis,
+  } = useImportDevis({
+    chantiers: data.chantiers,
+    contacts: data.contacts,
+    nextNum: () => nextNum(),
+    onReady: ({ form: f, prestations: p }) => {
+      setForm(f)
+      setPrestations(p)
+      setModal("new")
+    },
+  });
   // Sync signatures Odoo → Supabase (auto au mount + manuel)
   const [syncingSigs, setSyncingSigs] = useState(false);
   const syncedOnceRef = useRef(false);
@@ -210,173 +234,6 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly})
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [modal, signModal]);
 
-  // ─── Import devis par photo (Claude Vision) ──────────────────
-  //
-  // Resize une image via canvas pour rester sous 1600px de largeur
-  // (même pattern que ContactsV pour rester < 5 Mo).
-  const resizeImageToBase64 = (file) => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const img = new Image();
-        img.onload = () => {
-          const MAX_W = 1600;
-          let { width, height } = img;
-          if (width > MAX_W) {
-            height = Math.round(height * (MAX_W / width));
-            width = MAX_W;
-          }
-          const canvas = document.createElement('canvas');
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0, width, height);
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
-          resolve({ base64: dataUrl.split(',')[1], mediaType: 'image/jpeg' });
-        };
-        img.onerror = () => reject(new Error("Image illisible"));
-        img.src = e.target.result;
-      };
-      reader.onerror = () => reject(new Error("Lecture fichier échouée"));
-      reader.readAsDataURL(file);
-    });
-  };
-
-  // Trouve un contact existant qui matche la société, le nom ou le SIRET
-  // extraits. Cela permet de préserver l'ID en base (pas de doublon) et
-  // de récupérer les infos supplémentaires (spécialité officielle, etc.).
-  const findExistingContact = (extracted) => {
-    if (!extracted) return null;
-    const contacts = data.contacts || [];
-    const norm = (s) => String(s || '').toLowerCase().trim().replace(/\s+/g, ' ');
-    // Priorité 1 : match exact par SIRET (le plus fiable)
-    if (extracted.artisan_siret) {
-      const siretClean = String(extracted.artisan_siret).replace(/\s/g, '');
-      const byS = contacts.find(c => String(c.siret || '').replace(/\s/g, '') === siretClean);
-      if (byS) return byS;
-    }
-    // Priorité 2 : match par société extraite (vs contact.societe ou contact.nom)
-    if (extracted.artisan_societe) {
-      const nSoc = norm(extracted.artisan_societe);
-      const bySoc = contacts.find(c => norm(c.societe) === nSoc || norm(c.nom) === nSoc);
-      if (bySoc) return bySoc;
-    }
-    // Priorité 3 : match par nom d'interlocuteur
-    if (extracted.artisan_nom) {
-      const nNom = norm(extracted.artisan_nom);
-      const byN = contacts.find(c => norm(c.nom) === nNom);
-      if (byN) return byN;
-    }
-    return null;
-  };
-
-  const handleImportDevis = async (e) => {
-    const file = e.target.files?.[0];
-    e.target.value = ""; // permet de re-sélectionner la même photo
-    if (!file) return;
-
-    if (!file.type.startsWith("image/")) {
-      setImportError("Ce fichier n'est pas une image.");
-      return;
-    }
-
-    setImporting(true);
-    setImportError("");
-    try {
-      SB.log('import_photo', 'os', null, `Import devis par photo — ${file.name}`, {
-        file_name: file.name,
-        file_size: file.size,
-      });
-    } catch (_) {}
-
-    try {
-      // 1. Resize + base64
-      const { base64, mediaType } = await resizeImageToBase64(file);
-
-      // 2. Auth token Supabase
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
-        setImportError("Session expirée, reconnectez-vous.");
-        return;
-      }
-
-      // 3. Appel extraction
-      const res = await fetch('/api/extract-os-data', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({ imageBase64: base64, mediaType }),
-      });
-      const json = await res.json();
-      if (!res.ok) {
-        setImportError(json.error || "Extraction échouée");
-        return;
-      }
-
-      const extracted = json.data || {};
-      if (!extracted || Object.keys(extracted).length === 0) {
-        setImportError("Aucune information n'a pu être détectée sur cette image. Essaye une photo plus nette.");
-        return;
-      }
-
-      // 4. Match avec un contact existant (pour réutiliser les infos fiables)
-      const existing = findExistingContact(extracted);
-
-      // 5. Chantier par défaut : le premier (l'user peut changer dans le form)
-      const ch = data.chantiers?.[0];
-
-      // 6. Construction du form pré-rempli.
-      //    Si un contact existe déjà → on utilise son nom (l'enrichOsForPdf
-      //    trouvera sa société au moment de générer le PDF).
-      //    Sinon → on privilégie la société extraite comme "nom principal"
-      //    pour que la société s'affiche en gros sur le PDF (l'interlocuteur
-      //    est perdu dans ce cas, l'user peut l'ajouter manuellement à
-      //    l'annuaire après).
-      const fallbackName = extracted.artisan_societe || extracted.artisan_nom || "";
-      const newForm = {
-        numero: nextNum(),
-        chantier_id: ch?.id || "",
-        chantier: ch?.nom || "",
-        adresse_chantier: ch?.adresse || "",
-        client_nom: extracted.client_nom || ch?.client || "",
-        client_adresse: extracted.client_adresse || "",
-        artisan_nom: existing?.nom || fallbackName,
-        artisan_specialite: existing?.specialite || extracted.artisan_specialite || "",
-        artisan_adresse: existing?.adresse || extracted.artisan_adresse || "",
-        artisan_tel: existing?.tel || extracted.artisan_tel || "",
-        artisan_email: existing?.email || extracted.artisan_email || "",
-        artisan_siret: existing?.siret || extracted.artisan_siret || "",
-        date_emission: extracted.date_emission || new Date().toISOString().split("T")[0],
-        date_intervention: extracted.date_intervention || "",
-        date_fin_prevue: "",
-        observations: extracted.observations || "",
-        conditions: "Paiement à 30 jours à compter de la réception de la facture.",
-        statut: "Brouillon",
-      };
-
-      // 7. Prestations → conversion en strings pour les inputs controlled
-      const newPrestations = Array.isArray(extracted.prestations) && extracted.prestations.length > 0
-        ? extracted.prestations.map(p => ({
-            description: String(p.description || ""),
-            unite: String(p.unite || "u"),
-            quantite: String(p.quantite || ""),
-            prix_unitaire: String(p.prix_unitaire || ""),
-            tva_taux: String(p.tva_taux || "20"),
-          }))
-        : [{ description: "", unite: "m²", quantite: "", prix_unitaire: "", tva_taux: "20" }];
-
-      setForm(newForm);
-      setPrestations(newPrestations);
-      setModal("new");
-    } catch (err) {
-      setImportError("Erreur : " + (err?.message || String(err)));
-    } finally {
-      setImporting(false);
-    }
-  };
-
   const updateChantier = (chId) => {
     const ch = data.chantiers.find(c=>c.id===chId);
     setForm(f=>({
@@ -397,23 +254,9 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly})
     else setForm(f=>({...f, artisan_nom:name}));
   };
 
-  const addPrestation = () => setPrestations(p=>[
-    ...p,
-    { description:"", unite:"u", quantite:"", prix_unitaire:"", tva_taux:"20" }
-  ]);
-  const removePrestation = (i) => setPrestations(p=>p.filter((_,j)=>j!==i));
-  const updatePrestation = (i,field,val) => setPrestations(p=>p.map((x,j)=>j===i?{...x,[field]:val}:x));
-
-  // totals memoïsé : recalculé uniquement quand prestations changent
-  const totals = useMemo(() => {
-    let ht = 0, tva = 0;
-    prestations.forEach(p => {
-      const l = (parseFloat(p.quantite) || 0) * (parseFloat(p.prix_unitaire) || 0);
-      ht += l;
-      tva += l * (parseFloat(p.tva_taux) || 20) / 100;
-    });
-    return { ht, tva, ttc: ht + tva };
-  }, [prestations]);
+  // addPrestation / removePrestation / updatePrestation / totals sont
+  // fournis par le hook usePrestationManager (voir l'import + destructuring
+  // en haut du composant).
 
   const handleSave = async () => {
     if (saving) return;
@@ -1274,74 +1117,17 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly})
     </Modal>
 
     {/* MODAL SIGNATURE ODOO — 3 SIGNATAIRES OBLIGATOIRES */}
-    <Modal open={!!signModal} onClose={()=>setSignModal(null)} title="Envoyer pour signature Odoo">
-      {signModal && (() => {
-        const allFilled = signSigners.moe.email && signSigners.moa.email && signSigners.entreprise.email;
-        return (
-          <div style={{display:"flex",flexDirection:"column",gap:12}}>
-            <div style={{background:"#F5F3FF",borderRadius:8,padding:12}}>
-              <div style={{fontSize:13,fontWeight:700,color:"#1E3A5F",marginBottom:2}}>OS {signModal.numero}</div>
-              <div style={{fontSize:11,color:"#64748B"}}>
-                Expéditeur : <strong>Id Maîtrise</strong> — Objet :{" "}
-                <em>Signature requise – OS {signModal.numero}
-                  {signModal.ch?.nom ? ` – ${signModal.ch.nom}` : ""}
-                </em>
-              </div>
-            </div>
-
-            {[
-              { key:"moe",        label:"MOE — Id Maîtrise",    color:"#1E3A5F" },
-              { key:"moa",        label:"Maître d'ouvrage",      color:"#0369A1" },
-              { key:"entreprise", label:"Entreprise",            color:"#7C3AED" },
-            ].map(({ key, label, color }) => {
-              const missing = !signSigners[key].email;
-              return (
-                <div key={key} style={{
-                  background:"#F8FAFC",borderRadius:8,padding:10,
-                  border:`1px solid ${missing?"#FCA5A5":"#E2E8F0"}`
-                }}>
-                  <div style={{
-                    fontSize:11,fontWeight:700,color,marginBottom:6,
-                    textTransform:"uppercase",display:"flex",justifyContent:"space-between"
-                  }}>
-                    <span>{label}</span>
-                    {missing && <span style={{color:"#EF4444",fontWeight:400,textTransform:"none"}}>Email requis</span>}
-                  </div>
-                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
-                    <input placeholder="Nom" style={{...inp,fontSize:12}} value={signSigners[key].name}
-                      onChange={e=>setSignSigners(s=>({...s,[key]:{...s[key],name:e.target.value}}))}/>
-                    <input placeholder="Email *" style={{...inp,fontSize:12,borderColor:missing?"#EF4444":"#E2E8F0"}}
-                      value={signSigners[key].email}
-                      onChange={e=>setSignSigners(s=>({...s,[key]:{...s[key],email:e.target.value}}))}/>
-                  </div>
-                </div>
-              );
-            })}
-
-            <div style={{
-              background:"#F0FDF4",border:"1px solid #BBF7D0",
-              borderRadius:8,padding:10,fontSize:11,color:"#166534"
-            }}>
-              Les 3 signataires recevront chacun un email d'Odoo Sign pour signer le PDF de l'OS.
-            </div>
-
-            {signError && (
-              <div style={{
-                background:"#FEF2F2",border:"1px solid #FECACA",
-                borderRadius:8,padding:10,fontSize:12,color:"#EF4444"
-              }}>{signError}</div>
-            )}
-
-            <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
-              <button onClick={()=>setSignModal(null)} style={btnS}>Annuler</button>
-              <button onClick={handleSendSign} disabled={signSending || !allFilled}
-                style={{...btnP,background:"#7C3AED",opacity:(signSending||!allFilled)?0.5:1}}>
-                {signSending?"Génération et envoi…":"✍ Envoyer pour signature"}
-              </button>
-            </div>
-          </div>
-        );
-      })()}
-    </Modal>
+    <OSSignatureModal
+      signModal={signModal}
+      onClose={()=>setSignModal(null)}
+      signers={signSigners}
+      setSigners={setSignSigners}
+      onSend={handleSendSign}
+      sending={signSending}
+      error={signError}
+      inp={inp}
+      btnP={btnP}
+      btnS={btnS}
+    />
   </div>);
 }
