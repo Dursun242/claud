@@ -4,7 +4,10 @@ import {
   SB, Icon, I, phase, status, fmtDate, fmtMoney, pct,
   FF, inp, sel, btnP, btnS, PBar
 } from '../dashboards/shared'
-import { Badge, Modal, AttachmentsSection, CommentsSection, TemplateSelector, ProcesVerbalReception } from '../components'
+import {
+  Badge, Modal, AttachmentsSection, CommentsSection, TemplateSelector,
+  ProcesVerbalReception, ChantierIntervenants, ChantierPlanning, ChantierBudgetCard,
+} from '../components'
 import { useAttachments } from '../hooks/useAttachments'
 import { useComments } from '../hooks/useComments'
 import { generateOSPdf, generateCRPdf, generateOSExcel, generateCRExcel } from '../generators'
@@ -251,53 +254,8 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
             </button>
           </div>}
         </div>
-        {/* Budget — calculé en temps réel depuis les OS du chantier */}
-        <div style={{marginTop:16}}>
-          <div style={{display:"grid",gridTemplateColumns:m?"repeat(2,1fr)":"repeat(4,1fr)",gap:12,marginBottom:12}}>
-            <div style={{background:"#F8FAFC",borderRadius:8,padding:10}}>
-              <div style={{fontSize:10,color:"#94A3B8",fontWeight:600,textTransform:"uppercase"}}>Budget</div>
-              <div style={{fontSize:18,fontWeight:700,color:"#0F172A"}}>{fmtMoney(finances.budget)}</div>
-            </div>
-            <div style={{background:"#F8FAFC",borderRadius:8,padding:10}}
-              title={`${finances.engageCount} OS engagés (hors brouillon/annulé)`}>
-              <div style={{fontSize:10,color:"#94A3B8",fontWeight:600,textTransform:"uppercase"}}>Engagé (OS)</div>
-              <div style={{fontSize:18,fontWeight:700,color:budgetColor}}>{fmtMoney(finances.engageMontant)}</div>
-              <div style={{fontSize:10,color:"#94A3B8",marginTop:2}}>
-                {finances.engageCount} OS · dont {finances.realiseCount} terminé{finances.realiseCount>1?"s":""}
-              </div>
-            </div>
-            <div style={{background:"#F8FAFC",borderRadius:8,padding:10}}>
-              <div style={{fontSize:10,color:"#94A3B8",fontWeight:600,textTransform:"uppercase"}}>
-                {finances.depassement > 0 ? "Dépassement" : "Reste à engager"}
-              </div>
-              <div style={{fontSize:18,fontWeight:700,color:finances.depassement > 0 ? "#EF4444" : "#0F172A"}}>
-                {finances.depassement > 0 ? "+" + fmtMoney(finances.depassement) : fmtMoney(finances.resteEngager)}
-              </div>
-            </div>
-            <div style={{background:"#F8FAFC",borderRadius:8,padding:10}}>
-              <div style={{fontSize:10,color:"#94A3B8",fontWeight:600,textTransform:"uppercase"}}>Avancement</div>
-              <div style={{fontSize:18,fontWeight:700,color:budgetColor}}>{ratio}%</div>
-            </div>
-          </div>
-          <PBar value={finances.engageMontant}
-            max={finances.budget || finances.engageMontant || 1}
-            color={budgetColor} h={10}/>
-          {finances.brouillonMontant > 0 && (
-            <div style={{marginTop:8,fontSize:11,color:"#64748B",display:"flex",alignItems:"center",gap:6}}>
-              <span style={{width:8,height:8,borderRadius:"50%",background:"#94A3B8"}}/>
-              {finances.brouillonCount} OS en brouillon : {fmtMoney(finances.brouillonMontant)} (non engagés)
-            </div>
-          )}
-          {finances.depassement > 0 && (
-            <div style={{
-              marginTop:8,fontSize:12,color:"#B91C1C",
-              background:"#FEF2F2",border:"1px solid #FECACA",
-              borderRadius:6,padding:"8px 10px",fontWeight:600
-            }}>
-              ⚠ Budget dépassé de {fmtMoney(finances.depassement)} — revoir le budget ou les OS
-            </div>
-          )}
-        </div>
+        {/* Budget + gauge — composant dédié, consomme `finances` calculé via lib/chantierFinances */}
+        <ChantierBudgetCard finances={finances} m={m} />
       </div>
 
       {/* ATTACHMENTS - Using Phase 3 Hook */}
@@ -494,71 +452,9 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
         }
       </Section>
 
-      {/* INTERVENANTS */}
-      <Section title="Intervenants" count={intervenants.length + (clientContact?1:0)} color="#10B981">
-        {clientContact && (
-          <div style={{
-            background:"#fff",borderRadius:8,padding:12,marginBottom:6,
-            boxShadow:"0 1px 2px rgba(0,0,0,0.03)",borderLeft:"3px solid #3B82F6"
-          }}>
-            <div style={{display:"flex",alignItems:"center",gap:6}}>
-              <span style={{fontWeight:700,fontSize:13}}>{clientContact.nom}</span>
-              <Badge text="Client" color="#3B82F6"/>
-            </div>
-            <div style={{fontSize:11,color:"#94A3B8",marginTop:2}}>{clientContact.tel} • {clientContact.email}</div>
-          </div>
-        )}
-        {intervenants.length===0 && !clientContact
-          ? <p style={{color:"#94A3B8",fontSize:12}}>Aucun intervenant lié via les OS</p>
-          :
-          intervenants.map(c=>(
-            <div key={c.id} style={{
-              background:"#fff",borderRadius:8,padding:12,marginBottom:6,
-              boxShadow:"0 1px 2px rgba(0,0,0,0.03)",
-              borderLeft:`3px solid ${
-                {"Artisan":"#F59E0B","Sous-traitant":"#8B5CF6",
-                 "Prestataire":"#EC4899","Fournisseur":"#10B981"}[c.type]||"#94A3B8"
-              }`
-            }}>
-              <div style={{display:"flex",alignItems:"center",gap:6}}>
-                <span style={{fontWeight:700,fontSize:13}}>{c.nom}</span>
-                <Badge text={c.type} color={{
-                  "Artisan":"#F59E0B","Sous-traitant":"#8B5CF6","Fournisseur":"#10B981"
-                }[c.type]||"#94A3B8"}/>
-              </div>
-              <div style={{fontSize:11,color:"#64748B"}}>{c.specialite||c.societe||""}</div>
-              <div style={{fontSize:11,color:"#94A3B8",marginTop:2}}>{c.tel} • {c.email}</div>
-            </div>
-          ))
-        }
-      </Section>
-
-      {/* PLANNING */}
-      {chPlanning.length>0 && (
-        <Section title="Planning" count={chPlanning.length} color="#6366F1">
-          {chPlanning.map(p=>(
-            <div key={p.id} style={{
-              display:"flex",alignItems:"center",gap:12,
-              background:"#fff",borderRadius:8,padding:"10px 14px",
-              marginBottom:6,boxShadow:"0 1px 2px rgba(0,0,0,0.03)"
-            }}>
-              <div style={{flex:1}}>
-                <div style={{fontSize:13,fontWeight:600,color:"#0F172A"}}>{p.tache}</div>
-                <div style={{fontSize:10,color:"#94A3B8"}}>
-                  {p.lot} • {fmtDate(p.debut)} → {fmtDate(p.fin)}
-                </div>
-              </div>
-              <div style={{width:80}}>
-                <PBar value={p.avancement} max={100} color="#6366F1" h={6}/>
-                <div style={{
-                  fontSize:10,fontWeight:700,color:"#6366F1",
-                  textAlign:"right",marginTop:2
-                }}>{p.avancement}%</div>
-              </div>
-            </div>
-          ))}
-        </Section>
-      )}
+      {/* INTERVENANTS + PLANNING — composants dédiés, lecture seule */}
+      <ChantierIntervenants intervenants={intervenants} clientContact={clientContact} />
+      <ChantierPlanning items={chPlanning} />
 
       {/* NOTES INTERNES — cachées pour les clients (comme le placeholder l'indique) */}
       {!readOnly && <Section title="Notes internes" color="#64748B">

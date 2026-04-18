@@ -22,6 +22,9 @@ export { default as AttachmentsSection } from './AttachmentsSection'
 export { default as CommentsSection } from './CommentsSection'
 export { default as DocumentSearch } from './DocumentSearch'
 export { default as ProcesVerbalReception } from './ProcesVerbalReception'
+export { default as ChantierIntervenants } from './ChantierIntervenants'
+export { default as ChantierPlanning } from './ChantierPlanning'
+export { default as ChantierBudgetCard } from './ChantierBudgetCard'
 
 // Microphone components
 export { default as FloatingMic } from './FloatingMic'
