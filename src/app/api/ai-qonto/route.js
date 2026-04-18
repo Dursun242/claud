@@ -5,18 +5,16 @@
 // - Token Qonto récupéré côté serveur depuis la table settings
 //   (service role key), jamais passé dans le body HTTP.
 import { Anthropic } from "@anthropic-ai/sdk"
-import { createClient } from "@supabase/supabase-js"
 import { verifyAuth } from '@/app/lib/auth'
 import { fetchWithRetry } from '@/app/lib/fetchWithRetry'
+import { adminClient } from '@/app/lib/supabaseClients'
+import { createLogger } from '@/app/lib/logger'
 
 const client = new Anthropic()
+const log = createLogger('ai-qonto')
 
 async function getQontoToken() {
-  const admin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY,
-    { auth: { persistSession: false } }
-  )
+  const admin = adminClient()
   const { data, error } = await admin
     .from('settings')
     .select('value')
@@ -57,7 +55,7 @@ export async function POST(request) {
 
     if (!invoicesResponse.ok) {
       const errText = await invoicesResponse.text().catch(() => '')
-      console.error(`[ai-qonto] qonto ${invoicesResponse.status} ${errText}`)
+      log.error(`qonto ${invoicesResponse.status}`, errText)
       return Response.json(
         { error: `Erreur Qonto: ${invoicesResponse.status}` },
         { status: invoicesResponse.status }
@@ -119,7 +117,7 @@ Réponds en JSON avec: { summary: string, topClients: array, paymentRate: string
       generatedAt: new Date().toISOString(),
     })
   } catch (error) {
-    console.error("[ai-qonto] error:", error)
+    log.error('exception', error?.message || error)
     return Response.json(
       { error: "Erreur lors de l'analyse" },
       { status: 500 }

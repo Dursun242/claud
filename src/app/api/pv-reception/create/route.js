@@ -1,20 +1,13 @@
 // Route /api/pv-reception/create
 // POST → Crée un PV de réception et l'envoie en signature Odoo (3 signataires)
 
-import { createClient } from '@supabase/supabase-js'
 import { verifyAuth } from '@/app/lib/auth'
 import { createSignRequestFromPdf } from '@/app/lib/odoo'
 import { createNotifications } from '@/app/lib/notifications'
+import { adminClient } from '@/app/lib/supabaseClients'
+import { createLogger } from '@/app/lib/logger'
 
-function getUserClient(token) {
-  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, token)
-}
-
-function adminClient() {
-  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {
-    auth: { persistSession: false }
-  })
-}
+const log = createLogger('pv-create')
 
 export async function POST(request) {
   try {
@@ -63,7 +56,7 @@ export async function POST(request) {
       .eq('chantier_id', chantierId)
       .ilike('numero', `PV-${year}-%`)
 
-    if (countErr) console.error('[pv-creation] count erreur:', countErr)
+    if (countErr) log.error('count erreur', countErr.message)
     const nextNum = (existingPVs?.length || 0) + 1
     const numero = `PV-${year}-${String(nextNum).padStart(3, '0')}`
 
@@ -85,7 +78,7 @@ export async function POST(request) {
     }).select().single()
 
     if (pvErr) {
-      console.error('[pv-creation] insert erreur:', pvErr)
+      log.error('insert erreur', pvErr.message)
       return Response.json({ error: 'Erreur création PV' }, { status: 500 })
     }
 
@@ -109,7 +102,7 @@ export async function POST(request) {
         signers
       })
     } catch (signErr) {
-      console.error('[pv-creation] Odoo sign erreur:', signErr)
+      log.error('Odoo sign erreur', signErr.message)
       return Response.json({ error: 'Erreur signature Odoo: ' + signErr.message }, { status: 500 })
     }
 
@@ -124,7 +117,7 @@ export async function POST(request) {
       .eq('id', pv.id)
 
     if (updateErr) {
-      console.error('[pv-creation] update erreur:', updateErr)
+      log.error('update erreur', updateErr.message)
     }
 
     // Notification
@@ -138,7 +131,7 @@ export async function POST(request) {
         actorEmail: user.email
       })
     } catch (notifErr) {
-      console.warn('[pv-creation] notification erreur:', notifErr.message)
+      log.warn('notification erreur', notifErr.message)
     }
 
     return Response.json({
@@ -149,7 +142,7 @@ export async function POST(request) {
       message: decision ? `PV créé avec décision: ${decision}` : 'PV créé et envoyé en signature'
     })
   } catch (err) {
-    console.error('[pv-creation exception]', err)
+    log.error('exception', err?.message || err)
     return Response.json({ error: 'Erreur serveur: ' + err.message }, { status: 500 })
   }
 }

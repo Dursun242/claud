@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-import { createSignRequest, createSignRequestFromPdf, getSignRequestStatus } from '../../../lib/odoo'
+import { createSignRequest, createSignRequestFromPdf, getSignRequestStatus } from '@/app/lib/odoo'
 import { verifyAuth } from '@/app/lib/auth'
+import { adminClient } from '@/app/lib/supabaseClients'
+import { createLogger } from '@/app/lib/logger'
+
+const log = createLogger('odoo-sign')
 
 // POST /api/odoo/sign — crée une demande de signature pour un OS
 export async function POST(request) {
@@ -31,17 +34,10 @@ export async function POST(request) {
     }
 
     // Mettre à jour l'OS dans Supabase avec l'ID de la demande Odoo.
-    // On exige SERVICE_ROLE_KEY explicitement : un fallback vers ANON_KEY
-    // ferait silencieusement passer l'écriture en mode RLS restreint,
-    // ce qui masquerait un défaut de configuration en production.
+    // adminClient() exige SUPABASE_SERVICE_ROLE_KEY et jette sinon — on
+    // évite tout fallback silencieux qui masquerait un défaut de config.
     if (osId) {
-      if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-        throw new Error('SUPABASE_SERVICE_ROLE_KEY manquant côté serveur')
-      }
-      const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL,
-        process.env.SUPABASE_SERVICE_ROLE_KEY
-      )
+      const supabase = adminClient()
       await supabase.from('ordres_service').update({
         odoo_sign_id: result.requestId,
         odoo_sign_url: result.signUrl,
@@ -51,7 +47,7 @@ export async function POST(request) {
 
     return NextResponse.json(result)
   } catch (err) {
-    console.error('❌ Odoo sign:', err.message)
+    log.error('sign', err?.message || err)
     return NextResponse.json({ error: err.message }, { status: 500 })
   }
 }
@@ -71,6 +67,7 @@ export async function GET(request) {
     const status = await getSignRequestStatus(requestId)
     return NextResponse.json(status)
   } catch (err) {
+    log.error('get status', err?.message || err)
     return NextResponse.json({ error: err.message }, { status: 500 })
   }
 }

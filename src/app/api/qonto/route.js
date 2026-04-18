@@ -12,10 +12,10 @@
 // Le token arrive dans Supabase uniquement lors du setup initial
 // (QontoV.saveToken) via le client Supabase direct (HTTPS mTLS).
 
-import { createClient } from '@supabase/supabase-js'
 import { verifyAuth } from '@/app/lib/auth'
 import { fetchWithRetry } from '@/app/lib/fetchWithRetry'
 import { createLogger } from '@/app/lib/logger'
+import { adminClient } from '@/app/lib/supabaseClients'
 
 const log = createLogger('qonto')
 
@@ -37,11 +37,7 @@ async function getQontoToken() {
   if (_qontoTokenCache && (now - _qontoTokenCachedAt) < TOKEN_CACHE_TTL) {
     return _qontoTokenCache
   }
-  const admin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY,
-    { auth: { persistSession: false } }
-  )
+  const admin = adminClient()
   const { data, error } = await admin
     .from('settings')
     .select('value')

@@ -1,6 +1,5 @@
 'use client'
-import { useState, useMemo, useCallback } from 'react'
-import { supabase } from '../supabaseClient'
+import { useState, useMemo } from 'react'
 import { useToast } from '../contexts/ToastContext'
 
 function formatDate(iso) {

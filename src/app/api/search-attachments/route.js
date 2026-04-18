@@ -5,12 +5,11 @@
 //
 // Retourne: Liste des documents correspondant à la recherche
 
-import { createClient } from '@supabase/supabase-js'
 import { verifyAuth } from '@/app/lib/auth'
+import { userClientFromToken, extractBearerToken } from '@/app/lib/supabaseClients'
+import { createLogger } from '@/app/lib/logger'
 
-function getUserClient(token) {
-  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, token, { auth: { persistSession: false } })
-}
+const log = createLogger('search-attachments')
 
 export async function GET(request) {
   try {
@@ -25,7 +24,9 @@ export async function GET(request) {
       return Response.json({ results: [] })
     }
 
-    const supa = getUserClient(request.headers.get('authorization')?.replace('Bearer ', '') || '')
+    const token = extractBearerToken(request)
+    if (!token) return Response.json({ error: 'Token manquant' }, { status: 401 })
+    const supa = userClientFromToken(token)
 
     // Chercher les attachments
     let query = supa
@@ -40,7 +41,7 @@ export async function GET(request) {
     const { data, error } = await query.order('created_at', { ascending: false }).limit(50)
 
     if (error) {
-      console.error('[search-attachments error]', error)
+      log.error('select', error.message)
       return Response.json({ error: 'Erreur recherche' }, { status: 500 })
     }
 
@@ -82,7 +83,7 @@ export async function GET(request) {
 
     return Response.json({ results, count: results.length })
   } catch (err) {
-    console.error('[search-attachments exception]', err)
+    log.error('exception', err?.message || err)
     return Response.json({ error: 'Erreur serveur' }, { status: 500 })
   }
 }

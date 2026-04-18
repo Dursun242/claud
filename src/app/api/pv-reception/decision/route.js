@@ -1,15 +1,12 @@
 // Route /api/pv-reception/decision
 // POST → Enregistre la décision finale sur un PV (Accepté/Accepté avec réserve/Refusé)
 
-import { createClient } from '@supabase/supabase-js'
 import { verifyAuth } from '@/app/lib/auth'
 import { createNotifications } from '@/app/lib/notifications'
+import { adminClient } from '@/app/lib/supabaseClients'
+import { createLogger } from '@/app/lib/logger'
 
-function adminClient() {
-  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {
-    auth: { persistSession: false }
-  })
-}
+const log = createLogger('pv-decision')
 
 export async function POST(request) {
   try {
@@ -71,7 +68,7 @@ export async function POST(request) {
       .eq('id', pvId)
 
     if (updateErr) {
-      console.error('[pv-decision] update erreur:', updateErr)
+      log.error('update erreur', updateErr.message)
       return Response.json({ error: 'Erreur mise à jour PV' }, { status: 500 })
     }
 
@@ -86,7 +83,7 @@ export async function POST(request) {
         actorEmail: user.email
       })
     } catch (notifErr) {
-      console.warn('[pv-decision] notification erreur:', notifErr.message)
+      log.warn('notification erreur', notifErr.message)
     }
 
     return Response.json({
@@ -95,7 +92,7 @@ export async function POST(request) {
       message: `PV ${pv.numero} - ${decision}`
     })
   } catch (err) {
-    console.error('[pv-decision exception]', err)
+    log.error('exception', err?.message || err)
     return Response.json({ error: 'Erreur serveur: ' + err.message }, { status: 500 })
   }
 }

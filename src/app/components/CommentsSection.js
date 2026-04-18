@@ -42,7 +42,6 @@ export default function CommentsSection({
   onDeleteComment,
   currentUser,
   userRole,
-  loading = false,
 }) {
   const { addToast } = useToast()
   const confirm = useConfirm()

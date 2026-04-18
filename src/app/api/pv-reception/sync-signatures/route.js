@@ -1,16 +1,13 @@
 // Route /api/pv-reception/sync-signatures
 // GET → Synchronise les signatures Odoo des PV avec la base de données
 
-import { createClient } from '@supabase/supabase-js'
 import { verifyAuth } from '@/app/lib/auth'
 import { getSignRequestsStatusBulk } from '@/app/lib/odoo'
 import { createNotifications } from '@/app/lib/notifications'
+import { adminClient } from '@/app/lib/supabaseClients'
+import { createLogger } from '@/app/lib/logger'
 
-function adminClient() {
-  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {
-    auth: { persistSession: false }
-  })
-}
+const log = createLogger('pv-sync')
 
 export async function GET(request) {
   try {
@@ -27,7 +24,7 @@ export async function GET(request) {
       .not('statut_signature', 'in', '("Signé","Refusé","Expiré","Annulé")')
 
     if (error) {
-      console.error('[pv-sync] select erreur:', error)
+      log.error('select erreur', error.message)
       return Response.json({ error: 'Erreur requête' }, { status: 500 })
     }
 
@@ -42,7 +39,7 @@ export async function GET(request) {
     try {
       odooData = await getSignRequestsStatusBulk(requestIds)
     } catch (odooErr) {
-      console.error('[pv-sync] Odoo erreur:', odooErr.message)
+      log.error('Odoo erreur', odooErr.message)
       return Response.json({ error: 'Erreur Odoo: ' + odooErr.message }, { status: 500 })
     }
 
@@ -63,7 +60,7 @@ export async function GET(request) {
           .eq('id', pv.id)
 
         if (upErr) {
-          console.warn('[pv-sync] update échec pour', pv.numero, ':', upErr.message)
+          log.warn(`update échec pour ${pv.numero}`, upErr.message)
         } else {
           changes.push({
             pvId: pv.id,
@@ -97,7 +94,7 @@ export async function GET(request) {
       message: `${changes.length} PV(s) mis à jour`
     })
   } catch (err) {
-    console.error('[pv-sync exception]', err)
+    log.error('exception', err?.message || err)
     return Response.json({ error: 'Erreur serveur' }, { status: 500 })
   }
 }

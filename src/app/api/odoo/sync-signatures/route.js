@@ -12,11 +12,16 @@
 // Sécurité : JWT Supabase obligatoire.
 
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-import { getSignRequestsStatusBulk } from '../../../lib/odoo'
+import { getSignRequestsStatusBulk } from '@/app/lib/odoo'
 import { verifyAuth } from '@/app/lib/auth'
+import { adminClient } from '@/app/lib/supabaseClients'
+import { createLogger } from '@/app/lib/logger'
 
-const FINAL_STATUSES = new Set(['Signé', 'Refusé', 'Expiré', 'Annulé'])
+const log = createLogger('odoo-sync')
+
+// Statuts "finaux" qui ne méritent plus d'être re-pollés auprès d'Odoo.
+// Utilisé dans le filtre SQL plus bas.
+const FINAL_STATUSES = ['Signé', 'Refusé', 'Expiré', 'Annulé']
 
 export async function GET(request) {
   const user = await verifyAuth(request)
@@ -35,19 +40,9 @@ export async function GET(request) {
     osId = parsed
   }
 
-  // On exige SERVICE_ROLE_KEY explicitement : un fallback vers ANON_KEY
-  // masquerait un défaut de configuration en production (les mises à jour
-  // passeraient en mode RLS restreint au lieu de bypass admin).
-  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    return NextResponse.json(
-      { error: 'SUPABASE_SERVICE_ROLE_KEY manquant côté serveur' },
-      { status: 500 }
-    )
-  }
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-  )
+  // adminClient() jette si SUPABASE_SERVICE_ROLE_KEY absent — évite tout
+  // fallback silencieux vers l'ANON_KEY qui masquerait un défaut de config.
+  const supabase = adminClient()
 
   // 1. Liste les OS à synchroniser
   let query = supabase
@@ -59,7 +54,8 @@ export async function GET(request) {
     query = query.eq('id', osId)
   } else {
     // Ignore ceux déjà finalisés — pas la peine de re-poll
-    query = query.not('statut_signature', 'in', `("Signé","Refusé","Expiré","Annulé")`)
+    const quoted = FINAL_STATUSES.map(s => `"${s}"`).join(',')
+    query = query.not('statut_signature', 'in', `(${quoted})`)
   }
 
   const { data: osRows, error: selErr } = await query
@@ -97,7 +93,7 @@ export async function GET(request) {
         .update(patch)
         .eq('id', os.id)
       if (upErr) {
-        console.warn('[sync-signatures] update échec pour', os.numero, ':', upErr.message)
+        log.warn(`update échec pour ${os.numero}`, upErr.message)
         continue
       }
       updates.push({
