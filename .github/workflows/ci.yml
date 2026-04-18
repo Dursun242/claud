@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  quality:
+    name: Lint · Tests · Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Unit tests
+        run: npm run test:ci
+
+      - name: Build
+        # On fournit des valeurs dummy aux env NEXT_PUBLIC_* pour que
+        # supabaseClient.js ne throw pas au chargement côté SSR. Les
+        # routes API ont déjà leur propre défense pour les secrets
+        # manquants en prod.
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://dummy.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: dummy-anon-key
+          SUPABASE_SERVICE_ROLE_KEY: dummy-service-role
+        run: npm run build
+
+  security:
+    name: npm audit (info only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Audit (non-blocking)
+        # Non-bloquant : on log les vulnérabilités pour visibilité mais
+        # on ne fait pas échouer le build (souvent ce sont des transitives
+        # hors de notre contrôle direct). À durcir plus tard.
+        run: npm audit --audit-level=high || true

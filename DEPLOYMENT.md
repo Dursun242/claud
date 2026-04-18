@@ -7,7 +7,8 @@
 Branch: `main`
 Tag: `v3.0-major-refactor`
 Build: ✅ Verified
-Tests: ⚠️ Not implemented yet (see TODO in roadmap)
+Tests: ✅ 68 unit tests (Jest + RTL) — `npm test`
+CI: ✅ GitHub Actions (lint + tests + build + npm audit)
 
 ## What's New in v3.0
 
@@ -67,8 +68,9 @@ npm run build
 - [x] Performance optimized
 - [x] All imports working
 - [x] Toast system integrated
-- [ ] Components tested (no automated tests yet)
+- [x] Unit tests pass (68 tests : lib + hooks)
 - [x] Hooks working
+- [x] CI runs on every PR (lint / tests / build)
 
 ## Environment Variables Required
 
