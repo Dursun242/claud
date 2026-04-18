@@ -11,6 +11,8 @@ export { default as FormField, inputStyle, selectStyle, btnPrimaryStyle, btnSeco
 // Modal & Dialogs
 export { default as Modal } from './Modal'
 export { default as OSSignatureModal } from './OSSignatureModal'
+export { default as OSFormModal } from './OSFormModal'
+export { default as ContactFormModal } from './ContactFormModal'
 
 // Contact helpers
 export { default as ContactInfoLink, CopyIconBtn } from './ContactInfoLink'
