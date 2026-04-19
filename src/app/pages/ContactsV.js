@@ -35,6 +35,7 @@ export default function ContactsV({data,save,m,reload,focusId,focusTs}) {
     searchPappers,
     importEntrepriseFromSearch,
     importDirigeantFromSearch,
+    resetPappersSearch,
     fetchPappers,
   } = usePappersSearch({ setForm });
   // États import par photo
@@ -128,12 +129,10 @@ export default function ContactsV({data,save,m,reload,focusId,focusTs}) {
   };
 
   const openNew=()=>{
-    setForm(emptyForm);setPSearch("");setPResults(null);
-    setPError("");setFormError("");setModal("new");
+    setForm(emptyForm);resetPappersSearch();setFormError("");setModal("new");
   };
   const openEdit=(c)=>{
-    setForm({...c});setPSearch("");setPResults(null);
-    setPError("");setFormError("");setModal("edit");
+    setForm({...c});resetPappersSearch();setFormError("");setModal("edit");
   };
   const closeModal=()=>{setModal(null);setFormError("");};
 
@@ -350,9 +349,7 @@ export default function ContactsV({data,save,m,reload,focusId,focusTs}) {
 
       // 6. Ouvre la modale pré-remplie pour relecture + validation
       setForm(prefilled);
-      setPSearch("");
-      setPResults(null);
-      setPError("");
+      resetPappersSearch();
       setModal("new");
     } catch (err) {
       setImportError("Erreur : " + (err?.message || String(err)));

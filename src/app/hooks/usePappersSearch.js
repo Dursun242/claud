@@ -156,6 +156,14 @@ export function usePappersSearch({ setForm } = {}) {
     }
   }, [pSearch, fetchPappers, fillFromPappers])
 
+  // Réinitialise tout l'état Pappers — pratique quand on ouvre/ferme la
+  // modale ou qu'on switche de mode (création / édition / import photo).
+  const resetPappersSearch = useCallback(() => {
+    setPSearch('')
+    setPResults(null)
+    setPError('')
+  }, [])
+
   return {
     pSearch,
     setPSearch,
@@ -165,6 +173,7 @@ export function usePappersSearch({ setForm } = {}) {
     searchPappers,
     importEntrepriseFromSearch,
     importDirigeantFromSearch,
+    resetPappersSearch,
     // Exposé pour les usages externes au hook (ex : enrichissement SIRET
     // après extraction par Claude Vision).
     fetchPappers,
