@@ -13,7 +13,7 @@ function ProtectedApp() {
       <div style={{
         height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
         background: 'linear-gradient(135deg, #F8FAFC 0%, #EFF6FF 100%)',
-        fontFamily: "'DM Sans', sans-serif"
+        fontFamily: "var(--font-dm-sans), sans-serif"
       }}>
         <div style={{ textAlign: 'center' }}>
           <div style={{

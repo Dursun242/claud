@@ -1,5 +1,6 @@
 'use client'
 import { useState, useMemo, useEffect, useRef } from 'react'
+import Image from 'next/image'
 import {
   SB, Icon, I, phase, status, fmtDate, fmtMoney, pct,
   FF, inp, sel, btnP, btnS, PBar
@@ -33,6 +34,26 @@ const detailBtn = (color, bg, border) => ({
   color,
   fontFamily: "inherit",
 })
+
+// Titre de section avec badge de compteur. Extrait en module-level : si on
+// le redéfinissait dans le render, React considérerait un nouveau type à
+// chaque frappe → démontage/remontage de tous les enfants (OS, PV, PJ…).
+function Section({ title, count, color, children }) {
+  return (
+    <div style={{marginBottom:20}}>
+      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
+        <h3 style={{margin:0,fontSize:14,fontWeight:700,color:"#0F172A"}}>{title}</h3>
+        {count !== undefined && (
+          <span style={{
+            background:(color||"#3B82F6")+"18",color:color||"#3B82F6",
+            fontSize:11,fontWeight:700,borderRadius:10,padding:"2px 8px"
+          }}>{count}</span>
+        )}
+      </div>
+      {children}
+    </div>
+  )
+}
 
 export default function ProjectsV({data,save,m,reload,user,profile,focusId,focusTs,readOnly}) {
   const { addToast } = useToast();
@@ -193,21 +214,6 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
       : ratio > 85 ? "#EF4444"
       : ratio > 60 ? "#F59E0B" : "#10B981";
 
-    const Section = ({title, count, color, children}) => (
-      <div style={{marginBottom:20}}>
-        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
-          <h3 style={{margin:0,fontSize:14,fontWeight:700,color:"#0F172A"}}>{title}</h3>
-          {count!==undefined && (
-            <span style={{
-              background:(color||"#3B82F6")+"18",color:color||"#3B82F6",
-              fontSize:11,fontWeight:700,borderRadius:10,padding:"2px 8px"
-            }}>{count}</span>
-          )}
-        </div>
-        {children}
-      </div>
-    );
-
     return (<div>
       {/* Back button + Header */}
       <button onClick={()=>setSelected(null)} style={{
@@ -222,7 +228,9 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
       {/* Photo de couverture */}
       {ch.photo_couverture && (
         <div style={{borderRadius:14,overflow:"hidden",marginBottom:16,height:180,position:"relative"}}>
-          <img src={ch.photo_couverture} alt={ch.nom} style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+          <Image src={ch.photo_couverture} alt={ch.nom}
+            fill sizes="(max-width: 768px) 100vw, 960px" priority
+            style={{objectFit:"cover"}}/>
           <div style={{
             position:"absolute",inset:0,
             background:"linear-gradient(to top, rgba(15,23,42,0.5) 0%, transparent 60%)"
@@ -789,9 +797,10 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
             e.currentTarget.style.transform="";
           }}>
           {ch.photo_couverture && (
-            <div style={{height:80,overflow:"hidden"}}>
-              <img src={ch.photo_couverture} alt={ch.nom}
-                style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+            <div style={{height:80,overflow:"hidden",position:"relative"}}>
+              <Image src={ch.photo_couverture} alt={ch.nom}
+                fill sizes="(max-width: 768px) 100vw, 480px"
+                style={{objectFit:"cover"}}/>
             </div>
           )}
           <div style={{

@@ -43,6 +43,10 @@ export default function ContactsV({data,save,m,reload,focusId,focusTs}) {
   const [importError, setImportError] = useState("");
   const fileInputRef = useRef(null);
   const searchInputRef = useRef(null);
+  // Annule l'extraction Claude Vision en cours si l'utilisateur change de
+  // page ou lance un nouvel import (évite requête orpheline + fuite setState).
+  const extractAbortRef = useRef(null);
+  useEffect(() => () => { extractAbortRef.current?.abort() }, []);
   const tc = TYPE_COLORS;
   const types = TYPES;
 
@@ -306,14 +310,23 @@ export default function ContactsV({data,save,m,reload,focusId,focusTs}) {
       }
 
       // 3. Appelle la route serveur qui parle à Claude Vision
-      const res = await fetch('/api/extract-contact', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({ imageBase64: base64, mediaType }),
-      });
+      extractAbortRef.current?.abort();
+      extractAbortRef.current = new AbortController();
+      let res;
+      try {
+        res = await fetch('/api/extract-contact', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ imageBase64: base64, mediaType }),
+          signal: extractAbortRef.current.signal,
+        });
+      } catch (err) {
+        if (err?.name === 'AbortError') return;
+        throw err;
+      }
       const json = await res.json();
       if (!res.ok) {
         setImportError(json.error || "Extraction échouée");

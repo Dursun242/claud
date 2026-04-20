@@ -118,7 +118,7 @@ function ConfirmDialog({ state, onResolve }) {
         background: 'rgba(15,23,42,0.6)',
         backdropFilter: 'blur(4px)',
         padding: 16,
-        fontFamily: "'DM Sans', sans-serif",
+        fontFamily: "var(--font-dm-sans), sans-serif",
         animation: 'fadeIn .15s ease',
       }}
     >

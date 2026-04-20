@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import dynamic from 'next/dynamic'
+import Image from 'next/image'
 import { supabase } from '../supabaseClient'
 import { logout } from '../auth'
 import { FloatingMic, NotificationBell } from '../components'
@@ -209,7 +210,7 @@ export default function AdminDashboard({ user, profile = null }) {
   return (
     <div style={{
       display:"flex",height:"100vh",
-      fontFamily:"'DM Sans',sans-serif",
+      fontFamily:"var(--font-dm-sans), sans-serif",
       background:"#F1F5F9",overflow:"hidden"
     }}>
       {/* Skip link a11y : caché visuellement mais accessible au focus clavier */}
@@ -352,11 +353,12 @@ export default function AdminDashboard({ user, profile = null }) {
           {user && (
             <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
               {user.user_metadata?.avatar_url && (
-                <img src={user.user_metadata.avatar_url}
+                <Image src={user.user_metadata.avatar_url}
+                  width={28} height={28} unoptimized alt=""
                   style={{
-                    width:28,height:28,borderRadius:"50%",
+                    borderRadius:"50%",
                     border:"2px solid rgba(255,255,255,0.15)"
-                  }} alt=""/>
+                  }}/>
               )}
               <div style={{flex:1,minWidth:0}}>
                 <div style={{

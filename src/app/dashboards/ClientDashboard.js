@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import dynamic from 'next/dynamic'
+import Image from 'next/image'
 import { logout } from '../auth'
 import { SB, defaultData, I, Icon } from './shared'
 import { DashboardSkeleton, PageSkeleton } from '../components/Skeleton'
@@ -139,7 +140,7 @@ export default function ClientDashboard({ user, profile = null }) {
   return (
     <div style={{
       display:'flex', height:'100vh',
-      fontFamily:"'DM Sans',sans-serif",
+      fontFamily:"var(--font-dm-sans), sans-serif",
       background:'#F1F5F9', overflow:'hidden'
     }}>
       {/* Skip link a11y */}
@@ -240,10 +241,12 @@ export default function ClientDashboard({ user, profile = null }) {
           {user && (
             <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:10 }}>
               {user.user_metadata?.avatar_url
-                ? <img src={user.user_metadata.avatar_url} style={{
-                    width:28, height:28, borderRadius:'50%',
-                    border:'2px solid rgba(255,255,255,0.15)'
-                  }} alt="" />
+                ? <Image src={user.user_metadata.avatar_url}
+                    width={28} height={28} unoptimized alt=""
+                    style={{
+                      borderRadius:'50%',
+                      border:'2px solid rgba(255,255,255,0.15)'
+                    }}/>
                 : <div style={{
                     width:28, height:28, borderRadius:'50%',
                     background:'#3B82F6', display:'flex',
@@ -378,7 +381,7 @@ export default function ClientDashboard({ user, profile = null }) {
         }}>
           <div onClick={e => e.stopPropagation()} style={{
             background:'#fff', borderRadius:14, boxShadow:'0 20px 60px rgba(0,0,0,0.3)',
-            width:'100%', maxWidth:420, padding:'20px 24px 22px', fontFamily:"'DM Sans',sans-serif"
+            width:'100%', maxWidth:420, padding:'20px 24px 22px', fontFamily:"var(--font-dm-sans), sans-serif"
           }}>
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14 }}>
               <div>
@@ -421,5 +424,5 @@ const kbdStyleC = {
   display:'inline-flex', alignItems:'center', justifyContent:'center',
   minWidth:22, height:22, padding:'0 6px',
   background:'#F1F5F9', border:'1px solid #CBD5E1', borderBottomWidth:2,
-  borderRadius:5, fontSize:11, fontWeight:600, color:'#334155', fontFamily:"'DM Sans',sans-serif"
+  borderRadius:5, fontSize:11, fontWeight:600, color:'#334155', fontFamily:"var(--font-dm-sans), sans-serif"
 }

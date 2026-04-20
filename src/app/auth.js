@@ -197,10 +197,9 @@ export function LoginPage() {
     <div style={{
       minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
       background: 'linear-gradient(135deg, #0F172A 0%, #1E3A5F 50%, #0F172A 100%)',
-      fontFamily: "'DM Sans', sans-serif", padding: 20, position: 'relative', overflow: 'hidden',
+      fontFamily: "var(--font-dm-sans), sans-serif", padding: 20, position: 'relative', overflow: 'hidden',
     }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
         @keyframes fadeIn { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
         @keyframes floatBg1 {
           0%,100% { transform: translate(0,0) scale(1); }

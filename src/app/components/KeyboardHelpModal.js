@@ -29,7 +29,7 @@ export default function KeyboardHelpModal({ open, onClose, tabs = [] }) {
         boxShadow: "0 20px 60px rgba(0,0,0,0.3)",
         width: "100%", maxWidth: 460,
         padding: "20px 24px 22px",
-        fontFamily: "'DM Sans',sans-serif",
+        fontFamily: "var(--font-dm-sans), sans-serif",
       }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
           <div>
@@ -91,5 +91,5 @@ const KBD = {
   minWidth: 22, height: 22, padding: "0 6px",
   background: "#F1F5F9", border: "1px solid #CBD5E1", borderBottomWidth: 2,
   borderRadius: 5, fontSize: 11, fontWeight: 600, color: "#334155",
-  fontFamily: "'DM Sans',sans-serif",
+  fontFamily: "var(--font-dm-sans), sans-serif",
 }

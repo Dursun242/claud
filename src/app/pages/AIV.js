@@ -1,10 +1,14 @@
 'use client'
 import { useState, useEffect, useCallback, useRef } from 'react'
-import ReactMarkdown from 'react-markdown'
+import dynamic from 'next/dynamic'
 import { SB, Icon, I, ApiBadge, inp, btnP, COMPANY } from '../dashboards/shared'
 import { MicButtonInline } from '../components'
 import { useToast } from '../contexts/ToastContext'
 import { supabase } from '../supabaseClient'
+
+// react-markdown (~25 kB gz) n'est utilisé que pour afficher les réponses IA :
+// on le charge à la demande pour alléger le bundle initial de la page.
+const ReactMarkdown = dynamic(() => import('react-markdown'), { ssr: false })
 
 // Message d'accueil de l'assistant (identique après un reset)
 const welcomeForAdmin = (name) => ({
@@ -71,11 +75,18 @@ export default function AIV({data,save,m,externalTranscript,clearExternal,reload
   const recognRef = useRef(null);
   const endRef=useRef(null);
   const inputRef=useRef(null);
+  // AbortController pour annuler le fetch /api/claude si l'utilisateur
+  // quitte la page pendant une génération (évite la fuite mémoire + le
+  // setState sur composant démonté).
+  const abortRef = useRef(null);
 
   useEffect(()=>{endRef.current?.scrollIntoView({behavior:"smooth"});},[messages]);
 
   // Auto-focus à l'ouverture de la page
   useEffect(() => { inputRef.current?.focus(); }, []);
+
+  // Nettoyage : annule la requête IA en cours si le composant unmount.
+  useEffect(() => () => { abortRef.current?.abort() }, []);
 
   const resetConversation = () => {
     setMessages([WELCOME_MESSAGE]);
@@ -264,6 +275,8 @@ RÈGLES :
       // JWT Supabase requis par /api/claude pour éviter que n'importe qui
       // avec l'URL puisse drainer notre quota Anthropic.
       const { data: { session } } = await supabase.auth.getSession();
+      abortRef.current?.abort()
+      abortRef.current = new AbortController()
       const response = await fetch("/api/claude", {
         method:"POST",
         headers:{
@@ -276,6 +289,7 @@ RÈGLES :
             .concat([{role:"user",content:userMsg}])
             .map(m=>({role:m.role,content:m.content})),
         }),
+        signal: abortRef.current.signal,
       });
       if (!response.ok) {
         const errText = await response.text();
@@ -333,6 +347,8 @@ RÈGLES :
       }
       setMessages(prev=>[...prev,{role:"assistant",content:text}]);
     } catch(err) {
+      // Unmount pendant une requête IA : on ne pollue pas l'UI avec un toast.
+      if (err?.name === 'AbortError') return;
       setMessages(prev=>[...prev,{role:"assistant",content:`❌ Erreur : ${err.message}`}]);
     }
     setLoading(false); inputRef.current?.focus();
