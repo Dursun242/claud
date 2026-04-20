@@ -1,14 +1,16 @@
 'use client'
-import { useState, useMemo, useEffect, useRef } from 'react'
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import Image from 'next/image'
 import {
-  SB, Icon, I, phase, status, fmtDate, fmtMoney, pct,
-  FF, inp, sel, btnP, btnS, PBar
+  SB, Icon, I, phase, status, fmtDate, fmtMoney,
+  FF, inp, sel, btnP, btnS
 } from '../dashboards/shared'
 import {
   Badge, Modal, AttachmentsSection, CommentsSection, TemplateSelector,
   ProcesVerbalReception, ChantierIntervenants, ChantierPlanning, ChantierBudgetCard,
 } from '../components'
+import ChantierCard from '../components/projects/ChantierCard'
+import ProjectsFilterPills from '../components/projects/ProjectsFilterPills'
 import { useAttachments } from '../hooks/useAttachments'
 import { useComments } from '../hooks/useComments'
 import { generateOSPdf, generateCRPdf, generateOSExcel, generateCRExcel } from '../generators'
@@ -16,10 +18,6 @@ import { useToast } from '../contexts/ToastContext'
 import { useConfirm } from '../contexts/ConfirmContext'
 import { computeChantierFinances } from '../lib/chantierFinances'
 import { supabase } from '../supabaseClient'
-
-// Listes canoniques utilisées pour les pills de filtre
-const PROJECT_STATUSES = ["Planifié","En cours","En attente","Terminé"]
-const PROJECT_PHASES = ["Avant-projet","Études","Gros œuvre","Hors d'air","Technique","Finitions"]
 
 // Style doux pour les boutons d'action dans la vue détail (PDF/XLS/etc.)
 // Remplace les blocs rouge/vert/bleu saturés par des pastilles pastel.
@@ -135,6 +133,24 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
     });
   }, [data.chantiers, filterStatut, filterPhase, q]);
 
+  // Compteurs (OS/CR/tâches/PJ) pré-calculés par chantier.
+  // Avant, chaque carte faisait 4 .filter() O(N) → O(N²) au total.
+  // Un seul passage permet de calculer la Map chantier_id → counts.
+  const countsByChantier = useMemo(() => {
+    const map = new Map()
+    const bump = (id, key) => {
+      if (!id) return
+      const cur = map.get(id) || { os: 0, cr: 0, tasks: 0, attachments: 0 }
+      cur[key]++
+      map.set(id, cur)
+    };
+    (data.ordresService || []).forEach(o => bump(o.chantier_id, 'os'));
+    (data.compteRendus || []).forEach(c => bump(c.chantierId || c.chantier_id, 'cr'));
+    (data.tasks || []).forEach(t => bump(t.chantierId || t.chantier_id, 'tasks'));
+    (data.attachments || []).forEach(a => bump(a.chantier_id, 'attachments'));
+    return map
+  }, [data.ordresService, data.compteRendus, data.tasks, data.attachments]);
+
   // Focus depuis la recherche globale : ouvre directement la vue détail
   // du chantier correspondant.
   useEffect(() => {
@@ -185,7 +201,7 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
       addToast("Erreur : "+err.message,"error");
     } finally { setSaving(false); }
   };
-  const handleDelete = async (ch) => {
+  const handleDelete = useCallback(async (ch) => {
     const ok = await confirm({
       title: `Supprimer le chantier « ${ch.nom} » ?`,
       message: "Le chantier sera supprimé, mais les OS, CR et tâches associés"
@@ -196,7 +212,30 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
     if (!ok) return;
     try { await SB.deleteChantier(ch.id); setSelected(null); reload(); addToast("Chantier supprimé", "success"); }
     catch (err) { addToast("Erreur : " + (err?.message || "suppression impossible"), "error"); }
-  };
+  }, [confirm, reload, addToast]);
+
+  // Ouvrir le détail d'un chantier : stable via useCallback pour que
+  // ChantierCard (memo) ne re-render pas à chaque frappe dans la recherche.
+  const handleOpenChantier = useCallback((ch) => {
+    setSelected(ch.id);
+    try {
+      SB.log('view', 'chantier', ch.id, `Ouverture chantier — ${ch.nom}`,
+        { phase: ch.phase || null, statut: ch.statut || null })
+    } catch (_) {}
+  }, []);
+
+  const handleEditChantier = useCallback((ch) => {
+    setForm({
+      ...ch,
+      lots: ch.lots?.join(", ") || "",
+      budget: String(ch.budget || ""),
+      dateDebut: ch.date_debut || ch.dateDebut || "",
+      dateFin: ch.date_fin || ch.dateFin || "",
+      photo_couverture: ch.photo_couverture || "",
+      notes_internes: ch.notes_internes || "",
+    });
+    setModal("edit");
+  }, []);
 
   // Phase 3 Hooks handle loading data automatically - no useEffect needed!
 
@@ -701,52 +740,16 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
         </button>}
       </div>
     </div>
-    {/* Pills de filtre — statut (masqué en vue client) */}
-    {!readOnly && <div style={{
-      display:"flex",gap:6,marginBottom:8,flexWrap:"wrap",
-      overflowX:m?"auto":"visible",paddingBottom:m?4:0
-    }}>
-      <span style={{
-        fontSize:10,fontWeight:700,color:"#94A3B8",
-        textTransform:"uppercase",letterSpacing:"0.05em",
-        alignSelf:"center",marginRight:4
-      }}>Statut</span>
-      <button onClick={()=>setFilterStatut("")} style={pillStyle(filterStatut==="", "#1E3A5F")}>
-        <span style={pillDot(filterStatut==="", "#64748B")}/>Tous
-      </button>
-      {PROJECT_STATUSES.map(s => {
-        const active = filterStatut === s;
-        const color = status[s] || "#1E3A5F";
-        return (
-          <button key={s} onClick={()=>setFilterStatut(active?"":s)} style={pillStyle(active, color)}>
-            <span style={pillDot(active, color)}/>{s}
-          </button>
-        );
-      })}
-    </div>}
-    {/* Pills de filtre — phase (masqué en vue client) */}
-    {!readOnly && <div style={{
-      display:"flex",gap:6,marginBottom:14,flexWrap:"wrap",
-      overflowX:m?"auto":"visible",paddingBottom:m?4:0
-    }}>
-      <span style={{
-        fontSize:10,fontWeight:700,color:"#94A3B8",
-        textTransform:"uppercase",letterSpacing:"0.05em",
-        alignSelf:"center",marginRight:4
-      }}>Phase</span>
-      <button onClick={()=>setFilterPhase("")} style={pillStyle(filterPhase==="", "#1E3A5F")}>
-        <span style={pillDot(filterPhase==="", "#64748B")}/>Toutes
-      </button>
-      {PROJECT_PHASES.map(p => {
-        const active = filterPhase === p;
-        const color = phase[p] || "#1E3A5F";
-        return (
-          <button key={p} onClick={()=>setFilterPhase(active?"":p)} style={pillStyle(active, color)}>
-            <span style={pillDot(active, color)}/>{p}
-          </button>
-        );
-      })}
-    </div>}
+    {/* Pills de filtre (statut + phase). Masqué en vue client. */}
+    {!readOnly && (
+      <ProjectsFilterPills
+        filterStatut={filterStatut}
+        filterPhase={filterPhase}
+        onStatut={setFilterStatut}
+        onPhase={setFilterPhase}
+        m={m}
+      />
+    )}
     {chantiersFiltered.length === 0 ? (
       <div style={{
         background:"#fff",borderRadius:12,padding:"40px 24px",
@@ -773,100 +776,17 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
       </div>
     ) : (
     <div style={{display:"grid",gap:12}}>
-      {chantiersFiltered.map(ch=>(
-        <div key={ch.id}
-          onClick={()=>{
-            setSelected(ch.id);
-            try {
-              SB.log('view','chantier',ch.id,`Ouverture chantier — ${ch.nom}`,
-                {phase:ch.phase||null,statut:ch.statut||null})
-            } catch(_) {}
-          }}
-          style={{
-            background:"#fff",borderRadius:12,overflow:"hidden",
-            boxShadow:"0 1px 3px rgba(0,0,0,0.06)",
-            borderLeft:`4px solid ${phase[ch.phase]||"#94A3B8"}`,
-            cursor:"pointer",transition:"all .2s"
-          }}
-          onMouseEnter={e=>{
-            e.currentTarget.style.boxShadow="0 4px 12px rgba(0,0,0,0.1)";
-            e.currentTarget.style.transform="translateX(4px)";
-          }}
-          onMouseLeave={e=>{
-            e.currentTarget.style.boxShadow="0 1px 3px rgba(0,0,0,0.06)";
-            e.currentTarget.style.transform="";
-          }}>
-          {ch.photo_couverture && (
-            <div style={{height:80,overflow:"hidden",position:"relative"}}>
-              <Image src={ch.photo_couverture} alt={ch.nom}
-                fill sizes="(max-width: 768px) 100vw, 480px"
-                style={{objectFit:"cover"}}/>
-            </div>
-          )}
-          <div style={{
-            padding:m?14:18,display:"flex",
-            justifyContent:"space-between",alignItems:"flex-start",
-            flexWrap:"wrap",gap:8
-          }}>
-            <div style={{flex:1,minWidth:200}}>
-              <div style={{
-                display:"flex",alignItems:"center",gap:8,
-                marginBottom:4,flexWrap:"wrap"
-              }}>
-                <span style={{fontSize:m?14:16,fontWeight:700}}>{ch.nom}</span>
-                <Badge text={ch.phase} color={phase[ch.phase]||"#64748B"}/>
-                <Badge text={ch.statut} color={status[ch.statut]||"#64748B"}/>
-              </div>
-              <div style={{fontSize:12,color:"#64748B"}}>{ch.client} — {ch.adresse}</div>
-              <div style={{display:"flex",gap:12,marginTop:4,fontSize:11,color:"#94A3B8"}}>
-                <span>{(data.ordresService||[]).filter(o=>o.chantier_id===ch.id).length} OS</span>
-                <span>{(data.compteRendus||[]).filter(c=>(c.chantierId||c.chantier_id)===ch.id).length} CR</span>
-                <span>{(data.tasks||[]).filter(t=>(t.chantierId||t.chantier_id)===ch.id).length} tâches</span>
-                <span>{(data.attachments||[]).filter(a=>a.chantier_id===ch.id).length} PJ</span>
-              </div>
-            </div>
-            {!readOnly && <div style={{display:"flex",gap:4}} onClick={e=>e.stopPropagation()}>
-              <button onClick={()=>{
-                setForm({...ch,
-                  lots:ch.lots?.join(", ")||"",
-                  budget:String(ch.budget||""),
-                  dateDebut:ch.date_debut||ch.dateDebut||"",
-                  dateFin:ch.date_fin||ch.dateFin||"",
-                  photo_couverture:ch.photo_couverture||"",
-                  notes_internes:ch.notes_internes||""
-                });setModal("edit");
-              }} style={{background:"#F8FAFC",border:"1px solid #E2E8F0",
-                borderRadius:6,padding:5,cursor:"pointer"}}>
-                <Icon d={I.edit} size={14} color="#64748B"/>
-              </button>
-              <button onClick={()=>handleDelete(ch)} style={{
-                background:"#FEF2F2",border:"1px solid #FECACA",
-                borderRadius:6,padding:5,cursor:"pointer"
-              }}><Icon d={I.trash} size={14} color="#EF4444"/></button>
-            </div>}
-          </div>
-          <div style={{padding:`0 ${m?14:18}px ${m?14:18}px`,marginTop:-4}}>
-            {(() => {
-              const start = new Date(ch.date_debut || ch.dateDebut);
-              const end = new Date(ch.date_fin || ch.dateFin);
-              const now = new Date();
-              const total = end.getTime() - start.getTime();
-              const elapsed = Math.max(0, Math.min(total, now.getTime() - start.getTime()));
-              const progress = total > 0 ? Math.round((elapsed / total) * 100) : 0;
-              const isDone = ch.statut === "Terminé";
-              const color = isDone ? "#10B981" : phase[ch.phase] || "#3B82F6";
-              return (
-                <>
-                  <PBar value={isDone ? 100 : Math.min(progress, 100)} max={100} color={color}/>
-                  <div style={{display:"flex",justifyContent:"space-between",marginTop:4,fontSize:11,color:"#94A3B8"}}>
-                    <span>{fmtDate(start)} → {fmtDate(end)}</span>
-                    <span style={{color, fontWeight:600}}>{isDone ? "Terminé" : progress + "%"}</span>
-                  </div>
-                </>
-              );
-            })()}
-          </div>
-        </div>
+      {chantiersFiltered.map(ch => (
+        <ChantierCard
+          key={ch.id}
+          ch={ch}
+          counts={countsByChantier.get(ch.id) || { os: 0, cr: 0, tasks: 0, attachments: 0 }}
+          m={m}
+          readOnly={readOnly}
+          onOpen={handleOpenChantier}
+          onEdit={handleEditChantier}
+          onDelete={handleDelete}
+        />
       ))}
     </div>
     )}
@@ -940,18 +860,3 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
 }
 
 // Style partagé pour les pills de filtre (statut / phase)
-const pillStyle = (active, color) => ({
-  display:"inline-flex",alignItems:"center",gap:6,
-  padding:"5px 11px",borderRadius:999,fontSize:11,fontWeight:600,
-  border:`1px solid ${active ? color : "#E2E8F0"}`,
-  background:active ? color : "#fff",
-  color:active ? "#fff" : "#334155",
-  cursor:"pointer",fontFamily:"inherit",
-  transition:"background .15s, color .15s, border-color .15s",
-  whiteSpace:"nowrap",
-})
-const pillDot = (active, color) => ({
-  width:7,height:7,borderRadius:"50%",
-  background:active?"#fff":color,
-  opacity:active?0.8:1,
-})
