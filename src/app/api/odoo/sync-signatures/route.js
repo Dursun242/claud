@@ -23,6 +23,12 @@ const log = createLogger('odoo-sync')
 // Utilisé dans le filtre SQL plus bas.
 const FINAL_STATUSES = ['Signé', 'Refusé', 'Expiré', 'Annulé']
 
+// Statuts OS "en amont de signature" qui peuvent basculer automatiquement
+// en "Signé" quand toutes les parties ont signé côté Odoo. Au-delà (En cours,
+// Terminé, Annulé) on ne touche pas : le gérant a fait progresser le cycle
+// de vie manuellement et un jump arrière serait surprenant.
+const AUTO_PROMOTABLE_STATUSES = ['Brouillon', 'Émis']
+
 export async function GET(request) {
   const user = await verifyAuth(request)
   if (!user) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
@@ -81,30 +87,41 @@ export async function GET(request) {
   for (const os of osRows) {
     const odoo = byRequestId.get(os.odoo_sign_id)
     if (!odoo) continue
-    if (odoo.statut_signature !== os.statut_signature) {
-      // On met à jour UNIQUEMENT statut_signature. Le statut principal de
-      // l'OS (Brouillon / Émis / En cours / Terminé) n'est pas touché
-      // automatiquement — c'est au gérant de le faire évoluer manuellement
-      // selon le cycle de vie du chantier, pour éviter les sauts bizarres
-      // type "Brouillon → Signé".
-      const patch = { statut_signature: odoo.statut_signature }
-      const { error: upErr } = await supabase
-        .from('ordres_service')
-        .update(patch)
-        .eq('id', os.id)
-      if (upErr) {
-        log.warn(`update échec pour ${os.numero}`, upErr.message)
-        continue
-      }
-      updates.push({
-        id: os.id,
-        numero: os.numero,
-        from: os.statut_signature,
-        to: odoo.statut_signature,
-        signed_count: odoo.signed_count,
-        total_count: odoo.total_count,
-      })
+    if (odoo.statut_signature === os.statut_signature) continue
+
+    const patch = { statut_signature: odoo.statut_signature }
+
+    // Auto-transition du statut principal :
+    // quand les 3 parties ont signé côté Odoo (statut_signature = Signé),
+    // on fait avancer le statut de l'OS Brouillon/Émis → Signé. Les OS
+    // déjà En cours / Terminé / Annulé ne bougent pas — leur cycle de
+    // vie a été piloté manuellement et un jump arrière serait confusant.
+    let promoted = null
+    if (
+      odoo.statut_signature === 'Signé'
+      && AUTO_PROMOTABLE_STATUSES.includes(os.statut)
+    ) {
+      patch.statut = 'Signé'
+      promoted = { from: os.statut, to: 'Signé' }
     }
+
+    const { error: upErr } = await supabase
+      .from('ordres_service')
+      .update(patch)
+      .eq('id', os.id)
+    if (upErr) {
+      log.warn(`update échec pour ${os.numero}`, upErr.message)
+      continue
+    }
+    updates.push({
+      id: os.id,
+      numero: os.numero,
+      from: os.statut_signature,
+      to: odoo.statut_signature,
+      signed_count: odoo.signed_count,
+      total_count: odoo.total_count,
+      statut_promotion: promoted,
+    })
   }
 
   return NextResponse.json({

@@ -14,6 +14,7 @@ import { generateOSPdf, generateCRPdf, generateOSExcel, generateCRExcel } from '
 import { useToast } from '../contexts/ToastContext'
 import { useConfirm } from '../contexts/ConfirmContext'
 import { computeChantierFinances } from '../lib/chantierFinances'
+import { supabase } from '../supabaseClient'
 
 // Listes canoniques utilisées pour les pills de filtre
 const PROJECT_STATUSES = ["Planifié","En cours","En attente","Terminé"]
@@ -48,6 +49,29 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
   // Phase 3 Hooks - Replaces 9 useState calls + useEffect
   const { attachments, uploadAttachment, deleteAttachment } = useAttachments('chantier', selected);
   const { comments, addComment, deleteComment } = useComments('chantier', selected, user?.email);
+
+  // Sync auto (silencieuse, une fois par montage de page) des signatures
+  // Odoo → Supabase. Permet aux statuts des OS affichés dans le détail
+  // chantier d'être à jour même si l'utilisateur n'est pas passé par
+  // l'onglet OS. L'API renvoie vite si rien à synchroniser.
+  const sigsSyncedRef = useRef(false);
+  useEffect(() => {
+    if (sigsSyncedRef.current) return;
+    sigsSyncedRef.current = true;
+    (async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) return;
+        const res = await fetch('/api/odoo/sync-signatures', {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
+        if (!res.ok) return;
+        const payload = await res.json().catch(() => ({}));
+        if (payload?.updated > 0) reload();
+      } catch (_) { /* silencieux : pas bloquant pour la page */ }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Dérivées memoizées : évite de recalculer à chaque frappe dans un input.
   // Recalculées uniquement si data ou selected change.
