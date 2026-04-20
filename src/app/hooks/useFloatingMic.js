@@ -8,6 +8,12 @@ import { useState, useRef, useCallback } from 'react'
  * Extrait depuis AdminDashboard.js pour garder le shell propre.
  * Peut être réutilisé dans ClientDashboard si besoin un jour.
  *
+ * @param {Object}   [options]
+ * @param {Function} [options.onError] (message) => void — remonte les
+ *        erreurs utilisateur (navigateur non supporté, micro bloqué…).
+ *        Les dashboards passent `addToast` pour afficher un toast au lieu
+ *        d'un alert() bloquant. Si omis, l'erreur n'est que loggée console.
+ *
  * Retourne :
  * - listening      : boolean (true quand le micro capte)
  * - transcript     : string (texte reconnu, interim + final)
@@ -15,10 +21,17 @@ import { useState, useRef, useCallback } from 'react'
  * - clear()        : efface le transcript + stoppe si en cours
  * - setTranscript  : setter direct (pour injecter un transcript externe)
  */
-export function useFloatingMic() {
+export function useFloatingMic({ onError } = {}) {
   const [listening, setListening] = useState(false)
   const [transcript, setTranscript] = useState("")
   const recognRef = useRef(null)
+  // Stocke la dernière callback dans un ref : évite de reconstruire `toggle`
+  // (et de casser les useCallback en aval) à chaque render du dashboard.
+  const onErrorRef = useRef(onError)
+  onErrorRef.current = onError
+  const notifyError = useCallback((msg) => {
+    if (onErrorRef.current) onErrorRef.current(msg)
+  }, [])
 
   const toggle = useCallback(() => {
     try {
@@ -27,7 +40,7 @@ export function useFloatingMic() {
         : null
 
       if (!SR) {
-        alert("Reconnaissance vocale non supportée par ce navigateur.\n\nUtilisez Chrome, Edge ou Safari (pas Firefox ni Brave).")
+        notifyError("Reconnaissance vocale non supportée — utilisez Chrome, Edge ou Safari")
         return
       }
 
@@ -60,7 +73,7 @@ export function useFloatingMic() {
         console.error('[FloatingMic] recognition error', ev?.error)
         setListening(false)
         if (ev?.error === 'not-allowed' || ev?.error === 'service-not-allowed') {
-          alert("Micro bloqué par le navigateur.\n\nAutorise l'accès au micro pour ce site dans les réglages du navigateur.")
+          notifyError("Micro bloqué par le navigateur — autorise l'accès dans les réglages")
         }
       }
       r.onend = () => {
@@ -70,10 +83,10 @@ export function useFloatingMic() {
       r.start()
     } catch (e) {
       console.error('[FloatingMic] toggleFloatMic exception', e)
-      alert("Erreur lors du démarrage de la reconnaissance vocale :\n" + (e?.message || String(e)))
+      notifyError("Erreur micro : " + (e?.message || String(e)))
       setListening(false)
     }
-  }, [listening])
+  }, [listening, notifyError])
 
   const clear = useCallback(() => {
     setTranscript("")

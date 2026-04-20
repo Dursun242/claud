@@ -458,7 +458,7 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly})
       });
       setSignModal(null);
       reload();
-      alert(`Demande de signature envoyée aux 3 signataires via Odoo Sign !`);
+      addToast('Demande de signature envoyée aux 3 signataires via Odoo Sign', 'success');
     } catch (err) {
       setSignError(err.message);
     } finally {

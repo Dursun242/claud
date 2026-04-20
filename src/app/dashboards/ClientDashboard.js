@@ -7,6 +7,7 @@ import { SB, defaultData, I, Icon } from './shared'
 import { DashboardSkeleton, PageSkeleton } from '../components/Skeleton'
 import { FloatingMic, NotificationBell } from '../components'
 import { useFloatingMic } from '../hooks/useFloatingMic'
+import { useToast } from '../contexts/ToastContext'
 
 // Lazy-load des pages — chunks séparés par onglet
 const dyn = (loader) => dynamic(loader, { loading: PageSkeleton, ssr: false })
@@ -84,12 +85,13 @@ export default function ClientDashboard({ user, profile = null }) {
 
   const save = useCallback(async (d) => { setData(d) }, [])
 
+  const { addToast } = useToast()
   // Floating mic (reconnaissance vocale → assistant IA)
   const {
     listening: floatListening, transcript: floatTranscript,
     setTranscript: setFloatTranscript, toggle: toggleFloatMic,
     clear: clearFloatMic
-  } = useFloatingMic()
+  } = useFloatingMic({ onError: (msg) => addToast(msg, 'warning') })
 
   const switchTab = useCallback((k) => {
     setTab(k)

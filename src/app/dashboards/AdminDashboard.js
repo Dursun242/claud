@@ -8,6 +8,7 @@ import { FloatingMic, NotificationBell } from '../components'
 import { DashboardSkeleton, PageSkeleton } from '../components/Skeleton'
 import KeyboardHelpModal from '../components/KeyboardHelpModal'
 import { useFloatingMic } from '../hooks/useFloatingMic'
+import { useToast } from '../contexts/ToastContext'
 import { seedDemoData } from '../lib/seedDemoData'
 
 import { SB, defaultData, I, Icon, ApiBadge } from './shared'
@@ -44,12 +45,13 @@ export default function AdminDashboard({ user, profile = null }) {
   const [helpOpen, setHelpOpen] = useState(false);
   // Préfixe « g » en attente (style GitHub : g puis lettre = go to tab)
   const pendingGRef = useRef(null);
+  const { addToast } = useToast();
   // Floating mic — logique extraite dans useFloatingMic hook
   const {
     listening: floatListening, transcript: floatTranscript,
     setTranscript: setFloatTranscript, toggle: toggleFloatMic,
     clear: clearFloatMic
-  } = useFloatingMic();
+  } = useFloatingMic({ onError: (msg) => addToast(msg, 'warning') });
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
