@@ -179,46 +179,48 @@ export const SB = {
   },
 
   async loadSecondary(demoIds = new Set()) {
-    const [co, pl, rv, att] = await Promise.all([
+    // Pour les compteurs de PJ par chantier, on appelle la fonction
+    // Postgres `chantier_attachment_counts()` (migration 020) qui renvoie
+    // UNE ligne par chantier (au lieu de toutes les lignes de attachments).
+    // Fallback silencieux si la fonction n'est pas encore déployée :
+    // `.rpc()` retourne `{ error }` et on repasse à attachments = {} (les
+    // compteurs affichent 0, pas de crash).
+    const [co, pl, rv, attCounts] = await Promise.all([
       supabase.from('contacts').select('*').order('nom'),
       supabase.from('planning').select('*').order('debut'),
       supabase.from('rdv').select('*').order('date'),
-      // attachments : on se limite aux 1000 plus récents pour le compteur
-      // par chantier. Au-delà, le chiffre affiché n'est plus précis mais
-      // la page ne tarde plus à charger (avant : scan complet pouvant
-      // atteindre 10k+ lignes sur un compte mature).
-      supabase.from('attachments').select('id,chantier_id')
-        .order('created_at', { ascending: false }).limit(1000),
+      supabase.rpc('chantier_attachment_counts'),
     ])
     const notDemo = (item) => !item?.chantier_id || !demoIds.has(item.chantier_id)
+
+    // Construit la Map chantier_id → count en ignorant les chantiers démo.
+    const attachmentCountsByChantier = new Map()
+    if (!attCounts.error && Array.isArray(attCounts.data)) {
+      for (const row of attCounts.data) {
+        if (row.chantier_id && !demoIds.has(row.chantier_id)) {
+          attachmentCountsByChantier.set(row.chantier_id, row.n)
+        }
+      }
+    }
+
     return {
       contacts:    co.data || [],
       planning:    (pl.data || []).filter(notDemo).map(p => ({ ...p, chantierId: p.chantier_id })),
       rdv:         (rv.data || []).filter(notDemo).map(r => ({
                      ...r, chantierId: r.chantier_id, participants: r.participants || [],
                    })),
-      attachments: (att.data || []).filter(notDemo),
+      attachmentCountsByChantier,
     }
   },
 
   async loadAll() {
     // Conservé pour la compat (reload(), code qui dépend du dataset complet).
     // Appelle les 2 étapes en parallèle et fusionne.
-    const [critical, secondary] = await Promise.all([
-      this.loadCritical(),
-      this.loadSecondary(), // demoIds sera {} ici — le filtre server-side suffit à 99 %
-    ])
+    const critical = await this.loadCritical()
     if (critical.error) return critical
     const { _demoIds, ...rest } = critical
-    // Re-filtre les secondaires avec les demoIds effectifs.
-    const notDemo = (item) => !item?.chantier_id || !_demoIds.has(item.chantier_id)
-    return {
-      ...rest,
-      contacts: secondary.contacts,
-      planning: secondary.planning.filter(notDemo),
-      rdv:      secondary.rdv.filter(notDemo),
-      attachments: secondary.attachments.filter(notDemo),
-    }
+    const secondary = await this.loadSecondary(_demoIds)
+    return { ...rest, ...secondary }
   },
 
   // Chantiers

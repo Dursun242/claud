@@ -123,6 +123,9 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
   // Compteurs (OS/CR/tâches/PJ) pré-calculés par chantier.
   // Avant, chaque carte faisait 4 .filter() O(N) → O(N²) au total.
   // Un seul passage permet de calculer la Map chantier_id → counts.
+  // Les PJ proviennent de data.attachmentCountsByChantier (Map remplie
+  // par SB.loadSecondary via la RPC `chantier_attachment_counts` — plus
+  // aucun transfert des lignes attachments elles-mêmes pour ce compteur).
   const countsByChantier = useMemo(() => {
     const map = new Map()
     const bump = (id, key) => {
@@ -134,9 +137,17 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
     (data.ordresService || []).forEach(o => bump(o.chantier_id, 'os'));
     (data.compteRendus || []).forEach(c => bump(c.chantierId || c.chantier_id, 'cr'));
     (data.tasks || []).forEach(t => bump(t.chantierId || t.chantier_id, 'tasks'));
-    (data.attachments || []).forEach(a => bump(a.chantier_id, 'attachments'));
+    // Counts PJ : Map côté serveur.
+    const attCounts = data.attachmentCountsByChantier
+    if (attCounts instanceof Map) {
+      attCounts.forEach((n, chId) => {
+        const cur = map.get(chId) || { os: 0, cr: 0, tasks: 0, attachments: 0 }
+        cur.attachments = n
+        map.set(chId, cur)
+      })
+    }
     return map
-  }, [data.ordresService, data.compteRendus, data.tasks, data.attachments]);
+  }, [data.ordresService, data.compteRendus, data.tasks, data.attachmentCountsByChantier]);
 
   // Focus depuis la recherche globale : ouvre directement la vue détail
   // du chantier correspondant.
