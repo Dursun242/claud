@@ -127,47 +127,100 @@ export const SB = {
     return data ?? null
   },
 
-  async loadAll() {
-    const [ch, co, ta, pl, rv, cr, os, att] = await Promise.all([
-      supabase.from('chantiers').select('*').order('created_at', { ascending: false }),
-      supabase.from('contacts').select('*').order('nom'),
-      supabase.from('taches').select('*').order('created_at', { ascending: false }),
-      supabase.from('planning').select('*').order('debut'),
-      supabase.from('rdv').select('*').order('date'),
-      supabase.from('compte_rendus').select('*').order('date', { ascending: false }).limit(200),
+  // ─── LOAD EN DEUX ÉTAPES (cold-start) ───
+  //
+  // loadAll() faisait 8 requêtes Supabase en parallèle et le dashboard
+  // attendait la plus lente avant de rendre quoi que ce soit — alors que
+  // la landing page `DashboardV` n'utilise QUE chantiers+tasks+OS+CR.
+  //
+  // On découpe donc :
+  //   - loadCritical() : chantiers, tasks, ordresService, compteRendus.
+  //     → rendu instantané du Dashboard dès que ces 4 répondent.
+  //   - loadSecondary() : contacts, planning, rdv, attachments.
+  //     → hydrate en arrière-plan. Les pages Planning/Contacts/Projects
+  //       qui en ont besoin re-render au fur et à mesure.
+  //
+  // Filtrage des chantiers démo : fait CÔTÉ SERVEUR (.is('is_demo', null) OR
+  // is_demo = false) pour ne pas rapatrier 3 lignes + leurs dérivés inutilement.
+
+  async loadCritical() {
+    const [ch, ta, cr, os] = await Promise.all([
+      supabase.from('chantiers').select('*')
+        .or('is_demo.is.null,is_demo.eq.false')
+        .order('created_at', { ascending: false }),
+      supabase.from('taches').select('*')
+        .order('created_at', { ascending: false }),
+      supabase.from('compte_rendus').select('*')
+        .order('date', { ascending: false }).limit(200),
       supabase.from('ordres_service').select('*')
         .order('created_at', { ascending: false }).limit(200),
-      supabase.from('attachments').select('id,chantier_id')
-        .order('created_at', { ascending: false }),
-    ]);
-    if (ch.error) return { error: ch.error.message };
-    // Filtrage : on masque les chantiers démo pour les admins/salariés.
-    // Double protection : is_demo=true (flag DB) OU UUID fixe connu
-    // (fallback si la migration is_demo n'est pas encore appliquée en prod).
+    ])
+    if (ch.error) return { error: ch.error.message }
+
+    // Fallback robustesse : si la migration is_demo n'est pas appliquée en
+    // prod, on re-filtre client-side via les UUIDs connus.
     const DEMO_UUIDS = new Set([
-      '11111111-1111-4111-8111-111111111d01', // Villa Moreau
-      '22222222-2222-4222-8222-222222222d02', // Maison Petit
-      '33333333-3333-4333-8333-333333333d03', // Pharmacie Normandie
-    ]);
-    const isDemo = (c) => c.is_demo || DEMO_UUIDS.has(c.id);
-    const nonDemoChantiers = (ch.data || []).filter(c => !isDemo(c));
-    const demoIds = new Set((ch.data || []).filter(isDemo).map(c => c.id));
-    const notDemoChantier = (item) => !item?.chantier_id || !demoIds.has(item.chantier_id);
+      '11111111-1111-4111-8111-111111111d01',
+      '22222222-2222-4222-8222-222222222d02',
+      '33333333-3333-4333-8333-333333333d03',
+    ])
+    const chantiers = (ch.data || []).filter(c => !DEMO_UUIDS.has(c.id))
+      .map(c => ({ ...c, lots: c.lots || [] }))
+    const demoIds = new Set((ch.data || []).filter(c => DEMO_UUIDS.has(c.id)).map(c => c.id))
+    const notDemo = (item) => !item?.chantier_id || !demoIds.has(item.chantier_id)
+
     return {
-      chantiers: nonDemoChantiers.map(c => ({ ...c, lots: c.lots || [] })),
-      contacts: (co.data || []).map(c => ({ ...c, chantiers: [] })),
-      tasks: (ta.data || []).filter(notDemoChantier)
-        .map(t => ({ ...t, chantierId: t.chantier_id })),
-      planning: (pl.data || []).filter(notDemoChantier)
-        .map(p => ({ ...p, chantierId: p.chantier_id })),
-      rdv: (rv.data || []).filter(notDemoChantier).map(r => ({
-        ...r, chantierId: r.chantier_id, participants: r.participants || []
-      })),
-      compteRendus: (cr.data || []).filter(notDemoChantier)
-        .map(c => ({ ...c, chantierId: c.chantier_id })),
-      ordresService: (os.data || []).filter(notDemoChantier),
-      attachments: (att.data || []).filter(notDemoChantier),
-    };
+      chantiers,
+      tasks:        (ta.data || []).filter(notDemo).map(t => ({ ...t, chantierId: t.chantier_id })),
+      compteRendus: (cr.data || []).filter(notDemo).map(c => ({ ...c, chantierId: c.chantier_id })),
+      ordresService: (os.data || []).filter(notDemo),
+      _demoIds: demoIds, // exposé pour que loadSecondary réutilise le même filtre
+    }
+  },
+
+  async loadSecondary(demoIds = new Set()) {
+    // Pour les compteurs de PJ par chantier, on appelle la fonction
+    // Postgres `chantier_attachment_counts()` (migration 020) qui renvoie
+    // UNE ligne par chantier (au lieu de toutes les lignes de attachments).
+    // Fallback silencieux si la fonction n'est pas encore déployée :
+    // `.rpc()` retourne `{ error }` et on repasse à attachments = {} (les
+    // compteurs affichent 0, pas de crash).
+    const [co, pl, rv, attCounts] = await Promise.all([
+      supabase.from('contacts').select('*').order('nom'),
+      supabase.from('planning').select('*').order('debut'),
+      supabase.from('rdv').select('*').order('date'),
+      supabase.rpc('chantier_attachment_counts'),
+    ])
+    const notDemo = (item) => !item?.chantier_id || !demoIds.has(item.chantier_id)
+
+    // Construit la Map chantier_id → count en ignorant les chantiers démo.
+    const attachmentCountsByChantier = new Map()
+    if (!attCounts.error && Array.isArray(attCounts.data)) {
+      for (const row of attCounts.data) {
+        if (row.chantier_id && !demoIds.has(row.chantier_id)) {
+          attachmentCountsByChantier.set(row.chantier_id, row.n)
+        }
+      }
+    }
+
+    return {
+      contacts:    co.data || [],
+      planning:    (pl.data || []).filter(notDemo).map(p => ({ ...p, chantierId: p.chantier_id })),
+      rdv:         (rv.data || []).filter(notDemo).map(r => ({
+                     ...r, chantierId: r.chantier_id, participants: r.participants || [],
+                   })),
+      attachmentCountsByChantier,
+    }
+  },
+
+  async loadAll() {
+    // Conservé pour la compat (reload(), code qui dépend du dataset complet).
+    // Appelle les 2 étapes en parallèle et fusionne.
+    const critical = await this.loadCritical()
+    if (critical.error) return critical
+    const { _demoIds, ...rest } = critical
+    const secondary = await this.loadSecondary(_demoIds)
+    return { ...rest, ...secondary }
   },
 
   // Chantiers

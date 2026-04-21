@@ -30,7 +30,7 @@ export default function Error({ error, reset }) {
         alignItems: 'center',
         justifyContent: 'center',
         padding: 24,
-        fontFamily: "'DM Sans', sans-serif",
+        fontFamily: "var(--font-dm-sans), sans-serif",
       }}
     >
       <div

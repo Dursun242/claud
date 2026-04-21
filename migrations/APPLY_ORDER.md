@@ -25,6 +25,7 @@ Exécuter dans cet ordre exact sur une base vierge (Supabase Dashboard → SQL E
 | 017 | `017_fix_notify_triggers_array_concat.sql` | Fix triggers notifs |
 | 018 | `018_authorized_users_restrict_select.sql` | Durcissement RLS authorized_users |
 | 019 | `019_client_user_id.sql` | **[P0 sécu]** Match client → chantier par UUID au lieu de prénom. Dual-support (nouveau UUID + fallback prénom pour migration en douceur). Voir `019_README.md` avant application. |
+| 020 | `020_chantier_counts_rpc.sql` | **[Perf]** RPC `chantier_attachment_counts()` qui agrège les PJ par chantier côté Postgres. Remplace le téléchargement de toute la table `attachments` au démarrage. Voir `020_README.md`. Fallback silencieux côté front si pas encore appliquée. |
 
 ## Fichiers NON séquentiels (à ne PAS appliquer en séquence)
 

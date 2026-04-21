@@ -21,6 +21,21 @@ const nextConfig = {
       'react-markdown',
     ],
   },
+  // Autorise <Image> à optimiser les images Supabase Storage (photos de
+  // couverture des chantiers) et les avatars Google OAuth. Les hostnames
+  // concrets dépendent du projet Supabase : on accepte tous les
+  // *.supabase.co / *.supabase.in pour ne pas avoir à recompiler à chaque
+  // changement de projet.
+  images: {
+    remotePatterns: [
+      { protocol: 'https', hostname: '*.supabase.co', pathname: '/storage/**' },
+      { protocol: 'https', hostname: '*.supabase.in', pathname: '/storage/**' },
+      { protocol: 'https', hostname: 'lh3.googleusercontent.com' },
+      { protocol: 'https', hostname: 'lh4.googleusercontent.com' },
+      { protocol: 'https', hostname: 'lh5.googleusercontent.com' },
+      { protocol: 'https', hostname: 'lh6.googleusercontent.com' },
+    ],
+  },
   // Headers globaux pour améliorer sécurité et perf cache statique.
   async headers() {
     return [

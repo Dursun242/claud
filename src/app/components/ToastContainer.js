@@ -88,7 +88,7 @@ export default function ToastContainer() {
               gap: 10,
               boxShadow: '0 4px 16px rgba(15,23,42,0.12)',
               animation: 'toastIn .25s ease',
-              fontFamily: "'DM Sans', sans-serif",
+              fontFamily: "var(--font-dm-sans), sans-serif",
             }}
           >
             <span

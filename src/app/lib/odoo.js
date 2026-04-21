@@ -39,15 +39,36 @@ async function jsonrpc(service, method, args) {
   return json.result
 }
 
+// Cache module-level du UID Odoo : authenticate() coûte ~100-300 ms, et une
+// création de sign.request enchaîne ~10 execute_kw → on économise ~1s.
+// TTL 55 min (sessions Odoo typiquement 1 h).
+const UID_TTL_MS = 55 * 60 * 1000
+let uidCache = { uid: null, expiresAt: 0 }
+
 async function getUid() {
+  const now = Date.now()
+  if (uidCache.uid && now < uidCache.expiresAt) return uidCache.uid
   const uid = await jsonrpc('common', 'authenticate', [ODOO_DB, ODOO_USER, ODOO_API_KEY, {}])
   if (!uid) throw new Error('Authentification Odoo échouée — vérifiez les credentials')
+  uidCache = { uid, expiresAt: now + UID_TTL_MS }
   return uid
 }
 
+function invalidateUidCache() { uidCache = { uid: null, expiresAt: 0 } }
+
 async function execute(model, method, args = [], kwargs = {}) {
   const uid = await getUid()
-  return jsonrpc('object', 'execute_kw', [ODOO_DB, uid, ODOO_API_KEY, model, method, args, kwargs])
+  try {
+    return await jsonrpc('object', 'execute_kw', [ODOO_DB, uid, ODOO_API_KEY, model, method, args, kwargs])
+  } catch (err) {
+    // Session expirée côté Odoo : on invalide le cache et on retente une fois.
+    if (/session|authentication|access denied/i.test(err.message)) {
+      invalidateUidCache()
+      const freshUid = await getUid()
+      return jsonrpc('object', 'execute_kw', [ODOO_DB, freshUid, ODOO_API_KEY, model, method, args, kwargs])
+    }
+    throw err
+  }
 }
 
 // ─── Méthodes publiques ──────────────────────
@@ -150,12 +171,14 @@ export async function createSignRequest({ templateId, signerName, signerEmail, r
       reference: reference || '',
       request_item_ids: [[0, 0, { partner_id: partnerId, role_id: roleId }]],
     }])
-    // Essai envoi post-création
+    // Essai envoi post-création ; on s'arrête dès qu'une méthode répond.
     const sendMethods = ['action_send_request', 'send_signature_accesses', 'action_sign_send', 'action_validate']
+    let sent = false
     for (const method of sendMethods) {
-      try { await execute('sign.request', method, [[requestId]]); break } catch (_) {}
+      try { await execute('sign.request', method, [[requestId]]); sent = true; break } catch (_) {}
     }
-    await execute('sign.request', 'write', [[requestId], { state: 'sent' }])
+    // Le write state='sent' n'est qu'un fallback si aucune action n'a abouti.
+    if (!sent) await execute('sign.request', 'write', [[requestId], { state: 'sent' }])
   }
 
   // 5. Récupérer l'URL de la demande
@@ -270,16 +293,19 @@ export async function createSignRequestFromPdf({ pdfBase64, reference, operation
   // sans Entreprise).
   const ROLE_NAMES = { MOE: 'MOE', MOA: 'MOA', Entreprise: 'Entreprise' }
   const roleIds = {}
+  const labels = activeRoles.map(k => ROLE_NAMES[k])
+  // Un seul search_read pour TOUS les rôles actifs (évite N+1).
+  const foundRoles = await execute('sign.item.role', 'search_read',
+    [[['name', 'in', labels]]],
+    { fields: ['id', 'name'] }
+  )
+  const byName = new Map(foundRoles.map(r => [r.name, r.id]))
   for (const key of activeRoles) {
     const label = ROLE_NAMES[key]
-    const found = await execute('sign.item.role', 'search_read', [[['name', '=', label]]], {
-      fields: ['id', 'name'], limit: 1,
-    })
-    if (found.length) {
-      roleIds[key] = found[0].id
-    } else {
-      roleIds[key] = await execute('sign.item.role', 'create', [{ name: label }])
-    }
+    const existing = byName.get(label)
+    roleIds[key] = existing != null
+      ? existing
+      : await execute('sign.item.role', 'create', [{ name: label }])
   }
 
   // ── E : sign.item.type + zones de signature (FAIL FAST si échec) ─────────

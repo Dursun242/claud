@@ -1,7 +1,10 @@
 'use client'
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
-import { SB, Icon, I, fmtDate, fmtMoney, FF, inp, sel, btnP, btnS } from '../dashboards/shared'
-import { Badge, Modal, OSSignatureModal, OSFormModal } from '../components'
+import { SB, Icon, I, fmtMoney, FF, inp, sel, btnP, btnS } from '../dashboards/shared'
+import { OSSignatureModal, OSFormModal } from '../components'
+import OsCard from '../components/os/OsCard'
+import OsStatusPills from '../components/os/OsStatusPills'
+import { OS_STATUSES } from '../components/os/osConstants'
 import { useToast } from '../contexts/ToastContext'
 import { useConfirm } from '../contexts/ConfirmContext'
 import { useUndoableDelete } from '../hooks/useUndoableDelete'
@@ -9,28 +12,7 @@ import { buildCSV, downloadCSV, formatDateFR, formatMoneyFR } from '../lib/csv'
 import { supabase } from '../supabaseClient'
 import { useImportDevis } from '../hooks/useImportDevis'
 import { usePrestationManager } from '../hooks/usePrestationManager'
-
-// Ordre canonique des statuts (utilisé dans le filtre et le dropdown de tri)
-const OS_STATUSES = ["Brouillon","Émis","Signé","En cours","Terminé","Annulé"]
-const osStatusColor = {
-  "Brouillon":"#94A3B8", "Émis":"#3B82F6", "Signé":"#8B5CF6",
-  "En cours":"#F59E0B", "Terminé":"#10B981", "Annulé":"#EF4444"
-}
-
-// Style "pastille" pour les boutons d'action sur les cartes OS.
-// Remplace les boutons saturés (rouge/vert/violet plein) par des versions
-// plus douces, plus cohérentes visuellement.
-const osBtn = (color, bg, border) => ({
-  background: bg,
-  border: `1px solid ${border}`,
-  borderRadius: 6,
-  padding: "4px 10px",
-  cursor: "pointer",
-  fontSize: 11,
-  fontWeight: 600,
-  color,
-  fontFamily: "inherit",
-})
+import { useSignaturesSync } from '../hooks/useSignaturesSync'
 
 export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly}) {
   const { addToast } = useToast();
@@ -78,47 +60,44 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly})
       setModal("new")
     },
   });
-  // Sync signatures Odoo → Supabase (auto au mount + manuel)
+  // Sync signatures Odoo → Supabase, partagé avec ProjectsV via le hook
+  // useSignaturesSync (throttle 2 min + coalescence in-flight).
+  const { sync: syncSignatures } = useSignaturesSync();
   const [syncingSigs, setSyncingSigs] = useState(false);
-  const syncedOnceRef = useRef(false);
 
   const handleSyncSignatures = useCallback(async (silent = false) => {
     if (syncingSigs) return;
     setSyncingSigs(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch('/api/odoo/sync-signatures', {
-        headers: { 'Authorization': `Bearer ${session?.access_token || ''}` },
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || 'Erreur sync');
-      if (!silent) {
-        if (json.updated > 0) {
-          const n=json.updated;
-          addToast(`${n} signature${n > 1 ? 's' : ''} mise${n > 1 ? 's' : ''} à jour`, 'success');
-          reload?.();
-        } else {
-          addToast('Signatures à jour — aucun changement', 'info');
-        }
-      } else if (json.updated > 0) {
-        // En mode silencieux (auto au mount), on reload quand même si des maj
-        reload?.();
+      // force=true en mode manuel pour bypasser le throttle (l'utilisateur
+      // a cliqué le bouton → il veut un vrai refresh).
+      const updated = await syncSignatures({ force: !silent, silent });
+      if (updated == null) {
+        if (!silent) addToast('Signatures à jour — aucun changement', 'info');
+        return;
       }
-    } catch (err) {
-      if (!silent) addToast('Erreur sync : ' + err.message, 'error');
-      console.warn('[sync-signatures]', err.message);
+      if (updated > 0) {
+        if (!silent) {
+          addToast(
+            `${updated} signature${updated > 1 ? 's' : ''} mise${updated > 1 ? 's' : ''} à jour`,
+            'success'
+          );
+        }
+        reload?.();
+      } else if (!silent) {
+        addToast('Signatures à jour — aucun changement', 'info');
+      }
     } finally {
       setSyncingSigs(false);
     }
-  }, [syncingSigs, addToast, reload]);
+  }, [syncingSigs, syncSignatures, addToast, reload]);
 
-  // Sync auto (silencieux) une fois par session au premier montage de la page OS
+  // Sync auto silencieux au mount (respecte le throttle 2 min du hook).
   useEffect(() => {
-    if (syncedOnceRef.current) return;
-    syncedOnceRef.current = true;
-    handleSyncSignatures(true);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    syncSignatures({ silent: true }).then(updated => {
+      if (updated > 0) reload?.();
+    });
+  }, [syncSignatures, reload]);
 
   // Delete avec undo (5s pour annuler)
   const { pendingIds: pendingDeleteIds, scheduleDelete } = useUndoableDelete({
@@ -158,14 +137,14 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly})
     addToast(`${filteredSortedOS.length} OS exporté${filteredSortedOS.length > 1 ? 's' : ''}`, "success");
   };
 
-  const nextNum = () => {
+  const nextNum = useCallback(() => {
     const nums = (data.ordresService||[]).map(os => {
       const m = String(os.numero||"").match(/(\d+)$/);
       return m ? parseInt(m[1], 10) : 0;
     });
     const next = nums.length > 0 ? Math.max(...nums) + 1 : 1;
     return `OS-${new Date().getFullYear()}-${String(next).padStart(3,"0")}`;
-  };
+  }, [data.ordresService]);
 
   const openNew = () => {
     const ch = data.chantiers[0];
@@ -183,8 +162,8 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly})
     setModal("new");
   };
 
-  const openEdit = (os) => {
-    const ch = data.chantiers.find(c=>c.id===os.chantier_id);
+  const openEdit = useCallback((os) => {
+    const ch = (data.chantiers || []).find(c=>c.id===os.chantier_id);
     setForm({
       ...os,
       chantier: ch?.nom||"",
@@ -201,7 +180,7 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly})
     );
     setFormError("");
     setModal("edit");
-  };
+  }, [data.chantiers, setPrestations]);
 
   const closeModal = useCallback(() => { setModal(null); setFormError(""); }, []);
 
@@ -294,8 +273,8 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly})
   // gros dans le PDF avec l'interlocuteur en-dessous, on cherche le
   // contact correspondant dans l'annuaire et on y récupère la société.
   // Match par SIRET (fiable) puis par nom exact.
-  const enrichOsForPdf = (os) => {
-    const ch = data.chantiers.find(c => c.id === os.chantier_id);
+  const enrichOsForPdf = useCallback((os) => {
+    const ch = (data.chantiers || []).find(c => c.id === os.chantier_id);
     const enriched = {
       ...os,
       chantier: ch?.nom || "",
@@ -317,9 +296,9 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly})
       enriched.artisan_societe = contact.societe;
     }
     return enriched;
-  };
+  }, [data.chantiers, data.contacts]);
 
-  const handlePdf = async (os) => {
+  const handlePdf = useCallback(async (os) => {
     if (generating) return;
     setGenerating({ id: os.id, kind: 'pdf' });
     try {
@@ -331,9 +310,9 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly})
     } finally {
       setGenerating(null);
     }
-  };
+  }, [generating, enrichOsForPdf, addToast]);
 
-  const handleExcel = async (os) => {
+  const handleExcel = useCallback(async (os) => {
     if (generating) return;
     setGenerating({ id: os.id, kind: 'xls' });
     try {
@@ -345,9 +324,9 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly})
     } finally {
       setGenerating(null);
     }
-  };
+  }, [generating, enrichOsForPdf, addToast]);
 
-  const handleDelete = async (os) => {
+  const handleDelete = useCallback(async (os) => {
     const ok = await confirm({
       title: `Supprimer l'OS ${os.numero} ?`,
       message: "Tu pourras annuler cette suppression pendant 5 secondes.",
@@ -356,9 +335,9 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly})
     });
     if (!ok) return;
     scheduleDelete(os, { itemLabel: `OS ${os.numero}` });
-  };
+  }, [confirm, scheduleDelete]);
 
-  const handleDuplicate = async (os) => {
+  const handleDuplicate = useCallback(async (os) => {
     try {
       const {
         id: _id,
@@ -393,18 +372,18 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly})
     } catch (err) {
       addToast("Erreur : " + (err?.message || "duplication impossible"), "error");
     }
-  };
+  }, [addToast, reload, nextNum]);
 
-  const openSignModal = (os) => {
+  const openSignModal = useCallback((os) => {
     setSignError("");
-    const ch = data.chantiers.find(c => c.id === os.chantier_id);
+    const ch = (data.chantiers || []).find(c => c.id === os.chantier_id);
     // Entreprise (artisan)
-    const artisanContact = data.contacts.find(c =>
+    const artisanContact = (data.contacts || []).find(c =>
       (c.nom||"").toLowerCase().trim() === (os.artisan_nom||"").toLowerCase().trim()
     );
     const entrepriseEmail = os.artisan_email || artisanContact?.email || "";
     // MOA (client/maître d'ouvrage)
-    const moaContact = data.contacts.find(c =>
+    const moaContact = (data.contacts || []).find(c =>
       (c.nom||"").toLowerCase().trim() === (os.client_nom||"").toLowerCase().trim()
     );
     const moaEmail = moaContact?.email || "";
@@ -414,7 +393,7 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly})
       entreprise: { name: os.artisan_nom || "", email: entrepriseEmail },
     });
     setSignModal({ ...os, ch });
-  };
+  }, [data.chantiers, data.contacts]);
 
   const handleSendSign = async () => {
     if (!signModal) return;
@@ -458,7 +437,7 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly})
       });
       setSignModal(null);
       reload();
-      alert(`Demande de signature envoyée aux 3 signataires via Odoo Sign !`);
+      addToast('Demande de signature envoyée aux 3 signataires via Odoo Sign', 'success');
     } catch (err) {
       setSignError(err.message);
     } finally {
@@ -466,7 +445,7 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly})
     }
   };
 
-  const handleResetSign = async (os) => {
+  const handleResetSign = useCallback(async (os) => {
     const ok = await confirm({
       title: "Réinitialiser la signature",
       message: `Supprimer le lien Odoo Sign et le statut de signature sur l'OS ${os.numero} ?\n\n` +
@@ -484,10 +463,10 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly})
     } catch (err) {
       addToast("Erreur : " + (err?.message || "impossible de réinitialiser"), "error");
     }
-  };
+  }, [confirm, reload, addToast]);
 
-  const handleEmail = (os) => {
-    const ch = data.chantiers.find(c=>c.id===os.chantier_id);
+  const handleEmail = useCallback((os) => {
+    const ch = (data.chantiers || []).find(c=>c.id===os.chantier_id);
     const subject = encodeURIComponent(`Ordre de Service ${os.numero} — ${ch?.nom || ""}`);
     const body = encodeURIComponent(
       `Bonjour,\n\nVeuillez trouver ci-joint l'Ordre de Service ${os.numero} pour le chantier "${ch?.nom || ""}".\n\n` +
@@ -504,7 +483,11 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly})
         chantier_nom: ch?.nom || null,
       });
     } catch (_) {}
-  };
+  }, [data.chantiers]);
+
+  // Handler stable pour la pill de filtre statut : permet à OsStatusPills
+  // de bénéficier de son memo() (ne re-render que si filtre/compteurs changent).
+  const handleStatusFilter = useCallback((k) => setStatusFilter(k), []);
 
   // Map chantier_id → chantier : évite les .find() O(N*M) dans les listes
   const chantierById = useMemo(
@@ -706,34 +689,12 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly})
     </div>
 
     {/* PILLS DE FILTRE PAR STATUT */}
-    <div style={{
-      display:"flex",gap:6,flexWrap:"wrap",marginBottom:14,
-      overflowX:m?"auto":"visible",paddingBottom:m?4:0
-    }}>
-      {[
-        {key:"all",label:"Tous",color:"#64748B"},
-        ...OS_STATUSES.map(s=>({key:s,label:s,color:osStatusColor[s]}))
-      ].map(p => {
-        const active = statusFilter === p.key;
-        const count = countByStatus[p.key] || 0;
-        return (
-          <button key={p.key} onClick={()=>setStatusFilter(p.key)} style={{
-            display:"inline-flex",alignItems:"center",gap:6,
-            padding:"5px 11px",borderRadius:999,fontSize:11,fontWeight:600,
-            border:`1px solid ${active ? p.color : "#E2E8F0"}`,
-            background:active ? p.color : "#fff",
-            color:active ? "#fff" : "#334155",
-            cursor:"pointer",fontFamily:"inherit",
-            transition:"background .15s, color .15s, border-color .15s",
-            whiteSpace:"nowrap",
-          }}>
-            <span style={{width:7,height:7,borderRadius:"50%",background:active?"#fff":p.color,opacity:active?0.8:1}}/>
-            {p.label}
-            <span style={{fontSize:10,opacity:0.75,fontWeight:500}}>{count}</span>
-          </button>
-        );
-      })}
-    </div>
+    <OsStatusPills
+      statusFilter={statusFilter}
+      onChange={handleStatusFilter}
+      countByStatus={countByStatus}
+      m={m}
+    />
 
     {importError && (
       <div style={{
@@ -787,119 +748,25 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly})
             </>
           )}
         </div>
-      ) : filteredSortedOS.map(os=>{
-        const ch = chantierById.get(os.chantier_id);
-        const overdue = isOverdue(os);
-        return (
-          <div key={os.id} style={{
-            background:"#fff",borderRadius:12,padding:m?14:16,
-            boxShadow:"0 1px 3px rgba(15,23,42,0.06)",
-            borderLeft:`4px solid ${osStatusColor[os.statut]||"#94A3B8"}`,
-          }}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:8}}>
-              <div style={{flex:1,minWidth:0}}>
-                <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:4,flexWrap:"wrap"}}>
-                  <span style={{
-                    background:"#1E3A5F",color:"#fff",borderRadius:6,
-                    padding:"3px 9px",fontSize:11,fontWeight:700,letterSpacing:"0.02em"
-                  }}>{os.numero}</span>
-                  <Badge text={os.statut} color={osStatusColor[os.statut]||"#94A3B8"}/>
-                  {overdue && (
-                    <span title={`Échéance dépassée : ${fmtDate(os.date_fin_prevue)}`} style={{
-                      display:"inline-flex",alignItems:"center",gap:4,
-                      background:"#FEF2F2",color:"#DC2626",
-                      border:"1px solid #FECACA",borderRadius:999,
-                      padding:"2px 8px",fontSize:10,fontWeight:700
-                    }}>⚠ En retard</span>
-                  )}
-                  <span style={{fontSize:14,fontWeight:700,color:"#0F172A"}}>{ch?.nom||"—"}</span>
-                </div>
-                <div style={{fontSize:12,color:"#64748B"}}>
-                  {os.artisan_nom}{os.artisan_specialite ? ` · ${os.artisan_specialite}` : ""}{" "}
-                  — Client : {os.client_nom}
-                </div>
-                <div style={{fontSize:11,color:"#94A3B8",marginTop:2}}>
-                  Émis {fmtDate(os.date_emission)} • Intervention {fmtDate(os.date_intervention)}{" "}
-                  • {(os.prestations||[]).length} prestation(s)
-                </div>
-              </div>
-              <div style={{textAlign:"right"}}>
-                <div style={{fontSize:18,fontWeight:700,color:"#1E3A5F"}}>{fmtMoney(os.montant_ttc||0)}</div>
-                <div style={{fontSize:10,color:"#94A3B8"}}>HT: {fmtMoney(os.montant_ht||0)}</div>
-              </div>
-            </div>
-            <div style={{display:"flex",gap:6,marginTop:10,flexWrap:"wrap"}}>
-              {/* Groupe Export */}
-              <button onClick={()=>handlePdf(os)} disabled={!!generating} title="Télécharger le PDF"
-                style={{...osBtn("#DC2626","#FEF2F2","#FECACA"),
-                  opacity:generating?.id===os.id&&generating?.kind==='pdf'?0.7:(generating?0.5:1),
-                  cursor:generating?'wait':'pointer'}}>
-                {generating?.id===os.id && generating?.kind==='pdf' ? (
-                  <>
-                    <span style={{
-                      display:"inline-block",width:10,height:10,
-                      border:"2px solid #FECACA",borderTopColor:"#DC2626",
-                      borderRadius:"50%",animation:"spin .8s linear infinite",
-                      marginRight:4,verticalAlign:"middle"
-                    }}/>
-                    Génération…
-                  </>
-                ) : '📄 PDF'}
-              </button>
-              <button onClick={()=>handleExcel(os)} disabled={!!generating} title="Télécharger l'Excel"
-                style={{...osBtn("#047857","#ECFDF5","#A7F3D0"),
-                  opacity:generating?.id===os.id&&generating?.kind==='xls'?0.7:(generating?0.5:1),
-                  cursor:generating?'wait':'pointer'}}>
-                {generating?.id===os.id && generating?.kind==='xls' ? (
-                  <>
-                    <span style={{
-                      display:"inline-block",width:10,height:10,
-                      border:"2px solid #A7F3D0",borderTopColor:"#047857",
-                      borderRadius:"50%",animation:"spin .8s linear infinite",
-                      marginRight:4,verticalAlign:"middle"
-                    }}/>
-                    Génération…
-                  </>
-                ) : '📊 XLS'}
-              </button>
-              <button onClick={()=>handleEmail(os)}
-                title="Envoyer par email"
-                style={osBtn("#4338CA","#EEF2FF","#C7D2FE")}>✉ Email</button>
-              {!readOnly && (os.odoo_sign_url ? (
-                <>
-                  <a href={os.odoo_sign_url} target="_blank" rel="noreferrer"
-                    title={`Signature : ${os.statut_signature||"Envoyé"}`}
-                    onClick={()=>{ try {
-                      SB.log('view_sign_request', 'os', os.id,
-                        `OS ${os.numero} — consultation signature`,
-                        { statut_signature: os.statut_signature || null })
-                    } catch(_) {} }}
-                    style={{...osBtn("#6D28D9","#F5F3FF","#DDD6FE"),
-                      textDecoration:"none", display:"inline-flex", alignItems:"center"}}>
-                    ✍ {os.statut_signature||"Signé"}
-                  </a>
-                  <button onClick={()=>handleResetSign(os)} title="Réinitialiser la signature (efface le lien Odoo)"
-                    style={osBtn("#64748B","#F8FAFC","#E2E8F0")}>↺</button>
-                </>
-              ) : (
-                <button onClick={()=>openSignModal(os)}
-                  title="Envoyer pour signature Odoo"
-                  style={osBtn("#6D28D9","#F5F3FF","#DDD6FE")}>✍ Signature</button>
-              ))}
-              {!readOnly && <><span style={{width:1,background:"#E2E8F0",margin:"2px 4px"}}/>
-              <button onClick={()=>handleDuplicate(os)}
-                title="Dupliquer cet OS"
-                style={osBtn("#B45309","#FFFBEB","#FDE68A")}>Dupliquer</button>
-              <button onClick={()=>openEdit(os)}
-                title="Modifier"
-                style={osBtn("#1D4ED8","#EFF6FF","#BFDBFE")}>Modifier</button>
-              <button onClick={()=>handleDelete(os)}
-                title="Supprimer"
-                style={{...osBtn("#DC2626","#fff","#FECACA"),marginLeft:"auto"}}>Supprimer</button></>}
-            </div>
-          </div>
-        );
-      })}
+      ) : filteredSortedOS.map(os => (
+        <OsCard
+          key={os.id}
+          os={os}
+          ch={chantierById.get(os.chantier_id)}
+          overdue={isOverdue(os)}
+          generating={generating}
+          readOnly={readOnly}
+          m={m}
+          onPdf={handlePdf}
+          onExcel={handleExcel}
+          onEmail={handleEmail}
+          onSignOpen={openSignModal}
+          onSignReset={handleResetSign}
+          onDuplicate={handleDuplicate}
+          onEdit={openEdit}
+          onDelete={handleDelete}
+        />
+      ))}
     </div>
 
     {/* MODAL CRÉATION / ÉDITION OS — composant OSFormModal */}

@@ -334,7 +334,10 @@ export default function PhotoReportsV({ data, m }) {
                 background: '#F8FAFC', borderRadius: 10, padding: 10,
                 border: '1px solid #E2E8F0',
               }}>
-                {/* Miniature */}
+                {/* Miniature — base64 data URI (photo tout juste capturée,
+                    pas encore uploadée). next/image n'optimise pas les
+                    data URIs donc on garde <img> volontairement. */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={photo.base64}
                   alt={photo.description || `Photo ${idx + 1}`}

@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { supabase } from '../supabaseClient'
 import { SB, fmtDate, fmtMoney, inp } from '../dashboards/shared'
 import { Badge } from '../components'
@@ -83,11 +83,15 @@ export default function QontoV({m, data, reload}) {
     setInvoices([]); setQuotes([]); setClients([]);
   };
 
+  // AbortController partagé par fetchAll : si l'utilisateur quitte la page
+  // (ou reconnecte avec un autre token) on annule les 3 requêtes en vol.
+  const qontoAbortRef = useRef(null);
+
   // Depuis le fix sécurité P0 : on ne passe plus le token Qonto dans le body.
   // Le serveur /api/qonto le récupère directement dans Supabase via le
   // service role key (table settings, key='qonto-token'). On envoie juste
   // le JWT Supabase pour s'authentifier auprès de notre propre API.
-  const fetchQonto = useCallback(async (endpoint) => {
+  const fetchQonto = useCallback(async (endpoint, signal) => {
     const { data: { session } } = await supabase.auth.getSession();
     const res = await fetch(`/api/qonto`, {
       method: 'POST',
@@ -95,25 +99,30 @@ export default function QontoV({m, data, reload}) {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${session?.access_token || ''}`,
       },
-      body: JSON.stringify({ endpoint })
+      body: JSON.stringify({ endpoint }),
+      signal,
     });
     if (!res.ok) { const err = await res.json().catch(()=>({})); throw new Error(err.error || `Qonto ${res.status}`); }
     return res.json();
   }, []);
 
   const fetchAll = useCallback(async () => {
+    qontoAbortRef.current?.abort();
+    const controller = new AbortController();
+    qontoAbortRef.current = controller;
     setQLoading(true); setError("");
     try {
       const [invData, quoData, cliData] = await Promise.all([
-        fetchQonto("client_invoices?exclude_imports=false"),
-        fetchQonto("quotes"),
-        fetchQonto("clients"),
+        fetchQonto("client_invoices?exclude_imports=false", controller.signal),
+        fetchQonto("quotes", controller.signal),
+        fetchQonto("clients", controller.signal),
       ]);
       setInvoices(invData.client_invoices || []);
       setQuotes(quoData.quotes || []);
       setClients(cliData.clients || []);
       setConnected(true);
     } catch (e) {
+      if (e?.name === 'AbortError') return; // unmount ou reconnexion : silence
       setError(e.message || "Erreur de connexion à Qonto");
       setConnected(false);
     }
@@ -121,6 +130,9 @@ export default function QontoV({m, data, reload}) {
   }, [fetchQonto]);
 
   useEffect(() => { if (savedToken) fetchAll(); }, [savedToken, fetchAll]);
+
+  // Annule les requêtes Qonto en vol au démontage (onglet fermé ou nav).
+  useEffect(() => () => { qontoAbortRef.current?.abort() }, []);
 
   // ── Téléchargement PDF ──
   //

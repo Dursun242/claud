@@ -63,7 +63,7 @@ export function DashboardSkeleton({ role = 'admin' }) {
       style={{
         display: 'flex',
         height: '100vh',
-        fontFamily: "'DM Sans', sans-serif",
+        fontFamily: "var(--font-dm-sans), sans-serif",
         background: '#F1F5F9',
         overflow: 'hidden',
       }}

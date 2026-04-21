@@ -36,7 +36,7 @@ export default function MicButtonInline({ listening, onClick }) {
           fontSize: 16,
           fontWeight: 900,
           color: '#fff',
-          fontFamily: "'DM Sans', sans-serif",
+          fontFamily: "var(--font-dm-sans), sans-serif",
           animation: listening ? 'heartbeat 0.8s ease-in-out infinite' : 'none',
           userSelect: 'none',
         }}

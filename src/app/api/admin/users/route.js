@@ -23,7 +23,7 @@ export async function GET(request) {
     const email = user.email?.trim().toLowerCase()
     let { data: caller, error: callerErr } = await supabaseAdmin
       .from('authorized_users')
-      .select('*')
+      .select('id, email, prenom, nom, role, actif')
       .eq('email', email)
       .maybeSingle()
     if (callerErr) {
@@ -75,7 +75,7 @@ export async function GET(request) {
             console.error('[admin/users GET] demo auto-provisioning:', createErr)
             const { data: existing } = await supabaseAdmin
               .from('authorized_users')
-              .select('*')
+              .select('id, email, prenom, nom, role, actif')
               .eq('email', email)
               .maybeSingle()
             if (existing) caller = existing
@@ -113,7 +113,7 @@ export async function GET(request) {
     // Admin : liste complète
     const { data, error } = await supabaseAdmin
       .from('authorized_users')
-      .select('*')
+      .select('id, email, prenom, nom, role, actif')
       .order('prenom')
     if (error) {
       console.error('[admin/users GET] select:', error)

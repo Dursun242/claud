@@ -18,7 +18,7 @@
 export default function GlobalError({ error, reset }) {
   return (
     <html lang="fr">
-      <body style={{ margin: 0, fontFamily: "'DM Sans', sans-serif" }}>
+      <body style={{ margin: 0, fontFamily: "var(--font-dm-sans), sans-serif" }}>
         <div style={{
           minHeight: '100vh',
           display: 'flex',

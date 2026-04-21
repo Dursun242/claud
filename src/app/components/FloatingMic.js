@@ -160,7 +160,7 @@ export default function FloatingMic({
               fontWeight: 900,
               letterSpacing: '-0.5px',
               color: listening ? '#fff' : '#00FF88',
-              fontFamily: "'DM Sans', sans-serif",
+              fontFamily: "var(--font-dm-sans), sans-serif",
               animation: listening
                 ? 'heartbeat 0.8s ease-in-out infinite'
                 : 'none',
