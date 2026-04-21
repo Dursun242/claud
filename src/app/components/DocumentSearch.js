@@ -57,9 +57,12 @@ export default function DocumentSearch({ chantierId = null }) {
 
   const handleDocumentClick = async (att) => {
     try {
+      // download: att.file_name → Supabase renvoie le PDF avec un
+      // Content-Disposition qui force le vrai nom de fichier (au lieu
+      // du timestamp technique du storage).
       const { data } = await supabase.storage
         .from('attachments')
-        .createSignedUrl(att.file_path, 3600)
+        .createSignedUrl(att.file_path, 3600, { download: att.file_name })
 
       if (data?.signedUrl) {
         window.open(data.signedUrl, '_blank')

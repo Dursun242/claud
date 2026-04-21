@@ -32,12 +32,18 @@ function AttachmentRow({ att, onDelete }) {
 
   useEffect(() => {
     let cancelled = false
-    supabase.storage.from('attachments').createSignedUrl(att.file_path, 3600)
+    // Option `download: att.file_name` → Supabase ajoute
+    // `Content-Disposition: attachment; filename="..."` à la réponse, donc
+    // le navigateur enregistre le fichier avec son nom métier
+    // (« Reportage-Photo_Villa-Dupont_2026-04-21.pdf ») au lieu du nom
+    // technique du storage (« 1776776071329.pdf »).
+    supabase.storage.from('attachments')
+      .createSignedUrl(att.file_path, 3600, { download: att.file_name })
       .then(({ data }) => {
         if (!cancelled && data?.signedUrl) setUrl(data.signedUrl)
       })
     return () => { cancelled = true }
-  }, [att.file_path])
+  }, [att.file_path, att.file_name])
 
   const confirmDelete = async (e) => {
     e.preventDefault()

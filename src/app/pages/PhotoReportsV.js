@@ -49,6 +49,7 @@ export default function PhotoReportsV({ data, m }) {
   const [meteo, setMeteo] = useState('')
   const [loading, setLoading] = useState(false)
   const [generatingPdf, setGeneratingPdf] = useState(false)
+  const [sharingPdf, setSharingPdf] = useState(false)
   const fileInputRef = useRef(null)
 
   const chantier = useMemo(
@@ -180,6 +181,59 @@ export default function PhotoReportsV({ data, m }) {
       addToast('Erreur PDF : ' + (err?.message || 'génération impossible'), 'error')
     } finally {
       setGeneratingPdf(false)
+    }
+  }
+
+  // ── Partage direct du PDF via Web Share API (niveau 2, files) ──
+  //
+  // Avant : l'utilisateur devait télécharger le PDF, puis partager depuis
+  // sa galerie. WhatsApp recevait souvent l'URL signée en prime (illisible
+  // + dangereuse : laisse fuiter un token qui donne accès au PDF pendant
+  // 1h à quiconque intercepte le message).
+  //
+  // Maintenant : on appelle navigator.share({ files: [...] }). Le picker
+  // natif iOS/Android propose WhatsApp, Mail, AirDrop, etc. et le fichier
+  // est attaché avec son vrai nom — aucune URL partagée.
+  //
+  // Fallback si l'API n'est pas dispo (desktop Firefox par ex.) : on
+  // retombe sur le téléchargement classique.
+  const handleSharePdf = async () => {
+    if (!chantier || photos.length === 0 || sharingPdf) return
+    setSharingPdf(true)
+    try {
+      const { generatePhotoReportPdf } = await import('../generators')
+      const { blob, filename } = await generatePhotoReportPdf(chantier, photos, { meteo })
+      const file = new File([blob], filename, { type: 'application/pdf' })
+
+      // canShare({ files }) = check que le navigateur accepte de partager
+      // un fichier (pas juste URL/texte). iOS Safari + Chrome Android OK,
+      // desktop Firefox non.
+      if (navigator.canShare?.({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: `Reportage photo — ${chantier.nom}`,
+          // Volontairement pas de `text:` ni `url:` → évite que WhatsApp
+          // colle une URL illisible dans le corps du message.
+        })
+        addToast('Rapport partagé', 'success')
+      } else {
+        // Fallback : téléchargement local classique.
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = filename
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        setTimeout(() => URL.revokeObjectURL(url), 200)
+        addToast('Partage natif indisponible — PDF téléchargé', 'info', 4000)
+      }
+    } catch (err) {
+      // AbortError = l'utilisateur a fermé le picker de partage → silence.
+      if (err?.name === 'AbortError') return
+      addToast('Erreur partage : ' + (err?.message || 'impossible'), 'error')
+    } finally {
+      setSharingPdf(false)
     }
   }
 
@@ -426,28 +480,53 @@ export default function PhotoReportsV({ data, m }) {
               · {fmtDate(new Date())}{meteo ? ` · ${meteo}` : ''}
             </div>
           </div>
-          <button
-            onClick={handleGeneratePdf}
-            disabled={generatingPdf || !chantier}
-            style={{
-              ...btnP, fontSize: 14, padding: '12px 24px',
-              background: '#DC2626',
-              opacity: (generatingPdf || !chantier) ? 0.6 : 1,
-              cursor: (generatingPdf || !chantier) ? 'wait' : 'pointer',
-              display: 'flex', alignItems: 'center', gap: 8,
-            }}
-          >
-            {generatingPdf ? (
-              <>
-                <span style={{
-                  display: 'inline-block', width: 14, height: 14,
-                  border: '2px solid #fff4', borderTopColor: '#fff',
-                  borderRadius: '50%', animation: 'spin .8s linear infinite'
-                }} />
-                Génération…
-              </>
-            ) : '📄 Générer le reportage PDF'}
-          </button>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button
+              onClick={handleGeneratePdf}
+              disabled={generatingPdf || sharingPdf || !chantier}
+              style={{
+                ...btnP, fontSize: 14, padding: '12px 20px',
+                background: '#DC2626',
+                opacity: (generatingPdf || !chantier) ? 0.6 : 1,
+                cursor: (generatingPdf || !chantier) ? 'wait' : 'pointer',
+                display: 'flex', alignItems: 'center', gap: 8,
+              }}
+            >
+              {generatingPdf ? (
+                <>
+                  <span style={{
+                    display: 'inline-block', width: 14, height: 14,
+                    border: '2px solid #fff4', borderTopColor: '#fff',
+                    borderRadius: '50%', animation: 'spin .8s linear infinite'
+                  }} />
+                  Génération…
+                </>
+              ) : '📄 Générer le PDF'}
+            </button>
+            <button
+              onClick={handleSharePdf}
+              disabled={sharingPdf || generatingPdf || !chantier}
+              title="Partager via WhatsApp, Mail, AirDrop… (sans lien parasite)"
+              style={{
+                ...btnP, fontSize: 14, padding: '12px 20px',
+                background: '#059669',
+                opacity: (sharingPdf || !chantier) ? 0.6 : 1,
+                cursor: (sharingPdf || !chantier) ? 'wait' : 'pointer',
+                display: 'flex', alignItems: 'center', gap: 8,
+              }}
+            >
+              {sharingPdf ? (
+                <>
+                  <span style={{
+                    display: 'inline-block', width: 14, height: 14,
+                    border: '2px solid #fff4', borderTopColor: '#fff',
+                    borderRadius: '50%', animation: 'spin .8s linear infinite'
+                  }} />
+                  Préparation…
+                </>
+              ) : '📤 Partager'}
+            </button>
+          </div>
         </div>
       )}
     </div>
