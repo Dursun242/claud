@@ -20,7 +20,7 @@ const TYPE_COLORS = {
 }
 const TYPES = ["Artisan","Sous-traitant","Prestataire","Client","Fournisseur","MOA","Architecte","BET"]
 
-export default function ContactsV({data,save,m,reload,focusId,focusTs}) {
+export default function ContactsV({ data, save: _save, m, reload, focusId, focusTs }) {
   const { addToast } = useToast();
   const confirm = useConfirm();
   const [modal,setModal]=useState(null);

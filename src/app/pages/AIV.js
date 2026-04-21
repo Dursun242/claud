@@ -60,7 +60,7 @@ function prepareDataForAI(data) {
   }
 }
 
-export default function AIV({data,save,m,externalTranscript,clearExternal,reload,user,profile,clientMode=false}) {
+export default function AIV({ data, save: _save, m, externalTranscript, clearExternal, reload, user, profile, clientMode = false }) {
   const { addToast } = useToast();
   // Nom à afficher dans le message d'accueil
   const displayName = profile?.prenom
@@ -354,25 +354,28 @@ RÈGLES :
     setLoading(false); inputRef.current?.focus();
   };
 
+  // Les overrides react-markdown reçoivent un prop `node` (AST hast) qu'on
+  // ne veut pas propager sur le DOM — on le destructure et on le jette
+  // (préfixe `_` = "intentionnellement inutilisé" côté ESLint).
   const renderMd = text => (
     <ReactMarkdown components={{
-      p: ({node, ...props}) => <p style={{margin:"0 0 6px 0"}} {...props}/>,
-      strong: ({node, ...props}) => <strong style={{fontWeight:700}} {...props}/>,
-      em: ({node, ...props}) => <em style={{fontStyle:"italic"}} {...props}/>,
-      ul: ({node, ...props}) => <ul style={{marginLeft:"20px",marginTop:0,marginBottom:"6px"}} {...props}/>,
-      ol: ({node, ...props}) => <ol style={{marginLeft:"20px",marginTop:0,marginBottom:"6px"}} {...props}/>,
-      code: ({node, inline, ...props}) => inline
+      p:      ({ node: _n, ...props }) => <p style={{ margin: "0 0 6px 0" }} {...props}/>,
+      strong: ({ node: _n, ...props }) => <strong style={{ fontWeight: 700 }} {...props}/>,
+      em:     ({ node: _n, ...props }) => <em style={{ fontStyle: "italic" }} {...props}/>,
+      ul:     ({ node: _n, ...props }) => <ul style={{ marginLeft: "20px", marginTop: 0, marginBottom: "6px" }} {...props}/>,
+      ol:     ({ node: _n, ...props }) => <ol style={{ marginLeft: "20px", marginTop: 0, marginBottom: "6px" }} {...props}/>,
+      code:   ({ node: _n, inline, ...props }) => inline
         ? <code style={{
-            background:"#F1F5F9",padding:"2px 6px",
-            borderRadius:4,fontSize:"0.9em",fontFamily:"monospace"
+            background: "#F1F5F9", padding: "2px 6px",
+            borderRadius: 4, fontSize: "0.9em", fontFamily: "monospace",
           }} {...props}/>
         : <pre style={{
-            background:"#F1F5F9",padding:"10px",borderRadius:6,
-            overflow:"auto",marginTop:"6px",marginBottom:"6px"
+            background: "#F1F5F9", padding: "10px", borderRadius: 6,
+            overflow: "auto", marginTop: "6px", marginBottom: "6px",
           }}><code {...props}/></pre>,
-      a: ({node, ...props}) => <a
-        style={{color:"#3B82F6",textDecoration:"underline",cursor:"pointer"}}
-        target="_blank" rel="noopener noreferrer" {...props}/>
+      a:      ({ node: _n, ...props }) => <a
+        style={{ color: "#3B82F6", textDecoration: "underline", cursor: "pointer" }}
+        target="_blank" rel="noopener noreferrer" {...props}/>,
     }}>
       {text}
     </ReactMarkdown>

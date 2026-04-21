@@ -53,7 +53,7 @@ function Section({ title, count, color, children }) {
   )
 }
 
-export default function ProjectsV({data,save,m,reload,user,profile,focusId,focusTs,readOnly}) {
+export default function ProjectsV({ data, save: _save, m, reload, user, profile, focusId, focusTs, readOnly }) {
   const { addToast } = useToast();
   const confirm = useConfirm();
   const [modal,setModal]=useState(null);const [form,setForm]=useState({});
@@ -246,12 +246,6 @@ export default function ProjectsV({data,save,m,reload,user,profile,focusId,focus
 
     // Données dérivées memoizées (voir useMemo plus haut)
     const { chTasks, chOS, chCR, chPlanning, intervenants, clientContact, finances } = selectedRelated;
-
-    // Couleur selon engagement : rouge si dépassement ou >85%, orange 60-85%, vert sinon
-    const ratio = finances.ratio;
-    const budgetColor = finances.depassement > 0 ? "#EF4444"
-      : ratio > 85 ? "#EF4444"
-      : ratio > 60 ? "#F59E0B" : "#10B981";
 
     return (<div>
       {/* Back button + Header */}

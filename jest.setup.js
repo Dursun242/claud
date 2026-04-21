@@ -10,3 +10,7 @@ import '@testing-library/jest-dom'
 // explicitement quand nécessaire).
 process.env.NEXT_PUBLIC_SUPABASE_URL ||= 'https://test.supabase.co'
 process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||= 'test-anon-key'
+
+// Note : les tests de routes API (handlers App Router) utilisent un
+// pragma `@jest-environment node` en tête de fichier pour avoir les
+// globals WHATWG natifs (Response, Request, fetch). jsdom les masque.
