@@ -3,11 +3,12 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import dynamic from 'next/dynamic'
 import Image from 'next/image'
 import { logout } from '../auth'
-import { SB, I, Icon } from './shared'
+import { I, Icon } from './shared'
 import { DashboardSkeleton, PageSkeleton } from '../components/Skeleton'
 import { FloatingMic, NotificationBell } from '../components'
 import { useFloatingMic } from '../hooks/useFloatingMic'
 import { useToast } from '../contexts/ToastContext'
+import { useClientDashboardData } from '../hooks/useClientDashboardData'
 
 // Lazy-load des pages — chunks séparés par onglet
 const dyn = (loader) => dynamic(loader, { loading: PageSkeleton, ssr: false })
@@ -36,13 +37,19 @@ const TABS = [
 const LAST_TAB_KEY = 'idm_client_tab'
 
 export default function ClientDashboard({ user, profile = null }) {
-  const [data,        setData]        = useState(null)
   const [tab,         setTab]         = useState('dashboard')
-  const [loading,     setLoading]     = useState(true)
   const [isMobile,    setIsMobile]    = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [helpOpen,    setHelpOpen]    = useState(false)
   const pendingGRef = useRef(null)
+
+  // Data layer via React Query : cache staleTime 5 min → revenir sur le
+  // dashboard après navigation tab browser ne refetch pas.
+  const { data, loading, reload } = useClientDashboardData(profile?.prenom, profile?.nom)
+
+  // Compat legacy : `save` prop ancienne qui setait data directement.
+  // Remplacé par un invalidateQueries (refetch).
+  const save = useCallback(async () => { await reload() }, [reload])
 
   // Détection mobile
   useEffect(() => {
@@ -62,28 +69,6 @@ export default function ClientDashboard({ user, profile = null }) {
   useEffect(() => {
     try { if (typeof window !== 'undefined') sessionStorage.setItem(LAST_TAB_KEY, tab) } catch { /* ignore */ }
   }, [tab])
-
-  // Chargement données filtrées par client
-  useEffect(() => {
-    (async () => {
-      try {
-        const sbData = await SB.loadForClient(profile?.prenom, profile?.nom)
-        setData(sbData)
-      } catch {
-        setData({ chantiers:[], contacts:[], tasks:[], planning:[], rdv:[], compteRendus:[], ordresService:[] })
-      }
-      setLoading(false)
-    })()
-  }, [profile?.prenom, profile?.nom])
-
-  const reload = useCallback(async () => {
-    try {
-      const sbData = await SB.loadForClient(profile?.prenom, profile?.nom);
-      setData(sbData)
-    } catch { /* silently fail */ }
-  }, [profile?.prenom, profile?.nom])
-
-  const save = useCallback(async (d) => { setData(d) }, [])
 
   const { addToast } = useToast()
   // Floating mic (reconnaissance vocale → assistant IA)

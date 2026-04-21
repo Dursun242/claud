@@ -9,9 +9,10 @@ import { DashboardSkeleton, PageSkeleton } from '../components/Skeleton'
 import KeyboardHelpModal from '../components/KeyboardHelpModal'
 import { useFloatingMic } from '../hooks/useFloatingMic'
 import { useToast } from '../contexts/ToastContext'
+import { useDashboardData } from '../hooks/useDashboardData'
 import { seedDemoData } from '../lib/seedDemoData'
 
-import { SB, defaultData, I, Icon } from './shared'
+import { defaultData, I, Icon } from './shared'
 
 // Lazy-load des pages : chaque page devient son propre chunk et n'est
 // téléchargée qu'au premier affichage de l'onglet correspondant.
@@ -36,9 +37,7 @@ import GlobalSearch from '../components/GlobalSearch'
 
 // ═══════════════════════════════════════════
 export default function AdminDashboard({ user, profile = null }) {
-  const [data, setData] = useState(null);
   const [tab, setTab] = useState("dashboard");
-  const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   // Aide clavier (déclenchée par « ? »)
@@ -53,74 +52,41 @@ export default function AdminDashboard({ user, profile = null }) {
     clear: clearFloatMic
   } = useFloatingMic({ onError: (msg) => addToast(msg, 'warning') });
 
+  // ─── Data layer via React Query ───
+  // useDashboardData encapsule le stage-1 (critical) et le stage-2
+  // (secondary) avec cache staleTime 5 min. Avant on avait un useEffect
+  // qui refetch à chaque mount ; maintenant la nav entre onglets est
+  // instantanée tant que la cache est fresh.
+  const { data: loadedData, loading, reload, hasChantiers } = useDashboardData();
+
+  // Seed premier login : si la DB est vide après le 1er fetch, on sème
+  // les données de démo une seule fois, puis on invalide la query.
+  // Garde-fou via `seededRef` pour ne pas relancer si l'utilisateur
+  // supprime tout ses chantiers (comportement voulu = rester vide).
+  const seededRef = useRef(false);
+  useEffect(() => {
+    if (hasChantiers !== false || seededRef.current) return;
+    seededRef.current = true;
+    (async () => {
+      try {
+        const seeded = await seedDemoData(supabase, defaultData);
+        if (seeded) reload();
+      } catch { /* silent : seed best-effort */ }
+    })();
+  }, [hasChantiers, reload]);
+
+  // Fallback visuel : si critical error OU pas encore chargé, on garde null
+  // (skeleton s'affiche). Après 1er load, on expose toujours un objet data.
+  const data = loadedData;
+
+  // Compat prop legacy `save` : certaines pages passent un setter partiel.
+  // Avec React Query on préfère invalider la query et laisser refetch.
+  const save = useCallback(async () => { await reload(); }, [reload]);
+
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
     check(); window.addEventListener("resize", check); return () => window.removeEventListener("resize", check);
   }, []);
-
-  useEffect(() => {
-    let alive = true
-    ;(async () => {
-      try {
-        // ─── Stage 1 : données critiques pour la landing DashboardV ───
-        // chantiers + tasks + ordresService + compteRendus.
-        // On lève `loading` dès que ces 4 répondent pour que l'utilisateur
-        // voie le dashboard ~instantanément. Les données secondaires
-        // (contacts, planning, rdv, attachments) arrivent en 2e temps
-        // et hydratent silencieusement via un setData partiel.
-        const critical = await SB.loadCritical()
-        if (!alive) return
-        if (critical.error) {
-          setData(defaultData)
-          setLoading(false)
-          return
-        }
-
-        if (critical.chantiers.length === 0) {
-          // Première connexion : seed puis rechargement complet.
-          const seeded = await seedDemoData(supabase, defaultData)
-          if (!alive) return
-          if (seeded) {
-            const freshAll = await SB.loadAll()
-            if (!alive) return
-            setData(freshAll.chantiers?.length > 0 ? freshAll : defaultData)
-          } else {
-            setData(defaultData)
-          }
-          setLoading(false)
-          return
-        }
-
-        // Stage 1 : rendu immédiat (placeholder pour les secondaires)
-        const { _demoIds, ...stage1 } = critical
-        setData({ ...defaultData, ...stage1 })
-        setLoading(false)
-
-        // ─── Stage 2 : secondaires en arrière-plan ───
-        // Ne bloque pas l'UI ; le setData fusionne quand ça arrive.
-        SB.loadSecondary(_demoIds).then(secondary => {
-          if (!alive) return
-          setData(prev => ({ ...(prev || {}), ...secondary }))
-        }).catch(() => { /* silencieux, data partielle acceptable */ })
-      } catch (_) {
-        if (alive) { setData(defaultData); setLoading(false) }
-      }
-    })()
-    return () => { alive = false }
-  }, []);
-
-  // Reload data from Supabase
-  const reload = useCallback(async () => {
-    try {
-      const sbData = await SB.loadAll();
-      setData(sbData);
-    } catch (e) {
-      // silently fail — keep current data
-    }
-  }, []);
-
-  // Legacy save
-  const save = useCallback(async (d) => { setData(d); }, []);
 
   // Focus = élément à mettre en avant dans la page cible après navigation
   // (utilisé par la recherche globale). On utilise un timestamp "ts" pour
