@@ -18,7 +18,8 @@ export async function POST(request) {
 
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
     if (!serviceKey) {
-      return Response.json({ error: 'SUPABASE_SERVICE_ROLE_KEY manquant dans Vercel' }, { status: 500 })
+      console.error('[upload] SUPABASE_SERVICE_ROLE_KEY manquant')
+      return Response.json({ error: 'Configuration serveur invalide' }, { status: 500 })
     }
 
     const supabaseAdmin = createClient(

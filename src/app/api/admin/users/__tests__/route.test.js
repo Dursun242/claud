@@ -21,7 +21,7 @@ jest.mock('@/app/lib/auth', () => ({
 }))
 
 // eslint-disable-next-line import/first
-import { GET, POST } from '../route'
+import { GET, POST, DELETE } from '../route'
 // eslint-disable-next-line import/first
 import { verifyAuth } from '@/app/lib/auth'
 // eslint-disable-next-line import/first
@@ -287,5 +287,107 @@ describe('POST /api/admin/users', () => {
       }),
       expect.objectContaining({ onConflict: 'email' })
     )
+  })
+})
+
+describe('DELETE /api/admin/users', () => {
+  it('refuse un non-admin avec 403', async () => {
+    verifyAuth.mockResolvedValue({ email: 'bob@acme.com' })
+    createClient.mockReturnValue(makeAdminClient({
+      authorized_users: () => selectSingle({ data: { id: 'u1', role: 'salarie' }, error: null }),
+    }))
+
+    const res = await DELETE(makeRequest({ token: 't', body: { id: 'u2' } }))
+    expect(res.status).toBe(403)
+  })
+
+  it("refuse la self-suppression d'un admin avec 400", async () => {
+    verifyAuth.mockResolvedValue({ email: 'admin@acme.com' })
+    createClient.mockReturnValue(makeAdminClient({
+      authorized_users: () => selectSingle({ data: { id: 'u-admin', role: 'admin' }, error: null }),
+    }))
+
+    const res = await DELETE(makeRequest({ token: 't', body: { id: 'u-admin' } }))
+    expect(res.status).toBe(400)
+    expect((await res.json()).error).toMatch(/propre compte/i)
+  })
+
+  it("refuse la suppression du DERNIER admin actif avec 400", async () => {
+    verifyAuth.mockResolvedValue({ email: 'admin@acme.com' })
+    createClient.mockReturnValue(makeAdminClient({
+      authorized_users: () => {
+        // single() = caller ; maybeSingle() = cible ; select avec count = last-admin check
+        const chain = {
+          select: jest.fn().mockImplementation((...args) => {
+            // Détection du select count (2e arg contient { count: 'exact', head: true })
+            const opts = args[1]
+            if (opts?.count === 'exact') {
+              return {
+                eq: jest.fn().mockReturnThis(),
+                // On résout la chaîne .eq().eq() en renvoyant count=1 (dernier admin)
+                then: undefined,
+              }
+            }
+            return chain
+          }),
+          eq: jest.fn().mockImplementation(function (col, val) {
+            // Le 2e .eq() sur le count-query retourne la promesse finale.
+            if (chain._countMode) return Promise.resolve({ count: 1, error: null })
+            return chain
+          }),
+          single: jest.fn().mockResolvedValue({ data: { id: 'u-admin', role: 'admin' }, error: null }),
+          maybeSingle: jest.fn().mockResolvedValue({
+            data: { id: 'u-other-admin', role: 'admin', actif: true }, error: null,
+          }),
+          delete: jest.fn(),
+        }
+        // On marque le "count-mode" dès que select est appelé avec options
+        const origSelect = chain.select
+        chain.select = jest.fn((...args) => {
+          if (args[1]?.count === 'exact') {
+            return { eq: () => ({ eq: () => Promise.resolve({ count: 1, error: null }) }) }
+          }
+          return origSelect(...args)
+        })
+        return chain
+      },
+    }))
+
+    const res = await DELETE(makeRequest({ token: 't', body: { id: 'u-other-admin' } }))
+    expect(res.status).toBe(400)
+    expect((await res.json()).error).toMatch(/dernier administrateur/i)
+  })
+
+  it("supprime un salarié quand l'admin caller n'est pas la cible", async () => {
+    verifyAuth.mockResolvedValue({ email: 'admin@acme.com' })
+    const deleteSpy = jest.fn()
+    createClient.mockReturnValue(makeAdminClient({
+      authorized_users: () => {
+        const chain = {
+          select: jest.fn().mockReturnThis(),
+          eq: jest.fn().mockImplementation(function () {
+            // deletion terminal
+            if (chain._deleteMode) {
+              return Promise.resolve({ error: null })
+            }
+            return chain
+          }),
+          single: jest.fn().mockResolvedValue({ data: { id: 'u-admin', role: 'admin' }, error: null }),
+          maybeSingle: jest.fn().mockResolvedValue({
+            data: { id: 'u-salarie', role: 'salarie', actif: true }, error: null,
+          }),
+          delete: () => {
+            deleteSpy()
+            chain._deleteMode = true
+            return chain
+          },
+        }
+        return chain
+      },
+    }))
+
+    const res = await DELETE(makeRequest({ token: 't', body: { id: 'u-salarie' } }))
+    expect(res.status).toBe(200)
+    expect(deleteSpy).toHaveBeenCalled()
   })
 })

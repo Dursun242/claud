@@ -65,10 +65,14 @@ export async function POST(request) {
       return Response.json({ error: 'Endpoint manquant' }, { status: 400 })
     }
 
-    // Whitelist allowed endpoints (read-only)
-    const allowed = ['client_invoices', 'quotes', 'clients', 'attachments']
-    const base = endpoint.split('?')[0]
-    if (!allowed.some(a => base.includes(a))) {
+    // Whitelist allowed endpoints (read-only).
+    //
+    // Avant : `.includes()` laissait passer "memberships/clients" ou
+    // "../clients" — n'importe quelle string qui CONTENAIT une valeur
+    // whitelistée. Maintenant, regex stricte : soit la collection exacte,
+    // soit la collection + /<uuid>, avec un query string optionnel.
+    const ALLOWED_ENDPOINT_RE = /^(client_invoices|quotes|clients|attachments)(\/[\w-]+)?(\?[^#]*)?$/
+    if (!ALLOWED_ENDPOINT_RE.test(endpoint)) {
       return Response.json({ error: 'Endpoint not allowed' }, { status: 403 })
     }
 

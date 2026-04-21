@@ -185,6 +185,11 @@ export async function POST(request) {
 }
 
 // DELETE — supprime un utilisateur par id (admin uniquement)
+//
+// Deux garde-fous :
+//   1. Un admin ne peut pas se supprimer lui-même (escalade de privilège
+//      possible s'il est le dernier admin → compte orphelin).
+//   2. On refuse de supprimer le dernier admin actif (lockout total).
 export async function DELETE(request) {
   try {
     const user = await verifyAuth(request)
@@ -194,13 +199,41 @@ export async function DELETE(request) {
 
     const { data: caller } = await supabaseAdmin
       .from('authorized_users')
-      .select('role')
+      .select('id, role')
       .eq('email', user.email)
       .single()
     if (caller?.role !== 'admin') return Response.json({ error: 'Accès réservé aux administrateurs' }, { status: 403 })
 
     const { id } = await request.json()
     if (!id) return Response.json({ error: 'ID requis.' }, { status: 400 })
+
+    // Self-delete bloqué
+    if (id === caller.id) {
+      return Response.json(
+        { error: 'Un administrateur ne peut pas supprimer son propre compte.' },
+        { status: 400 }
+      )
+    }
+
+    // Si la cible est admin actif, refuser si c'est le dernier.
+    const { data: target } = await supabaseAdmin
+      .from('authorized_users')
+      .select('id, role, actif')
+      .eq('id', id)
+      .maybeSingle()
+    if (target?.role === 'admin' && target?.actif !== false) {
+      const { count } = await supabaseAdmin
+        .from('authorized_users')
+        .select('id', { count: 'exact', head: true })
+        .eq('role', 'admin')
+        .eq('actif', true)
+      if ((count ?? 0) <= 1) {
+        return Response.json(
+          { error: 'Impossible de supprimer le dernier administrateur actif.' },
+          { status: 400 }
+        )
+      }
+    }
 
     const { error } = await supabaseAdmin
       .from('authorized_users')

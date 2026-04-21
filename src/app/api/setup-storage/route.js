@@ -23,7 +23,10 @@ export async function POST(request) {
 
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
   if (!serviceKey) {
-    return Response.json({ error: 'SUPABASE_SERVICE_ROLE_KEY manquant dans les variables d\'environnement Vercel.' }, { status: 500 })
+    // Message générique côté client : pas d'info sur quelle env var manque
+    // (évite le fingerprinting). Détail dans les logs serveur.
+    console.error('[setup-storage] SUPABASE_SERVICE_ROLE_KEY manquant')
+    return Response.json({ error: 'Configuration serveur invalide' }, { status: 500 })
   }
 
   const supabaseAdmin = createClient(

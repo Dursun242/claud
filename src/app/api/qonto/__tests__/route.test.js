@@ -85,6 +85,30 @@ describe('POST /api/qonto', () => {
     expect(res.status).toBe(403)
   })
 
+  it("refuse 'memberships/clients' (tentative de contournement par sous-string)", async () => {
+    // Avant le fix regex, `.includes('clients')` laissait passer.
+    verifyAuth.mockResolvedValue({ id: 'u1' })
+    const res = await POST(makeRequest({ token: 't', body: { endpoint: 'memberships/clients' } }))
+    expect(res.status).toBe(403)
+  })
+
+  it("refuse les path traversal ('../clients')", async () => {
+    verifyAuth.mockResolvedValue({ id: 'u1' })
+    const res = await POST(makeRequest({ token: 't', body: { endpoint: '../clients' } }))
+    expect(res.status).toBe(403)
+  })
+
+  it("accepte les endpoints avec UUID comme 'client_invoices/<uuid>'", async () => {
+    verifyAuth.mockResolvedValue({ id: 'u1' })
+    adminClient.mockReturnValue(supaWithToken('login:s'))
+    fetchWithRetry.mockResolvedValue(fakeOk({ client_invoice: {} }))
+
+    const res = await POST(makeRequest({
+      token: 't', body: { endpoint: 'client_invoices/abc-123-xyz' },
+    }))
+    expect(res.status).toBe(200)
+  })
+
   it("renvoie 400 si le token Qonto n'est pas configuré en DB", async () => {
     verifyAuth.mockResolvedValue({ id: 'u1' })
     adminClient.mockReturnValue(supaWithToken(null))
