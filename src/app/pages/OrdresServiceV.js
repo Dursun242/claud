@@ -12,6 +12,7 @@ import { buildCSV, downloadCSV, formatDateFR, formatMoneyFR } from '../lib/csv'
 import { supabase } from '../supabaseClient'
 import { useImportDevis } from '../hooks/useImportDevis'
 import { usePrestationManager } from '../hooks/usePrestationManager'
+import { useSignaturesSync } from '../hooks/useSignaturesSync'
 
 export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly}) {
   const { addToast } = useToast();
@@ -59,47 +60,44 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly})
       setModal("new")
     },
   });
-  // Sync signatures Odoo → Supabase (auto au mount + manuel)
+  // Sync signatures Odoo → Supabase, partagé avec ProjectsV via le hook
+  // useSignaturesSync (throttle 2 min + coalescence in-flight).
+  const { sync: syncSignatures } = useSignaturesSync();
   const [syncingSigs, setSyncingSigs] = useState(false);
-  const syncedOnceRef = useRef(false);
 
   const handleSyncSignatures = useCallback(async (silent = false) => {
     if (syncingSigs) return;
     setSyncingSigs(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch('/api/odoo/sync-signatures', {
-        headers: { 'Authorization': `Bearer ${session?.access_token || ''}` },
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || 'Erreur sync');
-      if (!silent) {
-        if (json.updated > 0) {
-          const n=json.updated;
-          addToast(`${n} signature${n > 1 ? 's' : ''} mise${n > 1 ? 's' : ''} à jour`, 'success');
-          reload?.();
-        } else {
-          addToast('Signatures à jour — aucun changement', 'info');
-        }
-      } else if (json.updated > 0) {
-        // En mode silencieux (auto au mount), on reload quand même si des maj
-        reload?.();
+      // force=true en mode manuel pour bypasser le throttle (l'utilisateur
+      // a cliqué le bouton → il veut un vrai refresh).
+      const updated = await syncSignatures({ force: !silent, silent });
+      if (updated == null) {
+        if (!silent) addToast('Signatures à jour — aucun changement', 'info');
+        return;
       }
-    } catch (err) {
-      if (!silent) addToast('Erreur sync : ' + err.message, 'error');
-      console.warn('[sync-signatures]', err.message);
+      if (updated > 0) {
+        if (!silent) {
+          addToast(
+            `${updated} signature${updated > 1 ? 's' : ''} mise${updated > 1 ? 's' : ''} à jour`,
+            'success'
+          );
+        }
+        reload?.();
+      } else if (!silent) {
+        addToast('Signatures à jour — aucun changement', 'info');
+      }
     } finally {
       setSyncingSigs(false);
     }
-  }, [syncingSigs, addToast, reload]);
+  }, [syncingSigs, syncSignatures, addToast, reload]);
 
-  // Sync auto (silencieux) une fois par session au premier montage de la page OS
+  // Sync auto silencieux au mount (respecte le throttle 2 min du hook).
   useEffect(() => {
-    if (syncedOnceRef.current) return;
-    syncedOnceRef.current = true;
-    handleSyncSignatures(true);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    syncSignatures({ silent: true }).then(updated => {
+      if (updated > 0) reload?.();
+    });
+  }, [syncSignatures, reload]);
 
   // Delete avec undo (5s pour annuler)
   const { pendingIds: pendingDeleteIds, scheduleDelete } = useUndoableDelete({

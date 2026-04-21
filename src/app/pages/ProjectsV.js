@@ -13,11 +13,11 @@ import ChantierCard from '../components/projects/ChantierCard'
 import ProjectsFilterPills from '../components/projects/ProjectsFilterPills'
 import { useAttachments } from '../hooks/useAttachments'
 import { useComments } from '../hooks/useComments'
+import { useSignaturesSync } from '../hooks/useSignaturesSync'
 import { generateOSPdf, generateCRPdf, generateOSExcel, generateCRExcel } from '../generators'
 import { useToast } from '../contexts/ToastContext'
 import { useConfirm } from '../contexts/ConfirmContext'
 import { computeChantierFinances } from '../lib/chantierFinances'
-import { supabase } from '../supabaseClient'
 
 // Style doux pour les boutons d'action dans la vue détail (PDF/XLS/etc.)
 // Remplace les blocs rouge/vert/bleu saturés par des pastilles pastel.
@@ -69,28 +69,15 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
   const { attachments, uploadAttachment, deleteAttachment } = useAttachments('chantier', selected);
   const { comments, addComment, deleteComment } = useComments('chantier', selected, user?.email);
 
-  // Sync auto (silencieuse, une fois par montage de page) des signatures
-  // Odoo → Supabase. Permet aux statuts des OS affichés dans le détail
-  // chantier d'être à jour même si l'utilisateur n'est pas passé par
-  // l'onglet OS. L'API renvoie vite si rien à synchroniser.
-  const sigsSyncedRef = useRef(false);
+  // Sync silencieuse Odoo → Supabase via le hook partagé (throttle 2 min
+  // + coalescence avec OrdresServiceV : une seule requête Odoo si
+  // l'utilisateur navigue entre les deux onglets).
+  const { sync: syncSignatures } = useSignaturesSync();
   useEffect(() => {
-    if (sigsSyncedRef.current) return;
-    sigsSyncedRef.current = true;
-    (async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session?.access_token) return;
-        const res = await fetch('/api/odoo/sync-signatures', {
-          headers: { Authorization: `Bearer ${session.access_token}` },
-        });
-        if (!res.ok) return;
-        const payload = await res.json().catch(() => ({}));
-        if (payload?.updated > 0) reload();
-      } catch (_) { /* silencieux : pas bloquant pour la page */ }
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    syncSignatures({ silent: true }).then(updated => {
+      if (updated > 0) reload()
+    })
+  }, [syncSignatures, reload]);
 
   // Dérivées memoizées : évite de recalculer à chaque frappe dans un input.
   // Recalculées uniquement si data ou selected change.

@@ -59,34 +59,54 @@ export default function AdminDashboard({ user, profile = null }) {
   }, []);
 
   useEffect(() => {
-    (async () => {
+    let alive = true
+    ;(async () => {
       try {
-        const sbData = await SB.loadAll();
-        if (sbData.error) {
-          setData(defaultData);
-          setLoading(false);
-          return;
+        // ─── Stage 1 : données critiques pour la landing DashboardV ───
+        // chantiers + tasks + ordresService + compteRendus.
+        // On lève `loading` dès que ces 4 répondent pour que l'utilisateur
+        // voie le dashboard ~instantanément. Les données secondaires
+        // (contacts, planning, rdv, attachments) arrivent en 2e temps
+        // et hydratent silencieusement via un setData partiel.
+        const critical = await SB.loadCritical()
+        if (!alive) return
+        if (critical.error) {
+          setData(defaultData)
+          setLoading(false)
+          return
         }
-        const hasData = sbData.chantiers.length > 0;
 
-        if (hasData) {
-          setData(sbData);
-        } else {
-          // Seed données de démonstration (première connexion)
-          // Logique extraite dans lib/seedDemoData.js
-          const seeded = await seedDemoData(supabase, defaultData);
+        if (critical.chantiers.length === 0) {
+          // Première connexion : seed puis rechargement complet.
+          const seeded = await seedDemoData(supabase, defaultData)
+          if (!alive) return
           if (seeded) {
-            const freshData = await SB.loadAll();
-            setData(freshData.chantiers.length > 0 ? freshData : defaultData);
+            const freshAll = await SB.loadAll()
+            if (!alive) return
+            setData(freshAll.chantiers?.length > 0 ? freshAll : defaultData)
           } else {
-            setData(defaultData);
+            setData(defaultData)
           }
+          setLoading(false)
+          return
         }
-      } catch (e) {
-        setData(defaultData);
+
+        // Stage 1 : rendu immédiat (placeholder pour les secondaires)
+        const { _demoIds, ...stage1 } = critical
+        setData({ ...defaultData, ...stage1 })
+        setLoading(false)
+
+        // ─── Stage 2 : secondaires en arrière-plan ───
+        // Ne bloque pas l'UI ; le setData fusionne quand ça arrive.
+        SB.loadSecondary(_demoIds).then(secondary => {
+          if (!alive) return
+          setData(prev => ({ ...(prev || {}), ...secondary }))
+        }).catch(() => { /* silencieux, data partielle acceptable */ })
+      } catch (_) {
+        if (alive) { setData(defaultData); setLoading(false) }
       }
-      setLoading(false);
-    })();
+    })()
+    return () => { alive = false }
   }, []);
 
   // Reload data from Supabase
