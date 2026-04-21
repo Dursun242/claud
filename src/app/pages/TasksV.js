@@ -10,7 +10,7 @@ import { useUndoableDelete } from '../hooks/useUndoableDelete'
 const PRIORITY_ORDER = { Urgent: 0, "En cours": 1, "En attente": 2 }
 const TASK_STATUSES = ["Planifié", "En cours", "Terminé"]
 
-export default function TasksV({data,save,m,reload,focusId,focusTs}) {
+export default function TasksV({ data, save: _save, m, reload, focusId, focusTs }) {
   const { addToast } = useToast()
   const confirm = useConfirm()
   const [modal, setModal] = useState(null)

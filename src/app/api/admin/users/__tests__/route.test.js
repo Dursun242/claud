@@ -55,29 +55,6 @@ function selectSingle(result) {
     single: jest.fn().mockResolvedValue(result),
   }
 }
-// Helper : chaîne "select → order" (liste complète)
-function selectOrder(result) {
-  return {
-    select: jest.fn().mockReturnThis(),
-    order: jest.fn().mockResolvedValue(result),
-  }
-}
-// Helper : chaîne "insert → select → single" (création)
-function insertSingle(result) {
-  return {
-    insert: jest.fn().mockReturnThis(),
-    select: jest.fn().mockReturnThis(),
-    single: jest.fn().mockResolvedValue(result),
-  }
-}
-// Helper : chaîne "upsert → select → single"
-function upsertSingle(result) {
-  return {
-    upsert: jest.fn().mockReturnThis(),
-    select: jest.fn().mockReturnThis(),
-    single: jest.fn().mockResolvedValue(result),
-  }
-}
 // Helper : chaîne "insert" terminal avec .then() chaîné (activity_logs fait
 // `.insert(...).then(...)`). On retourne une thenable qui résout tout de suite.
 function insertThen() {
@@ -134,15 +111,12 @@ describe('GET /api/admin/users', () => {
     const fullList = [admin, { id: 'u2', email: 'bob@acme.com', role: 'salarie' }]
     createClient.mockReturnValue(makeAdminClient({
       authorized_users: () => {
-        // Premier appel : lookup caller (maybeSingle) ; second : liste (order)
-        let calls = 0
+        // Premier appel : lookup caller (maybeSingle) ; second : liste (order).
+        // Les deux fonctions terminales résolvent indépendamment selon leur nom.
         return {
           select: jest.fn().mockReturnThis(),
           eq: jest.fn().mockReturnThis(),
-          maybeSingle: jest.fn().mockImplementation(() => {
-            calls++
-            return Promise.resolve({ data: admin, error: null })
-          }),
+          maybeSingle: jest.fn().mockResolvedValue({ data: admin, error: null }),
           order: jest.fn().mockResolvedValue({ data: fullList, error: null }),
         }
       },
@@ -330,7 +304,7 @@ describe('DELETE /api/admin/users', () => {
             }
             return chain
           }),
-          eq: jest.fn().mockImplementation(function (col, val) {
+          eq: jest.fn().mockImplementation(function () {
             // Le 2e .eq() sur le count-query retourne la promesse finale.
             if (chain._countMode) return Promise.resolve({ count: 1, error: null })
             return chain

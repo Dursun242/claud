@@ -519,8 +519,10 @@ export const SB = {
     if (error) throw new Error("Erreur ajout utilisateur: " + error.message);
     return data;
   },
-  // Chargement filtré pour un maître d'ouvrage (uniquement ses chantiers)
-  async loadForClient(prenom, nom) {
+  // Chargement filtré pour un maître d'ouvrage (uniquement ses chantiers).
+  // `nom` est encore accepté pour compat future (matching prénom+nom) mais
+  // la logique actuelle ne filtre que sur le prénom — cf. README migration 019.
+  async loadForClient(prenom, _nom) {
     // Chercher les chantiers dont le champ "client" contient le prénom du maître d'ouvrage
     const term = (prenom || '').trim()
     if (!term) return {
@@ -740,10 +742,6 @@ export const fmtMoney = n => new Intl.NumberFormat("fr-FR", {
   style:"currency", currency:"EUR", maximumFractionDigits:0
 }).format(n);
 export const pct = (a,b) => b ? Math.round(a/b*100) : 0;
-export const fmtTime = s =>
-  new Date(s).toLocaleTimeString("fr-FR", {hour:"2-digit", minute:"2-digit"});
-export const fmtDayFr = s =>
-  new Date(s).toLocaleDateString("fr-FR", {weekday:"short", day:"numeric", month:"short"});
 
 // ─── SHARED COMPONENTS ───
 export function FF({label,hint,children}) {

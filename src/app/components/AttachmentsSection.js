@@ -82,8 +82,11 @@ function AttachmentRow({ att, onDelete }) {
       onMouseEnter={(e) => { e.currentTarget.style.background = '#F8FAFC'; e.currentTarget.style.borderColor = '#CBD5E1' }}
       onMouseLeave={(e) => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.borderColor = '#E2E8F0' }}
     >
-      {/* Icône / miniature */}
+      {/* Icône / miniature — `url` est une signed URL Supabase avec TTL court :
+          next/image la cacherait par URL, donc après expiration l'image
+          resterait "bloquée" sur l'ancienne URL cassée. On garde <img> natif. */}
       {isImg && url ? (
+        // eslint-disable-next-line @next/next/no-img-element
         <img
           src={url}
           alt=""

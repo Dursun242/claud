@@ -281,20 +281,6 @@ export async function generatePVPdf(pvData) {
   return doc
 }
 
-function entete(doc, w, margin) {
-  let y = 12
-  // Logo ID Maîtrise
-  try { doc.addImage(LOGO_B64, 'JPEG', margin, y - 5, 48, 14) } catch(e) { console.warn("Logo error:", e) }
-  // Infos entreprise à droite du logo
-  doc.setFontSize(7.5)
-  doc.setFont("helvetica", "normal")
-  doc.setTextColor(...GRIS)
-  doc.text(`${ENT.adresse}, ${ENT.cpVille}`, margin + 52, y + 1)
-  doc.text(`SIRET: ${ENT.siret} — ${ENT.email}`, margin + 52, y + 5)
-  doc.text(`${ENT.assurance}`, margin + 52, y + 9)
-  return y + 12
-}
-
 function pied(doc, w, margin, y) {
   doc.setDrawColor(203, 213, 225)
   doc.setLineWidth(0.2)

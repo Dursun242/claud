@@ -11,7 +11,7 @@ import { useFloatingMic } from '../hooks/useFloatingMic'
 import { useToast } from '../contexts/ToastContext'
 import { seedDemoData } from '../lib/seedDemoData'
 
-import { SB, defaultData, I, Icon, ApiBadge } from './shared'
+import { SB, defaultData, I, Icon } from './shared'
 
 // Lazy-load des pages : chaque page devient son propre chunk et n'est
 // téléchargée qu'au premier affichage de l'onglet correspondant.

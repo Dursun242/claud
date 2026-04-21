@@ -21,14 +21,15 @@
 export async function seedDemoData(supabase, defaultData) {
   let insertedChIds = []
   try {
-    const chantierRows = defaultData.chantiers.map(({ id, dateDebut, dateFin, ...rest }) => ({
+    // Le `id` local est jeté : Supabase en génère un nouveau (UUID natif).
+    const chantierRows = defaultData.chantiers.map(({ id: _id, dateDebut, dateFin, ...rest }) => ({
       ...rest, date_debut: dateDebut || null, date_fin: dateFin || null
     }))
     const { data: insertedCh, error: errCh } = await supabase.from('chantiers').insert(chantierRows).select()
     if (errCh) throw new Error("Erreur insert chantiers: " + errCh.message)
     insertedChIds = (insertedCh || []).map(c => c.id)
 
-    const contactRows = defaultData.contacts.map(({ id, chantiers, ...rest }) => rest)
+    const contactRows = defaultData.contacts.map(({ id: _id, chantiers: _ch, ...rest }) => rest)
     const { error: errCo } = await supabase.from('contacts').insert(contactRows).select()
     if (errCo) throw new Error("Erreur insert contacts: " + errCo.message)
 
@@ -40,7 +41,7 @@ export async function seedDemoData(supabase, defaultData) {
       })
     }
 
-    const taskRows = defaultData.tasks.map(({ id, chantierId, ...rest }) => ({
+    const taskRows = defaultData.tasks.map(({ id: _id, chantierId, ...rest }) => ({
       ...rest, chantier_id: chMap[chantierId] || null
     })).filter(t => t.chantier_id)
     if (taskRows.length > 0) {
@@ -49,7 +50,7 @@ export async function seedDemoData(supabase, defaultData) {
     }
 
     if (defaultData.compteRendus) {
-      const crRows = defaultData.compteRendus.map(({ id, chantierId, ...rest }) => ({
+      const crRows = defaultData.compteRendus.map(({ id: _id, chantierId, ...rest }) => ({
         ...rest, chantier_id: chMap[chantierId] || null
       })).filter(c => c.chantier_id)
       if (crRows.length > 0) {

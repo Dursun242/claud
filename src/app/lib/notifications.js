@@ -147,7 +147,7 @@ async function resolveActorDisplay(actorEmail) {
  *   - Staff (admin/salarié) : TOUS les actifs, y compris l'acteur.
  *   - Client (MOA) du chantier : inclus y compris s'il est l'acteur.
  */
-async function resolveRecipients({ chantierId, actorEmail }) {
+async function resolveRecipients({ chantierId, actorEmail: _actorEmail }) {
   const recipients = new Set()
 
   // Staff (admin + salarié actifs) via RPC SECURITY DEFINER (migration 018)

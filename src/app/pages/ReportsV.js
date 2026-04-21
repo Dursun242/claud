@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useMemo, useRef } from 'react'
-import { SB, Icon, I, fmtDate, FF, inp, sel, btnP, btnS } from '../dashboards/shared'
+import { SB, fmtDate, FF, inp, sel, btnP, btnS } from '../dashboards/shared'
 import { Modal } from '../components'
 import { useToast } from '../contexts/ToastContext'
 import { useConfirm } from '../contexts/ConfirmContext'
@@ -19,7 +19,7 @@ const crBtn = (color, bg, border) => ({
   fontFamily: "inherit",
 })
 
-export default function ReportsV({data,save,m,reload,focusId,focusTs,readOnly}) {
+export default function ReportsV({ data, save: _save, m, reload, focusId, focusTs, readOnly }) {
   const { addToast } = useToast()
   const confirm = useConfirm()
   const [modal, setModal] = useState(null)

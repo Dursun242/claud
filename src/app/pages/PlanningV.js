@@ -32,7 +32,7 @@ const zBtnS = {
 }
 
 // ─── Vue Liste ─────────────────────────────────────────────
-function ListeView({ filteredChantiers, osByChantier, m }) {
+function ListeView({ filteredChantiers, osByChantier, m: _m }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       {filteredChantiers.map(c => {
@@ -95,8 +95,12 @@ export default function PlanningV({ data, m, reload }) {
 
   useEffect(() => { pxDayRef.current = pxDay }, [pxDay])
 
-  const chantiers     = data.chantiers     || []
-  const ordresService = data.ordresService || []
+  // data.chantiers / data.ordresService peuvent être `undefined` au premier
+  // render (stage 1 du loadCritical pas encore résolu) — on stabilise les
+  // fallbacks via useMemo pour que les useMemo en aval n'aient pas des
+  // références qui changent à chaque render.
+  const chantiers     = useMemo(() => data.chantiers     || [], [data.chantiers])
+  const ordresService = useMemo(() => data.ordresService || [], [data.ordresService])
 
   // OS planifiés : ceux qui ont au moins une date d'intervention
   const osPlanned = useMemo(() =>

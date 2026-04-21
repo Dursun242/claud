@@ -1,23 +1,5 @@
 // Générer un PDF de procès-verbal de réception professionnel pour signature Odoo
 
-function drawBulbIcon(doc, x, y, size) {
-  const s = size / 20
-  doc.setDrawColor(80, 80, 80)
-  doc.setLineWidth(0.3)
-
-  // Culot (spirale)
-  doc.arc(x + 8 * s, y + 2 * s, 3 * s, 3 * s, 0, 360)
-
-  // Corps ampoule
-  doc.ellipse(x + 8 * s, y + 8 * s, 5 * s, 6 * s)
-
-  // Rayons
-  doc.line(x + 2 * s, y + 7 * s, x + 0.5 * s, y + 7 * s)
-  doc.line(x + 14 * s, y + 7 * s, x + 15.5 * s, y + 7 * s)
-  doc.line(x + 3 * s, y + 4 * s, x + 2 * s, y + 2.5 * s)
-  doc.line(x + 13 * s, y + 4 * s, x + 14 * s, y + 2.5 * s)
-}
-
 export async function generatePVPdfBase64(pvData) {
   try {
     const jsPDF = (await import('jspdf')).jsPDF

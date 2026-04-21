@@ -27,7 +27,7 @@ function decisionColor(decision) {
   }
 }
 
-export default function ProcesVerbauxV({ data, m, reload, user }) {
+export default function ProcesVerbauxV({ data, m, reload, user: _user }) {
   const { addToast } = useToast()
   const [selectedPV, setSelectedPV] = useState(null)
   const [q, setQ] = useState('')
