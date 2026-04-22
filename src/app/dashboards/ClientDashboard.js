@@ -10,17 +10,28 @@ import { useFloatingMic } from '../hooks/useFloatingMic'
 import { useToast } from '../contexts/ToastContext'
 import { useClientDashboardData } from '../hooks/useClientDashboardData'
 
-// Lazy-load des pages — chunks séparés par onglet
+// Lazy-load des pages — chunks séparés par onglet, mais on garde les
+// loaders référencés pour pouvoir preload() au hover/focus des boutons.
 const dyn = (loader) => dynamic(loader, { loading: PageSkeleton, ssr: false })
 
-const DashboardV      = dyn(() => import('../pages/DashboardV'))
-const ProjectsV       = dyn(() => import('../pages/ProjectsV'))
-const ReportsV        = dyn(() => import('../pages/ReportsV'))
-const OrdresServiceV  = dyn(() => import('../pages/OrdresServiceV'))
-const PlanningV       = dyn(() => import('../pages/PlanningV'))
-const TasksV          = dyn(() => import('../pages/TasksV'))
-const AIV             = dyn(() => import('../pages/AIV'))
-const ProcesVerbauxV  = dyn(() => import('../pages/ProcesVerbauxV'))
+const PAGE_LOADERS = {
+  dashboard: () => import('../pages/DashboardV'),
+  projects:  () => import('../pages/ProjectsV'),
+  reports:   () => import('../pages/ReportsV'),
+  os:        () => import('../pages/OrdresServiceV'),
+  planning:  () => import('../pages/PlanningV'),
+  tasks:     () => import('../pages/TasksV'),
+  ai:        () => import('../pages/AIV'),
+  pv:        () => import('../pages/ProcesVerbauxV'),
+}
+const DashboardV      = dyn(PAGE_LOADERS.dashboard)
+const ProjectsV       = dyn(PAGE_LOADERS.projects)
+const ReportsV        = dyn(PAGE_LOADERS.reports)
+const OrdresServiceV  = dyn(PAGE_LOADERS.os)
+const PlanningV       = dyn(PAGE_LOADERS.planning)
+const TasksV          = dyn(PAGE_LOADERS.tasks)
+const AIV             = dyn(PAGE_LOADERS.ai)
+const ProcesVerbauxV  = dyn(PAGE_LOADERS.pv)
 // Onglets disponibles pour le maître d'ouvrage (avec raccourci clavier « g + sc »)
 // Note : OS utilise I.os (presse-papier) pour se distinguer visuellement des Comptes Rendus (I.reports)
 const TABS = [
@@ -81,6 +92,19 @@ export default function ClientDashboard({ user, profile = null }) {
   const switchTab = useCallback((k) => {
     setTab(k)
     setSidebarOpen(false)
+  }, [])
+
+  // Onglets visités : restent montés (display:none) après la 1ère visite.
+  // Évite re-mount + re-fetch à chaque switch.
+  const [visitedTabs, setVisitedTabs] = useState(() => new Set([tab]))
+  useEffect(() => {
+    setVisitedTabs(prev => prev.has(tab) ? prev : new Set([...prev, tab]))
+  }, [tab])
+
+  // Preload du chunk d'un onglet au hover/focus du bouton sidebar.
+  const preloadTab = useCallback((key) => {
+    const loader = PAGE_LOADERS[key]
+    if (loader) loader().catch(() => { /* silencieux */ })
   }, [])
 
   // Raccourcis clavier : « g + lettre », « ? » pour l'aide, Escape pour fermer
@@ -196,6 +220,7 @@ export default function ClientDashboard({ user, profile = null }) {
                 key={t.key}
                 data-nav
                 onClick={() => switchTab(t.key)}
+                onFocus={() => preloadTab(t.key)}
                 title={`${t.label} (g ${t.sc})`}
                 aria-current={active ? "page" : undefined}
                 aria-label={`${t.label}, raccourci g puis ${t.sc}`}
@@ -209,7 +234,11 @@ export default function ClientDashboard({ user, profile = null }) {
                 color:active?'#fff':'#94A3B8',
                 fontWeight:active?600:400, fontSize:13, transition:'background .15s, color .15s',
               }}
-              onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'rgba(255,255,255,0.04)' }}
+              onMouseEnter={e => {
+                // Préchargement du chunk JS de l'onglet → clic instantané.
+                preloadTab(t.key)
+                if (!active) e.currentTarget.style.background = 'rgba(255,255,255,0.04)'
+              }}
               onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent' }}>
                 {/* Barre d'accent verticale uniforme */}
                 <span aria-hidden style={{
@@ -332,18 +361,53 @@ export default function ClientDashboard({ user, profile = null }) {
               </div>
             </div>
           )}
-          {tab === 'dashboard' && <DashboardV     data={data} setTab={switchTab} m={isMobile} user={user} />}
-          {tab === 'projects' && <ProjectsV data={data} save={save} m={isMobile}
-            reload={reload} user={user} profile={profile} readOnly />}
-          {tab === 'tasks'     && <TasksV         data={data} save={save} m={isMobile} reload={reload} />}
-          {tab === 'reports'   && <ReportsV       data={data} save={save} m={isMobile} reload={reload} readOnly />}
-          {tab === 'os'        && <OrdresServiceV data={data} m={isMobile} reload={reload} readOnly />}
-          {tab === 'planning'  && <PlanningV      data={data} m={isMobile} />}
-          {tab === 'pv'        && <ProcesVerbauxV data={data} m={isMobile} reload={reload} user={user} />}
-          {tab === 'ai' && <AIV data={data} save={save} m={isMobile}
-            reload={reload} user={user} profile={profile} clientMode
-            externalTranscript={floatTranscript}
-            clearExternal={()=>setFloatTranscript("")} />}
+          {/* Onglets visités restent montés (display:none) pour éviter
+              re-mount + re-fetch à chaque switch. Voir AdminDashboard pour
+              explication détaillée du pattern. */}
+          {visitedTabs.has('dashboard') && (
+            <div style={{ display: tab === 'dashboard' ? 'block' : 'none' }}>
+              <DashboardV data={data} setTab={switchTab} m={isMobile} user={user} />
+            </div>
+          )}
+          {visitedTabs.has('projects') && (
+            <div style={{ display: tab === 'projects' ? 'block' : 'none' }}>
+              <ProjectsV data={data} save={save} m={isMobile}
+                reload={reload} user={user} profile={profile} readOnly />
+            </div>
+          )}
+          {visitedTabs.has('tasks') && (
+            <div style={{ display: tab === 'tasks' ? 'block' : 'none' }}>
+              <TasksV data={data} save={save} m={isMobile} reload={reload} />
+            </div>
+          )}
+          {visitedTabs.has('reports') && (
+            <div style={{ display: tab === 'reports' ? 'block' : 'none' }}>
+              <ReportsV data={data} save={save} m={isMobile} reload={reload} readOnly />
+            </div>
+          )}
+          {visitedTabs.has('os') && (
+            <div style={{ display: tab === 'os' ? 'block' : 'none' }}>
+              <OrdresServiceV data={data} m={isMobile} reload={reload} readOnly />
+            </div>
+          )}
+          {visitedTabs.has('planning') && (
+            <div style={{ display: tab === 'planning' ? 'block' : 'none' }}>
+              <PlanningV data={data} m={isMobile} />
+            </div>
+          )}
+          {visitedTabs.has('pv') && (
+            <div style={{ display: tab === 'pv' ? 'block' : 'none' }}>
+              <ProcesVerbauxV data={data} m={isMobile} reload={reload} user={user} />
+            </div>
+          )}
+          {visitedTabs.has('ai') && (
+            <div style={{ display: tab === 'ai' ? 'block' : 'none' }}>
+              <AIV data={data} save={save} m={isMobile}
+                reload={reload} user={user} profile={profile} clientMode
+                externalTranscript={floatTranscript}
+                clearExternal={()=>setFloatTranscript("")} />
+            </div>
+          )}
         </div>
       </main>
 

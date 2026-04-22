@@ -22,17 +22,33 @@ const dyn = (loader) => dynamic(loader, { loading: PageSkeleton, ssr: false })
 // Clé localStorage pour la persistance de l'onglet actif (survit au refresh)
 const LAST_TAB_KEY = 'idm_admin_tab'
 
-const AdminV = dyn(() => import('../pages/AdminV'))
-const DashboardV = dyn(() => import('../pages/DashboardV'))
-const QontoV = dyn(() => import('../pages/QontoV'))
-const ProjectsV = dyn(() => import('../pages/ProjectsV'))
-const PlanningV = dyn(() => import('../pages/PlanningV'))
-const TasksV = dyn(() => import('../pages/TasksV'))
-const ContactsV = dyn(() => import('../pages/ContactsV'))
-const ReportsV = dyn(() => import('../pages/ReportsV'))
-const OrdresServiceV = dyn(() => import('../pages/OrdresServiceV'))
-const AIV = dyn(() => import('../pages/AIV'))
-const PhotoReportsV = dyn(() => import('../pages/PhotoReportsV'))
+// Table loader-par-onglet : garde une référence vers le dynamic import
+// pour qu'on puisse le preload() au survol du bouton (précharge le chunk
+// JS AVANT que l'utilisateur clique → pas de latence réseau au switch).
+const PAGE_LOADERS = {
+  admin:     () => import('../pages/AdminV'),
+  dashboard: () => import('../pages/DashboardV'),
+  qonto:     () => import('../pages/QontoV'),
+  projects:  () => import('../pages/ProjectsV'),
+  planning:  () => import('../pages/PlanningV'),
+  tasks:     () => import('../pages/TasksV'),
+  contacts:  () => import('../pages/ContactsV'),
+  reports:   () => import('../pages/ReportsV'),
+  os:        () => import('../pages/OrdresServiceV'),
+  ai:        () => import('../pages/AIV'),
+  photos:    () => import('../pages/PhotoReportsV'),
+}
+const AdminV         = dyn(PAGE_LOADERS.admin)
+const DashboardV     = dyn(PAGE_LOADERS.dashboard)
+const QontoV         = dyn(PAGE_LOADERS.qonto)
+const ProjectsV      = dyn(PAGE_LOADERS.projects)
+const PlanningV      = dyn(PAGE_LOADERS.planning)
+const TasksV         = dyn(PAGE_LOADERS.tasks)
+const ContactsV      = dyn(PAGE_LOADERS.contacts)
+const ReportsV       = dyn(PAGE_LOADERS.reports)
+const OrdresServiceV = dyn(PAGE_LOADERS.os)
+const AIV            = dyn(PAGE_LOADERS.ai)
+const PhotoReportsV  = dyn(PAGE_LOADERS.photos)
 import GlobalSearch from '../components/GlobalSearch'
 
 // ═══════════════════════════════════════════
@@ -132,6 +148,23 @@ export default function AdminDashboard({ user, profile = null }) {
   useEffect(() => {
     try { if (typeof window !== 'undefined') sessionStorage.setItem(LAST_TAB_KEY, tab); } catch { /* ignore */ }
   }, [tab]);
+
+  // ─── Onglets visités : restent MONTÉS (display:none) après la première
+  // visite pour éviter le re-mount + re-fetch à chaque retour.
+  // Gain : navigation instantanée entre les onglets déjà vus.
+  // Coût : un peu plus de RAM (quelques Mo, négligeable).
+  const [visitedTabs, setVisitedTabs] = useState(() => new Set([tab]));
+  useEffect(() => {
+    setVisitedTabs(prev => prev.has(tab) ? prev : new Set([...prev, tab]));
+  }, [tab]);
+
+  // Preload le chunk d'un onglet (au hover/focus du bouton de la sidebar).
+  // next/dynamic expose .preload() sur les composants paresseux, mais on
+  // peut aussi déclencher l'import() manuellement. Sans erreur si déjà chargé.
+  const preloadTab = useCallback((key) => {
+    const loader = PAGE_LOADERS[key];
+    if (loader) loader().catch(() => { /* silencieux */ });
+  }, []);
 
   // ─── Raccourcis clavier globaux ───
   // • « g » + lettre → aller à un onglet (style GitHub)
@@ -292,6 +325,7 @@ export default function AdminDashboard({ user, profile = null }) {
                 key={t.key}
                 data-nav
                 onClick={()=>switchTab(t.key)}
+                onFocus={()=>preloadTab(t.key)}
                 title={`${t.label} (g ${t.sc})`}
                 aria-current={active ? "page" : undefined}
                 aria-label={`${t.label}, raccourci g puis ${t.sc}`}
@@ -306,7 +340,12 @@ export default function AdminDashboard({ user, profile = null }) {
                 background:active?"rgba(255,255,255,0.10)":"transparent",
                 transition:"background .15s, color .15s",textAlign:"left",width:"100%",
               }}
-              onMouseEnter={e=>{ if(!active) e.currentTarget.style.background="rgba(255,255,255,0.04)"; }}
+              onMouseEnter={e=>{
+                // Préchargement du chunk JS dès le hover → au clic, pas
+                // d'attente réseau si première visite de l'onglet.
+                preloadTab(t.key);
+                if (!active) e.currentTarget.style.background = "rgba(255,255,255,0.04)";
+              }}
               onMouseLeave={e=>{ if(!active) e.currentTarget.style.background="transparent"; }}>
                 {/* Barre d'accent verticale, uniforme sur tous les onglets actifs */}
                 <span aria-hidden style={{
@@ -417,25 +456,74 @@ export default function AdminDashboard({ user, profile = null }) {
           </div>
         )}
         <div style={{animation:"fadeIn .3s ease",maxWidth:1200}}>
-          {tab==="dashboard"&&<DashboardV data={data} setTab={switchTab} m={isMobile} user={user}/>}
-          {tab==="qonto"&&<QontoV m={isMobile} data={data} reload={reload}/>}
-          {tab==="projects"&&<ProjectsV data={data} save={save} m={isMobile}
-            reload={reload} user={user} profile={profile}
-            focusId={focus?.id} focusTs={focus?.ts}/>}
-          {tab==="planning"&&<PlanningV data={data} m={isMobile}/>}
-          {tab==="tasks"&&<TasksV data={data} save={save} m={isMobile}
-            reload={reload} focusId={focus?.id} focusTs={focus?.ts}/>}
-          {tab==="contacts"&&<ContactsV data={data} save={save} m={isMobile}
-            reload={reload} focusId={focus?.id} focusTs={focus?.ts}/>}
-          {tab==="reports"&&<ReportsV data={data} save={save} m={isMobile}
-            reload={reload} focusId={focus?.id} focusTs={focus?.ts}/>}
-          {tab==="os"&&<OrdresServiceV data={data} m={isMobile}
-            reload={reload} focusId={focus?.id} focusTs={focus?.ts}/>}
-          {tab==="photos"&&<PhotoReportsV data={data} m={isMobile} reload={reload}/>}
-          {tab==="admin"&&<AdminV m={isMobile} reload={reload} profile={profile}/>}
-          {tab==="ai"&&<AIV data={data} save={save} m={isMobile}
-            externalTranscript={floatTranscript}
-            clearExternal={()=>setFloatTranscript("")} reload={reload}/>}
+          {/* Chaque onglet n'est RENDU que s'il a déjà été visité (visitedTabs),
+              et reste MONTÉ avec display:none quand il n'est pas actif.
+              Avant, {tab==="x" && <XV/>} démontait la page précédente à chaque
+              switch → re-mount + re-fetch des useEffect internes → latence.
+              Maintenant, les useEffect des pages ne tournent qu'une fois. */}
+          {visitedTabs.has('dashboard') && (
+            <div style={{ display: tab === 'dashboard' ? 'block' : 'none' }}>
+              <DashboardV data={data} setTab={switchTab} m={isMobile} user={user}/>
+            </div>
+          )}
+          {visitedTabs.has('qonto') && (
+            <div style={{ display: tab === 'qonto' ? 'block' : 'none' }}>
+              <QontoV m={isMobile} data={data} reload={reload}/>
+            </div>
+          )}
+          {visitedTabs.has('projects') && (
+            <div style={{ display: tab === 'projects' ? 'block' : 'none' }}>
+              <ProjectsV data={data} save={save} m={isMobile}
+                reload={reload} user={user} profile={profile}
+                focusId={focus?.id} focusTs={focus?.ts}/>
+            </div>
+          )}
+          {visitedTabs.has('planning') && (
+            <div style={{ display: tab === 'planning' ? 'block' : 'none' }}>
+              <PlanningV data={data} m={isMobile}/>
+            </div>
+          )}
+          {visitedTabs.has('tasks') && (
+            <div style={{ display: tab === 'tasks' ? 'block' : 'none' }}>
+              <TasksV data={data} save={save} m={isMobile}
+                reload={reload} focusId={focus?.id} focusTs={focus?.ts}/>
+            </div>
+          )}
+          {visitedTabs.has('contacts') && (
+            <div style={{ display: tab === 'contacts' ? 'block' : 'none' }}>
+              <ContactsV data={data} save={save} m={isMobile}
+                reload={reload} focusId={focus?.id} focusTs={focus?.ts}/>
+            </div>
+          )}
+          {visitedTabs.has('reports') && (
+            <div style={{ display: tab === 'reports' ? 'block' : 'none' }}>
+              <ReportsV data={data} save={save} m={isMobile}
+                reload={reload} focusId={focus?.id} focusTs={focus?.ts}/>
+            </div>
+          )}
+          {visitedTabs.has('os') && (
+            <div style={{ display: tab === 'os' ? 'block' : 'none' }}>
+              <OrdresServiceV data={data} m={isMobile}
+                reload={reload} focusId={focus?.id} focusTs={focus?.ts}/>
+            </div>
+          )}
+          {visitedTabs.has('photos') && (
+            <div style={{ display: tab === 'photos' ? 'block' : 'none' }}>
+              <PhotoReportsV data={data} m={isMobile} reload={reload}/>
+            </div>
+          )}
+          {visitedTabs.has('admin') && (
+            <div style={{ display: tab === 'admin' ? 'block' : 'none' }}>
+              <AdminV m={isMobile} reload={reload} profile={profile}/>
+            </div>
+          )}
+          {visitedTabs.has('ai') && (
+            <div style={{ display: tab === 'ai' ? 'block' : 'none' }}>
+              <AIV data={data} save={save} m={isMobile}
+                externalTranscript={floatTranscript}
+                clearExternal={()=>setFloatTranscript("")} reload={reload}/>
+            </div>
+          )}
         </div>
       </main>
 
