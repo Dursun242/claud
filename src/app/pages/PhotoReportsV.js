@@ -209,11 +209,14 @@ export default function PhotoReportsV({ data, m }) {
       // un fichier (pas juste URL/texte). iOS Safari + Chrome Android OK,
       // desktop Firefox non.
       if (navigator.canShare?.({ files: [file] })) {
+        // On passe `url: window.location.origin` pour FORCER le champ URL :
+        // sinon iOS WhatsApp remplit de lui-même avec une URL `blob:…`
+        // interne (illisible, non cliquable). En explicitant, le message
+        // affiche proprement le lien de l'app — cliquable et utile.
         await navigator.share({
           files: [file],
           title: `Reportage photo — ${chantier.nom}`,
-          // Volontairement pas de `text:` ni `url:` → évite que WhatsApp
-          // colle une URL illisible dans le corps du message.
+          url: typeof window !== 'undefined' ? window.location.origin : '',
         })
         addToast('Rapport partagé', 'success')
       } else {
