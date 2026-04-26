@@ -38,7 +38,7 @@ setInterval(() => {
   for (const [ip, entry] of rateLimit.entries()) {
     if (now > entry.resetAt) rateLimit.delete(ip);
   }
-}, WINDOW_MS * 5);
+}, WINDOW_MS * 5).unref();
 
 export async function POST(request) {
   try {

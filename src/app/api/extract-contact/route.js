@@ -30,7 +30,7 @@ setInterval(() => {
   for (const [ip, entry] of rateLimit.entries()) {
     if (now > entry.resetAt) rateLimit.delete(ip);
   }
-}, WINDOW_MS * 5);
+}, WINDOW_MS * 5).unref();
 
 const SYSTEM_PROMPT = `Tu es un assistant d'extraction de données de contact.
 

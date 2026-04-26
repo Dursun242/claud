@@ -25,10 +25,44 @@ const MAX_SIZE = 20 * 1024 * 1024 // 20 MB
 // UUID v4 regex — itemId doit être un UUID Supabase valide
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
+// Rate limiting par user ID : 10 uploads/minute.
+// Keyed sur le user.id (UUID Supabase, non-spoofable) plutôt que l'IP
+// pour résister aux proxies et aux VPNs.
+const uploadRL = new Map() // userId → { count, resetAt }
+const RL_LIMIT = 10
+const RL_WINDOW = 60_000
+
+function checkUploadRateLimit(userId) {
+  const now = Date.now()
+  const entry = uploadRL.get(userId)
+  if (!entry || now > entry.resetAt) {
+    uploadRL.set(userId, { count: 1, resetAt: now + RL_WINDOW })
+    return true
+  }
+  if (entry.count >= RL_LIMIT) return false
+  entry.count++
+  return true
+}
+
+setInterval(() => {
+  const now = Date.now()
+  for (const [id, e] of uploadRL.entries()) {
+    if (now > e.resetAt) uploadRL.delete(id)
+  }
+}, RL_WINDOW * 5).unref()
+
 export async function POST(request) {
   try {
     const user = await verifyAuth(request)
     if (!user) return Response.json({ error: 'Non autorisé' }, { status: 401 })
+
+    // Rate limit : 10 uploads/minute par utilisateur
+    if (!checkUploadRateLimit(user.id)) {
+      return Response.json(
+        { error: 'Trop d\'uploads — attendez 1 minute avant de réessayer.' },
+        { status: 429 }
+      )
+    }
 
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
     if (!serviceKey) {
