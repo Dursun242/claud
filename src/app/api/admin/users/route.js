@@ -68,17 +68,17 @@ export async function GET(request) {
               entity_label: `Prospect démo — ${email}`,
               metadata: { provider: user.app_metadata?.provider || null },
             }).then(() => {}, () => {})
-          } else if (createErr) {
-            // Conflit probable (deux requêtes simultanées au même instant — race
-            // condition courante après OAuth Google qui tire plusieurs SIGNED_IN).
-            // On relit simplement le compte existant plutôt que de refuser l'accès.
-            console.error('[admin/users GET] demo auto-provisioning:', createErr)
+          } else if (createErr?.code === '23505') {
+            // Conflit unique — race condition OAuth (SIGNED_IN peut tirer plusieurs fois).
+            // On relit le compte créé par la requête concurrente.
             const { data: existing } = await supabaseAdmin
               .from('authorized_users')
               .select('id, email, prenom, nom, role, actif')
               .eq('email', email)
               .maybeSingle()
             if (existing) caller = existing
+          } else if (createErr) {
+            console.error('[admin/users GET] demo auto-provisioning:', createErr)
           }
         }
         // Cas B : ancien compte démo désactivé → on le réactive.

@@ -48,7 +48,7 @@ export async function POST(request) {
     return NextResponse.json(result)
   } catch (err) {
     log.error('sign', err?.message || err)
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    return NextResponse.json({ error: 'Erreur lors de la création de la signature' }, { status: 500 })
   }
 }
 
@@ -68,6 +68,6 @@ export async function GET(request) {
     return NextResponse.json(status)
   } catch (err) {
     log.error('get status', err?.message || err)
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    return NextResponse.json({ error: 'Erreur lors de la récupération du statut' }, { status: 500 })
   }
 }

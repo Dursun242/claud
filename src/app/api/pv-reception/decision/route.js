@@ -13,6 +13,18 @@ export async function POST(request) {
     const user = await verifyAuth(request)
     if (!user) return Response.json({ error: 'Non autorisé' }, { status: 401 })
 
+    // Seuls les admins et salariés peuvent enregistrer une décision de réception.
+    // Les clients (MOA) ont un accès lecture seule — ils ne pilotent pas les décisions.
+    const supaForRole = adminClient()
+    const { data: caller } = await supaForRole
+      .from('authorized_users')
+      .select('role')
+      .eq('email', user.email?.toLowerCase().trim())
+      .maybeSingle()
+    if (!caller || !['admin', 'salarié', 'salarie'].includes(caller.role)) {
+      return Response.json({ error: 'Accès réservé au personnel de maîtrise d\'œuvre' }, { status: 403 })
+    }
+
     const body = await request.json()
     const { pvId, decision, motifRefus } = body
 
@@ -93,6 +105,6 @@ export async function POST(request) {
     })
   } catch (err) {
     log.error('exception', err?.message || err)
-    return Response.json({ error: 'Erreur serveur: ' + err.message }, { status: 500 })
+    return Response.json({ error: 'Erreur serveur' }, { status: 500 })
   }
 }

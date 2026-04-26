@@ -34,6 +34,11 @@ export function middleware() {
     'Permissions-Policy',
     'camera=(self), microphone=(self), geolocation=(), payment=(), usb=()'
   )
+  // Interdit aux plugins Flash/PDF tiers de lire les cookies cross-domain.
+  res.headers.set('X-Permitted-Cross-Domain-Policies', 'none')
+  // Désactive le filtre XSS legacy IE (les navigateurs modernes n'en ont
+  // plus besoin, et la valeur "1" peut créer des faux positifs).
+  res.headers.set('X-XSS-Protection', '0')
 
   return res
 }

@@ -35,58 +35,44 @@ function makeRequest({ token, body } = {}) {
   }
 }
 
-// Construit un stub Supabase qui :
-//   - Sur SELECT (count des PV existants) → renvoie `existingCount` PVs
-//   - Sur INSERT → renvoie l'objet `inserted`
-//   - Sur UPDATE → résout sans erreur
+// Stub minimal pour le lookup de rôle (authorized_users).
+function makeRoleChain(role = 'admin') {
+  return {
+    select: jest.fn().mockReturnThis(),
+    eq: jest.fn().mockReturnThis(),
+    maybeSingle: jest.fn().mockResolvedValue({ data: role ? { role } : null, error: null }),
+  }
+}
+
+// Construit un stub Supabase qui gère :
+//   - authorized_users (lookup rôle)
+//   - proces_verbaux_reception (count, insert, update)
 function makeSupaStub({
   existingCount = 0,
   inserted = { id: 'pv-new', numero: 'PV-2026-001' },
   insertError = null,
   updateError = null,
+  callerRole = 'admin',
 } = {}) {
   const insertSpy = jest.fn()
   const updateSpy = jest.fn()
   const from = jest.fn((table) => {
+    if (table === 'authorized_users') return makeRoleChain(callerRole)
     if (table !== 'proces_verbaux_reception') throw new Error('unexpected table ' + table)
-    // Chaque appel from() crée un nouveau chainable — on distingue
-    // select vs insert vs update par la 1ère méthode appelée.
     const chain = {
-      // SELECT → count
-      select: jest.fn().mockImplementation(() => {
-        chain._mode = 'select'
-        return chain
-      }),
+      select: jest.fn().mockImplementation(() => { chain._mode = 'select'; return chain }),
       eq: jest.fn().mockImplementation(function () {
-        // Pour UPDATE : .eq() est terminal, résout
         if (chain._mode === 'update') return Promise.resolve({ error: updateError })
         return chain
       }),
-      ilike: jest.fn().mockImplementation(() => {
-        // Terminal sur SELECT count
-        return Promise.resolve({
-          data: Array(existingCount).fill({ numero: 'x' }),
-          error: null,
-        })
-      }),
-      // INSERT
-      insert: jest.fn().mockImplementation((row) => {
-        chain._mode = 'insert'
-        insertSpy(row)
-        return chain
-      }),
-      single: jest.fn().mockImplementation(() => {
-        return Promise.resolve({
-          data: insertError ? null : inserted,
-          error: insertError,
-        })
-      }),
-      // UPDATE
-      update: jest.fn().mockImplementation((row) => {
-        chain._mode = 'update'
-        updateSpy(row)
-        return chain
-      }),
+      ilike: jest.fn().mockImplementation(() =>
+        Promise.resolve({ data: Array(existingCount).fill({ numero: 'x' }), error: null })
+      ),
+      insert: jest.fn().mockImplementation((row) => { chain._mode = 'insert'; insertSpy(row); return chain }),
+      single: jest.fn().mockImplementation(() =>
+        Promise.resolve({ data: insertError ? null : inserted, error: insertError })
+      ),
+      update: jest.fn().mockImplementation((row) => { chain._mode = 'update'; updateSpy(row); return chain }),
     }
     return chain
   })
@@ -98,6 +84,9 @@ beforeEach(() => {
   createSignRequestFromPdf.mockReset()
   createNotifications.mockReset()
   adminClient.mockReset()
+  // Par défaut : caller est admin — évite de devoir répéter le stub dans
+  // chaque test de validation qui ne touche pas à la DB PV.
+  adminClient.mockReturnValue({ from: (t) => t === 'authorized_users' ? makeRoleChain('admin') : (() => { throw new Error('unexpected: ' + t) })() })
 })
 
 describe('POST /api/pv-reception/create', () => {
@@ -285,7 +274,7 @@ describe('POST /api/pv-reception/create', () => {
       },
     }))
     expect(res.status).toBe(500)
-    expect((await res.json()).error).toMatch(/création PV/i)
+    expect((await res.json()).error).toMatch(/erreur/i)
   })
 
   it("renvoie 500 si Odoo signature échoue (mais le PV reste créé en DB)", async () => {
@@ -302,7 +291,7 @@ describe('POST /api/pv-reception/create', () => {
       },
     }))
     expect(res.status).toBe(500)
-    expect((await res.json()).error).toMatch(/signature Odoo/i)
+    expect((await res.json()).error).toMatch(/signature/i)
     // Insert a quand même été fait
     expect(supa.insertSpy).toHaveBeenCalled()
   })

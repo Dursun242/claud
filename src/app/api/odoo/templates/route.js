@@ -13,17 +13,21 @@ export async function GET(request) {
     const fields = await inspectModel('sign.template')
     return NextResponse.json({ templates, _signTemplateFields: Object.keys(fields) })
   } catch (err) {
-    console.error('❌ Odoo templates:', err.message)
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    console.error('[odoo-templates GET]', err?.message || err)
+    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
   }
 }
 
-// GET /api/odoo/templates?test=1 — teste la connexion
-export async function HEAD(_request) {
+// HEAD /api/odoo/templates — teste la connexion Odoo
+export async function HEAD(request) {
+  const user = await verifyAuth(request)
+  if (!user) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+
   try {
     const info = await testConnection()
     return NextResponse.json(info)
   } catch (err) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    console.error('[odoo-templates HEAD]', err?.message || err)
+    return NextResponse.json({ error: 'Erreur connexion Odoo' }, { status: 500 })
   }
 }

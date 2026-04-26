@@ -1,7 +1,10 @@
 import { createClient } from '@supabase/supabase-js'
 import { verifyAuth } from '@/app/lib/auth'
+import { createLogger } from '@/app/lib/logger'
 
-const ALLOWED_TYPES = [
+const log = createLogger('upload')
+
+const ALLOWED_MIME_TYPES = [
   'image/jpeg', 'image/png', 'image/gif', 'image/webp',
   'application/pdf',
   'application/msword',
@@ -9,7 +12,15 @@ const ALLOWED_TYPES = [
   'application/vnd.ms-excel',
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
 ]
+
+const ALLOWED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf', 'doc', 'docx', 'xls', 'xlsx']
+
+const TYPE_TO_COL = { chantier: 'chantier_id', os: 'os_id', cr: 'cr_id', task: 'task_id' }
+
 const MAX_SIZE = 20 * 1024 * 1024 // 20 MB
+
+// UUID v4 regex — itemId doit être un UUID Supabase valide
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 export async function POST(request) {
   try {
@@ -18,7 +29,7 @@ export async function POST(request) {
 
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
     if (!serviceKey) {
-      console.error('[upload] SUPABASE_SERVICE_ROLE_KEY manquant')
+      log.error('SUPABASE_SERVICE_ROLE_KEY manquant')
       return Response.json({ error: 'Configuration serveur invalide' }, { status: 500 })
     }
 
@@ -29,19 +40,35 @@ export async function POST(request) {
     )
 
     const formData = await request.formData()
-    const file    = formData.get('file')
-    const type    = formData.get('type')   // chantier | os | cr | task
-    const itemId  = formData.get('itemId')
+    const file   = formData.get('file')
+    const type   = formData.get('type')   // chantier | os | cr | task
+    const itemId = formData.get('itemId')
 
     if (!file || !type || !itemId) {
       return Response.json({ error: 'Paramètres manquants' }, { status: 400 })
     }
 
-    // Validation type de fichier
-    if (!ALLOWED_TYPES.includes(file.type)) {
+    // Validation du type (allowlist stricte — prévient path traversal via le champ type)
+    if (!TYPE_TO_COL[type]) {
+      return Response.json({ error: 'Type invalide' }, { status: 400 })
+    }
+
+    // Validation du format itemId (UUID Supabase — prévient path traversal via itemId)
+    if (!UUID_RE.test(itemId)) {
+      return Response.json({ error: 'itemId invalide' }, { status: 400 })
+    }
+
+    // Validation MIME type
+    if (!ALLOWED_MIME_TYPES.includes(file.type)) {
       return Response.json({
-        error: `Type de fichier non autorisé (${file.type}). Formats acceptés : images, PDF, Word, Excel.`
+        error: 'Type de fichier non autorisé. Formats acceptés : images, PDF, Word, Excel.'
       }, { status: 400 })
+    }
+
+    // Validation de l'extension (couche défense supplémentaire contre le spoofing MIME)
+    const ext = (file.name.split('.').pop() || '').toLowerCase().replace(/[^a-z0-9]/g, '')
+    if (!ALLOWED_EXTENSIONS.includes(ext)) {
+      return Response.json({ error: 'Extension de fichier non autorisée.' }, { status: 400 })
     }
 
     // Validation taille
@@ -49,8 +76,7 @@ export async function POST(request) {
       return Response.json({ error: 'Fichier trop volumineux (max 20 Mo).' }, { status: 400 })
     }
 
-    // Upload vers Storage
-    const ext = file.name.split('.').pop()
+    // Construction du chemin avec uniquement des composants validés
     const safeName = `${Date.now()}.${ext}`
     const filePath = `${type}/${itemId}/${safeName}`
     const arrayBuf = await file.arrayBuffer()
@@ -58,10 +84,13 @@ export async function POST(request) {
       .from('attachments')
       .upload(filePath, arrayBuf, { contentType: file.type })
 
-    if (uploadError) return Response.json({ error: uploadError.message }, { status: 500 })
+    if (uploadError) {
+      log.error('storage upload', uploadError.message)
+      return Response.json({ error: 'Erreur lors du stockage du fichier.' }, { status: 500 })
+    }
 
     // Enregistrer en base
-    const colName = { chantier: 'chantier_id', os: 'os_id', cr: 'cr_id', task: 'task_id' }[type]
+    const colName = TYPE_TO_COL[type]
     const { error: dbError } = await supabaseAdmin.from('attachments').insert({
       [colName]: itemId,
       file_name: file.name,
@@ -69,10 +98,14 @@ export async function POST(request) {
       file_size: file.size,
     })
 
-    if (dbError) return Response.json({ error: dbError.message }, { status: 500 })
+    if (dbError) {
+      log.error('db insert', dbError.message)
+      return Response.json({ error: 'Erreur lors de l\'enregistrement du fichier.' }, { status: 500 })
+    }
 
     return Response.json({ ok: true, filePath })
   } catch (e) {
-    return Response.json({ error: e.message }, { status: 500 })
+    log.error('exception', e?.message || e)
+    return Response.json({ error: 'Erreur serveur.' }, { status: 500 })
   }
 }

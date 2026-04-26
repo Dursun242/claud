@@ -178,7 +178,7 @@ describe('POST /api/odoo/sign', () => {
     expect(adminClient).not.toHaveBeenCalled()
   })
 
-  it("renvoie 500 avec le message si Odoo échoue", async () => {
+  it("renvoie 500 (message générique) si Odoo échoue", async () => {
     verifyAuth.mockResolvedValue({ id: 'u1' })
     createSignRequestFromPdf.mockRejectedValue(new Error('Odoo timeout'))
 
@@ -187,7 +187,7 @@ describe('POST /api/odoo/sign', () => {
       body: { pdfBase64: 'x', signers: [{ email: 'x@y.fr', role: 'Entreprise' }] },
     }))
     expect(res.status).toBe(500)
-    expect((await res.json()).error).toBe('Odoo timeout')
+    expect((await res.json()).error).toMatch(/signature/i)
   })
 })
 
@@ -225,12 +225,12 @@ describe('GET /api/odoo/sign', () => {
     expect(getSignRequestStatus).toHaveBeenCalledWith(42)
   })
 
-  it("renvoie 500 si Odoo jette", async () => {
+  it("renvoie 500 (message générique) si Odoo jette", async () => {
     verifyAuth.mockResolvedValue({ id: 'u1' })
     getSignRequestStatus.mockRejectedValue(new Error('Not found'))
 
     const res = await GET(makeRequest({ url: 'http://x/api/odoo/sign?requestId=99', token: 't' }))
     expect(res.status).toBe(500)
-    expect((await res.json()).error).toBe('Not found')
+    expect((await res.json()).error).toMatch(/statut/i)
   })
 })
