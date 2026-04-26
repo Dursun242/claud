@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { verifyAuth } from '@/app/lib/auth'
+import { userClientFromToken, extractBearerToken } from '@/app/lib/supabaseClients'
 import { createLogger } from '@/app/lib/logger'
 
 const log = createLogger('upload')
@@ -15,7 +16,9 @@ const ALLOWED_MIME_TYPES = [
 
 const ALLOWED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf', 'doc', 'docx', 'xls', 'xlsx']
 
-const TYPE_TO_COL = { chantier: 'chantier_id', os: 'os_id', cr: 'cr_id', task: 'task_id' }
+const TYPE_TO_COL   = { chantier: 'chantier_id', os: 'os_id', cr: 'cr_id', task: 'task_id' }
+// Tables réelles Supabase — utilisées pour la vérification d'accès RLS
+const TYPE_TO_TABLE = { chantier: 'chantiers', os: 'ordres_service', cr: 'compte_rendus', task: 'taches' }
 
 const MAX_SIZE = 20 * 1024 * 1024 // 20 MB
 
@@ -32,12 +35,6 @@ export async function POST(request) {
       log.error('SUPABASE_SERVICE_ROLE_KEY manquant')
       return Response.json({ error: 'Configuration serveur invalide' }, { status: 500 })
     }
-
-    const supabaseAdmin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      serviceKey,
-      { auth: { persistSession: false } }
-    )
 
     const formData = await request.formData()
     const file   = formData.get('file')
@@ -58,6 +55,21 @@ export async function POST(request) {
       return Response.json({ error: 'itemId invalide' }, { status: 400 })
     }
 
+    // Vérification d'accès IDOR : le client Supabase avec le JWT de l'utilisateur
+    // respecte les RLS policies — si l'utilisateur n'a pas accès à cette ressource,
+    // Supabase renvoie null et on bloque l'upload avant tout traitement.
+    const token = extractBearerToken(request)
+    if (!token) return Response.json({ error: 'Token manquant' }, { status: 401 })
+    const userSupa = userClientFromToken(token)
+    const { data: resource } = await userSupa
+      .from(TYPE_TO_TABLE[type])
+      .select('id')
+      .eq('id', itemId)
+      .maybeSingle()
+    if (!resource) {
+      return Response.json({ error: 'Ressource non trouvée ou accès refusé' }, { status: 403 })
+    }
+
     // Validation MIME type
     if (!ALLOWED_MIME_TYPES.includes(file.type)) {
       return Response.json({
@@ -75,6 +87,12 @@ export async function POST(request) {
     if (file.size > MAX_SIZE) {
       return Response.json({ error: 'Fichier trop volumineux (max 20 Mo).' }, { status: 400 })
     }
+
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      serviceKey,
+      { auth: { persistSession: false } }
+    )
 
     // Construction du chemin avec uniquement des composants validés
     const safeName = `${Date.now()}.${ext}`
