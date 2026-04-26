@@ -215,7 +215,7 @@ export async function POST(request) {
     try {
       extracted = JSON.parse(cleaned);
     } catch (parseErr) {
-      console.error('[extract-os-data] JSON parse failed:', cleaned);
+      console.error('[extract-os-data] JSON parse failed, longueur réponse:', cleaned.length);
       return Response.json({
         error: "Extraction échouée — la réponse IA n'est pas un JSON valide. Essaie avec une photo plus nette.",
       }, { status: 500 });

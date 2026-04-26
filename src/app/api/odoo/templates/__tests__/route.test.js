@@ -3,14 +3,13 @@
  */
 // Tests de la route /api/odoo/templates.
 //
-// GET  → liste les templates Odoo Sign + inspecte les champs sign.template
-// HEAD → ping de connexion (diagnostic)
+// GET  → liste les templates Odoo Sign
+// HEAD → ping de connexion (diagnostic, auth requise)
 
 jest.mock('@/app/lib/auth', () => ({ verifyAuth: jest.fn() }))
 jest.mock('../../../../lib/odoo', () => ({
   getSignTemplates: jest.fn(),
   testConnection: jest.fn(),
-  inspectModel: jest.fn(),
 }))
 
 // eslint-disable-next-line import/first
@@ -18,7 +17,7 @@ import { GET, HEAD } from '../route'
 // eslint-disable-next-line import/first
 import { verifyAuth } from '@/app/lib/auth'
 // eslint-disable-next-line import/first
-import { getSignTemplates, testConnection, inspectModel } from '../../../../lib/odoo'
+import { getSignTemplates, testConnection } from '../../../../lib/odoo'
 
 function makeRequest({ token } = {}) {
   const headers = new Map()
@@ -30,7 +29,6 @@ beforeEach(() => {
   verifyAuth.mockReset()
   getSignTemplates.mockReset()
   testConnection.mockReset()
-  inspectModel.mockReset()
   jest.spyOn(console, 'error').mockImplementation(() => {})
 })
 afterEach(() => {
@@ -44,17 +42,17 @@ describe('GET /api/odoo/templates', () => {
     expect(res.status).toBe(401)
   })
 
-  it('renvoie les templates + les champs de sign.template (diagnostic)', async () => {
+  it('renvoie les templates Odoo', async () => {
     verifyAuth.mockResolvedValue({ id: 'u1' })
     const templates = [{ id: 1, name: 'Tpl A' }, { id: 2, name: 'Tpl B' }]
     getSignTemplates.mockResolvedValue(templates)
-    inspectModel.mockResolvedValue({ name: { type: 'char' }, active: { type: 'boolean' } })
 
     const res = await GET(makeRequest({ token: 't' }))
     expect(res.status).toBe(200)
     const json = await res.json()
     expect(json.templates).toEqual(templates)
-    expect(json._signTemplateFields).toEqual(['name', 'active'])
+    // _signTemplateFields supprimé (exposait la structure interne Odoo)
+    expect(json._signTemplateFields).toBeUndefined()
   })
 
   it('renvoie 500 (message générique) si getSignTemplates jette', async () => {

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getSignTemplates, testConnection, inspectModel } from '../../../lib/odoo'
+import { getSignTemplates, testConnection } from '../../../lib/odoo'
 import { verifyAuth } from '@/app/lib/auth'
 
 // GET /api/odoo/templates — liste les templates Odoo Sign
@@ -9,9 +9,7 @@ export async function GET(request) {
 
   try {
     const templates = await getSignTemplates()
-    // Inspecter les champs sign.template pour le diagnostic
-    const fields = await inspectModel('sign.template')
-    return NextResponse.json({ templates, _signTemplateFields: Object.keys(fields) })
+    return NextResponse.json({ templates })
   } catch (err) {
     console.error('[odoo-templates GET]', err?.message || err)
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })

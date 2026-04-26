@@ -7,6 +7,32 @@ function getAdminClient() {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, serviceKey, { auth: { persistSession: false } })
 }
 
+// Rate limit sur la création de comptes démo — protège contre le flood de comptes
+// par un bot qui multiplierait les logins Google pour remplir la table.
+// 5 créations / minute / IP est amplement suffisant pour un usage humain normal.
+const demoSignupRL = new Map() // ip → { count, resetAt }
+const DEMO_RL_LIMIT = 5
+const DEMO_RL_WINDOW = 60_000
+
+function checkDemoRateLimit(ip) {
+  const now = Date.now()
+  const entry = demoSignupRL.get(ip)
+  if (!entry || now > entry.resetAt) {
+    demoSignupRL.set(ip, { count: 1, resetAt: now + DEMO_RL_WINDOW })
+    return true
+  }
+  if (entry.count >= DEMO_RL_LIMIT) return false
+  entry.count++
+  return true
+}
+
+setInterval(() => {
+  const now = Date.now()
+  for (const [ip, e] of demoSignupRL.entries()) {
+    if (now > e.resetAt) demoSignupRL.delete(ip)
+  }
+}, DEMO_RL_WINDOW * 5).unref()
+
 // GET — liste les utilisateurs autorisés
 // - Admin : liste complète
 // - User normal : uniquement son propre profil (évite la fuite d'infos collègues)
@@ -47,6 +73,13 @@ export async function GET(request) {
       if (demoOpen) {
         // Cas A : email inconnu → création client DémoMOA
         if (!caller) {
+          // Vérifie le rate limit avant d'insérer — bloque les bots qui
+          // créeraient des milliers de comptes démo depuis une seule IP.
+          const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
+          if (!checkDemoRateLimit(ip)) {
+            return Response.json({ error: 'Trop de tentatives — réessayez dans une minute.' }, { status: 429 })
+          }
+
           const { data: created, error: createErr } = await supabaseAdmin
             .from('authorized_users')
             .insert({

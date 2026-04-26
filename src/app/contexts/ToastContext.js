@@ -28,6 +28,11 @@ import { createContext, useContext, useState, useCallback, useMemo } from 'react
 const ToastActionsContext = createContext(null)
 const ToastStateContext = createContext(null)
 
+// Compteur monotone — garantit l'unicité des IDs même pour des appels
+// synchrones successifs (Date.now() peut répéter la même valeur dans
+// la même milliseconde sous Node.js en test).
+let _toastIdCounter = 0
+
 export function useToast() {
   const ctx = useContext(ToastActionsContext)
   if (!ctx) throw new Error('useToast must be used within ToastProvider')
@@ -51,7 +56,7 @@ export function ToastProvider({ children }) {
     const duration = opts.duration ?? 3000
     const action = opts.action || null
 
-    const id = Date.now() + Math.random()
+    const id = ++_toastIdCounter
     setToasts((prev) => [...prev, { id, message, type, duration, action }])
 
     if (duration > 0) {
