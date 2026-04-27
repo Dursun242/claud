@@ -275,13 +275,16 @@ RÈGLES :
       // JWT Supabase requis par /api/claude pour éviter que n'importe qui
       // avec l'URL puisse drainer notre quota Anthropic.
       const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        throw new Error("Session expirée — veuillez vous reconnecter.");
+      }
       abortRef.current?.abort()
       abortRef.current = new AbortController()
       const response = await fetch("/api/claude", {
         method:"POST",
         headers:{
           "Content-Type":"application/json",
-          "Authorization": `Bearer ${session?.access_token || ''}`,
+          "Authorization": `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({ model:"claude-haiku-4-5-20251001", max_tokens:4000, system:sys,
           messages:messages

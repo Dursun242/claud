@@ -113,12 +113,30 @@ describe('POST /api/claude', () => {
     expect(sent.messages).toEqual([])
   })
 
-  it('propage le status code Anthropic en cas d\'erreur', async () => {
+  it('retourne 429 quand Anthropic est en rate limit', async () => {
     verifyAuth.mockResolvedValue({ id: 'u1' })
     fetchWithRetry.mockResolvedValue(fakeErr(429, 'rate limit'))
 
     const res = await POST(makeRequest({ token: 't', body: { messages: [] } }))
     expect(res.status).toBe(429)
+    expect((await res.json()).error).toMatch(/surchargé/)
+  })
+
+  it('retourne 502 (pas 403) quand Anthropic rejette la requête (4xx hors 429)', async () => {
+    verifyAuth.mockResolvedValue({ id: 'u1' })
+    fetchWithRetry.mockResolvedValue(fakeErr(403, 'permission denied'))
+
+    const res = await POST(makeRequest({ token: 't', body: { messages: [] } }))
+    expect(res.status).toBe(502)
+    expect((await res.json()).error).toMatch(/Configuration/)
+  })
+
+  it('retourne 503 quand Anthropic est en erreur serveur (5xx)', async () => {
+    verifyAuth.mockResolvedValue({ id: 'u1' })
+    fetchWithRetry.mockResolvedValue(fakeErr(500, 'server error'))
+
+    const res = await POST(makeRequest({ token: 't', body: { messages: [] } }))
+    expect(res.status).toBe(503)
   })
 
   describe('rate limiting (20 req/min par IP)', () => {

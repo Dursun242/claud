@@ -87,9 +87,25 @@ export async function POST(request) {
     if (!response.ok) {
       const errorText = await response.text().catch(() => '');
       log.error(`Anthropic ${response.status}`, errorText);
+
+      if (response.status === 429) {
+        return Response.json(
+          { error: 'Service IA surchargé — réessayez dans quelques instants.' },
+          { status: 429 }
+        );
+      }
+      // 4xx hors 429 = problème de configuration serveur (clé API invalide,
+      // modèle non accessible, etc.). On retourne 502 pour ne pas confondre
+      // l'appelant avec un 403/401 de notre propre couche d'authentification.
+      if (response.status >= 400 && response.status < 500) {
+        return Response.json(
+          { error: 'Configuration du service IA invalide — contactez l\'administrateur.' },
+          { status: 502 }
+        );
+      }
       return Response.json(
-        { error: 'Erreur du service IA' },
-        { status: response.status }
+        { error: 'Service IA temporairement indisponible.' },
+        { status: 503 }
       );
     }
 
