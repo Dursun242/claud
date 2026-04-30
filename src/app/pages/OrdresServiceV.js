@@ -156,6 +156,7 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly})
       date_emission: new Date().toISOString().split("T")[0], date_intervention: "", date_fin_prevue: "",
       observations: "", conditions: "Paiement à 30 jours à compter de la réception de la facture.",
       statut: "Brouillon",
+      tva_non_applicable: false,
     });
     setPrestations([{ description:"", unite:"m²", quantite:"", prix_unitaire:"", tva_taux:"20" }]);
     setFormError("");
@@ -168,6 +169,7 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly})
       ...os,
       chantier: ch?.nom||"",
       adresse_chantier: ch?.adresse||"",
+      tva_non_applicable: !!os.tva_non_applicable,
     });
     setPrestations((os.prestations||[]).length > 0
       ? os.prestations.map(p=>({
@@ -181,6 +183,15 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly})
     setFormError("");
     setModal("edit");
   }, [data.chantiers, setPrestations]);
+
+  // Bascule TVA non applicable : force toutes les lignes à 0 % et inversement
+  // restitue 20 % par défaut si on décoche (l'utilisateur peut ajuster ensuite).
+  const setTvaNonApplicable = useCallback((checked) => {
+    setForm(f => ({ ...f, tva_non_applicable: checked }));
+    if (checked) {
+      setPrestations(p => p.map(x => ({ ...x, tva_taux: "0" })));
+    }
+  }, [setPrestations]);
 
   const closeModal = useCallback(() => { setModal(null); setFormError(""); }, []);
 
@@ -254,7 +265,19 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly})
     }
     setSaving(true);
     try {
-      const osData = { ...form, prestations, montant_ht: totals.ht, montant_tva: totals.tva, montant_ttc: totals.ttc };
+      // En mode TVA non applicable, on force les taux à 0 dans les prestations
+      // sauvegardées (sécurité côté DB) et on annule le montant_tva calculé.
+      const tvaNA = !!form.tva_non_applicable;
+      const prestationsToSave = tvaNA
+        ? prestations.map(p => ({ ...p, tva_taux: "0" }))
+        : prestations;
+      const osData = {
+        ...form,
+        prestations: prestationsToSave,
+        montant_ht: totals.ht,
+        montant_tva: tvaNA ? 0 : totals.tva,
+        montant_ttc: tvaNA ? totals.ht : totals.ttc,
+      };
       await SB.upsertOS(osData);
       setModal(null);
       setFormError("");
@@ -777,6 +800,7 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly})
       setForm={setForm}
       updateChantier={updateChantier}
       updateDestinataire={updateDestinataire}
+      setTvaNonApplicable={setTvaNonApplicable}
       prestations={prestations}
       addPrestation={addPrestation}
       removePrestation={removePrestation}

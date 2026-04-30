@@ -364,6 +364,7 @@ export const SB = {
       montant_ht: Number(os.montant_ht)||0,
       montant_tva: Number(os.montant_tva)||0,
       montant_ttc: Number(os.montant_ttc)||0,
+      tva_non_applicable: !!os.tva_non_applicable,
       statut: os.statut||'Brouillon',
       observations: os.observations||"",
       conditions: os.conditions||"",

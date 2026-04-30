@@ -396,9 +396,11 @@ export async function generateOSPdf(data) {
   doc.text("DÉTAIL DES PRESTATIONS", margin, y); y += 3
 
   const prestations = data.prestations || []
+  const tvaNA = !!data.tva_non_applicable
   let totalHT = 0; const tvaMap = {}
   const tbody = prestations.map(p => {
-    const q = parseFloat(p.quantite)||0, pu = parseFloat(p.prix_unitaire)||0, tva = parseFloat(p.tva_taux)||20
+    const q = parseFloat(p.quantite)||0, pu = parseFloat(p.prix_unitaire)||0
+    const tva = tvaNA ? 0 : (parseFloat(p.tva_taux)||20)
     const lht = q * pu; totalHT += lht
     tvaMap[tva] = (tvaMap[tva]||0) + lht * tva / 100
     return [sanitize(p.description)||"", p.unite||"", q.toString(), fmtM(pu), `${tva}%`, fmtM(lht)]
@@ -439,6 +441,13 @@ export async function generateOSPdf(data) {
   doc.setFillColor(238, 242, 255); doc.rect(tx, y, usable * 0.45, 7, 'F'); y += 5
   doc.setFontSize(11); doc.setFont("helvetica", "bold"); doc.setTextColor(...BLEU)
   doc.text("TOTAL TTC", tx + 2, y); doc.text(fmtM(totalTTC), w - margin - 2, y, { align: "right" }); y += 8
+
+  // Mention légale auto-entrepreneur en franchise de base de TVA (art. 293 B du CGI)
+  if (tvaNA) {
+    doc.setFontSize(8); doc.setFont("helvetica", "italic"); doc.setTextColor(...GRIS)
+    doc.text("TVA non applicable, art. 293 B du CGI.", margin, y); y += 6
+    doc.setFont("helvetica", "normal")
+  }
 
   // Observations
   if (data.observations) {
@@ -580,9 +589,11 @@ export async function generateCRPdf(cr, chantier) {
 export function generateOSExcel(data) {
   // Build CSV content (universally compatible, opens in Excel)
   const prestations = data.prestations || []
+  const tvaNA = !!data.tva_non_applicable
   let totalHT = 0
   const rows = prestations.map(p => {
-    const q = parseFloat(p.quantite)||0, pu = parseFloat(p.prix_unitaire)||0, tva = parseFloat(p.tva_taux)||20
+    const q = parseFloat(p.quantite)||0, pu = parseFloat(p.prix_unitaire)||0
+    const tva = tvaNA ? 0 : (parseFloat(p.tva_taux)||20)
     const lht = q * pu; totalHT += lht
     return [p.description||"", p.unite||"", q, pu, `${tva}%`, lht, lht * tva / 100]
   })
@@ -608,6 +619,7 @@ export function generateOSExcel(data) {
   csv += `;;;;;Total TVA;${totalTVA.toFixed(2)}\n`
   csv += `;;;;;TOTAL TTC;${(totalHT + totalTVA).toFixed(2)}\n`
   csv += `\n`
+  if (tvaNA) csv += `Mention légale;TVA non applicable, art. 293 B du CGI.\n`
   if (data.observations) csv += `Observations;${data.observations}\n`
   if (data.conditions) csv += `Conditions;${data.conditions}\n`
 

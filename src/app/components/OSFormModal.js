@@ -41,6 +41,7 @@ export default function OSFormModal({
   setForm,
   updateChantier,
   updateDestinataire,
+  setTvaNonApplicable,
   prestations,
   addPrestation,
   removePrestation,
@@ -65,6 +66,7 @@ export default function OSFormModal({
   I,
   fmtMoney,
 }) {
+  const tvaNA = !!form.tva_non_applicable
   return (
     <Modal open={!!modal} onClose={onClose}
       title={modal === 'edit' ? "Modifier l'Ordre de Service" : "Nouvel Ordre de Service"}
@@ -186,8 +188,33 @@ export default function OSFormModal({
         </FF>
       </div>
 
+      {/* TVA NON APPLICABLE — auto-entrepreneur en franchise de base (art. 293 B du CGI) */}
+      <label style={{
+        display: 'flex', alignItems: 'flex-start', gap: 8,
+        background: tvaNA ? '#FFFBEB' : '#F8FAFC',
+        border: `1px solid ${tvaNA ? '#FCD34D' : '#E2E8F0'}`,
+        borderRadius: 8, padding: '8px 12px', marginTop: 12, marginBottom: 8,
+        cursor: 'pointer', fontSize: 12,
+      }}>
+        <input
+          type="checkbox"
+          checked={tvaNA}
+          onChange={(e) => setTvaNonApplicable?.(e.target.checked)}
+          style={{ marginTop: 2 }}
+        />
+        <span style={{ flex: 1, lineHeight: 1.4 }}>
+          <span style={{ fontWeight: 600, color: '#0F172A' }}>TVA non applicable</span>
+          <span style={{ color: '#64748B' }}> — auto-entrepreneur en franchise de base (art. 293 B du CGI)</span>
+          {tvaNA && (
+            <span style={{ display: 'block', marginTop: 2, fontSize: 11, color: '#92400E' }}>
+              Toutes les lignes seront facturées à 0 % et la mention légale apparaîtra sur le PDF.
+            </span>
+          )}
+        </span>
+      </label>
+
       {/* PRESTATIONS */}
-      <div style={{ marginTop: 12, marginBottom: 8 }}>
+      <div style={{ marginTop: 4, marginBottom: 8 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
           <span style={{ fontSize: 12, fontWeight: 700, color: '#1E3A5F', textTransform: 'uppercase' }}>Prestations</span>
           <button onClick={addPrestation} style={{
@@ -215,7 +242,11 @@ export default function OSFormModal({
             <input placeholder="PU HT €" type="number" step="0.01"
               style={{ ...inp, fontSize: 12 }} value={p.prix_unitaire}
               onChange={(e) => updatePrestation(i, 'prix_unitaire', e.target.value)}/>
-            <select style={{ ...sel, fontSize: 12 }} value={p.tva_taux}
+            <select
+              style={{ ...sel, fontSize: 12, opacity: tvaNA ? 0.5 : 1, cursor: tvaNA ? 'not-allowed' : 'pointer' }}
+              value={tvaNA ? '0' : p.tva_taux}
+              disabled={tvaNA}
+              title={tvaNA ? 'TVA non applicable (art. 293 B du CGI)' : undefined}
               onChange={(e) => updatePrestation(i, 'tva_taux', e.target.value)}>
               <option value="20">20%</option><option value="10">10%</option>
               <option value="5.5">5.5%</option><option value="0">0%</option>

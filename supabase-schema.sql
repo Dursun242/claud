@@ -114,6 +114,7 @@ CREATE TABLE IF NOT EXISTS ordres_service (
   montant_ht NUMERIC DEFAULT 0,
   montant_tva NUMERIC DEFAULT 0,
   montant_ttc NUMERIC DEFAULT 0,
+  tva_non_applicable BOOLEAN NOT NULL DEFAULT false,
   statut TEXT DEFAULT 'Brouillon',
   observations TEXT,
   conditions TEXT DEFAULT 'Paiement à 30 jours à compter de la réception de la facture.',
