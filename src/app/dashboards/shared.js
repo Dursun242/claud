@@ -35,6 +35,30 @@ export const LocalDB = {
   },
 };
 
+// ─── SYNC GOOGLE TASKS (fire-and-forget) ───
+// Appelée après chaque upsertTask / deleteTask. Silencieuse si Google
+// n'est pas connecté (la route répond ok=true skipped=not-connected).
+// Les erreurs Google sont loguées en warn et n'impactent jamais le flow
+// utilisateur — la sync entrante (cron) corrigera tout désync.
+function pushTaskToGoogle(action, tache) {
+  (async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) return;
+      await fetch('/api/google-tasks/push', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ action, tache }),
+      });
+    } catch (e) {
+      console.warn('[google-tasks push] ' + action, e?.message || e);
+    }
+  })();
+}
+
 // ─── SUPABASE CRUD HELPERS ───
 export const SB = {
   // ─── JOURNAL D'ACTIVITÉ (audit log) ───
@@ -301,18 +325,26 @@ export const SB = {
         .update(row).eq('id', t.id).select().single();
       if (error) throw new Error("Erreur mise à jour tâche : " + error.message);
       this.log('update', 'task', data.id, data.titre);
+      pushTaskToGoogle('upsert', data);
       return data;
     } else {
       const { data, error } = await supabase.from('taches').insert(row).select().single();
       if (error) throw new Error("Erreur création tâche : " + error.message);
       this.log('create', 'task', data.id, data.titre);
+      pushTaskToGoogle('upsert', data);
       return data;
     }
   },
   async deleteTask(id) {
-    const { data: prev } = await supabase.from('taches').select('titre').eq('id', id).maybeSingle();
+    // On lit titre + google_task_id AVANT delete pour pouvoir pousser la
+    // suppression côté Google.
+    const { data: prev } = await supabase.from('taches')
+      .select('titre, google_task_id').eq('id', id).maybeSingle();
     await supabase.from('taches').delete().eq('id', id);
     this.log('delete', 'task', id, prev?.titre || null);
+    if (prev?.google_task_id) {
+      pushTaskToGoogle('delete', { id, google_task_id: prev.google_task_id });
+    }
   },
 
   // Comptes Rendus
