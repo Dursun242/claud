@@ -16,7 +16,8 @@ Application de gestion de chantiers BTP pour **ID Maîtrise** (SARL, Le Havre). 
 - **Odoo JSON-RPC** : signatures électroniques via module Sign
 - **Qonto API** : import factures/devis (proxy read-only)
 - **Pappers API** : enrichissement SIRET des contacts
-- **Jest + @testing-library/react** : 248 tests, 10 s d'exécution
+- **Google Tasks API** : sync bidirectionnelle taches ↔ Google Tasks (admin uniquement, OAuth 2.0 + cron)
+- **Jest + @testing-library/react** : 353 tests, ~5 s d'exécution
 
 ## Topologie
 
@@ -46,6 +47,7 @@ src/app/
     ├─ pv-reception/*         → flux PV métier
     ├─ extract-*/             → Claude Vision (devis + contacts)
     ├─ pappers, qonto         → proxies tiers
+    ├─ google-tasks/*         → connect/callback OAuth + push (sortant) + sync (entrant, cron 10 min)
     └─ metrics/               → ingest Web Vitals (sendBeacon)
 ```
 
@@ -58,7 +60,7 @@ Cf. `SB.loadCritical()` / `SB.loadSecondary()` dans `dashboards/shared.js`.
 
 ## Conventions & règles du projet
 
-1. **Server-only pour les secrets** : `ANTHROPIC_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `ODOO_API_KEY`, `PAPPERS_API_KEY`, `qonto-token` n'apparaissent **jamais** dans le bundle client. Les appels tiers passent par les routes `/api/*`.
+1. **Server-only pour les secrets** : `ANTHROPIC_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `ODOO_API_KEY`, `PAPPERS_API_KEY`, `qonto-token`, `GOOGLE_TASKS_CLIENT_SECRET`, `GOOGLE_TASKS_CRON_SECRET` n'apparaissent **jamais** dans le bundle client. Les appels tiers passent par les routes `/api/*`.
 2. **Auth** : toute route `/api/*` non-admin (sauf `/api/metrics`, `/api/auth/google/callback`) fait `verifyAuth(request)` en premier. Retour 401 si absent.
 3. **Logging** : routes modernes utilisent `createLogger('source')` (`lib/logger.js`). Certaines routes anciennes utilisent encore `console.error` — migration progressive.
 4. **Toasts, jamais `alert()`** : `useToast()` dans les composants. `useFloatingMic` prend `onError` pour les erreurs hors-UI.
