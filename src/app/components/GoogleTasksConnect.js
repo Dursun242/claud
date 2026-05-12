@@ -75,6 +75,26 @@ export default function GoogleTasksConnect() {
     }
   }
 
+  const handleSyncNow = async () => {
+    setBusy(true)
+    try {
+      const data = await callApi('/api/google-tasks/sync', { method: 'POST' })
+      const { pull, bootstrap } = data
+      const parts = []
+      if (bootstrap?.pushed) parts.push(`${bootstrap.pushed} poussées vers Google`)
+      if (pull?.imported)    parts.push(`${pull.imported} importées`)
+      if (pull?.updated)     parts.push(`${pull.updated} mises à jour`)
+      if (pull?.deleted)     parts.push(`${pull.deleted} supprimées`)
+      const summary = parts.length ? parts.join(', ') : 'aucun changement'
+      addToast('Sync OK — ' + summary, 'success')
+      await refresh()
+    } catch (err) {
+      addToast(err.message || 'Erreur de sync', 'error')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   const handleDisconnect = async () => {
     const ok = await confirm({
       title: 'Déconnecter Google Tasks ?',
@@ -143,17 +163,30 @@ export default function GoogleTasksConnect() {
         )}
       </div>
 
-      <button
-        onClick={handleDisconnect}
-        disabled={busy}
-        style={{
-          background: '#fff', color: '#DC2626', border: '1.5px solid #FECACA',
-          padding: '8px 14px', borderRadius: 8, fontWeight: 600,
-          fontSize: 12, cursor: busy ? 'wait' : 'pointer',
-        }}
-      >
-        {busy ? '…' : 'Déconnecter'}
-      </button>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <button
+          onClick={handleSyncNow}
+          disabled={busy}
+          style={{
+            background: '#1E3A5F', color: '#fff', border: 'none',
+            padding: '8px 14px', borderRadius: 8, fontWeight: 600,
+            fontSize: 12, cursor: busy ? 'wait' : 'pointer',
+          }}
+        >
+          {busy ? 'Sync…' : 'Synchroniser maintenant'}
+        </button>
+        <button
+          onClick={handleDisconnect}
+          disabled={busy}
+          style={{
+            background: '#fff', color: '#DC2626', border: '1.5px solid #FECACA',
+            padding: '8px 14px', borderRadius: 8, fontWeight: 600,
+            fontSize: 12, cursor: busy ? 'wait' : 'pointer',
+          }}
+        >
+          {busy ? '…' : 'Déconnecter'}
+        </button>
+      </div>
     </div>
   )
 }
