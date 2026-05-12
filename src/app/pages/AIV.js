@@ -5,6 +5,7 @@ import { SB, Icon, I, ApiBadge, inp, btnP, COMPANY } from '../dashboards/shared'
 import { MicButtonInline } from '../components'
 import { useToast } from '../contexts/ToastContext'
 import { supabase } from '../supabaseClient'
+import { speechRecognitionErrorMessage } from '../lib/speechErrors'
 
 // react-markdown (~25 kB gz) n'est utilisé que pour afficher les réponses IA :
 // on le charge à la demande pour alléger le bundle initial de la page.
@@ -140,6 +141,8 @@ export default function AIV({ data, save: _save, m, externalTranscript, clearExt
     recognition.onerror = (e) => {
       console.error("Speech error:", e.error);
       setListening(false);
+      const msg = speechRecognitionErrorMessage(e?.error);
+      if (msg) addToast(msg, "warning");
     };
 
     recognition.onend = () => {
