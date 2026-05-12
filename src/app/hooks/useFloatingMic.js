@@ -72,8 +72,29 @@ export function useFloatingMic({ onError } = {}) {
       r.onerror = (ev) => {
         console.error('[FloatingMic] recognition error', ev?.error)
         setListening(false)
-        if (ev?.error === 'not-allowed' || ev?.error === 'service-not-allowed') {
-          notifyError("Micro bloqué par le navigateur — autorise l'accès dans les réglages")
+        // Mapping vers des messages FR utiles. Sans ça l'utilisateur voit
+        // juste le bouton repasser inactif sans savoir pourquoi (cas
+        // typique sur desktop : pas de micro système ou service Google
+        // injoignable).
+        switch (ev?.error) {
+          case 'not-allowed':
+          case 'service-not-allowed':
+            notifyError("Micro bloqué par le navigateur — autorise l'accès dans les réglages")
+            break
+          case 'audio-capture':
+            notifyError("Aucun micro détecté. Vérifie qu'un micro est branché et sélectionné dans les paramètres système.")
+            break
+          case 'network':
+            notifyError("Service de reconnaissance vocale injoignable. Vérifie ta connexion internet.")
+            break
+          case 'no-speech':
+            notifyError("Aucun son détecté. Vérifie que ton micro fonctionne et n'est pas muté.")
+            break
+          case 'aborted':
+            // Arrêt volontaire ou changement d'onglet — pas la peine de notifier.
+            break
+          default:
+            if (ev?.error) notifyError("Erreur de reconnaissance vocale : " + ev.error)
         }
       }
       r.onend = () => {

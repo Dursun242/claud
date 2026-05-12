@@ -137,6 +137,57 @@ describe('useFloatingMic', () => {
     errSpy.mockRestore()
   })
 
+  it('mappe les codes d\'erreur fréquents vers des messages utilisateurs', () => {
+    class FakeSR {
+      constructor() { this.start = jest.fn(); this.stop = jest.fn() }
+    }
+    window.SpeechRecognition = FakeSR
+
+    const errSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+
+    // Cas testés : un par un, en re-mountant le hook à chaque fois pour
+    // éviter les états résiduels (chaque toggle crée une nouvelle instance).
+    const cases = [
+      { error: 'audio-capture', regex: /micro détecté|branché/i },
+      { error: 'network', regex: /injoignable|connexion/i },
+      { error: 'no-speech', regex: /aucun son|muté/i },
+      { error: 'unknown-foobar', regex: /unknown-foobar/i },
+    ]
+    for (const c of cases) {
+      const onError = jest.fn()
+      let lastInstance
+      class FakeSR2 {
+        constructor() { lastInstance = this; this.start = jest.fn(); this.stop = jest.fn() }
+      }
+      window.SpeechRecognition = FakeSR2
+      const { result } = renderHook(() => useFloatingMic({ onError }))
+      act(() => { result.current.toggle() })
+      act(() => { lastInstance.onerror({ error: c.error }) })
+      expect(onError).toHaveBeenCalledTimes(1)
+      expect(onError.mock.calls[0][0]).toMatch(c.regex)
+    }
+
+    errSpy.mockRestore()
+  })
+
+  it('ne notifie pas l\'utilisateur en cas d\'erreur "aborted" (arrêt volontaire)', () => {
+    let lastInstance
+    class FakeSR {
+      constructor() { lastInstance = this; this.start = jest.fn(); this.stop = jest.fn() }
+    }
+    window.SpeechRecognition = FakeSR
+
+    const errSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+
+    const onError = jest.fn()
+    const { result } = renderHook(() => useFloatingMic({ onError }))
+    act(() => { result.current.toggle() })
+    act(() => { lastInstance.onerror({ error: 'aborted' }) })
+
+    expect(onError).not.toHaveBeenCalled()
+    errSpy.mockRestore()
+  })
+
   it('clear() réinitialise le transcript', () => {
     const { result } = renderHook(() => useFloatingMic())
     act(() => { result.current.setTranscript('du texte') })
