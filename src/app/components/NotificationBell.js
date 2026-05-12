@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import { useNotifications } from '../hooks/useNotifications'
+import { useTaskReminders } from '../hooks/useTaskReminders'
 
 function relativeTime(iso) {
   if (!iso) return ''
@@ -151,8 +152,12 @@ function Toast({ notif, index, total, onDismiss, onClick, isMobile }) {
  *     (slide-in, dismiss auto 4.5s, pause au survol, max 3 empilés)
  *   - Plus d'auto-open du panneau (moins intrusif)
  */
-export default function NotificationBell({ userEmail, onNavigate, isMobile = false }) {
+export default function NotificationBell({ userEmail, onNavigate, isMobile = false, tasks, chantiers }) {
   const { items, unreadCount, markAsRead, markAllRead, newItemSignal } = useNotifications(userEmail)
+  // Rappels navigateur pour les tâches en retard / dues aujourd'hui ou demain.
+  // Pas d'effet si la permission n'est pas accordée — l'utilisateur l'active
+  // via le bouton du panneau.
+  const { permission, requestPermission, supported } = useTaskReminders(tasks, chantiers, onNavigate)
   const [open, setOpen] = useState(false)
   const [toasts, setToasts] = useState([])
   const ref = useRef(null)
@@ -285,6 +290,49 @@ export default function NotificationBell({ userEmail, onNavigate, isMobile = fal
                 >Tout lu</button>
               )}
             </div>
+
+            {/* Rappels navigateur : visible uniquement si la permission n'a pas
+                encore été demandée. Si refusée → bandeau discret avec lien
+                vers l'aide. Si accordée → rien (on ne réaffiche pas pour ne
+                pas polluer le panneau). */}
+            {supported && permission === 'default' && (
+              <div style={{
+                margin: '0 8px 8px', padding: '8px 10px',
+                background: 'rgba(245,158,11,0.10)',
+                border: '1px solid rgba(245,158,11,0.30)',
+                borderRadius: 10,
+                display: 'flex', alignItems: 'center', gap: 8,
+              }}>
+                <span style={{ fontSize: 16 }} aria-hidden="true">🔔</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#92400E', lineHeight: 1.3 }}>
+                    Rappels d&apos;échéances
+                  </div>
+                  <div style={{ fontSize: 10, color: '#78350F', lineHeight: 1.4, marginTop: 1 }}>
+                    Activer pour être prévenu(e) des tâches en retard, dues aujourd&apos;hui ou demain.
+                  </div>
+                </div>
+                <button
+                  onClick={requestPermission}
+                  style={{
+                    background: '#F59E0B', color: '#fff', border: 'none',
+                    borderRadius: 7, padding: '5px 10px', fontSize: 10, fontWeight: 700,
+                    cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap',
+                    flexShrink: 0,
+                  }}
+                >Activer</button>
+              </div>
+            )}
+            {supported && permission === 'denied' && (
+              <div style={{
+                margin: '0 8px 8px', padding: '6px 10px',
+                fontSize: 10, color: '#64748B', lineHeight: 1.4,
+                background: 'rgba(148,163,184,0.08)', borderRadius: 8,
+              }}>
+                Rappels navigateur bloqués. Pour les activer, ouvre les paramètres
+                de notifications du navigateur pour ce site.
+              </div>
+            )}
 
             {items.length === 0 ? (
               <div style={{ padding: '24px 16px 28px', textAlign: 'center', color: '#94A3B8', fontSize: 12 }}>

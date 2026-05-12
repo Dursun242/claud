@@ -447,12 +447,12 @@ export default function AdminDashboard({ user, profile = null }) {
                 {tabs.find(t=>t.key===tab)?.label}
               </span>
             </div>
-            <NotificationBell userEmail={user?.email} onNavigate={(nextTab)=>switchTab(nextTab)} isMobile />
+            <NotificationBell userEmail={user?.email} onNavigate={(nextTab)=>switchTab(nextTab)} isMobile tasks={data?.tasks} chantiers={data?.chantiers} />
           </div>
         )}
         {!isMobile && (
           <div style={{position:"fixed",top:12,right:24,zIndex:998}}>
-            <NotificationBell userEmail={user?.email} onNavigate={(nextTab)=>switchTab(nextTab)} />
+            <NotificationBell userEmail={user?.email} onNavigate={(nextTab)=>switchTab(nextTab)} tasks={data?.tasks} chantiers={data?.chantiers} />
           </div>
         )}
         <div style={{animation:"fadeIn .3s ease",maxWidth:1200}}>
