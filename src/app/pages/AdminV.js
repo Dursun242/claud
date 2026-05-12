@@ -5,6 +5,7 @@ import { supabase } from '../supabaseClient'
 import { useToast } from '../contexts/ToastContext'
 import { useConfirm } from '../contexts/ConfirmContext'
 import LogsV from './LogsV'
+import GoogleTasksConnect from '../components/GoogleTasksConnect'
 
 async function apiUsers(method, body) {
   const { data: { session } } = await supabase.auth.getSession()
@@ -33,7 +34,7 @@ export default function AdminV({ m, reload, profile }) {
   const confirm = useConfirm()
   // ⚠️ Tous les hooks doivent être appelés avant tout early return
   // (règles des hooks React). Le garde d'accès admin est plus bas.
-  const [subtab, setSubtab] = useState('users')  // 'users' | 'logs'
+  const [subtab, setSubtab] = useState('users')  // 'users' | 'logs' | 'integrations'
   const [users, setUsers] = useState([])
   const [newEmail, setNewEmail] = useState("")
   const [newPrenom, setNewPrenom] = useState("")
@@ -287,9 +288,21 @@ export default function AdminV({ m, reload, profile }) {
         <button onClick={() => setSubtab('logs')} style={tabBtn(subtab === 'logs')}>
           📋 Journal d&apos;activité
         </button>
+        <button onClick={() => setSubtab('integrations')} style={tabBtn(subtab === 'integrations')}>
+          🔗 Intégrations
+        </button>
       </div>
 
-      {subtab === 'logs' ? <LogsV m={m} profile={profile} embedded /> : (<>
+      {subtab === 'logs' ? <LogsV m={m} profile={profile} embedded /> : subtab === 'integrations' ? (
+        <div style={{
+          background: '#fff', borderRadius: 14, padding: m ? 14 : 18,
+          boxShadow: '0 1px 3px rgba(15,23,42,0.06)', marginBottom: 18,
+          border: '1.5px solid #E2E8F0',
+        }}>
+          <h2 style={{ margin: '0 0 4px', fontSize: 15, fontWeight: 700 }}>Google Tasks</h2>
+          <GoogleTasksConnect />
+        </div>
+      ) : (<>
 
       {/* CONFIGURATION STORAGE */}
       <div style={{
