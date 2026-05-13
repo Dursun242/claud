@@ -43,7 +43,10 @@ Exécuter dans cet ordre exact sur une base vierge (Supabase Dashboard → SQL E
 ## Migrations externes (hors dossier)
 
 - `/supabase-migration-*.sql` (racine) — anciennes migrations v2. **Ne pas ré-appliquer** si la séquence ci-dessus a tourné.
-- `/db-migrations/` — module PV de Réception, isolé du schéma principal.
+- `/db-migrations/` — module PV de Réception. Dépend du schéma principal pour les helpers RLS (`is_staff`, `is_admin`, `client_has_chantier`).
+  - `001_procès_verbaux_reception.sql` — création de la table `proces_verbaux_reception`.
+  - `002_pv_os_relationship.sql` — liaison PV ↔ OS.
+  - `003_rls_proces_verbaux_reception.sql` — **[P0 sécu]** active la RLS sur `proces_verbaux_reception` (lint Supabase 0013). À appliquer **après** `migrations/019_client_user_id.sql`. Voir `db-migrations/003_README.md`.
 
 ## Prérequis
 
