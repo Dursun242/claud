@@ -1,0 +1,281 @@
+/*
+ * Global motion + interaction layer.
+ *
+ * Centralise :
+ * 1. Les keyframes utilisées dans toute l'app (avant ce fichier, on
+ *    redéfinissait `@keyframes fadeIn` dans 8 composants).
+ * 2. Les variables CSS pour les durations / easings, miroir des
+ *    constantes JS de src/app/lib/motion.js.
+ * 3. Les utility classes pour les éléments interactifs (.u-press,
+ *    .u-icon-btn) qui remplacent les patterns inline onMouseEnter/Leave.
+ *    Les anciens patterns ignoraient le focus clavier et le :active mobile,
+ *    d'où la sensation d'app "morte" au toucher.
+ * 4. Le respect global de prefers-reduced-motion.
+ *
+ * Toutes les classes utilitaires sont préfixées `u-` pour ne pas entrer
+ * en collision avec un futur design system (`btn-*`, `card-*`, etc.).
+ */
+
+:root {
+  --motion-fast: 120ms;
+  --motion-base: 180ms;
+  --motion-slow: 280ms;
+  --ease-standard: cubic-bezier(.4, 0, .2, 1);
+  --ease-emphasized: cubic-bezier(.2, 0, 0, 1.2);
+}
+
+/* ── Focus ring cohérent partout — visible uniquement au clavier ── */
+:focus { outline: none; }
+:focus-visible {
+  outline: 2px solid #3B82F6;
+  outline-offset: 2px;
+  border-radius: inherit;
+}
+
+/* ── Keyframes centralisées ─────────────────────────────────────── */
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translateY(-8px) scale(.98); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes popIn {
+  from { opacity: 0; transform: scale(.96) translateY(8px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translateX(20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* notifyIn : notifications NotificationBell (en bas à droite, avec scale) */
+@keyframes notifyIn {
+  from { opacity: 0; transform: translateX(40px) scale(.95); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes skeletonShimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+
+@keyframes pulseBadge {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(220,38,38,0.5); }
+  50%      { box-shadow: 0 0 0 6px rgba(220,38,38,0); }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(234,67,53,0.3); }
+  50%      { box-shadow: 0 0 0 6px rgba(234,67,53,0); }
+}
+
+@keyframes ripple {
+  0%   { transform: scale(1);   opacity: 1; }
+  100% { transform: scale(1.8); opacity: 0; }
+}
+
+@keyframes heartbeat {
+  0%, 100% { transform: scale(1); }
+  15%      { transform: scale(1.18); }
+  30%      { transform: scale(1); }
+  45%      { transform: scale(1.12); }
+  60%      { transform: scale(1); }
+}
+
+@keyframes neonBreathing {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: .7; }
+}
+
+@keyframes neonRing {
+  0%, 100% { opacity: .4; transform: scale(1); }
+  50%      { opacity: .8; transform: scale(1.05); }
+}
+
+@keyframes neonPulse {
+  0%, 100% { opacity: 1;  box-shadow: 0 0 3px #00FF88; }
+  50%      { opacity: .5; box-shadow: 0 0 8px #00FF88; }
+}
+
+@keyframes pulse {
+  0%, 80%, 100% { opacity: .3; transform: scale(.8); }
+  40%           { opacity: 1;  transform: scale(1); }
+}
+
+@keyframes toastShrink {
+  from { transform: scaleX(1); }
+  to   { transform: scaleX(0); }
+}
+
+@keyframes floatBg1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50%      { transform: translate(30px, -20px) scale(1.1); }
+}
+
+@keyframes floatBg2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50%      { transform: translate(-30px, 20px) scale(1.05); }
+}
+
+/* ── Utility : élément cliquable (card, row, item de liste) ───────
+ *
+ * Remplace les onMouseEnter/onMouseLeave inline qui s'appliquaient
+ * uniquement à la souris. Cette classe gère hover + focus-visible +
+ * active dans une seule règle, donc clavier et tap mobile sont couverts.
+ *
+ * Variantes :
+ *   .u-press        → fond gris très léger au hover, ombre légère
+ *   .u-press--lift  → en plus, légère translation horizontale (cards)
+ *   .u-press--row   → uniquement fond, pas de transform (lignes denses)
+ */
+.u-press {
+  cursor: pointer;
+  transition: background var(--motion-fast) var(--ease-standard),
+              border-color var(--motion-fast) var(--ease-standard),
+              box-shadow var(--motion-base) var(--ease-standard),
+              transform var(--motion-base) var(--ease-standard);
+}
+.u-press:hover,
+.u-press:focus-visible {
+  background: #F8FAFC;
+  border-color: #CBD5E1;
+}
+.u-press:active {
+  transform: scale(.99);
+}
+
+.u-press--lift:hover,
+.u-press--lift:focus-visible {
+  box-shadow: 0 4px 12px rgba(15,23,42,0.10);
+  transform: translateX(3px);
+}
+.u-press--lift:active {
+  transform: translateX(3px) scale(.995);
+}
+
+.u-press--row {
+  /* row dense — ne lift pas, seul le fond change */
+  transition: background var(--motion-fast) var(--ease-standard),
+              border-color var(--motion-fast) var(--ease-standard),
+              color var(--motion-fast) var(--ease-standard);
+}
+.u-press--row:active { transform: none; }
+
+/* ── Utility : bouton icône (close, delete, edit) ─────────────────
+ *
+ * Petits boutons carrés/ronds avec hover + focus-visible cohérents.
+ * .u-icon-btn--danger révèle un fond rouge léger au hover (suppression).
+ */
+.u-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background var(--motion-fast) var(--ease-standard),
+              color var(--motion-fast) var(--ease-standard),
+              border-color var(--motion-fast) var(--ease-standard);
+}
+.u-icon-btn:hover,
+.u-icon-btn:focus-visible {
+  background: #E2E8F0;
+}
+.u-icon-btn:active { transform: scale(.94); }
+
+.u-icon-btn--soft {
+  background: #F1F5F9;
+  border: 1px solid #E2E8F0;
+}
+.u-icon-btn--soft:hover,
+.u-icon-btn--soft:focus-visible {
+  background: #E2E8F0;
+}
+
+.u-icon-btn--danger:hover,
+.u-icon-btn--danger:focus-visible {
+  background: #FEF2F2;
+  color: #DC2626;
+}
+
+/* ── Utility : ligne de menu (sidebar, dropdown, popover) ─────── */
+.u-menu-item {
+  cursor: pointer;
+  transition: background var(--motion-fast) var(--ease-standard),
+              color var(--motion-fast) var(--ease-standard);
+}
+.u-menu-item:hover,
+.u-menu-item:focus-visible {
+  background: rgba(255,255,255,0.06);
+}
+.u-menu-item--light:hover,
+.u-menu-item--light:focus-visible {
+  background: #F8FAFC;
+}
+
+/* ── Bouton de login (auth.js) — hover bleu doux + press ──────── */
+.login-btn {
+  transition: border-color var(--motion-base) var(--ease-standard),
+              box-shadow var(--motion-base) var(--ease-standard),
+              transform var(--motion-fast) var(--ease-standard);
+}
+.login-btn:not(:disabled):hover,
+.login-btn:not(:disabled):focus-visible {
+  border-color: #3B82F6 !important;
+  box-shadow: 0 2px 12px rgba(59,130,246,0.2) !important;
+}
+.login-btn:not(:disabled):active {
+  transform: scale(.98);
+}
+
+/* ── Bouton "Copier" (ContactInfoLink) ──────────────────────── */
+.copy-icon-btn {
+  transition: opacity var(--motion-fast) var(--ease-standard),
+              color var(--motion-fast) var(--ease-standard);
+}
+.copy-icon-btn:hover,
+.copy-icon-btn:focus-visible {
+  opacity: 1 !important;
+  color: #3B82F6 !important;
+}
+
+/* ── Onglet de sidebar (dashboards sombres) ───────────────────
+ * data-active="true"  → fond fixe (visuel d'onglet actif)
+ * data-active="false" → fond transparent, léger au hover/focus
+ */
+.sidebar-tab {
+  transition: background var(--motion-fast) var(--ease-standard),
+              color var(--motion-fast) var(--ease-standard);
+}
+.sidebar-tab[data-active="false"]:hover,
+.sidebar-tab[data-active="false"]:focus-visible {
+  background: rgba(255,255,255,0.04) !important;
+}
+
+/* ── prefers-reduced-motion : neutralise tout ce qui bouge ─────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

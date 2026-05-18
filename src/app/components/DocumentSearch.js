@@ -124,21 +124,19 @@ export default function DocumentSearch({ chantierId = null }) {
                 <button
                   key={doc.id}
                   onClick={() => handleDocumentClick(doc)}
+                  className="u-press u-press--row"
                   style={{
                     width: '100%',
                     display: 'flex',
                     alignItems: 'center',
                     gap: 10,
                     padding: '10px 12px',
+                    minHeight: 44,
                     borderTop: idx > 0 ? '1px solid #F1F5F9' : 'none',
                     border: 'none',
                     background: 'transparent',
-                    cursor: 'pointer',
                     textAlign: 'left',
-                    transition: 'background .12s',
                   }}
-                  onMouseEnter={(e) => e.currentTarget.style.background = '#F8FAFC'}
-                  onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                 >
                   <span style={{ fontSize: 18, minWidth: 24 }}>{typeIcon(doc.type)}</span>
                   <div style={{ flex: 1, minWidth: 0 }}>

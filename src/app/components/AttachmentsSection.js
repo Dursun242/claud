@@ -75,18 +75,17 @@ function AttachmentRow({ att, onDelete }) {
       rel="noopener noreferrer"
       title={`Ouvrir ${att.file_name}`}
       onClick={logOpen}
+      className="u-press u-press--row"
       style={{
         display: 'flex', alignItems: 'center', gap: 10,
-        padding: '8px 10px',
+        padding: '10px 10px',
+        minHeight: 44,
         background: '#fff',
         borderRadius: 8,
         textDecoration: 'none',
         color: 'inherit',
         border: '1px solid #E2E8F0',
-        transition: 'background .12s, border-color .12s',
       }}
-      onMouseEnter={(e) => { e.currentTarget.style.background = '#F8FAFC'; e.currentTarget.style.borderColor = '#CBD5E1' }}
-      onMouseLeave={(e) => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.borderColor = '#E2E8F0' }}
     >
       {/* Icône / miniature — `url` est une signed URL Supabase avec TTL court :
           next/image la cacherait par URL, donc après expiration l'image
@@ -125,20 +124,15 @@ function AttachmentRow({ att, onDelete }) {
         onClick={confirmDelete}
         aria-label={`Supprimer ${att.file_name}`}
         title="Supprimer"
+        className="u-icon-btn u-icon-btn--danger"
         style={{
-          background: 'transparent',
-          border: 'none',
           color: '#94A3B8',
-          cursor: 'pointer',
-          padding: 6,
+          padding: 8,
+          width: 32, height: 32,
           borderRadius: 6,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontSize: 14, lineHeight: 1,
           flexShrink: 0,
-          fontFamily: 'inherit',
         }}
-        onMouseEnter={(e) => { e.currentTarget.style.background = '#FEF2F2'; e.currentTarget.style.color = '#DC2626' }}
-        onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#94A3B8' }}
       >✕</button>
     </a>
   )

@@ -1,4 +1,5 @@
 'use client'
+import { ANIMATION } from '../lib/motion'
 
 /**
  * Composants skeleton pour le chargement initial.
@@ -10,25 +11,18 @@
  * 2. Fournir une structure visuelle stable qui évite le CLS (Cumulative
  *    Layout Shift) quand les vraies données arrivent.
  *
+ * Les keyframes (skeletonShimmer, fadeIn) sont définies dans styles/global.css.
+ *
  * Exports :
  * - `Skeleton`          — boîte grise primitive avec shimmer
  * - `DashboardSkeleton` — silhouette complète du dashboard (sidebar + main)
  * - `PageSkeleton`      — silhouette générique pour les lazy-imports de page
  */
 
-// Keyframes shimmer injectées une fois par skeleton monté. Simple,
-// compatible Next.js SSR/CSR, pas de dépendance globale.
-const SHIMMER_STYLE = `
-@keyframes skeletonShimmer {
-  0% { background-position: -200% 0 }
-  100% { background-position: 200% 0 }
-}
-`
-
 const shimmerBase = {
   background: 'linear-gradient(90deg, #F1F5F9 25%, #E2E8F0 50%, #F1F5F9 75%)',
   backgroundSize: '200% 100%',
-  animation: 'skeletonShimmer 1.5s infinite',
+  animation: ANIMATION.shimmer,
 }
 
 // ─── Boîte primitive ──────────────────────────────────────────
@@ -68,7 +62,7 @@ export function DashboardSkeleton({ role = 'admin' }) {
         overflow: 'hidden',
       }}
     >
-      <style>{SHIMMER_STYLE}{`
+      <style>{`
         @media (max-width: 768px) {
           [data-skel-sidebar] { display: none !important; }
           [data-skel-mobile-header] { display: flex !important; }
@@ -259,9 +253,7 @@ export function DashboardSkeleton({ role = 'admin' }) {
 // d'onglet et que le chunk n'est pas encore téléchargé.
 export function PageSkeleton() {
   return (
-    <div role="status" aria-label="Chargement de la page" style={{ padding: 16, animation: 'fadeIn .2s ease' }}>
-      <style>{SHIMMER_STYLE}</style>
-
+    <div role="status" aria-label="Chargement de la page" style={{ padding: 16, animation: ANIMATION.fadeIn }}>
       {/* Titre + compteur */}
       <div style={{ marginBottom: 14 }}>
         <Skeleton width={200} height={24} />

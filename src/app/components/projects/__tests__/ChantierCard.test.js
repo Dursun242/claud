@@ -72,20 +72,20 @@ describe('ChantierCard', () => {
 
   it('ne propage pas onOpen quand on clique sur les boutons edit/delete', async () => {
     const handlers = renderCard()
-    const buttons = screen.getAllByRole('button')
-    // Par convention le premier bouton est Modifier, le second Supprimer.
-    await userEvent.click(buttons[0])
+    // Cible par aria-label pour ne pas dépendre de l'ordre dans le DOM.
+    await userEvent.click(screen.getByRole('button', { name: /modifier le chantier/i }))
     expect(handlers.onEdit).toHaveBeenCalledWith(baseChantier)
     expect(handlers.onOpen).not.toHaveBeenCalled()
 
-    await userEvent.click(buttons[1])
+    await userEvent.click(screen.getByRole('button', { name: /supprimer le chantier/i }))
     expect(handlers.onDelete).toHaveBeenCalledWith(baseChantier)
   })
 
   it('en mode readOnly : cache les boutons edit/delete', () => {
     renderCard({ readOnly: true })
-    // Plus aucun bouton dans la carte en lecture seule.
-    expect(screen.queryAllByRole('button')).toHaveLength(0)
+    // Edit et Delete absents en lecture seule.
+    expect(screen.queryByRole('button', { name: /modifier le chantier/i })).toBeNull()
+    expect(screen.queryByRole('button', { name: /supprimer le chantier/i })).toBeNull()
   })
 
   it('gère des dates absentes sans planter (progression 0%)', () => {

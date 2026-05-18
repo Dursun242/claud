@@ -1,5 +1,6 @@
 'use client'
 import { useToast, useToastList } from '../contexts/ToastContext'
+import { ANIMATION } from '../lib/motion'
 
 /**
  * Composant ToastContainer
@@ -66,9 +67,6 @@ export default function ToastContainer() {
         maxWidth: 420,
       }}
     >
-      <style>{`
-        @keyframes toastIn { from { opacity: 0; transform: translateX(20px) } to { opacity: 1; transform: translateX(0) } }
-      `}</style>
       {toasts.map((toast) => {
         const style = typeStyles[toast.type] || typeStyles.info
         return (
@@ -87,7 +85,7 @@ export default function ToastContainer() {
               alignItems: 'center',
               gap: 10,
               boxShadow: '0 4px 16px rgba(15,23,42,0.12)',
-              animation: 'toastIn .25s ease',
+              animation: ANIMATION.toastIn,
               fontFamily: "var(--font-dm-sans), sans-serif",
             }}
           >
@@ -130,21 +128,15 @@ export default function ToastContainer() {
             <button
               onClick={() => removeToast(toast.id)}
               aria-label="Fermer la notification"
+              className="u-icon-btn"
               style={{
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
                 color: style.textColor,
                 opacity: 0.6,
                 fontSize: 14,
                 padding: 0,
                 width: 18,
                 height: 18,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
                 flexShrink: 0,
-                fontFamily: 'inherit',
               }}
             >
               ✕

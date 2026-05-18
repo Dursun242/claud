@@ -165,22 +165,9 @@ export default function ClientDashboard({ user, profile = null }) {
       onBlur={e => { e.currentTarget.style.left = '-9999px' }}
       >Passer au contenu principal</a>
       <style>{`
-        @keyframes spin{to{transform:rotate(360deg)}}
-        @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
         *{box-sizing:border-box}
         ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-thumb{background:#CBD5E1;border-radius:3px}
-        input:focus,select:focus,textarea:focus{border-color:#3B82F6!important;outline:none}
-        :focus{outline:none}
-        :focus-visible{outline:2px solid #3B82F6 !important;outline-offset:2px;border-radius:4px}
-        button:focus-visible,a:focus-visible,
-        [role="button"]:focus-visible{outline:2px solid #3B82F6 !important;outline-offset:2px}
-        @media (prefers-reduced-motion: reduce){
-          *,*::before,*::after{
-            animation-duration:.01ms !important;
-            animation-iteration-count:1 !important;
-            transition-duration:.01ms !important
-          }
-        }
+        input:focus,select:focus,textarea:focus{border-color:#3B82F6!important}
         @media (max-width: 768px){
           input:not([type="checkbox"]):not([type="radio"]),select,textarea{font-size:16px !important}
           button:not([aria-label="Copier"]):not([aria-label="Fermer"]):not([aria-label="Fermer la notification"]):not([data-nav]){min-height:36px}
@@ -219,11 +206,14 @@ export default function ClientDashboard({ user, profile = null }) {
               <button
                 key={t.key}
                 data-nav
+                data-active={active ? 'true' : 'false'}
                 onClick={() => switchTab(t.key)}
                 onFocus={() => preloadTab(t.key)}
+                onMouseEnter={() => preloadTab(t.key)}
                 title={`${t.label} (g ${t.sc})`}
                 aria-current={active ? "page" : undefined}
                 aria-label={`${t.label}, raccourci g puis ${t.sc}`}
+                className="sidebar-tab"
                 style={{
                 position:'relative',
                 width:'100%', textAlign:'left', display:'flex', alignItems:'center', gap:10,
@@ -232,14 +222,8 @@ export default function ClientDashboard({ user, profile = null }) {
                 fontFamily:'inherit',
                 background:active?'rgba(255,255,255,0.10)':'transparent',
                 color:active?'#fff':'#94A3B8',
-                fontWeight:active?600:400, fontSize:13, transition:'background .15s, color .15s',
-              }}
-              onMouseEnter={e => {
-                // Préchargement du chunk JS de l'onglet → clic instantané.
-                preloadTab(t.key)
-                if (!active) e.currentTarget.style.background = 'rgba(255,255,255,0.04)'
-              }}
-              onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent' }}>
+                fontWeight:active?600:400, fontSize:13,
+              }}>
                 {/* Barre d'accent verticale uniforme */}
                 <span aria-hidden style={{
                   position:'absolute', left:4, top:9, bottom:9, width:3, borderRadius:2,
@@ -342,7 +326,7 @@ export default function ClientDashboard({ user, profile = null }) {
           </div>
         )}
 
-        <div style={{ animation:'fadeIn .25s ease', maxWidth:1200, margin:'0 auto' }}>
+        <div style={{ animation:'fadeInUp .25s cubic-bezier(.4, 0, .2, 1)', maxWidth:1200, margin:'0 auto' }}>
           {/* Aucun chantier associé */}
           {!data?.chantiers?.length && (
             <div style={{

@@ -22,7 +22,6 @@ function ProtectedApp() {
           }} aria-hidden="true"/>
           <p style={{ margin: 0, color: '#1E3A5F', fontSize: 15, fontWeight: 600 }}>ID Maîtrise</p>
           <p style={{ margin: '4px 0 0', color: '#64748B', fontSize: 12 }}>Vérification de votre accès…</p>
-          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         </div>
       </div>
     )

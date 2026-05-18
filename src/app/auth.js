@@ -199,19 +199,6 @@ export function LoginPage() {
       background: 'linear-gradient(135deg, #0F172A 0%, #1E3A5F 50%, #0F172A 100%)',
       fontFamily: "var(--font-dm-sans), sans-serif", padding: 20, position: 'relative', overflow: 'hidden',
     }}>
-      <style>{`
-        @keyframes fadeIn { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
-        @keyframes floatBg1 {
-          0%,100% { transform: translate(0,0) scale(1); }
-          50% { transform: translate(30px,-20px) scale(1.1); }
-        }
-        @keyframes floatBg2 {
-          0%,100% { transform: translate(0,0) scale(1); }
-          50% { transform: translate(-30px,20px) scale(1.05); }
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
-      `}</style>
-
       {/* Halos décoratifs en arrière-plan (très subtils) */}
       <div aria-hidden style={{
         position: 'absolute', top: '-10%', left: '-10%',
@@ -228,7 +215,7 @@ export function LoginPage() {
 
       <div style={{
         background: '#fff', borderRadius: 24, padding: '48px 40px', maxWidth: 420, width: '100%',
-        boxShadow: '0 25px 80px rgba(0,0,0,0.4)', animation: 'fadeIn 0.5s ease', textAlign: 'center',
+        boxShadow: '0 25px 80px rgba(0,0,0,0.4)', animation: 'fadeInUp 0.5s cubic-bezier(.2, 0, 0, 1.2)', textAlign: 'center',
         position: 'relative', zIndex: 1,
       }}>
         <div style={{
@@ -291,25 +278,15 @@ export function LoginPage() {
           onClick={handleGoogleLogin}
           disabled={loggingIn}
           aria-label="Se connecter avec Google"
+          className="login-btn"
           style={{
             width: '100%', padding: '14px 24px', borderRadius: 12,
             border: '1.5px solid #E2E8F0', background: '#fff',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12,
             cursor: loggingIn ? 'wait' : 'pointer', fontSize: 15, fontWeight: 600,
             color: '#334155', fontFamily: 'inherit',
-            transition: 'border-color .2s, box-shadow .2s, transform .1s',
             boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
           }}
-          onMouseEnter={e => {
-            e.currentTarget.style.borderColor = '#3B82F6';
-            e.currentTarget.style.boxShadow = '0 2px 12px rgba(59,130,246,0.2)'
-          }}
-          onMouseLeave={e => {
-            e.currentTarget.style.borderColor = '#E2E8F0';
-            e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.08)'
-          }}
-          onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.98)' }}
-          onMouseUp={e => { e.currentTarget.style.transform = 'scale(1)' }}
         >
           {loggingIn ? (
             <>

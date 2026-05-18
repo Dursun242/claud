@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
+import { ANIMATION } from '../lib/motion'
 
 /**
  * Composant Modal réutilisable
@@ -98,7 +99,7 @@ export default function Modal({ open, onClose, title, children, wide = false }) 
         background: 'rgba(15,23,42,0.6)',
         backdropFilter: 'blur(4px)',
         padding: isMobile ? 0 : 16,
-        animation: 'fadeIn .15s ease',
+        animation: ANIMATION.fadeInFast,
       }}
       onClick={onClose}
     >
@@ -116,7 +117,7 @@ export default function Modal({ open, onClose, title, children, wide = false }) 
           maxHeight: isMobile ? '92vh' : '85vh',
           overflow: 'auto',
           boxShadow: '0 25px 50px rgba(15,23,42,0.25)',
-          animation: 'fadeIn .2s ease',
+          animation: ANIMATION.popIn,
           WebkitOverflowScrolling: 'touch',
         }}
       >
@@ -148,23 +149,15 @@ export default function Modal({ open, onClose, title, children, wide = false }) 
           <button
             onClick={onClose}
             aria-label="Fermer"
+            className="u-icon-btn u-icon-btn--soft"
             style={{
-              background: '#F1F5F9',
-              border: '1px solid #E2E8F0',
               borderRadius: 8,
-              cursor: 'pointer',
-              width: 30,
-              height: 30,
+              width: 32,
+              height: 32,
               fontSize: 16,
               color: '#475569',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontFamily: 'inherit',
               flexShrink: 0,
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = '#E2E8F0' }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = '#F1F5F9' }}
           >
             ✕
           </button>

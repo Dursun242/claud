@@ -89,17 +89,11 @@ function Toast({ notif, index, total, onDismiss, onClick, isMobile }) {
         transform: `translateY(${closing ? '20px' : -offsetY + 'px'}) scale(${closing ? 0.95 : scale})`,
         opacity: closing ? 0 : 1,
         transition: 'transform .22s cubic-bezier(.2,.9,.3,1.2), opacity .22s ease',
-        animation: 'toastIn .28s cubic-bezier(.2,.9,.3,1.2)',
+        animation: 'notifyIn .28s cubic-bezier(.2,.9,.3,1.2)',
         position: 'relative',
         overflow: 'hidden',
       }}
     >
-      <style>{`
-        @keyframes toastIn {
-          from { opacity: 0; transform: translateX(40px) scale(.95); }
-          to   { opacity: 1; transform: none; }
-        }
-      `}</style>
       <span style={{
         fontSize: 14, lineHeight: 1, flexShrink: 0,
         width: 26, height: 26, borderRadius: 7,
@@ -136,7 +130,6 @@ function Toast({ notif, index, total, onDismiss, onClick, isMobile }) {
           transformOrigin: 'left',
         }}/>
       )}
-      <style>{`@keyframes toastShrink{from{transform:scaleX(1)}to{transform:scaleX(0)}}`}</style>
     </div>
   )
 }
@@ -240,7 +233,6 @@ export default function NotificationBell({ userEmail, onNavigate, isMobile = fal
               animation: 'pulseBadge 2s ease-in-out infinite',
             }}>{badge}</span>
           )}
-          <style>{`@keyframes pulseBadge{0%,100%{box-shadow:0 0 0 0 rgba(220,38,38,0.5)}50%{box-shadow:0 0 0 6px rgba(220,38,38,0)}}`}</style>
         </button>
 
         {open && (
@@ -257,7 +249,6 @@ export default function NotificationBell({ userEmail, onNavigate, isMobile = fal
             zIndex: 5000, overflow: 'hidden',
             animation: 'fadeInDown .22s cubic-bezier(.2,.9,.3,1.2)',
           }}>
-            <style>{`@keyframes fadeInDown{from{opacity:0;transform:translateY(-8px) scale(.98)}to{opacity:1;transform:none}}`}</style>
             <div style={{
               padding: '12px 14px 10px',
               display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,

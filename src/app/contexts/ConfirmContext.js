@@ -1,5 +1,6 @@
 'use client'
 import { createContext, useContext, useState, useCallback, useMemo, useRef } from 'react'
+import { ANIMATION } from '../lib/motion'
 
 /**
  * ConfirmContext — remplace `window.confirm()` par une modale brandée.
@@ -119,13 +120,9 @@ function ConfirmDialog({ state, onResolve }) {
         backdropFilter: 'blur(4px)',
         padding: 16,
         fontFamily: "var(--font-dm-sans), sans-serif",
-        animation: 'fadeIn .15s ease',
+        animation: ANIMATION.fadeInFast,
       }}
     >
-      <style>{`
-        @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
-        @keyframes confirmPop { from { opacity: 0; transform: scale(0.96) translateY(10px) } to { opacity: 1; transform: scale(1) translateY(0) } }
-      `}</style>
       <div
         ref={contentRef}
         onClick={(e) => e.stopPropagation()}
@@ -136,7 +133,7 @@ function ConfirmDialog({ state, onResolve }) {
           width: '100%',
           maxWidth: 440,
           boxShadow: '0 25px 50px rgba(15,23,42,0.3)',
-          animation: 'confirmPop .2s ease',
+          animation: ANIMATION.popIn,
         }}
       >
         <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start', marginBottom: 18 }}>

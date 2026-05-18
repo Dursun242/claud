@@ -197,14 +197,13 @@ export default function GlobalSearch({ data, onNavigate }) {
                 const cat = CATEGORIES.find(c => c.key === r.catKey) || CATEGORIES[0]
                 return (
                   <button key={`${r.tab}-${r.id}`} onClick={() => handleNavigate(r.tab, r.id)}
+                    className="u-menu-item"
                     style={{
                       display:'block', width:'100%', textAlign:'left',
                       padding:'7px 14px 7px 22px', background:'transparent',
-                      border:'none', cursor:'pointer', fontFamily:'inherit',
+                      border:'none', fontFamily:'inherit',
                       borderLeft:`3px solid transparent`,
                     }}
-                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.04)'}
-                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                   >
                     <div style={{ fontSize: 12, fontWeight: 600, color: '#E2E8F0' }}>
                       <span style={{ color: cat.color, marginRight: 6 }}>{cat.icon}</span>

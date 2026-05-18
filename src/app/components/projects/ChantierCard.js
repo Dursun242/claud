@@ -24,19 +24,15 @@ function ChantierCardImpl({ ch, counts, m, readOnly, onOpen, onEdit, onDelete })
   return (
     <div
       onClick={() => onOpen(ch)}
+      role="link"
+      tabIndex={0}
+      aria-label={`Ouvrir le chantier ${ch.nom}`}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(ch) } }}
+      className="u-press u-press--lift"
       style={{
         background: '#fff', borderRadius: 12, overflow: 'hidden',
         boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
         borderLeft: `4px solid ${phaseColors[ch.phase] || '#94A3B8'}`,
-        cursor: 'pointer', transition: 'all .2s',
-      }}
-      onMouseEnter={e => {
-        e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)'
-        e.currentTarget.style.transform = 'translateX(4px)'
-      }}
-      onMouseLeave={e => {
-        e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.06)'
-        e.currentTarget.style.transform = ''
       }}
     >
       {ch.photo_couverture && (
@@ -74,16 +70,25 @@ function ChantierCardImpl({ ch, counts, m, readOnly, onOpen, onEdit, onDelete })
         </div>
         {!readOnly && (
           <div style={{ display: 'flex', gap: 4 }} onClick={e => e.stopPropagation()}>
-            <button onClick={() => onEdit(ch)} style={{
-              background: '#F8FAFC', border: '1px solid #E2E8F0',
-              borderRadius: 6, padding: 5, cursor: 'pointer',
-            }}>
+            <button
+              onClick={() => onEdit(ch)}
+              aria-label={`Modifier le chantier ${ch.nom}`}
+              className="u-icon-btn u-icon-btn--soft"
+              style={{
+                borderRadius: 6, padding: 5, width: 28, height: 28,
+              }}
+            >
               <Icon d={I.edit} size={14} color="#64748B"/>
             </button>
-            <button onClick={() => onDelete(ch)} style={{
-              background: '#FEF2F2', border: '1px solid #FECACA',
-              borderRadius: 6, padding: 5, cursor: 'pointer',
-            }}>
+            <button
+              onClick={() => onDelete(ch)}
+              aria-label={`Supprimer le chantier ${ch.nom}`}
+              className="u-icon-btn u-icon-btn--danger"
+              style={{
+                background: '#FEF2F2', border: '1px solid #FECACA',
+                borderRadius: 6, padding: 5, width: 28, height: 28,
+              }}
+            >
               <Icon d={I.trash} size={14} color="#EF4444"/>
             </button>
           </div>

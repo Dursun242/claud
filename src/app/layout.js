@@ -1,5 +1,6 @@
 import { DM_Sans } from 'next/font/google'
 import RootWrapper from '@/app/RootWrapper';
+import '@/app/styles/global.css';
 
 // next/font auto-héberge DM Sans (pas d'appel à fonts.googleapis.com au
 // runtime) et inline les @font-face : plus de FOUT, plus de CLS, et une

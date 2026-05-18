@@ -245,49 +245,11 @@ export default function AdminDashboard({ user, profile = null }) {
       onBlur={e => { e.currentTarget.style.left = "-9999px" }}
       >Passer au contenu principal</a>
       <style>{`
-@keyframes spin{to{transform:rotate(360deg)}}
-        @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
-        @keyframes heartbeat{
-          0%,100%{transform:scale(1)}15%{transform:scale(1.18)}
-          30%{transform:scale(1)}45%{transform:scale(1.12)}60%{transform:scale(1)}
-        }
-        @keyframes ripple{0%{transform:scale(1);opacity:1}100%{transform:scale(1.8);opacity:0}}
-        @keyframes neonBreathing{
-          0%,100%{
-            box-shadow:0 0 12px rgba(0,255,136,0.3),
-              0 0 30px rgba(0,255,136,0.15),0 0 60px rgba(0,255,136,0.07);
-            border-color:rgba(0,255,136,0.3)
-          }
-          50%{
-            box-shadow:0 0 18px rgba(0,255,136,0.5),
-              0 0 45px rgba(0,255,136,0.25),0 0 90px rgba(0,255,136,0.12);
-            border-color:rgba(0,255,136,0.5)
-          }
-        }
-        @keyframes neonRing{0%,100%{opacity:0.4;transform:scale(1)}50%{opacity:0.8;transform:scale(1.05)}}
-        @keyframes neonPulse{0%,100%{opacity:1;box-shadow:0 0 3px #00FF88}50%{opacity:0.5;box-shadow:0 0 8px #00FF88}}
-        @keyframes pulse{0%,80%,100%{opacity:.3;transform:scale(.8)}40%{opacity:1;transform:scale(1)}}
-        @keyframes pulseGlow{0%,100%{box-shadow:0 0 0 0 rgba(234,67,53,0.3)}50%{box-shadow:0 0 0 6px rgba(234,67,53,0)}}
         *{box-sizing:border-box}
         ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-thumb{background:#CBD5E1;border-radius:3px}
-        input:focus,select:focus,textarea:focus{border-color:#3B82F6!important;outline:none}
-        /* A11y : focus ring clavier uniquement (pas sur les clics souris) */
-        :focus{outline:none}
-        :focus-visible{outline:2px solid #3B82F6 !important;outline-offset:2px;border-radius:4px}
-        button:focus-visible,a:focus-visible,
-        [role="button"]:focus-visible{outline:2px solid #3B82F6 !important;outline-offset:2px}
-        /* Respect prefers-reduced-motion : désactive les animations décoratives */
-        @media (prefers-reduced-motion: reduce){
-          *,*::before,*::after{
-            animation-duration:.01ms !important;
-            animation-iteration-count:1 !important;
-            transition-duration:.01ms !important
-          }
-        }
-        /* Mobile : inputs à 16px minimum pour éviter l'auto-zoom iOS Safari */
+        input:focus,select:focus,textarea:focus{border-color:#3B82F6!important}
         @media (max-width: 768px){
           input:not([type="checkbox"]):not([type="radio"]),select,textarea{font-size:16px !important}
-          /* Touch targets minimum 36px sur mobile pour les boutons d'action */
           button:not([aria-label="Copier"]):not([aria-label="Fermer"]):not([aria-label="Fermer la notification"]):not([data-nav]){min-height:36px}
         }
       `}</style>
@@ -324,11 +286,14 @@ export default function AdminDashboard({ user, profile = null }) {
               <button
                 key={t.key}
                 data-nav
+                data-active={active ? 'true' : 'false'}
                 onClick={()=>switchTab(t.key)}
                 onFocus={()=>preloadTab(t.key)}
+                onMouseEnter={()=>preloadTab(t.key)}
                 title={`${t.label} (g ${t.sc})`}
                 aria-current={active ? "page" : undefined}
                 aria-label={`${t.label}, raccourci g puis ${t.sc}`}
+                className="sidebar-tab"
                 style={{
                 position:"relative",
                 display:"flex",alignItems:"center",gap:9,
@@ -338,15 +303,8 @@ export default function AdminDashboard({ user, profile = null }) {
                 fontWeight:active?600:400,
                 color:active?"#fff":"#94A3B8",
                 background:active?"rgba(255,255,255,0.10)":"transparent",
-                transition:"background .15s, color .15s",textAlign:"left",width:"100%",
-              }}
-              onMouseEnter={e=>{
-                // Préchargement du chunk JS dès le hover → au clic, pas
-                // d'attente réseau si première visite de l'onglet.
-                preloadTab(t.key);
-                if (!active) e.currentTarget.style.background = "rgba(255,255,255,0.04)";
-              }}
-              onMouseLeave={e=>{ if(!active) e.currentTarget.style.background="transparent"; }}>
+                textAlign:"left",width:"100%",
+              }}>
                 {/* Barre d'accent verticale, uniforme sur tous les onglets actifs */}
                 <span aria-hidden style={{
                   position:"absolute",left:4,top:8,bottom:8,width:3,borderRadius:2,
@@ -455,7 +413,7 @@ export default function AdminDashboard({ user, profile = null }) {
             <NotificationBell userEmail={user?.email} onNavigate={(nextTab)=>switchTab(nextTab)} />
           </div>
         )}
-        <div style={{animation:"fadeIn .3s ease",maxWidth:1200}}>
+        <div style={{animation:"fadeInUp .3s cubic-bezier(.4, 0, .2, 1)",maxWidth:1200}}>
           {/* Chaque onglet n'est RENDU que s'il a déjà été visité (visitedTabs),
               et reste MONTÉ avec display:none quand il n'est pas actif.
               Avant, {tab==="x" && <XV/>} démontait la page précédente à chaque

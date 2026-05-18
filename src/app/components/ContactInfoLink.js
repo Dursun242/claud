@@ -19,6 +19,7 @@ export function CopyIconBtn({ onClick }) {
       onClick={(e) => { e.stopPropagation(); e.preventDefault(); onClick?.() }}
       aria-label="Copier"
       title="Copier dans le presse-papier"
+      className="copy-icon-btn"
       style={{
         background: 'none',
         border: 'none',
@@ -32,14 +33,6 @@ export function CopyIconBtn({ onClick }) {
         color: '#94A3B8',
         fontFamily: 'inherit',
         opacity: 0.7,
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.opacity = 1
-        e.currentTarget.style.color = '#3B82F6'
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.opacity = 0.7
-        e.currentTarget.style.color = '#94A3B8'
       }}
     >
       <svg
