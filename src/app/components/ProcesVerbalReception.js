@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../supabaseClient'
 import { useToast } from '../contexts/ToastContext'
 import Section from './Section'
+import EmptyState from './EmptyState'
 import PVRow from './pv/PVRow'
 import PVDetail from './pv/PVDetail'
 import PVNewForm from './pv/PVNewForm'
@@ -68,7 +69,12 @@ export default function ProcesVerbalReception({ chantierId, chantier, ordresServ
         {loading ? (
           <p style={{ color: '#94A3B8', fontSize: 12 }}>Chargement…</p>
         ) : pvs.length === 0 ? (
-          <p style={{ color: '#94A3B8', fontSize: 12 }}>Aucun PV pour ce chantier</p>
+          <EmptyState
+            compact
+            icon="📋"
+            title="Aucun PV pour ce chantier"
+            description="Les procès-verbaux de réception apparaîtront ici une fois créés."
+          />
         ) : (
           pvs.map((pv) => (
             <PVRow key={pv.id} pv={pv} onDetail={setSelectedPv} />

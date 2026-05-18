@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { useToast } from '../contexts/ToastContext'
 import { useConfirm } from '../contexts/ConfirmContext'
+import EmptyState from './EmptyState'
 
 // Temps relatif en français (sans lib externe)
 function formatRelative(dateStr) {
@@ -91,8 +92,13 @@ export default function CommentsSection({
 
       {/* Liste commentaires */}
       {sorted.length === 0 ? (
-        <div style={{ background: '#F8FAFC', borderRadius: 8, padding: '18px 12px', textAlign: 'center', marginBottom: 12, color: '#94A3B8', fontSize: 12 }}>
-          Aucun commentaire pour l&apos;instant
+        <div style={{ marginBottom: 12 }}>
+          <EmptyState
+            compact
+            icon="💬"
+            title="Aucun commentaire pour l'instant"
+            description="Soyez le premier à laisser une note."
+          />
         </div>
       ) : (
         <div style={{ marginBottom: 12 }}>

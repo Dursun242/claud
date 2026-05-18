@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { SB, fmtDate, FF, inp, sel, btnP, btnS } from '../dashboards/shared'
-import { Modal } from '../components'
+import { Modal, EmptyState } from '../components'
 import { useToast } from '../contexts/ToastContext'
 import { useConfirm } from '../contexts/ConfirmContext'
 import { useUndoableDelete } from '../hooks/useUndoableDelete'
@@ -200,28 +200,24 @@ export default function ReportsV({ data, save: _save, m, reload, focusId, focusT
     </div>
 
     {filteredSortedCRs.length === 0 ? (
-      <div style={{
-        background:"#fff",borderRadius:12,padding:"40px 24px",
-        textAlign:"center",boxShadow:"0 1x 3px rgba(0,0,0,0.04)"
-      }}>
-        <div style={{fontSize:36,marginBottom:8,opacity:0.5}}>📝</div>
-        {hasFilters ? (
-          <>
-            <div style={{fontSize:14,fontWeight:700,color:"#334155",marginBottom:4}}>Aucun résultat</div>
-            <div style={{fontSize:12,color:"#94A3B8",marginBottom:14}}>
-              Essaie d'élargir ta recherche ou de changer de chantier.
-            </div>
-            <button onClick={()=>{setSearchCR("");setChantierFilter("")}}
-              style={{...btnS,fontSize:12}}>Réinitialiser les filtres</button>
-          </>
-        ) : (
-          <>
-            <div style={{fontSize:14,fontWeight:700,color:"#334155",marginBottom:4}}>Aucun compte rendu</div>
-            <div style={{fontSize:12,color:"#94A3B8",marginBottom:14}}>Crée ton premier CR de chantier.</div>
-            <button onClick={openNew} style={{...btnP,fontSize:12}}>+ Nouveau CR</button>
-          </>
-        )}
-      </div>
+      hasFilters ? (
+        <EmptyState
+          icon="📝"
+          title="Aucun résultat"
+          description="Essaie d'élargir ta recherche ou de changer de chantier."
+          action={{
+            label: 'Réinitialiser les filtres',
+            onClick: () => { setSearchCR(''); setChantierFilter('') },
+          }}
+        />
+      ) : (
+        <EmptyState
+          icon="📝"
+          title="Aucun compte rendu"
+          description="Crée ton premier CR de chantier pour commencer."
+          action={{ label: '+ Nouveau CR', onClick: openNew }}
+        />
+      )
     ) : (
       filteredSortedCRs.map(cr => {
         const ch = data.chantiers.find(c => c.id === (cr.chantierId || cr.chantier_id))

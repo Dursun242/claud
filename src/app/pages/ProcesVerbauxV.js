@@ -1,6 +1,7 @@
 'use client'
 import { useState, useMemo } from 'react'
 import { useToast } from '../contexts/ToastContext'
+import EmptyState from '../components/EmptyState'
 
 function formatDate(iso) {
   if (!iso) return '—'
@@ -101,8 +102,13 @@ export default function ProcesVerbauxV({ data, m, reload, user: _user }) {
       {/* Liste */}
       <div style={{ background: '#fff', borderRadius: 12, boxShadow: '0 1px 3px rgba(15,23,42,0.06)', overflow: 'hidden' }}>
         {allPVs.length === 0 ? (
-          <div style={{ padding: 20, textAlign: 'center', color: '#94A3B8', fontSize: 12 }}>
-            Aucun procès-verbal
+          <div style={{ padding: 20 }}>
+            <EmptyState
+              compact
+              icon="📋"
+              title="Aucun procès-verbal"
+              description="Les PV de réception apparaîtront ici dès qu'un chantier en aura généré un."
+            />
           </div>
         ) : (
           <div style={{ maxHeight: '70vh', overflowY: 'auto' }}>

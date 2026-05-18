@@ -3,6 +3,7 @@ import { useState, useMemo, useRef, useCallback, useEffect } from 'react'
 import { phase as PHASE_COLORS, sel, fmtDate } from '../dashboards/shared'
 import { supabase } from '../supabaseClient'
 import { useToast } from '../contexts/ToastContext'
+import EmptyState from '../components/EmptyState'
 
 // ─── Helpers date ──────────────────────────────────────────
 const DAY_MS = 864e5
@@ -306,13 +307,13 @@ export default function PlanningV({ data, m, reload }) {
 
       {!hasData ? (
         /* ══ ÉTAT VIDE ════════════════════════════════════ */
-        <div style={{ background: '#fff', borderRadius: 12, padding: '40px 24px', textAlign: 'center', boxShadow: '0 1px 3px rgba(15,23,42,0.06)' }}>
-          <div style={{ fontSize: 36, marginBottom: 8, opacity: 0.4 }}>📅</div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: '#334155', marginBottom: 4 }}>Aucun OS planifié</div>
-          <div style={{ fontSize: 12, color: '#94A3B8', maxWidth: 340, margin: '0 auto' }}>
-            Pour afficher un lot dans le Gantt, renseigne une <strong>date d'intervention</strong> et une <strong>date de fin prévue</strong> sur les Ordres de Service du chantier.
-          </div>
-        </div>
+        <EmptyState
+          icon="📅"
+          title="Aucun OS planifié"
+          description={
+            <>Pour afficher un lot dans le Gantt, renseigne une <strong>date d&apos;intervention</strong> et une <strong>date de fin prévue</strong> sur les Ordres de Service du chantier.</>
+          }
+        />
       ) : view === 'list' ? (
         /* ══ VUE LISTE ════════════════════════════════════ */
         <ListeView filteredChantiers={filteredChantiers} osByChantier={osByChantier} m={m} />

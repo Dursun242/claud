@@ -7,6 +7,7 @@
 
 import Badge from './Badge'
 import Section from './Section'
+import EmptyState from './EmptyState'
 
 const TYPE_COLOR = {
   Artisan: '#F59E0B',
@@ -37,7 +38,12 @@ export default function ChantierIntervenants({ intervenants = [], clientContact 
       )}
 
       {intervenants.length === 0 && !clientContact
-        ? <p style={{ color: '#94A3B8', fontSize: 12 }}>Aucun intervenant lié via les OS</p>
+        ? <EmptyState
+            compact
+            icon="👷"
+            title="Aucun intervenant lié"
+            description="Les intervenants apparaissent ici dès qu'un OS est rattaché à un contact."
+          />
         : intervenants.map((c) => (
           <div key={c.id} style={{
             background: '#fff', borderRadius: 8, padding: 12, marginBottom: 6,

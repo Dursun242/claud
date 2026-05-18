@@ -2,6 +2,7 @@
 import { useState, useCallback, useRef } from 'react'
 import { supabase } from '../supabaseClient'
 import { useSafeAction } from '../hooks/useSafeAction'
+import EmptyState from './EmptyState'
 
 function formatSize(bytes) {
   if (!bytes && bytes !== 0) return ''
@@ -110,8 +111,13 @@ export default function DocumentSearch({ chantierId = null }) {
               Recherche en cours...
             </div>
           ) : results.length === 0 ? (
-            <div style={{ padding: 16, textAlign: 'center', color: '#94A3B8', fontSize: 12 }}>
-              Aucun document trouvé
+            <div style={{ padding: 12 }}>
+              <EmptyState
+                compact
+                icon="🔍"
+                title="Aucun document trouvé"
+                description={`Aucune correspondance pour « ${searchQuery} ».`}
+              />
             </div>
           ) : (
             <div>

@@ -4,6 +4,7 @@
 export { default as Badge } from './Badge'
 export { default as ProgressBar } from './ProgressBar'
 export { default as Section } from './Section'
+export { default as EmptyState } from './EmptyState'
 
 // Modal & Dialogs
 export { default as Modal } from './Modal'
