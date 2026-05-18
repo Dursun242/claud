@@ -5,9 +5,6 @@ export { default as Badge } from './Badge'
 export { default as ProgressBar } from './ProgressBar'
 export { default as Section } from './Section'
 
-// Form components
-export { default as FormField, inputStyle, selectStyle, btnPrimaryStyle, btnSecondaryStyle } from './FormField'
-
 // Modal & Dialogs
 export { default as Modal } from './Modal'
 export { default as OSSignatureModal } from './OSSignatureModal'

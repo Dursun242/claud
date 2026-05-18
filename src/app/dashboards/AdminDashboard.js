@@ -247,7 +247,6 @@ export default function AdminDashboard({ user, profile = null }) {
       <style>{`
         *{box-sizing:border-box}
         ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-thumb{background:#CBD5E1;border-radius:3px}
-        input:focus,select:focus,textarea:focus{border-color:#3B82F6!important}
         @media (max-width: 768px){
           input:not([type="checkbox"]):not([type="radio"]),select,textarea{font-size:16px !important}
           button:not([aria-label="Copier"]):not([aria-label="Fermer"]):not([aria-label="Fermer la notification"]):not([data-nav]){min-height:36px}

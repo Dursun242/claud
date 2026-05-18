@@ -32,6 +32,26 @@
   border-radius: inherit;
 }
 
+/* Inputs : feedback bleu doux au focus (souris ou clavier). On reste
+ * sur border-color + box-shadow pour éviter le saut visuel d'un outline
+ * extérieur sur un champ déjà bordé. */
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: #3B82F6 !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
+}
+input[aria-invalid="true"],
+textarea[aria-invalid="true"] {
+  border-color: #FCA5A5 !important;
+  background: #FEF2F2;
+}
+input[aria-invalid="true"]:focus,
+textarea[aria-invalid="true"]:focus {
+  border-color: #DC2626 !important;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15) !important;
+}
+
 /* ── Keyframes centralisées ─────────────────────────────────────── */
 
 @keyframes fadeIn {

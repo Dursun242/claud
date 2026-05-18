@@ -745,15 +745,34 @@ export const fmtMoney = n => new Intl.NumberFormat("fr-FR", {
 export const pct = (a,b) => b ? Math.round(a/b*100) : 0;
 
 // ─── SHARED COMPONENTS ───
-export function FF({label,hint,children}) {
+// FF — wrapper label + child + hint + erreur.
+//
+// Accessibilité :
+// - Le <label> englobe le contrôle (association implicite, pas besoin de htmlFor)
+// - `error` (string) → message rouge sous le champ, annoncé via role="alert"
+// - `hint` → texte d'aide sous le champ
+// - `required` ajoute un * rouge à côté du label (information visuelle ;
+//   pour la sémantique on s'appuie sur l'attribut `required` du contrôle)
+export function FF({label, hint, error, required, children}) {
   return (
     <div style={{marginBottom:12}}>
       <label style={{
         display:"block", fontSize:11, fontWeight:600, color:"#64748B",
         marginBottom:3, textTransform:"uppercase", letterSpacing:"0.05em"
-      }}>{label}</label>
+      }}>
+        {label}
+        {required && <span aria-hidden="true" style={{color:"#DC2626", marginLeft:3}}>*</span>}
+      </label>
       {children}
-      {hint && (
+      {error && (
+        <div role="alert" style={{
+          fontSize:11, color:"#DC2626", marginTop:4, fontWeight:500,
+          display:"flex", alignItems:"center", gap:4,
+        }}>
+          <span aria-hidden="true">⚠</span>{error}
+        </div>
+      )}
+      {hint && !error && (
         <div style={{fontSize:10,color:"#94A3B8",marginTop:4,fontStyle:"italic"}}>
           {hint}
         </div>
@@ -761,19 +780,59 @@ export function FF({label,hint,children}) {
     </div>
   );
 }
+
+// Hauteur minimum 44 px pour respecter les tap targets mobiles (WCAG 2.5.5 AAA
+// recommande 44×44, Apple HIG/Material Design 48). Avec padding 10px 12px et
+// fontSize 16, l'input fait ~46 px : confortable au pouce.
+//
+// fontSize 16 px : en dessous, iOS Safari déclenche un auto-zoom au focus
+// (la page reste zoomée même après le blur, avec un scroll horizontal cassé).
 export const inp = {
-  width:"100%", padding:"8px 12px", border:"1.5px solid #E2E8F0",
-  // fontSize 16px minimum : en dessous iOS Safari déclenche un auto-zoom
-  // quand l'utilisateur focus un input, ce qui laisse la page zoomée
-  // (et provoque un scroll horizontal) même après avoir perdu le focus.
+  width:"100%", padding:"10px 12px", minHeight:44,
+  border:"1.5px solid #E2E8F0",
   borderRadius:8, fontSize:16, outline:"none",
-  fontFamily:"inherit", boxSizing:"border-box"
+  fontFamily:"inherit", boxSizing:"border-box",
+  transition:"border-color 120ms cubic-bezier(.4, 0, .2, 1), box-shadow 120ms cubic-bezier(.4, 0, .2, 1)",
 };
 export const sel = {...inp,background:"#fff"};
+
+// Variantes input avec inputMode + enterKeyHint adaptés au type de saisie
+// (clavier mobile spécifique : pavé numérique pour tel/siret, @ visible
+// pour email, touche "OK" vs "Suivant" sur l'enter…). À étaler avec ...
+//
+// Usage :
+//   <input {...inpTel} value={...} onChange={...} />
+//   <input {...inpEmail} value={...} onChange={...} />
+export const inpTel = {
+  style: inp,
+  type: 'tel',
+  inputMode: 'tel',
+  autoComplete: 'tel',
+  enterKeyHint: 'next',
+}
+export const inpEmail = {
+  style: inp,
+  type: 'email',
+  inputMode: 'email',
+  autoComplete: 'email',
+  enterKeyHint: 'next',
+}
+export const inpNumeric = {
+  style: inp,
+  inputMode: 'numeric',
+  enterKeyHint: 'next',
+}
+// Style border rouge à passer en erreur : <input style={{...inp, ...inpError}} />
+export const inpError = {
+  borderColor: '#FCA5A5',
+  background: '#FEF2F2',
+}
+
 export const btnP = {
-  padding:"10px 18px", background:"#1E3A5F", color:"#fff",
+  padding:"10px 18px", minHeight:40, background:"#1E3A5F", color:"#fff",
   border:"none", borderRadius:8, fontSize:13,
-  fontWeight:600, cursor:"pointer", fontFamily:"inherit"
+  fontWeight:600, cursor:"pointer", fontFamily:"inherit",
+  transition:"transform 120ms cubic-bezier(.4, 0, .2, 1), box-shadow 180ms cubic-bezier(.4, 0, .2, 1)",
 };
 export const btnS = {...btnP,background:"#F1F5F9",color:"#475569"};
 

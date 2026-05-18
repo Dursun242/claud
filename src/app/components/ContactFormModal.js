@@ -13,6 +13,7 @@
 // coordonnées, administratif, évaluation, erreurs, boutons.
 
 import Modal from './Modal'
+import { inpTel, inpEmail, inpNumeric } from '../dashboards/shared'
 
 export default function ContactFormModal({
   modal,
@@ -290,17 +291,17 @@ export default function ContactFormModal({
       }}>Coordonnées</div>
       <div style={{ display: 'grid', gridTemplateColumns: m ? '1fr' : '1fr 1fr 1fr', gap: '0 12px' }}>
         <FF label="Tél. mobile">
-          <input style={inp} value={form.tel || ''}
+          <input {...inpTel} value={form.tel || ''}
             onChange={(e) => setForm({ ...form, tel: e.target.value })}
             placeholder="06 ..."/>
         </FF>
         <FF label="Tél. fixe">
-          <input style={inp} value={form.tel_fixe || ''}
+          <input {...inpTel} value={form.tel_fixe || ''}
             onChange={(e) => setForm({ ...form, tel_fixe: e.target.value })}
             placeholder="02 35 ..."/>
         </FF>
         <FF label="Email">
-          <input type="email" style={inp} value={form.email || ''}
+          <input {...inpEmail} value={form.email || ''}
             onChange={(e) => setForm({ ...form, email: e.target.value })}/>
         </FF>
       </div>
@@ -310,8 +311,9 @@ export default function ContactFormModal({
             onChange={(e) => setForm({ ...form, adresse: e.target.value })}/>
         </FF>
         <FF label="Code postal">
-          <input style={inp} value={form.code_postal || ''}
-            onChange={(e) => setForm({ ...form, code_postal: e.target.value })}/>
+          <input {...inpNumeric} value={form.code_postal || ''}
+            onChange={(e) => setForm({ ...form, code_postal: e.target.value })}
+            maxLength={5}/>
         </FF>
         <FF label="Ville">
           <input style={inp} value={form.ville || ''}
@@ -331,7 +333,7 @@ export default function ContactFormModal({
       }}>Administratif</div>
       <div style={{ display: 'grid', gridTemplateColumns: m ? '1fr' : '1fr 1fr', gap: '0 12px' }}>
         <FF label="SIRET">
-          <input style={inp} value={form.siret || ''}
+          <input {...inpNumeric} value={form.siret || ''}
             onChange={(e) => setForm({ ...form, siret: e.target.value })}
             placeholder="XXX XXX XXX XXXXX"/>
         </FF>
