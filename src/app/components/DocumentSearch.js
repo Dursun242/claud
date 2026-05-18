@@ -1,6 +1,7 @@
 'use client'
 import { useState, useCallback, useRef } from 'react'
 import { supabase } from '../supabaseClient'
+import { useSafeAction } from '../hooks/useSafeAction'
 
 function formatSize(bytes) {
   if (!bytes && bytes !== 0) return ''
@@ -26,6 +27,7 @@ export default function DocumentSearch({ chantierId = null }) {
   const [loading, setLoading] = useState(false)
   const [showResults, setShowResults] = useState(false)
   const searchRef = useRef(null)
+  const safe = useSafeAction()
 
   const handleSearch = useCallback(async (query) => {
     setSearchQuery(query)
@@ -37,39 +39,32 @@ export default function DocumentSearch({ chantierId = null }) {
     }
 
     setLoading(true)
-    try {
+    const data = await safe(async () => {
       const params = new URLSearchParams()
       params.append('q', query)
       if (chantierId) params.append('chantierId', chantierId)
-
       const response = await fetch(`/api/search-attachments?${params}`)
-      const data = await response.json()
+      if (!response.ok) throw new Error(`HTTP ${response.status}`)
+      return await response.json()
+    }, 'Recherche impossible')
 
-      setResults(data.results || [])
-      setShowResults(true)
-    } catch (err) {
-      console.error('Erreur recherche:', err)
-      setResults([])
-    } finally {
-      setLoading(false)
-    }
-  }, [chantierId])
+    setResults(data?.results || [])
+    setShowResults(data != null)
+    setLoading(false)
+  }, [chantierId, safe])
 
   const handleDocumentClick = async (att) => {
-    try {
-      // download: att.file_name → Supabase renvoie le PDF avec un
-      // Content-Disposition qui force le vrai nom de fichier (au lieu
-      // du timestamp technique du storage).
-      const { data } = await supabase.storage
+    // download: att.file_name → Supabase renvoie le PDF avec un
+    // Content-Disposition qui force le vrai nom de fichier (au lieu
+    // du timestamp technique du storage).
+    const signed = await safe(async () => {
+      const { data, error } = await supabase.storage
         .from('attachments')
         .createSignedUrl(att.file_path, 3600, { download: att.file_name })
-
-      if (data?.signedUrl) {
-        window.open(data.signedUrl, '_blank')
-      }
-    } catch (err) {
-      console.error('Erreur ouverture:', err)
-    }
+      if (error) throw error
+      return data
+    }, "Impossible d'ouvrir le fichier")
+    if (signed?.signedUrl) window.open(signed.signedUrl, '_blank')
   }
 
   return (

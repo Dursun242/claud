@@ -149,9 +149,11 @@ export default function AttachmentsSection({ attachments = [], onUpload, onDelet
 
   const handleFiles = async (files) => {
     if (!files || files.length === 0) return
+    // onUpload (typiquement useAttachments.uploadAttachment) toaste déjà
+    // ses erreurs ; ce catch évite seulement qu'une exception non gérée
+    // interrompe la boucle si on dépose plusieurs fichiers d'un coup.
     for (const file of files) {
-      try { await onUpload(file) }
-      catch (err) { console.error('Upload failed:', err) }
+      try { await onUpload(file) } catch (_) { /* déjà signalé par le hook */ }
     }
   }
 
