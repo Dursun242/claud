@@ -1,5 +1,10 @@
 import { createClient } from '@supabase/supabase-js'
 import { verifyAuth } from '@/app/lib/auth'
+import { userClientFromToken, extractBearerToken } from '@/app/lib/supabaseClients'
+
+// type d'upload → table parente (pour le check d'ownership) et colonne FK
+const TYPE_TABLES  = { chantier: 'chantiers', os: 'ordres_service', cr: 'compte_rendus', task: 'taches' }
+const TYPE_COLUMNS = { chantier: 'chantier_id', os: 'os_id', cr: 'cr_id', task: 'task_id' }
 
 const ALLOWED_TYPES = [
   'image/jpeg', 'image/png', 'image/gif', 'image/webp',
@@ -37,6 +42,24 @@ export async function POST(request) {
       return Response.json({ error: 'Paramètres manquants' }, { status: 400 })
     }
 
+    if (!TYPE_TABLES[type]) {
+      return Response.json({ error: 'Type de ressource invalide' }, { status: 400 })
+    }
+
+    // Ownership : on relit la ressource cible avec le JWT de l'utilisateur
+    // (RLS appliquée). L'insert plus bas se fait en service role (bypass RLS),
+    // donc sans ce check un client MOA pourrait uploader sur n'importe quel
+    // chantier en forgeant itemId.
+    const userSupa = userClientFromToken(extractBearerToken(request))
+    const { data: parent, error: parentError } = await userSupa
+      .from(TYPE_TABLES[type])
+      .select('id')
+      .eq('id', itemId)
+      .maybeSingle()
+    if (parentError || !parent) {
+      return Response.json({ error: 'Ressource non accessible' }, { status: 403 })
+    }
+
     // Validation type de fichier
     if (!ALLOWED_TYPES.includes(file.type)) {
       return Response.json({
@@ -61,7 +84,7 @@ export async function POST(request) {
     if (uploadError) return Response.json({ error: uploadError.message }, { status: 500 })
 
     // Enregistrer en base
-    const colName = { chantier: 'chantier_id', os: 'os_id', cr: 'cr_id', task: 'task_id' }[type]
+    const colName = TYPE_COLUMNS[type]
     const { error: dbError } = await supabaseAdmin.from('attachments').insert({
       [colName]: itemId,
       file_name: file.name,

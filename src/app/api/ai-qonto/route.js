@@ -4,14 +4,19 @@
 // - Auth JWT Supabase obligatoire
 // - Token Qonto récupéré côté serveur depuis la table settings
 //   (service role key), jamais passé dans le body HTTP.
+// - Rate limit par IP : la route appelle Claude (coût direct), même
+//   logique que /api/claude et /api/extract-*.
 import { Anthropic } from "@anthropic-ai/sdk"
 import { verifyAuth } from '@/app/lib/auth'
 import { fetchWithRetry } from '@/app/lib/fetchWithRetry'
 import { adminClient } from '@/app/lib/supabaseClients'
 import { createLogger } from '@/app/lib/logger'
+import { createRateLimiter, clientIp } from '@/app/lib/rateLimit'
 
 const client = new Anthropic()
 const log = createLogger('ai-qonto')
+
+const checkRateLimit = createRateLimiter({ limit: 5, windowMs: 60_000 })
 
 async function getQontoToken() {
   const admin = adminClient()
@@ -26,13 +31,21 @@ async function getQontoToken() {
 
 export async function POST(request) {
   try {
-    // 1. Auth JWT Supabase
+    // 1. Rate limit par IP (avant tout travail)
+    if (!checkRateLimit(clientIp(request))) {
+      return Response.json(
+        { error: 'Trop de requêtes — attendez 1 minute avant de réessayer.' },
+        { status: 429 }
+      )
+    }
+
+    // 2. Auth JWT Supabase
     const user = await verifyAuth(request)
     if (!user) {
       return Response.json({ error: 'Non autorisé' }, { status: 401 })
     }
 
-    // 2. Récupération du token Qonto côté serveur
+    // 3. Récupération du token Qonto côté serveur
     const qontoToken = await getQontoToken()
     if (!qontoToken) {
       return Response.json(
@@ -41,7 +54,7 @@ export async function POST(request) {
       )
     }
 
-    // 3. Récupérer les factures de Qonto
+    // 4. Récupérer les factures de Qonto
     const invoicesResponse = await fetchWithRetry(
       `https://thirdparty.qonto.com/v2/client_invoices`,
       {
@@ -65,7 +78,7 @@ export async function POST(request) {
     const invoicesData = await invoicesResponse.json()
     const invoices = invoicesData.client_invoices || []
 
-    // 4. Formater les données pour Claude
+    // 5. Formater les données pour Claude
     const invoicesSummary = invoices.slice(0, 10).map((inv) => ({
       id: inv.id,
       date: inv.issued_at,
@@ -86,7 +99,7 @@ ${JSON.stringify(invoicesSummary, null, 2)}
 
 Réponds en JSON avec: { summary: string, topClients: array, paymentRate: string, recommendations: array }`
 
-    // 5. Appel Claude
+    // 6. Appel Claude
     const message = await client.messages.create({
       model: "claude-haiku-4-5-20251001",
       max_tokens: 1024,
