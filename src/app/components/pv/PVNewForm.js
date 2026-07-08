@@ -14,7 +14,7 @@ export default function PVNewForm({ chantierId, chantier, clientContact, ordresS
     description: '',
     dateReception: '',
     signataireMoeEmail: '',
-    signataireMotEmail: '',
+    signataireMotEmails: [''], // Jusqu'à 3 maîtres d'ouvrage (ex: co-propriétaires)
     selectedIntervenants: [], // Array of { nom, email, societe, adresse, codePostal, ville, tel, email, siret }
     decision: '',
     motifRefus: '',
@@ -34,7 +34,7 @@ export default function PVNewForm({ chantierId, chantier, clientContact, ordresS
     setForm(f => ({
       ...f,
       signataireMoeEmail: moeEmail,
-      signataireMotEmail: moaEmail,
+      signataireMotEmails: [moaEmail],
       dateReception: today
     }))
 
@@ -88,7 +88,7 @@ export default function PVNewForm({ chantierId, chantier, clientContact, ordresS
         dateReception: form.dateReception,
         chantierNom: chantier?.nom || '',
         chantierAdresse: chantier?.adresse || '',
-        signataireMotEmail: form.signataireMotEmail,
+        signataireMotEmails: form.signataireMotEmails.map(email => email?.trim()).filter(Boolean),
         selectedIntervenants: form.selectedIntervenants,
         decision: form.decision,
         motifRefus: form.decision === 'Refusé' ? form.motifRefus : null,
@@ -105,8 +105,9 @@ export default function PVNewForm({ chantierId, chantier, clientContact, ordresS
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!form.titre?.trim() || !form.signataireMoeEmail || !form.signataireMotEmail) {
-      addToast('Titre, MOE et MOA requis', 'error')
+    const moaEmails = form.signataireMotEmails.map(email => email?.trim()).filter(Boolean)
+    if (!form.titre?.trim() || !form.signataireMoeEmail || moaEmails.length === 0) {
+      addToast('Titre, MOE et au moins un MOA requis', 'error')
       return
     }
     if (form.selectedIntervenants.length === 0) {
@@ -145,7 +146,7 @@ export default function PVNewForm({ chantierId, chantier, clientContact, ordresS
           dateReception: form.dateReception,
           chantierNom: chantier?.nom || '',
           chantierAdresse: chantier?.adresse || '',
-          signataireMotEmail: form.signataireMotEmail,
+          signataireMotEmails: moaEmails,
           selectedIntervenants: form.selectedIntervenants,
           decision: form.decision,
           motifRefus: form.decision === 'Refusé' ? form.motifRefus : null,
@@ -180,7 +181,7 @@ export default function PVNewForm({ chantierId, chantier, clientContact, ordresS
           description: form.description,
           dateReception: form.dateReception,
           signataireMoeEmail: form.signataireMoeEmail,
-          signataireMotEmail: form.signataireMotEmail,
+          signataireMotEmails: moaEmails,
           signataireEntrepriseEmails,
           selectedIntervenants: form.selectedIntervenants,
           decision: form.decision,
@@ -197,7 +198,7 @@ export default function PVNewForm({ chantierId, chantier, clientContact, ordresS
       // Confirmation visible de l'envoi en signature
       const recipients = [
         form.signataireMoeEmail,
-        form.signataireMotEmail,
+        ...moaEmails,
         ...signataireEntrepriseEmails
       ].filter(Boolean)
       const recipientCount = recipients.length
@@ -335,27 +336,50 @@ export default function PVNewForm({ chantierId, chantier, clientContact, ordresS
             />
 
             <label style={{ display: 'block', fontSize: 11, color: '#64748B', marginBottom: 4, fontWeight: 600 }}>
-              Email MOA (Maître d&apos;ouvrage) {form.signataireMotEmail ? '✓' : ''}
+              Email(s) MOA (Maître{form.signataireMotEmails.length > 1 ? 's' : ''} d&apos;ouvrage) — jusqu&apos;à 3 {form.signataireMotEmails.some(e => e?.trim()) ? '✓' : ''}
             </label>
-            <input
-              type="email"
-              value={form.signataireMotEmail}
-              onChange={(e) => setForm({ ...form, signataireMotEmail: e.target.value })}
-              style={{ padding: '8px 12px', border: '1px solid #E2E8F0', borderRadius: 6, fontSize: 12, fontFamily: 'inherit', width: '100%', marginBottom: 12 }}
-              placeholder="Email du client du chantier"
-              required
-            />
-
-            <label style={{ display: 'block', fontSize: 11, color: '#64748B', marginBottom: 4, fontWeight: 600 }}>
-              Email Entreprise {form.signataireEntrepriseEmail ? '✓' : '(optionnel)'}
-            </label>
-            <input
-              type="email"
-              value={form.signataireEntrepriseEmail}
-              onChange={(e) => setForm({ ...form, signataireEntrepriseEmail: e.target.value })}
-              style={{ padding: '8px 12px', border: '1px solid #E2E8F0', borderRadius: 6, fontSize: 12, fontFamily: 'inherit', width: '100%' }}
-              placeholder="Email de l'entreprise"
-            />
+            {form.signataireMotEmails.map((email, idx) => (
+              <div key={idx} style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'center' }}>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => {
+                    const emails = [...form.signataireMotEmails]
+                    emails[idx] = e.target.value
+                    setForm({ ...form, signataireMotEmails: emails })
+                  }}
+                  style={{ flex: 1, padding: '8px 12px', border: '1px solid #E2E8F0', borderRadius: 6, fontSize: 12, fontFamily: 'inherit' }}
+                  placeholder={idx === 0 ? 'Email du client du chantier' : `Co-propriétaire ${idx + 1}`}
+                  required={idx === 0}
+                />
+                {form.signataireMotEmails.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => setForm({ ...form, signataireMotEmails: form.signataireMotEmails.filter((_, i) => i !== idx) })}
+                    style={{
+                      padding: '6px 10px', background: '#FEE2E2', color: '#DC2626',
+                      border: '1px solid #FCA5A5', borderRadius: 6, fontSize: 12,
+                      fontWeight: 600, cursor: 'pointer', flexShrink: 0
+                    }}
+                  >
+                    −
+                  </button>
+                )}
+              </div>
+            ))}
+            {form.signataireMotEmails.length < 3 && (
+              <button
+                type="button"
+                onClick={() => setForm({ ...form, signataireMotEmails: [...form.signataireMotEmails, ''] })}
+                style={{
+                  padding: '8px 12px', background: '#DBEAFE', color: '#0284C7',
+                  border: '1px solid #7DD3FC', borderRadius: 6, fontSize: 12,
+                  fontWeight: 600, cursor: 'pointer', width: '100%', marginBottom: 12
+                }}
+              >
+                + Ajouter un maître d&apos;ouvrage
+              </button>
+            )}
           </div>
 
           {/* DÉCISION IMMÉDIATE */}

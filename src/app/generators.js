@@ -122,18 +122,28 @@ export async function generatePVPdf(pvData) {
   doc.text(pvData.chantierAdresse || "", margin, y)
   y += 8
 
-  // === MAÎTRE D'OUVRAGE ===
+  // === MAÎTRE(S) D'OUVRAGE ===
+  // Jusqu'à 3 signataires MOA (ex : co-propriétaires), un par ligne.
+  // Rétrocompat : accepte aussi l'ancien champ singulier signataireMotEmail.
+  const moaEmails = pvData.signataireMotEmails?.length
+    ? pvData.signataireMotEmails
+    : (pvData.signataireMotEmail ? [pvData.signataireMotEmail] : [])
+  const moaBoxHeight = Math.max(12, 5 + moaEmails.length * 4.5)
   doc.setFillColor(...GRIS_CLAIR)
-  doc.roundedRect(margin, y, usable, 12, 1.5, 1.5, 'F')
+  doc.roundedRect(margin, y, usable, moaBoxHeight, 1.5, 1.5, 'F')
   doc.setFontSize(7.5)
   doc.setFont("helvetica", "bold")
   doc.setTextColor(...BLEU)
-  doc.text("MAÎTRE D'OUVRAGE", margin + 3, y + 5)
+  doc.text(moaEmails.length > 1 ? "MAÎTRES D'OUVRAGE" : "MAÎTRE D'OUVRAGE", margin + 3, y + 5)
   doc.setFontSize(9)
   doc.setFont("helvetica", "bold")
   doc.setTextColor(...NOIR)
-  doc.text(sanitize(pvData.signataireMotEmail || "—"), margin + 3, y + 9.5)
-  y += 17
+  if (moaEmails.length > 0) {
+    moaEmails.forEach((email, idx) => doc.text(sanitize(email), margin + 3, y + 9.5 + idx * 4.5))
+  } else {
+    doc.text("—", margin + 3, y + 9.5)
+  }
+  y += moaBoxHeight + 5
 
   // === ENTREPRISE(S) / INTERVENANT(S) ===
   // Tableau (plutôt qu'un bloc de texte empilé) pour rester lisible même
@@ -286,17 +296,27 @@ export async function generatePVPdf(pvData) {
   doc.text("SIGNATURES", margin, y)
   y += 6
 
-  const signColW = usable / 3 - 1
-  const sig1X = margin
-  const sig2X = margin + signColW + 2
-  const sig3X = margin + signColW * 2 + 4
-
+  // Une étiquette par signataire réel (MOE, MOA×N, Entreprise×N), 3 par
+  // ligne — reflète les vraies zones de signature Odoo (voir lib/odoo.js)
+  // au lieu d'un fixe "Maître d'œuvre / Maître d'ouvrage / Entreprise".
+  const signerLabels = [
+    "Maître d'œuvre",
+    ...moaEmails.map((_, i) => moaEmails.length > 1 ? `Maître d'ouvrage ${i + 1}` : "Maître d'ouvrage"),
+    ...intervenants.map((it, i) => intervenants.length > 1 ? `Entreprise ${i + 1}` : "Entreprise"),
+  ]
+  const signPerRow = 3
+  const signColW = usable / signPerRow - 1
   doc.setFontSize(8)
   doc.setFont("helvetica", "bold")
   doc.setTextColor(...NOIR)
-  doc.text("Maître d'œuvre", sig1X, y)
-  doc.text("Maître d'ouvrage", sig2X, y)
-  doc.text("Entreprise", sig3X, y)
+  signerLabels.forEach((label, i) => {
+    const row = Math.floor(i / signPerRow)
+    const col = i % signPerRow
+    const sx = margin + col * (signColW + 3)
+    const sy = y + row * 7
+    doc.text(label, sx, sy)
+  })
+  y += (Math.ceil(signerLabels.length / signPerRow) - 1) * 7
 
   // Pied de page
   pied(doc, w, margin, h - 12)

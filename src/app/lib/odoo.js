@@ -196,7 +196,9 @@ export async function createSignRequest({ templateId, signerName, signerEmail, r
  * @param {string} params.pdfBase64       - dataURI base64 du PDF
  * @param {string} params.reference       - Numéro OS (ex: OS-2026-020)
  * @param {string} params.operationName   - Nom du chantier (pour l'objet email)
- * @param {Array}  params.signers         - [{name, email, role}] role ∈ 'MOE'|'MOA'|'Entreprise'
+ * @param {Array}  params.signers         - [{name, email, role}] role ∈ 'MOE'|'MOA'|'Entreprise'.
+ *   Plusieurs signataires peuvent partager le même role (ex: 2 MOA co-
+ *   propriétaires, 2 entreprises) : chacun reçoit sa propre zone/demande.
  */
 export async function createSignRequestFromPdf({ pdfBase64, reference, operationName, signers }) {
   // Validation du PDF : taille et signature MIME
@@ -241,8 +243,29 @@ export async function createSignRequestFromPdf({ pdfBase64, reference, operation
       throw new Error(`Rôle signataire inconnu : ${s.role} (attendu : ${KNOWN_ROLES.join(', ')})`)
     }
   }
-  // Rôles effectivement à faire signer (dédupliqués)
-  const activeRoles = [...new Set(cleanSigners.map(s => s.role))]
+
+  // Plusieurs signataires peuvent partager un même rôle conceptuel (ex :
+  // 2 co-propriétaires MOA, 2 entreprises sur un même PV). Odoo n'a qu'UNE
+  // zone de signature par sign.item.role : on attribue donc à chaque
+  // signataire une clé interne unique (roleKey) — 'MOA' s'il est seul dans
+  // son rôle, 'MOA_1'/'MOA_2'/… sinon — pour créer une zone + un rôle Odoo
+  // distinct par personne. Sans ça, seul le DERNIER signataire d'un rôle
+  // partagé recevait effectivement la demande de signature Odoo (les
+  // précédents étaient silencieusement écrasés).
+  const roleTotals = {}
+  cleanSigners.forEach(s => { roleTotals[s.role] = (roleTotals[s.role] || 0) + 1 })
+  const roleSeen = {}
+  const keyedSigners = cleanSigners.map(s => {
+    roleSeen[s.role] = (roleSeen[s.role] || 0) + 1
+    const multi = roleTotals[s.role] > 1
+    return {
+      ...s,
+      roleKey: multi ? `${s.role}_${roleSeen[s.role]}` : s.role,
+      roleLabel: multi ? `${s.role} ${roleSeen[s.role]}` : s.role,
+    }
+  })
+  // Rôles effectivement à faire signer (dédupliqués, ordre de saisie conservé)
+  const activeRoleKeys = [...new Set(keyedSigners.map(s => s.roleKey))]
 
   // ── A : ir.attachment ─────────────────
   const attId = await execute('ir.attachment', 'create', [{
@@ -275,7 +298,7 @@ export async function createSignRequestFromPdf({ pdfBase64, reference, operation
   // ── C-ter : nettoyage sign.items auto-générés ──
   // Odoo peut créer automatiquement des sign.items (rôle "Customer") lors de
   // la création du sign.document depuis un PDF. On purge tout pour ne garder
-  // que nos 3 zones MOE/MOA/Entreprise.
+  // que nos zones MOE/MOA(s)/Entreprise(s).
   try {
     const existingItems = await execute('sign.item', 'search', [[[parentField, '=', parentId]]])
     if (existingItems.length) {
@@ -288,20 +311,21 @@ export async function createSignRequestFromPdf({ pdfBase64, reference, operation
   // ── D : Rôles (find or create) ────────
   // Noms courts sans apostrophe : pas de collision avec les rôles Odoo par
   // défaut (Customer, Employee…) et rendu propre dans le PDF signé.
-  // On ne crée que les rôles réellement utilisés (activeRoles) pour éviter
-  // des zones de signature orphelines quand un rôle est optionnel (ex PV
-  // sans Entreprise).
-  const ROLE_NAMES = { MOE: 'MOE', MOA: 'MOA', Entreprise: 'Entreprise' }
+  // On ne crée que les rôles réellement utilisés (activeRoleKeys) pour
+  // éviter des zones de signature orphelines quand un rôle est optionnel
+  // (ex PV sans Entreprise), ou pour créer un rôle distinct par personne
+  // quand plusieurs partagent le même rôle conceptuel (MOA 1, MOA 2…).
   const roleIds = {}
-  const labels = activeRoles.map(k => ROLE_NAMES[k])
+  const labelByKey = new Map(keyedSigners.map(s => [s.roleKey, s.roleLabel]))
+  const labels = activeRoleKeys.map(k => labelByKey.get(k))
   // Un seul search_read pour TOUS les rôles actifs (évite N+1).
   const foundRoles = await execute('sign.item.role', 'search_read',
     [[['name', 'in', labels]]],
     { fields: ['id', 'name'] }
   )
   const byName = new Map(foundRoles.map(r => [r.name, r.id]))
-  for (const key of activeRoles) {
-    const label = ROLE_NAMES[key]
+  for (const key of activeRoleKeys) {
+    const label = labelByKey.get(key)
     const existing = byName.get(label)
     roleIds[key] = existing != null
       ? existing
@@ -316,24 +340,34 @@ export async function createSignRequestFromPdf({ pdfBase64, reference, operation
     || (await execute('sign.item.type', 'search_read', [[]], { fields: ['id'], limit: 1 }))[0]?.id
   if (!signTypeId) throw new Error('Aucun sign.item.type disponible dans Odoo — module Sign mal configuré')
 
-  // Positions X possibles pour une ligne de signatures en bas de page.
-  // On répartit uniformément selon le nombre de rôles actifs (1, 2 ou 3)
-  // pour garder un rendu propre même si Entreprise est absent (cas PV).
-  const ROLE_ORDER = ['MOE', 'MOA', 'Entreprise']
-  const orderedRoles = ROLE_ORDER.filter(r => activeRoles.includes(r))
-  const N = orderedRoles.length
+  // Positions des zones de signature en bas de page, dans l'ordre de saisie
+  // des signataires (MOE, puis MOA(s), puis Entreprise(s)). Avec plusieurs
+  // signataires du même rôle (co-propriétaires, plusieurs entreprises), on
+  // limite à 3 zones par ligne et on empile les lignes vers le haut pour
+  // éviter que les zones ne se chevauchent — la dernière ligne reste ancrée
+  // à posY=0.82 comme avant quand il n'y en a qu'une.
+  const N = activeRoleKeys.length
+  const PER_ROW = 3
   const ZONE_WIDTH = 0.28
   const ZONE_HEIGHT = 0.12
+  const ROW_HEIGHT = 0.15
   const totalWidth = 0.94
-  const slot = totalWidth / N
-  const ZONES = orderedRoles.map((role, i) => ({
-    role,
-    posX: 0.03 + i * slot + (slot - ZONE_WIDTH) / 2,
-    posY: 0.82,
-  }))
+  const rows = Math.ceil(N / PER_ROW)
+  const ZONES = activeRoleKeys.map((key, i) => {
+    const row = Math.floor(i / PER_ROW)
+    const col = i % PER_ROW
+    const itemsInRow = Math.min(PER_ROW, N - row * PER_ROW)
+    const slot = totalWidth / itemsInRow
+    const rowFromBottom = rows - 1 - row
+    return {
+      key,
+      posX: 0.03 + col * slot + (slot - ZONE_WIDTH) / 2,
+      posY: 0.82 - rowFromBottom * ROW_HEIGHT,
+    }
+  })
   for (const z of ZONES) {
-    const rId = roleIds[z.role]
-    if (!rId) throw new Error(`Rôle Odoo manquant pour ${z.role}`)
+    const rId = roleIds[z.key]
+    if (!rId) throw new Error(`Rôle Odoo manquant pour ${z.key}`)
     try {
       await execute('sign.item', 'create', [{
         [parentField]: parentId,
@@ -342,7 +376,7 @@ export async function createSignRequestFromPdf({ pdfBase64, reference, operation
         posX: z.posX, posY: z.posY, width: ZONE_WIDTH, height: ZONE_HEIGHT, page: 1,
       }])
     } catch (e) {
-      throw new Error(`Création zone signature ${z.role} échouée : ${e.message}`)
+      throw new Error(`Création zone signature ${z.key} échouée : ${e.message}`)
     }
   }
 
@@ -354,11 +388,14 @@ export async function createSignRequestFromPdf({ pdfBase64, reference, operation
   const requiredRoleIds = [...new Set(templateItems.map(i => i.responsible_id?.[0]).filter(Boolean))]
 
   // ── F : Partenaires ────────────────────
+  // Un seul objet roleToPartner par roleId (clé unique par personne grâce à
+  // roleKey ci-dessus) : contrairement à l'ancien code qui indexait par
+  // s.role, plusieurs signataires du même rôle conceptuel ne s'écrasent
+  // plus les uns les autres.
   const roleToPartner = {}
-  for (const s of signers) {
-    if (!s.email) continue
+  for (const s of keyedSigners) {
     const partnerId = await findOrCreatePartner({ name: s.name, email: s.email })
-    if (roleIds[s.role]) roleToPartner[roleIds[s.role]] = partnerId
+    if (roleIds[s.roleKey]) roleToPartner[roleIds[s.roleKey]] = partnerId
   }
 
   // ── G : request_items couvrant EXACTEMENT les rôles du template ───────────

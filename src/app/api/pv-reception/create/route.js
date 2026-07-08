@@ -17,12 +17,22 @@ export async function POST(request) {
     const body = await request.json()
     const {
       chantierId, titre, description, dateReception,
-      signataireMoeEmail, signataireMotEmail, signataireEntrepriseEmail, signataireEntrepriseEmails,
+      signataireMoeEmail, signataireMotEmail, signataireMotEmails,
+      signataireEntrepriseEmail, signataireEntrepriseEmails,
       pdfBase64, operationName, decision, motifRefus, reservesAcceptation
     } = body
 
-    // Support ancien format (signataireEntrepriseEmail) et nouveau (signataireEntrepriseEmails)
-    const entrepriseEmails = signataireEntrepriseEmails || (signataireEntrepriseEmail ? [signataireEntrepriseEmail] : [])
+    // Support ancien format (email unique) et nouveau (liste). MOA plafonné
+    // à 3 signataires (ex : co-propriétaires) — aucune limite métier connue
+    // côté entreprise, on garde la liste telle quelle.
+    const moaEmails = (Array.isArray(signataireMotEmails) && signataireMotEmails.length
+      ? signataireMotEmails
+      : (signataireMotEmail ? [signataireMotEmail] : [])
+    ).filter(Boolean).slice(0, 3)
+    const entrepriseEmails = (signataireEntrepriseEmails?.length
+      ? signataireEntrepriseEmails
+      : (signataireEntrepriseEmail ? [signataireEntrepriseEmail] : [])
+    ).filter(Boolean)
 
     if (!chantierId || !titre) {
       return Response.json({ error: 'Champs requis: chantierId, titre' }, { status: 400 })
@@ -32,8 +42,8 @@ export async function POST(request) {
       return Response.json({ error: 'PDF requis pour la signature' }, { status: 400 })
     }
 
-    if (!signataireMoeEmail || !signataireMotEmail) {
-      return Response.json({ error: 'MOE et MOA requis' }, { status: 400 })
+    if (!signataireMoeEmail || moaEmails.length === 0) {
+      return Response.json({ error: 'MOE et au moins un MOA requis' }, { status: 400 })
     }
 
     if (decision && !['Accepté', 'Accepté avec réserve', 'Refusé'].includes(decision)) {
@@ -63,8 +73,12 @@ export async function POST(request) {
     const nextNum = (existingPVs?.length || 0) + 1
     const numero = `PV-${year}-${String(nextNum).padStart(3, '0')}`
 
-    // Créer le PV en base avec décision immédiate si fournie
-    // Stocker les emails d'entreprise en JSON pour supporter plusieurs intervenants
+    // Créer le PV en base avec décision immédiate si fournie.
+    // Colonnes _emails (JSONB) : passer les tableaux JS directement, sans
+    // JSON.stringify — supabase-js sérialise déjà tout le payload en JSON,
+    // un stringify manuel ici double-encoderait la valeur (elle serait
+    // stockée comme une chaîne de texte contenant du JSON, pas comme un
+    // vrai tableau JSON).
     const { data: pv, error: pvErr } = await supa.from('proces_verbaux_reception').insert({
       chantier_id: chantierId,
       numero,
@@ -72,9 +86,10 @@ export async function POST(request) {
       description: description || null,
       date_reception: dateReception || null,
       signataire_moe_email: signataireMoeEmail,
-      signataire_moa_email: signataireMotEmail,
+      signataire_moa_email: moaEmails[0] || null, // Rétrocompat: premier email
+      signataire_moa_emails: moaEmails,
       signataire_entreprise_email: entrepriseEmails[0] || null, // Rétrocompat: premier email
-      signataire_entreprise_emails: JSON.stringify(entrepriseEmails), // Nouveau: tous les emails en JSON
+      signataire_entreprise_emails: entrepriseEmails,
       statut_signature: 'Brouillon',
       statut_reception: decision && decision !== 'En attente' ? decision : 'En attente',
       motif_refus: (decision === 'Refusé' ? motifRefus : null) || null,
@@ -87,10 +102,17 @@ export async function POST(request) {
       return Response.json({ error: 'Erreur création PV' }, { status: 500 })
     }
 
-    // Envoyer en signature Odoo avec N signataires (MOE, MOA, + Entreprise(s))
+    // Envoyer en signature Odoo avec N signataires (MOE, MOA(s), Entreprise(s)).
+    // odoo.js attribue automatiquement une zone/rôle Odoo distinct à chaque
+    // signataire partageant le même `role` (MOA_1, MOA_2… en interne) — pas
+    // besoin de suffixer le role ici, seulement le name affiché.
     const signers = [
       { name: 'Maître d\'œuvre', email: signataireMoeEmail, role: 'MOE' },
-      { name: 'Maître d\'ouvrage', email: signataireMotEmail, role: 'MOA' },
+      ...moaEmails.map((email, idx) => ({
+        name: moaEmails.length > 1 ? `Maître d'ouvrage ${idx + 1}` : 'Maître d\'ouvrage',
+        email,
+        role: 'MOA'
+      })),
       ...entrepriseEmails.map((email, idx) => ({
         name: entrepriseEmails.length > 1 ? `Entreprise ${idx + 1}` : 'Entreprise',
         email,
