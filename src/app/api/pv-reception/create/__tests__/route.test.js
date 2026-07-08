@@ -250,6 +250,43 @@ describe('POST /api/pv-reception/create', () => {
     }))
   })
 
+  it("plusieurs MOA (co-propriétaires) et plusieurs entreprises : tableaux JS bruts en DB, tous transmis à Odoo", async () => {
+    verifyAuth.mockResolvedValue({ id: 'u1', email: 'caller@x.fr' })
+    const supa = makeSupaStub()
+    adminClient.mockReturnValue(supa.client)
+    createSignRequestFromPdf.mockResolvedValue({ requestId: 1, signUrl: 'u', state: 'sent' })
+    createNotifications.mockResolvedValue()
+
+    const res = await POST(makeRequest({
+      token: 't',
+      body: {
+        chantierId: 'c1', titre: 'PV multi', pdfBase64: 'x',
+        signataireMoeEmail: 'moe@x.fr',
+        // 4 MOA fournis : le 4e doit être tronqué (plafond à 3)
+        signataireMotEmails: ['moa1@x.fr', 'moa2@x.fr', 'moa3@x.fr', 'moa4@x.fr'],
+        signataireEntrepriseEmails: ['ent1@x.fr', 'ent2@x.fr'],
+      },
+    }))
+
+    expect(res.status).toBe(200)
+
+    // Les colonnes JSONB reçoivent des tableaux JS natifs, PAS des chaînes
+    // JSON.stringify (sinon double-encodage en base).
+    expect(supa.insertSpy).toHaveBeenCalledWith(expect.objectContaining({
+      signataire_moa_email: 'moa1@x.fr',
+      signataire_moa_emails: ['moa1@x.fr', 'moa2@x.fr', 'moa3@x.fr'],
+      signataire_entreprise_email: 'ent1@x.fr',
+      signataire_entreprise_emails: ['ent1@x.fr', 'ent2@x.fr'],
+    }))
+
+    // Odoo reçoit MOE + 3 MOA (plafonné) + 2 Entreprise
+    const call = createSignRequestFromPdf.mock.calls[0][0]
+    const moaSigners = call.signers.filter(s => s.role === 'MOA')
+    const entSigners = call.signers.filter(s => s.role === 'Entreprise')
+    expect(moaSigners.map(s => s.email)).toEqual(['moa1@x.fr', 'moa2@x.fr', 'moa3@x.fr'])
+    expect(entSigners.map(s => s.email)).toEqual(['ent1@x.fr', 'ent2@x.fr'])
+  })
+
   it("décision immédiate : statut_reception = décision et decision_immediat=true", async () => {
     verifyAuth.mockResolvedValue({ id: 'u1', email: 'u@x.fr' })
     const supa = makeSupaStub()
