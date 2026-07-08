@@ -15,8 +15,7 @@ export default function PVNewForm({ chantierId, chantier, clientContact, ordresS
     dateReception: '',
     signataireMoeEmail: '',
     signataireMotEmail: '',
-    signataireEntrepriseEmail: '',
-    selectedIntervenant: null,
+    selectedIntervenants: [], // Array of { nom, email, societe, adresse, codePostal, ville, tel, email, siret }
     decision: '',
     motifRefus: '',
     reservesAcceptation: ['']
@@ -25,6 +24,7 @@ export default function PVNewForm({ chantierId, chantier, clientContact, ordresS
   const [showPreview, setShowPreview] = useState(false)
   const [previewPdf, setPreviewPdf] = useState(null)
   const [saving, setSaving] = useState(false)
+  const [intervenantDetails, setIntervenantDetails] = useState({}) // Cache : nom -> { email, societe, ... }
   const { addToast } = useToast()
 
   useEffect(() => {
@@ -44,52 +44,63 @@ export default function PVNewForm({ chantierId, chantier, clientContact, ordresS
     setIntervenants(artisanNames.map(name => ({ nom: name })))
   }, [clientContact, ordresService])
 
-  // Quand on sélectionne un intervenant, remplir les coordonnées
-  const handleIntervenantSelect = async (artisanNom) => {
-    if (!artisanNom) {
-      setForm(f => ({
-        ...f,
-        selectedIntervenant: null,
-        signataireEntrepriseEmail: '',
-        entrepriseSociete: '',
-        entrepriseAdresse: '',
-        entrepriseCP: '',
-        entrepriseVille: '',
-        entrepriseTel: '',
-        entrepriseEmail: '',
-        entrepriseSiret: ''
-      }))
-      return
+  // Récupérer les coordonnées d'un intervenant
+  const fetchIntervenantDetails = async (artisanNom) => {
+    if (intervenantDetails[artisanNom]) {
+      return intervenantDetails[artisanNom]
     }
 
-    // Trouver le contact correspondant
     try {
-      const { data: contacts } = await supabase
+      const { data: contact } = await supabase
         .from('contacts')
         .select('*')
         .eq('nom', artisanNom)
         .single()
 
-      if (contacts) {
-        setForm(f => ({
-          ...f,
-          selectedIntervenant: artisanNom,
-          signataireEntrepriseEmail: contacts.email || artisanNom,
-          entrepriseSociete: contacts.societe || contacts.nom || '',
-          entrepriseAdresse: contacts.adresse || '',
-          entrepriseCP: contacts.code_postal || '',
-          entrepriseVille: contacts.ville || '',
-          entrepriseTel: contacts.tel || '',
-          entrepriseEmail: contacts.email || '',
-          entrepriseSiret: contacts.siret || ''
-        }))
+      if (contact) {
+        const details = {
+          email: contact.email || artisanNom,
+          societe: contact.societe || contact.nom || '',
+          adresse: contact.adresse || '',
+          codePostal: contact.code_postal || '',
+          ville: contact.ville || '',
+          tel: contact.tel || '',
+          siret: contact.siret || ''
+        }
+        setIntervenantDetails(d => ({ ...d, [artisanNom]: details }))
+        return details
       }
     } catch (err) {
       console.warn('Erreur récupération intervenant:', err)
+    }
+
+    return {
+      email: artisanNom,
+      societe: '',
+      adresse: '',
+      codePostal: '',
+      ville: '',
+      tel: '',
+      siret: ''
+    }
+  }
+
+  // Toggle sélection d'un intervenant
+  const handleIntervenantToggle = async (artisanNom) => {
+    const isSelected = form.selectedIntervenants.some(i => i.nom === artisanNom)
+
+    if (isSelected) {
+      // Désélectionner
       setForm(f => ({
         ...f,
-        selectedIntervenant: artisanNom,
-        signataireEntrepriseEmail: artisanNom
+        selectedIntervenants: f.selectedIntervenants.filter(i => i.nom !== artisanNom)
+      }))
+    } else {
+      // Sélectionner : récupérer les détails
+      const details = await fetchIntervenantDetails(artisanNom)
+      setForm(f => ({
+        ...f,
+        selectedIntervenants: [...f.selectedIntervenants, { nom: artisanNom, ...details }]
       }))
     }
   }
@@ -105,14 +116,7 @@ export default function PVNewForm({ chantierId, chantier, clientContact, ordresS
         chantierNom: chantier?.nom || '',
         chantierAdresse: chantier?.adresse || '',
         signataireMotEmail: form.signataireMotEmail,
-        signataireEntrepriseEmail: form.signataireEntrepriseEmail,
-        entrepriseSociete: form.entrepriseSociete,
-        entrepriseAdresse: form.entrepriseAdresse,
-        entrepriseCP: form.entrepriseCP,
-        entrepriseVille: form.entrepriseVille,
-        entrepriseTel: form.entrepriseTel,
-        entrepriseEmail: form.entrepriseEmail,
-        entrepriseSiret: form.entrepriseSiret,
+        selectedIntervenants: form.selectedIntervenants,
         decision: form.decision,
         motifRefus: form.decision === 'Refusé' ? form.motifRefus : null,
         reservesAcceptation: form.decision === 'Accepté avec réserve' ? form.reservesAcceptation.filter(r => r?.trim()).map((r, i) => `Ligne ${i + 1}: ${r}`).join('\n') : null
@@ -130,6 +134,10 @@ export default function PVNewForm({ chantierId, chantier, clientContact, ordresS
     e.preventDefault()
     if (!form.titre?.trim() || !form.signataireMoeEmail || !form.signataireMotEmail) {
       addToast('Titre, MOE et MOA requis', 'error')
+      return
+    }
+    if (form.selectedIntervenants.length === 0) {
+      addToast('Sélectionnez au moins un intervenant', 'error')
       return
     }
     if (!form.decision) {
@@ -165,14 +173,7 @@ export default function PVNewForm({ chantierId, chantier, clientContact, ordresS
           chantierNom: chantier?.nom || '',
           chantierAdresse: chantier?.adresse || '',
           signataireMotEmail: form.signataireMotEmail,
-          signataireEntrepriseEmail: form.signataireEntrepriseEmail,
-          entrepriseSociete: form.entrepriseSociete || '',
-          entrepriseAdresse: form.entrepriseAdresse || '',
-          entrepriseCP: form.entrepriseCP || '',
-          entrepriseVille: form.entrepriseVille || '',
-          entrepriseTel: form.entrepriseTel || '',
-          entrepriseEmail: form.entrepriseEmail || '',
-          entrepriseSiret: form.entrepriseSiret || '',
+          selectedIntervenants: form.selectedIntervenants,
           decision: form.decision,
           motifRefus: form.decision === 'Refusé' ? form.motifRefus : null,
           reservesAcceptation: form.decision === 'Accepté avec réserve' ? (Array.isArray(form.reservesAcceptation) ? form.reservesAcceptation.filter(r => r?.trim()).map((r, i) => `Ligne ${i + 1}: ${r}`).join('\n') : form.reservesAcceptation) : null
@@ -191,6 +192,9 @@ export default function PVNewForm({ chantierId, chantier, clientContact, ordresS
         return
       }
 
+      // Collecter les emails des intervenants
+      const signataireEntrepriseEmails = form.selectedIntervenants.map(i => i.email).filter(Boolean)
+
       const res = await fetch('/api/pv-reception/create', {
         method: 'POST',
         headers: {
@@ -204,7 +208,8 @@ export default function PVNewForm({ chantierId, chantier, clientContact, ordresS
           dateReception: form.dateReception,
           signataireMoeEmail: form.signataireMoeEmail,
           signataireMotEmail: form.signataireMotEmail,
-          signataireEntrepriseEmail: form.signataireEntrepriseEmail,
+          signataireEntrepriseEmails,
+          selectedIntervenants: form.selectedIntervenants,
           decision: form.decision,
           motifRefus: form.decision === 'Refusé' ? form.motifRefus : null,
           reservesAcceptation: form.decision === 'Accepté avec réserve' ? form.reservesAcceptation.filter(r => r?.trim()).map((r, i) => `Ligne ${i + 1}: ${r}`).join('\n') : null,
@@ -216,12 +221,11 @@ export default function PVNewForm({ chantierId, chantier, clientContact, ordresS
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Erreur création')
 
-      // Confirmation visible de l'envoi en signature : on liste les
-      // destinataires et on expose un bouton pour ouvrir la demande Odoo.
+      // Confirmation visible de l'envoi en signature
       const recipients = [
         form.signataireMoeEmail,
         form.signataireMotEmail,
-        form.signataireEntrepriseEmail,
+        ...signataireEntrepriseEmails
       ].filter(Boolean)
       const recipientCount = recipients.length
       const msg = data.signUrl
@@ -292,29 +296,55 @@ export default function PVNewForm({ chantierId, chantier, clientContact, ordresS
           <div style={{ borderTop: '1px solid #E2E8F0', paddingTop: 12, marginTop: 12 }}>
             <div style={{ fontSize: 11, fontWeight: 600, color: '#64748B', marginBottom: 12 }}>SIGNATAIRES</div>
 
-            <label style={{ display: 'block', fontSize: 11, color: '#64748B', marginBottom: 4, fontWeight: 600 }}>
-              Sélectionner l&apos;intervenant/entreprise
+            <label style={{ display: 'block', fontSize: 11, color: '#64748B', marginBottom: 8, fontWeight: 600 }}>
+              Sélectionner les intervenants/entreprises
             </label>
-            <select
-              value={form.selectedIntervenant || ''}
-              onChange={(e) => handleIntervenantSelect(e.target.value || null)}
-              style={{ padding: '8px 12px', border: '1px solid #E2E8F0', borderRadius: 6, fontSize: 12, fontFamily: 'inherit', width: '100%', marginBottom: 12 }}
-            >
-              <option value="">-- Sélectionner une entreprise --</option>
-              {intervenants.map(int => (
-                <option key={int.nom} value={int.nom}>{int.nom}</option>
-              ))}
-            </select>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
+              {intervenants.map(int => {
+                const isSelected = form.selectedIntervenants.some(s => s.nom === int.nom)
+                return (
+                  <label
+                    key={int.nom}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 10,
+                      padding: '10px 12px',
+                      border: isSelected ? '2px solid #3B82F6' : '1px solid #E2E8F0',
+                      borderRadius: 6,
+                      background: isSelected ? 'rgba(59, 130, 246, 0.05)' : '#fff',
+                      cursor: 'pointer',
+                      fontSize: 12
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => handleIntervenantToggle(int.nom)}
+                      style={{ cursor: 'pointer' }}
+                    />
+                    <span style={{ fontWeight: 500, color: '#0F172A' }}>{int.nom}</span>
+                  </label>
+                )
+              })}
+            </div>
 
-            {form.selectedIntervenant && (
-              <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 6, padding: 12, marginBottom: 12, fontSize: 10 }}>
-                <div style={{ fontWeight: 600, color: '#0F172A', marginBottom: 6 }}>Coordonnées entreprise</div>
-                {form.entrepriseSociete && <div>{form.entrepriseSociete}</div>}
-                {form.entrepriseAdresse && <div>{form.entrepriseAdresse}</div>}
-                {(form.entrepriseCP || form.entrepriseVille) && <div>{form.entrepriseCP} {form.entrepriseVille}</div>}
-                {form.entrepriseTel && <div>Tel: {form.entrepriseTel}</div>}
-                {form.entrepriseEmail && <div>Email: {form.entrepriseEmail}</div>}
-                {form.entrepriseSiret && <div>SIRET: {form.entrepriseSiret}</div>}
+            {form.selectedIntervenants.length > 0 && (
+              <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 6, padding: 12, marginBottom: 12 }}>
+                <div style={{ fontWeight: 600, color: '#0F172A', marginBottom: 8, fontSize: 11 }}>
+                  Intervenants sélectionnés ({form.selectedIntervenants.length})
+                </div>
+                {form.selectedIntervenants.map((intervenant, idx) => (
+                  <div key={intervenant.nom} style={{ marginBottom: idx < form.selectedIntervenants.length - 1 ? 12 : 0, fontSize: 10 }}>
+                    <div style={{ fontWeight: 600, color: '#0F172A', marginBottom: 4 }}>{intervenant.nom}</div>
+                    {intervenant.societe && <div style={{ color: '#64748B' }}>{intervenant.societe}</div>}
+                    {intervenant.adresse && <div style={{ color: '#64748B' }}>{intervenant.adresse}</div>}
+                    {(intervenant.codePostal || intervenant.ville) && <div style={{ color: '#64748B' }}>{intervenant.codePostal} {intervenant.ville}</div>}
+                    {intervenant.tel && <div style={{ color: '#64748B' }}>Tel: {intervenant.tel}</div>}
+                    {intervenant.email && <div style={{ color: '#64748B' }}>Email: {intervenant.email}</div>}
+                    {intervenant.siret && <div style={{ color: '#64748B' }}>SIRET: {intervenant.siret}</div>}
+                  </div>
+                ))}
               </div>
             )}
 
