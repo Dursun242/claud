@@ -11,7 +11,7 @@ import PVNewForm from './pv/PVNewForm'
 // Container : charge la liste des PV d'un chantier et orchestre les modales
 // (détail + création). La logique de rendu est déléguée aux 3 sous-composants
 // (PVRow memoïsé, PVDetail, PVNewForm) — chacun dans son propre fichier.
-export default function ProcesVerbalReception({ chantierId, chantier, ordresService = [], clientContact, onRefresh }) {
+export default function ProcesVerbalReception({ chantierId, chantier, ordresService = [], intervenants = [], clientContact, onRefresh }) {
   const [pvs, setPvs] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedPv, setSelectedPv] = useState(null)
@@ -101,6 +101,7 @@ export default function ProcesVerbalReception({ chantierId, chantier, ordresServ
           chantier={chantier}
           clientContact={clientContact}
           ordresService={ordresService}
+          intervenants={intervenants}
           onClose={() => setShowNewForm(false)}
           onSuccess={() => {
             setShowNewForm(false)

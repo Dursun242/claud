@@ -8,7 +8,7 @@ import { generatePVPdf } from '../../generators'
 // sélection de l'intervenant (→ pré-remplit les coordonnées entreprise),
 // décision (accepté / réserve / refusé), aperçu PDF puis envoi en
 // signature via Odoo Sign.
-export default function PVNewForm({ chantierId, chantier, clientContact, ordresService = [], onClose, onSuccess }) {
+export default function PVNewForm({ chantierId, chantier, clientContact, ordresService = [], intervenants: intervenantsProp, onClose, onSuccess }) {
   const [form, setForm] = useState({
     titre: '',
     description: '',
@@ -24,7 +24,6 @@ export default function PVNewForm({ chantierId, chantier, clientContact, ordresS
   const [showPreview, setShowPreview] = useState(false)
   const [previewPdf, setPreviewPdf] = useState(null)
   const [saving, setSaving] = useState(false)
-  const [intervenantDetails, setIntervenantDetails] = useState({}) // Cache : nom -> { email, societe, ... }
   const { addToast } = useToast()
 
   useEffect(() => {
@@ -39,68 +38,42 @@ export default function PVNewForm({ chantierId, chantier, clientContact, ordresS
       dateReception: today
     }))
 
-    // Charger les intervenants du chantier depuis les OS
-    const artisanNames = [...new Set(ordresService.map(o => o.artisan_nom).filter(Boolean))]
-    setIntervenants(artisanNames.map(name => ({ nom: name })))
-  }, [clientContact, ordresService])
-
-  // Récupérer les coordonnées d'un intervenant
-  const fetchIntervenantDetails = async (artisanNom) => {
-    if (intervenantDetails[artisanNom]) {
-      return intervenantDetails[artisanNom]
+    // Intervenants du chantier : liste complète (OS + ajoutés manuellement
+    // depuis la fiche chantier) transmise par le parent. Fallback sur les
+    // seuls noms d'artisan déduits des OS si le prop n'est pas fourni
+    // (rétrocompat anciens appelants).
+    if (intervenantsProp && intervenantsProp.length > 0) {
+      setIntervenants(intervenantsProp)
+    } else {
+      const artisanNames = [...new Set(ordresService.map(o => o.artisan_nom).filter(Boolean))]
+      setIntervenants(artisanNames.map(name => ({ nom: name })))
     }
+  }, [clientContact, ordresService, intervenantsProp])
 
-    try {
-      const { data: contact } = await supabase
-        .from('contacts')
-        .select('*')
-        .eq('nom', artisanNom)
-        .single()
-
-      if (contact) {
-        const details = {
-          email: contact.email || artisanNom,
-          societe: contact.societe || contact.nom || '',
-          adresse: contact.adresse || '',
-          codePostal: contact.code_postal || '',
-          ville: contact.ville || '',
-          tel: contact.tel || '',
-          siret: contact.siret || ''
-        }
-        setIntervenantDetails(d => ({ ...d, [artisanNom]: details }))
-        return details
-      }
-    } catch (err) {
-      console.warn('Erreur récupération intervenant:', err)
-    }
-
-    return {
-      email: artisanNom,
-      societe: '',
-      adresse: '',
-      codePostal: '',
-      ville: '',
-      tel: '',
-      siret: ''
-    }
-  }
-
-  // Toggle sélection d'un intervenant
-  const handleIntervenantToggle = async (artisanNom) => {
-    const isSelected = form.selectedIntervenants.some(i => i.nom === artisanNom)
+  // Toggle sélection d'un intervenant : les coordonnées sont déjà connues
+  // (contact chargé par le dashboard), pas besoin de requête supplémentaire.
+  const handleIntervenantToggle = (intervenant) => {
+    const isSelected = form.selectedIntervenants.some(i => i.nom === intervenant.nom)
 
     if (isSelected) {
-      // Désélectionner
       setForm(f => ({
         ...f,
-        selectedIntervenants: f.selectedIntervenants.filter(i => i.nom !== artisanNom)
+        selectedIntervenants: f.selectedIntervenants.filter(i => i.nom !== intervenant.nom)
       }))
     } else {
-      // Sélectionner : récupérer les détails
-      const details = await fetchIntervenantDetails(artisanNom)
+      const entry = {
+        nom: intervenant.nom,
+        email: intervenant.email || intervenant.nom,
+        societe: intervenant.societe || intervenant.nom || '',
+        adresse: intervenant.adresse || '',
+        codePostal: intervenant.code_postal || '',
+        ville: intervenant.ville || '',
+        tel: intervenant.tel || '',
+        siret: intervenant.siret || ''
+      }
       setForm(f => ({
         ...f,
-        selectedIntervenants: [...f.selectedIntervenants, { nom: artisanNom, ...details }]
+        selectedIntervenants: [...f.selectedIntervenants, entry]
       }))
     }
   }
@@ -304,7 +277,7 @@ export default function PVNewForm({ chantierId, chantier, clientContact, ordresS
                 const isSelected = form.selectedIntervenants.some(s => s.nom === int.nom)
                 return (
                   <label
-                    key={int.nom}
+                    key={int.id || int.nom}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -320,10 +293,11 @@ export default function PVNewForm({ chantierId, chantier, clientContact, ordresS
                     <input
                       type="checkbox"
                       checked={isSelected}
-                      onChange={() => handleIntervenantToggle(int.nom)}
+                      onChange={() => handleIntervenantToggle(int)}
                       style={{ cursor: 'pointer' }}
                     />
                     <span style={{ fontWeight: 500, color: '#0F172A' }}>{int.nom}</span>
+                    {int.type && <span style={{ fontSize: 10, color: '#94A3B8' }}>({int.type})</span>}
                   </label>
                 )
               })}

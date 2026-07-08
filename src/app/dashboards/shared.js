@@ -185,11 +185,12 @@ export const SB = {
     // Fallback silencieux si la fonction n'est pas encore déployée :
     // `.rpc()` retourne `{ error }` et on repasse à attachments = {} (les
     // compteurs affichent 0, pas de crash).
-    const [co, pl, rv, attCounts] = await Promise.all([
+    const [co, pl, rv, attCounts, cc] = await Promise.all([
       supabase.from('contacts').select('*').order('nom'),
       supabase.from('planning').select('*').order('debut'),
       supabase.from('rdv').select('*').order('date'),
       supabase.rpc('chantier_attachment_counts'),
+      supabase.from('contact_chantiers').select('*'),
     ])
     const notDemo = (item) => !item?.chantier_id || !demoIds.has(item.chantier_id)
 
@@ -210,6 +211,7 @@ export const SB = {
                      ...r, chantierId: r.chantier_id, participants: r.participants || [],
                    })),
       attachmentCountsByChantier,
+      contactChantiers: (cc.data || []).filter(notDemo),
     }
   },
 
@@ -286,6 +288,21 @@ export const SB = {
     const { data: prev } = await supabase.from('contacts').select('nom').eq('id', id).maybeSingle();
     await supabase.from('contacts').delete().eq('id', id);
     this.log('delete', 'contact', id, prev?.nom || null);
+  },
+
+  // Contact ↔ Chantier (intervenants rattachés manuellement à un chantier,
+  // en plus de ceux déduits automatiquement des OS)
+  async addContactChantier(contactId, chantierId) {
+    const { data, error } = await supabase.from('contact_chantiers')
+      .insert({ contact_id: contactId, chantier_id: chantierId })
+      .select().single();
+    if (error) throw new Error("Erreur ajout intervenant : " + error.message);
+    this.log('create', 'contact_chantier', data.id, null);
+    return data;
+  },
+  async removeContactChantier(linkId) {
+    await supabase.from('contact_chantiers').delete().eq('id', linkId);
+    this.log('delete', 'contact_chantier', linkId, null);
   },
 
   // Tâches
