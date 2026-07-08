@@ -143,34 +143,80 @@ export async function generatePVPdf(pvData) {
   doc.setTextColor(...NOIR)
   doc.text(pvData.signataireMotEmail || "—", col1X + 2, y + 10)
 
-  // Entreprise (Intervenant)
+  // Entreprise(s) - Intervenant(s)
   doc.setFontSize(7.5)
   doc.setFont("helvetica", "bold")
   doc.setTextColor(...BLEU)
-  doc.text("ENTREPRISE", col2X + 2, y + 4)
+  doc.text(pvData.selectedIntervenants?.length > 1 ? "ENTREPRISES" : "ENTREPRISE", col2X + 2, y + 4)
+
   doc.setFontSize(9)
   doc.setFont("helvetica", "bold")
   doc.setTextColor(...NOIR)
-  const entrepriseNom = pvData.entrepriseSociete || pvData.signataireEntrepriseEmail || "—"
-  doc.text(entrepriseNom, col2X + 2, y + 10)
 
-  // Coordonnées entreprise
-  doc.setFontSize(7)
-  doc.setFont("helvetica", "normal")
-  doc.setTextColor(...GRIS)
+  // Si selectedIntervenants est fourni, afficher tous les intervenants
+  const intervenants = pvData.selectedIntervenants || []
+  if (intervenants.length > 0) {
+    let coordY = y + 10
+    intervenants.forEach((intervenant, idx) => {
+      const nom = intervenant.societe || intervenant.email || "—"
+      doc.text(sanitize(nom), col2X + 2, coordY)
+      coordY += 3
 
-  const coordLines = []
-  if (pvData.entrepriseAdresse) coordLines.push(pvData.entrepriseAdresse)
-  if (pvData.entrepriseCP && pvData.entrepriseVille) coordLines.push(`${pvData.entrepriseCP} ${pvData.entrepriseVille}`)
-  if (pvData.entrepriseTel) coordLines.push(`Tel: ${pvData.entrepriseTel}`)
-  if (pvData.entrepriseEmail) coordLines.push(pvData.entrepriseEmail)
-  if (pvData.entrepriseSiret) coordLines.push(`SIRET: ${pvData.entrepriseSiret}`)
+      doc.setFontSize(7)
+      doc.setFont("helvetica", "normal")
+      if (intervenant.adresse) {
+        doc.text(sanitize(intervenant.adresse), col2X + 2, coordY)
+        coordY += 2.5
+      }
+      if (intervenant.codePostal && intervenant.ville) {
+        doc.text(`${intervenant.codePostal} ${intervenant.ville}`, col2X + 2, coordY)
+        coordY += 2.5
+      }
+      if (intervenant.tel) {
+        doc.text(`Tel: ${intervenant.tel}`, col2X + 2, coordY)
+        coordY += 2.5
+      }
+      if (intervenant.email) {
+        doc.text(intervenant.email, col2X + 2, coordY)
+        coordY += 2.5
+      }
+      if (intervenant.siret) {
+        doc.text(`SIRET: ${intervenant.siret}`, col2X + 2, coordY)
+        coordY += 2.5
+      }
 
-  let coordY = y + 15
-  coordLines.forEach(line => {
-    doc.text(line, col2X + 2, coordY)
-    coordY += 3
-  })
+      // Espace entre les intervenants
+      if (idx < intervenants.length - 1) {
+        coordY += 1.5
+        doc.setFontSize(6)
+        doc.setTextColor(200, 200, 200)
+        doc.line(col2X + 2, coordY, col2X + colW - 2, coordY)
+        coordY += 2
+        doc.setFontSize(7)
+        doc.setTextColor(...GRIS)
+      }
+    })
+  } else {
+    // Rétrocompatibilité : ancien format avec signataireEntrepriseEmail
+    const entrepriseNom = pvData.entrepriseSociete || pvData.signataireEntrepriseEmail || "—"
+    doc.text(entrepriseNom, col2X + 2, y + 10)
+
+    const coordLines = []
+    if (pvData.entrepriseAdresse) coordLines.push(pvData.entrepriseAdresse)
+    if (pvData.entrepriseCP && pvData.entrepriseVille) coordLines.push(`${pvData.entrepriseCP} ${pvData.entrepriseVille}`)
+    if (pvData.entrepriseTel) coordLines.push(`Tel: ${pvData.entrepriseTel}`)
+    if (pvData.entrepriseEmail) coordLines.push(pvData.entrepriseEmail)
+    if (pvData.entrepriseSiret) coordLines.push(`SIRET: ${pvData.entrepriseSiret}`)
+
+    doc.setFontSize(7)
+    doc.setFont("helvetica", "normal")
+    doc.setTextColor(...GRIS)
+    let coordY = y + 15
+    coordLines.forEach(line => {
+      doc.text(line, col2X + 2, coordY)
+      coordY += 3
+    })
+  }
 
   y += 32
 

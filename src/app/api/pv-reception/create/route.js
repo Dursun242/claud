@@ -17,9 +17,12 @@ export async function POST(request) {
     const body = await request.json()
     const {
       chantierId, titre, description, dateReception,
-      signataireMoeEmail, signataireMotEmail, signataireEntrepriseEmail,
+      signataireMoeEmail, signataireMotEmail, signataireEntrepriseEmail, signataireEntrepriseEmails,
       pdfBase64, operationName, decision, motifRefus, reservesAcceptation
     } = body
+
+    // Support ancien format (signataireEntrepriseEmail) et nouveau (signataireEntrepriseEmails)
+    const entrepriseEmails = signataireEntrepriseEmails || (signataireEntrepriseEmail ? [signataireEntrepriseEmail] : [])
 
     if (!chantierId || !titre) {
       return Response.json({ error: 'Champs requis: chantierId, titre' }, { status: 400 })
@@ -61,6 +64,7 @@ export async function POST(request) {
     const numero = `PV-${year}-${String(nextNum).padStart(3, '0')}`
 
     // Créer le PV en base avec décision immédiate si fournie
+    // Stocker les emails d'entreprise en JSON pour supporter plusieurs intervenants
     const { data: pv, error: pvErr } = await supa.from('proces_verbaux_reception').insert({
       chantier_id: chantierId,
       numero,
@@ -69,7 +73,8 @@ export async function POST(request) {
       date_reception: dateReception || null,
       signataire_moe_email: signataireMoeEmail,
       signataire_moa_email: signataireMotEmail,
-      signataire_entreprise_email: signataireEntrepriseEmail,
+      signataire_entreprise_email: entrepriseEmails[0] || null, // Rétrocompat: premier email
+      signataire_entreprise_emails: JSON.stringify(entrepriseEmails), // Nouveau: tous les emails en JSON
       statut_signature: 'Brouillon',
       statut_reception: decision && decision !== 'En attente' ? decision : 'En attente',
       motif_refus: (decision === 'Refusé' ? motifRefus : null) || null,
@@ -82,11 +87,15 @@ export async function POST(request) {
       return Response.json({ error: 'Erreur création PV' }, { status: 500 })
     }
 
-    // Envoyer en signature Odoo avec 3 signataires
+    // Envoyer en signature Odoo avec N signataires (MOE, MOA, + Entreprise(s))
     const signers = [
       { name: 'Maître d\'œuvre', email: signataireMoeEmail, role: 'MOE' },
       { name: 'Maître d\'ouvrage', email: signataireMotEmail, role: 'MOA' },
-      { name: 'Entreprise', email: signataireEntrepriseEmail, role: 'Entreprise' }
+      ...entrepriseEmails.map((email, idx) => ({
+        name: entrepriseEmails.length > 1 ? `Entreprise ${idx + 1}` : 'Entreprise',
+        email,
+        role: 'Entreprise'
+      }))
     ].filter(s => s.email)
 
     if (!signers.length) {
