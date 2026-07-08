@@ -68,7 +68,7 @@ const fmtM = (n) => {
 // GÉNÉRATEUR PDF — PROCÈS-VERBAL DE RÉCEPTION
 // ══════════════════════════════════════
 export async function generatePVPdf(pvData) {
-  const { jsPDF } = await loadJsPdf()
+  const { jsPDF, autoTable } = await loadJsPdf()
   const doc = new jsPDF('p', 'mm', 'a4')
   const w = doc.internal.pageSize.getWidth()
   const h = doc.internal.pageSize.getHeight()
@@ -122,105 +122,81 @@ export async function generatePVPdf(pvData) {
   doc.text(pvData.chantierAdresse || "", margin, y)
   y += 8
 
-  // === MAÎTRE D'OUVRAGE & ENTREPRISE (2 colonnes) ===
-  const colW = usable / 2 - 2
-  const col1X = margin
-  const col2X = margin + colW + 4
-
-  // Boîtes MOA et Entreprise
-  doc.setDrawColor(210, 213, 220)
-  doc.setLineWidth(0.3)
-  doc.rect(col1X, y, colW, 28)
-  doc.rect(col2X, y, colW, 28)
-
-  // MOA (Maître d'ouvrage)
+  // === MAÎTRE D'OUVRAGE ===
+  doc.setFillColor(...GRIS_CLAIR)
+  doc.roundedRect(margin, y, usable, 12, 1.5, 1.5, 'F')
   doc.setFontSize(7.5)
   doc.setFont("helvetica", "bold")
   doc.setTextColor(...BLEU)
-  doc.text("MAÎTRE D'OUVRAGE", col1X + 2, y + 4)
+  doc.text("MAÎTRE D'OUVRAGE", margin + 3, y + 5)
   doc.setFontSize(9)
   doc.setFont("helvetica", "bold")
   doc.setTextColor(...NOIR)
-  doc.text(pvData.signataireMotEmail || "—", col1X + 2, y + 10)
+  doc.text(sanitize(pvData.signataireMotEmail || "—"), margin + 3, y + 9.5)
+  y += 17
 
-  // Entreprise(s) - Intervenant(s)
-  doc.setFontSize(7.5)
-  doc.setFont("helvetica", "bold")
-  doc.setTextColor(...BLEU)
-  doc.text(pvData.selectedIntervenants?.length > 1 ? "ENTREPRISES" : "ENTREPRISE", col2X + 2, y + 4)
-
-  doc.setFontSize(9)
-  doc.setFont("helvetica", "bold")
-  doc.setTextColor(...NOIR)
-
-  // Si selectedIntervenants est fourni, afficher tous les intervenants
+  // === ENTREPRISE(S) / INTERVENANT(S) ===
+  // Tableau (plutôt qu'un bloc de texte empilé) pour rester lisible même
+  // avec plusieurs intervenants sélectionnés sur le même PV.
   const intervenants = pvData.selectedIntervenants || []
+  doc.setFontSize(9)
+  doc.setFont("helvetica", "bold")
+  doc.setTextColor(...BLEU)
+  doc.text(intervenants.length > 1 ? "ENTREPRISES / INTERVENANTS" : "ENTREPRISE / INTERVENANT", margin, y)
+  y += 4
+
   if (intervenants.length > 0) {
-    let coordY = y + 10
-    intervenants.forEach((intervenant, idx) => {
-      const nom = intervenant.societe || intervenant.email || "—"
-      doc.text(sanitize(nom), col2X + 2, coordY)
-      coordY += 3
-
-      doc.setFontSize(7)
-      doc.setFont("helvetica", "normal")
-      if (intervenant.adresse) {
-        doc.text(sanitize(intervenant.adresse), col2X + 2, coordY)
-        coordY += 2.5
-      }
-      if (intervenant.codePostal && intervenant.ville) {
-        doc.text(`${intervenant.codePostal} ${intervenant.ville}`, col2X + 2, coordY)
-        coordY += 2.5
-      }
-      if (intervenant.tel) {
-        doc.text(`Tel: ${intervenant.tel}`, col2X + 2, coordY)
-        coordY += 2.5
-      }
-      if (intervenant.email) {
-        doc.text(intervenant.email, col2X + 2, coordY)
-        coordY += 2.5
-      }
-      if (intervenant.siret) {
-        doc.text(`SIRET: ${intervenant.siret}`, col2X + 2, coordY)
-        coordY += 2.5
-      }
-
-      // Espace entre les intervenants
-      if (idx < intervenants.length - 1) {
-        coordY += 1.5
-        doc.setFontSize(6)
-        doc.setTextColor(200, 200, 200)
-        doc.line(col2X + 2, coordY, col2X + colW - 2, coordY)
-        coordY += 2
-        doc.setFontSize(7)
-        doc.setTextColor(...GRIS)
-      }
+    const body = intervenants.map((it, idx) => [
+      String(idx + 1),
+      sanitize(it.nom || "—"),
+      sanitize(it.societe || "—"),
+      it.email || "—",
+      it.tel || "—",
+    ])
+    autoTable(doc, {
+      startY: y,
+      head: [["N°", "Nom", "Entreprise", "Email", "Téléphone"]],
+      body,
+      margin: { left: margin, right: margin },
+      headStyles: { fillColor: BLEU, textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 7.5 },
+      bodyStyles: { fontSize: 7.5, textColor: NOIR },
+      alternateRowStyles: { fillColor: GRIS_CLAIR },
+      columnStyles: {
+        0: { cellWidth: usable * 0.06, halign: 'center' },
+        1: { cellWidth: usable * 0.24 },
+        2: { cellWidth: usable * 0.28 },
+        3: { cellWidth: usable * 0.28 },
+        4: { cellWidth: usable * 0.14 },
+      },
+      styles: { lineWidth: 0.2, lineColor: [226, 232, 240] },
     })
+    y = doc.lastAutoTable.finalY + 6
   } else {
-    // Rétrocompatibilité : ancien format avec signataireEntrepriseEmail
+    // Rétrocompatibilité : ancien format à un seul intervenant
+    // (signataireEntrepriseEmail / entrepriseXxx directement sur pvData).
     const entrepriseNom = pvData.entrepriseSociete || pvData.signataireEntrepriseEmail || "—"
-    doc.text(entrepriseNom, col2X + 2, y + 10)
+    doc.setFontSize(9)
+    doc.setFont("helvetica", "bold")
+    doc.setTextColor(...NOIR)
+    doc.text(sanitize(entrepriseNom), margin, y)
+    y += 4
 
-    const coordLines = []
-    if (pvData.entrepriseAdresse) coordLines.push(pvData.entrepriseAdresse)
-    if (pvData.entrepriseCP && pvData.entrepriseVille) coordLines.push(`${pvData.entrepriseCP} ${pvData.entrepriseVille}`)
-    if (pvData.entrepriseTel) coordLines.push(`Tel: ${pvData.entrepriseTel}`)
-    if (pvData.entrepriseEmail) coordLines.push(pvData.entrepriseEmail)
-    if (pvData.entrepriseSiret) coordLines.push(`SIRET: ${pvData.entrepriseSiret}`)
-
-    doc.setFontSize(7)
+    const coordParts = [
+      pvData.entrepriseAdresse,
+      [pvData.entrepriseCP, pvData.entrepriseVille].filter(Boolean).join(' '),
+      pvData.entrepriseTel && `Tel: ${pvData.entrepriseTel}`,
+      pvData.entrepriseEmail,
+      pvData.entrepriseSiret && `SIRET: ${pvData.entrepriseSiret}`,
+    ].filter(Boolean)
+    doc.setFontSize(7.5)
     doc.setFont("helvetica", "normal")
     doc.setTextColor(...GRIS)
-    let coordY = y + 15
-    coordLines.forEach(line => {
-      doc.text(line, col2X + 2, coordY)
-      coordY += 3
-    })
+    doc.text(sanitize(coordParts.join('  •  ')), margin, y)
+    y += 8
   }
 
-  y += 32
-
   // === INFO TRAVAUX ===
+  if (y > 240) { doc.addPage(); y = 20 }
   doc.setFontSize(9)
   doc.setFont("helvetica", "bold")
   doc.setTextColor(...BLEU)
@@ -302,6 +278,7 @@ export async function generatePVPdf(pvData) {
 
   // === SIGNATURES ===
   y += 8
+  if (y > 260) { doc.addPage(); y = 20 }
 
   doc.setFontSize(9)
   doc.setFont("helvetica", "bold")
@@ -540,7 +517,7 @@ export async function generateOSPdf(data) {
 // GÉNÉRATEUR PDF — COMPTE RENDU DE CHANTIER
 // ══════════════════════════════════════
 export async function generateCRPdf(cr, chantier) {
-  const { jsPDF } = await loadJsPdf()
+  const { jsPDF, autoTable } = await loadJsPdf()
   const doc = new jsPDF('p', 'mm', 'a4')
   const w = doc.internal.pageSize.getWidth()
   const margin = 18
@@ -585,14 +562,56 @@ export async function generateCRPdf(cr, chantier) {
   doc.text(chantier?.phase || "—", margin + usable/2 + 15, y + 11)
   y += 22
 
-  // Participants
+  // Intervenants / participants
+  // Tableau (N°, Nom, Entreprise, Email, Téléphone) si des intervenants ont
+  // été sélectionnés par case à cocher ; sinon rétrocompat sur le champ
+  // texte libre "participants" des anciens CR.
+  const crIntervenants = cr.intervenants || []
   doc.setFontSize(9); doc.setFont("helvetica", "bold"); doc.setTextColor(...BLEU)
-  doc.text("PARTICIPANTS / PRÉSENTS", margin, y); y += 5
-  doc.setFontSize(8.5); doc.setFont("helvetica", "normal"); doc.setTextColor(...NOIR)
-  const pLines = doc.splitTextToSize(sanitize(cr.participants) || "—", usable)
-  doc.text(pLines, margin, y); y += pLines.length * 3.8 + 5
+  doc.text("INTERVENANTS / PRÉSENTS", margin, y); y += 4
+
+  if (crIntervenants.length > 0) {
+    const body = crIntervenants.map((it, idx) => [
+      String(idx + 1),
+      sanitize(it.nom || "—"),
+      sanitize(it.societe || "—"),
+      it.email || "—",
+      it.tel || "—",
+    ])
+    autoTable(doc, {
+      startY: y,
+      head: [["N°", "Nom", "Entreprise", "Email", "Téléphone"]],
+      body,
+      margin: { left: margin, right: margin },
+      headStyles: { fillColor: BLEU, textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 7.5 },
+      bodyStyles: { fontSize: 7.5, textColor: NOIR },
+      alternateRowStyles: { fillColor: GRIS_CLAIR },
+      columnStyles: {
+        0: { cellWidth: usable * 0.06, halign: 'center' },
+        1: { cellWidth: usable * 0.24 },
+        2: { cellWidth: usable * 0.28 },
+        3: { cellWidth: usable * 0.28 },
+        4: { cellWidth: usable * 0.14 },
+      },
+      styles: { lineWidth: 0.2, lineColor: [226, 232, 240] },
+    })
+    y = doc.lastAutoTable.finalY + 4
+    if (cr.participants) {
+      doc.setFontSize(7.5); doc.setFont("helvetica", "italic"); doc.setTextColor(...GRIS)
+      const noteLines = doc.splitTextToSize(sanitize(`Également présents : ${cr.participants}`), usable)
+      doc.text(noteLines, margin, y); y += noteLines.length * 3.5 + 4
+      doc.setFont("helvetica", "normal")
+    } else {
+      y += 2
+    }
+  } else {
+    doc.setFontSize(8.5); doc.setFont("helvetica", "normal"); doc.setTextColor(...NOIR)
+    const pLines = doc.splitTextToSize(sanitize(cr.participants) || "—", usable)
+    doc.text(pLines, margin, y); y += pLines.length * 3.8 + 5
+  }
 
   // Résumé
+  if (y > 240) { doc.addPage(); y = 20 }
   doc.setFontSize(9); doc.setFont("helvetica", "bold"); doc.setTextColor(...BLEU)
   doc.text("RÉSUMÉ DES ÉCHANGES", margin, y); y += 4
   doc.setFontSize(8.5); doc.setFont("helvetica", "normal"); doc.setTextColor(...NOIR)
@@ -690,8 +709,18 @@ export function generateCRExcel(cr, chantier) {
   csv += `Phase;${chantier?.phase||""}\n`
   csv += `Date;${fmtD(cr.date)}\n`
   csv += `\n`
-  csv += `PARTICIPANTS\n`
-  csv += `${cr.participants||""}\n`
+  const crIntervenants = cr.intervenants || []
+  if (crIntervenants.length > 0) {
+    csv += `INTERVENANTS\n`
+    csv += `N°;Nom;Entreprise;Email;Téléphone\n`
+    crIntervenants.forEach((it, idx) => {
+      csv += `${idx + 1};${it.nom||""};${it.societe||""};${it.email||""};${it.tel||""}\n`
+    })
+    if (cr.participants) csv += `Également présents;${cr.participants}\n`
+  } else {
+    csv += `PARTICIPANTS\n`
+    csv += `${cr.participants||""}\n`
+  }
   csv += `\n`
   csv += `RÉSUMÉ DES ÉCHANGES\n`
   csv += `"${(cr.resume||"").replace(/"/g, '""')}"\n`

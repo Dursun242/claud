@@ -29,6 +29,7 @@ Exécuter dans cet ordre exact sur une base vierge (Supabase Dashboard → SQL E
 | 021 | `021_storage_rls_granular.sql` | **[P0 sécu]** Storage RLS granulaire par `file_path`. Remplace la policy "authenticated = tout accessible" par un check d'existence d'une ligne `attachments` visible (qui elle hérite de la RLS chantier). Empêche un MOA de lire les PJ d'un autre chantier via URL devinée. Voir `021_README.md`. |
 | 022 | `022_os_tva_non_applicable.sql` | Flag `tva_non_applicable` sur `ordres_service` pour les auto-entrepreneurs en franchise de base (art. 293 B du CGI). Voir `022_README.md`. |
 | 023 | `023_drop_dead_tables.sql` | **[Nettoyage sécu]** Supprime 7 tables mortes des migrations 001/002 (`user_roles`, `plans`, `photo_reports`, `photos`, `os_validations`, `cr_commentaires`, `chantier_photos`) : inutilisées côté app + policies « Allow all » / rôles parallèles. **Lire `023_README.md` et exécuter la vérification pré-exécution avant d'appliquer.** |
+| 024 | `024_compte_rendus_intervenants.sql` | Colonne `intervenants` (JSONB) sur `compte_rendus` : sélection des intervenants par case à cocher (au lieu du seul champ texte libre "Participants"), affichés en tableau sur le PDF. |
 
 ## Fichiers NON séquentiels (à ne PAS appliquer en séquence)
 
