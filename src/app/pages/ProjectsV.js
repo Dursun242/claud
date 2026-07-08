@@ -95,8 +95,30 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
     const chPlanning = (data.planning || []).filter(p => (p.chantierId || p.chantier_id) === ch.id);
     const artisanNames = [...new Set(chOS.map(o => o.artisan_nom).filter(Boolean))];
     const contactMap = new Map((data.contacts || []).map(c => [c.nom, c]));
-    const intervenants = artisanNames.map(name => contactMap.get(name)).filter(Boolean);
+    const contactById = new Map((data.contacts || []).map(c => [c.id, c]));
     const clientContact = contactMap.get(ch.client);
+
+    // Intervenants = déduits des OS (artisan_nom) + rattachés manuellement
+    // via contact_chantiers (bouton "Ajouter un intervenant"). Les deux
+    // sources sont fusionnées et dédupliquées par id de contact ; seuls
+    // les rattachements manuels portent un _linkId (permet de les retirer,
+    // contrairement aux intervenants auto-déduits des OS).
+    const osContacts = artisanNames.map(name => contactMap.get(name)).filter(Boolean);
+    const manualLinks = (data.contactChantiers || []).filter(cc => cc.chantier_id === ch.id);
+    const seenIntervenantIds = new Set();
+    const intervenants = [];
+    osContacts.forEach(c => {
+      if (seenIntervenantIds.has(c.id)) return;
+      seenIntervenantIds.add(c.id);
+      intervenants.push({ ...c, _source: 'os' });
+    });
+    manualLinks.forEach(link => {
+      if (seenIntervenantIds.has(link.contact_id)) return;
+      const c = contactById.get(link.contact_id);
+      if (!c) return;
+      seenIntervenantIds.add(c.id);
+      intervenants.push({ ...c, _source: 'manuel', _linkId: link.id });
+    });
 
     // Calculs budget ↔ OS : logique métier centralisée dans
     // lib/chantierFinances.js pour que tous les écrans partagent
@@ -104,7 +126,7 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
     const finances = computeChantierFinances(ch.budget, chOS);
 
     return { chTasks, chOS, chCR, chPlanning, intervenants, clientContact, finances };
-  }, [selectedChantier, data.tasks, data.ordresService, data.compteRendus, data.planning, data.contacts]);
+  }, [selectedChantier, data.tasks, data.ordresService, data.compteRendus, data.planning, data.contacts, data.contactChantiers]);
 
   const chantiersFiltered = useMemo(() => {
     const search = q.toLowerCase().trim();
@@ -461,6 +483,7 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
           chantierId={selectedChantier.id}
           chantier={selectedChantier}
           ordresService={selectedRelated.chOS || []}
+          intervenants={selectedRelated.intervenants || []}
           clientContact={selectedRelated.clientContact}
           onRefresh={reload}
         />
@@ -515,8 +538,15 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
         }
       </Section>
 
-      {/* INTERVENANTS + PLANNING — composants dédiés, lecture seule */}
-      <ChantierIntervenants intervenants={intervenants} clientContact={clientContact} />
+      {/* INTERVENANTS + PLANNING — composants dédiés */}
+      <ChantierIntervenants
+        intervenants={intervenants}
+        clientContact={clientContact}
+        chantierId={ch.id}
+        allContacts={data.contacts || []}
+        onChange={reload}
+        readOnly={readOnly}
+      />
       <ChantierPlanning items={chPlanning} />
 
       {/* NOTES INTERNES — cachées pour les clients (comme le placeholder l'indique) */}

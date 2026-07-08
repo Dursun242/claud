@@ -63,6 +63,7 @@ export function useDashboardData() {
       planning:    (sec.planning || []).filter(notDemo),
       rdv:         (sec.rdv || []).filter(notDemo),
       attachmentCountsByChantier: sec.attachmentCountsByChantier || new Map(),
+      contactChantiers: (sec.contactChantiers || []).filter(notDemo),
     }
   }, [criticalQ.data, secondaryQ.data])
 
