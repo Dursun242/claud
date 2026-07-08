@@ -338,7 +338,8 @@ export const SB = {
     const row = {
       chantier_id: chId||null, date: cr.date||null,
       numero: Number(cr.numero)||1, resume: cr.resume||"",
-      participants: cr.participants||"", decisions: cr.decisions||""
+      participants: cr.participants||"", decisions: cr.decisions||"",
+      intervenants: cr.intervenants||[]
     };
     if (cr.id && String(cr.id).length > 10) {
       const { data, error } = await supabase.from('compte_rendus')

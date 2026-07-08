@@ -432,7 +432,7 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
             setDetailForm({chantierId:ch.id,
               date:new Date().toISOString().split("T")[0],
               numero:(chCR.length+1),
-              resume:"",participants:"",decisions:""
+              resume:"",participants:"",decisions:"",intervenants:[]
             });setDetailModal("newCR");
           }} style={{background:"#3B82F6",color:"#fff",border:"none",
             borderRadius:6,padding:"6px 12px",
@@ -649,9 +649,46 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
             value={detailForm.resume||""}
             onChange={e=>setDetailForm({...detailForm,resume:e.target.value})}/>
         </FF>
-        <FF label="Participants">
+        <FF label="Intervenants">
+          {intervenants.length === 0 ? (
+            <p style={{color:"#94A3B8",fontSize:11,margin:"2px 0 8px"}}>
+              Aucun intervenant sur ce chantier — ajoutez-en depuis la section &quot;Intervenants&quot; ci-dessous.
+            </p>
+          ) : (
+            <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:8}}>
+              {intervenants.map(it=>{
+                const selectedList = detailForm.intervenants||[];
+                const isSel = selectedList.some(s=>s.nom===it.nom);
+                return (
+                  <label key={it.id||it.nom} style={{
+                    display:"flex",alignItems:"center",gap:5,
+                    padding:"5px 10px",borderRadius:14,cursor:"pointer",
+                    border:isSel?"1px solid #3B82F6":"1px solid #E2E8F0",
+                    background:isSel?"rgba(59,130,246,0.08)":"#fff",
+                    fontSize:11,fontWeight:600,color:isSel?"#1D4ED8":"#334155"
+                  }}>
+                    <input type="checkbox" checked={isSel} style={{cursor:"pointer"}}
+                      onChange={()=>{
+                        const next = isSel
+                          ? selectedList.filter(s=>s.nom!==it.nom)
+                          : [...selectedList,{
+                              nom: it.nom, email: it.email||"",
+                              societe: it.societe||it.nom||"",
+                              tel: it.tel||"", siret: it.siret||""
+                            }];
+                        setDetailForm({...detailForm,intervenants:next});
+                      }}/>
+                    {it.nom}
+                  </label>
+                )
+              })}
+            </div>
+          )}
+        </FF>
+        <FF label="Participants (notes libres, optionnel)">
           <input style={inp} value={detailForm.participants||""}
-            onChange={e=>setDetailForm({...detailForm,participants:e.target.value})}/>
+            onChange={e=>setDetailForm({...detailForm,participants:e.target.value})}
+            placeholder="Ex: et 2 riverains présents"/>
         </FF>
         <FF label="Décisions">
           <textarea style={{...inp,minHeight:50,resize:"vertical"}}
