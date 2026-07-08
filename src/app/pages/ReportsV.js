@@ -58,13 +58,39 @@ export default function ReportsV({ data, save: _save, m, reload, focusId, focusT
       chantierId: data.chantiers[0]?.id || "",
       date: new Date().toISOString().split("T")[0],
       numero: (data.compteRendus || []).length + 1,
-      resume: "", participants: "", decisions: ""
+      resume: "", participants: "", decisions: "", intervenants: []
     })
     setFormError("")
     setModal("new")
   }
   const openEdit = (cr) => { setForm(cr); setFormError(""); setModal("edit") }
   const closeModal = () => { setModal(null); setFormError("") }
+
+  // Intervenants disponibles pour le chantier actuellement sélectionné dans
+  // la modale (déduits des OS + rattachés manuellement via contact_chantiers,
+  // même logique que la fiche chantier / ChantierIntervenants).
+  const modalIntervenants = useMemo(() => {
+    const chId = form.chantierId
+    if (!chId) return []
+    const contactMap = new Map((data.contacts || []).map(c => [c.nom, c]))
+    const contactById = new Map((data.contacts || []).map(c => [c.id, c]))
+    const artisanNames = [...new Set((data.ordresService || [])
+      .filter(o => o.chantier_id === chId)
+      .map(o => o.artisan_nom).filter(Boolean))]
+    const seen = new Set()
+    const list = []
+    artisanNames.map(n => contactMap.get(n)).filter(Boolean).forEach(c => {
+      if (seen.has(c.id)) return
+      seen.add(c.id); list.push(c)
+    })
+    ;(data.contactChantiers || []).filter(cc => cc.chantier_id === chId).forEach(link => {
+      if (seen.has(link.contact_id)) return
+      const c = contactById.get(link.contact_id)
+      if (!c) return
+      seen.add(c.id); list.push(c)
+    })
+    return list
+  }, [form.chantierId, data.contacts, data.ordresService, data.contactChantiers])
 
   const handleSave = async () => {
     setFormError("")
@@ -307,7 +333,7 @@ export default function ReportsV({ data, save: _save, m, reload, focusId, focusT
       <div style={{display:"grid",gridTemplateColumns:m?"1fr":"1fr 1fr 1fr",gap:"0 12px"}}>
         <FF label="Chantier *">
           <select style={sel} value={form.chantierId||""}
-            onChange={e=>setForm({...form,chantierId:e.target.value})}>
+            onChange={e=>setForm({...form,chantierId:e.target.value,intervenants:[]})}>
             <option value="">— Sélectionner —</option>
             {data.chantiers.map(c=><option key={c.id} value={c.id}>{c.nom}</option>)}
           </select>
@@ -327,10 +353,107 @@ export default function ReportsV({ data, save: _save, m, reload, focusId, focusT
           onChange={e=>setForm({...form,resume:e.target.value})}
           placeholder="Points abordés pendant la réunion…"/>
       </FF>
-      <FF label="Participants">
+      <FF label="Intervenants">
+        {!form.chantierId ? (
+          <div style={{
+            background:"#F8FAFC",border:"1px dashed #CBD5E1",borderRadius:8,
+            padding:"12px 14px",marginBottom:8
+          }}>
+            <p style={{color:"#64748B",fontSize:11,margin:0}}>
+              Sélectionne d&apos;abord un chantier pour voir ses intervenants.
+            </p>
+          </div>
+        ) : modalIntervenants.length === 0 ? (
+          <div style={{
+            background:"#F8FAFC",border:"1px dashed #CBD5E1",borderRadius:8,
+            padding:"12px 14px",marginBottom:8
+          }}>
+            <p style={{color:"#64748B",fontSize:11,margin:0}}>
+              Aucun intervenant sur ce chantier — ajoutez-en depuis sa fiche (onglet Chantiers), puis revenez ici.
+            </p>
+          </div>
+        ) : (
+          <div style={{
+            background:"#F8FAFC",border:"1px solid #E2E8F0",borderRadius:8,
+            padding:10,marginBottom:8
+          }}>
+            <div style={{
+              display:"flex",alignItems:"center",justifyContent:"space-between",
+              marginBottom:8
+            }}>
+              <span style={{fontSize:11,fontWeight:700,color:"#0F172A"}}>
+                {(form.intervenants||[]).length === 0
+                  ? "Aucun sélectionné"
+                  : `${(form.intervenants||[]).length} sélectionné${(form.intervenants||[]).length>1?"s":""}`}
+              </span>
+              <div style={{display:"flex",gap:10}}>
+                <button type="button" onClick={()=>{
+                  setForm({...form,intervenants:modalIntervenants.map(it=>({
+                    nom: it.nom, email: it.email||"", societe: it.societe||it.nom||"",
+                    tel: it.tel||"", siret: it.siret||""
+                  }))});
+                }} style={{
+                  background:"none",border:"none",color:"#3B82F6",
+                  fontSize:10,fontWeight:700,cursor:"pointer",padding:0
+                }}>Tout cocher</button>
+                <button type="button" onClick={()=>setForm({...form,intervenants:[]})}
+                  style={{
+                    background:"none",border:"none",color:"#94A3B8",
+                    fontSize:10,fontWeight:700,cursor:"pointer",padding:0
+                  }}>Tout décocher</button>
+              </div>
+            </div>
+            <div style={{display:"flex",flexDirection:"column",gap:6}}>
+              {modalIntervenants.map(it=>{
+                const selectedList = form.intervenants||[];
+                const isSel = selectedList.some(s=>s.nom===it.nom);
+                const toggle = ()=>{
+                  const next = isSel
+                    ? selectedList.filter(s=>s.nom!==it.nom)
+                    : [...selectedList,{
+                        nom: it.nom, email: it.email||"",
+                        societe: it.societe||it.nom||"",
+                        tel: it.tel||"", siret: it.siret||""
+                      }];
+                  setForm({...form,intervenants:next});
+                };
+                return (
+                  <div key={it.id||it.nom} role="checkbox" aria-checked={isSel} tabIndex={0}
+                    onClick={toggle}
+                    onKeyDown={(e)=>{ if (e.key===" "||e.key==="Enter") { e.preventDefault(); toggle(); } }}
+                    style={{
+                      display:"flex",alignItems:"center",gap:8,
+                      padding:"9px 12px",borderRadius:6,cursor:"pointer",
+                      border:isSel?"1.5px solid #3B82F6":"1px solid #E2E8F0",
+                      background:isSel?"#EFF6FF":"#fff",
+                      transition:"background 0.1s, border-color 0.1s"
+                    }}>
+                    <span aria-hidden="true" style={{
+                      width:18,height:18,minWidth:18,borderRadius:5,
+                      border:isSel?"none":"1.5px solid #CBD5E1",
+                      background:isSel?"#3B82F6":"#fff",
+                      display:"flex",alignItems:"center",justifyContent:"center",
+                      fontSize:12,color:"#fff",fontWeight:700
+                    }}>
+                      {isSel && "✓"}
+                    </span>
+                    <span style={{fontSize:12,fontWeight:600,color:isSel?"#1D4ED8":"#0F172A"}}>
+                      {it.nom}
+                    </span>
+                    {it.societe && it.societe !== it.nom && (
+                      <span style={{fontSize:10,color:"#94A3B8"}}>({it.societe})</span>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+      </FF>
+      <FF label="Participants (notes libres, optionnel)">
         <input style={inp} value={form.participants||""}
           onChange={e=>setForm({...form,participants:e.target.value})}
-          placeholder="MOA, MOE, entreprises présentes…"/>
+          placeholder="Ex: et 2 riverains présents"/>
       </FF>
       <FF label="Décisions">
         <textarea style={{...inp,minHeight:50,resize:"vertical"}}
