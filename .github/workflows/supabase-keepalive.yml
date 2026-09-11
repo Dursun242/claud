@@ -1,0 +1,69 @@
+name: Supabase Keep-Alive
+
+# Empêche la mise en pause automatique du projet Supabase (plan gratuit),
+# qui intervient après ~7 jours sans activité sur la base et rend
+# l'application inaccessible (auth comprise).
+#
+# Prérequis — deux secrets à créer dans le dépôt
+# (Settings → Secrets and variables → Actions → New repository secret) :
+#   SUPABASE_URL       ex. https://xxxxxxxx.supabase.co
+#   SUPABASE_ANON_KEY  la clé anon (publique par design, celle du bundle client)
+#
+# Ne JAMAIS y mettre la service role key : elle n'est pas nécessaire ici.
+
+on:
+  schedule:
+    # Lundi et jeudi à 07h12 UTC. Deux pings par semaine laissent une marge
+    # confortable face au seuil des 7 jours, même si une exécution est ratée.
+    - cron: '12 7 * * 1,4'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    name: Ping base Supabase
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Requête REST sur la base
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${SUPABASE_URL:-}" ] || [ -z "${SUPABASE_ANON_KEY:-}" ]; then
+            echo "::error::Secrets SUPABASE_URL et/ou SUPABASE_ANON_KEY absents du dépôt."
+            echo "À créer dans Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+
+          # La requête traverse PostgREST puis Postgres : même si la RLS ne
+          # renvoie aucune ligne au rôle anon, la base a bien été sollicitée,
+          # ce qui est exactement ce que Supabase comptabilise comme activité.
+          set +e
+          code=$(curl -sS -o /tmp/reponse.txt -w '%{http_code}' --max-time 30 \
+            -H "apikey: ${SUPABASE_ANON_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
+            "${SUPABASE_URL}/rest/v1/settings?select=key&limit=1")
+          set -e
+          code="${code:-000}"
+
+          echo "Code HTTP : ${code}"
+
+          case "${code}" in
+            200|206|401|403|404)
+              echo "Base joignable — activité enregistrée, la mise en pause est repoussée."
+              ;;
+            000)
+              echo "::error::Aucune réponse (DNS ou réseau injoignable)."
+              echo "Le projet Supabase est probablement déjà en pause."
+              echo "Réactivez-le depuis le dashboard Supabase (bouton « Resume project », gratuit)."
+              exit 1
+              ;;
+            *)
+              echo "::error::Réponse inattendue (${code}) :"
+              cat /tmp/reponse.txt
+              exit 1
+              ;;
+          esac
