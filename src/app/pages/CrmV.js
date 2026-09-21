@@ -1,5 +1,5 @@
 'use client'
-import { useState, useMemo, useEffect, useCallback } from 'react'
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { SB, Icon, I, FF, inp, sel, btnP, btnS, fmtMoney, fmtDate } from '../dashboards/shared'
 import { Badge, Modal, EmptyState } from '../components'
 import { PageSkeleton } from '../components/Skeleton'
@@ -20,9 +20,31 @@ import {
 
 const TYPES_PROJET = ['Rénovation', 'Construction neuve', 'Extension', 'Réhabilitation', 'Aménagement', 'Autre']
 const todayISO = () => new Date().toISOString().slice(0, 10)
+const addDays = (n) => { const d = new Date(); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10) }
+const nextWeekday = (dow) => { // 1 = lundi … 5 = vendredi
+  const d = new Date(); const diff = (dow - d.getDay() + 7) % 7 || 7
+  d.setDate(d.getDate() + diff); return d.toISOString().slice(0, 10)
+}
+
+// Ce que l'app suggère de faire ensuite, par étape. Une seule phrase,
+// un seul bouton : l'utilisateur n'a pas à réfléchir à « quoi faire ».
+const NEXT_STEP = {
+  'Prospect':     { text: 'Appelle le client pour comprendre son projet.', cta: '📞 Noter un appel', action: 'call' },
+  'Qualifié':     { text: 'Le besoin est clair : envoie le devis.',       cta: '→ Devis envoyé',   action: 'advance' },
+  'Devis envoyé': { text: 'Relance le client si tu n’as pas de réponse.', cta: '📞 Noter une relance', action: 'call' },
+  'Négociation':  { text: 'Conclus : gagné ou perdu ?',                   cta: null },
+}
+
+// Étiquettes de relance rapide (un clic = une date)
+const RELANCE_CHIPS = [
+  { l: 'Demain',            d: () => addDays(1) },
+  { l: 'Dans 3 jours',      d: () => addDays(3) },
+  { l: 'Vendredi',          d: () => nextWeekday(5) },
+  { l: 'Semaine prochaine', d: () => addDays(7) },
+]
 
 // ═══════════════════════════════════════════════════════════════
-// Page CRM — pipeline commercial
+// Page CRM — suivi commercial
 // ═══════════════════════════════════════════════════════════════
 export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId, focusTs }) {
   const { addToast } = useToast()
@@ -32,16 +54,20 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
 
   const [view, setView] = useState('pipeline')       // pipeline | relances | closed
   const [q, setQ] = useState('')
+  const [quick, setQuick] = useState('')              // ajout rapide (barre en haut)
+  const [mobileStage, setMobileStage] = useState(null)
   const [oppModal, setOppModal] = useState(null)      // null | 'new' | 'edit'
   const [oppForm, setOppForm] = useState({})
   const [oppError, setOppError] = useState('')
-  const [selectedId, setSelectedId] = useState(null)  // opportunité ouverte en détail
+  const [moreOptions, setMoreOptions] = useState(false)
+  const [selectedId, setSelectedId] = useState(null)
   const [intModal, setIntModal] = useState(false)
   const [intForm, setIntForm] = useState({})
   const [intError, setIntError] = useState('')
   const [dragId, setDragId] = useState(null)
   const [dragOver, setDragOver] = useState(null)
   const [saving, setSaving] = useState(false)
+  const quickRef = useRef(null)
 
   const contactsById = useMemo(() => {
     const map = new Map()
@@ -72,42 +98,44 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
   const stats = useMemo(() => pipelineStats(opportunites), [opportunites])
   const followUps = useMemo(() => classifyFollowUps(interactions), [interactions])
   const nbRelances = followUps.overdue.length + followUps.today.length
+  const nbActifsFiltres = filtered.filter(o => !isClosed(o.etape)).length
+  const isFirstUse = opportunites.length === 0 && !q
 
-  // ─── Opportunité : création / édition ───
-  const openNew = useCallback(() => {
+  // Mobile : une colonne à la fois. Par défaut, la première non vide.
+  const stage = m ? (mobileStage || ETAPES_ACTIVES.find(e => grouped[e].length) || 'Prospect') : null
+
+  // ─── Affaire : création / édition ───
+  const openNew = useCallback((preset = {}) => {
     setOppForm({
       titre: '', etape: 'Prospect', probabilite: ETAPE_PROBA.Prospect,
       montant_estime: '', contact_id: '', source: '', type_projet: '',
-      adresse: '', date_cloture_prevue: '', notes: '',
+      adresse: '', date_cloture_prevue: '', notes: '', ...preset,
     })
-    setOppError('')
+    setOppError(''); setMoreOptions(false)
     setOppModal('new')
   }, [])
   const openEdit = (o) => {
     setOppForm({ ...o, montant_estime: o.montant_estime ?? '', contact_id: o.contact_id || '' })
-    setOppError('')
+    setOppError(''); setMoreOptions(true)
     setOppModal('edit')
   }
   const closeOppModal = () => { setOppModal(null); setOppError('') }
 
-  // Raccourci « n » = nouvelle opportunité (comme sur Tâches / Contacts)
+  // Raccourci « n » = nouvelle affaire
   useEffect(() => {
     const handler = (e) => {
       if (e.altKey || e.ctrlKey || e.metaKey) return
       const t = e.target
       const tag = (t?.tagName || '').toLowerCase()
       if (tag === 'input' || tag === 'textarea' || tag === 'select' || t?.isContentEditable) return
-      if (oppModal || intModal) return
-      if (e.key === 'n' || e.key === 'N') { e.preventDefault(); openNew() }
+      if (oppModal || intModal || selectedId) return
+      if (e.key === 'n' || e.key === 'N') { e.preventDefault(); quickRef.current?.focus() }
     }
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
-  }, [oppModal, intModal, openNew])
+  }, [oppModal, intModal, selectedId])
 
-  // Navigation entrante (recherche globale, Contacts, Qonto, Dashboard) :
-  //   - "contact:<id>" → filtre le pipeline sur ce contact
-  //   - "new:<id>"     → ouvre le formulaire pré-rempli avec ce contact
-  //   - "<id>"         → ouvre le détail de l'opportunité
+  // Navigation entrante (recherche globale, Contacts, Qonto, Dashboard)
   useEffect(() => {
     if (!focusId || loading) return
     const f = String(focusId)
@@ -115,7 +143,7 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
       const c = contactsById.get(f.slice(8))
       setView('pipeline'); setQ(c?.nom || '')
     } else if (f.startsWith('new:')) {
-      openNew(); setOppForm(prev => ({ ...prev, contact_id: f.slice(4) }))
+      openNew({ contact_id: f.slice(4) })
     } else if (f === 'relances') {
       setView('relances')
     } else if (opportunites.some(o => o.id === f)) {
@@ -123,6 +151,22 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusId, focusTs, loading])
+
+  // Ajout rapide : un titre + Entrée = une affaire en « Prospect ».
+  // Les détails (contact, montant…) se complètent ensuite dans la fiche.
+  const quickAdd = async () => {
+    const titre = quick.trim()
+    if (!titre) return
+    setSaving(true)
+    try {
+      const saved = await upsertOpportunite({ titre, etape: 'Prospect' })
+      setQuick('')
+      await reload()
+      addToast(`Affaire « ${titre} » ajoutée`, 'success')
+      setSelectedId(saved.id)
+    } catch (e) { addToast(e?.message || 'Ajout impossible', 'error') }
+    finally { setSaving(false) }
+  }
 
   const saveOpp = async () => {
     const err = validateOpportunite(oppForm)
@@ -132,7 +176,7 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
       const saved = await upsertOpportunite(oppForm)
       await reload()
       closeOppModal()
-      addToast(oppModal === 'edit' ? 'Opportunité mise à jour' : 'Opportunité créée', 'success')
+      addToast(oppModal === 'edit' ? 'Affaire mise à jour' : 'Affaire créée', 'success')
       if (oppModal === 'new') setSelectedId(saved.id)
     } catch (e) {
       setOppError(e?.message || "Erreur lors de l'enregistrement.")
@@ -142,7 +186,7 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
   const handleDelete = async (o) => {
     const ok = await confirm({
       title: `Supprimer « ${o.titre} » ?`,
-      message: "L'historique des interactions sera supprimé avec l'opportunité.",
+      message: "L'historique des échanges sera supprimé avec l'affaire.",
       confirmLabel: 'Supprimer', danger: true,
     })
     if (!ok) return
@@ -150,28 +194,27 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
       await deleteOpportunite(o.id)
       if (selectedId === o.id) setSelectedId(null)
       await reload()
-      addToast('Opportunité supprimée', 'success')
+      addToast('Affaire supprimée', 'success')
     } catch (e) { addToast(e?.message || 'Suppression impossible', 'error') }
   }
 
-  // Changement d'étape (drag & drop, bouton « avancer », sélecteur).
-  // Perdu demande un motif ; Gagné propose la conversion en chantier.
+  // Changement d'étape. Perdu demande un motif ; Gagné propose le chantier.
   const changeEtape = async (o, etape) => {
     if (o.etape === etape) return
     if (etape === 'Perdu') {
       setOppForm({ ...o, etape: 'Perdu', motif_perte: o.motif_perte || '', contact_id: o.contact_id || '' })
-      setOppError('')
+      setOppError(''); setMoreOptions(false)
       setOppModal('edit')
       return
     }
     try {
       await moveOpportunite(o, etape)
       await reload()
-      addToast(`→ ${etape}`, 'success')
+      addToast(`« ${o.titre} » → ${etape}`, 'success')
       if (etape === 'Gagné' && !o.chantier_id) {
         const ok = await confirm({
           title: 'Affaire gagnée 🎉',
-          message: 'Créer le chantier correspondant maintenant ?',
+          message: 'Créer le chantier correspondant maintenant ? Le budget et le client seront repris.',
           confirmLabel: 'Créer le chantier', cancelLabel: 'Plus tard',
         })
         if (ok) await convertToChantier({ ...o, etape: 'Gagné' })
@@ -179,7 +222,6 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
     } catch (e) { addToast(e?.message || 'Changement impossible', 'error') }
   }
 
-  // ─── Conversion Gagné → Chantier ───
   const convertToChantier = async (o) => {
     if (o.chantier_id) { addToast('Un chantier est déjà rattaché.', 'info'); return }
     setSaving(true)
@@ -196,11 +238,13 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
     finally { setSaving(false) }
   }
 
-  // ─── Interactions ───
+  // ─── Échanges (interactions) ───
   const openNewInteraction = (o, preset = {}) => {
+    const c = contactsById.get(o?.contact_id)
+    const type = preset.type || 'Appel'
     setIntForm({
       opportunite_id: o?.id || null, contact_id: o?.contact_id || null,
-      type: 'Appel', sujet: '', contenu: '',
+      type, sujet: defaultSujet(type, c), contenu: '',
       date: new Date().toISOString().slice(0, 16),
       prochaine_action: '', prochaine_action_date: '', ...preset,
     })
@@ -208,17 +252,17 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
     setIntModal(true)
   }
   const saveInteraction = async () => {
-    const err = validateInteraction(intForm)
+    const form = { ...intForm }
+    // Une date de relance sans libellé → « Rappeler » par défaut
+    if (form.prochaine_action_date && !(form.prochaine_action || '').trim()) form.prochaine_action = 'Rappeler'
+    const err = validateInteraction(form)
     if (err) { setIntError(err); return }
     setSaving(true)
     try {
-      await upsertInteraction({
-        ...intForm,
-        date: intForm.date ? new Date(intForm.date).toISOString() : undefined,
-      })
+      await upsertInteraction({ ...form, date: form.date ? new Date(form.date).toISOString() : undefined })
       await reload()
       setIntModal(false)
-      addToast('Interaction enregistrée', 'success')
+      addToast(form.prochaine_action_date ? `Noté · relance le ${fmtDate(form.prochaine_action_date)}` : 'Échange noté', 'success')
     } catch (e) { setIntError(e?.message || "Erreur lors de l'enregistrement.") }
     finally { setSaving(false) }
   }
@@ -227,13 +271,12 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
     catch (e) { addToast(e?.message || 'Mise à jour impossible', 'error') }
   }
   const removeInteraction = async (it) => {
-    const ok = await confirm({ title: 'Supprimer cette interaction ?', confirmLabel: 'Supprimer', danger: true })
+    const ok = await confirm({ title: 'Supprimer cet échange ?', confirmLabel: 'Supprimer', danger: true })
     if (!ok) return
     try { await deleteInteraction(it.id); await reload() }
     catch (e) { addToast(e?.message || 'Suppression impossible', 'error') }
   }
 
-  // ─── Drag & drop (desktop uniquement) ───
   const onDrop = async (etape) => {
     const o = opportunites.find(x => x.id === dragId)
     setDragId(null); setDragOver(null)
@@ -249,18 +292,18 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
         <div>
           <h1 style={{ margin: 0, fontSize: m ? 18 : 24, fontWeight: 700 }}>CRM</h1>
           <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 2 }}>
-            {stats.actives} affaire{stats.actives > 1 ? 's' : ''} en cours · pipeline {fmtMoney(stats.montantPipeline)}
+            {stats.actives === 0 ? 'Tes affaires en cours, du premier appel au chantier.' :
+              `${stats.actives} affaire${stats.actives > 1 ? 's' : ''} en cours · ${fmtMoney(stats.montantPipeline)}`}
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-          <div style={{ position: 'relative', width: m ? '100%' : 240 }}>
+          {!isFirstUse && (
             <input type="search" value={q} onChange={e => setQ(e.target.value)}
-              placeholder="Rechercher affaire, contact, adresse…"
-              aria-label="Rechercher une opportunité"
-              style={{ padding: '7px 10px', borderRadius: 7, border: '1px solid #E2E8F0', fontSize: 12, width: '100%', boxSizing: 'border-box', fontFamily: 'inherit' }} />
-          </div>
-          <button onClick={openNew} title="Nouvelle opportunité (raccourci : n)"
-            style={{ ...btnP, fontSize: 12, padding: '8px 14px' }}>+ Opportunité</button>
+              placeholder="Rechercher…" aria-label="Rechercher une affaire"
+              style={{ padding: '8px 10px', borderRadius: 8, border: '1px solid #E2E8F0', fontSize: 13, width: m ? '100%' : 200, boxSizing: 'border-box', fontFamily: 'inherit' }} />
+          )}
+          <button onClick={() => openNew()} title="Nouvelle affaire avec tous les détails"
+            style={{ ...btnP, fontSize: 12, padding: '8px 14px' }}>+ Nouvelle affaire</button>
         </div>
       </div>
 
@@ -276,86 +319,162 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
         </div>
       )}
 
-      {/* ─── KPI ─── */}
-      <div style={{ display: 'grid', gridTemplateColumns: m ? '1fr 1fr' : 'repeat(4, 1fr)', gap: 10, marginBottom: 16 }}>
-        <Kpi label="Pipeline actif" value={fmtMoney(stats.montantPipeline)} sub={`${stats.actives} affaire${stats.actives > 1 ? 's' : ''}`} color="#3B82F6" />
-        <Kpi label="Pondéré" value={fmtMoney(stats.montantPondere)} sub="montant × probabilité" color="#8B5CF6" />
-        <Kpi label="Gagné ce mois" value={fmtMoney(stats.montantGagneMois)} sub={`${stats.gagneesMois} affaire${stats.gagneesMois > 1 ? 's' : ''}`} color="#10B981" />
-        <Kpi label="Relances" value={String(nbRelances)} sub={followUps.overdue.length ? `${followUps.overdue.length} en retard` : 'à jour'}
-          color={followUps.overdue.length ? '#EF4444' : '#F59E0B'} onClick={() => setView('relances')} />
-      </div>
+      {/* ─── Ajout rapide : un nom + Entrée ─── */}
+      <form onSubmit={(e) => { e.preventDefault(); quickAdd() }}
+        style={{ display: 'flex', gap: 8, marginBottom: 14, alignItems: 'center' }}>
+        <div style={{ position: 'relative', flex: 1, minWidth: 0 }}>
+          <span aria-hidden="true" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 16 }}>🎯</span>
+          <input ref={quickRef} value={quick} onChange={e => setQuick(e.target.value)}
+            aria-label="Ajouter une affaire rapidement"
+            placeholder={m ? 'Nouvelle affaire… puis Entrée' : 'Ajouter une affaire : ex. « Rénovation maison Dupont » puis Entrée  (raccourci : n)'}
+            style={{ ...inp, paddingLeft: 38, fontSize: 14, background: '#fff', borderColor: '#CBD5E1' }} />
+        </div>
+        {quick.trim() && (
+          <button type="submit" disabled={saving} style={{ ...btnP, fontSize: 12, whiteSpace: 'nowrap' }}>Ajouter</button>
+        )}
+      </form>
 
-      {/* ─── Vues ─── */}
-      <div style={{ display: 'flex', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
-        {[
-          { k: 'pipeline', l: 'Pipeline', c: '#3B82F6', n: stats.actives },
-          { k: 'relances', l: 'Relances', c: '#F59E0B', n: nbRelances },
-          { k: 'closed',   l: 'Clôturées', c: '#64748B', n: grouped['Gagné'].length + grouped['Perdu'].length },
-        ].map(p => {
-          const active = view === p.k
-          return (
-            <button key={p.k} onClick={() => setView(p.k)} style={{
-              display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 11px', borderRadius: 999,
-              fontSize: 11, fontWeight: 600, border: `1px solid ${active ? p.c : '#E2E8F0'}`,
-              background: active ? p.c : '#fff', color: active ? '#fff' : '#334155', cursor: 'pointer', fontFamily: 'inherit',
-            }}>
-              {p.l} <span style={{ fontSize: 10, opacity: 0.75, fontWeight: 500 }}>{p.n}</span>
-            </button>
-          )
-        })}
-      </div>
-
-      {/* ─── PIPELINE (Kanban) ─── */}
-      {view === 'pipeline' && (
-        filtered.filter(o => !isClosed(o.etape)).length === 0 ? (
-          <EmptyState icon="🎯" title={q ? 'Aucun résultat' : 'Aucune affaire en cours'}
-            description={q ? 'Essaie un autre mot-clé.' : 'Ajoute ton premier prospect pour démarrer le pipeline.'}
-            action={q ? { label: 'Effacer la recherche', onClick: () => setQ('') } : { label: '+ Nouvelle opportunité', onClick: openNew }} />
-        ) : (
-          <div style={{
-            display: m ? 'grid' : 'flex', gap: 10,
-            gridTemplateColumns: 'minmax(0,1fr)',
-            overflowX: m ? 'visible' : 'auto', paddingBottom: 6, alignItems: 'flex-start',
-          }}>
-            {ETAPES_ACTIVES.map(etape => {
-              const list = grouped[etape]
-              const total = list.reduce((s, o) => s + (Number(o.montant_estime) || 0), 0)
-              const color = ETAPE_COLORS[etape]
-              return (
-                <div key={etape}
-                  onDragOver={m ? undefined : (e) => { e.preventDefault(); setDragOver(etape) }}
-                  onDragLeave={m ? undefined : () => setDragOver(null)}
-                  onDrop={m ? undefined : (e) => { e.preventDefault(); onDrop(etape) }}
-                  style={{
-                    flex: '1 0 250px', minWidth: m ? 0 : 250, maxWidth: m ? 'none' : 320,
-                    background: dragOver === etape ? color + '12' : '#F8FAFC',
-                    border: `1px solid ${dragOver === etape ? color : '#E2E8F0'}`,
-                    borderRadius: 12, padding: 10, transition: 'background .15s, border-color .15s',
-                  }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: color }} />
-                    <span style={{ fontSize: 12, fontWeight: 700, color: '#0F172A', flex: 1 }}>{etape}</span>
-                    <span style={{ fontSize: 10, color: '#64748B', fontWeight: 600 }}>{list.length} · {fmtMoney(total)}</span>
-                  </div>
-                  {list.length === 0 && (
-                    <div style={{ fontSize: 11, color: '#94A3B8', textAlign: 'center', padding: '14px 0', fontStyle: 'italic' }}>—</div>
-                  )}
-                  <div style={{ display: 'grid', gap: 8, gridTemplateColumns: 'minmax(0,1fr)' }}>
-                    {list.map(o => (
-                      <OpportuniteCard key={o.id} o={o} m={m}
-                        contact={contactsById.get(o.contact_id)}
-                        dormant={daysSinceLastInteraction(o, interactions)}
-                        draggable={!m}
-                        onDragStart={() => setDragId(o.id)}
-                        onDragEnd={() => { setDragId(null); setDragOver(null) }}
-                        onOpen={() => setSelectedId(o.id)}
-                        onAdvance={nextEtape(o.etape) ? () => changeEtape(o, nextEtape(o.etape)) : null}
-                      />
-                    ))}
-                  </div>
+      {/* ─── Première utilisation : guide en 3 étapes ─── */}
+      {isFirstUse && !missingMigration && (
+        <div style={{ background: 'linear-gradient(135deg,#EFF6FF,#F5F3FF)', border: '1px solid #DBEAFE', borderRadius: 14, padding: m ? 16 : 22, marginBottom: 16 }}>
+          <div style={{ fontSize: 15, fontWeight: 700, color: '#0F172A', marginBottom: 4 }}>Bienvenue dans ton suivi commercial 👋</div>
+          <div style={{ fontSize: 12, color: '#475569', marginBottom: 14 }}>Trois gestes suffisent. Tout le reste est optionnel.</div>
+          <div style={{ display: 'grid', gridTemplateColumns: m ? '1fr' : 'repeat(3, 1fr)', gap: 10 }}>
+            {[
+              { n: '1', t: 'Ajoute une affaire', d: 'Tape son nom dans la barre ci-dessus et appuie sur Entrée.' },
+              { n: '2', t: 'Note tes échanges', d: 'Un appel, une visite… avec une date de relance en un clic.' },
+              { n: '3', t: 'Fais-la avancer', d: 'Glisse la carte d’étape en étape. Gagnée ? Le chantier se crée tout seul.' },
+            ].map(s => (
+              <div key={s.n} style={{ background: '#fff', borderRadius: 10, padding: 12, display: 'flex', gap: 10 }}>
+                <span style={{ width: 26, height: 26, borderRadius: '50%', background: '#1E3A5F', color: '#fff', fontWeight: 700, fontSize: 13, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{s.n}</span>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A' }}>{s.t}</div>
+                  <div style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>{s.d}</div>
                 </div>
-              )
-            })}
+              </div>
+            ))}
+          </div>
+          <div style={{ fontSize: 11, color: '#64748B', marginTop: 12 }}>
+            💡 Tu peux aussi dicter à l&apos;Assistant IA (« j&apos;ai appelé Dupont, relance vendredi ») ou importer un devis depuis l&apos;onglet Qonto.
+          </div>
+        </div>
+      )}
+
+      {!isFirstUse && (<>
+        {/* ─── KPI ─── */}
+        <div style={{ display: 'grid', gridTemplateColumns: m ? '1fr 1fr' : 'repeat(4, 1fr)', gap: 10, marginBottom: 14 }}>
+          <Kpi label="En cours" value={fmtMoney(stats.montantPipeline)} sub={`${stats.actives} affaire${stats.actives > 1 ? 's' : ''}`} color="#3B82F6" onClick={() => setView('pipeline')} />
+          <Kpi label="Prévision" value={fmtMoney(stats.montantPondere)} sub="selon les chances de chaque affaire" color="#8B5CF6" />
+          <Kpi label="Gagné ce mois" value={fmtMoney(stats.montantGagneMois)} sub={`${stats.gagneesMois} affaire${stats.gagneesMois > 1 ? 's' : ''}`} color="#10B981" onClick={() => setView('closed')} />
+          <Kpi label="À relancer" value={String(nbRelances)} sub={followUps.overdue.length ? `${followUps.overdue.length} en retard` : nbRelances ? "aujourd'hui" : 'rien en attente'}
+            color={followUps.overdue.length ? '#EF4444' : '#F59E0B'} onClick={() => setView('relances')} />
+        </div>
+
+        {/* ─── Vues ─── */}
+        <div style={{ display: 'flex', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
+          {[
+            { k: 'pipeline', l: 'Pipeline', c: '#3B82F6', n: stats.actives },
+            { k: 'relances', l: 'Relances', c: '#F59E0B', n: nbRelances },
+            { k: 'closed',   l: 'Terminées', c: '#64748B', n: grouped['Gagné'].length + grouped['Perdu'].length },
+          ].map(p => {
+            const active = view === p.k
+            return (
+              <button key={p.k} onClick={() => setView(p.k)} style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 999,
+                fontSize: 12, fontWeight: 600, border: `1px solid ${active ? p.c : '#E2E8F0'}`,
+                background: active ? p.c : '#fff', color: active ? '#fff' : '#334155', cursor: 'pointer', fontFamily: 'inherit',
+              }}>
+                {p.l} <span style={{ fontSize: 10, opacity: 0.75, fontWeight: 500 }}>{p.n}</span>
+              </button>
+            )
+          })}
+        </div>
+      </>)}
+
+      {/* ─── PIPELINE ─── */}
+      {view === 'pipeline' && !isFirstUse && (
+        nbActifsFiltres === 0 ? (
+          <EmptyState icon="🎯" title={q ? 'Aucun résultat' : 'Aucune affaire en cours'}
+            description={q ? 'Essaie un autre mot-clé.' : 'Ajoute une affaire dans la barre ci-dessus.'}
+            action={q ? { label: 'Effacer la recherche', onClick: () => setQ('') } : { label: '+ Nouvelle affaire', onClick: () => openNew() }} />
+        ) : m ? (
+          /* Mobile : une étape à la fois */
+          <div>
+            <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 6, marginBottom: 10 }}>
+              {ETAPES_ACTIVES.map(e => {
+                const active = stage === e
+                const c = ETAPE_COLORS[e]
+                return (
+                  <button key={e} onClick={() => setMobileStage(e)} style={{
+                    flexShrink: 0, padding: '6px 11px', borderRadius: 999, fontSize: 12, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer',
+                    border: `1px solid ${active ? c : '#E2E8F0'}`, background: active ? c : '#fff', color: active ? '#fff' : '#334155',
+                  }}>{e} <span style={{ opacity: 0.75, fontSize: 10 }}>{grouped[e].length}</span></button>
+                )
+              })}
+            </div>
+            <div style={{ display: 'grid', gap: 8, gridTemplateColumns: 'minmax(0,1fr)' }}>
+              {grouped[stage].length === 0 && (
+                <EmptyState compact icon="—" title={`Rien en « ${stage} » pour l’instant.`} />
+              )}
+              {grouped[stage].map(o => (
+                <OpportuniteCard key={o.id} o={o} contact={contactsById.get(o.contact_id)}
+                  dormant={daysSinceLastInteraction(o, interactions)}
+                  onOpen={() => setSelectedId(o.id)}
+                  onCall={() => openNewInteraction(o, { type: 'Appel' })}
+                  onAdvance={nextEtape(o.etape) ? () => changeEtape(o, nextEtape(o.etape)) : null} />
+              ))}
+              <button onClick={() => openNew({ etape: stage })} style={{ ...btnS, fontSize: 12, border: '1px dashed #CBD5E1', background: '#fff' }}>
+                + Ajouter en « {stage} »
+              </button>
+            </div>
+          </div>
+        ) : (
+          /* Desktop : Kanban */
+          <div>
+            <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 6, alignItems: 'flex-start' }}>
+              {ETAPES_ACTIVES.map(etape => {
+                const list = grouped[etape]
+                const total = list.reduce((s, o) => s + (Number(o.montant_estime) || 0), 0)
+                const color = ETAPE_COLORS[etape]
+                return (
+                  <div key={etape}
+                    onDragOver={(e) => { e.preventDefault(); setDragOver(etape) }}
+                    onDragLeave={() => setDragOver(null)}
+                    onDrop={(e) => { e.preventDefault(); onDrop(etape) }}
+                    style={{
+                      flex: '1 0 250px', minWidth: 250, maxWidth: 320,
+                      background: dragOver === etape ? color + '12' : '#F8FAFC',
+                      border: `1px solid ${dragOver === etape ? color : '#E2E8F0'}`,
+                      borderRadius: 12, padding: 10, transition: 'background .15s, border-color .15s',
+                    }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: color }} />
+                      <span style={{ fontSize: 12, fontWeight: 700, color: '#0F172A', flex: 1 }}>{etape}</span>
+                      <span style={{ fontSize: 10, color: '#64748B', fontWeight: 600 }}>{list.length}{total ? ` · ${fmtMoney(total)}` : ''}</span>
+                    </div>
+                    <div style={{ display: 'grid', gap: 8, gridTemplateColumns: 'minmax(0,1fr)' }}>
+                      {list.map(o => (
+                        <OpportuniteCard key={o.id} o={o} contact={contactsById.get(o.contact_id)}
+                          dormant={daysSinceLastInteraction(o, interactions)}
+                          draggable
+                          onDragStart={() => setDragId(o.id)}
+                          onDragEnd={() => { setDragId(null); setDragOver(null) }}
+                          onOpen={() => setSelectedId(o.id)}
+                          onCall={() => openNewInteraction(o, { type: 'Appel' })}
+                          onAdvance={nextEtape(o.etape) ? () => changeEtape(o, nextEtape(o.etape)) : null} />
+                      ))}
+                      <button onClick={() => openNew({ etape })} title={`Nouvelle affaire directement en « ${etape} »`} style={{
+                        background: 'transparent', border: '1px dashed #CBD5E1', borderRadius: 10, padding: '8px', fontSize: 11,
+                        color: '#64748B', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600,
+                      }}>+ Ajouter ici</button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+            <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 6 }}>
+              💡 Glisse une carte vers une autre colonne pour la faire avancer. Clique dessus pour voir la fiche.
+            </div>
           </div>
         )
       )}
@@ -366,11 +485,11 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
           onToggle={toggleAction} onOpen={(id) => setSelectedId(id)} />
       )}
 
-      {/* ─── CLÔTURÉES ─── */}
+      {/* ─── TERMINÉES ─── */}
       {view === 'closed' && (
         <div style={{ display: 'grid', gap: 6, gridTemplateColumns: 'minmax(0,1fr)' }}>
           {[...grouped['Gagné'], ...grouped['Perdu']].length === 0 && (
-            <EmptyState icon="🏁" title="Aucune affaire clôturée" description="Les affaires gagnées et perdues apparaîtront ici." />
+            <EmptyState icon="🏁" title="Aucune affaire terminée" description="Les affaires gagnées et perdues apparaîtront ici." />
           )}
           {[...grouped['Gagné'], ...grouped['Perdu']].map(o => {
             const c = contactsById.get(o.contact_id)
@@ -384,7 +503,7 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 600, color: '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.titre}</div>
                   <div style={{ fontSize: 10, color: '#94A3B8' }}>
-                    {c?.nom || '—'}{o.date_cloture ? ` · clôturé le ${fmtDate(o.date_cloture)}` : ''}
+                    {c?.nom || '—'}{o.date_cloture ? ` · le ${fmtDate(o.date_cloture)}` : ''}
                     {o.etape === 'Perdu' && o.motif_perte ? ` · ${o.motif_perte}` : ''}
                     {ch ? ` · chantier ${ch.nom}` : ''}
                   </div>
@@ -397,7 +516,7 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
         </div>
       )}
 
-      {/* ─── DÉTAIL OPPORTUNITÉ ─── */}
+      {/* ─── FICHE AFFAIRE ─── */}
       <Modal open={!!selected} onClose={() => setSelectedId(null)} title={selected?.titre || ''} wide>
         {selected && (
           <OpportuniteDetail o={selected} m={m}
@@ -418,35 +537,33 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
         )}
       </Modal>
 
-      {/* ─── FORMULAIRE OPPORTUNITÉ ─── */}
-      <Modal open={!!oppModal} onClose={closeOppModal} title={oppModal === 'new' ? 'Nouvelle opportunité' : "Modifier l'opportunité"}>
-        <FF label="Titre de l'affaire" required>
+      {/* ─── FORMULAIRE AFFAIRE ─── */}
+      <Modal open={!!oppModal} onClose={closeOppModal}
+        title={oppModal === 'new' ? 'Nouvelle affaire' : oppForm.etape === 'Perdu' && !oppForm.motif_perte ? 'Affaire perdue' : "Modifier l'affaire"}>
+        <FF label="Nom de l'affaire" required>
           <input style={inp} value={oppForm.titre || ''} autoFocus
             onChange={e => setOppForm({ ...oppForm, titre: e.target.value })}
+            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); saveOpp() } }}
             placeholder="Ex : Rénovation maison Dupont" />
         </FF>
+        <FF label="Étape">
+          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+            {ETAPES.map(e => {
+              const active = (oppForm.etape || 'Prospect') === e
+              const c = ETAPE_COLORS[e]
+              return (
+                <button key={e} type="button" aria-pressed={active}
+                  onClick={() => setOppForm({ ...oppForm, etape: e, probabilite: isClosed(e) ? ETAPE_PROBA[e] : (oppForm.probabilite || ETAPE_PROBA[e]) })}
+                  style={{
+                    padding: '6px 10px', borderRadius: 999, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+                    border: `1px solid ${active ? c : '#E2E8F0'}`, background: active ? c : '#fff', color: active ? '#fff' : '#334155',
+                  }}>{e}</button>
+              )
+            })}
+          </div>
+        </FF>
         <div style={{ display: 'grid', gridTemplateColumns: m ? '1fr' : '1fr 1fr', gap: '0 12px' }}>
-          <FF label="Étape">
-            <select style={sel} value={oppForm.etape || 'Prospect'}
-              onChange={e => {
-                const etape = e.target.value
-                setOppForm({ ...oppForm, etape, probabilite: isClosed(etape) ? ETAPE_PROBA[etape] : (oppForm.probabilite || ETAPE_PROBA[etape]) })
-              }}>
-              {ETAPES.map(e => <option key={e} value={e}>{e}</option>)}
-            </select>
-          </FF>
-          <FF label="Probabilité (%)" hint={isClosed(oppForm.etape) ? 'Fixée par l’étape' : `Défaut ${ETAPE_PROBA[oppForm.etape] ?? 20} % pour cette étape`}>
-            <input style={inp} type="number" min={0} max={100} inputMode="numeric"
-              disabled={isClosed(oppForm.etape)}
-              value={oppForm.probabilite ?? ''}
-              onChange={e => setOppForm({ ...oppForm, probabilite: e.target.value })} />
-          </FF>
-          <FF label="Montant estimé (€ HT)">
-            <input style={inp} type="number" min={0} step={100} inputMode="decimal"
-              value={oppForm.montant_estime ?? ''}
-              onChange={e => setOppForm({ ...oppForm, montant_estime: e.target.value })} />
-          </FF>
-          <FF label="Contact">
+          <FF label="Client / contact" hint={!oppForm.contact_id ? 'Optionnel — tu peux le rattacher plus tard.' : undefined}>
             <select style={sel} value={oppForm.contact_id || ''}
               onChange={e => setOppForm({ ...oppForm, contact_id: e.target.value })}>
               <option value="">— Aucun —</option>
@@ -455,39 +572,69 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
               ))}
             </select>
           </FF>
-          <FF label="Type de projet">
-            <select style={sel} value={oppForm.type_projet || ''}
-              onChange={e => setOppForm({ ...oppForm, type_projet: e.target.value })}>
-              <option value="">—</option>
-              {TYPES_PROJET.map(t => <option key={t} value={t}>{t}</option>)}
-            </select>
-          </FF>
-          <FF label="Source">
-            <select style={sel} value={oppForm.source || ''}
-              onChange={e => setOppForm({ ...oppForm, source: e.target.value })}>
-              <option value="">—</option>
-              {SOURCES.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
-          </FF>
-          <FF label="Adresse du projet">
-            <input style={inp} value={oppForm.adresse || ''}
-              onChange={e => setOppForm({ ...oppForm, adresse: e.target.value })} />
-          </FF>
-          <FF label="Clôture prévue">
-            <input style={inp} type="date" value={oppForm.date_cloture_prevue || ''}
-              onChange={e => setOppForm({ ...oppForm, date_cloture_prevue: e.target.value })} />
+          <FF label="Montant estimé (€ HT)">
+            <input style={inp} type="number" min={0} step={100} inputMode="decimal" placeholder="0"
+              value={oppForm.montant_estime ?? ''}
+              onChange={e => setOppForm({ ...oppForm, montant_estime: e.target.value })} />
           </FF>
         </div>
         {oppForm.etape === 'Perdu' && (
-          <FF label="Motif de la perte" required>
-            <input style={inp} value={oppForm.motif_perte || ''} placeholder="Prix, délai, concurrent, projet abandonné…"
+          <FF label="Pourquoi est-elle perdue ?" required>
+            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 6 }}>
+              {['Prix', 'Délai', 'Concurrent', 'Projet abandonné', 'Sans réponse'].map(mtf => (
+                <button key={mtf} type="button" onClick={() => setOppForm({ ...oppForm, motif_perte: mtf })} style={{
+                  padding: '4px 9px', borderRadius: 999, fontSize: 11, fontFamily: 'inherit', cursor: 'pointer',
+                  border: `1px solid ${oppForm.motif_perte === mtf ? '#EF4444' : '#E2E8F0'}`, background: oppForm.motif_perte === mtf ? '#FEF2F2' : '#fff', color: '#334155',
+                }}>{mtf}</button>
+              ))}
+            </div>
+            <input style={inp} value={oppForm.motif_perte || ''} placeholder="Ou précise…"
               onChange={e => setOppForm({ ...oppForm, motif_perte: e.target.value })} />
           </FF>
         )}
-        <FF label="Notes">
-          <textarea style={{ ...inp, minHeight: 80, resize: 'vertical' }} value={oppForm.notes || ''}
-            onChange={e => setOppForm({ ...oppForm, notes: e.target.value })} />
-        </FF>
+
+        <button type="button" onClick={() => setMoreOptions(v => !v)} aria-expanded={moreOptions}
+          style={{ background: 'none', border: 'none', padding: '4px 0', marginBottom: 8, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, color: '#3B82F6', fontWeight: 600 }}>
+          {moreOptions ? '▾ Moins d’options' : '▸ Plus d’options (chances, type, source, adresse, date, notes)'}
+        </button>
+        {moreOptions && (
+          <div style={{ display: 'grid', gridTemplateColumns: m ? '1fr' : '1fr 1fr', gap: '0 12px' }}>
+            <FF label="Chances de gagner (%)" hint={isClosed(oppForm.etape) ? 'Fixé par l’étape' : `Par défaut ${ETAPE_PROBA[oppForm.etape] ?? 20} % à cette étape`}>
+              <input style={inp} type="number" min={0} max={100} inputMode="numeric"
+                disabled={isClosed(oppForm.etape)}
+                value={oppForm.probabilite ?? ''}
+                onChange={e => setOppForm({ ...oppForm, probabilite: e.target.value })} />
+            </FF>
+            <FF label="Type de projet">
+              <select style={sel} value={oppForm.type_projet || ''}
+                onChange={e => setOppForm({ ...oppForm, type_projet: e.target.value })}>
+                <option value="">—</option>
+                {TYPES_PROJET.map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
+            </FF>
+            <FF label="D'où vient ce contact ?">
+              <select style={sel} value={oppForm.source || ''}
+                onChange={e => setOppForm({ ...oppForm, source: e.target.value })}>
+                <option value="">—</option>
+                {SOURCES.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </FF>
+            <FF label="Adresse du projet">
+              <input style={inp} value={oppForm.adresse || ''}
+                onChange={e => setOppForm({ ...oppForm, adresse: e.target.value })} />
+            </FF>
+            <FF label="Décision attendue le">
+              <input style={inp} type="date" value={oppForm.date_cloture_prevue || ''}
+                onChange={e => setOppForm({ ...oppForm, date_cloture_prevue: e.target.value })} />
+            </FF>
+            <div style={{ gridColumn: '1 / -1' }}>
+              <FF label="Notes">
+                <textarea style={{ ...inp, minHeight: 70, resize: 'vertical' }} value={oppForm.notes || ''}
+                  onChange={e => setOppForm({ ...oppForm, notes: e.target.value })} />
+              </FF>
+            </div>
+          </div>
+        )}
         {oppError && <div role="alert" style={{ color: '#DC2626', fontSize: 12, marginBottom: 10, fontWeight: 500 }}>⚠ {oppError}</div>}
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
           <button onClick={closeOppModal} style={btnS}>Annuler</button>
@@ -497,47 +644,66 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
         </div>
       </Modal>
 
-      {/* ─── FORMULAIRE INTERACTION ─── */}
-      <Modal open={intModal} onClose={() => setIntModal(false)} title="Nouvelle interaction">
+      {/* ─── FORMULAIRE ÉCHANGE ─── */}
+      <Modal open={intModal} onClose={() => setIntModal(false)} title="Noter un échange">
         <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
           {INTERACTION_TYPES.map(t => {
             const active = intForm.type === t
             return (
-              <button key={t} type="button" onClick={() => setIntForm({ ...intForm, type: t })} style={{
-                padding: '6px 10px', borderRadius: 999, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-                border: `1px solid ${active ? '#1E3A5F' : '#E2E8F0'}`, background: active ? '#1E3A5F' : '#fff', color: active ? '#fff' : '#334155',
-              }}>{INTERACTION_ICONS[t]} {t}</button>
+              <button key={t} type="button" aria-pressed={active}
+                onClick={() => setIntForm(f => ({ ...f, type: t, sujet: isAutoSujet(f.sujet) ? defaultSujet(t, contactsById.get(f.contact_id)) : f.sujet }))}
+                style={{
+                  padding: '8px 12px', borderRadius: 999, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+                  border: `1px solid ${active ? '#1E3A5F' : '#E2E8F0'}`, background: active ? '#1E3A5F' : '#fff', color: active ? '#fff' : '#334155',
+                }}>{INTERACTION_ICONS[t]} {t}</button>
             )
           })}
         </div>
         <FF label="Sujet" required>
           <input style={inp} value={intForm.sujet || ''} autoFocus
             onChange={e => setIntForm({ ...intForm, sujet: e.target.value })}
-            placeholder="Ex : Appel de qualification, visite sur site…" />
+            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); saveInteraction() } }} />
         </FF>
-        <FF label="Date">
-          <input style={inp} type="datetime-local" value={intForm.date || ''}
-            onChange={e => setIntForm({ ...intForm, date: e.target.value })} />
-        </FF>
-        <FF label="Compte rendu">
-          <textarea style={{ ...inp, minHeight: 80, resize: 'vertical' }} value={intForm.contenu || ''}
+        <FF label="Ce qui s'est dit" hint="Optionnel">
+          <textarea style={{ ...inp, minHeight: 70, resize: 'vertical' }} value={intForm.contenu || ''}
+            placeholder="Ex : il attend le devis avant fin de mois, budget max 40 k€…"
             onChange={e => setIntForm({ ...intForm, contenu: e.target.value })} />
         </FF>
-        <div style={{ display: 'grid', gridTemplateColumns: m ? '1fr' : '2fr 1fr', gap: '0 12px' }}>
-          <FF label="Prochaine action" hint="Ex : envoyer le devis, rappeler, planifier une visite">
+        <FF label="Relancer">
+          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', alignItems: 'center' }}>
+            <button type="button" onClick={() => setIntForm({ ...intForm, prochaine_action_date: '', prochaine_action: '' })}
+              aria-pressed={!intForm.prochaine_action_date}
+              style={chip(!intForm.prochaine_action_date, '#64748B')}>Pas de relance</button>
+            {RELANCE_CHIPS.map(c => {
+              const d = c.d(); const active = intForm.prochaine_action_date === d
+              return (
+                <button key={c.l} type="button" aria-pressed={active}
+                  onClick={() => setIntForm({ ...intForm, prochaine_action_date: d, prochaine_action: intForm.prochaine_action || 'Rappeler' })}
+                  style={chip(active, '#F59E0B')}>{c.l}</button>
+              )
+            })}
+            <input type="date" aria-label="Autre date de relance" value={intForm.prochaine_action_date || ''}
+              onChange={e => setIntForm({ ...intForm, prochaine_action_date: e.target.value, prochaine_action: intForm.prochaine_action || (e.target.value ? 'Rappeler' : '') })}
+              style={{ ...inp, width: 'auto', minHeight: 34, padding: '4px 8px', fontSize: 12 }} />
+          </div>
+        </FF>
+        {intForm.prochaine_action_date && (
+          <FF label="Quoi faire ce jour-là ?">
+            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 6 }}>
+              {['Rappeler', 'Envoyer le devis', 'Relancer par email', 'Planifier une visite'].map(a => (
+                <button key={a} type="button" onClick={() => setIntForm({ ...intForm, prochaine_action: a })}
+                  style={chip(intForm.prochaine_action === a, '#3B82F6')}>{a}</button>
+              ))}
+            </div>
             <input style={inp} value={intForm.prochaine_action || ''}
               onChange={e => setIntForm({ ...intForm, prochaine_action: e.target.value })} />
           </FF>
-          <FF label="Pour le">
-            <input style={inp} type="date" value={intForm.prochaine_action_date || ''}
-              onChange={e => setIntForm({ ...intForm, prochaine_action_date: e.target.value })} />
-          </FF>
-        </div>
+        )}
         {intError && <div role="alert" style={{ color: '#DC2626', fontSize: 12, marginBottom: 10, fontWeight: 500 }}>⚠ {intError}</div>}
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
           <button onClick={() => setIntModal(false)} style={btnS}>Annuler</button>
           <button onClick={saveInteraction} disabled={saving} style={{ ...btnP, opacity: saving ? 0.6 : 1 }}>
-            {saving ? 'Enregistrement…' : 'Enregistrer'}
+            {saving ? 'Enregistrement…' : 'Noter'}
           </button>
         </div>
       </Modal>
@@ -546,8 +712,23 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
 }
 
 // ═══════════════════════════════════════════════════════════════
-// Sous-composants
+// Helpers & sous-composants
 // ═══════════════════════════════════════════════════════════════
+
+const AUTO_SUJETS = /^(Appel|Email|Réunion|Visite|Note)( avec .+| chez .+| sur .+)?$/
+const isAutoSujet = (s) => !s || AUTO_SUJETS.test(s)
+function defaultSujet(type, contact) {
+  const who = contact ? (contact.societe || contact.nom) : null
+  if (!who) return type
+  if (type === 'Visite') return `Visite chez ${who}`
+  if (type === 'Note') return `Note sur ${who}`
+  return `${type} avec ${who}`
+}
+
+const chip = (active, color) => ({
+  padding: '5px 10px', borderRadius: 999, fontSize: 11, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer',
+  border: `1px solid ${active ? color : '#E2E8F0'}`, background: active ? color : '#fff', color: active ? '#fff' : '#334155',
+})
 
 function Kpi({ label, value, sub, color, onClick }) {
   const Tag = onClick ? 'button' : 'div'
@@ -564,10 +745,16 @@ function Kpi({ label, value, sub, color, onClick }) {
   )
 }
 
-export function OpportuniteCard({ o, contact, dormant, m, draggable, onDragStart, onDragEnd, onOpen, onAdvance }) {
+const iconBtn = {
+  background: '#F1F5F9', border: '1px solid #E2E8F0', borderRadius: 6, cursor: 'pointer',
+  padding: '3px 7px', fontSize: 12, fontFamily: 'inherit', color: '#475569', lineHeight: 1.2,
+}
+
+export function OpportuniteCard({ o, contact, dormant, draggable, onDragStart, onDragEnd, onOpen, onCall, onAdvance }) {
   const color = ETAPE_COLORS[o.etape] || '#64748B'
   const late = o.date_cloture_prevue && o.date_cloture_prevue < todayISO()
   const isDormant = dormant != null && dormant >= 14
+  const stop = (fn) => (e) => { e.stopPropagation(); fn?.() }
   return (
     <div draggable={draggable} onDragStart={onDragStart} onDragEnd={onDragEnd}
       role="button" tabIndex={0} onClick={onOpen}
@@ -578,19 +765,23 @@ export function OpportuniteCard({ o, contact, dormant, m, draggable, onDragStart
         boxShadow: '0 1px 2px rgba(15,23,42,0.06)', borderLeft: `3px solid ${color}`, minWidth: 0,
       }}>
       <div style={{ fontSize: 13, fontWeight: 600, color: '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.titre}</div>
-      <div style={{ fontSize: 10, color: '#64748B', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-        {contact ? (contact.societe || contact.nom) : 'Sans contact'}{o.type_projet ? ` · ${o.type_projet}` : ''}
+      <div style={{ fontSize: 11, color: '#64748B', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        {contact ? (contact.societe || contact.nom) : <span style={{ color: '#94A3B8', fontStyle: 'italic' }}>Sans contact</span>}
+        {o.type_projet ? ` · ${o.type_projet}` : ''}
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
-        <span style={{ fontSize: 12, fontWeight: 700, color: '#1E3A5F' }}>{fmtMoney(o.montant_estime)}</span>
-        <span style={{ fontSize: 10, color: '#94A3B8' }}>{o.probabilite} %</span>
+        {Number(o.montant_estime) > 0
+          ? <span style={{ fontSize: 12, fontWeight: 700, color: '#1E3A5F' }}>{fmtMoney(o.montant_estime)}</span>
+          : <span style={{ fontSize: 11, color: '#94A3B8' }}>Montant ?</span>}
         <span style={{ flex: 1 }} />
-        {late && <span title="Clôture prévue dépassée" style={{ fontSize: 10, color: '#DC2626', fontWeight: 700 }}>⚠</span>}
-        {isDormant && <span title={`Aucune interaction depuis ${dormant} j`} style={{ fontSize: 10, color: '#F59E0B', fontWeight: 700 }}>💤 {dormant} j</span>}
-        {onAdvance && !m && (
-          <button onClick={(e) => { e.stopPropagation(); onAdvance() }} title={`Passer à « ${nextEtape(o.etape)} »`}
-            aria-label={`Passer à ${nextEtape(o.etape)}`}
-            style={{ background: '#F1F5F9', border: '1px solid #E2E8F0', borderRadius: 6, cursor: 'pointer', padding: '2px 6px', fontSize: 11, fontFamily: 'inherit', color: '#475569' }}>→</button>
+        {late && <span title="Décision attendue dépassée" style={{ fontSize: 10, color: '#DC2626', fontWeight: 700 }}>⚠</span>}
+        {isDormant && <span title={`Aucun échange depuis ${dormant} j`} style={{ fontSize: 10, color: '#F59E0B', fontWeight: 700 }}>💤 {dormant} j</span>}
+        {onCall && (
+          <button onClick={stop(onCall)} title="Noter un appel" aria-label={`Noter un appel pour ${o.titre}`} style={iconBtn}>📞</button>
+        )}
+        {onAdvance && (
+          <button onClick={stop(onAdvance)} title={`Passer à « ${nextEtape(o.etape)} »`}
+            aria-label={`Passer à ${nextEtape(o.etape)}`} style={iconBtn}>→</button>
         )}
       </div>
     </div>
@@ -605,86 +796,122 @@ function OpportuniteDetail({
   const color = ETAPE_COLORS[o.etape]
   const closed = isClosed(o.etape)
   const next = nextEtape(o.etape)
+  const hint = NEXT_STEP[o.etape]
+  const pendingRelance = interactions.find(i => i.prochaine_action_date && !i.action_faite)
   return (
     <div>
       {/* Bandeau étape + actions */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
         <Badge text={o.etape} color={color} />
-        <span style={{ fontSize: 13, fontWeight: 700, color: '#1E3A5F' }}>{fmtMoney(o.montant_estime)}</span>
-        <span style={{ fontSize: 11, color: '#94A3B8' }}>{o.probabilite} %</span>
+        {Number(o.montant_estime) > 0 && <span style={{ fontSize: 13, fontWeight: 700, color: '#1E3A5F' }}>{fmtMoney(o.montant_estime)}</span>}
+        {!closed && <span style={{ fontSize: 11, color: '#94A3B8' }} title="Chances de gagner">{o.probabilite} % de chances</span>}
         <span style={{ flex: 1 }} />
         <button onClick={onEdit} style={{ ...btnS, fontSize: 12, padding: '6px 10px' }}>✎ Modifier</button>
-        <button onClick={onDelete} aria-label="Supprimer l'opportunité"
-          style={{ ...btnS, fontSize: 12, padding: '6px 10px', color: '#DC2626', background: '#FEF2F2' }}>Supprimer</button>
+        <button onClick={onDelete} aria-label="Supprimer l'affaire" title="Supprimer"
+          style={{ ...btnS, fontSize: 12, padding: '6px 10px', color: '#DC2626', background: '#FEF2F2' }}>🗑</button>
       </div>
 
-      {/* Étapes cliquables */}
-      <div style={{ display: 'flex', gap: 4, marginBottom: 14, flexWrap: 'wrap' }}>
-        {ETAPES.map(e => {
-          const active = e === o.etape
-          const c = ETAPE_COLORS[e]
-          return (
-            <button key={e} onClick={() => onChangeEtape(e)} disabled={active || saving}
-              style={{
-                padding: '5px 9px', borderRadius: 999, fontSize: 11, fontWeight: 600, cursor: active ? 'default' : 'pointer', fontFamily: 'inherit',
-                border: `1px solid ${active ? c : '#E2E8F0'}`, background: active ? c : '#fff', color: active ? '#fff' : '#334155',
-              }}>{e}</button>
-          )
-        })}
-      </div>
+      {/* Frise des étapes */}
+      {!closed && (
+        <div style={{ display: 'flex', gap: 4, marginBottom: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+          {ETAPES_ACTIVES.map((e, i) => {
+            const idx = ETAPES_ACTIVES.indexOf(o.etape)
+            const active = e === o.etape; const done = i < idx
+            const c = ETAPE_COLORS[e]
+            return (
+              <button key={e} onClick={() => onChangeEtape(e)} disabled={active || saving} title={active ? 'Étape actuelle' : `Passer à « ${e} »`}
+                style={{
+                  padding: '5px 10px', borderRadius: 999, fontSize: 11, fontWeight: 600, cursor: active ? 'default' : 'pointer', fontFamily: 'inherit',
+                  border: `1px solid ${active || done ? c : '#E2E8F0'}`, background: active ? c : done ? c + '22' : '#fff', color: active ? '#fff' : done ? c : '#64748B',
+                }}>{done ? '✓ ' : ''}{e}</button>
+            )
+          })}
+        </div>
+      )}
+
+      {/* Prochaine étape suggérée + issue */}
+      {!closed && (
+        <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 10, padding: '10px 12px', marginBottom: 14, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ flex: 1, minWidth: 180, fontSize: 12, color: '#334155' }}>
+            {pendingRelance ? (
+              <>
+                <strong>Relance prévue :</strong> {pendingRelance.prochaine_action}
+                <span style={{ color: pendingRelance.prochaine_action_date < todayISO() ? '#DC2626' : '#92400E', fontWeight: 600 }}> le {fmtDate(pendingRelance.prochaine_action_date)}</span>
+                {pendingRelance.prochaine_action_date < todayISO() ? ' (en retard)' : ''}
+              </>
+            ) : (
+              <><strong>Et maintenant ?</strong> {hint?.text}</>
+            )}
+          </div>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {pendingRelance ? (
+              <button onClick={() => onToggleAction(pendingRelance)} style={{ ...btnS, fontSize: 12 }}>✓ Fait</button>
+            ) : hint?.action === 'call' ? (
+              <button onClick={() => onAddInteraction({ type: 'Appel' })} style={{ ...btnP, fontSize: 12 }}>{hint.cta}</button>
+            ) : hint?.action === 'advance' && next ? (
+              <button onClick={() => onChangeEtape(next)} disabled={saving} style={{ ...btnP, fontSize: 12 }}>{hint.cta}</button>
+            ) : null}
+            <button onClick={() => onChangeEtape('Gagné')} disabled={saving} title="Marquer comme gagnée"
+              style={{ ...btnS, fontSize: 12, background: '#ECFDF5', color: '#047857', border: '1px solid #A7F3D0' }}>🎉 Gagnée</button>
+            <button onClick={() => onChangeEtape('Perdu')} disabled={saving} title="Marquer comme perdue"
+              style={{ ...btnS, fontSize: 12, background: '#FEF2F2', color: '#B91C1C', border: '1px solid #FECACA' }}>Perdue</button>
+          </div>
+        </div>
+      )}
+      {closed && (
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14, alignItems: 'center' }}>
+          {chantier ? (
+            <button onClick={onGoChantier || undefined} disabled={!onGoChantier}
+              style={{ ...btnS, fontSize: 12, background: '#ECFDF5', color: '#047857', border: '1px solid #A7F3D0' }}>
+              🏗️ Ouvrir le chantier « {chantier.nom} »
+            </button>
+          ) : o.etape === 'Gagné' ? (
+            <button onClick={onConvert} disabled={saving} style={{ ...btnP, fontSize: 12 }}>🏗️ Créer le chantier</button>
+          ) : null}
+          <button onClick={() => onChangeEtape('Négociation')} disabled={saving} style={{ ...btnS, fontSize: 12 }}>↩ Rouvrir l&apos;affaire</button>
+        </div>
+      )}
 
       {/* Infos */}
-      <div style={{ display: 'grid', gridTemplateColumns: m ? '1fr' : '1fr 1fr', gap: '6px 16px', fontSize: 12, color: '#334155', marginBottom: 14 }}>
-        <Info label="Contact" value={contact ? (
+      <div style={{ display: 'grid', gridTemplateColumns: m ? '1fr' : '1fr 1fr', gap: '6px 16px', fontSize: 12, color: '#334155', marginBottom: 12 }}>
+        <Info label="Client / contact" value={contact ? (
           onGoContact ? (
             <button onClick={onGoContact} title="Ouvrir la fiche contact"
               style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: '#1D4ED8', fontFamily: 'inherit', fontSize: 12, fontWeight: 600, textDecoration: 'underline' }}>
               {contact.nom}{contact.societe ? ` · ${contact.societe}` : ''}
             </button>
           ) : `${contact.nom}${contact.societe ? ` · ${contact.societe}` : ''}`
-        ) : '—'} />
-        <Info label="Téléphone" value={contact?.tel || contact?.tel_fixe || '—'} />
-        <Info label="Email" value={contact?.email || '—'} />
-        <Info label="Type de projet" value={o.type_projet || '—'} />
-        <Info label="Source" value={o.source || '—'} />
-        <Info label="Adresse" value={o.adresse || '—'} />
-        <Info label="Clôture prévue" value={o.date_cloture_prevue ? fmtDate(o.date_cloture_prevue) : '—'} />
-        {o.date_cloture && <Info label="Clôturée le" value={fmtDate(o.date_cloture)} />}
+        ) : (
+          <button onClick={onEdit} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: '#3B82F6', fontFamily: 'inherit', fontSize: 12, fontWeight: 600 }}>+ Rattacher un contact</button>
+        )} />
+        {(contact?.tel || contact?.tel_fixe) && (
+          <Info label="Téléphone" value={<a href={`tel:${(contact.tel || contact.tel_fixe).replace(/\s/g, '')}`} style={{ color: '#1D4ED8' }}>{contact.tel || contact.tel_fixe}</a>} />
+        )}
+        {contact?.email && <Info label="Email" value={<a href={`mailto:${contact.email}`} style={{ color: '#1D4ED8' }}>{contact.email}</a>} />}
+        {o.type_projet && <Info label="Type de projet" value={o.type_projet} />}
+        {o.source && <Info label="Source" value={o.source} />}
+        {o.adresse && <Info label="Adresse" value={o.adresse} />}
+        {o.date_cloture_prevue && <Info label="Décision attendue" value={fmtDate(o.date_cloture_prevue)} />}
+        {o.date_cloture && <Info label="Terminée le" value={fmtDate(o.date_cloture)} />}
         {o.etape === 'Perdu' && <Info label="Motif" value={o.motif_perte || '—'} />}
         {o.qonto_quote_number && <Info label="Devis Qonto" value={o.qonto_quote_number} />}
-        {o.created_by && <Info label="Créée par" value={o.created_by} />}
       </div>
       {o.notes && (
-        <div style={{ background: '#F8FAFC', borderRadius: 8, padding: 10, fontSize: 12, color: '#334155', whiteSpace: 'pre-wrap', marginBottom: 14 }}>{o.notes}</div>
+        <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 8, padding: 10, fontSize: 12, color: '#334155', whiteSpace: 'pre-wrap', marginBottom: 12 }}>{o.notes}</div>
       )}
 
-      {/* Chantier */}
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
-        {chantier ? (
-          <button onClick={onGoChantier || undefined} disabled={!onGoChantier}
-            style={{ ...btnS, fontSize: 12, background: '#ECFDF5', color: '#047857', border: '1px solid #A7F3D0' }}>
-            🏗️ Chantier : {chantier.nom}
-          </button>
-        ) : o.etape === 'Gagné' ? (
-          <button onClick={onConvert} disabled={saving} style={{ ...btnP, fontSize: 12 }}>
-            🏗️ Créer le chantier
-          </button>
-        ) : !closed && next ? (
-          <button onClick={() => onChangeEtape(next)} disabled={saving} style={{ ...btnS, fontSize: 12 }}>
-            → Passer à « {next} »
-          </button>
-        ) : null}
-      </div>
-
-      {/* Interactions */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+      {/* Échanges */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, flexWrap: 'wrap' }}>
         <h3 style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#0F172A', flex: 1 }}>
-          Historique <span style={{ color: '#94A3B8', fontWeight: 500 }}>({interactions.length})</span>
+          Échanges <span style={{ color: '#94A3B8', fontWeight: 500 }}>({interactions.length})</span>
         </h3>
-        <button onClick={() => onAddInteraction()} style={{ ...btnP, fontSize: 12, padding: '6px 12px' }}>+ Interaction</button>
+        {INTERACTION_TYPES.map(t => (
+          <button key={t} onClick={() => onAddInteraction({ type: t })} title={`Noter : ${t}`} aria-label={`Noter ${t}`}
+            style={{ ...iconBtn, fontSize: 13, padding: '4px 8px' }}>{INTERACTION_ICONS[t]}</button>
+        ))}
       </div>
       {interactions.length === 0 ? (
-        <EmptyState compact icon="💬" title="Aucune interaction — note ton premier appel ou rendez-vous." />
+        <EmptyState compact icon="💬" title="Aucun échange. Clique sur 📞 ✉️ 🤝 🏠 📝 pour en noter un." />
       ) : (
         <div style={{ display: 'grid', gap: 6, gridTemplateColumns: 'minmax(0,1fr)' }}>
           {interactions.map(it => <InteractionRow key={it.id} it={it} onToggle={() => onToggleAction(it)} onDelete={() => onDeleteInteraction(it)} />)}
@@ -707,7 +934,7 @@ function InteractionRow({ it, onToggle, onDelete, context }) {
   const td = todayISO()
   const pending = it.prochaine_action_date && !it.action_faite
   const overdue = pending && it.prochaine_action_date < td
-  const dateStr = it.date ? new Date(it.date).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''
+  const dateStr = it.date ? new Date(it.date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' }) : ''
   return (
     <div style={{
       display: 'flex', gap: 10, background: '#fff', border: '1px solid #E2E8F0', borderRadius: 10, padding: '8px 12px', minWidth: 0,
@@ -717,7 +944,7 @@ function InteractionRow({ it, onToggle, onDelete, context }) {
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 12, fontWeight: 600, color: '#0F172A' }}>
           {it.sujet}
-          <span style={{ fontSize: 10, color: '#94A3B8', fontWeight: 400, marginLeft: 6 }}>{it.type} · {dateStr}{it.created_by ? ` · ${it.created_by}` : ''}</span>
+          <span style={{ fontSize: 10, color: '#94A3B8', fontWeight: 400, marginLeft: 6 }}>{dateStr}</span>
         </div>
         {context && <div style={{ fontSize: 10, color: '#64748B' }}>{context}</div>}
         {it.contenu && <div style={{ fontSize: 12, color: '#475569', whiteSpace: 'pre-wrap', marginTop: 2 }}>{it.contenu}</div>}
@@ -730,7 +957,7 @@ function InteractionRow({ it, onToggle, onDelete, context }) {
         )}
       </div>
       {onDelete && (
-        <button onClick={onDelete} title="Supprimer" aria-label="Supprimer l'interaction"
+        <button onClick={onDelete} title="Supprimer" aria-label="Supprimer l'échange"
           style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, alignSelf: 'flex-start', display: 'flex' }}>
           <Icon d={I.trash} size={12} color="#94A3B8" />
         </button>
@@ -748,7 +975,7 @@ function FollowUpList({ followUps, opportunites, contactsById, onToggle, onOpen 
   ]
   const total = groups.reduce((s, g) => s + g.list.length, 0)
   if (total === 0) {
-    return <EmptyState icon="✅" title="Aucune relance en attente" description="Ajoute une « prochaine action » sur une interaction pour la retrouver ici." />
+    return <EmptyState icon="✅" title="Rien à relancer" description="Quand tu notes un échange, choisis « Demain », « Vendredi »… et la relance apparaîtra ici." />
   }
   return (
     <div>
