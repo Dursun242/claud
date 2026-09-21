@@ -15,7 +15,8 @@ Application de gestion de chantiers BTP pour **ID Maîtrise** (SARL, Le Havre). 
 - **Anthropic SDK** (Claude Haiku 4.5) : assistant IA + extraction vision (devis photo, contacts photo)
 - **Odoo JSON-RPC** : signatures électroniques via module Sign
 - **Qonto API** : import factures/devis (proxy read-only)
-- **Pappers API** : enrichissement SIRET des contacts
+- **API Recherche d'entreprises** (État, gratuite, sans clé) : recherche SIRET / nom / dirigeant et enrichissement des contacts
+- **Base Adresse Nationale** (État, gratuite, sans clé) : autocomplétion d'adresse
 - **Jest + @testing-library/react** : 248 tests, 10 s d'exécution
 
 ## Topologie
@@ -46,7 +47,7 @@ src/app/
     ├─ odoo/*                 → signatures
     ├─ pv-reception/*         → flux PV métier
     ├─ extract-*/             → Claude Vision (devis + contacts)
-    ├─ pappers, qonto         → proxies tiers
+    ├─ entreprises, qonto     → proxies tiers (entreprises = API publique sans clé, proxy pour auth + normalisation)
     └─ metrics/               → ingest Web Vitals (sendBeacon)
 ```
 
@@ -61,7 +62,7 @@ Stage 3 = **CRM** (`crm_opportunites`, `crm_interactions`, migrations 025/026) v
 
 ## Conventions & règles du projet
 
-1. **Server-only pour les secrets** : `ANTHROPIC_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `ODOO_API_KEY`, `PAPPERS_API_KEY`, `qonto-token` n'apparaissent **jamais** dans le bundle client. Les appels tiers passent par les routes `/api/*`. Seule exception : la Base Adresse Nationale (`api-adresse.data.gouv.fr`, publique, sans clé) appelée directement par `components/AddressPicker.js`.
+1. **Server-only pour les secrets** : `ANTHROPIC_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `ODOO_API_KEY`, `qonto-token` n'apparaissent **jamais** dans le bundle client. Les appels tiers passent par les routes `/api/*`. Seule exception : la Base Adresse Nationale (`api-adresse.data.gouv.fr`, publique, sans clé) appelée directement par `components/AddressPicker.js`.
 2. **Auth** : toute route `/api/*` non-admin (sauf `/api/metrics`, `/api/auth/google/callback`) fait `verifyAuth(request)` en premier. Retour 401 si absent.
 3. **Logging** : routes modernes utilisent `createLogger('source')` (`lib/logger.js`). Certaines routes anciennes utilisent encore `console.error` — migration progressive.
 4. **Toasts, jamais `alert()`** : `useToast()` dans les composants. `useFloatingMic` prend `onError` pour les erreurs hors-UI.

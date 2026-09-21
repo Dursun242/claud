@@ -149,7 +149,7 @@ Vercel → Settings → Domains → ajouter `app.id-maitrise.com`.
 
 ```
 src/app/
-├── api/              # API routes (auth, claude, qonto, pappers, odoo, upload, extract-*)
+├── api/              # API routes (auth, claude, qonto, entreprises, odoo, upload, extract-*)
 ├── components/       # Components réutilisables (Modal, Toast, Skeleton, FloatingMic, …)
 ├── contexts/         # React contexts (Toast, Confirm)
 ├── dashboards/       # Shell principal (AdminDashboard, ClientDashboard, shared.js)
