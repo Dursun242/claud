@@ -5,6 +5,8 @@ import { SB, fmtDate, fmtMoney, inp } from '../dashboards/shared'
 import { Badge } from '../components'
 import { useToast } from '../contexts/ToastContext'
 import AIQontoV from './AIQontoV'
+import { quoteToOpportunite } from '../lib/crm'
+import { upsertOpportunite } from '../lib/crmDb'
 
 const QT = {
   primary:"#7C3AED", light:"#F5F3FF", border:"#DDD6FE",
@@ -28,7 +30,7 @@ function QontoBadge() {
   );
 }
 
-export default function QontoV({m, data, reload}) {
+export default function QontoV({m, data, reload, crm = null, reloadCrm = null, setTab = null}) {
   const { addToast } = useToast();
   const [token, setToken] = useState("");
   const [savedToken, setSavedToken] = useState("");
@@ -215,6 +217,29 @@ export default function QontoV({m, data, reload}) {
     } finally {
       setPdfLoadingId(null);
     }
+  };
+
+  // ── Devis Qonto → opportunité CRM ──
+  // Map id devis Qonto → opportunité déjà créée (colonne qonto_quote_id, migration 026)
+  const oppByQuoteId = useMemo(() => {
+    const map = new Map();
+    for (const o of crm?.opportunites || []) if (o.qonto_quote_id) map.set(String(o.qonto_quote_id), o);
+    return map;
+  }, [crm?.opportunites]);
+  const [crmImporting, setCrmImporting] = useState({});
+  const importQuoteToCrm = async (q) => {
+    const id = q.id;
+    setCrmImporting(p=>({...p,[id]:true}));
+    try {
+      const opp = quoteToOpportunite(q, data?.contacts || []);
+      const saved = await upsertOpportunite(opp);
+      if (reloadCrm) await reloadCrm();
+      addToast(`Opportunité « ${saved.titre} » créée dans le CRM`, "success");
+      if (!opp.contact_id) addToast("Aucun contact trouvé pour cet email — rattache-le depuis la fiche CRM.", "info");
+    } catch(e) {
+      addToast("CRM : " + (e?.message || "création impossible"), "error");
+    }
+    setCrmImporting(p=>({...p,[id]:false}));
   };
 
   // ── Import client Qonto → Annuaire ──
@@ -624,6 +649,23 @@ export default function QontoV({m, data, reload}) {
                         <div style={{fontSize:16,fontWeight:700,color:"#0F172A"}}>
                           {fmtMoney(parseFloat(q.total_amount?.value??(q.total_amount_cents||0)/100)||0)}
                         </div>
+                        {(() => {
+                          const linked = oppByQuoteId.get(String(q.id));
+                          return linked ? (
+                            <button onClick={()=>setTab?.("crm", linked.id)} disabled={!setTab}
+                              title={`Opportunité CRM : ${linked.titre} (${linked.etape})`}
+                              style={{...pdfBtn,background:"#ECFDF5",color:"#047857",border:"1px solid #A7F3D0"}}>
+                              🎯 Voir dans CRM
+                            </button>
+                          ) : (
+                            <button onClick={()=>importQuoteToCrm(q)} disabled={!!crmImporting[q.id]}
+                              title="Créer une opportunité CRM à partir de ce devis"
+                              style={{...pdfBtn,background:"#F0F9FF",color:"#0369A1",border:"1px solid #BAE6FD",
+                                opacity:crmImporting[q.id]?0.6:1}}>
+                              {crmImporting[q.id] ? "…" : "🎯 → CRM"}
+                            </button>
+                          );
+                        })()}
                         {pdfUnavailable.has(q.id) ? (
                           <a href="https://app.qonto.com" target="_blank" rel="noopener noreferrer"
                             title="PDF non disponible via l'API Qonto — ouvrir sur l'app Qonto"

@@ -10,6 +10,7 @@ import KeyboardHelpModal from '../components/KeyboardHelpModal'
 import { useFloatingMic } from '../hooks/useFloatingMic'
 import { useToast } from '../contexts/ToastContext'
 import { useDashboardData } from '../hooks/useDashboardData'
+import { useCrmData } from '../hooks/useCrmData'
 import { seedDemoData } from '../lib/seedDemoData'
 
 import { defaultData, I, Icon } from './shared'
@@ -76,6 +77,10 @@ export default function AdminDashboard({ user, profile = null }) {
   // qui refetch à chaque mount ; maintenant la nav entre onglets est
   // instantanée tant que la cache est fresh.
   const { data: loadedData, loading, reload, hasChantiers } = useDashboardData();
+  // Stage 3 : CRM (pipeline + interactions), lancé seulement après le
+  // stage 1. Partagé via React Query par CrmV, DashboardV, ContactsV,
+  // QontoV, AIV et la recherche globale.
+  const { crm, reload: reloadCrm } = useCrmData({ enabled: !!loadedData });
 
   // Seed premier login : si la DB est vide après le 1er fetch, on sème
   // les données de démo une seule fois, puis on invalide la query.
@@ -278,7 +283,7 @@ export default function AdminDashboard({ user, profile = null }) {
             fontSize:10,color:"#94A3B8",marginTop:2,letterSpacing:"0.05em"
           }}>MAÎTRISE D'ŒUVRE • LE HAVRE</div>
         </div>
-        <GlobalSearch data={data} onNavigate={switchTab} />
+        <GlobalSearch data={data} crm={crm} onNavigate={switchTab} />
         <div style={{flex:1,padding:"6px 8px",display:"flex",flexDirection:"column",gap:1,overflow:"auto"}}>
           {tabs.map(t=>{
             const active = tab===t.key;
@@ -423,12 +428,12 @@ export default function AdminDashboard({ user, profile = null }) {
               Maintenant, les useEffect des pages ne tournent qu'une fois. */}
           {visitedTabs.has('dashboard') && (
             <div style={{ display: tab === 'dashboard' ? 'block' : 'none' }}>
-              <DashboardV data={data} setTab={switchTab} m={isMobile} user={user}/>
+              <DashboardV data={data} crm={crm} setTab={switchTab} m={isMobile} user={user}/>
             </div>
           )}
           {visitedTabs.has('qonto') && (
             <div style={{ display: tab === 'qonto' ? 'block' : 'none' }}>
-              <QontoV m={isMobile} data={data} reload={reload}/>
+              <QontoV m={isMobile} data={data} reload={reload} crm={crm} reloadCrm={reloadCrm} setTab={switchTab}/>
             </div>
           )}
           {visitedTabs.has('projects') && (
@@ -452,12 +457,14 @@ export default function AdminDashboard({ user, profile = null }) {
           {visitedTabs.has('contacts') && (
             <div style={{ display: tab === 'contacts' ? 'block' : 'none' }}>
               <ContactsV data={data} save={save} m={isMobile}
-                reload={reload} focusId={focus?.id} focusTs={focus?.ts}/>
+                reload={reload} focusId={focus?.id} focusTs={focus?.ts}
+                crm={crm} setTab={switchTab}/>
             </div>
           )}
           {visitedTabs.has('crm') && (
             <div style={{ display: tab === 'crm' ? 'block' : 'none' }}>
-              <CrmV data={data} m={isMobile} reload={reload} setTab={switchTab}/>
+              <CrmV data={data} m={isMobile} reload={reload} setTab={switchTab}
+                focusId={focus?.id} focusTs={focus?.ts}/>
             </div>
           )}
           {visitedTabs.has('reports') && (
@@ -486,7 +493,8 @@ export default function AdminDashboard({ user, profile = null }) {
             <div style={{ display: tab === 'ai' ? 'block' : 'none' }}>
               <AIV data={data} save={save} m={isMobile}
                 externalTranscript={floatTranscript}
-                clearExternal={()=>setFloatTranscript("")} reload={reload}/>
+                clearExternal={()=>setFloatTranscript("")} reload={reload}
+                crm={crm} reloadCrm={reloadCrm}/>
             </div>
           )}
         </div>

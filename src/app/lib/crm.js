@@ -187,3 +187,80 @@ export function opportuniteToChantier(opp, contact = null) {
       : `Issu de l'opportunité CRM « ${opp.titre} ».`,
   }
 }
+
+/** Nombre d'affaires actives + montant par contact (Map contact_id → {n, montant, gagnees}). */
+export function oppsByContact(opps = []) {
+  const map = new Map()
+  for (const o of opps) {
+    if (!o.contact_id) continue
+    const acc = map.get(o.contact_id) || { n: 0, actives: 0, gagnees: 0, montant: 0 }
+    acc.n++
+    if (!isClosed(o.etape)) { acc.actives++; acc.montant += num(o.montant_estime) }
+    if (o.etape === 'Gagné') acc.gagnees++
+    map.set(o.contact_id, acc)
+  }
+  return map
+}
+
+/** Montant HT d'un devis Qonto (API v2 : amount.value ou *_cents). */
+export function qontoQuoteAmount(q = {}) {
+  const v = q.amount?.value ?? q.total_amount?.value
+  if (v != null) return num(v)
+  if (q.amount_cents != null) return num(q.amount_cents) / 100
+  if (q.total_amount_cents != null) return num(q.total_amount_cents) / 100
+  return 0
+}
+
+/**
+ * Construit une opportunité à partir d'un devis Qonto.
+ * - contact retrouvé par email (insensible à la casse) dans l'annuaire ;
+ * - étape « Gagné » si le devis est approuvé, « Perdu » s'il est annulé,
+ *   sinon « Devis envoyé » ;
+ * - qonto_quote_id sert de clé anti-doublon (migration 026).
+ */
+export function quoteToOpportunite(q, contacts = []) {
+  const email = (q.contact_email || '').toLowerCase().trim()
+  const contact = email ? contacts.find(c => (c.email || '').toLowerCase().trim() === email) : null
+  const etape = q.status === 'approved' ? 'Gagné' : q.status === 'canceled' ? 'Perdu' : 'Devis envoyé'
+  const who = contact ? (contact.societe || contact.nom) : (q.contact_email || 'Client Qonto')
+  return {
+    titre: `Devis ${q.number || ''} — ${who}`.replace(/\s+—\s*$/, '').trim(),
+    etape,
+    probabilite: ETAPE_PROBA[etape],
+    montant_estime: qontoQuoteAmount(q),
+    contact_id: contact?.id || null,
+    source: 'Devis Qonto',
+    date_cloture_prevue: q.expiry_date || null,
+    motif_perte: etape === 'Perdu' ? 'Devis annulé dans Qonto' : null,
+    notes: `Devis Qonto ${q.number || ''}${q.issue_date ? ` émis le ${q.issue_date}` : ''}${q.contact_email ? ` — ${q.contact_email}` : ''}`,
+    qonto_quote_id: q.id ? String(q.id) : null,
+    qonto_quote_number: q.number || null,
+  }
+}
+
+/**
+ * Résumé compact du CRM pour le prompt de l'assistant IA (on évite les
+ * champs lourds, on garde les UUID pour que l'IA puisse cibler ses actions).
+ */
+export function prepareCrmForAI(crm = {}, today = new Date()) {
+  const opps = crm.opportunites || []
+  const inters = crm.interactions || []
+  const f = classifyFollowUps(inters, today)
+  return {
+    opportunites: opps.slice(0, 60).map(o => ({
+      id: o.id, titre: o.titre, etape: o.etape, montant_estime: num(o.montant_estime),
+      probabilite: num(o.probabilite), contact_id: o.contact_id, chantier_id: o.chantier_id,
+      type_projet: o.type_projet, source: o.source, date_cloture_prevue: o.date_cloture_prevue,
+      derniere_interaction_jours: daysSinceLastInteraction(o, inters, today),
+    })),
+    interactions_recentes: inters.slice(0, 30).map(i => ({
+      id: i.id, opportunite_id: i.opportunite_id, type: i.type, sujet: i.sujet,
+      date: String(i.date || '').slice(0, 10), prochaine_action: i.prochaine_action,
+      prochaine_action_date: i.prochaine_action_date, action_faite: !!i.action_faite,
+    })),
+    relances: {
+      en_retard: f.overdue.map(i => i.id),
+      aujourdhui: f.today.map(i => i.id),
+    },
+  }
+}

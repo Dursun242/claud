@@ -24,7 +24,7 @@ const todayISO = () => new Date().toISOString().slice(0, 10)
 // ═══════════════════════════════════════════════════════════════
 // Page CRM — pipeline commercial
 // ═══════════════════════════════════════════════════════════════
-export default function CrmV({ data, m, reload: reloadDashboard, setTab }) {
+export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId, focusTs }) {
   const { addToast } = useToast()
   const confirm = useConfirm()
   const { crm, loading, error, reload } = useCrmData()
@@ -103,6 +103,26 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab }) {
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
   }, [oppModal, intModal, openNew])
+
+  // Navigation entrante (recherche globale, Contacts, Qonto, Dashboard) :
+  //   - "contact:<id>" → filtre le pipeline sur ce contact
+  //   - "new:<id>"     → ouvre le formulaire pré-rempli avec ce contact
+  //   - "<id>"         → ouvre le détail de l'opportunité
+  useEffect(() => {
+    if (!focusId || loading) return
+    const f = String(focusId)
+    if (f.startsWith('contact:')) {
+      const c = contactsById.get(f.slice(8))
+      setView('pipeline'); setQ(c?.nom || '')
+    } else if (f.startsWith('new:')) {
+      openNew(); setOppForm(prev => ({ ...prev, contact_id: f.slice(4) }))
+    } else if (f === 'relances') {
+      setView('relances')
+    } else if (opportunites.some(o => o.id === f)) {
+      setSelectedId(f)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusId, focusTs, loading])
 
   const saveOpp = async () => {
     const err = validateOpportunite(oppForm)
@@ -390,6 +410,7 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab }) {
             onChangeEtape={(e) => changeEtape(selected, e)}
             onConvert={() => convertToChantier(selected)}
             onGoChantier={selected.chantier_id && setTab ? () => { setSelectedId(null); setTab('projects', selected.chantier_id) } : null}
+            onGoContact={selected.contact_id && setTab ? () => { setSelectedId(null); setTab('contacts', selected.contact_id) } : null}
             onAddInteraction={(preset) => openNewInteraction(selected, preset)}
             onToggleAction={toggleAction}
             onDeleteInteraction={removeInteraction}
@@ -578,7 +599,7 @@ export function OpportuniteCard({ o, contact, dormant, m, draggable, onDragStart
 
 function OpportuniteDetail({
   o, m, contact, chantier, interactions, saving,
-  onEdit, onDelete, onChangeEtape, onConvert, onGoChantier,
+  onEdit, onDelete, onChangeEtape, onConvert, onGoChantier, onGoContact,
   onAddInteraction, onToggleAction, onDeleteInteraction,
 }) {
   const color = ETAPE_COLORS[o.etape]
@@ -614,7 +635,14 @@ function OpportuniteDetail({
 
       {/* Infos */}
       <div style={{ display: 'grid', gridTemplateColumns: m ? '1fr' : '1fr 1fr', gap: '6px 16px', fontSize: 12, color: '#334155', marginBottom: 14 }}>
-        <Info label="Contact" value={contact ? `${contact.nom}${contact.societe ? ` · ${contact.societe}` : ''}` : '—'} />
+        <Info label="Contact" value={contact ? (
+          onGoContact ? (
+            <button onClick={onGoContact} title="Ouvrir la fiche contact"
+              style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: '#1D4ED8', fontFamily: 'inherit', fontSize: 12, fontWeight: 600, textDecoration: 'underline' }}>
+              {contact.nom}{contact.societe ? ` · ${contact.societe}` : ''}
+            </button>
+          ) : `${contact.nom}${contact.societe ? ` · ${contact.societe}` : ''}`
+        ) : '—'} />
         <Info label="Téléphone" value={contact?.tel || contact?.tel_fixe || '—'} />
         <Info label="Email" value={contact?.email || '—'} />
         <Info label="Type de projet" value={o.type_projet || '—'} />
@@ -623,6 +651,7 @@ function OpportuniteDetail({
         <Info label="Clôture prévue" value={o.date_cloture_prevue ? fmtDate(o.date_cloture_prevue) : '—'} />
         {o.date_cloture && <Info label="Clôturée le" value={fmtDate(o.date_cloture)} />}
         {o.etape === 'Perdu' && <Info label="Motif" value={o.motif_perte || '—'} />}
+        {o.qonto_quote_number && <Info label="Devis Qonto" value={o.qonto_quote_number} />}
         {o.created_by && <Info label="Créée par" value={o.created_by} />}
       </div>
       {o.notes && (

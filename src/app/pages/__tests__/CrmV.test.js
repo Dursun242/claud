@@ -119,3 +119,25 @@ describe('CrmV', () => {
     expect(screen.getByText(/Envoyer le devis/)).toBeInTheDocument()
   })
 })
+
+describe('CrmV — navigation entrante (focusId)', () => {
+  it('"contact:<id>" filtre le pipeline sur le nom du contact', async () => {
+    renderPage({ focusId: 'contact:c1', focusTs: 1 })
+    await screen.findByText('Rénovation Dupont')
+    expect(screen.getByRole('searchbox', { name: /Rechercher une opportunité/ })).toHaveValue('Dupont')
+  })
+
+  it('"new:<id>" ouvre le formulaire pré-rempli avec le contact', async () => {
+    renderPage({ focusId: 'new:c1', focusTs: 2 })
+    await screen.findByText('Rénovation Dupont')
+    const dialog = await screen.findByRole('dialog', { name: 'Nouvelle opportunité' })
+    expect(dialog).toBeInTheDocument()
+    const contactSelect = screen.getAllByRole('combobox').find(el => el.value === 'c1')
+    expect(contactSelect).toBeTruthy()
+  })
+
+  it('un id d’opportunité ouvre son détail', async () => {
+    renderPage({ focusId: 'o1', focusTs: 3 })
+    expect(await screen.findByRole('dialog', { name: 'Rénovation Dupont' })).toBeInTheDocument()
+  })
+})

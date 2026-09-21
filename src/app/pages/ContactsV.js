@@ -12,6 +12,7 @@ import {
 import { buildCSV, downloadCSV } from '../lib/csv'
 import { supabase } from '../supabaseClient'
 import { usePappersSearch } from '../hooks/usePappersSearch'
+import { oppsByContact } from '../lib/crm'
 
 const TYPE_COLORS = {
   Artisan:"#F59E0B",Client:"#3B82F6",Fournisseur:"#10B981",
@@ -20,7 +21,7 @@ const TYPE_COLORS = {
 }
 const TYPES = ["Artisan","Sous-traitant","Prestataire","Client","Fournisseur","MOA","Architecte","BET"]
 
-export default function ContactsV({ data, save: _save, m, reload, focusId, focusTs }) {
+export default function ContactsV({ data, save: _save, m, reload, focusId, focusTs, crm = null, setTab = null }) {
   const { addToast } = useToast();
   const confirm = useConfirm();
   const [modal,setModal]=useState(null);
@@ -108,6 +109,9 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
       SB.log('export_csv', 'contact', null, `Export annuaire — ${list.length} contacts`, { count: list.length });
     } catch (_) {}
   };
+  // Affaires CRM par contact (badge sur la carte + lien vers le pipeline)
+  const crmByContact = useMemo(() => oppsByContact(crm?.opportunites || []), [crm?.opportunites]);
+
   const list = useMemo(() => {
     const search = q.toLowerCase();
     return (data.contacts || []).filter(c => {
@@ -635,6 +639,31 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
                   🏅 {c.qualifications}
                 </div>
               )}
+              {setTab && (() => {
+                const k = crmByContact.get(c.id);
+                return (
+                  <div style={{display:"flex",gap:6,marginTop:6,flexWrap:"wrap"}}>
+                    {k && (
+                      <button onClick={()=>setTab("crm", `contact:${c.id}`)}
+                        title="Voir les affaires de ce contact dans le CRM"
+                        style={{
+                          background:"#F0F9FF",border:"1px solid #BAE6FD",borderRadius:999,
+                          padding:"2px 9px",fontSize:10,fontWeight:700,color:"#0369A1",
+                          cursor:"pointer",fontFamily:"inherit",
+                        }}>
+                        🎯 {k.actives} affaire{k.actives>1?"s":""} en cours{k.gagnees?` · ${k.gagnees} gagnée${k.gagnees>1?"s":""}`:""}
+                      </button>
+                    )}
+                    <button onClick={()=>setTab("crm", `new:${c.id}`)}
+                      title="Créer une opportunité CRM pour ce contact"
+                      style={{
+                        background:"#fff",border:"1px dashed #CBD5E1",borderRadius:999,
+                        padding:"2px 9px",fontSize:10,fontWeight:600,color:"#64748B",
+                        cursor:"pointer",fontFamily:"inherit",
+                      }}>+ Affaire</button>
+                  </div>
+                );
+              })()}
             </div>
             <div style={{display:"flex",flexDirection:"column",gap:4,flexShrink:0}}>
               <button onClick={()=>openEdit(c)} title="Modifier" style={{
