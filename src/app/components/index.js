@@ -14,6 +14,7 @@ export { default as ContactFormModal } from './ContactFormModal'
 
 // Contact helpers
 export { default as ContactInfoLink, CopyIconBtn } from './ContactInfoLink'
+export { default as ContactPicker } from './ContactPicker'
 
 // Feature components
 export { default as AttachmentsSection } from './AttachmentsSection'

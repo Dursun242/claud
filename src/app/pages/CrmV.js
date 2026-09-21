@@ -1,7 +1,7 @@
 'use client'
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { SB, Icon, I, FF, inp, sel, btnP, btnS, fmtMoney, fmtDate } from '../dashboards/shared'
-import { Badge, Modal, EmptyState } from '../components'
+import { Badge, Modal, EmptyState, ContactPicker } from '../components'
 import { PageSkeleton } from '../components/Skeleton'
 import { useToast } from '../contexts/ToastContext'
 import { useConfirm } from '../contexts/ConfirmContext'
@@ -166,6 +166,17 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
       setSelectedId(saved.id)
     } catch (e) { addToast(e?.message || 'Ajout impossible', 'error') }
     finally { setSaving(false) }
+  }
+
+  // Création d'un contact à la volée depuis le sélecteur (type Client).
+  // Les coordonnées se complètent ensuite dans l'onglet Contacts.
+  const createContactInline = async (nom) => {
+    try {
+      const c = await SB.upsertContact({ nom, type: 'Client', actif: true })
+      await reloadDashboard?.()
+      addToast(`Contact « ${nom} » créé — complète ses coordonnées dans Contacts`, 'success')
+      return c
+    } catch (e) { addToast(e?.message || 'Création du contact impossible', 'error'); return null }
   }
 
   const saveOpp = async () => {
@@ -563,14 +574,10 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
           </div>
         </FF>
         <div style={{ display: 'grid', gridTemplateColumns: m ? '1fr' : '1fr 1fr', gap: '0 12px' }}>
-          <FF label="Client / contact" hint={!oppForm.contact_id ? 'Optionnel — tu peux le rattacher plus tard.' : undefined}>
-            <select style={sel} value={oppForm.contact_id || ''}
-              onChange={e => setOppForm({ ...oppForm, contact_id: e.target.value })}>
-              <option value="">— Aucun —</option>
-              {(data?.contacts || []).map(c => (
-                <option key={c.id} value={c.id}>{c.nom}{c.societe ? ` (${c.societe})` : ''}{c.type ? ` · ${c.type}` : ''}</option>
-              ))}
-            </select>
+          <FF label="Client / contact" hint={!oppForm.contact_id ? 'Tape un nom ; s’il n’existe pas, tu peux le créer ici.' : undefined}>
+            <ContactPicker contacts={data?.contacts || []} value={oppForm.contact_id || ''}
+              onChange={(id) => setOppForm(f => ({ ...f, contact_id: id }))}
+              onCreate={createContactInline} />
           </FF>
           <FF label="Montant estimé (€ HT)">
             <input style={inp} type="number" min={0} step={100} inputMode="decimal" placeholder="0"
