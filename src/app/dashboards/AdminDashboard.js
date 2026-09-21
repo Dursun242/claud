@@ -33,6 +33,7 @@ const PAGE_LOADERS = {
   planning:  () => import('../pages/PlanningV'),
   tasks:     () => import('../pages/TasksV'),
   contacts:  () => import('../pages/ContactsV'),
+  crm:       () => import('../pages/CrmV'),
   reports:   () => import('../pages/ReportsV'),
   os:        () => import('../pages/OrdresServiceV'),
   ai:        () => import('../pages/AIV'),
@@ -45,6 +46,7 @@ const ProjectsV      = dyn(PAGE_LOADERS.projects)
 const PlanningV      = dyn(PAGE_LOADERS.planning)
 const TasksV         = dyn(PAGE_LOADERS.tasks)
 const ContactsV      = dyn(PAGE_LOADERS.contacts)
+const CrmV           = dyn(PAGE_LOADERS.crm)
 const ReportsV       = dyn(PAGE_LOADERS.reports)
 const OrdresServiceV = dyn(PAGE_LOADERS.os)
 const AIV            = dyn(PAGE_LOADERS.ai)
@@ -121,6 +123,7 @@ export default function AdminDashboard({ user, profile = null }) {
     {key:"tasks",    label:"Tâches",            icon:I.tasks,     sc:"t"},
     {key:"planning", label:"Planning",          icon:I.planning,  sc:"l"},
     {key:"contacts", label:"Contacts",          icon:I.contacts,  sc:"c"},
+    {key:"crm",      label:"CRM",               icon:I.crm,       sc:"v"},
     {key:"photos",   label:"Reportage Photo",   icon:I.camera,    sc:"h"},
     {key:"qonto",    label:"Qonto",             icon:null,        sc:"q", isQonto:true},
     ...(profile?.role === 'admin' ? [{key:"admin",label:"🔒 Admin", icon:I.settings, sc:"s"}] : []),
@@ -450,6 +453,11 @@ export default function AdminDashboard({ user, profile = null }) {
             <div style={{ display: tab === 'contacts' ? 'block' : 'none' }}>
               <ContactsV data={data} save={save} m={isMobile}
                 reload={reload} focusId={focus?.id} focusTs={focus?.ts}/>
+            </div>
+          )}
+          {visitedTabs.has('crm') && (
+            <div style={{ display: tab === 'crm' ? 'block' : 'none' }}>
+              <CrmV data={data} m={isMobile} reload={reload} setTab={switchTab}/>
             </div>
           )}
           {visitedTabs.has('reports') && (
