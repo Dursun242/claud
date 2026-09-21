@@ -74,7 +74,7 @@ describe('CrmV', () => {
     expect(await screen.findByText('Rénovation Dupont')).toBeInTheDocument()
     // L'affaire gagnée n'est pas dans le pipeline actif
     expect(screen.queryByText('Extension Martin')).not.toBeInTheDocument()
-    expect(screen.getByText('Pipeline actif')).toBeInTheDocument()
+    expect(screen.getByText('En cours')).toBeInTheDocument()
     expect(screen.getByText('1 en retard')).toBeInTheDocument()
   })
 
@@ -83,7 +83,7 @@ describe('CrmV', () => {
     renderPage()
     await user.click(await screen.findByRole('button', { name: /Ouvrir Rénovation Dupont/ }))
     expect(await screen.findByText('Premier contact')).toBeInTheDocument()
-    expect(screen.getByText(/Envoyer le devis/)).toBeInTheDocument()
+    expect(screen.getAllByText(/Envoyer le devis/).length).toBeGreaterThan(0)
     expect(screen.getByText('Dupont · SCI Dupont')).toBeInTheDocument()
   })
 
@@ -92,16 +92,16 @@ describe('CrmV', () => {
     crmDb.upsertOpportunite.mockResolvedValue({ id: 'o3', titre: 'Nouvelle affaire' })
     renderPage()
     await screen.findByText('Rénovation Dupont')
-    await user.click(screen.getByRole('button', { name: /\+ Opportunité/ }))
+    await user.click(screen.getByRole('button', { name: /\+ Nouvelle affaire/ }))
     await user.click(screen.getByRole('button', { name: 'Enregistrer' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('Le titre est requis.')
 
-    await user.type(screen.getByPlaceholderText(/Rénovation maison Dupont/), 'Nouvelle affaire')
+    await user.type(screen.getByPlaceholderText(/^Ex : Rénovation maison Dupont$/), 'Nouvelle affaire')
     await user.click(screen.getByRole('button', { name: 'Enregistrer' }))
     await waitFor(() => expect(crmDb.upsertOpportunite).toHaveBeenCalledWith(
       expect.objectContaining({ titre: 'Nouvelle affaire', etape: 'Prospect' }),
     ))
-    expect(addToast).toHaveBeenCalledWith('Opportunité créée', 'success')
+    expect(addToast).toHaveBeenCalledWith('Affaire créée', 'success')
   })
 
   it('affiche un bandeau si la migration 025 est absente', async () => {
@@ -124,13 +124,13 @@ describe('CrmV — navigation entrante (focusId)', () => {
   it('"contact:<id>" filtre le pipeline sur le nom du contact', async () => {
     renderPage({ focusId: 'contact:c1', focusTs: 1 })
     await screen.findByText('Rénovation Dupont')
-    expect(screen.getByRole('searchbox', { name: /Rechercher une opportunité/ })).toHaveValue('Dupont')
+    expect(screen.getByRole('searchbox', { name: /Rechercher une affaire/ })).toHaveValue('Dupont')
   })
 
   it('"new:<id>" ouvre le formulaire pré-rempli avec le contact', async () => {
     renderPage({ focusId: 'new:c1', focusTs: 2 })
     await screen.findByText('Rénovation Dupont')
-    const dialog = await screen.findByRole('dialog', { name: 'Nouvelle opportunité' })
+    const dialog = await screen.findByRole('dialog', { name: 'Nouvelle affaire' })
     expect(dialog).toBeInTheDocument()
     const contactSelect = screen.getAllByRole('combobox').find(el => el.value === 'c1')
     expect(contactSelect).toBeTruthy()
@@ -139,5 +139,42 @@ describe('CrmV — navigation entrante (focusId)', () => {
   it('un id d’opportunité ouvre son détail', async () => {
     renderPage({ focusId: 'o1', focusTs: 3 })
     expect(await screen.findByRole('dialog', { name: 'Rénovation Dupont' })).toBeInTheDocument()
+  })
+})
+
+describe('CrmV — ajout rapide', () => {
+  it('un nom + Entrée crée une affaire en Prospect et ouvre sa fiche', async () => {
+    const user = userEvent.setup()
+    crmDb.upsertOpportunite.mockResolvedValue({ id: 'o9', titre: 'Extension Leroy' })
+    renderPage()
+    await screen.findByText('Rénovation Dupont')
+    const input = screen.getByRole('textbox', { name: /Ajouter une affaire rapidement/ })
+    await user.type(input, 'Extension Leroy{Enter}')
+    await waitFor(() => expect(crmDb.upsertOpportunite).toHaveBeenCalledWith({ titre: 'Extension Leroy', etape: 'Prospect' }))
+    expect(addToast).toHaveBeenCalledWith('Affaire « Extension Leroy » ajoutée', 'success')
+    expect(input).toHaveValue('')
+  })
+
+  it('première utilisation : affiche le guide en 3 étapes', async () => {
+    crmDb.loadCrm.mockResolvedValue({ opportunites: [], interactions: [], missingMigration: false })
+    renderPage()
+    expect(await screen.findByText(/Bienvenue dans ton suivi commercial/)).toBeInTheDocument()
+    expect(screen.getByText('Ajoute une affaire')).toBeInTheDocument()
+  })
+})
+
+describe('CrmV — fiche affaire', () => {
+  it('propose la prochaine étape et les boutons Gagnée / Perdue', async () => {
+    const user = userEvent.setup()
+    renderPage({ focusId: 'o1', focusTs: 9 })
+    await screen.findByRole('dialog', { name: 'Rénovation Dupont' })
+    // o1 est en « Qualifié » avec une relance en attente → bandeau relance
+    expect(screen.getByText(/Relance prévue/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Gagnée/ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^Perdue$/ })).toBeInTheDocument()
+    // Noter un appel : le sujet est pré-rempli avec le contact
+    await user.click(screen.getByRole('button', { name: 'Noter Appel' }))
+    expect(await screen.findByRole('dialog', { name: 'Noter un échange' })).toBeInTheDocument()
+    expect(screen.getByDisplayValue('Appel avec SCI Dupont')).toBeInTheDocument()
   })
 })
