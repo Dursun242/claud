@@ -5,6 +5,9 @@ import { SB, Icon, I, ApiBadge, inp, btnP, COMPANY } from '../dashboards/shared'
 import { MicButtonInline } from '../components'
 import { useToast } from '../contexts/ToastContext'
 import { supabase } from '../supabaseClient'
+import * as crmDb from '../lib/crmDb'
+import { executeAiAction, CRM_PROMPT, CRM_ACTIONS } from '../lib/aiActions'
+import { prepareCrmForAI } from '../lib/crm'
 
 // react-markdown (~25 kB gz) n'est utilisé que pour afficher les réponses IA :
 // on le charge à la demande pour alléger le bundle initial de la page.
@@ -19,6 +22,7 @@ const welcomeForAdmin = (name) => ({
     `• **"Rédige un CR pour Les Voiles, présents : Lefèvre, Costa..."** → Compte Rendu\n` +
     `• **"Nouveau chantier Villa Dupont, budget 200 000€..."** → Chantier\n` +
     `• **"Ajoute une tâche urgente..."** → Tâche\n` +
+    `• **"J'ai appelé Dupont, il veut un devis, relance vendredi"** → CRM (interaction + relance)\n` +
     `• **"Résumé avancement du chantier Les Voiles"** → Analyse\n\nParlez ou tapez !`,
 })
 
@@ -60,7 +64,7 @@ function prepareDataForAI(data) {
   }
 }
 
-export default function AIV({ data, save: _save, m, externalTranscript, clearExternal, reload, user, profile, clientMode = false }) {
+export default function AIV({ data, save: _save, m, externalTranscript, clearExternal, reload, user, profile, clientMode = false, crm = null, reloadCrm = null }) {
   const { addToast } = useToast();
   // Nom à afficher dans le message d'accueil
   const displayName = profile?.prenom
@@ -162,15 +166,17 @@ export default function AIV({ data, save: _save, m, externalTranscript, clearExt
       const sysAdmin = `Tu es l'assistant IA d'ID Maîtrise, maîtrise d'œuvre BTP au Havre
 (9 Rue Henry Genestal, 76600). Le gérant est Dursun. Tu gères le quotidien des chantiers.
 
-DONNÉES ACTUELLES (Supabase): ${JSON.stringify(prepareDataForAI(data),null,0)}
+DONNÉES ACTUELLES (Supabase): ${JSON.stringify({ ...prepareDataForAI(data), crm: prepareCrmForAI(crm || {}) },null,0)}
+DATE DU JOUR : ${new Date().toISOString().slice(0,10)}
 
 TU PEUX TOUT FAIRE :
 1. Créer des chantiers, tâches, contacts, comptes rendus (CR), ordres de service (OS)
-2. Résumer l'avancement d'un chantier (budget consommé, tâches en cours)
-3. Lister, rechercher et analyser toutes les données
+2. Gérer le CRM : opportunités commerciales, interactions (appels, emails, visites…) et relances
+3. Résumer l'avancement d'un chantier (budget consommé, tâches en cours)
+4. Lister, rechercher et analyser toutes les données
 
 RÈGLE ABSOLUE : Lorsque l'utilisateur te demande de créer ou modifier quelque chose
-(OS, CR, chantier, tâche, contact), tu DOIS OBLIGATOIREMENT inclure un bloc action
+(OS, CR, chantier, tâche, contact, opportunité, interaction), tu DOIS OBLIGATOIREMENT inclure un bloc action
 dans ta réponse. Sans ce bloc, rien n'est enregistré en base de données.
 
 FORMAT OBLIGATOIRE DU BLOC ACTION (copie exactement cette syntaxe) :
@@ -221,6 +227,7 @@ update_os: {"type":"update_os","data":{
   "prestations":[{"description":"...","unite":"m²","quantite":10,"prix_unitaire":45.00,"tva_taux":20}],
   "observations":"...","conditions":"...","statut":"..."}}
 
+${CRM_PROMPT}
 RÈGLES :
 - Réponds TOUJOURS en français, concis et professionnel
 - Utilise TOUJOURS les vrais UUID des chantiers/contacts présents dans les données ci-dessus
@@ -309,32 +316,14 @@ RÈGLES :
           // permet de filtrer après coup dans LogsV via metadata.
           SB.setLogContext({ source: 'ai', action_type: a.type });
           try {
-            // En mode client, seule la création de tâche est autorisée.
-            // Les autres actions sont refusées même si l'IA essaie (garde-fou UX
-            // en plus des RLS Supabase qui bloqueraient aussi).
-            if (clientMode && a.type !== 'add_task') {
-              throw new Error("Cette action est réservée à votre maître d'œuvre.")
-            }
-            if(a.type==="add_chantier") { await SB.upsertChantier(a.data); actionLabel="Chantier créé"; }
-            else if(a.type==="add_task") { await SB.upsertTask(a.data); actionLabel="Tâche créée"; }
-            else if(a.type==="add_contact") { await SB.upsertContact(a.data); actionLabel="Contact créé"; }
-            else if(a.type==="update_contact") { await SB.upsertContact(a.data); actionLabel="Contact mis à jour"; }
-            else if(a.type==="add_cr") { await SB.upsertCR(a.data); actionLabel="Compte rendu créé"; }
-            else if(a.type==="update_cr") { await SB.upsertCR(a.data); actionLabel="Compte rendu mis à jour"; }
-            else if(a.type==="add_os" || a.type==="update_os") {
-              const prests = a.data.prestations || [];
-              let ht=0, tva=0;
-              prests.forEach(p => {
-                const l=(parseFloat(p.quantite)||0)*(parseFloat(p.prix_unitaire)||0)
-                ht+=l; tva+=l*(parseFloat(p.tva_taux)||20)/100;
-              });
-              await SB.upsertOS({ ...a.data, montant_ht:ht, montant_tva:tva, montant_ttc:ht+tva });
-              actionLabel = a.type==="update_os" ? "Ordre de Service mis à jour" : "Ordre de Service créé";
-            }
+            // Dispatch centralisé (lib/aiActions.js) : entités historiques
+            // via SB, CRM via crmDb. En mode client, seule add_task passe.
+            actionLabel = await executeAiAction(a, { SB, crmDb, clientMode });
           } finally {
             SB.clearLogContext();
           }
-          if(reload) await reload();
+          if (CRM_ACTIONS.has(a.type)) { if (reloadCrm) await reloadCrm(); }
+          else if (reload) await reload();
           text=text.replace(/<<<ACTION>>>[\s\S]*?<<<END_ACTION>>>/,"").trim()
             +`\n\n✅ **${actionLabel} dans Supabase !**`;
           if (actionLabel) addToast(actionLabel, "success");
@@ -483,7 +472,8 @@ RÈGLES :
           {t:"Rédige un CR pour…",          c:"#3B82F6"},
           {t:"Résumé avancement chantiers", c:"#10B981"},
           {t:"Tâches urgentes",             c:"#EF4444"},
-          {t:"Crée un RDV demain",          c:"#F59E0B"},
+          {t:"Relances CRM du jour",         c:"#0EA5E9"},
+          {t:"J'ai appelé … relance vendredi", c:"#F59E0B"},
           {t:"Liste artisans actifs",       c:"#6366F1"},
         ].map(q=>(
           <button

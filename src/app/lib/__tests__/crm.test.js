@@ -2,6 +2,7 @@ import {
   ETAPES, ETAPES_ACTIVES, probaForEtape, nextEtape, groupByEtape,
   pipelineStats, classifyFollowUps, daysSinceLastInteraction,
   validateOpportunite, validateInteraction, opportuniteToChantier,
+  oppsByContact, quoteToOpportunite, prepareCrmForAI,
 } from '../crm'
 
 describe('crm — étapes', () => {
@@ -136,5 +137,46 @@ describe('crm — opportuniteToChantier', () => {
     expect(ch.client).toBe('')
     expect(ch.adresse).toBe('')
     expect(ch.budget).toBe(0)
+  })
+})
+
+describe('crm — intégrations', () => {
+  it('oppsByContact agrège actives / gagnées / montant', () => {
+    const m = oppsByContact([
+      { contact_id: 'c1', etape: 'Prospect', montant_estime: 100 },
+      { contact_id: 'c1', etape: 'Gagné', montant_estime: 900 },
+      { contact_id: null, etape: 'Prospect', montant_estime: 5 },
+    ])
+    expect(m.get('c1')).toEqual({ n: 2, actives: 1, gagnees: 1, montant: 100 })
+    expect(m.size).toBe(1)
+  })
+
+  it('quoteToOpportunite mappe un devis Qonto et retrouve le contact par email', () => {
+    const contacts = [{ id: 'c1', nom: 'Dupont', societe: 'SCI Dupont', email: 'Dupont@Mail.fr' }]
+    const o = quoteToOpportunite(
+      { id: 42, number: 'D-2026-007', status: 'pending_approval', contact_email: 'dupont@mail.fr',
+        total_amount: { value: '12500.50' }, expiry_date: '2026-10-15', issue_date: '2026-09-15' },
+      contacts,
+    )
+    expect(o).toMatchObject({
+      titre: 'Devis D-2026-007 — SCI Dupont', etape: 'Devis envoyé', probabilite: 50,
+      montant_estime: 12500.5, contact_id: 'c1', source: 'Devis Qonto',
+      date_cloture_prevue: '2026-10-15', qonto_quote_id: '42', qonto_quote_number: 'D-2026-007',
+    })
+    expect(quoteToOpportunite({ id: 1, status: 'approved', total_amount_cents: 1000 }).etape).toBe('Gagné')
+    expect(quoteToOpportunite({ id: 1, status: 'canceled' }).motif_perte).toMatch(/annulé/)
+  })
+
+  it('prepareCrmForAI garde les UUID et calcule les relances', () => {
+    const today = new Date('2026-09-21T10:00:00Z')
+    const r = prepareCrmForAI({
+      opportunites: [{ id: 'o1', titre: 'T', etape: 'Prospect', montant_estime: '10', probabilite: '10' }],
+      interactions: [
+        { id: 'i1', opportunite_id: 'o1', type: 'Appel', sujet: 's', date: '2026-09-19T08:00:00Z', prochaine_action_date: '2026-09-01' },
+        { id: 'i2', opportunite_id: 'o1', type: 'Note', sujet: 's2', date: '2026-09-20T08:00:00Z', prochaine_action_date: '2026-09-21' },
+      ],
+    }, today)
+    expect(r.opportunites[0]).toMatchObject({ id: 'o1', montant_estime: 10, derniere_interaction_jours: 1 })
+    expect(r.relances).toEqual({ en_retard: ['i1'], aujourdhui: ['i2'] })
   })
 })

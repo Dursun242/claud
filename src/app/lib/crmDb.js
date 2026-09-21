@@ -64,6 +64,12 @@ export async function upsertOpportunite(o, sb = defaultClient) {
     motif_perte: etape === 'Perdu' ? (o.motif_perte || null) : null,
     notes: o.notes || null,
   }
+  // Lien devis Qonto (migration 026) : n'envoie les colonnes que si
+  // renseignées, pour rester compatible avec une base sans la 026.
+  if (o.qonto_quote_id) {
+    row.qonto_quote_id = String(o.qonto_quote_id)
+    row.qonto_quote_number = o.qonto_quote_number || null
+  }
   if (o.id) {
     const { data, error } = await sb.from('crm_opportunites')
       .update(row).eq('id', o.id).select().single()

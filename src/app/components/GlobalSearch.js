@@ -7,6 +7,7 @@ const CATEGORIES = [
   { key: 'contacts',  label: 'Contacts',    tab: 'contacts',  color: '#10B981', icon: '👤' },
   { key: 'tasks',     label: 'Tâches',      tab: 'tasks',     color: '#F59E0B', icon: '✓'  },
   { key: 'crs',       label: 'Comptes Rendus', tab: 'reports', color: '#EC4899', icon: '📝' },
+  { key: 'crm',       label: 'CRM',         tab: 'crm',       color: '#0EA5E9', icon: '🎯' },
 ]
 
 // Historique des derniers éléments ouverts via la recherche (localStorage)
@@ -28,9 +29,10 @@ const pushRecent = (item) => {
   } catch { /* ignore */ }
 }
 
-function search(data, query) {
+function search(data, query, crm) {
   if (!query || query.length < 2) return {}
   const q = query.toLowerCase().trim()
+  const contactName = (id) => (data.contacts || []).find(c => c.id === id)?.nom || ''
   return {
     chantiers: (data.chantiers || []).filter(c =>
       c.nom?.toLowerCase().includes(q) ||
@@ -67,10 +69,20 @@ function search(data, query) {
       id: c.id, primary: `CR n°${c.numero}`,
       secondary: (c.resume || '').slice(0, 60) + '…'
     })),
+
+    crm: (crm?.opportunites || []).filter(o =>
+      o.titre?.toLowerCase().includes(q) ||
+      o.adresse?.toLowerCase().includes(q) ||
+      o.qonto_quote_number?.toLowerCase().includes(q) ||
+      contactName(o.contact_id).toLowerCase().includes(q)
+    ).slice(0, 4).map(o => ({
+      id: o.id, primary: o.titre,
+      secondary: `${o.etape} · ${contactName(o.contact_id) || 'sans contact'}`
+    })),
   }
 }
 
-export default function GlobalSearch({ data, onNavigate }) {
+export default function GlobalSearch({ data, crm = null, onNavigate }) {
   const [query, setQuery]     = useState('')
   const [open, setOpen]       = useState(false)
   const [activeIdx, setActive] = useState(-1)
@@ -81,7 +93,7 @@ export default function GlobalSearch({ data, onNavigate }) {
   // Charge les derniers éléments ouverts au montage
   useEffect(() => { setRecents(loadRecents()) }, [])
 
-  const results = search(data || {}, query)
+  const results = search(data || {}, query, crm)
   const totalCount = Object.values(results).reduce((s, arr) => s + arr.length, 0)
   // Mode "vide" : la dropdown affiche les récents au lieu des résultats
   const showRecents = open && query.length < 2 && recents.length > 0

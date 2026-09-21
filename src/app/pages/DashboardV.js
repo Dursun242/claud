@@ -1,6 +1,7 @@
 'use client'
 import { useMemo } from 'react'
 import { pct, fmtMoney, phase, PBar, COMPANY } from '../dashboards/shared'
+import { pipelineStats, classifyFollowUps, INTERACTION_ICONS } from '../lib/crm'
 
 // Salutation selon l'heure de la journée
 const getGreeting = () => {
@@ -11,7 +12,7 @@ const getGreeting = () => {
   return "Bonsoir"
 }
 
-export default function DashboardV({data,setTab,m,user}) {
+export default function DashboardV({data,crm=null,setTab,m,user}) {
   // Toutes les dérivées memoïsées : recalculées uniquement si data change,
   // pas à chaque re-render dû à un toast ou un resize.
   const {
@@ -59,6 +60,18 @@ export default function DashboardV({data,setTab,m,user}) {
       chantierById: new Map(chantiers.map(c => [c.id, c])),
     };
   }, [data.tasks, data.chantiers, data.ordresService]);
+
+  // CRM : relances à traiter (en retard + aujourd'hui) et pipeline actif
+  const { crmStats, relances, oppById } = useMemo(() => {
+    const opps = crm?.opportunites || []
+    const f = classifyFollowUps(crm?.interactions || [])
+    return {
+      crmStats: pipelineStats(opps),
+      relances: [...f.overdue, ...f.today].slice(0, 5),
+      oppById: new Map(opps.map(o => [o.id, o])),
+    }
+  }, [crm])
+  const nbOverdue = useMemo(() => classifyFollowUps(crm?.interactions || []).overdue.length, [crm])
 
   // Prénom par défaut : valeur du metadata Google, sinon le prénom de l'utilisateur
   // Supabase, sinon le gérant défini dans COMPANY.
@@ -247,6 +260,64 @@ export default function DashboardV({data,setTab,m,user}) {
             );
           })}
         </div>
+      </div>
+    )}
+
+    {/* CRM — relances du jour + pipeline. Masqué tant qu'il n'y a ni
+        affaire ni relance (pas de bruit pour un compte qui n'utilise pas le CRM). */}
+    {(crmStats.actives>0 || relances.length>0) && (
+      <div style={{
+        background:"#fff", borderRadius:14, padding:m?14:18,
+        boxShadow:"0 1px 3px rgba(0,0,0,0.06)", marginBottom:18
+      }}>
+        <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12, flexWrap:"wrap", gap:8}}>
+          <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+            <h2 style={{margin:0,fontSize:16,fontWeight:700,color:"#0F172A"}}>🎯 CRM</h2>
+            <span style={{fontSize:11,color:"#64748B"}}>
+              {crmStats.actives} affaire{crmStats.actives>1?"s":""} · {fmtMoney(crmStats.montantPipeline)} · pondéré {fmtMoney(crmStats.montantPondere)}
+            </span>
+            {nbOverdue>0 && (
+              <span style={{background:"#EF4444",color:"#fff",borderRadius:6,padding:"2px 8px",fontSize:11,fontWeight:700}}>
+                {nbOverdue} relance{nbOverdue>1?"s":""} en retard
+              </span>
+            )}
+          </div>
+          <button onClick={()=>setTab("crm")} style={{
+            fontSize:11, color:"#3B82F6", background:"none", border:"none",
+            cursor:"pointer", fontWeight:600, fontFamily:"inherit"
+          }}>Voir le pipeline →</button>
+        </div>
+        {relances.length===0 ? (
+          <div style={{textAlign:"center",padding:"10px 0",fontSize:13,color:"#94A3B8"}}>✅ Aucune relance à traiter aujourd&apos;hui</div>
+        ) : (
+          <div style={{display:"grid",gap:6,gridTemplateColumns:"minmax(0,1fr)"}}>
+            {relances.map(it => {
+              const o = oppById.get(it.opportunite_id)
+              const today = new Date().toISOString().slice(0,10)
+              const late = it.prochaine_action_date < today
+              return (
+                <div key={it.id} onClick={()=>setTab("crm", o?.id || "relances")} style={{
+                  display:"flex",alignItems:"center",gap:10,padding:"8px 12px",
+                  background:"#F8FAFC",borderRadius:10,cursor:"pointer",minWidth:0,
+                  borderLeft:`3px solid ${late?"#EF4444":"#F59E0B"}`,
+                }}>
+                  <span aria-hidden="true" style={{fontSize:16}}>{INTERACTION_ICONS[it.type]||"📝"}</span>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:13,fontWeight:600,color:"#0F172A",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                      {it.prochaine_action}
+                    </div>
+                    <div style={{fontSize:10,color:"#94A3B8",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                      {o?.titre || "—"}{it.sujet?` · ${it.sujet}`:""}
+                    </div>
+                  </div>
+                  <span style={{fontSize:11,fontWeight:600,color:late?"#DC2626":"#92400E",whiteSpace:"nowrap"}}>
+                    {late ? "En retard" : "Aujourd'hui"}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        )}
       </div>
     )}
 

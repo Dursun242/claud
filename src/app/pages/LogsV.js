@@ -34,6 +34,7 @@ const ACTION_STYLES = {
   ai_action:       { bg: '#F0FDFA', color: '#0F766E', border: '#99F6E4', label: 'Action IA' },
   seed:            { bg: '#F1F5F9', color: '#475569', border: '#CBD5E1', label: 'Initialisation' },
   export_csv:      { bg: '#F5F3FF', color: '#5B21B6', border: '#DDD6FE', label: 'Export CSV' },
+  convert:         { bg: '#ECFDF5', color: '#047857', border: '#A7F3D0', label: 'Conversion en chantier' },
 }
 const ENTITY_LABELS = {
   chantier:     'Chantier',
@@ -50,6 +51,8 @@ const ENTITY_LABELS = {
   settings:     'Paramètres',
   storage:      'Storage',
   photo_report: 'Reportage photo',
+  crm_opportunite: 'Opportunité CRM',
+  crm_interaction: 'Interaction CRM',
   system:       'Système',
   ai:           'Assistant IA',
   activity_logs:'Journal',
