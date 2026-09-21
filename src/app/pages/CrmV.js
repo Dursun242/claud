@@ -1,7 +1,7 @@
 'use client'
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { SB, Icon, I, FF, inp, sel, btnP, btnS, fmtMoney, fmtDate } from '../dashboards/shared'
-import { Badge, Modal, EmptyState, ContactPicker } from '../components'
+import { Badge, Modal, EmptyState, ContactPicker, AddressPicker } from '../components'
 import { PageSkeleton } from '../components/Skeleton'
 import { useToast } from '../contexts/ToastContext'
 import { useConfirm } from '../contexts/ConfirmContext'
@@ -627,8 +627,8 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
               </select>
             </FF>
             <FF label="Adresse du projet">
-              <input style={inp} value={oppForm.adresse || ''}
-                onChange={e => setOppForm({ ...oppForm, adresse: e.target.value })} />
+              <AddressPicker value={oppForm.adresse || ''}
+                onChange={v => setOppForm(f => ({ ...f, adresse: v }))} />
             </FF>
             <FF label="Décision attendue le">
               <input style={inp} type="date" value={oppForm.date_cloture_prevue || ''}

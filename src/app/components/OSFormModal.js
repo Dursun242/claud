@@ -33,6 +33,7 @@
 //   FF, inp, sel, btnP, btnS, Icon, I, fmtMoney : helpers partagés
 
 import Modal from './Modal'
+import AddressPicker from './AddressPicker'
 
 export default function OSFormModal({
   modal,
@@ -169,8 +170,8 @@ export default function OSFormModal({
         </FF>
       </div>
       <FF label="Adresse du destinataire">
-        <input style={inp} value={form.artisan_adresse || ''}
-          onChange={(e) => setForm({ ...form, artisan_adresse: e.target.value })}
+        <AddressPicker value={form.artisan_adresse || ''}
+          onChange={(v) => setForm(f => ({ ...f, artisan_adresse: v }))}
           placeholder="Adresse complète du prestataire"/>
       </FF>
       <div style={{ display: 'grid', gridTemplateColumns: m ? '1fr' : '1fr 1fr 1fr', gap: '0 12px' }}>

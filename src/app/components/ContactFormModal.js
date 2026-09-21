@@ -13,6 +13,7 @@
 // coordonnées, administratif, évaluation, erreurs, boutons.
 
 import Modal from './Modal'
+import AddressPicker from './AddressPicker'
 import { inpTel, inpEmail, inpNumeric } from '../dashboards/shared'
 
 export default function ContactFormModal({
@@ -306,9 +307,10 @@ export default function ContactFormModal({
         </FF>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: m ? '1fr' : '2fr 1fr 1fr', gap: '0 12px' }}>
-        <FF label="Adresse">
-          <input style={inp} value={form.adresse || ''}
-            onChange={(e) => setForm({ ...form, adresse: e.target.value })}/>
+        <FF label="Adresse" hint="Choisis une suggestion : code postal et ville se remplissent seuls.">
+          <AddressPicker value={form.adresse || ''} fullLabel={false}
+            onChange={(v) => setForm({ ...form, adresse: v })}
+            onSelect={(a) => setForm({ ...form, adresse: a.rue || a.label, code_postal: a.code_postal || form.code_postal, ville: a.ville || form.ville })}/>
         </FF>
         <FF label="Code postal">
           <input {...inpNumeric} value={form.code_postal || ''}

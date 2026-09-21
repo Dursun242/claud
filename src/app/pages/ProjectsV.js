@@ -7,7 +7,7 @@ import {
 } from '../dashboards/shared'
 import {
   Badge, Modal, AttachmentsSection, CommentsSection, TemplateSelector,
-  ProcesVerbalReception, ChantierIntervenants, ChantierPlanning, ChantierBudgetCard,
+  ProcesVerbalReception, ChantierIntervenants, ChantierPlanning, ChantierBudgetCard, AddressPicker,
 } from '../components'
 import ChantierCard from '../components/projects/ChantierCard'
 import ProjectsFilterPills from '../components/projects/ProjectsFilterPills'
@@ -912,8 +912,8 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
             onChange={e=>setForm({...form,client:e.target.value})}/>
         </FF>
         <FF label="Adresse">
-          <input style={inp} value={form.adresse||""}
-            onChange={e=>setForm({...form,adresse:e.target.value})}/>
+          <AddressPicker value={form.adresse||""}
+            onChange={v=>setForm(f=>({...f,adresse:v}))}/>
         </FF>
         <FF label="Phase">
           <select style={sel} value={form.phase||""}
