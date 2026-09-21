@@ -18,6 +18,7 @@ jest.mock('../../dashboards/shared', () => ({
   fmtDate: (d) => String(d || ''),
 }))
 jest.mock('../../components', () => ({
+  ContactPicker: jest.requireActual('../../components/ContactPicker').default,
   Badge: ({ text }) => <span>{text}</span>,
   EmptyState: ({ title }) => <div role="status">{title}</div>,
   Modal: ({ open, title, children }) => (open ? <div role="dialog" aria-label={title}>{children}</div> : null),
@@ -132,8 +133,9 @@ describe('CrmV — navigation entrante (focusId)', () => {
     await screen.findByText('Rénovation Dupont')
     const dialog = await screen.findByRole('dialog', { name: 'Nouvelle affaire' })
     expect(dialog).toBeInTheDocument()
-    const contactSelect = screen.getAllByRole('combobox').find(el => el.value === 'c1')
-    expect(contactSelect).toBeTruthy()
+    // Le contact pré-rempli s'affiche en pastille dans le sélecteur
+    expect(screen.getByRole('button', { name: 'Retirer le contact' })).toBeInTheDocument()
+    expect(screen.getByText('· SCI Dupont')).toBeInTheDocument()
   })
 
   it('un id d’opportunité ouvre son détail', async () => {
