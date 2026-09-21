@@ -4,11 +4,11 @@
 // ContactFormModal — modale de création / édition d'un contact.
 // ═══════════════════════════════════════════════════════════════
 //
-// Présentationnel : l'état (form, Pappers, import photo) vit dans le
+// Présentationnel : l'état (form, recherche entreprise, import photo) vit dans le
 // parent (ContactsV). Cette modale se contente d'afficher et de
 // propager les événements aux setters/handlers passés en props.
 //
-// Sections : import photo (création uniquement), recherche Pappers
+// Sections : import photo (création uniquement), recherche entreprise
 // (avec rendu des résultats entreprises + dirigeants), identité,
 // coordonnées, administratif, évaluation, erreurs, boutons.
 
@@ -30,13 +30,13 @@ export default function ContactFormModal({
   importing,
   importError,
   onImportClick,
-  // Pappers
+  // Recherche entreprise (annuaire SIRENE)
   pSearch,
   setPSearch,
   pLoading,
   pResults,
   pError,
-  searchPappers,
+  searchEntreprise,
   importEntrepriseFromSearch,
   importDirigeantFromSearch,
   // Styles partagés
@@ -95,7 +95,7 @@ export default function ContactFormModal({
         </div>
       )}
 
-      {/* ── RECHERCHE PAPPERS ── */}
+      {/* ── RECHERCHE ENTREPRISE (annuaire officiel, gratuit) ── */}
       <div style={{
         background: '#EFF6FF', border: '1.5px solid #BFDBFE',
         borderRadius: 10, padding: '12px 14px', marginBottom: 16,
@@ -105,7 +105,7 @@ export default function ContactFormModal({
             <circle cx="11" cy="11" r="8" />
             <path d="M21 21l-4.35-4.35" />
           </svg>
-          <span style={{ fontSize: 12, fontWeight: 700, color: '#1E40AF' }}>Recherche Pappers</span>
+          <span style={{ fontSize: 12, fontWeight: 700, color: '#1E40AF' }}>Recherche entreprise (annuaire officiel)</span>
           <span style={{ fontSize: 10, color: '#60A5FA', width: '100%' }}>
             SIRET (14 chiffres), nom d&apos;entreprise ou nom d&apos;un dirigeant
           </span>
@@ -116,10 +116,10 @@ export default function ContactFormModal({
             placeholder="SIRET, Lefèvre Électricité, Yusuf Caglayan..."
             value={pSearch}
             onChange={(e) => setPSearch(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && searchPappers()}
+            onKeyDown={(e) => e.key === 'Enter' && searchEntreprise()}
           />
           <button
-            onClick={searchPappers}
+            onClick={searchEntreprise}
             disabled={pLoading || !pSearch.trim()}
             style={{
               ...btnP, background: '#3B82F6', padding: '8px 16px',

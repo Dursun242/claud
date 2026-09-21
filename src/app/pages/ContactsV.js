@@ -11,7 +11,7 @@ import {
 } from '../lib/validators'
 import { buildCSV, downloadCSV } from '../lib/csv'
 import { supabase } from '../supabaseClient'
-import { usePappersSearch } from '../hooks/usePappersSearch'
+import { useEntrepriseSearch } from '../hooks/useEntrepriseSearch'
 import { oppsByContact } from '../lib/crm'
 
 const TYPE_COLORS = {
@@ -29,16 +29,16 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
   const [tf,setTf]=useState("all");
   const [q,setQ]=useState("");
   const [formError, setFormError] = useState("");
-  // Recherche Pappers (entreprises + dirigeants) — voir hooks/usePappersSearch.js
+  // Recherche entreprises (annuaire officiel SIRENE) — voir hooks/useEntrepriseSearch.js
   const {
     pSearch, setPSearch,
     pLoading, pResults, pError,
-    searchPappers,
+    searchEntreprise,
     importEntrepriseFromSearch,
     importDirigeantFromSearch,
-    resetPappersSearch,
-    fetchPappers,
-  } = usePappersSearch({ setForm });
+    resetEntrepriseSearch,
+    fetchEntreprise,
+  } = useEntrepriseSearch({ setForm });
   // États import par photo
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState("");
@@ -137,10 +137,10 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
   };
 
   const openNew=()=>{
-    setForm(emptyForm);resetPappersSearch();setFormError("");setModal("new");
+    setForm(emptyForm);resetEntrepriseSearch();setFormError("");setModal("new");
   };
   const openEdit=(c)=>{
-    setForm({...c});resetPappersSearch();setFormError("");setModal("edit");
+    setForm({...c});resetEntrepriseSearch();setFormError("");setModal("edit");
   };
   const closeModal=()=>{setModal(null);setFormError("");};
 
@@ -230,9 +230,9 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
     scheduleDelete(c, { itemLabel: `Contact ${c.nom}` });
   };
 
-  // ── Pappers : mapping + recherche déportés dans hooks/usePappersSearch.js
-  // Expose pSearch/pLoading/pResults/pError + searchPappers + les deux
-  // importXxxFromSearch + fetchPappers (réutilisé par enrichFromSiret
+  // ── Entreprises : mapping + recherche déportés dans hooks/useEntrepriseSearch.js
+  // Expose pSearch/pLoading/pResults/pError + searchEntreprise + les deux
+  // importXxxFromSearch + fetchEntreprise (réutilisé par enrichFromSiret
   // plus bas pour enrichir un contact depuis un SIRET extrait par photo).
 
   // ─── Import par photo (Claude Vision) ─────
@@ -269,13 +269,13 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
     });
   };
 
-  // Si Claude a extrait un SIRET, on enrichit automatiquement via Pappers
+  // Si Claude a extrait un SIRET, on enrichit automatiquement via l'annuaire SIRENE
   // pour fiabiliser les données officielles (adresse, TVA intra, dénomination).
   const enrichFromSiret = async (siret) => {
     try {
       const clean = (siret || "").replace(/\s/g, "");
       if (!/^\d{14}$/.test(clean)) return null;
-      const res = await fetchPappers(`siret=${clean}`);
+      const res = await fetchEntreprise(`siret=${clean}`);
       if (!res.ok) return null;
       return await res.json();
     } catch {
@@ -348,25 +348,25 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
       // 4. Pré-remplit le formulaire en fusionnant avec les defaults
       const prefilled = { ...emptyForm, ...extracted };
 
-      // 5. Bonus : si un SIRET a été détecté, enrichit via Pappers
+      // 5. Bonus : si un SIRET a été détecté, enrichit via l'annuaire SIRENE
       if (extracted.siret) {
-        const pappers = await enrichFromSiret(extracted.siret);
-        if (pappers) {
-          const siege = pappers.siege || {};
+        const officiel = await enrichFromSiret(extracted.siret);
+        if (officiel) {
+          const siege = officiel.siege || {};
           // On garde les champs déjà remplis par Claude, on ajoute ce qui manque
-          if (!prefilled.societe) prefilled.societe = pappers.denomination || prefilled.societe;
-          if (!prefilled.tva_intra) prefilled.tva_intra = pappers.num_tva_intracommunautaire || prefilled.tva_intra;
+          if (!prefilled.societe) prefilled.societe = officiel.denomination || prefilled.societe;
+          if (!prefilled.tva_intra) prefilled.tva_intra = officiel.num_tva_intracommunautaire || prefilled.tva_intra;
           if (!prefilled.adresse) prefilled.adresse = siege.adresse_ligne_1 || siege.adresse || prefilled.adresse;
           if (!prefilled.code_postal) prefilled.code_postal = siege.code_postal || prefilled.code_postal;
           if (!prefilled.ville) prefilled.ville = siege.ville || prefilled.ville;
-          if (!prefilled.site_web) prefilled.site_web = pappers.site_internet || prefilled.site_web;
-          if (!prefilled.specialite) prefilled.specialite = pappers.libelle_activite_principale || prefilled.specialite;
+          if (!prefilled.site_web) prefilled.site_web = officiel.site_internet || prefilled.site_web;
+          if (!prefilled.specialite) prefilled.specialite = officiel.libelle_activite_principale || prefilled.specialite;
         }
       }
 
       // 6. Ouvre la modale pré-remplie pour relecture + validation
       setForm(prefilled);
-      resetPappersSearch();
+      resetEntrepriseSearch();
       setModal("new");
     } catch (err) {
       setImportError("Erreur : " + (err?.message || String(err)));
@@ -706,7 +706,7 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
       pLoading={pLoading}
       pResults={pResults}
       pError={pError}
-      searchPappers={searchPappers}
+      searchEntreprise={searchEntreprise}
       importEntrepriseFromSearch={importEntrepriseFromSearch}
       importDirigeantFromSearch={importDirigeantFromSearch}
       FF={FF}

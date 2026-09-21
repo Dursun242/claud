@@ -3,7 +3,7 @@
 // ═══════════════════════════════════════════════════════════════
 //
 // Pourquoi : les routes /api/* côté serveur appellent des APIs tierces
-// (Pappers, Qonto, Odoo, Anthropic) qui peuvent :
+// (annuaire entreprises, Qonto, Odoo, Anthropic) qui peuvent :
 //   - mettre plusieurs minutes à répondre (hang du client côté mobile)
 //   - renvoyer des 5xx transitoires (cluster qui redémarre, timeout interne)
 //   - être momentanément injoignables (DNS, TLS handshake raté)
