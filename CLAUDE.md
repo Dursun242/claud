@@ -5,7 +5,7 @@ Document destiné à un agent IA (Claude Code / Cursor / etc.) ou à un dev qui 
 ## Contexte produit
 
 Application de gestion de chantiers BTP pour **ID Maîtrise** (SARL, Le Havre). Deux rôles principaux :
-- **Admin / Salarié** (maîtrise d'œuvre) — accès complet : chantiers, OS, CR, PV, contacts, Qonto, Assistant IA, admin users.
+- **Admin / Salarié** (maîtrise d'œuvre) — accès complet : chantiers, OS, CR, PV, contacts, CRM (pipeline commercial), Qonto, Assistant IA, admin users.
 - **Client / MOA** (maître d'ouvrage) — accès restreint à SES chantiers uniquement.
 
 ## Stack
@@ -33,11 +33,12 @@ src/app/
 │   ├─ AdminDashboard.js      → shell admin + lazy-load pages
 │   └─ ClientDashboard.js     → shell client + lazy-load pages
 │
-├─ pages/                     → 1 page = 1 onglet. DashboardV, ProjectsV, OrdresServiceV, ContactsV, AIV, ...
+├─ pages/                     → 1 page = 1 onglet. DashboardV, ProjectsV, OrdresServiceV, ContactsV, CrmV, AIV, ...
 ├─ components/                → briques UI réutilisables (Modal, Badge, Skeleton, OsCard, ChantierCard, PVRow...)
 ├─ contexts/                  → ToastContext + ConfirmContext (non-invasive, context split pour éviter re-renders)
-├─ hooks/                     → useFloatingMic, useAttachments, useComments, useUndoableDelete, useSignaturesSync...
+├─ hooks/                     → useFloatingMic, useAttachments, useComments, useUndoableDelete, useSignaturesSync, useCrmData...
 ├─ lib/                       → auth, fetchWithRetry, odoo, validators, notifications, activityLog, chantierFinances
+│                               crm.js (logique pure pipeline) + crmDb.js (accès Supabase CRM, hors shared.js)
 │
 └─ api/                       → 23 routes. Pattern unique : verifyAuth() + createLogger() + mock-friendly.
     ├─ admin/*                → service role uniquement (users, demo-mode, reset-demo-data)
@@ -55,6 +56,8 @@ Stage 1 = **critique** (chantiers, tasks, OS, CR) → 4 requêtes Supabase → d
 Stage 2 = **secondaires** (contacts, planning, rdv, counts PJ via RPC `chantier_attachment_counts`) → hydrate en arrière-plan.
 
 Cf. `SB.loadCritical()` / `SB.loadSecondary()` dans `dashboards/shared.js`.
+
+Le CRM (`crm_opportunites`, `crm_interactions`, migration 025) est chargé à la demande au premier affichage de l'onglet via `useCrmData()` — jamais au cold start.
 
 ## Conventions & règles du projet
 
@@ -88,13 +91,13 @@ Voir `.env.example` à la racine. Minimum requis pour dev :
 
 ## Migrations DB
 
-**Ordre critique** : voir `migrations/APPLY_ORDER.md`. Les migrations numérotées 001→021 s'appliquent dans l'ordre via le SQL Editor Supabase. Chaque migration ayant un impact non-trivial a un `<num>_README.md` dédié.
+**Ordre critique** : voir `migrations/APPLY_ORDER.md`. Les migrations numérotées 001→025 s'appliquent dans l'ordre via le SQL Editor Supabase. Chaque migration ayant un impact non-trivial a un `<num>_README.md` dédié.
 
 ## Dette technique assumée
 
 - **`shared.js` = 720+ lignes** → plan de split documenté dans `/docs/` (à créer).
 - **Pas de CSP** → refacto styles inline → classes ou ajout nonces (~1 j).
-- **Tests pages `*V.js`** absents (seulement composants, hooks, routes API).
+- **Tests pages `*V.js`** quasi absents (seulement `CrmV`, composants, hooks, routes API).
 - **Pas d'i18n** → tout en français dur (OK pour cible mono-langue).
 
 ## Avant de committer
