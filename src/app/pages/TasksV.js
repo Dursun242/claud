@@ -5,6 +5,7 @@ import { Badge, Modal } from '../components'
 import { useToast } from '../contexts/ToastContext'
 import { useConfirm } from '../contexts/ConfirmContext'
 import { useUndoableDelete } from '../hooks/useUndoableDelete'
+import { parseNewIntent } from '../lib/navIntent'
 
 // Ordre de priorité canonique (pour le tri)
 const PRIORITY_ORDER = { Urgent: 0, "En cours": 1, "En attente": 2 }
@@ -65,9 +66,10 @@ export default function TasksV({ data, save: _save, m, reload, focusId, focusTs 
     return acc
   }, [data.tasks])
 
-  const openNew = () => {
+  const openNew = (chId) => {
+    const ch = (typeof chId === 'string' && data.chantiers.find(c => c.id === chId)) || data.chantiers[0]
     setForm({
-      chantierId: data.chantiers[0]?.id || "", titre: "",
+      chantierId: ch?.id || "", titre: "",
       priorite: "En cours", statut: "Planifié", echeance: "", lot: ""
     })
     setFormError("")
@@ -112,6 +114,8 @@ export default function TasksV({ data, save: _save, m, reload, focusId, focusTs 
   // en fond derrière la modale.
   useEffect(() => {
     if (!focusId) return
+    const intent = parseNewIntent(focusId)
+    if (intent) { openNew(intent.chantierId); return }
     const task = (data.tasks || []).find(t => t.id === focusId)
     if (task) { setFilter("all"); setForm(task); setFormError(""); setModal("edit") }
   // eslint-disable-next-line react-hooks/exhaustive-deps

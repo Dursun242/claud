@@ -18,6 +18,8 @@ export default function FloatingMic({
   onSend,
   onClear,
   isMobile,
+  // Décalage vertical (px) pour ne pas recouvrir la barre de navigation mobile
+  bottomOffset = 0,
 }) {
   return (
     <>
@@ -25,7 +27,7 @@ export default function FloatingMic({
       <div
         style={{
           position: 'fixed',
-          bottom: isMobile ? 24 : 32,
+          bottom: isMobile ? 24 + bottomOffset : 32,
           right: isMobile ? 24 : 32,
           zIndex: 1100,
           display: 'flex',

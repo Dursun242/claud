@@ -5,6 +5,7 @@ import { Modal, EmptyState } from '../components'
 import { useToast } from '../contexts/ToastContext'
 import { useConfirm } from '../contexts/ConfirmContext'
 import { useUndoableDelete } from '../hooks/useUndoableDelete'
+import { parseNewIntent } from '../lib/navIntent'
 
 // Style doux pour les boutons d'action sur les cartes CR
 const crBtn = (color, bg, border) => ({
@@ -53,9 +54,10 @@ export default function ReportsV({ data, save: _save, m, reload, focusId, focusT
     finally { setGenerating(null) }
   }
 
-  const openNew = () => {
+  const openNew = (chId) => {
+    const ch = (typeof chId === 'string' && data.chantiers.find(c => c.id === chId)) || data.chantiers[0]
     setForm({
-      chantierId: data.chantiers[0]?.id || "",
+      chantierId: ch?.id || "",
       date: new Date().toISOString().split("T")[0],
       numero: (data.compteRendus || []).length + 1,
       resume: "", participants: "", decisions: "", intervenants: []
@@ -138,6 +140,8 @@ export default function ReportsV({ data, save: _save, m, reload, focusId, focusT
   // correspondante.
   useEffect(() => {
     if (!focusId) return
+    const intent = parseNewIntent(focusId)
+    if (intent) { if (!readOnly) openNew(intent.chantierId); return }
     const cr = (data.compteRendus || []).find(c => c.id === focusId)
     if (cr) setSearchCR(String(cr.numero || ""))
   // eslint-disable-next-line react-hooks/exhaustive-deps

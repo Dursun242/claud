@@ -55,6 +55,8 @@ export default function KeyboardHelpModal({ open, onClose, tabs = [] }) {
             {[
               { k: ["Ctrl", "K"], label: "Recherche globale" },
               { k: ["/"],         label: "Focus la recherche" },
+              { k: ["c"],         label: "Créer (OS, CR, tâche…)" },
+              { k: ["n"],         label: "Nouvel élément dans l'onglet" },
               { k: ["?"],         label: "Afficher cette aide" },
               { k: ["Esc"],       label: "Fermer / annuler" },
             ].map((r, i) => (

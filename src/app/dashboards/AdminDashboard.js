@@ -7,6 +7,8 @@ import { logout } from '../auth'
 import { FloatingMic, NotificationBell } from '../components'
 import { DashboardSkeleton, PageSkeleton } from '../components/Skeleton'
 import KeyboardHelpModal from '../components/KeyboardHelpModal'
+import MobileNav, { QuickCreateSheet, MOBILE_NAV_HEIGHT } from '../components/MobileNav'
+import { newIntent } from '../lib/navIntent'
 import { useFloatingMic } from '../hooks/useFloatingMic'
 import { useToast } from '../contexts/ToastContext'
 import { useDashboardData } from '../hooks/useDashboardData'
@@ -61,6 +63,8 @@ export default function AdminDashboard({ user, profile = null }) {
   const [isMobile, setIsMobile] = useState(false);
   // Aide clavier (déclenchée par « ? »)
   const [helpOpen, setHelpOpen] = useState(false);
+  // Menu « Créer » (bouton + mobile, bouton sidebar, touche « c »)
+  const [createOpen, setCreateOpen] = useState(false);
   // Préfixe « g » en attente (style GitHub : g puis lettre = go to tab)
   const pendingGRef = useRef(null);
   const { addToast } = useToast();
@@ -114,6 +118,8 @@ export default function AdminDashboard({ user, profile = null }) {
   // Focus = élément à mettre en avant dans la page cible après navigation
   // (utilisé par la recherche globale). On utilise un timestamp "ts" pour
   // que re-cliquer sur le même résultat re-déclenche le useEffect côté page.
+  // Le focus n'est transmis qu'à l'onglet actif : les onglets déjà visités
+  // restent montés, et une intention « new » ne doit ouvrir qu'UN formulaire.
   // ⚠️ Doit être déclaré AVANT le early return `if (loading || !data)`
   // pour respecter les règles des hooks React.
   const [focus, setFocus] = useState(null);
@@ -141,6 +147,25 @@ export default function AdminDashboard({ user, profile = null }) {
     setFocus(id ? { id, ts: Date.now() } : null);
     setSidebarOpen(false); // ferme toujours sur mobile, no-op sur desktop
   }, []);
+
+  // Actions du menu « Créer » : chacune ouvre directement le formulaire
+  // de création de l'onglet cible (intention 'new', cf. lib/navIntent).
+  const createActions = useMemo(() => [
+    { key:'os',       emoji:'📋', label:'Ordre de service', hint:'Commande artisan',    onPick:()=>switchTab('os', newIntent()) },
+    { key:'reports',  emoji:'📝', label:'Compte rendu',     hint:'Réunion de chantier', onPick:()=>switchTab('reports', newIntent()) },
+    { key:'tasks',    emoji:'✅', label:'Tâche',            hint:'À faire / relance',   onPick:()=>switchTab('tasks', newIntent()) },
+    { key:'photos',   emoji:'📷', label:'Reportage photo',  hint:'Photos du jour',      onPick:()=>switchTab('photos') },
+    { key:'contacts', emoji:'👤', label:'Contact',          hint:'Artisan, client…',    onPick:()=>switchTab('contacts', newIntent()) },
+    { key:'crm',      emoji:'🎯', label:'Affaire',          hint:'Prospect CRM',        onPick:()=>switchTab('crm', newIntent()) },
+    { key:'projects', emoji:'🏗️', label:'Chantier',         hint:'Nouveau projet',      onPick:()=>switchTab('projects', newIntent()) },
+  ], [switchTab]);
+
+  // Onglets de la barre mobile (le reste est dans le menu « Plus »)
+  const mobileNavItems = useMemo(() => [
+    { key:'dashboard', label:'Accueil',   icon:I.dashboard },
+    { key:'projects',  label:'Chantiers', icon:I.projects },
+    { key:'tasks',     label:'Tâches',    icon:I.tasks },
+  ], []);
 
   // ─── Persistance de l'onglet actif ───
   // sessionStorage (pas localStorage) : l'onglet survit au refresh mais se
@@ -192,6 +217,8 @@ export default function AdminDashboard({ user, profile = null }) {
       // Escape ferme l'aide (même depuis un champ)
       if (e.key === 'Escape' && helpOpen) { setHelpOpen(false); return; }
       if (isTyping(e.target)) return;
+      // Pas de raccourci global quand une modale est ouverte
+      if (document.querySelector('[role="dialog"]')) return;
 
       // « ? » → toggle help (Shift + /)
       if (e.key === '?') { e.preventDefault(); setHelpOpen(o => !o); return; }
@@ -213,6 +240,8 @@ export default function AdminDashboard({ user, profile = null }) {
         pendingGRef.current = setTimeout(clearPending, 1500);
         return;
       }
+      // « c » → menu Créer
+      if (e.key === 'c' || e.key === 'C') { e.preventDefault(); setCreateOpen(true); return; }
     };
     document.addEventListener('keydown', handler);
     return () => {
@@ -284,6 +313,15 @@ export default function AdminDashboard({ user, profile = null }) {
           }}>MAÎTRISE D'ŒUVRE • LE HAVRE</div>
         </div>
         <GlobalSearch data={data} crm={crm} onNavigate={switchTab} />
+        <div style={{padding:"0 12px 6px"}}>
+          <button onClick={()=>setCreateOpen(true)} title="Créer (raccourci : c)" style={{
+            width:"100%",display:"flex",alignItems:"center",justifyContent:"center",gap:6,
+            padding:"8px 10px",borderRadius:8,border:"none",cursor:"pointer",
+            background:"#2563EB",color:"#fff",fontFamily:"inherit",fontSize:12.5,fontWeight:600,
+          }}>
+            <Icon d={I.plus} size={15} color="#fff"/> Créer…
+          </button>
+        </div>
         <div style={{flex:1,padding:"6px 8px",display:"flex",flexDirection:"column",gap:1,overflow:"auto"}}>
           {tabs.map(t=>{
             const active = tab===t.key;
@@ -385,7 +423,9 @@ export default function AdminDashboard({ user, profile = null }) {
           flex sur mobile) */}
       <main id="main-content" aria-label="Contenu principal" style={{
         flex:1,minWidth:0,overflowX:"hidden",overflowY:"auto",
-        padding:isMobile?16:24,paddingTop:isMobile?60:24
+        padding:isMobile?16:24,paddingTop:isMobile?60:24,
+        // Réserve la place de la barre de navigation basse (+ safe-area iOS)
+        paddingBottom:isMobile?`calc(${MOBILE_NAV_HEIGHT + 24}px + env(safe-area-inset-bottom))`:24
       }}>
         {/* MOBILE HEADER */}
         {isMobile && (
@@ -440,7 +480,7 @@ export default function AdminDashboard({ user, profile = null }) {
             <div style={{ display: tab === 'projects' ? 'block' : 'none' }}>
               <ProjectsV data={data} save={save} m={isMobile}
                 reload={reload} user={user} profile={profile}
-                focusId={focus?.id} focusTs={focus?.ts}/>
+                focusId={tab === 'projects' ? focus?.id : null} focusTs={focus?.ts}/>
             </div>
           )}
           {visitedTabs.has('planning') && (
@@ -451,32 +491,32 @@ export default function AdminDashboard({ user, profile = null }) {
           {visitedTabs.has('tasks') && (
             <div style={{ display: tab === 'tasks' ? 'block' : 'none' }}>
               <TasksV data={data} save={save} m={isMobile}
-                reload={reload} focusId={focus?.id} focusTs={focus?.ts}/>
+                reload={reload} focusId={tab === 'tasks' ? focus?.id : null} focusTs={focus?.ts}/>
             </div>
           )}
           {visitedTabs.has('contacts') && (
             <div style={{ display: tab === 'contacts' ? 'block' : 'none' }}>
               <ContactsV data={data} save={save} m={isMobile}
-                reload={reload} focusId={focus?.id} focusTs={focus?.ts}
+                reload={reload} focusId={tab === 'contacts' ? focus?.id : null} focusTs={focus?.ts}
                 crm={crm} setTab={switchTab}/>
             </div>
           )}
           {visitedTabs.has('crm') && (
             <div style={{ display: tab === 'crm' ? 'block' : 'none' }}>
               <CrmV data={data} m={isMobile} reload={reload} setTab={switchTab}
-                focusId={focus?.id} focusTs={focus?.ts}/>
+                focusId={tab === 'crm' ? focus?.id : null} focusTs={focus?.ts}/>
             </div>
           )}
           {visitedTabs.has('reports') && (
             <div style={{ display: tab === 'reports' ? 'block' : 'none' }}>
               <ReportsV data={data} save={save} m={isMobile}
-                reload={reload} focusId={focus?.id} focusTs={focus?.ts}/>
+                reload={reload} focusId={tab === 'reports' ? focus?.id : null} focusTs={focus?.ts}/>
             </div>
           )}
           {visitedTabs.has('os') && (
             <div style={{ display: tab === 'os' ? 'block' : 'none' }}>
               <OrdresServiceV data={data} m={isMobile}
-                reload={reload} focusId={focus?.id} focusTs={focus?.ts}/>
+                reload={reload} focusId={tab === 'os' ? focus?.id : null} focusTs={focus?.ts}/>
             </div>
           )}
           {visitedTabs.has('photos') && (
@@ -507,10 +547,19 @@ export default function AdminDashboard({ user, profile = null }) {
           onClick={toggleFloatMic}
           transcript={floatTranscript}
           isMobile={isMobile}
+          bottomOffset={isMobile ? MOBILE_NAV_HEIGHT : 0}
           onSend={() => { setTab("ai"); }}
           onClear={clearFloatMic}
         />
       )}
+
+      {/* BARRE DE NAVIGATION BASSE (mobile) */}
+      {isMobile && (
+        <MobileNav items={mobileNavItems} active={tab} onSelect={switchTab}
+          onMenu={()=>setSidebarOpen(true)} onCreate={()=>setCreateOpen(true)} />
+      )}
+      <QuickCreateSheet open={createOpen} onClose={()=>setCreateOpen(false)}
+        actions={createActions} isMobile={isMobile} />
 
       {/* KEYBOARD SHORTCUTS HELP — déclenché par « ? » */}
       <KeyboardHelpModal open={helpOpen} onClose={() => setHelpOpen(false)} tabs={tabs} />
