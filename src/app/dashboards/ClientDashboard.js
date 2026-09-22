@@ -6,6 +6,7 @@ import { logout } from '../auth'
 import { I, Icon } from './shared'
 import { DashboardSkeleton, PageSkeleton } from '../components/Skeleton'
 import { FloatingMic, NotificationBell } from '../components'
+import MobileNav, { MOBILE_NAV_HEIGHT } from '../components/MobileNav'
 import { useFloatingMic } from '../hooks/useFloatingMic'
 import { useToast } from '../contexts/ToastContext'
 import { useClientDashboardData } from '../hooks/useClientDashboardData'
@@ -46,6 +47,14 @@ const TABS = [
 ]
 
 const LAST_TAB_KEY = 'idm_client_tab'
+
+// Onglets de la barre de navigation mobile (le reste via « Plus »)
+const MOBILE_NAV_ITEMS = [
+  { key:'dashboard', label:'Accueil',   icon:I.dashboard },
+  { key:'projects',  label:'Chantiers', icon:I.projects },
+  { key:'reports',   label:'CR',        icon:I.reports },
+  { key:'planning',  label:'Planning',  icon:I.planning },
+]
 
 export default function ClientDashboard({ user, profile = null }) {
   const [tab,         setTab]         = useState('dashboard')
@@ -89,8 +98,12 @@ export default function ClientDashboard({ user, profile = null }) {
     clear: clearFloatMic
   } = useFloatingMic({ onError: (msg) => addToast(msg, 'warning') })
 
-  const switchTab = useCallback((k) => {
+  // Focus = élément à ouvrir dans la page cible (chantier, CR, OS) quand
+  // on arrive depuis le tableau de bord. ts → re-clic = re-déclenchement.
+  const [focus, setFocus] = useState(null)
+  const switchTab = useCallback((k, id = null) => {
     setTab(k)
+    setFocus(id ? { id, ts: Date.now() } : null)
     setSidebarOpen(false)
   }, [])
 
@@ -287,7 +300,8 @@ export default function ClientDashboard({ user, profile = null }) {
       {/* ── Contenu principal ── */}
       <main id="main-content" aria-label="Contenu principal" style={{
         flex:1, minWidth:0, overflowX:'hidden', overflowY:'auto',
-        padding:isMobile?16:24, paddingTop:isMobile?60:24
+        padding:isMobile?16:24, paddingTop:isMobile?60:24,
+        paddingBottom:isMobile?`calc(${MOBILE_NAV_HEIGHT + 24}px + env(safe-area-inset-bottom))`:24
       }}>
         {/* Topbar mobile */}
         {isMobile && (
@@ -349,13 +363,14 @@ export default function ClientDashboard({ user, profile = null }) {
               explication détaillée du pattern. */}
           {visitedTabs.has('dashboard') && (
             <div style={{ display: tab === 'dashboard' ? 'block' : 'none' }}>
-              <DashboardV data={data} setTab={switchTab} m={isMobile} user={user} />
+              <DashboardV data={data} setTab={switchTab} m={isMobile} user={user} clientMode />
             </div>
           )}
           {visitedTabs.has('projects') && (
             <div style={{ display: tab === 'projects' ? 'block' : 'none' }}>
               <ProjectsV data={data} save={save} m={isMobile}
-                reload={reload} user={user} profile={profile} readOnly />
+                reload={reload} user={user} profile={profile} readOnly
+                focusId={tab === 'projects' ? focus?.id : null} focusTs={focus?.ts} />
             </div>
           )}
           {visitedTabs.has('tasks') && (
@@ -365,12 +380,14 @@ export default function ClientDashboard({ user, profile = null }) {
           )}
           {visitedTabs.has('reports') && (
             <div style={{ display: tab === 'reports' ? 'block' : 'none' }}>
-              <ReportsV data={data} save={save} m={isMobile} reload={reload} readOnly />
+              <ReportsV data={data} save={save} m={isMobile} reload={reload} readOnly
+                focusId={tab === 'reports' ? focus?.id : null} focusTs={focus?.ts} />
             </div>
           )}
           {visitedTabs.has('os') && (
             <div style={{ display: tab === 'os' ? 'block' : 'none' }}>
-              <OrdresServiceV data={data} m={isMobile} reload={reload} readOnly />
+              <OrdresServiceV data={data} m={isMobile} reload={reload} readOnly
+                focusId={tab === 'os' ? focus?.id : null} focusTs={focus?.ts} />
             </div>
           )}
           {visitedTabs.has('planning') && (
@@ -401,9 +418,16 @@ export default function ClientDashboard({ user, profile = null }) {
           onClick={toggleFloatMic}
           transcript={floatTranscript}
           isMobile={isMobile}
+          bottomOffset={isMobile ? MOBILE_NAV_HEIGHT : 0}
           onSend={() => { setTab('ai') }}
           onClear={clearFloatMic}
         />
+      )}
+
+      {/* Barre de navigation basse (mobile) */}
+      {isMobile && (
+        <MobileNav items={MOBILE_NAV_ITEMS} active={tab} onSelect={switchTab}
+          onMenu={() => setSidebarOpen(true)} />
       )}
 
       {/* Aide clavier (déclenchée par « ? ») */}

@@ -13,6 +13,7 @@ import { buildCSV, downloadCSV } from '../lib/csv'
 import { supabase } from '../supabaseClient'
 import { usePappersSearch } from '../hooks/usePappersSearch'
 import { oppsByContact } from '../lib/crm'
+import { parseNewIntent } from '../lib/navIntent'
 
 const TYPE_COLORS = {
   Artisan:"#F59E0B",Client:"#3B82F6",Fournisseur:"#10B981",
@@ -169,6 +170,7 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
   // cliquer le crayon pour éditer s'il le souhaite.
   useEffect(() => {
     if (!focusId) return;
+    if (parseNewIntent(focusId)) { openNew(); return; }
     const contact = (data.contacts || []).find(c => c.id === focusId);
     if (contact?.nom) {
       setQ(contact.nom);

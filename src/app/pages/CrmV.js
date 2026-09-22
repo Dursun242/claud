@@ -142,6 +142,8 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
     if (f.startsWith('contact:')) {
       const c = contactsById.get(f.slice(8))
       setView('pipeline'); setQ(c?.nom || '')
+    } else if (f === 'new') {
+      openNew()
     } else if (f.startsWith('new:')) {
       openNew({ contact_id: f.slice(4) })
     } else if (f === 'relances') {

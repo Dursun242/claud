@@ -1,7 +1,11 @@
 'use client'
 import { useMemo } from 'react'
 import { pct, fmtMoney, phase, PBar, COMPANY } from '../dashboards/shared'
-import { pipelineStats, classifyFollowUps, INTERACTION_ICONS } from '../lib/crm'
+import { pipelineStats, classifyFollowUps } from '../lib/crm'
+import { buildAgenda, buildClientOverview, localISO } from '../lib/today'
+import { newIntent } from '../lib/navIntent'
+import TodayPanel from '../components/dashboard/TodayPanel'
+import ClientOverview from '../components/dashboard/ClientOverview'
 
 // Salutation selon l'heure de la journée
 const getGreeting = () => {
@@ -12,7 +16,9 @@ const getGreeting = () => {
   return "Bonsoir"
 }
 
-export default function DashboardV({data,crm=null,setTab,m,user}) {
+// clientMode : vue maître d'ouvrage (lecture seule) — pas d'actions de
+// création, pas de CRM ni de tâches internes, mais le suivi des travaux.
+export default function DashboardV({data,crm=null,setTab,m,user,clientMode=false}) {
   // Toutes les dérivées memoïsées : recalculées uniquement si data change,
   // pas à chaque re-render dû à un toast ou un resize.
   const {
@@ -62,16 +68,36 @@ export default function DashboardV({data,crm=null,setTab,m,user}) {
   }, [data.tasks, data.chantiers, data.ordresService]);
 
   // CRM : relances à traiter (en retard + aujourd'hui) et pipeline actif
-  const { crmStats, relances, oppById } = useMemo(() => {
+  const { crmStats, relances, nbOverdue } = useMemo(() => {
     const opps = crm?.opportunites || []
+    const oppById = new Map(opps.map(o => [o.id, o]))
     const f = classifyFollowUps(crm?.interactions || [])
+    const toItem = (late) => (it) => {
+      const o = oppById.get(it.opportunite_id)
+      return {
+        id: it.id, title: it.prochaine_action || 'Relance',
+        sub: [o?.titre, it.sujet].filter(Boolean).join(' · '),
+        date: it.prochaine_action_date, late,
+        tab: 'crm', focus: o?.id || 'relances',
+      }
+    }
     return {
       crmStats: pipelineStats(opps),
-      relances: [...f.overdue, ...f.today].slice(0, 5),
-      oppById: new Map(opps.map(o => [o.id, o])),
+      relances: [...f.overdue.map(toItem(true)), ...f.today.map(toItem(false))],
+      nbOverdue: f.overdue.length,
     }
   }, [crm])
-  const nbOverdue = useMemo(() => classifyFollowUps(crm?.interactions || []).overdue.length, [crm])
+
+  // « Ma journée » (admin) / suivi des travaux (client)
+  const today = localISO()
+  const agenda = useMemo(
+    () => (clientMode ? null : buildAgenda(data, { today, relances })),
+    [clientMode, data, today, relances]
+  )
+  const overview = useMemo(
+    () => (clientMode ? buildClientOverview(data, { today }) : null),
+    [clientMode, data, today]
+  )
 
   // Prénom par défaut : valeur du metadata Google, sinon le prénom de l'utilisateur
   // Supabase, sinon le gérant défini dans COMPANY.
@@ -96,8 +122,14 @@ export default function DashboardV({data,crm=null,setTab,m,user}) {
       })}</p>
     </div>
 
-    {/* ACTIONS RAPIDES — avec accent de couleur par type d'action */}
-    <div style={{
+    {/* SUIVI MAÎTRE D'OUVRAGE */}
+    {clientMode && overview && <ClientOverview overview={overview} onOpen={setTab} m={m}/>}
+
+    {/* MA JOURNÉE — ce qui demande une action aujourd'hui */}
+    {!clientMode && agenda && <TodayPanel agenda={agenda} onOpen={setTab} m={m}/>}
+
+    {/* ACTIONS RAPIDES — ouvrent directement le formulaire de création */}
+    {!clientMode && <div style={{
       display:"grid",
       gridTemplateColumns:m?"repeat(2,1fr)":"repeat(4,1fr)",
       gap:10, marginBottom:22
@@ -108,7 +140,7 @@ export default function DashboardV({data,crm=null,setTab,m,user}) {
         {label:"Nouvelle tâche",  icon:"✓",  tab:"tasks",    color:"#F59E0B", bg:"#FFFBEB"},
         {label:"Nouveau chantier",icon:"🏗️", tab:"projects", color:"#10B981", bg:"#ECFDF5"},
       ].map((a,i)=>(
-        <button key={i} onClick={()=>setTab(a.tab)} style={{
+        <button key={i} onClick={()=>setTab(a.tab, newIntent())} style={{
           background:"#fff", border:"1.5px solid #E2E8F0", borderRadius:10,
           padding:"14px 12px", cursor:"pointer",
           transition:"transform .15s, box-shadow .15s, border-color .15s",
@@ -134,7 +166,7 @@ export default function DashboardV({data,crm=null,setTab,m,user}) {
           {a.label}
         </button>
       ))}
-    </div>
+    </div>}
 
     {/* KPIs RAPIDES — 4 chiffres clés */}
     <div style={{
@@ -142,7 +174,16 @@ export default function DashboardV({data,crm=null,setTab,m,user}) {
       gridTemplateColumns:m?"repeat(2,1fr)":"repeat(4,1fr)",
       gap:10, marginBottom:20
     }}>
-      {[
+      {(clientMode ? [
+        {label:"Chantiers actifs", value:enCours,
+          total:data.chantiers.length, color:"#3B82F6", tab:"projects"},
+        {label:"Phases en cours", value:overview.enCours.length,
+          total:(data.planning||[]).length, color:"#10B981", tab:"planning"},
+        {label:"Comptes rendus", value:(data.compteRendus||[]).length,
+          total:null, color:"#8B5CF6", tab:"reports"},
+        {label:"OS actifs", value:osEnCours,
+          total:osCount, color:"#F59E0B", tab:"os"},
+      ] : [
         {label:"Chantiers actifs", value:enCours,
           total:data.chantiers.length, color:"#3B82F6", tab:"projects"},
         {label:"OS actifs",        value:osEnCours,
@@ -151,7 +192,7 @@ export default function DashboardV({data,crm=null,setTab,m,user}) {
           total:allActiveTasks.length, color:"#EF4444", tab:"tasks"},
         {label:"En retard",        value:overdueTasks.length,
           total:allActiveTasks.length, color:"#F59E0B", tab:"tasks"},
-      ].map((k,i)=>(
+      ]).map((k,i)=>(
         <button key={i} onClick={()=>setTab(k.tab)} style={{
           background:"#fff", border:"1px solid #E2E8F0", borderRadius:10,
           padding:"12px 14px", cursor:"pointer", textAlign:"left",
@@ -174,9 +215,9 @@ export default function DashboardV({data,crm=null,setTab,m,user}) {
             <span style={{
               fontSize:m?22:26, fontWeight:700, color:k.color, lineHeight:1
             }}>{k.value}</span>
-            <span style={{fontSize:11,color:"#94A3B8",fontWeight:500}}>
+            {k.total!=null && <span style={{fontSize:11,color:"#94A3B8",fontWeight:500}}>
               / {k.total}
-            </span>
+            </span>}
           </div>
         </button>
       ))}
@@ -263,14 +304,14 @@ export default function DashboardV({data,crm=null,setTab,m,user}) {
       </div>
     )}
 
-    {/* CRM — relances du jour + pipeline. Masqué tant qu'il n'y a ni
-        affaire ni relance (pas de bruit pour un compte qui n'utilise pas le CRM). */}
-    {(crmStats.actives>0 || relances.length>0) && (
+    {/* CRM — résumé du pipeline. Les relances du jour sont dans « Ma journée ».
+        Masqué tant qu'il n'y a aucune affaire active. */}
+    {!clientMode && crmStats.actives>0 && (
       <div style={{
         background:"#fff", borderRadius:14, padding:m?14:18,
         boxShadow:"0 1px 3px rgba(0,0,0,0.06)", marginBottom:18
       }}>
-        <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12, flexWrap:"wrap", gap:8}}>
+        <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:8}}>
           <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
             <h2 style={{margin:0,fontSize:16,fontWeight:700,color:"#0F172A"}}>🎯 CRM</h2>
             <span style={{fontSize:11,color:"#64748B"}}>
@@ -287,42 +328,11 @@ export default function DashboardV({data,crm=null,setTab,m,user}) {
             cursor:"pointer", fontWeight:600, fontFamily:"inherit"
           }}>Voir le pipeline →</button>
         </div>
-        {relances.length===0 ? (
-          <div style={{textAlign:"center",padding:"10px 0",fontSize:13,color:"#94A3B8"}}>✅ Aucune relance à traiter aujourd&apos;hui</div>
-        ) : (
-          <div style={{display:"grid",gap:6,gridTemplateColumns:"minmax(0,1fr)"}}>
-            {relances.map(it => {
-              const o = oppById.get(it.opportunite_id)
-              const today = new Date().toISOString().slice(0,10)
-              const late = it.prochaine_action_date < today
-              return (
-                <div key={it.id} onClick={()=>setTab("crm", o?.id || "relances")} style={{
-                  display:"flex",alignItems:"center",gap:10,padding:"8px 12px",
-                  background:"#F8FAFC",borderRadius:10,cursor:"pointer",minWidth:0,
-                  borderLeft:`3px solid ${late?"#EF4444":"#F59E0B"}`,
-                }}>
-                  <span aria-hidden="true" style={{fontSize:16}}>{INTERACTION_ICONS[it.type]||"📝"}</span>
-                  <div style={{flex:1,minWidth:0}}>
-                    <div style={{fontSize:13,fontWeight:600,color:"#0F172A",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
-                      {it.prochaine_action}
-                    </div>
-                    <div style={{fontSize:10,color:"#94A3B8",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
-                      {o?.titre || "—"}{it.sujet?` · ${it.sujet}`:""}
-                    </div>
-                  </div>
-                  <span style={{fontSize:11,fontWeight:600,color:late?"#DC2626":"#92400E",whiteSpace:"nowrap"}}>
-                    {late ? "En retard" : "Aujourd'hui"}
-                  </span>
-                </div>
-              )
-            })}
-          </div>
-        )}
       </div>
     )}
 
-    {/* À FAIRE — tâches actives triées par priorité/échéance */}
-    <div style={{
+    {/* À FAIRE — tâches actives triées par priorité/échéance (interne MOE) */}
+    {!clientMode && <div style={{
       background:urgentTasks.length>0?"#FEF2F2":"#fff",
       borderRadius:14, padding:m?14:18,
       border:`1.5px solid ${urgentTasks.length>0?"#FECACA":"#E2E8F0"}`,
@@ -412,7 +422,7 @@ export default function DashboardV({data,crm=null,setTab,m,user}) {
             })}
           </div>
       }
-    </div>
+    </div>}
 
     {/* BUDGET GLOBAL — vue d'ensemble financière */}
     <div style={{

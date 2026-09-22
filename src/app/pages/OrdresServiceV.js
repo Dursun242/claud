@@ -13,6 +13,7 @@ import { supabase } from '../supabaseClient'
 import { useImportDevis } from '../hooks/useImportDevis'
 import { usePrestationManager } from '../hooks/usePrestationManager'
 import { useSignaturesSync } from '../hooks/useSignaturesSync'
+import { parseNewIntent } from '../lib/navIntent'
 
 export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly}) {
   const { addToast } = useToast();
@@ -146,8 +147,10 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly})
     return `OS-${new Date().getFullYear()}-${String(next).padStart(3,"0")}`;
   }, [data.ordresService]);
 
-  const openNew = () => {
-    const ch = data.chantiers[0];
+  // chId optionnel (string) : pré-sélectionne le chantier. Ignoré si
+  // openNew est branché directement sur un onClick (reçoit l'event).
+  const openNew = (chId) => {
+    const ch = (typeof chId === 'string' && data.chantiers.find(c => c.id === chId)) || data.chantiers[0];
     setForm({
       numero: nextNum(), chantier_id: ch?.id||"", chantier: ch?.nom||"", adresse_chantier: ch?.adresse||"",
       client_nom: ch?.client||"", client_adresse: "",
@@ -201,6 +204,8 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly})
   // "Modifier" s'il veut l'éditer.
   useEffect(() => {
     if (!focusId) return;
+    const intent = parseNewIntent(focusId);
+    if (intent) { if (!readOnly) openNew(intent.chantierId); return; }
     const os = (data.ordresService || []).find(o => o.id === focusId);
     if (os?.numero) setSearchOS(os.numero);
   // eslint-disable-next-line react-hooks/exhaustive-deps

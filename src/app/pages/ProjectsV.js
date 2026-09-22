@@ -18,6 +18,7 @@ import { generateOSPdf, generateCRPdf, generateOSExcel, generateCRExcel } from '
 import { useToast } from '../contexts/ToastContext'
 import { useConfirm } from '../contexts/ConfirmContext'
 import { computeChantierFinances } from '../lib/chantierFinances'
+import { parseNewIntent } from '../lib/navIntent'
 
 // Style doux pour les boutons d'action dans la vue détail (PDF/XLS/etc.)
 // Remplace les blocs rouge/vert/bleu saturés par des pastilles pastel.
@@ -175,6 +176,7 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
   // du chantier correspondant.
   useEffect(() => {
     if (!focusId) return;
+    if (parseNewIntent(focusId)) { if (!readOnly) { setSelected(null); openNew(); } return; }
     const exists = (data.chantiers || []).some(c => c.id === focusId);
     if (exists) setSelected(focusId);
   // eslint-disable-next-line react-hooks/exhaustive-deps
