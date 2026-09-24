@@ -34,7 +34,7 @@ BEGIN;
 CREATE TABLE IF NOT EXISTS public.crm_devis (
   id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   opportunite_id      UUID NOT NULL REFERENCES public.crm_opportunites(id) ON DELETE CASCADE,
-  numero              TEXT NOT NULL,          -- DEV-2026-001
+  numero              TEXT NOT NULL,          -- 26-050 (AA-NNN)
   statut              TEXT NOT NULL DEFAULT 'Brouillon'
                       CHECK (statut IN ('Brouillon','Envoyé','Accepté','Refusé')),
   objet               TEXT,

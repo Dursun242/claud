@@ -196,11 +196,11 @@ describe('CrmV — devis', () => {
   it('« Qualifié » : Créer le devis ouvre l’éditeur pré-rempli puis enregistre le brouillon', async () => {
     const user = userEvent.setup()
     crmDb.loadCrm.mockResolvedValue({ ...base, devis: [] })
-    crmDb.upsertDevis.mockResolvedValue({ id: 'd1', numero: 'DEV-2026-001' })
+    crmDb.upsertDevis.mockResolvedValue({ id: 'd1', numero: '26-050' })
     renderPage({ focusId: 'o5', focusTs: 20 })
     await screen.findByRole('dialog', { name: 'Escalier extérieur' })
     await user.click(screen.getByRole('button', { name: /Créer le devis/ }))
-    const editor = await screen.findByRole('dialog', { name: /^Devis DEV-\d{4}-001 · Escalier extérieur$/ })
+    const editor = await screen.findByRole('dialog', { name: /^Devis \d{2}-\d{3} · Escalier extérieur$/ })
     expect(editor).toBeInTheDocument()
     // Ligne pré-remplie au forfait avec le montant estimé
     expect(screen.getByLabelText('Prix unitaire HT ligne 1')).toHaveValue('8000')
@@ -215,19 +215,19 @@ describe('CrmV — devis', () => {
     await waitFor(() => expect(crmDb.upsertDevis).toHaveBeenCalledWith(expect.objectContaining({
       opportunite_id: 'o5', statut: 'Brouillon', objet: 'Escalier extérieur',
     })))
-    expect(addToast).toHaveBeenCalledWith('Devis DEV-2026-001 enregistré', 'success')
+    expect(addToast).toHaveBeenCalledWith('Devis 26-050 enregistré', 'success')
   })
 
   it('un devis envoyé peut être marqué accepté : l’affaire passe « Gagné » au montant du devis', async () => {
     const user = userEvent.setup()
-    const d = { id: 'd1', opportunite_id: 'o5', numero: 'DEV-2026-001', statut: 'Envoyé', total_ht: 9500, total_ttc: 11400,
+    const d = { id: 'd1', opportunite_id: 'o5', numero: '26-050', statut: 'Envoyé', total_ht: 9500, total_ttc: 11400,
       date_emission: '2026-09-01', date_envoi: '2026-09-01', lignes: [] }
     crmDb.loadCrm.mockResolvedValue({ ...base, opportunites: [{ ...base.opportunites[0], etape: 'Devis envoyé' }], devis: [d] })
     crmDb.setDevisStatut.mockResolvedValue({ ...d, statut: 'Accepté' })
     crmDb.moveOpportunite.mockResolvedValue({})
     renderPage({ focusId: 'o5', focusTs: 21 })
     await screen.findByRole('dialog', { name: 'Escalier extérieur' })
-    expect(screen.getByText('DEV-2026-001')).toBeInTheDocument()
+    expect(screen.getByText('26-050')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: '✓ Accepté' }))
     await waitFor(() => expect(crmDb.setDevisStatut).toHaveBeenCalledWith(d, 'Accepté'))
     await waitFor(() => expect(crmDb.moveOpportunite).toHaveBeenCalledWith(

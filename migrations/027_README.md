@@ -15,7 +15,9 @@ passe le devis en « Envoyé », l'affaire en « Devis envoyé » (montant estim
 = total HT) et programme une relance à J+7. **Accepté** propose de passer
 l'affaire en « Gagné » (et donc de créer le chantier).
 
-Numérotation : `DEV-AAAA-NNN`, séquentielle par année (index unique).
+Numérotation : `AA-NNN` (ex. `26-050`), séquentielle par année (index unique).
+En 2026 la séquence démarre à `26-050` pour prolonger les devis déjà émis
+(`NUMERO_DEPART` dans `src/app/lib/devis.js`).
 
 ## SQL
 

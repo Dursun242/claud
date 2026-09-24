@@ -3,7 +3,7 @@
  *
  * - Statuts, taux de TVA et unités proposés
  * - Calcul des totaux (HT brut, remise, HT net, TVA par taux, TTC, acompte)
- * - Numérotation DEV-AAAA-NNN
+ * - Numérotation AA-NNN (ex. 26-050)
  * - Pré-remplissage d'un devis depuis une opportunité
  * - Validation du formulaire
  *
@@ -77,20 +77,27 @@ export function computeDevisTotals(lignes = [], { remise_pct = 0, acompte_pct = 
   return { htBrut, remise, ht, tvaParTaux, tva, ttc, acompte }
 }
 
+// Premier numéro par année, pour reprendre la numérotation existante
+// (devis déjà émis hors application). Années absentes : départ à 1.
+export const NUMERO_DEPART = { 2026: 50 }
+
 /**
- * Prochain numéro de devis pour l'année de `date` : DEV-AAAA-NNN.
- * Se base sur les numéros existants (toutes affaires confondues).
+ * Prochain numéro de devis pour l'année de `date` : AA-NNN (ex. 26-050).
+ * Se base sur les numéros existants (toutes affaires confondues) et ne
+ * descend jamais sous NUMERO_DEPART pour l'année.
  */
 export function nextDevisNumero(existing = [], date = new Date()) {
   const d = date instanceof Date ? date : new Date(date)
   const year = d.getFullYear()
-  const re = new RegExp(`^DEV-${year}-(\\d+)$`)
+  const yy = String(year).slice(-2)
+  const re = new RegExp(`^${yy}-(\\d+)$`)
   let max = 0
   for (const dv of existing) {
-    const m = re.exec(String(dv?.numero || ''))
+    const m = re.exec(String(dv?.numero || '').trim())
     if (m) max = Math.max(max, Number(m[1]))
   }
-  return `DEV-${year}-${String(max + 1).padStart(3, '0')}`
+  const n = Math.max(max + 1, NUMERO_DEPART[year] || 1)
+  return `${yy}-${String(n).padStart(3, '0')}`
 }
 
 const isoDay = (d) => {

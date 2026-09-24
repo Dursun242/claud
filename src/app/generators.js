@@ -553,7 +553,7 @@ export async function generateDevisPdf(devis, opts = {}) {
   doc.setFontSize(18); doc.setFont("helvetica", "bold"); doc.setTextColor(...BLEU)
   doc.text("DEVIS", w - margin, y, { align: "right" })
   doc.setFontSize(12); doc.setTextColor(...BLEU_CLAIR)
-  doc.text(sanitize(devis.numero || "DEV-XXXX"), w - margin, y + 6, { align: "right" })
+  doc.text(sanitize(devis.numero || "AA-NNN"), w - margin, y + 6, { align: "right" })
 
   y = 24
   doc.setFontSize(7); doc.setFont("helvetica", "normal"); doc.setTextColor(...GRIS)
