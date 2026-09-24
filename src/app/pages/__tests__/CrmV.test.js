@@ -34,6 +34,9 @@ jest.mock('../../lib/crmDb', () => ({
   setActionFaite: jest.fn(),
   deleteInteraction: jest.fn(),
   linkOpportuniteToChantier: jest.fn(),
+  upsertDevis: jest.fn(),
+  setDevisStatut: jest.fn(),
+  deleteDevis: jest.fn(),
 }))
 // eslint-disable-next-line import/first
 import * as crmDb from '../../lib/crmDb'
@@ -178,5 +181,66 @@ describe('CrmV — fiche affaire', () => {
     await user.click(screen.getByRole('button', { name: 'Noter Appel' }))
     expect(await screen.findByRole('dialog', { name: 'Noter un échange' })).toBeInTheDocument()
     expect(screen.getByDisplayValue('Appel avec SCI Dupont')).toBeInTheDocument()
+  })
+})
+
+describe('CrmV — devis', () => {
+  const base = {
+    opportunites: [
+      { id: 'o5', titre: 'Escalier extérieur', etape: 'Qualifié', montant_estime: 8000, probabilite: 30, contact_id: 'c1' },
+    ],
+    interactions: [],
+    missingMigration: false,
+  }
+
+  it('« Qualifié » : Créer le devis ouvre l’éditeur pré-rempli puis enregistre le brouillon', async () => {
+    const user = userEvent.setup()
+    crmDb.loadCrm.mockResolvedValue({ ...base, devis: [] })
+    crmDb.upsertDevis.mockResolvedValue({ id: 'd1', numero: 'DEV-2026-001' })
+    renderPage({ focusId: 'o5', focusTs: 20 })
+    await screen.findByRole('dialog', { name: 'Escalier extérieur' })
+    await user.click(screen.getByRole('button', { name: /Créer le devis/ }))
+    const editor = await screen.findByRole('dialog', { name: /^Devis DEV-\d{4}-001 · Escalier extérieur$/ })
+    expect(editor).toBeInTheDocument()
+    // Ligne pré-remplie au forfait avec le montant estimé
+    expect(screen.getByLabelText('Prix unitaire HT ligne 1')).toHaveValue('8000')
+    expect(screen.getByTestId('devis-totaux')).toHaveTextContent(/Total HT\s*8\s000,00\s€/)
+
+    await user.click(screen.getByRole('button', { name: '+ Ligne' }))
+    await user.click(screen.getByRole('button', { name: 'Enregistrer le brouillon' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Ligne 2 : la désignation est requise.')
+
+    await user.click(screen.getByRole('button', { name: 'Supprimer la ligne 2' }))
+    await user.click(screen.getByRole('button', { name: 'Enregistrer le brouillon' }))
+    await waitFor(() => expect(crmDb.upsertDevis).toHaveBeenCalledWith(expect.objectContaining({
+      opportunite_id: 'o5', statut: 'Brouillon', objet: 'Escalier extérieur',
+    })))
+    expect(addToast).toHaveBeenCalledWith('Devis DEV-2026-001 enregistré', 'success')
+  })
+
+  it('un devis envoyé peut être marqué accepté : l’affaire passe « Gagné » au montant du devis', async () => {
+    const user = userEvent.setup()
+    const d = { id: 'd1', opportunite_id: 'o5', numero: 'DEV-2026-001', statut: 'Envoyé', total_ht: 9500, total_ttc: 11400,
+      date_emission: '2026-09-01', date_envoi: '2026-09-01', lignes: [] }
+    crmDb.loadCrm.mockResolvedValue({ ...base, opportunites: [{ ...base.opportunites[0], etape: 'Devis envoyé' }], devis: [d] })
+    crmDb.setDevisStatut.mockResolvedValue({ ...d, statut: 'Accepté' })
+    crmDb.moveOpportunite.mockResolvedValue({})
+    renderPage({ focusId: 'o5', focusTs: 21 })
+    await screen.findByRole('dialog', { name: 'Escalier extérieur' })
+    expect(screen.getByText('DEV-2026-001')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: '✓ Accepté' }))
+    await waitFor(() => expect(crmDb.setDevisStatut).toHaveBeenCalledWith(d, 'Accepté'))
+    await waitFor(() => expect(crmDb.moveOpportunite).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'o5', montant_estime: 9500 }), 'Gagné',
+    ))
+  })
+
+  it('sans la migration 027, la section devis invite à l’appliquer', async () => {
+    crmDb.loadCrm.mockResolvedValue({ ...base, devis: [], devisMissing: true })
+    renderPage({ focusId: 'o5', focusTs: 22 })
+    await screen.findByRole('dialog', { name: 'Escalier extérieur' })
+    expect(screen.getByText(/027_crm_devis\.sql/)).toBeInTheDocument()
+    // Le bouton de l'étape retombe sur « → Devis envoyé »
+    expect(screen.getByRole('button', { name: '→ Devis envoyé' })).toBeInTheDocument()
   })
 })

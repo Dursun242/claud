@@ -534,6 +534,195 @@ export async function generateOSPdf(data) {
 }
 
 // ══════════════════════════════════════
+// GÉNÉRATEUR PDF — DEVIS (CRM)
+// ══════════════════════════════════════
+// devis   : ligne crm_devis (ou formulaire en cours)
+// opts    : { contact, opportunite, totals, returnBase64 }
+export async function generateDevisPdf(devis, opts = {}) {
+  const { jsPDF, autoTable } = await loadJsPdf()
+  const { contact = null, opportunite = null, totals } = opts
+  const doc = new jsPDF('p', 'mm', 'a4')
+  const w = doc.internal.pageSize.getWidth()
+  const h = doc.internal.pageSize.getHeight()
+  const margin = 18
+  const usable = w - margin * 2
+
+  // En-tête : logo à gauche, DEVIS + numéro à droite
+  let y = 12
+  try { doc.addImage(LOGO_B64, 'JPEG', margin, y - 5, 48, 14) } catch(e) {}
+  doc.setFontSize(18); doc.setFont("helvetica", "bold"); doc.setTextColor(...BLEU)
+  doc.text("DEVIS", w - margin, y, { align: "right" })
+  doc.setFontSize(12); doc.setTextColor(...BLEU_CLAIR)
+  doc.text(sanitize(devis.numero || "DEV-XXXX"), w - margin, y + 6, { align: "right" })
+
+  y = 24
+  doc.setFontSize(7); doc.setFont("helvetica", "normal"); doc.setTextColor(...GRIS)
+  doc.text(sanitize(`${ENT.adresse}, ${ENT.cpVille} — SIRET: ${ENT.siret}`), margin, y)
+  doc.text(sanitize(`${ENT.email} — ${ENT.assurance}`), margin, y + 3.5)
+
+  y = 31
+  doc.setDrawColor(...BLEU); doc.setLineWidth(0.7)
+  doc.line(margin, y, w - margin, y); y += 5
+
+  // Dates
+  doc.setFillColor(...GRIS_CLAIR)
+  doc.roundedRect(margin, y, usable, 9, 1.5, 1.5, 'F')
+  doc.setFontSize(7.5); doc.setTextColor(...NOIR)
+  const c2 = usable / 2
+  doc.setFont("helvetica", "bold"); doc.text("Date : ", margin + 3, y + 6)
+  doc.setFont("helvetica", "normal"); doc.text(fmtD(devis.date_emission), margin + 14, y + 6)
+  doc.setFont("helvetica", "bold"); doc.text("Valable jusqu'au : ", margin + c2 + 3, y + 6)
+  doc.setFont("helvetica", "normal"); doc.text(fmtD(devis.date_validite), margin + c2 + 31, y + 6)
+  y += 14
+
+  // Émetteur / Client
+  const halfW = (usable - 4) / 2
+  const boxH = 26
+  doc.setDrawColor(226, 232, 240); doc.setLineWidth(0.3)
+  doc.rect(margin, y, halfW, boxH)
+  doc.setFontSize(7.5); doc.setFont("helvetica", "bold"); doc.setTextColor(...BLEU)
+  doc.text("ÉMETTEUR", margin + 3, y + 5)
+  doc.setFontSize(9); doc.setFont("helvetica", "bold"); doc.setTextColor(...NOIR)
+  doc.text(sanitize(ENT.nom), margin + 3, y + 10)
+  doc.setFontSize(7); doc.setFont("helvetica", "normal"); doc.setTextColor(...GRIS)
+  ;[ENT.activite, ENT.adresse, ENT.cpVille, ENT.email].filter(Boolean)
+    .forEach((l, i) => doc.text(sanitize(l), margin + 3, y + 14 + i * 3))
+
+  const cx = margin + halfW + 4
+  doc.rect(cx, y, halfW, boxH)
+  doc.setFontSize(7.5); doc.setFont("helvetica", "bold"); doc.setTextColor(...BLEU)
+  doc.text("CLIENT", cx + 3, y + 5)
+  const cMain = contact ? (contact.societe || contact.nom) : "—"
+  doc.setFontSize(9); doc.setFont("helvetica", "bold"); doc.setTextColor(...NOIR)
+  doc.text(sanitize(cMain || "—"), cx + 3, y + 10)
+  doc.setFontSize(7); doc.setFont("helvetica", "normal"); doc.setTextColor(...GRIS)
+  const cLines = [
+    contact?.societe && contact?.nom && contact.nom !== contact.societe ? `À l'attention de ${contact.nom}` : null,
+    ...(doc.splitTextToSize(sanitize(contact?.adresse || ''), halfW - 6).slice(0, 2)),
+    contact?.email || null,
+    contact?.tel || contact?.tel_fixe || null,
+  ].filter(Boolean).slice(0, 4)
+  cLines.forEach((l, i) => doc.text(sanitize(l), cx + 3, y + 14 + i * 3))
+  y += boxH + 6
+
+  // Objet + adresse des travaux
+  if (devis.objet || opportunite?.adresse) {
+    doc.setFontSize(9); doc.setFont("helvetica", "bold"); doc.setTextColor(...BLEU)
+    doc.text("OBJET", margin, y); y += 4
+    doc.setFontSize(9); doc.setFont("helvetica", "bold"); doc.setTextColor(...NOIR)
+    if (devis.objet) {
+      const ol = doc.splitTextToSize(sanitize(devis.objet), usable)
+      doc.text(ol, margin, y); y += ol.length * 4
+    }
+    if (opportunite?.adresse) {
+      doc.setFontSize(7.5); doc.setFont("helvetica", "normal"); doc.setTextColor(...GRIS)
+      doc.text(sanitize(`Lieu des travaux : ${opportunite.adresse}`), margin, y); y += 4
+    }
+    y += 3
+  }
+
+  // Lignes
+  const lignes = devis.lignes || []
+  const rows = lignes.map(l => {
+    if (l.type === 'titre') {
+      return [{ content: sanitize(l.designation || ''), colSpan: 6,
+        styles: { fontStyle: 'bold', fillColor: [226, 232, 240], textColor: BLEU } }]
+    }
+    const q = Number(String(l.quantite).replace(',', '.')) || 0
+    const pu = Number(String(l.prix_unitaire).replace(',', '.')) || 0
+    return [sanitize(l.designation || ''), sanitize(l.unite || ''), String(q).replace('.', ','),
+      fmtM(pu), `${String(Number(l.tva_taux) || 0).replace('.', ',')}%`, fmtM(q * pu)]
+  })
+  autoTable(doc, {
+    startY: y, head: [["Désignation", "Unité", "Qté", "PU HT", "TVA", "Total HT"]], body: rows,
+    margin: { left: margin, right: margin, bottom: 20 },
+    headStyles: { fillColor: BLEU, textColor: [255,255,255], fontStyle: 'bold', fontSize: 7.5 },
+    bodyStyles: { fontSize: 7.5, textColor: NOIR },
+    columnStyles: {
+      0:{cellWidth:usable*0.44},
+      1:{cellWidth:usable*0.09,halign:'center'},
+      2:{cellWidth:usable*0.07,halign:'center'},
+      3:{cellWidth:usable*0.14,halign:'right'},
+      4:{cellWidth:usable*0.09,halign:'center'},
+      5:{cellWidth:usable*0.17,halign:'right'}
+    },
+    styles: { lineWidth: 0.2, lineColor: [226,232,240] },
+  })
+  y = doc.lastAutoTable.finalY + 3
+
+  // Totaux
+  const t = totals
+  const tvaRows = t.tvaParTaux.filter(x => x.montant > 0 || t.tvaParTaux.length === 1)
+  const needed = 8 + (t.remise > 0 ? 8 : 0) + tvaRows.length * 4 + 14 + (t.acompte > 0 ? 5 : 0)
+  if (y + needed > h - 20) { doc.addPage(); y = 20 }
+  const tx = margin + usable * 0.55
+  doc.setDrawColor(...BLEU); doc.setLineWidth(0.3); doc.line(tx, y, w - margin, y); y += 4
+  doc.setFontSize(8.5); doc.setTextColor(...NOIR)
+  if (t.remise > 0) {
+    doc.setFont("helvetica", "normal")
+    doc.text("Total HT brut", tx, y); doc.text(fmtM(t.htBrut), w - margin, y, { align: "right" }); y += 4
+    doc.text(`Remise ${String(Number(devis.remise_pct) || 0).replace('.', ',')}%`, tx, y)
+    doc.text(fmtM(-t.remise), w - margin, y, { align: "right" }); y += 4
+  }
+  doc.setFont("helvetica", "bold")
+  doc.text("Total HT", tx, y); doc.text(fmtM(t.ht), w - margin, y, { align: "right" }); y += 4
+  doc.setFont("helvetica", "normal")
+  tvaRows.forEach(x => {
+    doc.text(`TVA ${String(x.taux).replace('.', ',')}%`, tx, y)
+    doc.text(fmtM(x.montant), w - margin, y, { align: "right" }); y += 4
+  })
+  doc.setDrawColor(...BLEU); doc.setLineWidth(0.5); doc.line(tx, y, w - margin, y); y += 1
+  doc.setFillColor(238, 242, 255); doc.rect(tx, y, usable * 0.45, 7, 'F'); y += 5
+  doc.setFontSize(11); doc.setFont("helvetica", "bold"); doc.setTextColor(...BLEU)
+  doc.text("TOTAL TTC", tx + 2, y); doc.text(fmtM(t.ttc), w - margin - 2, y, { align: "right" }); y += 6
+  if (t.acompte > 0) {
+    doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.setTextColor(...NOIR)
+    doc.text(`Acompte à la commande (${String(Number(devis.acompte_pct) || 0).replace('.', ',')}%)`, tx, y)
+    doc.text(fmtM(t.acompte), w - margin, y, { align: "right" }); y += 5
+  }
+  y += 4
+
+  // Conditions
+  if (devis.conditions) {
+    const cl = doc.splitTextToSize(sanitize(devis.conditions), usable)
+    if (y + 6 + cl.length * 3.2 > h - 55) { doc.addPage(); y = 20 }
+    doc.setFontSize(9); doc.setFont("helvetica", "bold"); doc.setTextColor(...BLEU)
+    doc.text("CONDITIONS", margin, y); y += 4
+    doc.setFontSize(7.5); doc.setFont("helvetica", "normal"); doc.setTextColor(...NOIR)
+    doc.text(cl, margin, y); y += cl.length * 3.2 + 6
+  }
+
+  // Bon pour accord
+  if (y > h - 50) { doc.addPage(); y = 20 }
+  const sw = (usable - 4) / 2
+  ;[
+    { t: "L'émetteur", n: ENT.nom },
+    { t: "Bon pour accord — le client", n: "Date, signature et mention « lu et approuvé »" },
+  ].forEach((s, i) => {
+    const sx = margin + i * (sw + 4); doc.setDrawColor(226,232,240); doc.rect(sx, y, sw, 26)
+    doc.setFontSize(7.5); doc.setFont("helvetica", "bold"); doc.setTextColor(...NOIR); doc.text(sanitize(s.t), sx + 2, y + 4)
+    doc.setFont("helvetica", "normal"); doc.setTextColor(...GRIS); doc.setFontSize(6.5); doc.text(sanitize(s.n), sx + 2, y + 8)
+  })
+
+  // Pied + pagination sur toutes les pages
+  const pages = doc.getNumberOfPages()
+  for (let p = 1; p <= pages; p++) {
+    doc.setPage(p)
+    pied(doc, w, margin, h - 12)
+    if (pages > 1) {
+      doc.setFontSize(6); doc.setTextColor(148, 163, 184)
+      doc.text(`${p} / ${pages}`, w - margin, h - 6, { align: "right" })
+    }
+  }
+
+  const filename = `${devis.numero || 'Devis'}.pdf`
+  if (opts.returnBase64) return { base64: doc.output('datauristring'), filename }
+  doc.save(filename)
+  SB.log('generate_pdf', 'crm_devis', devis.id || null, devis.numero || 'Devis', { format: 'pdf' })
+  return { filename }
+}
+
+// ══════════════════════════════════════
 // GÉNÉRATEUR PDF — COMPTE RENDU DE CHANTIER
 // ══════════════════════════════════════
 export async function generateCRPdf(cr, chantier) {

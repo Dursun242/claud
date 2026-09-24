@@ -52,6 +52,7 @@ const ENTITY_LABELS = {
   storage:      'Storage',
   photo_report: 'Reportage photo',
   crm_opportunite: 'Opportunité CRM',
+  crm_devis: 'Devis CRM',
   crm_interaction: 'Interaction CRM',
   system:       'Système',
   ai:           'Assistant IA',
