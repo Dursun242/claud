@@ -5,7 +5,12 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 const addToast = jest.fn()
 jest.mock('../../contexts/ToastContext', () => ({ useToast: () => ({ addToast }) }))
 jest.mock('../../contexts/ConfirmContext', () => ({ useConfirm: () => jest.fn().mockResolvedValue(true) }))
-jest.mock('../../supabaseClient', () => ({ supabase: {} }))
+jest.mock('../../supabaseClient', () => ({
+  supabase: { auth: { getSession: jest.fn().mockResolvedValue({ data: { session: { access_token: 'tok' } } }) } },
+}))
+jest.mock('../../generators', () => ({
+  generateDevisPdf: jest.fn().mockResolvedValue({ base64: 'data:application/pdf;base64,JVBERi0=', filename: '26-050.pdf' }),
+}))
 // shared.js importe components/index.js qui ré-importe shared.js (cycle) :
 // on mocke le strict nécessaire plutôt que requireActual.
 jest.mock('../../dashboards/shared', () => ({
@@ -242,5 +247,84 @@ describe('CrmV — devis', () => {
     expect(screen.getByText(/027_crm_devis\.sql/)).toBeInTheDocument()
     // Le bouton de l'étape retombe sur « → Devis envoyé »
     expect(screen.getByRole('button', { name: '→ Devis envoyé' })).toBeInTheDocument()
+  })
+})
+
+describe('CrmV — envoi par mail et IA', () => {
+  const opp = { id: 'o5', titre: 'Escalier extérieur', etape: 'Qualifié', montant_estime: 8000, probabilite: 30, contact_id: 'c2' }
+  const contacts = [{ id: 'c2', nom: 'Cousin', type: 'Client', email: 'cousin@exemple.fr' }]
+  const draft = { id: 'd1', opportunite_id: 'o5', numero: '26-050', statut: 'Brouillon', total_ht: 8000, total_ttc: 8800,
+    date_emission: '2026-09-24', date_validite: '2026-10-24', objet: 'Escalier',
+    lignes: [{ type: 'ligne', designation: 'Escalier', unite: 'forfait', quantite: 1, prix_unitaire: 8000, tva_taux: 10 }] }
+
+  const renderWith = (extra = {}) => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
+    return render(
+      <QueryClientProvider client={client}>
+        <CrmV data={{ chantiers: [], contacts }} m={false} reload={jest.fn()} setTab={jest.fn()} focusId="o5" focusTs={30} {...extra} />
+      </QueryClientProvider>,
+    )
+  }
+
+  beforeEach(() => {
+    crmDb.loadCrm.mockResolvedValue({ opportunites: [opp], interactions: [], devis: [draft], missingMigration: false })
+    crmDb.setDevisStatut.mockResolvedValue({ ...draft, statut: 'Envoyé' })
+    crmDb.moveOpportunite.mockResolvedValue({})
+    crmDb.upsertInteraction.mockResolvedValue({})
+    global.fetch = jest.fn()
+  })
+  afterEach(() => { delete global.fetch })
+
+  it('envoie le devis par mail depuis l’app puis le passe « Envoyé »', async () => {
+    const user = userEvent.setup()
+    global.fetch.mockResolvedValue({ ok: true, status: 200, json: async () => ({ ok: true, to: ['cousin@exemple.fr'] }) })
+    renderWith()
+    await screen.findByRole('dialog', { name: 'Escalier extérieur' })
+    await user.click(screen.getByRole('button', { name: '📤 Envoyer' }))
+    const dlg = await screen.findByRole('dialog', { name: 'Envoyer le devis 26-050' })
+    expect(dlg).toBeInTheDocument()
+    expect(screen.getByLabelText('Destinataire')).toHaveValue('cousin@exemple.fr')
+    expect(screen.getByDisplayValue('Devis 26-050 — Escalier')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: '📤 Envoyer le devis' }))
+    await waitFor(() => expect(crmDb.setDevisStatut).toHaveBeenCalledWith(draft, 'Envoyé'))
+    const [url, opts] = global.fetch.mock.calls[0]
+    expect(url).toBe('/api/devis/send')
+    expect(opts.headers.Authorization).toBe('Bearer tok')
+    expect(JSON.parse(opts.body)).toMatchObject({ to: 'cousin@exemple.fr', subject: 'Devis 26-050 — Escalier', filename: '26-050.pdf' })
+    expect(crmDb.moveOpportunite).toHaveBeenCalledWith(expect.objectContaining({ id: 'o5' }), 'Devis envoyé', { montant_estime: 8000 })
+    expect(addToast).toHaveBeenCalledWith('Devis 26-050 envoyé à cousin@exemple.fr · relance dans 7 jours', 'success')
+  })
+
+  it('affiche l’erreur serveur dans la fenêtre sans marquer le devis envoyé', async () => {
+    const user = userEvent.setup()
+    global.fetch.mockResolvedValue({ ok: false, status: 502, json: async () => ({ error: 'L’envoi a échoué — vérifie la configuration SMTP.' }) })
+    renderWith()
+    await screen.findByRole('dialog', { name: 'Escalier extérieur' })
+    await user.click(screen.getByRole('button', { name: '📤 Envoyer' }))
+    await user.click(await screen.findByRole('button', { name: '📤 Envoyer le devis' }))
+    expect(await screen.findByText(/vérifie la configuration SMTP/)).toBeInTheDocument()
+    expect(crmDb.setDevisStatut).not.toHaveBeenCalled()
+  })
+
+  it('l’IA propose les lignes du devis à partir d’une description', async () => {
+    const user = userEvent.setup()
+    crmDb.loadCrm.mockResolvedValue({ opportunites: [opp], interactions: [], devis: [], missingMigration: false })
+    global.fetch.mockResolvedValue({ ok: true, status: 200, json: async () => ({ ok: true, data: {
+      objet: 'Escalier béton extérieur',
+      lignes: [{ type: 'ligne', designation: 'Démolition escalier existant', unite: 'forfait', quantite: '1', prix_unitaire: '950', tva_taux: '10' }],
+      conseils: ['Vérifier la nature du sol'],
+    } }) })
+    renderWith()
+    await screen.findByRole('dialog', { name: 'Escalier extérieur' })
+    await user.click(screen.getByRole('button', { name: /Créer le devis/ }))
+    await user.click(await screen.findByRole('button', { name: /Rédiger avec l’IA/ }))
+    await user.type(screen.getByLabelText("Description du besoin pour l'IA"), 'Escalier béton 6 marches')
+    await user.click(screen.getByRole('button', { name: 'Remplacer les lignes' }))
+    expect(await screen.findByDisplayValue('Démolition escalier existant')).toBeInTheDocument()
+    expect(screen.getByDisplayValue('Escalier béton extérieur')).toBeInTheDocument()
+    expect(screen.getByText('Vérifier la nature du sol')).toBeInTheDocument()
+    const body = JSON.parse(global.fetch.mock.calls[0][1].body)
+    expect(body).toMatchObject({ action: 'generate', description: 'Escalier béton 6 marches' })
+    expect(body.context.affaire.titre).toBe('Escalier extérieur')
   })
 })

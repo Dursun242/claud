@@ -41,3 +41,33 @@ export async function verifyAuth(request) {
     return null
   }
 }
+
+/**
+ * verifyStaff — comme verifyAuth, mais réservé au staff (admin / salarié
+ * actif dans authorized_users). Pour les routes qu'un MOA ne doit jamais
+ * appeler (envoi de mails au nom de la société, IA commerciale…).
+ *
+ * @returns {Promise<{ user: object|null, status: 200|401|403|500 }>}
+ */
+export async function verifyStaff(request) {
+  const user = await verifyAuth(request)
+  if (!user) return { user: null, status: 401 }
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!serviceKey) return { user: null, status: 500 }
+  try {
+    const admin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, serviceKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    })
+    // Même règle que public.is_staff() (005) : email comparé sans casse.
+    const email = String(user.email || '').trim().toLowerCase()
+    const { data: rows } = await admin
+      .from('authorized_users')
+      .select('email, role, actif, prenom, nom')
+      .ilike('email', email)
+    const data = (rows || []).find(r => String(r.email || '').trim().toLowerCase() === email)
+    const ok = data && data.actif === true && ['admin', 'salarie', 'salarié'].includes(data.role)
+    return ok ? { user: { ...user, profile: data }, status: 200 } : { user: null, status: 403 }
+  } catch {
+    return { user: null, status: 500 }
+  }
+}

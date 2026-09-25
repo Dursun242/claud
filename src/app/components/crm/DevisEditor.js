@@ -1,10 +1,11 @@
 'use client'
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { FF, inp, sel, btnP, btnS } from '../../dashboards/shared'
 import {
   TVA_TAUX, UNITES, blankLigne, blankTitre, ligneTotal, computeDevisTotals,
   DEVIS_STATUT_COLORS,
 } from '../../lib/devis'
+import { suggestLignes, findInHistory } from '../../lib/devisAi'
 
 export const fmtEur = (n) =>
   new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2 }).format(Number(n) || 0)
@@ -19,10 +20,22 @@ const miniBtn = {
 /**
  * Éditeur de devis (contenu de modale, contrôlé par le parent).
  *
- * form    : devis en cours d'édition (lignes avec valeurs string pour les inputs)
- * setForm : setter React (accepte une fonction)
+ * form        : devis en cours d'édition (lignes avec valeurs string pour les inputs)
+ * setForm     : setter React (accepte une fonction)
+ * history     : prix habituels (buildPriceHistory) pour l'autocomplétion
+ * checks      : points à vérifier (checkDevis)
+ * onAiGenerate: (description) => Promise<{ objet, lignes, conseils }> — absent = IA masquée
  */
-export default function DevisEditor({ form, setForm, m, error, saving, onCancel, onSave, onSend, onPreview }) {
+export default function DevisEditor({
+  form, setForm, m, error, saving, onCancel, onSave, onSend, onPreview,
+  history = [], checks = [], onAiGenerate,
+}) {
+  const [activeLine, setActiveLine] = useState(null)
+  const [aiOpen, setAiOpen] = useState(false)
+  const [aiText, setAiText] = useState('')
+  const [aiBusy, setAiBusy] = useState(false)
+  const [aiError, setAiError] = useState('')
+  const [aiConseils, setAiConseils] = useState([])
   const totals = useMemo(() => computeDevisTotals(form.lignes || [], form), [form])
   const lignes = form.lignes || []
   const sent = form.statut && form.statut !== 'Brouillon'
@@ -39,6 +52,31 @@ export default function DevisEditor({ form, setForm, m, error, saving, onCancel,
     ;[arr[i], arr[j]] = [arr[j], arr[i]]
     return { ...f, lignes: arr }
   })
+
+  // Choisir une désignation connue : reprend unité / PU / TVA habituels
+  const pickHistory = (i, h) => setForm(f => ({
+    ...f,
+    lignes: f.lignes.map((l, j) => (j === i ? {
+      ...l, designation: h.designation, unite: h.unite, prix_unitaire: String(h.prix_unitaire), tva_taux: String(h.tva_taux),
+    } : l)),
+  }))
+  const hasContent = lignes.some(l => l.type !== 'titre' && String(l.designation || '').trim())
+
+  const runAi = async (mode) => {
+    if (!onAiGenerate || aiText.trim().length < 5) { setAiError('Décris le besoin en quelques mots.'); return }
+    setAiBusy(true); setAiError('')
+    try {
+      const r = await onAiGenerate(aiText.trim())
+      setForm(f => ({
+        ...f,
+        objet: mode === 'replace' || !String(f.objet || '').trim() ? (r.objet || f.objet) : f.objet,
+        lignes: mode === 'replace' ? r.lignes : [...(f.lignes || []), ...r.lignes],
+      }))
+      setAiConseils(r.conseils || [])
+    } catch (e) {
+      setAiError(e?.message || 'La génération a échoué.')
+    } finally { setAiBusy(false) }
+  }
 
   const cols = m ? null : 'minmax(0,1fr) 84px 64px 100px 76px 96px 58px'
 
@@ -63,6 +101,41 @@ export default function DevisEditor({ form, setForm, m, error, saving, onCancel,
           <input style={inp} type="date" value={form.date_validite || ''} onChange={e => set('date_validite', e.target.value)} />
         </FF>
       </div>
+
+      {/* ─── Assistant IA ─── */}
+      {onAiGenerate && (
+        <div style={{ background: 'linear-gradient(135deg,#EFF6FF,#F5F3FF)', border: '1px solid #DBEAFE', borderRadius: 10, padding: aiOpen ? 12 : '8px 12px', marginBottom: 12 }}>
+          <button type="button" onClick={() => setAiOpen(o => !o)} aria-expanded={aiOpen}
+            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: 700, color: '#1E3A5F', width: '100%', textAlign: 'left' }}>
+            ✨ Rédiger avec l’IA {aiOpen ? '▾' : '▸'}
+            {!aiOpen && <span style={{ fontWeight: 400, color: '#64748B', fontSize: 12 }}> — décris le besoin, l’IA propose les lignes chiffrées</span>}
+          </button>
+          {aiOpen && (
+            <div style={{ marginTop: 8 }}>
+              <textarea value={aiText} onChange={e => setAiText(e.target.value)} aria-label="Description du besoin pour l'IA"
+                placeholder="Ex : escalier extérieur béton 6 marches, garde-corps acier, démolition de l'existant, mission complète (conception + suivi de chantier)"
+                style={{ ...inp, minHeight: 70, resize: 'vertical', fontSize: 13, background: '#fff' }} />
+              <div style={{ display: 'flex', gap: 6, marginTop: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                <button type="button" onClick={() => runAi('replace')} disabled={aiBusy}
+                  style={{ ...btnP, fontSize: 12, padding: '6px 12px', minHeight: 32, opacity: aiBusy ? 0.6 : 1 }}>
+                  {aiBusy ? 'L’IA chiffre…' : hasContent ? 'Remplacer les lignes' : 'Proposer les lignes'}
+                </button>
+                {hasContent && (
+                  <button type="button" onClick={() => runAi('append')} disabled={aiBusy}
+                    style={{ ...btnS, fontSize: 12, padding: '6px 12px', minHeight: 32, background: '#fff' }}>Ajouter à la suite</button>
+                )}
+                <span style={{ fontSize: 11, color: '#64748B' }}>Tes prix habituels sont repris en priorité. Relis toujours avant d’envoyer.</span>
+              </div>
+              {aiError && <div role="alert" style={{ color: '#DC2626', fontSize: 12, marginTop: 6 }}>⚠ {aiError}</div>}
+              {aiConseils.length > 0 && (
+                <ul aria-label="Conseils de l'IA" style={{ margin: '8px 0 0', paddingLeft: 18, fontSize: 12, color: '#334155' }}>
+                  {aiConseils.map((c, k) => <li key={k}>{c}</li>)}
+                </ul>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ─── Lignes ─── */}
       <div style={{ fontSize: 12, fontWeight: 700, color: '#0F172A', margin: '4px 0 6px' }}>Détail</div>
@@ -90,11 +163,33 @@ export default function DevisEditor({ form, setForm, m, error, saving, onCancel,
             )
           }
           const fields = {
-            designation: (
-              <textarea style={{ ...small, minHeight: 36, resize: 'vertical' }} rows={1} value={l.designation || ''}
-                aria-label={`Désignation ligne ${i + 1}`} placeholder="Désignation"
-                onChange={e => setLigne(i, 'designation', e.target.value)} />
-            ),
+            designation: (() => {
+              const sugg = activeLine === i && !findInHistory(l.designation, history)
+                ? suggestLignes(l.designation, history, 5) : []
+              return (
+                <div style={{ position: 'relative', minWidth: 0 }}>
+                  <textarea style={{ ...small, minHeight: 36, resize: 'vertical' }} rows={1} value={l.designation || ''}
+                    aria-label={`Désignation ligne ${i + 1}`} placeholder="Désignation (tes prix habituels s'affichent en tapant)"
+                    onFocus={() => setActiveLine(i)} onBlur={() => setActiveLine(a => (a === i ? null : a))}
+                    onChange={e => setLigne(i, 'designation', e.target.value)} />
+                  {sugg.length > 0 && (
+                    <div role="listbox" aria-label={`Prix habituels ligne ${i + 1}`} style={{
+                      position: 'absolute', zIndex: 5, left: 0, right: 0, top: '100%', background: '#fff', border: '1px solid #CBD5E1',
+                      borderRadius: 8, boxShadow: '0 6px 16px rgba(15,23,42,0.12)', marginTop: 2, overflow: 'hidden',
+                    }}>
+                      {sugg.map(h => (
+                        <button key={h.designation} type="button" role="option" aria-selected="false"
+                          onMouseDown={e => { e.preventDefault(); pickHistory(i, h); setActiveLine(null) }}
+                          style={{ display: 'flex', width: '100%', gap: 8, justifyContent: 'space-between', padding: '6px 10px', border: 'none', background: '#fff', cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, textAlign: 'left' }}>
+                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{h.designation}</span>
+                          <span style={{ color: '#64748B', whiteSpace: 'nowrap' }}>{fmtEur(h.prix_unitaire)} / {h.unite}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )
+            })(),
             unite: (
               <select style={smallSel} value={l.unite || 'u'} aria-label={`Unité ligne ${i + 1}`} onChange={e => setLigne(i, 'unite', e.target.value)}>
                 {UNITES.map(u => <option key={u} value={u}>{u}</option>)}
@@ -165,6 +260,17 @@ export default function DevisEditor({ form, setForm, m, error, saving, onCancel,
         </div>
       </div>
 
+      {checks.length > 0 && (
+        <div aria-label="Points à vérifier" style={{ border: '1px solid #FDE68A', background: '#FFFBEB', borderRadius: 10, padding: '8px 12px', marginBottom: 12 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#92400E', marginBottom: 4 }}>Points à vérifier</div>
+          <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12 }}>
+            {checks.map((c, k) => (
+              <li key={k} style={{ color: c.level === 'error' ? '#B91C1C' : c.level === 'warn' ? '#92400E' : '#475569' }}>{c.text}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       <FF label="Conditions (imprimées sur le devis)">
         <textarea style={{ ...inp, minHeight: 80, resize: 'vertical', fontSize: 13 }} value={form.conditions || ''}
           onChange={e => set('conditions', e.target.value)} />
@@ -183,7 +289,7 @@ export default function DevisEditor({ form, setForm, m, error, saving, onCancel,
         </button>
         {!sent && (
           <button onClick={onSend} disabled={saving} style={{ ...btnP, opacity: saving ? 0.6 : 1 }}
-            title="Télécharge le PDF, ouvre ton mail et passe l'affaire en « Devis envoyé »">
+            title="Enregistre puis ouvre la fenêtre d'envoi par mail (PDF joint)">
             📤 Enregistrer et envoyer
           </button>
         )}

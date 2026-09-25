@@ -203,7 +203,8 @@ export function isDevisExpired(devis = {}, today = new Date()) {
 }
 
 /** Corps du mail d'envoi (mailto:). */
-export function devisMailto(devis = {}, contact = null, company = {}) {
+/** Contenu par défaut du mail d'envoi : { to, subject, body }. */
+export function devisMailContent(devis = {}, contact = null, company = {}) {
   const totals = computeDevisTotals(devis.lignes, devis)
   const fmt = (n) => n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
   const subject = `Devis ${devis.numero}${devis.objet ? ` — ${devis.objet}` : ''}`
@@ -214,8 +215,18 @@ export function devisMailto(devis = {}, contact = null, company = {}) {
       `d'un montant de ${fmt(totals.ht)} € HT (${fmt(totals.ttc)} € TTC).`,
     devis.date_validite ? `Il est valable jusqu'au ${devis.date_validite.split('-').reverse().join('/')}.` : '',
     '', 'Je reste à votre disposition pour en discuter.', '',
-    'Cordialement,', company.gerant ? `${company.gerant} — ${company.nom || ''}`.trim() : (company.nom || ''),
+    'Cordialement,', companySignature(company),
   ].filter((l, i, arr) => !(l === '' && arr[i - 1] === '')).join('\n')
-  const to = contact?.email || ''
+  return { to: contact?.email || '', subject, body }
+}
+
+/** Signature courte de la société (gérant — raison sociale). */
+export function companySignature(company = {}) {
+  return company.gerant ? `${company.gerant} — ${company.nom || ''}`.trim() : (company.nom || '')
+}
+
+/** Lien mailto: (repli quand l'envoi direct n'est pas configuré). */
+export function devisMailto(devis = {}, contact = null, company = {}) {
+  const { to, subject, body } = devisMailContent(devis, contact, company)
   return `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
 }

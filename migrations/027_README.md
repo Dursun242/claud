@@ -10,10 +10,19 @@ Depuis la fiche d'une affaire (dès l'étape « Qualifié »), le bouton
 - totaux HT / TVA (par taux) / TTC calculés en direct ;
 - PDF aux couleurs ID Maîtrise (`generateDevisPdf` dans `generators.js`).
 
-**Envoyer** télécharge le PDF, ouvre le mail pré-rempli vers le client,
-passe le devis en « Envoyé », l'affaire en « Devis envoyé » (montant estimé
+**Envoyer** ouvre une fenêtre d'envoi (destinataire, objet, message
+rédigeable par l'IA) et envoie le mail depuis l'application avec le PDF en
+pièce jointe (route `/api/devis/send`, SMTP — voir `SMTP_*` dans
+`.env.example`). Sans SMTP configuré, le PDF est téléchargé et la messagerie
+s'ouvre avec le mail pré-rempli. Dans les deux cas le devis passe « Envoyé », l'affaire en « Devis envoyé » (montant estimé
 = total HT) et programme une relance à J+7. **Accepté** propose de passer
 l'affaire en « Gagné » (et donc de créer le chantier).
+
+Intelligence : bouton « ✨ Rédiger avec l'IA » (route `/api/devis-ia`,
+lignes chiffrées à partir d'une description, en reprenant les prix
+habituels), autocomplétion des désignations déjà chiffrées, et encadré
+« Points à vérifier » (lignes sans prix, doublons, écart de prix, TVA
+réduite sans attestation…). Logique pure dans `src/app/lib/devisAi.js`.
 
 Numérotation : `AA-NNN` (ex. `26-050`), séquentielle par année (index unique).
 En 2026 la séquence démarre à `26-050` pour prolonger les devis déjà émis

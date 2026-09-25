@@ -38,11 +38,12 @@ src/app/
 ├─ contexts/                  → ToastContext + ConfirmContext (non-invasive, context split pour éviter re-renders)
 ├─ hooks/                     → useFloatingMic, useAttachments, useComments, useUndoableDelete, useSignaturesSync, useCrmData...
 ├─ lib/                       → auth, fetchWithRetry, odoo, validators, notifications, activityLog, chantierFinances
-│                               crm.js (logique pure pipeline) + devis.js (calculs devis) + crmDb.js (accès Supabase CRM, hors shared.js)
+│                               crm.js (logique pure pipeline) + devis.js / devisAi.js (calculs, prix habituels, vérifs devis) + crmDb.js (accès Supabase CRM, hors shared.js)
 │
 └─ api/                       → 23 routes. Pattern unique : verifyAuth() + createLogger() + mock-friendly.
     ├─ admin/*                → service role uniquement (users, demo-mode, reset-demo-data)
     ├─ claude/                → proxy Anthropic (rate limit 20/min/IP)
+    ├─ devis-ia, devis/send   → CRM : IA de chiffrage + envoi SMTP du devis (staff only, verifyStaff)
     ├─ odoo/*                 → signatures
     ├─ pv-reception/*         → flux PV métier
     ├─ extract-*/             → Claude Vision (devis + contacts)

@@ -19,10 +19,31 @@ import {
 } from '../lib/crmDb'
 import {
   devisFromOpportunite, duplicateDevis, validateDevis, computeDevisTotals,
-  normalizeLignes, devisMailto,
+  normalizeLignes, devisMailContent, companySignature,
 } from '../lib/devis'
 import DevisEditor, { fmtEur } from '../components/crm/DevisEditor'
 import DevisList from '../components/crm/DevisList'
+import DevisSendForm from '../components/crm/DevisSendForm'
+import { buildPriceHistory, checkDevis, buildAiContext } from '../lib/devisAi'
+import { supabase } from '../supabaseClient'
+
+// Appel d'une route /api/* avec le JWT de la session. Lève une Error avec
+// le message serveur ; `code` est propagé (ex. EMAIL_NOT_CONFIGURED).
+async function apiPost(path, body) {
+  const { data: { session } = {} } = await supabase.auth.getSession()
+  const res = await fetch(path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token || ''}` },
+    body: JSON.stringify(body),
+  })
+  const json = await res.json().catch(() => ({}))
+  if (!res.ok || !json.ok) {
+    const err = new Error(json.error || `Erreur ${res.status}`)
+    err.code = json.code
+    throw err
+  }
+  return json
+}
 
 const TYPES_PROJET = ['Rénovation', 'Construction neuve', 'Extension', 'Réhabilitation', 'Aménagement', 'Autre']
 const todayISO = () => new Date().toISOString().slice(0, 10)
@@ -57,7 +78,7 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
   const confirm = useConfirm()
   const { crm, loading, error, reload } = useCrmData()
   const { opportunites, interactions, missingMigration } = crm
-  const allDevis = crm.devis || []
+  const allDevis = useMemo(() => crm.devis || [], [crm.devis])
   const devisMissing = !!crm.devisMissing
 
   const [view, setView] = useState('pipeline')       // pipeline | relances | closed
@@ -77,6 +98,7 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
   const [saving, setSaving] = useState(false)
   const [devisForm, setDevisForm] = useState(null)   // null | devis en édition
   const [devisError, setDevisError] = useState('')
+  const [sendState, setSendState] = useState(null)  // null | { devis, initial, error }
   const quickRef = useRef(null)
 
   const contactsById = useMemo(() => {
@@ -336,35 +358,107 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
     catch (e) { addToast(e?.message || 'Génération du PDF impossible', 'error') }
   }
 
-  // Envoi : PDF téléchargé + mail pré-rempli + devis « Envoyé » + affaire
-  // en « Devis envoyé » (montant = total HT) + relance à J+7.
-  const sendDevis = async (d) => {
+  // ─── Intelligence : prix habituels, vérifications, IA ───
+  const priceHistory = useMemo(() => buildPriceHistory(allDevis), [allDevis])
+  const devisOpp = devisForm ? oppOf(devisForm) : null
+  const devisChecks = useMemo(() => (devisForm ? checkDevis(devisForm, {
+    opportunite: devisOpp, contact: contactsById.get(devisOpp?.contact_id) || null, history: priceHistory,
+  }) : []), [devisForm, devisOpp, contactsById, priceHistory])
+
+  const aiGenerate = async (description) => {
+    const o = oppOf(devisForm)
+    const { data } = await apiPost('/api/devis-ia', {
+      action: 'generate',
+      description,
+      context: buildAiContext({
+        opportunite: o,
+        contact: contactsById.get(o?.contact_id) || null,
+        interactions: interactions.filter(i => i.opportunite_id === o?.id),
+        history: priceHistory,
+      }),
+    })
+    return data
+  }
+
+  // Le devis passe « Envoyé », l'affaire en « Devis envoyé » (montant =
+  // total HT) et une relance est programmée à J+7.
+  const markDevisSent = async (d, note) => {
+    const o = oppOf(d)
+    const sent = await setDevisStatut(d, 'Envoyé')
+    const ht = Number(sent?.total_ht ?? d.total_ht) || 0
+    if (o && !isClosed(o.etape)) {
+      const behind = ETAPES_ACTIVES.indexOf(o.etape) < ETAPES_ACTIVES.indexOf('Devis envoyé')
+      await moveOpportunite(o, behind ? 'Devis envoyé' : o.etape, { montant_estime: ht })
+    }
+    try {
+      await upsertInteraction({
+        opportunite_id: o?.id || d.opportunite_id, contact_id: o?.contact_id || null, type: 'Email',
+        sujet: `Devis ${d.numero} envoyé`, contenu: [note, `${fmtEur(ht)} HT`].filter(Boolean).join(' — '),
+        prochaine_action: 'Relancer le devis', prochaine_action_date: addDays(7),
+      })
+    } catch { /* l'historique est un bonus : ne bloque pas l'envoi */ }
+    await reload()
+  }
+
+  // Ouvre la fenêtre d'envoi pré-remplie (destinataire, objet, message).
+  const sendDevis = (d) => {
     const o = oppOf(d)
     if (!o) return
     const contact = contactsById.get(o.contact_id) || null
+    const { to, subject, body } = devisMailContent(d, contact, COMPANY)
+    setSendState({ devis: d, initial: { to, subject, body }, error: '' })
+  }
+
+  const draftEmailAi = async () => {
+    const d = sendState.devis
+    const o = oppOf(d)
+    const contact = contactsById.get(o?.contact_id) || null
+    const totals = computeDevisTotals(normalizeLignes(d.lignes), d)
+    const { data } = await apiPost('/api/devis-ia', {
+      action: 'email',
+      devis: { numero: d.numero, objet: d.objet, total_ht: totals.ht, total_ttc: totals.ttc, date_validite: d.date_validite },
+      clientName: contact ? (contact.nom || contact.societe) : '',
+      affaire: o?.titre || '',
+      signature: companySignature(COMPANY),
+    })
+    return data
+  }
+
+  const submitSend = async (form) => {
+    const d = sendState.devis
+    const o = oppOf(d)
+    const contact = contactsById.get(o?.contact_id) || null
     setSaving(true)
+    setSendState(st => ({ ...st, error: '' }))
     try {
-      await downloadDevisPdf(d)
-      const sent = await setDevisStatut(d, 'Envoyé')
-      const ht = Number(sent?.total_ht ?? d.total_ht) || 0
-      if (!isClosed(o.etape)) {
-        const behind = ETAPES_ACTIVES.indexOf(o.etape) < ETAPES_ACTIVES.indexOf('Devis envoyé')
-        await moveOpportunite(o, behind ? 'Devis envoyé' : o.etape, { montant_estime: ht })
-      }
+      const lignes = normalizeLignes(d.lignes)
+      const { generateDevisPdf } = await import('../generators')
+      const { base64, filename } = await generateDevisPdf({ ...d, lignes }, {
+        contact, opportunite: o, totals: computeDevisTotals(lignes, d), returnBase64: true,
+      })
       try {
-        await upsertInteraction({
-          opportunite_id: o.id, contact_id: o.contact_id || null, type: 'Email',
-          sujet: `Devis ${d.numero} envoyé`, contenu: `${fmtEur(ht)} HT`,
-          prochaine_action: 'Relancer le devis', prochaine_action_date: addDays(7),
+        await apiPost('/api/devis/send', {
+          to: form.to, cc: form.cc, subject: form.subject, text: form.body,
+          copyMe: form.copyMe, pdfBase64: base64, filename,
         })
-      } catch { /* l'historique est un bonus : ne bloque pas l'envoi */ }
-      await reload()
-      if (typeof window !== 'undefined') window.location.href = devisMailto(d, contact, COMPANY)
-      addToast(contact?.email
-        ? `Devis ${d.numero} envoyé · joins le PDF téléchargé au mail · relance dans 7 jours`
-        : `Devis ${d.numero} marqué envoyé · pas d’email pour ce contact, envoie le PDF manuellement`, 'success')
-    } catch (e) { addToast(e?.message || 'Envoi impossible', 'error') }
-    finally { setSaving(false) }
+      } catch (e) {
+        if (e.code !== 'EMAIL_NOT_CONFIGURED') throw e
+        // Repli : PDF téléchargé + mail pré-rempli dans la messagerie
+        await downloadDevisPdf(d)
+        await markDevisSent(d, `Préparé pour ${form.to}`)
+        setSendState(null)
+        if (typeof window !== 'undefined') {
+          window.location.href = `mailto:${encodeURIComponent(form.to)}?subject=${encodeURIComponent(form.subject)}&body=${encodeURIComponent(form.body)}`
+        }
+        addToast('Envoi direct non configuré : joins le PDF téléchargé au mail qui s’ouvre · relance dans 7 jours', 'info')
+        return
+      }
+      await markDevisSent(d, `Envoyé par mail à ${form.to}`)
+      setSendState(null)
+      addToast(`Devis ${d.numero} envoyé à ${form.to} · relance dans 7 jours`, 'success')
+    } catch (e) {
+      setSendState(st => (st ? { ...st, error: e?.message || 'Envoi impossible' } : st))
+    } finally { setSaving(false) }
   }
 
   const saveDevis = async ({ send = false } = {}) => {
@@ -382,7 +476,7 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
     }
     setSaving(false)
     closeDevis()
-    if (send) await sendDevis(saved)
+    if (send) sendDevis(saved)
     else addToast(`Devis ${saved.numero} enregistré`, 'success')
   }
 
@@ -690,7 +784,18 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
         {devisForm && (
           <DevisEditor form={devisForm} setForm={setDevisForm} m={m} error={devisError} saving={saving}
             onCancel={closeDevis} onPreview={previewDevis}
-            onSave={() => saveDevis()} onSend={() => saveDevis({ send: true })} />
+            onSave={() => saveDevis()} onSend={() => saveDevis({ send: true })}
+            history={priceHistory} checks={devisChecks} onAiGenerate={aiGenerate} />
+        )}
+      </Modal>
+
+      {/* ─── ENVOI DU DEVIS PAR MAIL ─── */}
+      <Modal open={!!sendState} onClose={() => !saving && setSendState(null)}
+        title={sendState ? `Envoyer le devis ${sendState.devis.numero}` : ''}>
+        {sendState && (
+          <DevisSendForm initial={sendState.initial} filename={`${sendState.devis.numero}.pdf`}
+            sending={saving} error={sendState.error}
+            onDraftAi={draftEmailAi} onSubmit={submitSend} onCancel={() => setSendState(null)} />
         )}
       </Modal>
 
