@@ -5,7 +5,7 @@ import { loadCrm } from '../lib/crmDb'
 
 export const CRM_KEY = ['crm', 'all']
 
-const EMPTY = { opportunites: [], interactions: [], missingMigration: false }
+const EMPTY = { opportunites: [], interactions: [], devis: [], missingMigration: false, devisMissing: false }
 
 /**
  * useCrmData — charge opportunités + interactions via React Query.

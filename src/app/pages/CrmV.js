@@ -1,6 +1,6 @@
 'use client'
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
-import { SB, Icon, I, FF, inp, sel, btnP, btnS, fmtMoney, fmtDate } from '../dashboards/shared'
+import { SB, COMPANY, Icon, I, FF, inp, sel, btnP, btnS, fmtMoney, fmtDate } from '../dashboards/shared'
 import { Badge, Modal, EmptyState, ContactPicker, AddressPicker } from '../components'
 import { PageSkeleton } from '../components/Skeleton'
 import { useToast } from '../contexts/ToastContext'
@@ -15,8 +15,35 @@ import {
 import {
   upsertOpportunite, moveOpportunite, deleteOpportunite,
   upsertInteraction, setActionFaite, deleteInteraction,
-  linkOpportuniteToChantier,
+  linkOpportuniteToChantier, upsertDevis, setDevisStatut, deleteDevis,
 } from '../lib/crmDb'
+import {
+  devisFromOpportunite, duplicateDevis, validateDevis, computeDevisTotals,
+  normalizeLignes, devisMailContent, companySignature,
+} from '../lib/devis'
+import DevisEditor, { fmtEur } from '../components/crm/DevisEditor'
+import DevisList from '../components/crm/DevisList'
+import DevisSendForm from '../components/crm/DevisSendForm'
+import { buildPriceHistory, checkDevis, buildAiContext } from '../lib/devisAi'
+import { supabase } from '../supabaseClient'
+
+// Appel d'une route /api/* avec le JWT de la session. Lève une Error avec
+// le message serveur ; `code` est propagé (ex. EMAIL_NOT_CONFIGURED).
+async function apiPost(path, body) {
+  const { data: { session } = {} } = await supabase.auth.getSession()
+  const res = await fetch(path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token || ''}` },
+    body: JSON.stringify(body),
+  })
+  const json = await res.json().catch(() => ({}))
+  if (!res.ok || !json.ok) {
+    const err = new Error(json.error || `Erreur ${res.status}`)
+    err.code = json.code
+    throw err
+  }
+  return json
+}
 
 const TYPES_PROJET = ['Rénovation', 'Construction neuve', 'Extension', 'Réhabilitation', 'Aménagement', 'Autre']
 const todayISO = () => new Date().toISOString().slice(0, 10)
@@ -30,7 +57,7 @@ const nextWeekday = (dow) => { // 1 = lundi … 5 = vendredi
 // un seul bouton : l'utilisateur n'a pas à réfléchir à « quoi faire ».
 const NEXT_STEP = {
   'Prospect':     { text: 'Appelle le client pour comprendre son projet.', cta: '📞 Noter un appel', action: 'call' },
-  'Qualifié':     { text: 'Le besoin est clair : envoie le devis.',       cta: '→ Devis envoyé',   action: 'advance' },
+  'Qualifié':     { text: 'Le besoin est clair : prépare et envoie le devis.', cta: '📄 Créer le devis', action: 'devis' },
   'Devis envoyé': { text: 'Relance le client si tu n’as pas de réponse.', cta: '📞 Noter une relance', action: 'call' },
   'Négociation':  { text: 'Conclus : gagné ou perdu ?',                   cta: null },
 }
@@ -51,6 +78,14 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
   const confirm = useConfirm()
   const { crm, loading, error, reload } = useCrmData()
   const { opportunites, interactions, missingMigration } = crm
+  const allDevis = useMemo(() => crm.devis || [], [crm.devis])
+  const devisMissing = !!crm.devisMissing
+  // Numéros déjà utilisés dans Qonto : la numérotation continue à leur suite
+  const [qontoNumbers, setQontoNumbers] = useState([])
+  const numberingBase = useMemo(
+    () => [...allDevis, ...qontoNumbers.map(numero => ({ numero }))],
+    [allDevis, qontoNumbers],
+  )
 
   const [view, setView] = useState('pipeline')       // pipeline | relances | closed
   const [q, setQ] = useState('')
@@ -67,6 +102,9 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
   const [dragId, setDragId] = useState(null)
   const [dragOver, setDragOver] = useState(null)
   const [saving, setSaving] = useState(false)
+  const [devisForm, setDevisForm] = useState(null)   // null | devis en édition
+  const [devisError, setDevisError] = useState('')
+  const [sendState, setSendState] = useState(null)  // null | { devis, initial, error }
   const quickRef = useRef(null)
 
   const contactsById = useMemo(() => {
@@ -121,6 +159,16 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
   }
   const closeOppModal = () => { setOppModal(null); setOppError('') }
 
+  // Numéros Qonto chargés une fois (silencieux si Qonto n'est pas connecté)
+  useEffect(() => {
+    if (devisMissing) return
+    let alive = true
+    apiPost('/api/devis/qonto', { action: 'numbers' })
+      .then(({ data: d }) => { if (alive) setQontoNumbers(d?.numbers || []) })
+      .catch(() => {})
+    return () => { alive = false }
+  }, [devisMissing])
+
   // Raccourci « n » = nouvelle affaire
   useEffect(() => {
     const handler = (e) => {
@@ -128,12 +176,12 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
       const t = e.target
       const tag = (t?.tagName || '').toLowerCase()
       if (tag === 'input' || tag === 'textarea' || tag === 'select' || t?.isContentEditable) return
-      if (oppModal || intModal || selectedId) return
+      if (oppModal || intModal || selectedId || devisForm) return
       if (e.key === 'n' || e.key === 'N') { e.preventDefault(); quickRef.current?.focus() }
     }
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
-  }, [oppModal, intModal, selectedId])
+  }, [oppModal, intModal, selectedId, devisForm])
 
   // Navigation entrante (recherche globale, Contacts, Qonto, Dashboard)
   useEffect(() => {
@@ -287,6 +335,230 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
     const ok = await confirm({ title: 'Supprimer cet échange ?', confirmLabel: 'Supprimer', danger: true })
     if (!ok) return
     try { await deleteInteraction(it.id); await reload() }
+    catch (e) { addToast(e?.message || 'Suppression impossible', 'error') }
+  }
+
+  // ─── Devis (migration 027) ───
+  const oppOf = (d) => opportunites.find(o => o.id === d?.opportunite_id) || null
+  // Les inputs manipulent des chaînes : on convertit les nombres persistés.
+  const toForm = (d) => ({
+    ...d,
+    remise_pct: Number(d.remise_pct) ? String(d.remise_pct) : '',
+    acompte_pct: Number(d.acompte_pct) ? String(d.acompte_pct) : '',
+    lignes: (d.lignes || []).map(l => (l.type === 'titre' ? { ...l } : {
+      ...l, quantite: String(l.quantite ?? ''), prix_unitaire: String(l.prix_unitaire ?? ''), tva_taux: String(l.tva_taux ?? '20'),
+    })),
+  })
+  const openNewDevis = (o, { resume = true } = {}) => {
+    // Depuis « Et maintenant ? » : un brouillon existant est repris plutôt
+    // que d'en créer un second.
+    const draft = resume && allDevis.find(d => d.opportunite_id === o.id && d.statut === 'Brouillon')
+    setDevisError('')
+    setDevisForm(draft ? toForm(draft) : devisFromOpportunite(o, numberingBase))
+  }
+  const openDevis = (d) => { setDevisError(''); setDevisForm(toForm(d)) }
+  const closeDevis = () => { setDevisForm(null); setDevisError('') }
+
+  const downloadDevisPdf = async (d) => {
+    const o = oppOf(d)
+    const lignes = normalizeLignes(d.lignes)
+    const { generateDevisPdf } = await import('../generators')
+    await generateDevisPdf({ ...d, lignes }, {
+      contact: contactsById.get(o?.contact_id) || null,
+      opportunite: o,
+      totals: computeDevisTotals(lignes, d),
+    })
+  }
+  const previewDevis = async () => {
+    try { await downloadDevisPdf(devisForm) }
+    catch (e) { addToast(e?.message || 'Génération du PDF impossible', 'error') }
+  }
+
+  // ─── Intelligence : prix habituels, vérifications, IA ───
+  const priceHistory = useMemo(() => buildPriceHistory(allDevis), [allDevis])
+  const devisOpp = devisForm ? oppOf(devisForm) : null
+  const devisChecks = useMemo(() => (devisForm ? checkDevis(devisForm, {
+    opportunite: devisOpp, contact: contactsById.get(devisOpp?.contact_id) || null, history: priceHistory,
+  }) : []), [devisForm, devisOpp, contactsById, priceHistory])
+
+  const aiGenerate = async (description) => {
+    const o = oppOf(devisForm)
+    const { data } = await apiPost('/api/devis-ia', {
+      action: 'generate',
+      description,
+      context: buildAiContext({
+        opportunite: o,
+        contact: contactsById.get(o?.contact_id) || null,
+        interactions: interactions.filter(i => i.opportunite_id === o?.id),
+        history: priceHistory,
+      }),
+    })
+    return data
+  }
+
+  // Le devis passe « Envoyé », l'affaire en « Devis envoyé » (montant =
+  // total HT) et une relance est programmée à J+7.
+  const markDevisSent = async (d, note) => {
+    const o = oppOf(d)
+    const sent = await setDevisStatut(d, 'Envoyé')
+    const ht = Number(sent?.total_ht ?? d.total_ht) || 0
+    if (o && !isClosed(o.etape)) {
+      const behind = ETAPES_ACTIVES.indexOf(o.etape) < ETAPES_ACTIVES.indexOf('Devis envoyé')
+      await moveOpportunite(o, behind ? 'Devis envoyé' : o.etape, { montant_estime: ht })
+    }
+    try {
+      await upsertInteraction({
+        opportunite_id: o?.id || d.opportunite_id, contact_id: o?.contact_id || null, type: 'Email',
+        sujet: `Devis ${d.numero} envoyé`, contenu: [note, `${fmtEur(ht)} HT`].filter(Boolean).join(' — '),
+        prochaine_action: 'Relancer le devis', prochaine_action_date: addDays(7),
+      })
+    } catch { /* l'historique est un bonus : ne bloque pas l'envoi */ }
+    await reload()
+  }
+
+  // Enregistre (ou met à jour) le devis dans Qonto, même numéro.
+  // Retourne le devis à jour (numéro éventuellement repris de Qonto).
+  const syncQonto = async (d) => {
+    const { data: r } = await apiPost('/api/devis/qonto', { action: 'sync', devisId: d.id })
+    if (r.qontoNumber) setQontoNumbers(ns => (ns.includes(r.qontoNumber) ? ns : [r.qontoNumber, ...ns]))
+    if (r.mismatch) {
+      addToast(`Qonto affiche ${fmtEur(r.mismatch.qonto)} TTC contre ${fmtEur(r.mismatch.app)} ici : vérifie le devis dans Qonto`, 'error')
+    }
+    if (r.renumbered) addToast(`Qonto a numéroté ce devis ${r.renumbered} : numéro repris dans l’application`, 'info')
+    return { ...d, ...r.devis, created: r.created }
+  }
+  const qontoDevis = async (d) => {
+    setSaving(true)
+    try {
+      const r = await syncQonto(d)
+      await reload()
+      addToast(`Devis ${r.numero} ${r.created ? 'enregistré' : 'mis à jour'} dans Qonto`, 'success')
+    } catch (e) {
+      addToast(e?.message || 'Enregistrement dans Qonto impossible', 'error')
+    } finally { setSaving(false) }
+  }
+
+  // Ouvre la fenêtre d'envoi pré-remplie (destinataire, objet, message).
+  const sendDevis = (d) => {
+    const o = oppOf(d)
+    if (!o) return
+    const contact = contactsById.get(o.contact_id) || null
+    const { to, subject, body } = devisMailContent(d, contact, COMPANY)
+    setSendState({ devis: d, initial: { to, subject, body }, error: '' })
+  }
+
+  const draftEmailAi = async () => {
+    const d = sendState.devis
+    const o = oppOf(d)
+    const contact = contactsById.get(o?.contact_id) || null
+    const totals = computeDevisTotals(normalizeLignes(d.lignes), d)
+    const { data } = await apiPost('/api/devis-ia', {
+      action: 'email',
+      devis: { numero: d.numero, objet: d.objet, total_ht: totals.ht, total_ttc: totals.ttc, date_validite: d.date_validite },
+      clientName: contact ? (contact.nom || contact.societe) : '',
+      affaire: o?.titre || '',
+      signature: companySignature(COMPANY),
+    })
+    return data
+  }
+
+  const submitSend = async (form) => {
+    let d = sendState.devis
+    const o = oppOf(d)
+    const contact = contactsById.get(o?.contact_id) || null
+    setSaving(true)
+    setSendState(st => ({ ...st, error: '' }))
+    try {
+      // Le devis envoyé est aussi enregistré dans Qonto (même numéro).
+      // Numéro déjà pris : on bloque l'envoi ; autre souci Qonto : on
+      // envoie quand même et on prévient.
+      try {
+        const before = d.numero
+        d = await syncQonto(d)
+        if (d.numero !== before) {
+          form = { ...form, subject: form.subject.split(before).join(d.numero), body: form.body.split(before).join(d.numero) }
+        }
+      } catch (e) {
+        if (e.code === 'NUMBER_TAKEN') throw e
+        if (e.code !== 'QONTO_NOT_CONFIGURED' && e.code !== 'MIGRATION_028') {
+          addToast(`Devis non enregistré dans Qonto : ${e?.message || 'erreur'}`, 'error')
+        }
+      }
+      const lignes = normalizeLignes(d.lignes)
+      const { generateDevisPdf } = await import('../generators')
+      const { base64, filename } = await generateDevisPdf({ ...d, lignes }, {
+        contact, opportunite: o, totals: computeDevisTotals(lignes, d), returnBase64: true,
+      })
+      try {
+        await apiPost('/api/devis/send', {
+          to: form.to, cc: form.cc, subject: form.subject, text: form.body,
+          copyMe: form.copyMe, pdfBase64: base64, filename,
+        })
+      } catch (e) {
+        if (e.code !== 'EMAIL_NOT_CONFIGURED') throw e
+        // Repli : PDF téléchargé + mail pré-rempli dans la messagerie
+        await downloadDevisPdf(d)
+        await markDevisSent(d, `Préparé pour ${form.to}`)
+        setSendState(null)
+        if (typeof window !== 'undefined') {
+          window.location.href = `mailto:${encodeURIComponent(form.to)}?subject=${encodeURIComponent(form.subject)}&body=${encodeURIComponent(form.body)}`
+        }
+        addToast('Envoi direct non configuré : joins le PDF téléchargé au mail qui s’ouvre · relance dans 7 jours', 'info')
+        return
+      }
+      await markDevisSent(d, `Envoyé par mail à ${form.to}`)
+      setSendState(null)
+      addToast(`Devis ${d.numero} envoyé à ${form.to} · relance dans 7 jours`, 'success')
+    } catch (e) {
+      setSendState(st => (st ? { ...st, error: e?.message || 'Envoi impossible' } : st))
+    } finally { setSaving(false) }
+  }
+
+  const saveDevis = async ({ send = false } = {}) => {
+    const err = validateDevis(devisForm)
+    if (err) { setDevisError(err); return }
+    setSaving(true)
+    let saved
+    try {
+      saved = await upsertDevis(devisForm)
+      await reload()
+    } catch (e) {
+      setDevisError(e?.message || "Erreur lors de l'enregistrement.")
+      setSaving(false)
+      return
+    }
+    setSaving(false)
+    closeDevis()
+    if (send) sendDevis(saved)
+    else addToast(`Devis ${saved.numero} enregistré`, 'success')
+  }
+
+  const acceptDevis = async (d) => {
+    const o = oppOf(d)
+    setSaving(true)
+    try {
+      await setDevisStatut(d, 'Accepté')
+      await reload()
+    } catch (e) { addToast(e?.message || 'Mise à jour impossible', 'error'); setSaving(false); return }
+    setSaving(false)
+    addToast(`Devis ${d.numero} accepté 🎉`, 'success')
+    if (o && o.etape !== 'Gagné') await changeEtape({ ...o, montant_estime: Number(d.total_ht) || o.montant_estime }, 'Gagné')
+  }
+  const refuseDevis = async (d) => {
+    try {
+      await setDevisStatut(d, 'Refusé')
+      await reload()
+      addToast(`Devis ${d.numero} refusé · duplique-le pour une version révisée, ou marque l’affaire perdue`, 'info')
+    } catch (e) { addToast(e?.message || 'Mise à jour impossible', 'error') }
+  }
+  const duplicateDevisAction = (d) => {
+    setDevisError('')
+    setDevisForm(toForm(duplicateDevis(d, numberingBase)))
+  }
+  const removeDevis = async (d) => {
+    const ok = await confirm({ title: `Supprimer le devis ${d.numero} ?`, confirmLabel: 'Supprimer', danger: true })
+    if (!ok) return
+    try { await deleteDevis(d); await reload(); addToast('Devis supprimé', 'success') }
     catch (e) { addToast(e?.message || 'Suppression impossible', 'error') }
   }
 
@@ -546,7 +818,37 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
             onAddInteraction={(preset) => openNewInteraction(selected, preset)}
             onToggleAction={toggleAction}
             onDeleteInteraction={removeInteraction}
+            devis={allDevis.filter(d => d.opportunite_id === selected.id)}
+            devisMissing={devisMissing}
+            onNewDevis={() => openNewDevis(selected)}
+            devisActions={{
+              onNew: () => openNewDevis(selected, { resume: false }),
+              onOpen: openDevis, onPdf: (d) => downloadDevisPdf(d).catch(e => addToast(e?.message || 'PDF impossible', 'error')),
+              onSend: sendDevis, onAccept: acceptDevis, onRefuse: refuseDevis,
+              onDuplicate: duplicateDevisAction, onDelete: removeDevis, onQonto: qontoDevis,
+            }}
           />
+        )}
+      </Modal>
+
+      {/* ─── ÉDITEUR DE DEVIS ─── */}
+      <Modal open={!!devisForm} onClose={closeDevis} wide
+        title={devisForm ? `Devis ${devisForm.numero}${oppOf(devisForm) ? ` · ${oppOf(devisForm).titre}` : ''}` : ''}>
+        {devisForm && (
+          <DevisEditor form={devisForm} setForm={setDevisForm} m={m} error={devisError} saving={saving}
+            onCancel={closeDevis} onPreview={previewDevis}
+            onSave={() => saveDevis()} onSend={() => saveDevis({ send: true })}
+            history={priceHistory} checks={devisChecks} onAiGenerate={aiGenerate} />
+        )}
+      </Modal>
+
+      {/* ─── ENVOI DU DEVIS PAR MAIL ─── */}
+      <Modal open={!!sendState} onClose={() => !saving && setSendState(null)}
+        title={sendState ? `Envoyer le devis ${sendState.devis.numero}` : ''}>
+        {sendState && (
+          <DevisSendForm initial={sendState.initial} filename={`${sendState.devis.numero}.pdf`}
+            sending={saving} error={sendState.error}
+            onDraftAi={draftEmailAi} onSubmit={submitSend} onCancel={() => setSendState(null)} />
         )}
       </Modal>
 
@@ -801,12 +1103,14 @@ function OpportuniteDetail({
   o, m, contact, chantier, interactions, saving,
   onEdit, onDelete, onChangeEtape, onConvert, onGoChantier, onGoContact,
   onAddInteraction, onToggleAction, onDeleteInteraction,
+  devis = [], devisMissing = false, onNewDevis, devisActions = {},
 }) {
   const color = ETAPE_COLORS[o.etape]
   const closed = isClosed(o.etape)
   const next = nextEtape(o.etape)
   const hint = NEXT_STEP[o.etape]
   const pendingRelance = interactions.find(i => i.prochaine_action_date && !i.action_faite)
+  const draft = devis.find(d => d.statut === 'Brouillon')
   return (
     <div>
       {/* Bandeau étape + actions */}
@@ -857,6 +1161,12 @@ function OpportuniteDetail({
               <button onClick={() => onToggleAction(pendingRelance)} style={{ ...btnS, fontSize: 12 }}>✓ Fait</button>
             ) : hint?.action === 'call' ? (
               <button onClick={() => onAddInteraction({ type: 'Appel' })} style={{ ...btnP, fontSize: 12 }}>{hint.cta}</button>
+            ) : hint?.action === 'devis' && !devisMissing ? (
+              <button onClick={onNewDevis} disabled={saving} style={{ ...btnP, fontSize: 12 }}>
+                {draft ? '📄 Reprendre le devis' : hint.cta}
+              </button>
+            ) : hint?.action === 'devis' && next ? (
+              <button onClick={() => onChangeEtape(next)} disabled={saving} style={{ ...btnP, fontSize: 12 }}>→ {next}</button>
             ) : hint?.action === 'advance' && next ? (
               <button onClick={() => onChangeEtape(next)} disabled={saving} style={{ ...btnP, fontSize: 12 }}>{hint.cta}</button>
             ) : null}
@@ -907,6 +1217,11 @@ function OpportuniteDetail({
       </div>
       {o.notes && (
         <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 8, padding: 10, fontSize: 12, color: '#334155', whiteSpace: 'pre-wrap', marginBottom: 12 }}>{o.notes}</div>
+      )}
+
+      {/* Devis : affichés dès qu'il en existe, ou à partir de « Qualifié » */}
+      {(devis.length > 0 || (!closed && o.etape !== 'Prospect')) && (
+        <DevisList devis={devis} missing={devisMissing} saving={saving} {...devisActions} />
       )}
 
       {/* Échanges */}
