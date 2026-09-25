@@ -219,7 +219,7 @@ export function qontoQuoteAmount(q = {}) {
  * - qonto_quote_id sert de clé anti-doublon (migration 026).
  */
 export function quoteToOpportunite(q, contacts = []) {
-  const email = (q.contact_email || '').toLowerCase().trim()
+  const email = (q.contact_email || q.client?.email || '').toLowerCase().trim()
   const contact = email ? contacts.find(c => (c.email || '').toLowerCase().trim() === email) : null
   const etape = q.status === 'approved' ? 'Gagné' : q.status === 'canceled' ? 'Perdu' : 'Devis envoyé'
   const who = contact ? (contact.societe || contact.nom) : (q.contact_email || 'Client Qonto')

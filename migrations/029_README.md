@@ -15,7 +15,10 @@ devis (« bon pour accord »).
 3. La signature, le nom, la date et l'heure sont apposés sur la dernière page
    du PDF. Sont conservés comme preuves : date/heure, adresse IP, navigateur,
    empreinte SHA-256 du PDF d'origine (imprimée sur le PDF signé).
-4. Le devis passe « Accepté », l'affaire « Gagné ». Le PDF signé se
+4. Le devis passe « Accepté », l'affaire « Gagné ». L'équipe est prévenue :
+   notification dans l'application (cloche, tout le staff actif) et mail avec
+   le PDF signé sur la boîte de la société (`DEVIS_NOTIFY_EMAIL`, sinon
+   `SMTP_USER`). Le PDF signé se
    télécharge depuis la liste des devis (« ✍️ PDF signé »).
 
 Le lien n'est plus utilisable après signature, ni après la date de validité

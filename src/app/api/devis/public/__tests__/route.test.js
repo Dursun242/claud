@@ -4,7 +4,7 @@
 import { PDFDocument } from 'pdf-lib'
 import crypto from 'node:crypto'
 
-let GET, POST, db, updates, uploads, inserts
+let GET, POST, db, updates, uploads, inserts, sendMail
 
 const TOKEN = 'b'.repeat(64)
 const PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='
@@ -21,7 +21,7 @@ function fakeAdmin() {
         update: (patch) => { q.patch = patch; updates.push({ table, patch }); return b },
         insert: async (row) => { inserts.push({ table, row }); return { error: null } },
         maybeSingle: async () => ({ data: table === 'crm_devis' ? (q.filters.some(([k, v]) => k === 'sign_token' && v === db.devis?.sign_token) ? db.devis : null) : db[table], error: null }),
-        then: (res) => res({ data: db.alreadySigned ? [] : [{ id: 'd1' }], error: null }),
+        then: (res) => res(table === 'authorized_users' ? { data: db.staff || [], error: null } : { data: db.alreadySigned ? [] : [{ id: 'd1' }], error: null }),
       }
       return b
     },
@@ -53,6 +53,11 @@ beforeEach(() => {
   jest.spyOn(console, 'error').mockImplementation(() => {})
   jest.resetModules()
   jest.doMock('@/app/lib/supabaseClients', () => ({ adminClient: () => fakeAdmin() }))
+  sendMail = jest.fn().mockResolvedValue({})
+  jest.doMock('@/app/lib/mailer', () => ({
+    smtpConfig: () => ({ transport: {}, from: 'contact@id-maitrise.com', notify: 'contact@id-maitrise.com' }),
+    sendMail,
+  }))
   ;({ GET, POST } = require('../route'))
   updates = []; uploads = []; inserts = []
   db = {
@@ -94,6 +99,30 @@ describe('/api/devis/public', () => {
     })
     expect(updates.find(u => u.table === 'crm_opportunites').patch).toMatchObject({ etape: 'Gagné', probabilite: 100, montant_estime: 5000 })
     expect(inserts[0].row).toMatchObject({ opportunite_id: 'o1', type: 'Note', sujet: 'Devis D-2026-032 signé en ligne' })
+  })
+
+  it('POST : prévient l’équipe (notification + mail avec le PDF signé)', async () => {
+    db.staff = [
+      { email: 'Moe@id-maitrise.com', role: 'admin', actif: true },
+      { email: 'client@x.fr', role: 'client', actif: true },
+      { email: 'ancien@id-maitrise.com', role: 'salarie', actif: false },
+    ]
+    db.crm_opportunites = { ...db.crm_opportunites, titre: 'Garage Ozkan' }
+    expect((await POST(sign())).status).toBe(200)
+    const notifs = inserts.filter(i => i.table === 'notifications').flatMap(i => i.row)
+    expect(notifs).toEqual([expect.objectContaining({
+      recipient_email: 'moe@id-maitrise.com', entity_type: 'devis', entity_id: 'd1', target_tab: 'crm',
+      title: '✍️ Devis D-2026-032 signé par Dursun OZKAN',
+    })])
+    const mail = sendMail.mock.calls[0][1]
+    expect(mail).toMatchObject({ to: 'contact@id-maitrise.com', subject: '✍️ Devis D-2026-032 signé par Dursun OZKAN' })
+    expect(mail.text).toContain('Affaire : Garage Ozkan')
+    expect(mail.attachments[0].content.subarray(0, 4).toString()).toBe('%PDF')
+  })
+
+  it('POST : un échec d’envoi du mail ne bloque pas la signature', async () => {
+    sendMail.mockRejectedValueOnce(Object.assign(new Error('auth'), { code: 'EAUTH' }))
+    expect((await POST(sign())).status).toBe(200)
   })
 
   it('POST : refuse sans nom, sans signature, sans accord', async () => {

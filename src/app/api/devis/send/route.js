@@ -8,11 +8,11 @@
 // La route n'écrit rien en base : le passage du devis en « Envoyé » est fait
 // côté front après un envoi réussi (même logique que le flux manuel).
 
-import nodemailer from 'nodemailer'
 import { verifyStaff } from '@/app/lib/auth'
 import { createLogger } from '@/app/lib/logger'
 import { createRateLimiter } from '@/app/lib/rateLimit'
 import { parseEmails } from '@/app/lib/devisAi'
+import { smtpConfig, smtpErrorMessage, sendMail } from '@/app/lib/mailer'
 
 export const maxDuration = 30
 
@@ -21,40 +21,6 @@ const checkRate = createRateLimiter({ limit: 10, windowMs: 60_000 })
 
 const MAX_PDF_BYTES = 8 * 1024 * 1024
 const MAX_RECIPIENTS = 10
-
-// Valeurs saisies à la main dans Vercel : on tolère espaces et guillemets
-// autour, et les espaces dans le mot de passe d'application Google (affiché
-// par groupes de 4 : « abcd efgh ijkl mnop »).
-const clean = (v) => String(v ?? '').trim().replace(/^(["'])(.*)\1$/, '$2').trim()
-
-function smtpConfig() {
-  const host = clean(process.env.SMTP_HOST)
-  const user = clean(process.env.SMTP_USER)
-  const pass = clean(process.env.SMTP_PASS).replace(/\s+/g, '')
-  if (!host || !user || !pass) return null
-  const port = Number(clean(process.env.SMTP_PORT)) || 465
-  return {
-    transport: { host, port, secure: port === 465, auth: { user, pass } },
-    from: clean(process.env.DEVIS_EMAIL_FROM) || user,
-  }
-}
-
-// Message compréhensible selon l'erreur SMTP (nodemailer expose err.code).
-function smtpErrorMessage(err) {
-  const code = err?.code || ''
-  const resp = Number(err?.responseCode) || 0
-  if (code === 'EAUTH' || resp === 535 || resp === 534) {
-    return 'Identifiants refusés par le serveur mail. Avec Gmail, SMTP_PASS doit être un mot de passe d’application (16 caractères), pas le mot de passe du compte.'
-  }
-  if (code === 'ECONNECTION' || code === 'ETIMEDOUT' || code === 'ESOCKET' || code === 'EDNS') {
-    return 'Serveur mail injoignable : vérifie SMTP_HOST (smtp.gmail.com) et SMTP_PORT (465).'
-  }
-  if (code === 'EENVELOPE' || resp === 550 || resp === 553) {
-    return 'Adresse refusée par le serveur mail : vérifie le destinataire et DEVIS_EMAIL_FROM.'
-  }
-  if (code === 'EMESSAGE' || resp === 552) return 'Message refusé par le serveur mail (pièce jointe trop lourde ?).'
-  return 'L’envoi a échoué — vérifie la configuration SMTP.'
-}
 
 export async function POST(request) {
   try {
@@ -100,9 +66,7 @@ export async function POST(request) {
     const filename = (String(body.filename || 'Devis.pdf').replace(/[^\w.\- ]+/g, '_').slice(0, 80) || 'Devis.pdf')
       .replace(/(\.pdf)?$/i, '.pdf')
 
-    const transporter = nodemailer.createTransport(cfg.transport)
-    const info = await transporter.sendMail({
-      from: cfg.from,
+    const info = await sendMail(cfg, {
       to: to.list,
       cc: cc.list.length ? cc.list : undefined,
       // Copie à l'expéditeur : le devis envoyé reste dans la boîte mail

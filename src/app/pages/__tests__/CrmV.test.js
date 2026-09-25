@@ -504,6 +504,18 @@ describe('CrmV — envoi par mail et IA', () => {
     await waitFor(() => expect(addToast).toHaveBeenCalledWith('Devis 26-050 enregistré dans Qonto', 'success'))
   })
 
+  it('import des devis Qonto : confirmation puis toast du nombre importé', async () => {
+    const user = userEvent.setup()
+    routes['/api/devis/qonto'] = ({ action }) => (action === 'import'
+      ? reply({ ok: true, data: { imported: 3, conflicts: ['26-050'] } })()
+      : reply({ ok: true, data: { numbers: [], quotes: [], units: [] } })())
+    renderWith({ focusId: null })
+    await user.click(await screen.findByRole('button', { name: '↓ Devis Qonto' }))
+    await waitFor(() => expect(callsTo('/api/devis/qonto').map(c => c.body)).toContainEqual({ action: 'import' }))
+    await waitFor(() => expect(addToast).toHaveBeenCalledWith('3 devis Qonto importés dans le CRM', 'success'))
+    expect(addToast).toHaveBeenCalledWith('Non importés (numéro déjà utilisé dans le CRM) : 26-050', 'error')
+  })
+
   it('les unités des devis Qonto sont proposées dans l’éditeur', async () => {
     const user = userEvent.setup()
     crmDb.loadCrm.mockResolvedValue({ opportunites: [opp], interactions: [], devis: [], missingMigration: false })

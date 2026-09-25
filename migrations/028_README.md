@@ -45,3 +45,13 @@ et rien n'est envoyé à Qonto.
 - Le bouton PDF de la liste télécharge aussi le PDF Qonto.
 - Suivi : à l'ouverture du CRM, un devis accepté dans Qonto passe
   « Accepté » (affaire « Gagné »), un devis annulé passe « Refusé ».
+
+## Import des devis existants
+
+Bouton « ↓ Devis Qonto » du CRM : les devis présents dans Qonto mais pas
+encore dans le CRM sont importés (lignes, remise, conditions, statut
+accepté / annulé / envoyé). L'affaire liée au devis (migration 026) est
+réutilisée, sinon une affaire est créée (contact retrouvé par email).
+Idempotent : un devis déjà importé ou créé depuis le CRM est ignoré. Un
+numéro déjà utilisé par un autre devis du CRM est signalé et non importé.
+

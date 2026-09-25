@@ -14,6 +14,7 @@ import { createLogger } from '@/app/lib/logger'
 import { createRateLimiter } from '@/app/lib/rateLimit'
 import { adminClient } from '@/app/lib/supabaseClients'
 import { isSignToken, decodeSignaturePng, stampSignature, sha256 } from '@/app/lib/devisSignature'
+import { smtpConfig, sendMail } from '@/app/lib/mailer'
 
 export const maxDuration = 30
 
@@ -32,6 +33,51 @@ async function findByToken(admin, token) {
 }
 
 const isExpired = (d) => !!d.date_validite && d.date_validite < todayParis()
+
+const fmtEur = (n) => `${(Number(n) || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`
+
+/**
+ * Prévient l'équipe d'une signature : notification dans l'application
+ * (tout le staff actif) + mail avec le PDF signé sur la boîte de la société
+ * (DEVIS_NOTIFY_EMAIL, sinon SMTP_USER). Jamais bloquant pour le client.
+ */
+async function notifySigned(admin, devis, { name, signedAt, ip, signed, oppTitre }) {
+  const quand = signedAt.toLocaleString('fr-FR', { timeZone: 'Europe/Paris', dateStyle: 'short', timeStyle: 'short' })
+  const title = `✍️ Devis ${devis.numero} signé par ${name}`
+  const body = [oppTitre || devis.objet, `${fmtEur(devis.total_ttc)} TTC`, `le ${quand}`].filter(Boolean).join(' · ')
+
+  try {
+    const { data: staff } = await admin.from('authorized_users').select('email, role, actif')
+    const emails = [...new Set((staff || [])
+      .filter(u => u.actif === true && ['admin', 'salarie', 'salarié'].includes(u.role) && u.email)
+      .map(u => String(u.email).trim().toLowerCase()))]
+    if (emails.length) {
+      const { error } = await admin.from('notifications').insert(emails.map(recipient_email => ({
+        recipient_email, actor_email: null, kind: 'update', entity_type: 'devis', entity_id: devis.id,
+        chantier_id: null, title, body, target_tab: 'crm',
+      })))
+      if (error) log.warn('notification signature', error.message)
+    }
+  } catch (e) { log.warn('notification signature', e?.message || e) }
+
+  try {
+    const cfg = smtpConfig()
+    if (!cfg) return
+    await sendMail(cfg, {
+      to: cfg.notify,
+      subject: title,
+      text: [
+        'Bonne nouvelle : un devis vient d’être signé en ligne.', '',
+        `Devis : ${devis.numero}${devis.objet ? ` — ${devis.objet}` : ''}`,
+        oppTitre ? `Affaire : ${oppTitre}` : null,
+        `Montant : ${fmtEur(devis.total_ht)} HT · ${fmtEur(devis.total_ttc)} TTC`,
+        `Signé par : ${name}, le ${quand}${ip ? ` (IP ${ip})` : ''}`, '',
+        'Le devis est passé « Accepté » et l’affaire « Gagné » dans le CRM. Le PDF signé est joint.',
+      ].filter(l => l !== null).join('\n'),
+      attachments: [{ filename: `Devis ${String(devis.numero).replace(/[^\w.\- ]+/g, '_')} signé.pdf`, content: signed, contentType: 'application/pdf' }],
+    })
+  } catch (e) { log.warn('mail signature', e?.code || e?.message || e) }
+}
 
 export async function GET(request) {
   try {
@@ -125,8 +171,10 @@ export async function POST(request) {
     if (!updated?.length) return fail('Ce devis a déjà été signé.', 409)
 
     // Affaire gagnée + trace dans l'historique (bonus : n'échoue pas la signature)
+    let oppTitre = ''
     try {
-      const { data: opp } = await admin.from('crm_opportunites').select('id, etape, contact_id').eq('id', devis.opportunite_id).maybeSingle()
+      const { data: opp } = await admin.from('crm_opportunites').select('id, titre, etape, contact_id').eq('id', devis.opportunite_id).maybeSingle()
+      oppTitre = opp?.titre || ''
       if (opp && !['Gagné', 'Perdu'].includes(opp.etape)) {
         await admin.from('crm_opportunites').update({
           etape: 'Gagné', probabilite: 100, date_cloture: today, montant_estime: Number(devis.total_ht) || null,
@@ -142,6 +190,7 @@ export async function POST(request) {
       }
     } catch (e) { log.warn('suivi affaire', e?.message || e) }
 
+    await notifySigned(admin, devis, { name, signedAt, ip, signed, oppTitre })
     return Response.json({ ok: true, data: { signed_at: signedAt.toISOString(), signed_name: name } })
   } catch (err) {
     log.error('POST', err?.message || err)

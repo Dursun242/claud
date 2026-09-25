@@ -39,13 +39,13 @@ src/app/
 ├─ contexts/                  → ToastContext + ConfirmContext (non-invasive, context split pour éviter re-renders)
 ├─ hooks/                     → useFloatingMic, useAttachments, useComments, useUndoableDelete, useSignaturesSync, useCrmData...
 ├─ lib/                       → auth, fetchWithRetry, odoo, validators, notifications, activityLog, chantierFinances
-│                               crm.js (logique pure pipeline) + devis.js / devisAi.js / qontoDevis.js (calculs, prix habituels, vérifs devis, format Qonto) + crmDb.js (accès Supabase CRM, hors shared.js)
+│                               mailer.js (SMTP serveur) · crm.js (logique pure pipeline) + devis.js / devisAi.js / qontoDevis.js (calculs, prix habituels, vérifs devis, format Qonto) + crmDb.js (accès Supabase CRM, hors shared.js)
 │
 └─ api/                       → 23 routes. Pattern unique : verifyAuth() + createLogger() + mock-friendly.
     ├─ admin/*                → service role uniquement (users, demo-mode, reset-demo-data)
     ├─ claude/                → proxy Anthropic (rate limit 20/min/IP)
     ├─ devis-ia, devis/send   → CRM : IA de chiffrage + envoi SMTP du devis (staff only, verifyStaff)
-    ├─ devis/qonto            → CRM : devis créé dans Qonto (numéro + PDF Qonto), suivi des statuts (staff only)
+    ├─ devis/qonto            → CRM : devis créé dans Qonto (numéro + PDF Qonto), import des devis Qonto, suivi des statuts (staff only)
     ├─ devis/sign             → CRM : demande de signature électronique d'un devis (staff only)
     ├─ devis/public           → page publique /signer/<jeton> : consultation + signature du devis (sans compte, jeton)
     ├─ odoo/*                 → signatures

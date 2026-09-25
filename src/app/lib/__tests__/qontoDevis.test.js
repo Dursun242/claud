@@ -1,7 +1,7 @@
 import {
   toQontoQuote, qontoClientPayload, matchQontoClient,
   isNumberTaken, isUnitRejected, qontoErrorDetail, totalsMismatch, qontoFingerprint,
-  isNumberRequired, isTinMissing, sirenFromContact,
+  isNumberRequired, isTinMissing, sirenFromContact, qontoQuoteToDevis,
 } from '../qontoDevis'
 
 const devis = {
@@ -116,6 +116,35 @@ describe('SIREN du client', () => {
     expect(isTinMissing(422, tin)).toBe(true)
     expect(isNumberRequired(422, { errors: [{ source: { pointer: '/customer/tin_number' }, detail: "can't be blank" }] })).toBe(false)
     expect(isNumberRequired(422, { errors: [{ source: { pointer: '/number' }, detail: "can't be blank" }] })).toBe(true)
+  })
+})
+
+describe('qontoQuoteToDevis (import)', () => {
+  it('convertit lignes, TVA (fraction ou %), remise, statut et totaux', () => {
+    const d = qontoQuoteToDevis({
+      number: 'D-2026-020', status: 'approved', header: 'Mission MOE', issue_date: '2026-09-01', expiry_date: '2026-10-01',
+      approved_at: '2026-09-10T08:00:00Z', terms_and_conditions: 'CGV', footer: 'Merci',
+      items: [
+        { title: 'Études', description: 'Phase APS', quantity: '1', unit: 'forfait', unit_price: { value: '1000.00' }, vat_rate: '0.2' },
+        { title: 'Suivi', quantity: '2', unit: null, unit_price: { value: '500.00' }, vat_rate: '20.0' },
+      ],
+      discount: { type: 'amount', value: '200', amount: { value: '200.00' } },
+    })
+    expect(d).toMatchObject({
+      numero: 'D-2026-020', statut: 'Accepté', objet: 'Mission MOE', conditions: 'CGV', notes: 'Merci',
+      date_emission: '2026-09-01', date_validite: '2026-10-01', date_reponse: '2026-09-10', remise_pct: 10,
+      total_ht: 1800, total_tva: 360, total_ttc: 2160,
+    })
+    expect(d.lignes).toEqual([
+      { type: 'ligne', designation: 'Études — Phase APS', unite: 'forfait', quantite: 1, prix_unitaire: 1000, tva_taux: 20 },
+      { type: 'ligne', designation: 'Suivi', unite: 'u', quantite: 2, prix_unitaire: 500, tva_taux: 20 },
+    ])
+  })
+
+  it('statut : en attente → Envoyé, annulé → Refusé ; TVA 5,5 %', () => {
+    expect(qontoQuoteToDevis({ status: 'pending_approval', items: [] }).statut).toBe('Envoyé')
+    expect(qontoQuoteToDevis({ status: 'canceled', items: [] }).statut).toBe('Refusé')
+    expect(qontoQuoteToDevis({ items: [{ title: 'x', quantity: '1', unit_price: { value: '1' }, vat_rate: '0.055' }] }).lignes[0].tva_taux).toBe(5.5)
   })
 })
 

@@ -19,13 +19,14 @@ import { createLogger } from '@/app/lib/logger'
 import { createRateLimiter } from '@/app/lib/rateLimit'
 import { adminClient } from '@/app/lib/supabaseClients'
 import { nextDevisNumero } from '@/app/lib/devis'
+import { quoteToOpportunite } from '@/app/lib/crm'
 import {
   toQontoQuote, qontoClientPayload, matchQontoClient,
   isNumberTaken, isNumberRequired, isUnitRejected, qontoErrorDetail, totalsMismatch, qontoFingerprint,
-  isTinMissing, sirenFromContact,
+  isTinMissing, sirenFromContact, qontoQuoteToDevis,
 } from '@/app/lib/qontoDevis'
 
-export const maxDuration = 30
+export const maxDuration = 60
 
 const log = createLogger('devis-qonto')
 const checkRate = createRateLimiter({ limit: 20, windowMs: 60_000 })
@@ -223,6 +224,64 @@ async function sync(admin, token, devisId) {
   }
 }
 
+// Import des devis présents dans Qonto mais absents du CRM. Idempotent :
+// un devis déjà rattaché (qonto_quote_id) est ignoré. L'affaire liée au
+// devis (migration 026) est réutilisée, sinon une affaire est créée.
+async function importQuotes(admin, token, userEmail) {
+  const { data: linked, error } = await admin.from('crm_devis').select('qonto_quote_id')
+  if (error) {
+    if (/qonto_quote_id|column/i.test(error.message || '')) {
+      throw new QontoError('Appliquer la migration 028_crm_devis_qonto.sql sur Supabase pour importer les devis Qonto.', 409, 'MIGRATION_028')
+    }
+    throw new QontoError('Lecture des devis impossible : ' + error.message, 500)
+  }
+  const linkedIds = new Set((linked || []).map(d => d.qonto_quote_id).filter(Boolean).map(String))
+  const todo = (await listQuotes(token)).filter(q => q?.id && !linkedIds.has(String(q.id)))
+  if (!todo.length) return { imported: 0, conflicts: [] }
+
+  const { data: opps } = await admin.from('crm_opportunites').select('id, qonto_quote_id')
+  const oppByQuote = new Map((opps || []).filter(o => o.qonto_quote_id).map(o => [String(o.qonto_quote_id), o.id]))
+  const { data: contacts } = await admin.from('contacts').select('id, nom, societe, email')
+
+  let imported = 0
+  const conflicts = []
+  for (const summary of todo) {
+    let q = summary
+    if (!Array.isArray(q.items)) {
+      const r = await qonto(token, 'GET', `/quotes/${encodeURIComponent(q.id)}`)
+      if (!r.ok) { log.warn(`devis Qonto ${q.number} illisible`, r.status); continue }
+      q = r.json?.quote || r.json || q
+    }
+    const devis = qontoQuoteToDevis(q)
+    if (!devis.numero || !devis.lignes.length) continue
+
+    let oppId = oppByQuote.get(String(q.id))
+    if (!oppId) {
+      const { data: opp, error: oppErr } = await admin.from('crm_opportunites')
+        .insert({ ...quoteToOpportunite(q, contacts || []), created_by: userEmail || null }).select('id').single()
+      if (oppErr) { log.warn(`affaire pour ${q.number}`, oppErr.message); continue }
+      oppId = opp.id
+    }
+    const { error: insErr } = await admin.from('crm_devis').insert({
+      ...devis,
+      opportunite_id: oppId,
+      qonto_quote_id: String(q.id),
+      qonto_client_id: q.client?.id || null,
+      qonto_url: q.quote_url || null,
+      qonto_synced_at: new Date().toISOString(),
+      qonto_hash: qontoFingerprint(devis),
+      created_by: userEmail || 'import Qonto',
+    })
+    if (insErr) {
+      if (insErr.code === '23505') conflicts.push(devis.numero)
+      else log.warn(`import ${q.number}`, insErr.message)
+      continue
+    }
+    imported++
+  }
+  return { imported, conflicts }
+}
+
 export async function POST(request) {
   try {
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
@@ -246,6 +305,9 @@ export async function POST(request) {
         // Unités utilisées dans les devis Qonto (proposées dans l'éditeur)
         units: [...new Set(quotes.flatMap(q => (q.items || []).map(i => String(i?.unit || '').trim())).filter(Boolean))],
       } })
+    }
+    if (body.action === 'import') {
+      return Response.json({ ok: true, data: await importQuotes(admin, token, user.email) })
     }
     if (body.action === 'pdf') {
       if (!body.devisId || typeof body.devisId !== 'string') return Response.json({ error: 'Devis manquant' }, { status: 400 })
