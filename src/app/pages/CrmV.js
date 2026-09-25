@@ -409,6 +409,10 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
     }
     await appDevisPdf(d)
   }
+  const downloadSignedPdf = async (d) => {
+    try { saveBase64Pdf((await apiPost('/api/devis/sign', { action: 'signed-pdf', devisId: d.id })).data) }
+    catch (e) { addToast(`PDF signé indisponible : ${e?.message || 'erreur'}`, 'error') }
+  }
   const appDevisPdf = async (d) => {
     const o = oppOf(d)
     const lignes = normalizeLignes(d.lignes)
@@ -542,9 +546,20 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
     try {
       // Pièce jointe : uniquement le PDF Qonto vérifié dans la fenêtre
       const { base64, filename } = pdf
+      // Signature électronique intégrée : le PDF Qonto est conservé et un
+      // lien de signature sécurisé est ajouté au mail. Préparée avant le
+      // mail : en cas d'échec, rien ne part.
+      let text = form.body
+      if (form.sign) {
+        const { data: sig } = await apiPost('/api/devis/sign', {
+          action: 'send', devisId: d.id, pdfBase64: base64, signerEmail: form.to,
+        })
+        const link = `${window.location.origin}/signer/${sig.token}`
+        text = `${form.body}\n\nPour signer ce devis en ligne (bon pour accord) :\n${link}`
+      }
       try {
         await apiPost('/api/devis/send', {
-          to: form.to, cc: form.cc, subject: form.subject, text: form.body,
+          to: form.to, cc: form.cc, subject: form.subject, text,
           copyMe: form.copyMe, pdfBase64: base64, filename,
         })
       } catch (e) {
@@ -559,9 +574,11 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
         addToast('Envoi direct non configuré : joins le PDF téléchargé au mail qui s’ouvre · relance dans 7 jours', 'info')
         return
       }
-      await markDevisSent(d, `Envoyé par mail à ${form.to}`)
+      await markDevisSent(d, `Envoyé par mail à ${form.to}${form.sign ? ' · signature électronique demandée' : ''}`)
       setSendState(null)
-      addToast(`Devis ${d.numero} envoyé à ${form.to} · relance dans 7 jours`, 'success')
+      addToast(form.sign
+        ? `Devis ${d.numero} envoyé à ${form.to} pour signature électronique`
+        : `Devis ${d.numero} envoyé à ${form.to} · relance dans 7 jours`, 'success')
     } catch (e) {
       setSendState(st => (st ? { ...st, error: e?.message || 'Envoi impossible' } : st))
     } finally { setSaving(false) }
@@ -894,7 +911,7 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
               onNew: () => openNewDevis(selected, { resume: false }),
               onOpen: openDevis, onPdf: (d) => downloadDevisPdf(d).catch(e => addToast(e?.message || 'PDF impossible', 'error')),
               onSend: sendDevis, onAccept: acceptDevis, onRefuse: refuseDevis,
-              onDuplicate: duplicateDevisAction, onDelete: removeDevis, onQonto: qontoDevis,
+              onDuplicate: duplicateDevisAction, onDelete: removeDevis, onQonto: qontoDevis, onSignedPdf: downloadSignedPdf,
             }}
           />
         )}
@@ -935,7 +952,7 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
         )}
         {sendState?.status === 'ready' && (
           <DevisSendForm initial={sendState.initial} filename={sendState.pdf.filename}
-            sending={saving} error={sendState.error} onPreviewPdf={previewQontoPdf}
+            sending={saving} error={sendState.error} onPreviewPdf={previewQontoPdf} canSign
             onDraftAi={draftEmailAi} onSubmit={submitSend} onCancel={closeSend} />
         )}
       </Modal>

@@ -317,6 +317,8 @@ describe('CrmV — envoi par mail et IA', () => {
       '/api/devis/qonto': ({ action }) => reply({ ok: true, data: action === 'numbers' ? { numbers: [] }
         : action === 'pdf' ? { base64: 'JVBERi0xLjQ=', filename: 'Devis 26-050.pdf' }
           : { devis: { ...draft, qonto_quote_id: 'qq1' }, qontoNumber: '26-050', renumbered: null, mismatch: null, created: true } })(),
+      '/api/devis/sign': ({ action }) => reply({ ok: true, data: action === 'signed-pdf'
+        ? { base64: 'JVBERi0xLjQ=', filename: 'Devis 26-050 signé.pdf' } : { token: 'a'.repeat(64) } })(),
     }
     global.fetch = jest.fn(async (url, opts) => {
       const r = routes[url]
@@ -341,15 +343,55 @@ describe('CrmV — envoi par mail et IA', () => {
     expect(screen.getByDisplayValue('Devis 26-050 — Escalier')).toBeInTheDocument()
     expect(screen.getByText('📎 Devis 26-050.pdf · Qonto')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '👁 Vérifier le PDF Qonto' })).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: '📤 Envoyer le devis' }))
+    await user.click(screen.getByRole('button', { name: /^📤 Envoyer (le devis|pour signature)$/ }))
     await waitFor(() => expect(crmDb.setDevisStatut).toHaveBeenCalledWith(expect.objectContaining({ id: 'd1', qonto_quote_id: 'qq1' }), 'Envoyé'))
     const [opts] = callsTo('/api/devis/send')
     expect(opts.headers.Authorization).toBe('Bearer tok')
     // Seul le PDF édité par Qonto part au client
     expect(opts.body).toMatchObject({ to: 'cousin@exemple.fr', subject: 'Devis 26-050 — Escalier', pdfBase64: 'JVBERi0xLjQ=', filename: 'Devis 26-050.pdf' })
+    // Signature électronique (cochée par défaut) : PDF Qonto conservé + lien dans le mail
+    const [sign] = callsTo('/api/devis/sign')
+    expect(sign.body).toMatchObject({ action: 'send', devisId: 'd1', pdfBase64: 'JVBERi0xLjQ=', signerEmail: 'cousin@exemple.fr' })
+    expect(opts.body.text).toContain(`/signer/${'a'.repeat(64)}`)
     expect(require('../../generators').generateDevisPdf).not.toHaveBeenCalled()
     expect(crmDb.moveOpportunite).toHaveBeenCalledWith(expect.objectContaining({ id: 'o5' }), 'Devis envoyé', { montant_estime: 8000 })
-    expect(addToast).toHaveBeenCalledWith('Devis 26-050 envoyé à cousin@exemple.fr · relance dans 7 jours', 'success')
+    expect(addToast).toHaveBeenCalledWith('Devis 26-050 envoyé à cousin@exemple.fr pour signature électronique', 'success')
+  })
+
+  it('sans signature électronique : pas d’appel Odoo Sign', async () => {
+    const user = userEvent.setup()
+    routes['/api/devis/send'] = reply({ ok: true, to: ['cousin@exemple.fr'] })
+    renderWith()
+    await screen.findByRole('dialog', { name: 'Escalier extérieur' })
+    await user.click(screen.getByRole('button', { name: '📤 Envoyer' }))
+    await user.click(await screen.findByLabelText('✍️ Signature électronique'))
+    await user.click(screen.getByRole('button', { name: '📤 Envoyer le devis' }))
+    await waitFor(() => expect(addToast).toHaveBeenCalledWith('Devis 26-050 envoyé à cousin@exemple.fr · relance dans 7 jours', 'success'))
+    expect(callsTo('/api/devis/sign').filter(c => c.body.action === 'send')).toHaveLength(0)
+  })
+
+  it('échec de la préparation de la signature : message dans la fenêtre, aucun mail envoyé', async () => {
+    const user = userEvent.setup()
+    routes['/api/devis/sign'] = reply({ error: 'Stockage du PDF impossible : quota' }, 500)
+    routes['/api/devis/send'] = reply({ ok: true })
+    renderWith()
+    await screen.findByRole('dialog', { name: 'Escalier extérieur' })
+    await user.click(screen.getByRole('button', { name: '📤 Envoyer' }))
+    await user.click(await screen.findByRole('button', { name: '📤 Envoyer pour signature' }))
+    expect(await screen.findByText(/Stockage du PDF impossible/)).toBeInTheDocument()
+    expect(callsTo('/api/devis/send')).toHaveLength(0)
+    expect(crmDb.setDevisStatut).not.toHaveBeenCalled()
+  })
+
+  it('devis signé : badge et bouton « PDF signé »', async () => {
+    const user = userEvent.setup()
+    const signed = { ...draft, statut: 'Accepté', qonto_quote_id: 'qq1', statut_signature: 'Signé' }
+    crmDb.loadCrm.mockResolvedValue({ opportunites: [{ ...opp, etape: 'Gagné' }], interactions: [], devis: [signed], missingMigration: false })
+    renderWith()
+    await screen.findByRole('dialog', { name: 'Escalier extérieur' })
+    expect(screen.getByText('✍️ signé')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: '✍️ PDF signé' }))
+    await waitFor(() => expect(callsTo('/api/devis/sign').map(c => c.body)).toContainEqual({ action: 'signed-pdf', devisId: 'd1' }))
   })
 
   it('affiche l’erreur serveur dans la fenêtre sans marquer le devis envoyé', async () => {
@@ -358,7 +400,7 @@ describe('CrmV — envoi par mail et IA', () => {
     renderWith()
     await screen.findByRole('dialog', { name: 'Escalier extérieur' })
     await user.click(screen.getByRole('button', { name: '📤 Envoyer' }))
-    await user.click(await screen.findByRole('button', { name: '📤 Envoyer le devis' }))
+    await user.click(await screen.findByRole('button', { name: /^📤 Envoyer (le devis|pour signature)$/ }))
     expect(await screen.findByText(/vérifie la configuration SMTP/)).toBeInTheDocument()
     expect(crmDb.setDevisStatut).not.toHaveBeenCalled()
   })
@@ -395,7 +437,7 @@ describe('CrmV — envoi par mail et IA', () => {
     renderWith()
     await screen.findByRole('dialog', { name: 'Escalier extérieur' })
     await user.click(screen.getByRole('button', { name: '📤 Envoyer' }))
-    await user.click(await screen.findByRole('button', { name: '📤 Envoyer le devis' }))
+    await user.click(await screen.findByRole('button', { name: /^📤 Envoyer (le devis|pour signature)$/ }))
     await waitFor(() => expect(crmDb.setDevisStatut).toHaveBeenCalled())
     expect(callsTo('/api/devis/qonto').map(c => c.body)).toContainEqual({ action: 'sync', devisId: 'd1' })
     const [send] = callsTo('/api/devis/send')
@@ -424,7 +466,7 @@ describe('CrmV — envoi par mail et IA', () => {
     await screen.findByRole('dialog', { name: 'Escalier extérieur' })
     await user.click(screen.getByRole('button', { name: '📤 Envoyer' }))
     expect(await screen.findByText(/Prochain numéro libre : 26-062/)).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: '📤 Envoyer le devis' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^📤 Envoyer (le devis|pour signature)$/ })).not.toBeInTheDocument()
     expect(callsTo('/api/devis/send')).toHaveLength(0)
     expect(crmDb.setDevisStatut).not.toHaveBeenCalled()
   })
@@ -445,9 +487,9 @@ describe('CrmV — envoi par mail et IA', () => {
     await screen.findByRole('dialog', { name: 'Escalier extérieur' })
     await user.click(screen.getByRole('button', { name: '📤 Envoyer' }))
     expect(await screen.findByText(/Devis Qonto indisponible : Qonto refuse l’accès/)).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: '📤 Envoyer le devis' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^📤 Envoyer (le devis|pour signature)$/ })).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Réessayer' }))
-    expect(await screen.findByRole('button', { name: '📤 Envoyer le devis' })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: /^📤 Envoyer (le devis|pour signature)$/ })).toBeInTheDocument()
     expect(require('../../generators').generateDevisPdf).not.toHaveBeenCalled()
   })
 

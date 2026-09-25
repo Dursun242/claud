@@ -59,6 +59,11 @@ describe('client Qonto', () => {
     expect(qontoClientPayload({ nom: 'Jean de la Tour' }))
       .toMatchObject({ kind: 'individual', first_name: 'Jean', last_name: 'de la Tour' })
     expect(qontoClientPayload({ nom: 'Dupont' })).toMatchObject({ kind: 'company', name: 'Dupont' })
+    // « NOM Prénom » : le nom en majuscules est le nom de famille
+    expect(qontoClientPayload({ nom: 'OZKAN Dursun' }))
+      .toMatchObject({ kind: 'individual', first_name: 'Dursun', last_name: 'OZKAN' })
+    expect(qontoClientPayload({ nom: 'Jean-Marc DE LA TOUR' }))
+      .toMatchObject({ kind: 'individual', first_name: 'Jean-Marc', last_name: 'DE LA TOUR' })
   })
 
   it('retrouve le client par email puis par nom (accents, ordre nom/prénom)', () => {

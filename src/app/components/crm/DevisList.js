@@ -20,7 +20,7 @@ export function qontoState(d = {}) {
  * Les actions proposées dépendent du statut : Brouillon → Envoyer,
  * Envoyé → Accepté / Refusé, toujours : PDF, Qonto, Dupliquer, Supprimer.
  */
-export default function DevisList({ devis = [], missing, saving, onNew, onOpen, onPdf, onSend, onAccept, onRefuse, onDuplicate, onDelete, onQonto }) {
+export default function DevisList({ devis = [], missing, saving, onNew, onOpen, onPdf, onSend, onAccept, onRefuse, onDuplicate, onDelete, onQonto, onSignedPdf }) {
   return (
     <div style={{ marginBottom: 14 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
@@ -60,6 +60,11 @@ export default function DevisList({ devis = [], missing, saving, onNew, onOpen, 
                     {expired && <span style={{ marginLeft: 6, fontSize: 10, color: '#DC2626', fontWeight: 700 }}>expiré</span>}
                     {!expired && stale && <span style={{ marginLeft: 6, fontSize: 10, color: '#F59E0B', fontWeight: 700 }}>sans réponse</span>}
                     {qs === 'ok' && <span style={{ marginLeft: 6, fontSize: 10, color: '#047857', fontWeight: 700 }}>✓ Qonto</span>}
+                    {d.statut_signature && (
+                      <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: d.statut_signature === 'Signé' ? '#047857' : ['Refusé', 'Expiré', 'Annulé'].includes(d.statut_signature) ? '#B91C1C' : '#7C3AED' }}>
+                        ✍️ {d.statut_signature === 'Envoyé' ? 'signature en attente' : d.statut_signature === 'Signé' ? 'signé' : d.statut_signature.toLowerCase()}
+                      </span>
+                    )}
                     {qs === 'stale' && <span style={{ marginLeft: 6, fontSize: 10, color: '#B45309', fontWeight: 700 }}>Qonto à mettre à jour</span>}
                   </div>
                   <div style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>
@@ -81,6 +86,9 @@ export default function DevisList({ devis = [], missing, saving, onNew, onOpen, 
                       title={qs ? 'Mettre à jour le devis dans Qonto' : 'Créer ce devis dans Qonto (même numéro)'}>
                       {qs === 'ok' ? '↻ Qonto' : qs === 'stale' ? '↻ Mettre à jour Qonto' : '↗ Qonto'}
                     </button>
+                  )}
+                  {d.statut_signature === 'Signé' && onSignedPdf && (
+                    <button onClick={() => onSignedPdf(d)} style={{ ...act, background: '#ECFDF5', color: '#047857', borderColor: '#A7F3D0' }}>✍️ PDF signé</button>
                   )}
                   {d.qonto_url && (
                     <a href={d.qonto_url} target="_blank" rel="noopener noreferrer" style={{ ...act, textDecoration: 'none' }}>Voir Qonto</a>

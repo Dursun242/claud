@@ -79,7 +79,15 @@ export function qontoClientPayload(contact = {}) {
   if (societe || !nom.includes(' ')) {
     return { kind: 'company', name: societe || nom, ...(/^FR[0-9A-Z]{2}\d{9}$/.test(tva) ? { vat_number: tva } : {}), ...base }
   }
-  const [first, ...rest] = nom.split(/\s+/)
+  // Convention « NOM Prénom » : les mots en majuscules forment le nom de
+  // famille (« OZKAN Dursun » → Dursun / OZKAN), sinon « Prénom Nom ».
+  const words = nom.split(/\s+/)
+  const isUpper = (w) => /\p{L}/u.test(w) && w === w.toUpperCase()
+  const upper = words.filter(isUpper)
+  if (upper.length && upper.length < words.length) {
+    return { kind: 'individual', first_name: words.filter(w => !isUpper(w)).join(' '), last_name: upper.join(' '), ...base }
+  }
+  const [first, ...rest] = words
   return { kind: 'individual', first_name: first, last_name: rest.join(' '), ...base }
 }
 
