@@ -243,6 +243,8 @@ export async function POST(request) {
       return Response.json({ ok: true, data: {
         numbers: quotes.map(q => q.number).filter(Boolean),
         quotes: quotes.map(q => ({ id: q.id, number: q.number, status: q.status })),
+        // Unités utilisées dans les devis Qonto (proposées dans l'éditeur)
+        units: [...new Set(quotes.flatMap(q => (q.items || []).map(i => String(i?.unit || '').trim())).filter(Boolean))],
       } })
     }
     if (body.action === 'pdf') {

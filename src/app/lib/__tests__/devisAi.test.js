@@ -61,7 +61,7 @@ describe('normalizeAiLignes', () => {
     expect(normalizeAiLignes([
       { type: 'titre', designation: ' Travaux ' },
       { type: 'ligne', designation: 'Dalle', unite: 'm²', quantite: 12.5, prix_unitaire: 80.456, tva_taux: 10 },
-      { type: 'ligne', designation: 'Bizarre', unite: 'lot', quantite: -2, prix_unitaire: -5, tva_taux: 7 },
+      { type: 'ligne', designation: 'Bizarre', unite: 'palette-xyz', quantite: -2, prix_unitaire: -5, tva_taux: 7 },
       { type: 'ligne', designation: '   ' },
       null,
     ])).toEqual([

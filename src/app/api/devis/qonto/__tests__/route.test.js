@@ -213,10 +213,14 @@ describe('/api/devis/qonto', () => {
     expect(body.data.numbers).toEqual(['26-049', '26-048'])
   })
 
-  it('numbers renvoie aussi les statuts Qonto (suivi)', async () => {
-    fetchWithRetry.mockResolvedValueOnce(json(200, { quotes: [{ id: 'qq1', number: '26-050', status: 'approved' }], meta: {} }))
+  it('numbers renvoie aussi les statuts Qonto (suivi) et les unités utilisées', async () => {
+    fetchWithRetry.mockResolvedValueOnce(json(200, { quotes: [
+      { id: 'qq1', number: '26-050', status: 'approved', items: [{ unit: 'forfait' }, { unit: 'heure' }, { unit: null }] },
+      { id: 'qq2', number: '26-051', status: 'pending_approval', items: [{ unit: 'heure' }, { unit: 'm²' }] },
+    ], meta: {} }))
     const body = await (await POST(req({ action: 'numbers' }))).json()
-    expect(body.data.quotes).toEqual([{ id: 'qq1', number: '26-050', status: 'approved' }])
+    expect(body.data.quotes[0]).toEqual({ id: 'qq1', number: '26-050', status: 'approved' })
+    expect(body.data.units).toEqual(['forfait', 'heure', 'm²'])
   })
 
   it('pdf : récupère le PDF généré par Qonto (via la pièce jointe)', async () => {

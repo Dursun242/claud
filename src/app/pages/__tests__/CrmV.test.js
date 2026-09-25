@@ -504,6 +504,19 @@ describe('CrmV — envoi par mail et IA', () => {
     await waitFor(() => expect(addToast).toHaveBeenCalledWith('Devis 26-050 enregistré dans Qonto', 'success'))
   })
 
+  it('les unités des devis Qonto sont proposées dans l’éditeur', async () => {
+    const user = userEvent.setup()
+    crmDb.loadCrm.mockResolvedValue({ opportunites: [opp], interactions: [], devis: [], missingMigration: false })
+    routes['/api/devis/qonto'] = reply({ ok: true, data: { numbers: [], quotes: [], units: ['heure', 'pièce'] } })
+    renderWith()
+    await screen.findByRole('dialog', { name: 'Escalier extérieur' })
+    await waitFor(() => expect(callsTo('/api/devis/qonto')).toHaveLength(1))
+    await user.click(screen.getByRole('button', { name: /Créer le devis/ }))
+    const select = await screen.findByLabelText('Unité ligne 1')
+    const options = [...select.querySelectorAll('option')].map(o => o.value)
+    expect(options).toEqual(expect.arrayContaining(['forfait', 'm²', 'heure', 'pièce']))
+  })
+
   it('numérotation par Qonto : le nouveau devis part sans numéro et reprend celui de Qonto', async () => {
     const user = userEvent.setup()
     crmDb.loadCrm.mockResolvedValue({ opportunites: [opp], interactions: [], devis: [], missingMigration: false })
