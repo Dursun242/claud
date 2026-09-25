@@ -22,7 +22,14 @@ export const DEVIS_STATUT_COLORS = {
 // Taux usuels en bâtiment : 20 % (neuf), 10 % (rénovation logement > 2 ans),
 // 5,5 % (rénovation énergétique), 0 % (autoliquidation / exonéré).
 export const TVA_TAUX = [20, 10, 5.5, 0]
-export const UNITES = ['u', 'forfait', 'ens', 'lot', 'm²', 'ml', 'm', 'm³', 'h', 'j', 'mois', 'kg', 't', 'l']
+// Unités usuelles du bâtiment et de la maîtrise d'œuvre (Qonto accepte
+// n'importe quel libellé : la liste est complétée par celles des devis Qonto).
+export const UNITES = [
+  'u', 'forfait', 'ens', 'lot', 'pce', 'point',
+  'm', 'ml', 'm²', 'm³', 'km', 'cm', 'mm',
+  'h', 'j', 'demi-j', 'semaine', 'mois', 'an', 'vacation', 'visite', 'réunion',
+  'kg', 't', 'l',
+]
 
 /**
  * Liste des unités proposées : unités de base, puis celles déjà utilisées
