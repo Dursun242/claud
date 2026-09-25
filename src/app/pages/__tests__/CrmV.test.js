@@ -317,7 +317,8 @@ describe('CrmV — envoi par mail et IA', () => {
       '/api/devis/qonto': ({ action }) => reply({ ok: true, data: action === 'numbers' ? { numbers: [] }
         : action === 'pdf' ? { base64: 'JVBERi0xLjQ=', filename: 'Devis 26-050.pdf' }
           : { devis: { ...draft, qonto_quote_id: 'qq1' }, qontoNumber: '26-050', renumbered: null, mismatch: null, created: true } })(),
-      '/api/devis/sign': ({ action }) => reply({ ok: true, data: action === 'sync' ? { changes: [] } : { requestId: 77 } })(),
+      '/api/devis/sign': ({ action }) => reply({ ok: true, data: action === 'signed-pdf'
+        ? { base64: 'JVBERi0xLjQ=', filename: 'Devis 26-050 signé.pdf' } : { token: 'a'.repeat(64) } })(),
     }
     global.fetch = jest.fn(async (url, opts) => {
       const r = routes[url]
@@ -348,10 +349,10 @@ describe('CrmV — envoi par mail et IA', () => {
     expect(opts.headers.Authorization).toBe('Bearer tok')
     // Seul le PDF édité par Qonto part au client
     expect(opts.body).toMatchObject({ to: 'cousin@exemple.fr', subject: 'Devis 26-050 — Escalier', pdfBase64: 'JVBERi0xLjQ=', filename: 'Devis 26-050.pdf' })
-    // Signature électronique (cochée par défaut) : même PDF Qonto envoyé à Odoo Sign
+    // Signature électronique (cochée par défaut) : PDF Qonto conservé + lien dans le mail
     const [sign] = callsTo('/api/devis/sign')
-    expect(sign.body).toMatchObject({ action: 'send', devisId: 'd1', pdfBase64: 'JVBERi0xLjQ=', signerEmail: 'cousin@exemple.fr', signerName: 'Cousin' })
-    expect(opts.body.text).toMatch(/second e-mail \(Odoo Sign\)/)
+    expect(sign.body).toMatchObject({ action: 'send', devisId: 'd1', pdfBase64: 'JVBERi0xLjQ=', signerEmail: 'cousin@exemple.fr' })
+    expect(opts.body.text).toContain(`/signer/${'a'.repeat(64)}`)
     expect(require('../../generators').generateDevisPdf).not.toHaveBeenCalled()
     expect(crmDb.moveOpportunite).toHaveBeenCalledWith(expect.objectContaining({ id: 'o5' }), 'Devis envoyé', { montant_estime: 8000 })
     expect(addToast).toHaveBeenCalledWith('Devis 26-050 envoyé à cousin@exemple.fr pour signature électronique', 'success')
@@ -369,26 +370,28 @@ describe('CrmV — envoi par mail et IA', () => {
     expect(callsTo('/api/devis/sign').filter(c => c.body.action === 'send')).toHaveLength(0)
   })
 
-  it('échec Odoo Sign : message dans la fenêtre, aucun mail envoyé', async () => {
+  it('échec de la préparation de la signature : message dans la fenêtre, aucun mail envoyé', async () => {
     const user = userEvent.setup()
-    routes['/api/devis/sign'] = reply({ error: 'Signature électronique impossible : Odoo injoignable' }, 502)
+    routes['/api/devis/sign'] = reply({ error: 'Stockage du PDF impossible : quota' }, 500)
     routes['/api/devis/send'] = reply({ ok: true })
     renderWith()
     await screen.findByRole('dialog', { name: 'Escalier extérieur' })
     await user.click(screen.getByRole('button', { name: '📤 Envoyer' }))
     await user.click(await screen.findByRole('button', { name: '📤 Envoyer pour signature' }))
-    expect(await screen.findByText(/Odoo injoignable/)).toBeInTheDocument()
+    expect(await screen.findByText(/Stockage du PDF impossible/)).toBeInTheDocument()
     expect(callsTo('/api/devis/send')).toHaveLength(0)
     expect(crmDb.setDevisStatut).not.toHaveBeenCalled()
   })
 
-  it('suivi signature : devis signé → toast et affaire « Gagné » ; PDF signé proposé', async () => {
-    const sent = { ...draft, statut: 'Envoyé', qonto_quote_id: 'qq1', odoo_sign_id: 77, statut_signature: 'Envoyé' }
-    crmDb.loadCrm.mockResolvedValue({ opportunites: [{ ...opp, etape: 'Devis envoyé' }], interactions: [], devis: [sent], missingMigration: false })
-    routes['/api/devis/sign'] = reply({ ok: true, data: { changes: [{ id: 'd1', numero: '26-050', opportunite_id: 'o5', total_ht: 8000, statut_signature: 'Signé' }] } })
+  it('devis signé : badge et bouton « PDF signé »', async () => {
+    const user = userEvent.setup()
+    const signed = { ...draft, statut: 'Accepté', qonto_quote_id: 'qq1', statut_signature: 'Signé' }
+    crmDb.loadCrm.mockResolvedValue({ opportunites: [{ ...opp, etape: 'Gagné' }], interactions: [], devis: [signed], missingMigration: false })
     renderWith()
-    await waitFor(() => expect(crmDb.moveOpportunite).toHaveBeenCalledWith(expect.objectContaining({ id: 'o5' }), 'Gagné', { montant_estime: 8000 }))
-    expect(addToast).toHaveBeenCalledWith('Devis 26-050 : signé par le client ✍️', 'success')
+    await screen.findByRole('dialog', { name: 'Escalier extérieur' })
+    expect(screen.getByText('✍️ signé')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: '✍️ PDF signé' }))
+    await waitFor(() => expect(callsTo('/api/devis/sign').map(c => c.body)).toContainEqual({ action: 'signed-pdf', devisId: 'd1' }))
   })
 
   it('affiche l’erreur serveur dans la fenêtre sans marquer le devis envoyé', async () => {

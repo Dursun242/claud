@@ -87,7 +87,7 @@ export default function DevisList({ devis = [], missing, saving, onNew, onOpen, 
                       {qs === 'ok' ? '↻ Qonto' : qs === 'stale' ? '↻ Mettre à jour Qonto' : '↗ Qonto'}
                     </button>
                   )}
-                  {d.statut_signature === 'Signé' && d.odoo_sign_id && onSignedPdf && (
+                  {d.statut_signature === 'Signé' && onSignedPdf && (
                     <button onClick={() => onSignedPdf(d)} style={{ ...act, background: '#ECFDF5', color: '#047857', borderColor: '#A7F3D0' }}>✍️ PDF signé</button>
                   )}
                   {d.qonto_url && (

@@ -1,22 +1,28 @@
-# 029 — Devis : signature électronique
+# 029 — Devis : signature électronique intégrée
 
-Ajoute à `crm_devis` les colonnes `odoo_sign_id`, `odoo_sign_url` et
-`statut_signature`.
+Signature électronique **sans service tiers** (ni Odoo, ni Yousign) :
+signature électronique simple au sens du règlement eIDAS, suffisante pour un
+devis (« bon pour accord »).
 
 ## Fonctionnement
 
-- Fenêtre « Envoyer » d'un devis : option **Signature électronique**
-  (cochée par défaut). Le PDF Qonto vérifié est envoyé à Odoo Sign avec une
-  zone de signature « Client » en bas à droite de la dernière page ; Odoo
-  envoie au client un e-mail avec le lien de signature. Le mail
-  d'accompagnement (PDF joint) part comme avant et le signale.
-- Suivi : à l'ouverture du CRM, les signatures en attente sont vérifiées
-  auprès d'Odoo. Devis signé → « Accepté » (affaire « Gagné ») ; refusé →
-  « Refusé ». Le PDF signé se télécharge depuis la liste des devis.
-- Utilise la configuration Odoo déjà en place pour les OS (`ODOO_*`).
+1. Fenêtre « Envoyer » d'un devis : option **✍️ Signature électronique**
+   (cochée par défaut). Le PDF Qonto vérifié est conservé et un lien
+   sécurisé (`/signer/<jeton>`, jeton aléatoire de 256 bits) est ajouté au
+   mail envoyé au client.
+2. Le client ouvre le lien (sans compte) : il consulte le devis, saisit son
+   nom, signe au doigt ou à la souris et coche « Bon pour accord ».
+3. La signature, le nom, la date et l'heure sont apposés sur la dernière page
+   du PDF. Sont conservés comme preuves : date/heure, adresse IP, navigateur,
+   empreinte SHA-256 du PDF d'origine (imprimée sur le PDF signé).
+4. Le devis passe « Accepté », l'affaire « Gagné ». Le PDF signé se
+   télécharge depuis la liste des devis (« ✍️ PDF signé »).
+
+Le lien n'est plus utilisable après signature, ni après la date de validité
+du devis.
 
 ## Application
 
 SQL Editor Supabase → coller `029_crm_devis_signature.sql` → Run.
 Sans cette migration, l'option de signature affiche « Appliquer la
-migration 029 » et rien n'est envoyé à Odoo.
+migration 029 ».

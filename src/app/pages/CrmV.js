@@ -167,31 +167,6 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
     return () => { alive = false }
   }, [devisMissing])
 
-  // Suivi des signatures électroniques (Odoo Sign) : une fois au chargement.
-  // Signé → devis « Accepté » (fait côté serveur) + affaire « Gagné ».
-  const signSynced = useRef(false)
-  useEffect(() => {
-    if (devisMissing || loading || signSynced.current) return
-    if (!allDevis.some(d => d.odoo_sign_id && !['Signé', 'Refusé', 'Expiré', 'Annulé'].includes(d.statut_signature))) return
-    signSynced.current = true
-    ;(async () => {
-      try {
-        const { data: r } = await apiPost('/api/devis/sign', { action: 'sync' })
-        const changes = r?.changes || []
-        if (!changes.length) return
-        for (const c of changes) {
-          const o = opportunites.find(x => x.id === c.opportunite_id)
-          if (c.statut_signature === 'Signé' && o && !isClosed(o.etape)) {
-            try { await moveOpportunite(o, 'Gagné', { montant_estime: Number(c.total_ht) || o.montant_estime }) } catch { /* affaire : mise à jour manuelle */ }
-          }
-          addToast(`Devis ${c.numero} : ${c.statut_signature === 'Signé' ? 'signé par le client ✍️' : `signature ${c.statut_signature.toLowerCase()}`}`,
-            c.statut_signature === 'Signé' ? 'success' : 'info')
-        }
-        await reload()
-      } catch { /* Odoo injoignable : nouvel essai au prochain chargement */ signSynced.current = false }
-    })()
-  }, [allDevis, devisMissing, loading, opportunites, reload, addToast])
-
   // Suivi : un devis accepté / annulé dans Qonto l'est aussi dans le CRM
   const reconciled = useRef(new Set())
   useEffect(() => {
@@ -435,17 +410,8 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
     await appDevisPdf(d)
   }
   const downloadSignedPdf = async (d) => {
-    try {
-      const { data: { session } = {} } = await supabase.auth.getSession()
-      const res = await fetch(`/api/odoo/signed-pdf?requestId=${encodeURIComponent(d.odoo_sign_id)}`, {
-        headers: { Authorization: `Bearer ${session?.access_token || ''}` },
-      })
-      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || `Erreur ${res.status}`)
-      const buf = new Uint8Array(await res.arrayBuffer())
-      let bin = ''
-      for (let i = 0; i < buf.length; i += 0x8000) bin += String.fromCharCode.apply(null, buf.subarray(i, i + 0x8000))
-      saveBase64Pdf({ base64: btoa(bin), filename: `Devis ${d.numero} signé.pdf` })
-    } catch (e) { addToast(`PDF signé indisponible : ${e?.message || 'erreur'}`, 'error') }
+    try { saveBase64Pdf((await apiPost('/api/devis/sign', { action: 'signed-pdf', devisId: d.id })).data) }
+    catch (e) { addToast(`PDF signé indisponible : ${e?.message || 'erreur'}`, 'error') }
   }
   const appDevisPdf = async (d) => {
     const o = oppOf(d)
@@ -580,16 +546,16 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
     try {
       // Pièce jointe : uniquement le PDF Qonto vérifié dans la fenêtre
       const { base64, filename } = pdf
-      // Signature électronique : Odoo Sign envoie au client le lien de
-      // signature. Demandée avant le mail : en cas d'échec, rien ne part.
+      // Signature électronique intégrée : le PDF Qonto est conservé et un
+      // lien de signature sécurisé est ajouté au mail. Préparée avant le
+      // mail : en cas d'échec, rien ne part.
       let text = form.body
       if (form.sign) {
-        const contact = contactsById.get(oppOf(d)?.contact_id) || null
-        await apiPost('/api/devis/sign', {
-          action: 'send', devisId: d.id, pdfBase64: base64,
-          signerEmail: form.to, signerName: contact?.nom || contact?.societe || '',
+        const { data: sig } = await apiPost('/api/devis/sign', {
+          action: 'send', devisId: d.id, pdfBase64: base64, signerEmail: form.to,
         })
-        text = `${form.body}\n\nVous allez recevoir un second e-mail (Odoo Sign) pour signer ce devis électroniquement.`
+        const link = `${window.location.origin}/signer/${sig.token}`
+        text = `${form.body}\n\nPour signer ce devis en ligne (bon pour accord) :\n${link}`
       }
       try {
         await apiPost('/api/devis/send', {

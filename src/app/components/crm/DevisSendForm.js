@@ -10,7 +10,7 @@ import { parseEmails } from '../../lib/devisAi'
  * filename  : nom de la pièce jointe (PDF édité par Qonto)
  * onPreviewPdf : () => void — ouvre le PDF Qonto pour vérification
  * onDraftAi : () => Promise<{ subject, body }> — absent = bouton IA masqué
- * canSign   : propose la signature électronique (Odoo Sign)
+ * canSign   : propose la signature électronique (lien de signature en ligne)
  * onSubmit  : ({ to, cc, subject, body, copyMe, sign }) => Promise<void>
  */
 export default function DevisSendForm({ initial = {}, filename, sending, error, canSign, onPreviewPdf, onDraftAi, onSubmit, onCancel }) {
@@ -82,7 +82,7 @@ export default function DevisSendForm({ initial = {}, filename, sending, error, 
       </div>
       {canSign && form.sign && (
         <div style={{ fontSize: 11, color: '#64748B', marginBottom: 10 }}>
-          Le client reçoit aussi un e-mail d’Odoo Sign pour signer le devis en ligne.
+          Un lien sécurisé est ajouté au mail : le client consulte le devis et le signe en ligne.
         </div>
       )}
       {shownError && <div role="alert" style={{ color: '#DC2626', fontSize: 12, marginBottom: 10, fontWeight: 500 }}>⚠ {shownError}</div>}
