@@ -479,6 +479,29 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
     await reload()
   }
 
+  // Import des devis déjà présents dans Qonto (absents du CRM)
+  const [importing, setImporting] = useState(false)
+  const importQonto = async () => {
+    const ok = await confirm({
+      title: 'Importer les devis Qonto ?',
+      message: 'Les devis présents dans Qonto mais pas encore dans le CRM sont ajoutés, avec leurs lignes et leur statut. Une affaire est créée pour chacun (sauf si elle existe déjà).',
+      confirmLabel: 'Importer',
+    })
+    if (!ok) return
+    setImporting(true)
+    try {
+      const { data: r } = await apiPost('/api/devis/qonto', { action: 'import' })
+      await reload()
+      if (!r.imported && !r.conflicts?.length) addToast('Tous les devis Qonto sont déjà dans le CRM', 'info')
+      else if (r.imported) addToast(`${r.imported} devis Qonto importé${r.imported > 1 ? 's' : ''} dans le CRM`, 'success')
+      if (r.conflicts?.length) {
+        addToast(`Non importés (numéro déjà utilisé dans le CRM) : ${r.conflicts.join(', ')}`, 'error')
+      }
+    } catch (e) {
+      addToast(e?.message || 'Import des devis Qonto impossible', 'error')
+    } finally { setImporting(false) }
+  }
+
   // Enregistre (ou met à jour) le devis dans Qonto, même numéro.
   // Retourne le devis à jour (numéro éventuellement repris de Qonto).
   const syncQonto = async (d) => {
@@ -681,6 +704,12 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
             <input type="search" value={q} onChange={e => setQ(e.target.value)}
               placeholder="Rechercher…" aria-label="Rechercher une affaire"
               style={{ padding: '8px 10px', borderRadius: 8, border: '1px solid #E2E8F0', fontSize: 13, width: m ? '100%' : 200, boxSizing: 'border-box', fontFamily: 'inherit' }} />
+          )}
+          {!devisMissing && (
+            <button onClick={importQonto} disabled={importing} title="Importer dans le CRM les devis déjà présents dans Qonto"
+              style={{ ...btnS, fontSize: 12, padding: '8px 12px', opacity: importing ? 0.6 : 1 }}>
+              {importing ? 'Import…' : '↓ Devis Qonto'}
+            </button>
           )}
           <button onClick={() => openNew()} title="Nouvelle affaire avec tous les détails"
             style={{ ...btnP, fontSize: 12, padding: '8px 14px' }}>+ Nouvelle affaire</button>

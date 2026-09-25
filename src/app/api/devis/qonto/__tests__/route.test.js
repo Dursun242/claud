@@ -1,7 +1,7 @@
 /**
  * @jest-environment node
  */
-let POST, verifyStaff, fetchWithRetry, db, updates
+let POST, verifyStaff, fetchWithRetry, db, updates, inserts = []
 
 const DEVIS = {
   id: 'd1', opportunite_id: 'o1', numero: 'PROV-ABC', statut: 'Brouillon', objet: 'Escalier',
@@ -19,13 +19,15 @@ function fakeAdmin() {
         select: () => b,
         eq: () => b,
         update: (patch) => { q.patch = patch; return b },
+        insert: (row) => { q.insert = row; inserts.push({ table, row }); return b },
         maybeSingle: async () => ({ data: db[table], error: null }),
         single: async () => {
+          if (q.insert) return { data: { id: table === 'crm_opportunites' ? 'opp-new' : 'new' }, error: null }
           updates.push({ table, patch: q.patch })
           if (q.patch?.numero && db.numeroConflict) return { data: null, error: { code: '23505', message: 'dup' } }
           return { data: { ...db[table], ...q.patch }, error: null }
         },
-        then: (res) => res({ data: db.rows || [], error: null }),
+        then: (res) => res(q.insert ? { error: null } : { data: db.lists?.[table] ?? db.rows ?? [], error: null }),
       }
       return b
     },
@@ -248,6 +250,24 @@ describe('/api/devis/qonto', () => {
     res = await POST(req({ action: 'pdf', devisId: 'd1' }))
     expect(res.status).toBe(404)
     expect((await res.json()).code).toBe('NOT_IN_QONTO')
+  })
+
+  it('import : crée affaire + devis pour les devis Qonto absents du CRM, ignore ceux déjà liés', async () => {
+    db.lists = { crm_devis: [{ qonto_quote_id: 'qq-deja' }], crm_opportunites: [], contacts: [{ id: 'c1', nom: 'Jean Dupont', email: 'jean@exemple.fr' }] }
+    inserts = []
+    fetchWithRetry.mockResolvedValueOnce(json(200, { quotes: [
+      { id: 'qq-deja', number: 'D-1', items: [] },
+      { id: 'qq-new', number: 'D-2026-020', status: 'pending_approval', issue_date: '2026-09-01', expiry_date: '2026-10-01',
+        client: { id: 'qc9', email: 'jean@exemple.fr' },
+        items: [{ title: 'Études', quantity: '1', unit: 'forfait', unit_price: { value: '1000.00' }, vat_rate: '0.2' }] },
+    ], meta: {} }))
+    const body = await (await POST(req({ action: 'import' }))).json()
+    expect(body.data).toEqual({ imported: 1, conflicts: [] })
+    const opp = inserts.find(i => i.table === 'crm_opportunites').row
+    expect(opp).toMatchObject({ etape: 'Devis envoyé', qonto_quote_id: 'qq-new', contact_id: 'c1', created_by: 'moe@id-maitrise.com' })
+    const devis = inserts.find(i => i.table === 'crm_devis').row
+    expect(devis).toMatchObject({ numero: 'D-2026-020', statut: 'Envoyé', opportunite_id: 'opp-new', qonto_quote_id: 'qq-new', qonto_client_id: 'qc9', total_ttc: 1200 })
+    expect(devis.qonto_hash).toBeTruthy()
   })
 
   it('Qonto non connecté, non-staff, action inconnue', async () => {
