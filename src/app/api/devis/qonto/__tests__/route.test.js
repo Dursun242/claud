@@ -170,6 +170,39 @@ describe('/api/devis/qonto', () => {
     expect(body.data.numbers).toEqual(['26-049', '26-048'])
   })
 
+  it('numbers renvoie aussi les statuts Qonto (suivi)', async () => {
+    fetchWithRetry.mockResolvedValueOnce(json(200, { quotes: [{ id: 'qq1', number: '26-050', status: 'approved' }], meta: {} }))
+    const body = await (await POST(req({ action: 'numbers' }))).json()
+    expect(body.data.quotes).toEqual([{ id: 'qq1', number: '26-050', status: 'approved' }])
+  })
+
+  it('pdf : récupère le PDF généré par Qonto (via la pièce jointe)', async () => {
+    db.crm_devis = { ...DEVIS, qonto_quote_id: 'qq1' }
+    const pdfBytes = Buffer.from('%PDF-1.4 qonto')
+    fetchWithRetry
+      .mockResolvedValueOnce(json(200, { quote: { id: 'qq1', number: '26-053', attachment_id: 'att1' } }))
+      .mockResolvedValueOnce(json(200, { attachment: { url: 'https://s3.qonto/att1.pdf' } }))
+      .mockResolvedValueOnce({ ok: true, status: 200, arrayBuffer: async () => pdfBytes })
+    const res = await POST(req({ action: 'pdf', devisId: 'd1' }))
+    const body = await res.json()
+    expect(res.status).toBe(200)
+    expect(fetchWithRetry.mock.calls[2][0]).toBe('https://s3.qonto/att1.pdf')
+    expect(fetchWithRetry.mock.calls[2][1].headers).toBeUndefined()
+    expect(Buffer.from(body.data.base64, 'base64').toString()).toBe('%PDF-1.4 qonto')
+    expect(body.data.filename).toBe('Devis 26-053.pdf')
+  })
+
+  it('pdf : pas encore généré par Qonto → PDF_UNAVAILABLE ; devis hors Qonto → NOT_IN_QONTO', async () => {
+    db.crm_devis = { ...DEVIS, qonto_quote_id: 'qq1' }
+    fetchWithRetry.mockResolvedValueOnce(json(200, { quote: { id: 'qq1', number: '26-053' } }))
+    let res = await POST(req({ action: 'pdf', devisId: 'd1' }))
+    expect((await res.json()).code).toBe('PDF_UNAVAILABLE')
+    db.crm_devis = { ...DEVIS }
+    res = await POST(req({ action: 'pdf', devisId: 'd1' }))
+    expect(res.status).toBe(404)
+    expect((await res.json()).code).toBe('NOT_IN_QONTO')
+  })
+
   it('Qonto non connecté, non-staff, action inconnue', async () => {
     verifyStaff.mockResolvedValueOnce({ user: null, status: 403 })
     expect((await POST(req({ action: 'numbers' }))).status).toBe(403)

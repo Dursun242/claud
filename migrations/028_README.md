@@ -31,3 +31,13 @@ et rien n'est envoyé à Qonto.
 - Le total TTC renvoyé par Qonto est comparé à celui de l'application : un
   écart est signalé.
 - Le token Qonto est celui déjà saisi dans l'onglet Qonto (table `settings`).
+
+## Qonto = document de référence
+
+- Chaque enregistrement d'un devis dans l'application le crée / met à jour
+  dans Qonto. Un échec est affiché (« enregistré dans l'application mais PAS
+  dans Qonto : … »).
+- Le PDF envoyé au client et le bouton PDF utilisent le PDF généré par Qonto
+  (repli sur le PDF de l'application s'il n'est pas encore disponible).
+- Suivi : à l'ouverture du CRM, un devis accepté dans Qonto passe
+  « Accepté » (affaire « Gagné »), un devis annulé passe « Refusé ».

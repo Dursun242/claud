@@ -381,7 +381,9 @@ describe('CrmV — envoi par mail et IA', () => {
     const user = userEvent.setup()
     routes['/api/devis/qonto'] = ({ action }) => (action === 'numbers'
       ? reply({ ok: true, data: { numbers: ['26-049'] } })()
-      : reply({ ok: true, data: { devis: { ...draft, numero: '26-051', qonto_quote_id: 'qq1' }, qontoNumber: '26-051', renumbered: '26-051', mismatch: null, created: true } })())
+      : action === 'pdf'
+        ? reply({ ok: true, data: { base64: 'JVBERi0xLjQ=', filename: 'Devis 26-051.pdf' } })()
+        : reply({ ok: true, data: { devis: { ...draft, numero: '26-051', qonto_quote_id: 'qq1' }, qontoNumber: '26-051', renumbered: '26-051', mismatch: null, created: true } })())
     routes['/api/devis/send'] = reply({ ok: true, to: ['cousin@exemple.fr'] })
     renderWith()
     await screen.findByRole('dialog', { name: 'Escalier extérieur' })
@@ -390,9 +392,19 @@ describe('CrmV — envoi par mail et IA', () => {
     await waitFor(() => expect(crmDb.setDevisStatut).toHaveBeenCalled())
     expect(callsTo('/api/devis/qonto').map(c => c.body)).toContainEqual({ action: 'sync', devisId: 'd1' })
     const [send] = callsTo('/api/devis/send')
-    expect(send.body).toMatchObject({ subject: 'Devis 26-051 — Escalier' })
-    const { generateDevisPdf } = require('../../generators')
-    expect(generateDevisPdf).toHaveBeenLastCalledWith(expect.objectContaining({ numero: '26-051' }), expect.anything())
+    // Pièce jointe = PDF officiel généré par Qonto
+    expect(send.body).toMatchObject({ subject: 'Devis 26-051 — Escalier', pdfBase64: 'JVBERi0xLjQ=', filename: 'Devis 26-051.pdf' })
+  })
+
+  it('suivi : un devis accepté dans Qonto passe « Accepté » et l’affaire « Gagné »', async () => {
+    const sent = { ...draft, statut: 'Envoyé', qonto_quote_id: 'qq1' }
+    crmDb.loadCrm.mockResolvedValue({ opportunites: [{ ...opp, etape: 'Devis envoyé' }], interactions: [], devis: [sent], missingMigration: false })
+    crmDb.setDevisStatut.mockResolvedValue({ ...sent, statut: 'Accepté' })
+    routes['/api/devis/qonto'] = reply({ ok: true, data: { numbers: ['26-050'], quotes: [{ id: 'qq1', number: '26-050', status: 'approved' }] } })
+    renderWith()
+    await waitFor(() => expect(crmDb.setDevisStatut).toHaveBeenCalledWith(sent, 'Accepté'))
+    await waitFor(() => expect(crmDb.moveOpportunite).toHaveBeenCalledWith(expect.objectContaining({ id: 'o5' }), 'Gagné', { montant_estime: 8000 }))
+    expect(addToast).toHaveBeenCalledWith('Devis 26-050 accepté dans Qonto : mis à jour dans le CRM', 'success')
   })
 
   it('numéro déjà pris dans Qonto : l’envoi est bloqué avec le message', async () => {

@@ -74,8 +74,33 @@ async function listAll(token, path, key) {
   return out
 }
 
-const qontoNumbers = async (token) =>
-  (await listAll(token, '/quotes?sort_by=created_at:desc', 'quotes')).map(q => q.number).filter(Boolean)
+const listQuotes = (token) => listAll(token, '/quotes?sort_by=created_at:desc', 'quotes')
+const qontoNumbers = async (token) => (await listQuotes(token)).map(q => q.number).filter(Boolean)
+
+// URL du PDF d'un devis Qonto : champ direct, sinon pièce jointe.
+// Même ordre de recherche que QontoV (selon le plan Qonto, le champ varie).
+const directPdfUrl = (q = {}) => q.pdf_url || q.file_url || q.pdf_download_url
+  || q.attachment?.url || q.file?.url || q.document_url || q.attachments?.[0]?.url || null
+
+async function quotePdf(token, quoteId) {
+  const r = await qonto(token, 'GET', `/quotes/${encodeURIComponent(quoteId)}`)
+  if (r.status === 404) throw new QontoError('Ce devis n’existe plus dans Qonto : clique sur « Qonto » pour le recréer.', 404, 'QUOTE_NOT_FOUND')
+  if (!r.ok) throw new QontoError(`Lecture du devis Qonto impossible (${r.status})`)
+  const quote = r.json?.quote || r.json || {}
+  let url = directPdfUrl(quote)
+  const attId = !url && (quote.attachment_id || quote.attachment_ids?.[0])
+  if (attId) {
+    const a = await qonto(token, 'GET', `/attachments/${encodeURIComponent(attId)}`)
+    if (a.ok) url = a.json?.attachment?.url || a.json?.url || a.json?.file_url || null
+  }
+  if (!url) return { quote, pdf: null }
+  // URL signée (stockage Qonto) : pas d'en-tête d'authentification
+  const f = await fetchWithRetry(url, { timeoutMs: 15_000, maxRetries: 1 })
+  if (!f.ok) return { quote, pdf: null }
+  const buf = Buffer.from(await f.arrayBuffer())
+  if (buf.subarray(0, 4).toString() !== '%PDF') return { quote, pdf: null }
+  return { quote, pdf: buf }
+}
 
 async function resolveClient(token, devis, contact) {
   if (devis.qonto_client_id) return devis.qonto_client_id
@@ -185,7 +210,23 @@ export async function POST(request) {
     }
 
     if (body.action === 'numbers') {
-      return Response.json({ ok: true, data: { numbers: await qontoNumbers(token) } })
+      // Numéros (numérotation) + statuts (suivi : accepté / annulé dans Qonto)
+      const quotes = await listQuotes(token)
+      return Response.json({ ok: true, data: {
+        numbers: quotes.map(q => q.number).filter(Boolean),
+        quotes: quotes.map(q => ({ id: q.id, number: q.number, status: q.status })),
+      } })
+    }
+    if (body.action === 'pdf') {
+      if (!body.devisId || typeof body.devisId !== 'string') return Response.json({ error: 'Devis manquant' }, { status: 400 })
+      const { data: devis } = await admin.from('crm_devis').select('*').eq('id', body.devisId).maybeSingle()
+      if (!devis?.qonto_quote_id) return Response.json({ error: 'Devis pas encore créé dans Qonto', code: 'NOT_IN_QONTO' }, { status: 404 })
+      const { quote, pdf } = await quotePdf(token, devis.qonto_quote_id)
+      if (!pdf) {
+        return Response.json({ error: 'Qonto n’a pas encore généré le PDF de ce devis — réessaie dans quelques secondes.', code: 'PDF_UNAVAILABLE' }, { status: 404 })
+      }
+      const numero = String(quote.number || devis.numero).replace(/[^\w.\- ]+/g, '_')
+      return Response.json({ ok: true, data: { base64: pdf.toString('base64'), filename: `Devis ${numero}.pdf` } })
     }
     if (body.action === 'sync') {
       if (!body.devisId || typeof body.devisId !== 'string') return Response.json({ error: 'Devis manquant' }, { status: 400 })
