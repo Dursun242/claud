@@ -4,7 +4,7 @@
 let POST, verifyStaff, fetchWithRetry, db, updates
 
 const DEVIS = {
-  id: 'd1', opportunite_id: 'o1', numero: '26-050', statut: 'Brouillon', objet: 'Escalier',
+  id: 'd1', opportunite_id: 'o1', numero: 'PROV-ABC', statut: 'Brouillon', objet: 'Escalier',
   date_emission: '2026-09-25', date_validite: '2026-10-25', remise_pct: 0, acompte_pct: 0,
   conditions: 'CGV', notes: '', qonto_quote_id: null, qonto_client_id: null,
   lignes: [{ type: 'ligne', designation: 'Escalier', unite: 'forfait', quantite: 1, prix_unitaire: 1000, tva_taux: 20 }],
@@ -64,11 +64,11 @@ beforeEach(() => {
 afterEach(() => jest.restoreAllMocks())
 
 describe('/api/devis/qonto', () => {
-  it('crée le client puis le devis avec le même numéro et enregistre le lien', async () => {
+  it('crée le client puis le devis sans numéro ; le CRM reprend le numéro Qonto', async () => {
     fetchWithRetry
       .mockResolvedValueOnce(json(200, { clients: [], meta: {} }))
       .mockResolvedValueOnce(json(201, { client: { id: 'qc1' } }))
-      .mockResolvedValueOnce(json(201, { quote: { id: 'qq1', number: '26-050', quote_url: 'https://q/1', total_amount: { value: '1200.00' } } }))
+      .mockResolvedValueOnce(json(201, { quote: { id: 'qq1', number: '26-054', quote_url: 'https://q/1', total_amount: { value: '1200.00' } } }))
     const res = await POST(req({ action: 'sync', devisId: 'd1' }))
     const body = await res.json()
     expect(res.status).toBe(200)
@@ -76,10 +76,12 @@ describe('/api/devis/qonto', () => {
     const [, quoteOpts] = fetchWithRetry.mock.calls[2]
     expect(quoteOpts.headers.Authorization).toBe('login:secret')
     expect(quoteOpts.maxRetries).toBe(0)
-    expect(JSON.parse(quoteOpts.body)).toMatchObject({ client_id: 'qc1', number: '26-050', items: [{ vat_rate: '0.2' }] })
-    expect(updates[0].patch).toMatchObject({ qonto_quote_id: 'qq1', qonto_client_id: 'qc1', qonto_url: 'https://q/1' })
+    const sent = JSON.parse(quoteOpts.body)
+    expect(sent).toMatchObject({ client_id: 'qc1', items: [{ vat_rate: '0.2' }] })
+    expect(sent.number).toBeUndefined()
+    expect(updates[0].patch).toMatchObject({ numero: '26-054', qonto_quote_id: 'qq1', qonto_client_id: 'qc1', qonto_url: 'https://q/1' })
     expect(updates[0].patch.qonto_hash).toBeTruthy()
-    expect(body.data).toMatchObject({ created: true, qontoNumber: '26-050', mismatch: null, renumbered: null })
+    expect(body.data).toMatchObject({ created: true, qontoNumber: '26-054', mismatch: null, renumbered: '26-054', numberConflict: null })
   })
 
   it('met à jour le devis Qonto existant (PATCH) sans rechercher le client', async () => {
@@ -100,17 +102,34 @@ describe('/api/devis/qonto', () => {
     expect(JSON.parse(fetchWithRetry.mock.calls[1][1].body).client_id).toBe('qc9')
   })
 
-  it('numéro déjà pris dans Qonto : 409 avec le prochain numéro libre', async () => {
+  it('Qonto exige un numéro : le CRM continue la séquence de Qonto', async () => {
     db.crm_devis = { ...DEVIS, qonto_client_id: 'qc1' }
     fetchWithRetry
-      .mockResolvedValueOnce(json(422, { errors: [{ source: { pointer: '/number' }, detail: 'has already been taken' }] }))
-      .mockResolvedValueOnce(json(200, { quotes: [{ number: '26-050' }, { number: '26-061' }], meta: {} }))
+      .mockResolvedValueOnce(json(422, { errors: [{ source: { pointer: '/number' }, detail: "can't be blank" }] }))
+      .mockResolvedValueOnce(json(200, { quotes: [{ number: '26-060' }, { number: '26-061' }], meta: {} }))
+      .mockResolvedValueOnce(json(201, { quote: { id: 'qq1', number: '26-062' } }))
+    const body = await (await POST(req({ action: 'sync', devisId: 'd1' }))).json()
+    expect(JSON.parse(fetchWithRetry.mock.calls[2][1].body).number).toBe('26-062')
+    expect(body.data.renumbered).toBe('26-062')
+  })
+
+  it('numéro refusé par Qonto : 409 NUMBER_TAKEN, rien d’enregistré', async () => {
+    db.crm_devis = { ...DEVIS, qonto_client_id: 'qc1' }
+    fetchWithRetry.mockResolvedValueOnce(json(422, { errors: [{ source: { pointer: '/number' }, detail: 'has already been taken' }] }))
     const res = await POST(req({ action: 'sync', devisId: 'd1' }))
-    const body = await res.json()
     expect(res.status).toBe(409)
-    expect(body.code).toBe('NUMBER_TAKEN')
-    expect(body.error).toMatch(/26-062/)
+    expect((await res.json()).code).toBe('NUMBER_TAKEN')
     expect(updates).toEqual([])
+  })
+
+  it('numéro Qonto déjà pris par un autre devis du CRM : lien gardé, conflit signalé', async () => {
+    db.crm_devis = { ...DEVIS, qonto_client_id: 'qc1' }
+    db.numeroConflict = true
+    fetchWithRetry.mockResolvedValueOnce(json(201, { quote: { id: 'qq1', number: '26-054' } }))
+    const body = await (await POST(req({ action: 'sync', devisId: 'd1' }))).json()
+    expect(updates[1].patch).toMatchObject({ qonto_quote_id: 'qq1' })
+    expect(updates[1].patch.numero).toBeUndefined()
+    expect(body.data.numberConflict).toBe('26-054')
   })
 
   it('unité refusée : renvoie le devis sans unités', async () => {

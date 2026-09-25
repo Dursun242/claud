@@ -18,7 +18,7 @@ import {
   linkOpportuniteToChantier, upsertDevis, setDevisStatut, deleteDevis,
 } from '../lib/crmDb'
 import {
-  devisFromOpportunite, duplicateDevis, validateDevis, computeDevisTotals,
+  devisFromOpportunite, duplicateDevis, validateDevis, computeDevisTotals, numeroProvisoire, isNumeroProvisoire,
   normalizeLignes, devisMailContent, companySignature,
 } from '../lib/devis'
 import DevisEditor, { fmtEur } from '../components/crm/DevisEditor'
@@ -80,13 +80,8 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
   const { opportunites, interactions, missingMigration } = crm
   const allDevis = useMemo(() => crm.devis || [], [crm.devis])
   const devisMissing = !!crm.devisMissing
-  // Numéros déjà utilisés dans Qonto : la numérotation continue à leur suite
-  const [qontoNumbers, setQontoNumbers] = useState([])
-  const [qontoQuotes, setQontoQuotes] = useState([])   // { id, number, status } — suivi
-  const numberingBase = useMemo(
-    () => [...allDevis, ...qontoNumbers.map(numero => ({ numero }))],
-    [allDevis, qontoNumbers],
-  )
+  // Devis Qonto { id, number, status } : suivi des statuts
+  const [qontoQuotes, setQontoQuotes] = useState([])
 
   const [view, setView] = useState('pipeline')       // pipeline | relances | closed
   const [q, setQ] = useState('')
@@ -160,15 +155,13 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
   }
   const closeOppModal = () => { setOppModal(null); setOppError('') }
 
-  // Numéros Qonto chargés une fois (silencieux si Qonto n'est pas connecté)
+  // Devis Qonto chargés une fois (silencieux si Qonto n'est pas connecté)
   useEffect(() => {
     if (devisMissing) return
     let alive = true
     apiPost('/api/devis/qonto', { action: 'numbers' })
       .then(({ data: d }) => {
-        if (!alive) return
-        setQontoNumbers(d?.numbers || [])
-        setQontoQuotes(d?.quotes || [])
+        if (alive) setQontoQuotes(d?.quotes || [])
       })
       .catch(() => {})
     return () => { alive = false }
@@ -385,7 +378,7 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
     // que d'en créer un second.
     const draft = resume && allDevis.find(d => d.opportunite_id === o.id && d.statut === 'Brouillon')
     setDevisError('')
-    setDevisForm(draft ? toForm(draft) : devisFromOpportunite(o, numberingBase))
+    setDevisForm(draft ? toForm(draft) : { ...devisFromOpportunite(o), numero: numeroProvisoire() })
   }
   const openDevis = (d) => { setDevisError(''); setDevisForm(toForm(d)) }
   const closeDevis = () => { setDevisForm(null); setDevisError('') }
@@ -477,11 +470,14 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
   // Retourne le devis à jour (numéro éventuellement repris de Qonto).
   const syncQonto = async (d) => {
     const { data: r } = await apiPost('/api/devis/qonto', { action: 'sync', devisId: d.id })
-    if (r.qontoNumber) setQontoNumbers(ns => (ns.includes(r.qontoNumber) ? ns : [r.qontoNumber, ...ns]))
     if (r.mismatch) {
       addToast(`Qonto affiche ${fmtEur(r.mismatch.qonto)} TTC contre ${fmtEur(r.mismatch.app)} ici : vérifie le devis dans Qonto`, 'error')
     }
-    if (r.renumbered) addToast(`Qonto a numéroté ce devis ${r.renumbered} : numéro repris dans l’application`, 'info')
+    if (r.numberConflict) {
+      addToast(`Qonto a numéroté ce devis ${r.numberConflict}, mais ce numéro est déjà pris par un autre devis de l’application`, 'error')
+    } else if (r.renumbered && !isNumeroProvisoire(d.numero)) {
+      addToast(`Numéro Qonto repris dans l’application : ${r.renumbered}`, 'info')
+    }
     return { ...d, ...r.devis, created: r.created }
   }
   const qontoDevis = async (d) => {
@@ -601,7 +597,7 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
     await reload()
     setSaving(false)
     closeDevis()
-    if (qontoError) addToast(`Devis ${saved.numero} enregistré dans l’application mais PAS dans Qonto : ${qontoError}`, 'error')
+    if (qontoError) addToast(`Devis enregistré dans l’application mais PAS dans Qonto (pas de numéro Qonto) : ${qontoError}`, 'error')
     if (send) sendDevis(saved)
     else if (!qontoError) addToast(`Devis ${saved.numero} enregistré dans l’application et dans Qonto`, 'success')
   }
@@ -626,7 +622,7 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
   }
   const duplicateDevisAction = (d) => {
     setDevisError('')
-    setDevisForm(toForm(duplicateDevis(d, numberingBase)))
+    setDevisForm(toForm({ ...duplicateDevis(d), numero: numeroProvisoire() }))
   }
   const removeDevis = async (d) => {
     const ok = await confirm({ title: `Supprimer le devis ${d.numero} ?`, confirmLabel: 'Supprimer', danger: true })
@@ -906,7 +902,7 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
 
       {/* ─── ÉDITEUR DE DEVIS ─── */}
       <Modal open={!!devisForm} onClose={closeDevis} wide
-        title={devisForm ? `Devis ${devisForm.numero}${oppOf(devisForm) ? ` · ${oppOf(devisForm).titre}` : ''}` : ''}>
+        title={devisForm ? `${isNumeroProvisoire(devisForm.numero) ? 'Nouveau devis' : `Devis ${devisForm.numero}`}${oppOf(devisForm) ? ` · ${oppOf(devisForm).titre}` : ''}` : ''}>
         {devisForm && (
           <DevisEditor form={devisForm} setForm={setDevisForm} m={m} error={devisError} saving={saving}
             onCancel={closeDevis} onPreview={previewDevis}

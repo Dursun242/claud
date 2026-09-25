@@ -19,7 +19,9 @@ const norm = (s) => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '')
 const TITLE_MAX = 120
 
 /** Corps de la requête Qonto pour créer / mettre à jour le devis. */
-export function toQontoQuote(devis = {}, { clientId, withUnits = true } = {}) {
+// Le numéro n'est pas envoyé : Qonto numérote. `number` n'est passé que si
+// Qonto exige un numéro (numérotation automatique désactivée chez lui).
+export function toQontoQuote(devis = {}, { clientId, withUnits = true, number } = {}) {
   const lignes = normalizeLignes(devis.lignes)
   const totals = computeDevisTotals(lignes, devis)
   let section = ''
@@ -45,7 +47,7 @@ export function toQontoQuote(devis = {}, { clientId, withUnits = true } = {}) {
   ].filter(Boolean).join('\n')
   return {
     client_id: clientId,
-    number: cut(devis.numero, 40),
+    ...(number ? { number: cut(number, 40) } : {}),
     issue_date: devis.date_emission,
     expiry_date: devis.date_validite || devis.date_emission,
     currency: 'EUR',
@@ -104,6 +106,13 @@ export function isNumberTaken(status, body) {
   if (status !== 422 && status !== 409) return false
   const txt = typeof body === 'string' ? body : JSON.stringify(body || {})
   return /number/i.test(txt) && /(taken|already|exist|unique|utilis)/i.test(txt)
+}
+
+/** Qonto exige un numéro (numérotation automatique désactivée). */
+export function isNumberRequired(status, body) {
+  if (status !== 422) return false
+  const txt = typeof body === 'string' ? body : JSON.stringify(body || {})
+  return /number/i.test(txt) && /(blank|required|missing|empty|can.t be|must be|obligatoire|vide)/i.test(txt)
 }
 
 /** Qonto a refusé l'unité d'une ligne (liste d'unités imposée). */

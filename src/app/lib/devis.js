@@ -100,6 +100,15 @@ export function nextDevisNumero(existing = [], date = new Date()) {
   return `${yy}-${String(n).padStart(3, '0')}`
 }
 
+// Numéro provisoire d'un devis pas encore enregistré dans Qonto : c'est
+// Qonto qui attribue le numéro définitif (repris ensuite dans le CRM).
+export const PROVISOIRE_PREFIX = 'PROV-'
+export const isNumeroProvisoire = (numero) => String(numero || '').startsWith(PROVISOIRE_PREFIX)
+export const numeroProvisoire = () =>
+  `${PROVISOIRE_PREFIX}${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`.toUpperCase()
+/** Numéro affiché : « N° Qonto en attente » tant que Qonto ne l'a pas attribué. */
+export const numeroAffiche = (numero) => (isNumeroProvisoire(numero) ? 'N° Qonto en attente' : numero)
+
 const isoDay = (d) => {
   const x = d instanceof Date ? d : new Date(d)
   return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`

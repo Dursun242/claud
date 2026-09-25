@@ -21,7 +21,7 @@ import { adminClient } from '@/app/lib/supabaseClients'
 import { nextDevisNumero } from '@/app/lib/devis'
 import {
   toQontoQuote, qontoClientPayload, matchQontoClient,
-  isNumberTaken, isUnitRejected, qontoErrorDetail, totalsMismatch, qontoFingerprint,
+  isNumberTaken, isNumberRequired, isUnitRejected, qontoErrorDetail, totalsMismatch, qontoFingerprint,
 } from '@/app/lib/qontoDevis'
 
 export const maxDuration = 30
@@ -116,22 +116,29 @@ async function resolveClient(token, devis, contact) {
   return id
 }
 
+// Création sans numéro : Qonto attribue le sien. S'il en exige un
+// (numérotation automatique désactivée), on continue sa propre séquence.
 async function pushQuote(token, devis, clientId) {
-  const send = (withUnits) => {
-    const body = toQontoQuote(devis, { clientId, withUnits })
-    return devis.qonto_quote_id
-      ? qonto(token, 'PATCH', `/quotes/${encodeURIComponent(devis.qonto_quote_id)}`, body)
-      : qonto(token, 'POST', '/quotes', body)
+  const opts = { withUnits: true, number: undefined }
+  let quoteId = devis.qonto_quote_id
+  let r
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const body = toQontoQuote(devis, { clientId, ...opts })
+    r = quoteId
+      ? await qonto(token, 'PATCH', `/quotes/${encodeURIComponent(quoteId)}`, body)
+      : await qonto(token, 'POST', '/quotes', body)
+    const errBody = r.json || r.text
+    // Devis supprimé côté Qonto : on le recrée
+    if (r.status === 404 && quoteId) { quoteId = null; continue }
+    // Unités imposées par Qonto : on renvoie sans unité plutôt que d'échouer
+    if (opts.withUnits && isUnitRejected(r.status, errBody)) { opts.withUnits = false; continue }
+    if (!quoteId && !opts.number && isNumberRequired(r.status, errBody)) {
+      opts.number = nextDevisNumero((await qontoNumbers(token)).map(numero => ({ numero })))
+      continue
+    }
+    break
   }
-  let r = await send(true)
-  // Devis supprimé côté Qonto : on le recrée
-  if (r.status === 404 && devis.qonto_quote_id) {
-    devis = { ...devis, qonto_quote_id: null }
-    r = await send(true)
-  }
-  // Unités imposées par Qonto : on renvoie sans unité plutôt que d'échouer
-  if (isUnitRejected(r.status, r.json || r.text)) r = await send(false)
-  return r
+  return { r, created: !quoteId, sentNumber: opts.number }
 }
 
 async function sync(admin, token, devisId) {
@@ -149,14 +156,12 @@ async function sync(admin, token, devisId) {
     : { data: null }
 
   const clientId = await resolveClient(token, devis, contact)
-  const r = await pushQuote(token, devis, clientId)
+  const { r, created, sentNumber } = await pushQuote(token, devis, clientId)
 
   if (!r.ok) {
     if (isNumberTaken(r.status, r.json || r.text)) {
-      const { data: rows } = await admin.from('crm_devis').select('numero')
-      const suggestion = nextDevisNumero([...(rows || []), ...(await qontoNumbers(token)).map(numero => ({ numero }))])
       throw new QontoError(
-        `Le numéro ${devis.numero} existe déjà dans Qonto. Prochain numéro libre : ${suggestion} — ouvre le devis pour changer son numéro.`,
+        `Qonto signale le numéro ${sentNumber || ''} comme déjà utilisé : vérifie la numérotation des devis dans Qonto puis réessaie.`.replace('  ', ' '),
         409, 'NUMBER_TAKEN',
       )
     }
@@ -171,18 +176,21 @@ async function sync(admin, token, devisId) {
     qonto_url: quote.quote_url || null,
     qonto_synced_at: new Date().toISOString(),
   }
-  // Numérotation automatique active chez Qonto : on reprend son numéro
+  // Le numéro est celui de Qonto : le CRM le reprend
   const renumbered = quote.number && quote.number !== devis.numero ? quote.number : null
+  const hash = qontoFingerprint(devis)
   let saved = null
+  let numberConflict = null
   if (renumbered) {
     const res = await admin.from('crm_devis')
-      .update({ ...patch, numero: renumbered, qonto_hash: qontoFingerprint({ ...devis, numero: renumbered }) })
-      .eq('id', devis.id).select().single()
+      .update({ ...patch, numero: renumbered, qonto_hash: hash }).eq('id', devis.id).select().single()
     if (!res.error) saved = res.data
+    else numberConflict = renumbered
   }
   if (!saved) {
+    // Toujours garder le lien Qonto (sinon un nouvel essai créerait un doublon)
     const res = await admin.from('crm_devis')
-      .update({ ...patch, qonto_hash: qontoFingerprint(devis) }).eq('id', devis.id).select().single()
+      .update({ ...patch, qonto_hash: hash }).eq('id', devis.id).select().single()
     if (res.error) throw new QontoError('Devis créé dans Qonto mais lien non enregistré : ' + res.error.message, 500)
     saved = res.data
   }
@@ -190,8 +198,9 @@ async function sync(admin, token, devisId) {
     devis: saved,
     qontoNumber: quote.number || devis.numero,
     renumbered: saved.numero !== devis.numero ? saved.numero : null,
+    numberConflict,
     mismatch: totalsMismatch(quote, devis),
-    created: !devis.qonto_quote_id,
+    created,
   }
 }
 

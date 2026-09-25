@@ -210,7 +210,8 @@ describe('CrmV — devis', () => {
     renderPage({ focusId: 'o5', focusTs: 20 })
     await screen.findByRole('dialog', { name: 'Escalier extérieur' })
     await user.click(screen.getByRole('button', { name: /Créer le devis/ }))
-    const editor = await screen.findByRole('dialog', { name: /^Devis \d{2}-\d{3} · Escalier extérieur$/ })
+    // Pas de numéro côté CRM : c'est Qonto qui numérote à l'enregistrement
+    const editor = await screen.findByRole('dialog', { name: 'Nouveau devis · Escalier extérieur' })
     expect(editor).toBeInTheDocument()
     // Ligne pré-remplie au forfait avec le montant estimé
     expect(screen.getByLabelText('Prix unitaire HT ligne 1')).toHaveValue('8000')
@@ -242,7 +243,7 @@ describe('CrmV — devis', () => {
     await user.click(screen.getByRole('button', { name: /Créer le devis/ }))
     await user.click(await screen.findByRole('button', { name: 'Enregistrer le brouillon' }))
     await waitFor(() => expect(addToast).toHaveBeenCalledWith(
-      expect.stringMatching(/^Devis 26-050 enregistré dans l’application mais PAS dans Qonto : Appliquer la migration 028/), 'error',
+      expect.stringMatching(/^Devis enregistré dans l’application mais PAS dans Qonto \(pas de numéro Qonto\) : Appliquer la migration 028/), 'error',
     ))
     delete global.fetch
   })
@@ -461,15 +462,21 @@ describe('CrmV — envoi par mail et IA', () => {
     await waitFor(() => expect(addToast).toHaveBeenCalledWith('Devis 26-050 enregistré dans Qonto', 'success'))
   })
 
-  it('la numérotation d’un nouveau devis suit les numéros Qonto', async () => {
+  it('numérotation par Qonto : le nouveau devis part sans numéro et reprend celui de Qonto', async () => {
     const user = userEvent.setup()
     crmDb.loadCrm.mockResolvedValue({ opportunites: [opp], interactions: [], devis: [], missingMigration: false })
-    routes['/api/devis/qonto'] = reply({ ok: true, data: { numbers: ['26-070', '25-900'] } })
+    crmDb.upsertDevis.mockImplementation(async (d) => ({ ...d, id: 'd9' }))
+    routes['/api/devis/qonto'] = ({ action }) => (action === 'numbers'
+      ? reply({ ok: true, data: { numbers: ['26-070'], quotes: [] } })()
+      : reply({ ok: true, data: { devis: { id: 'd9', numero: '26-071', qonto_quote_id: 'qq9' }, qontoNumber: '26-071', renumbered: '26-071', created: true } })())
     renderWith()
     await screen.findByRole('dialog', { name: 'Escalier extérieur' })
-    await waitFor(() => expect(callsTo('/api/devis/qonto')).toHaveLength(1))
     await user.click(screen.getByRole('button', { name: /Créer le devis/ }))
-    const yy = String(new Date().getFullYear()).slice(-2)
-    if (yy === '26') expect(await screen.findByRole('dialog', { name: /Devis 26-071/ })).toBeInTheDocument()
+    await screen.findByRole('dialog', { name: 'Nouveau devis · Escalier extérieur' })
+    await user.click(screen.getByRole('button', { name: 'Enregistrer le brouillon' }))
+    await waitFor(() => expect(addToast).toHaveBeenCalledWith('Devis 26-071 enregistré dans l’application et dans Qonto', 'success'))
+    expect(crmDb.upsertDevis.mock.calls[0][0].numero).toMatch(/^PROV-/)
+    // Numéro provisoire : pas de message « numéro repris »
+    expect(addToast).not.toHaveBeenCalledWith(expect.stringMatching(/Numéro Qonto repris/), 'info')
   })
 })

@@ -1,5 +1,5 @@
 'use client'
-import { DEVIS_STATUT_COLORS, isDevisExpired, isDevisStale } from '../../lib/devis'
+import { DEVIS_STATUT_COLORS, isDevisExpired, isDevisStale, numeroAffiche } from '../../lib/devis'
 import { fmtEur } from './DevisEditor'
 import { qontoFingerprint } from '../../lib/qontoDevis'
 
@@ -55,7 +55,7 @@ export default function DevisList({ devis = [], missing, saving, onNew, onOpen, 
                   flex: 1, minWidth: 160, background: 'none', border: 'none', padding: 0, textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit',
                 }}>
                   <div style={{ fontSize: 12, fontWeight: 700, color: '#0F172A' }}>
-                    {d.numero}
+                    {numeroAffiche(d.numero)}
                     <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 700, color: c, background: c + '1A', borderRadius: 999, padding: '1px 7px' }}>{d.statut}</span>
                     {expired && <span style={{ marginLeft: 6, fontSize: 10, color: '#DC2626', fontWeight: 700 }}>expiré</span>}
                     {!expired && stale && <span style={{ marginLeft: 6, fontSize: 10, color: '#F59E0B', fontWeight: 700 }}>sans réponse</span>}
