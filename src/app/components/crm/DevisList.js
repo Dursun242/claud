@@ -1,6 +1,7 @@
 'use client'
 import { DEVIS_STATUT_COLORS, isDevisExpired, isDevisStale } from '../../lib/devis'
 import { fmtEur } from './DevisEditor'
+import { qontoFingerprint } from '../../lib/qontoDevis'
 
 const act = {
   background: '#fff', border: '1px solid #E2E8F0', borderRadius: 6, cursor: 'pointer',
@@ -8,12 +9,18 @@ const act = {
 }
 const fmtD = (d) => (d ? String(d).slice(0, 10).split('-').reverse().join('/') : '')
 
+// État du lien Qonto : null (jamais envoyé), 'ok', 'stale' (modifié depuis)
+export function qontoState(d = {}) {
+  if (!d.qonto_quote_id) return null
+  return d.qonto_hash && d.qonto_hash !== qontoFingerprint(d) ? 'stale' : 'ok'
+}
+
 /**
  * Liste des devis d'une affaire (fiche opportunité).
  * Les actions proposées dépendent du statut : Brouillon → Envoyer,
- * Envoyé → Accepté / Refusé, toujours : PDF, Dupliquer, Supprimer.
+ * Envoyé → Accepté / Refusé, toujours : PDF, Qonto, Dupliquer, Supprimer.
  */
-export default function DevisList({ devis = [], missing, saving, onNew, onOpen, onPdf, onSend, onAccept, onRefuse, onDuplicate, onDelete }) {
+export default function DevisList({ devis = [], missing, saving, onNew, onOpen, onPdf, onSend, onAccept, onRefuse, onDuplicate, onDelete, onQonto }) {
   return (
     <div style={{ marginBottom: 14 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
@@ -38,6 +45,7 @@ export default function DevisList({ devis = [], missing, saving, onNew, onOpen, 
             const c = DEVIS_STATUT_COLORS[d.statut] || '#64748B'
             const expired = isDevisExpired(d)
             const stale = isDevisStale(d)
+            const qs = qontoState(d)
             return (
               <div key={d.id} style={{
                 display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', background: '#fff',
@@ -51,6 +59,8 @@ export default function DevisList({ devis = [], missing, saving, onNew, onOpen, 
                     <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 700, color: c, background: c + '1A', borderRadius: 999, padding: '1px 7px' }}>{d.statut}</span>
                     {expired && <span style={{ marginLeft: 6, fontSize: 10, color: '#DC2626', fontWeight: 700 }}>expiré</span>}
                     {!expired && stale && <span style={{ marginLeft: 6, fontSize: 10, color: '#F59E0B', fontWeight: 700 }}>sans réponse</span>}
+                    {qs === 'ok' && <span style={{ marginLeft: 6, fontSize: 10, color: '#047857', fontWeight: 700 }}>✓ Qonto</span>}
+                    {qs === 'stale' && <span style={{ marginLeft: 6, fontSize: 10, color: '#B45309', fontWeight: 700 }}>Qonto à mettre à jour</span>}
                   </div>
                   <div style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>
                     {fmtEur(d.total_ht)} HT · {fmtEur(d.total_ttc)} TTC
@@ -66,6 +76,15 @@ export default function DevisList({ devis = [], missing, saving, onNew, onOpen, 
                     <button onClick={() => onAccept(d)} disabled={saving} style={{ ...act, background: '#ECFDF5', color: '#047857', borderColor: '#A7F3D0' }}>✓ Accepté</button>
                     <button onClick={() => onRefuse(d)} disabled={saving} style={{ ...act, background: '#FEF2F2', color: '#B91C1C', borderColor: '#FECACA' }}>Refusé</button>
                   </>)}
+                  {onQonto && (
+                    <button onClick={() => onQonto(d)} disabled={saving} style={act}
+                      title={qs ? 'Mettre à jour le devis dans Qonto' : 'Créer ce devis dans Qonto (même numéro)'}>
+                      {qs === 'ok' ? '↻ Qonto' : qs === 'stale' ? '↻ Mettre à jour Qonto' : '↗ Qonto'}
+                    </button>
+                  )}
+                  {d.qonto_url && (
+                    <a href={d.qonto_url} target="_blank" rel="noopener noreferrer" style={{ ...act, textDecoration: 'none' }}>Voir Qonto</a>
+                  )}
                   <button onClick={() => onDuplicate(d)} disabled={saving} style={act} title="Créer une nouvelle version">Dupliquer</button>
                   <button onClick={() => onDelete(d)} disabled={saving} style={{ ...act, color: '#DC2626' }} aria-label={`Supprimer le devis ${d.numero}`}>🗑</button>
                 </div>

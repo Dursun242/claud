@@ -271,13 +271,24 @@ describe('CrmV — envoi par mail et IA', () => {
     crmDb.setDevisStatut.mockResolvedValue({ ...draft, statut: 'Envoyé' })
     crmDb.moveOpportunite.mockResolvedValue({})
     crmDb.upsertInteraction.mockResolvedValue({})
-    global.fetch = jest.fn()
+    // Réponses par route ; Qonto non connecté par défaut
+    routes = {
+      '/api/devis/qonto': () => ({ ok: false, status: 503, json: async () => ({ error: 'Qonto non connecté', code: 'QONTO_NOT_CONFIGURED' }) }),
+    }
+    global.fetch = jest.fn(async (url, opts) => {
+      const r = routes[url]
+      if (!r) throw new Error(`fetch inattendu : ${url}`)
+      return r(JSON.parse(opts.body))
+    })
   })
   afterEach(() => { delete global.fetch })
+  let routes
+  const reply = (body, status = 200) => () => ({ ok: status < 300, status, json: async () => body })
+  const callsTo = (url) => global.fetch.mock.calls.filter(([u]) => u === url).map(([, o]) => ({ ...o, body: JSON.parse(o.body) }))
 
   it('envoie le devis par mail depuis l’app puis le passe « Envoyé »', async () => {
     const user = userEvent.setup()
-    global.fetch.mockResolvedValue({ ok: true, status: 200, json: async () => ({ ok: true, to: ['cousin@exemple.fr'] }) })
+    routes['/api/devis/send'] = reply({ ok: true, to: ['cousin@exemple.fr'] })
     renderWith()
     await screen.findByRole('dialog', { name: 'Escalier extérieur' })
     await user.click(screen.getByRole('button', { name: '📤 Envoyer' }))
@@ -287,17 +298,16 @@ describe('CrmV — envoi par mail et IA', () => {
     expect(screen.getByDisplayValue('Devis 26-050 — Escalier')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: '📤 Envoyer le devis' }))
     await waitFor(() => expect(crmDb.setDevisStatut).toHaveBeenCalledWith(draft, 'Envoyé'))
-    const [url, opts] = global.fetch.mock.calls[0]
-    expect(url).toBe('/api/devis/send')
+    const [opts] = callsTo('/api/devis/send')
     expect(opts.headers.Authorization).toBe('Bearer tok')
-    expect(JSON.parse(opts.body)).toMatchObject({ to: 'cousin@exemple.fr', subject: 'Devis 26-050 — Escalier', filename: '26-050.pdf' })
+    expect(opts.body).toMatchObject({ to: 'cousin@exemple.fr', subject: 'Devis 26-050 — Escalier', filename: '26-050.pdf' })
     expect(crmDb.moveOpportunite).toHaveBeenCalledWith(expect.objectContaining({ id: 'o5' }), 'Devis envoyé', { montant_estime: 8000 })
     expect(addToast).toHaveBeenCalledWith('Devis 26-050 envoyé à cousin@exemple.fr · relance dans 7 jours', 'success')
   })
 
   it('affiche l’erreur serveur dans la fenêtre sans marquer le devis envoyé', async () => {
     const user = userEvent.setup()
-    global.fetch.mockResolvedValue({ ok: false, status: 502, json: async () => ({ error: 'L’envoi a échoué — vérifie la configuration SMTP.' }) })
+    routes['/api/devis/send'] = reply({ error: 'L’envoi a échoué — vérifie la configuration SMTP.' }, 502)
     renderWith()
     await screen.findByRole('dialog', { name: 'Escalier extérieur' })
     await user.click(screen.getByRole('button', { name: '📤 Envoyer' }))
@@ -309,11 +319,11 @@ describe('CrmV — envoi par mail et IA', () => {
   it('l’IA propose les lignes du devis à partir d’une description', async () => {
     const user = userEvent.setup()
     crmDb.loadCrm.mockResolvedValue({ opportunites: [opp], interactions: [], devis: [], missingMigration: false })
-    global.fetch.mockResolvedValue({ ok: true, status: 200, json: async () => ({ ok: true, data: {
+    routes['/api/devis-ia'] = reply({ ok: true, data: {
       objet: 'Escalier béton extérieur',
       lignes: [{ type: 'ligne', designation: 'Démolition escalier existant', unite: 'forfait', quantite: '1', prix_unitaire: '950', tva_taux: '10' }],
       conseils: ['Vérifier la nature du sol'],
-    } }) })
+    } })
     renderWith()
     await screen.findByRole('dialog', { name: 'Escalier extérieur' })
     await user.click(screen.getByRole('button', { name: /Créer le devis/ }))
@@ -323,8 +333,63 @@ describe('CrmV — envoi par mail et IA', () => {
     expect(await screen.findByDisplayValue('Démolition escalier existant')).toBeInTheDocument()
     expect(screen.getByDisplayValue('Escalier béton extérieur')).toBeInTheDocument()
     expect(screen.getByText('Vérifier la nature du sol')).toBeInTheDocument()
-    const body = JSON.parse(global.fetch.mock.calls[0][1].body)
+    const [{ body }] = callsTo('/api/devis-ia')
     expect(body).toMatchObject({ action: 'generate', description: 'Escalier béton 6 marches' })
     expect(body.context.affaire.titre).toBe('Escalier extérieur')
+  })
+  it('l’envoi enregistre d’abord le devis dans Qonto (numéro repris dans le mail)', async () => {
+    const user = userEvent.setup()
+    routes['/api/devis/qonto'] = ({ action }) => (action === 'numbers'
+      ? reply({ ok: true, data: { numbers: ['26-049'] } })()
+      : reply({ ok: true, data: { devis: { ...draft, numero: '26-051', qonto_quote_id: 'qq1' }, qontoNumber: '26-051', renumbered: '26-051', mismatch: null, created: true } })())
+    routes['/api/devis/send'] = reply({ ok: true, to: ['cousin@exemple.fr'] })
+    renderWith()
+    await screen.findByRole('dialog', { name: 'Escalier extérieur' })
+    await user.click(screen.getByRole('button', { name: '📤 Envoyer' }))
+    await user.click(await screen.findByRole('button', { name: '📤 Envoyer le devis' }))
+    await waitFor(() => expect(crmDb.setDevisStatut).toHaveBeenCalled())
+    expect(callsTo('/api/devis/qonto').map(c => c.body)).toContainEqual({ action: 'sync', devisId: 'd1' })
+    const [send] = callsTo('/api/devis/send')
+    expect(send.body).toMatchObject({ subject: 'Devis 26-051 — Escalier' })
+    const { generateDevisPdf } = require('../../generators')
+    expect(generateDevisPdf).toHaveBeenLastCalledWith(expect.objectContaining({ numero: '26-051' }), expect.anything())
+  })
+
+  it('numéro déjà pris dans Qonto : l’envoi est bloqué avec le message', async () => {
+    const user = userEvent.setup()
+    routes['/api/devis/qonto'] = ({ action }) => (action === 'numbers'
+      ? reply({ ok: true, data: { numbers: [] } })()
+      : reply({ error: 'Le numéro 26-050 existe déjà dans Qonto. Prochain numéro libre : 26-062', code: 'NUMBER_TAKEN' }, 409)())
+    routes['/api/devis/send'] = reply({ ok: true })
+    renderWith()
+    await screen.findByRole('dialog', { name: 'Escalier extérieur' })
+    await user.click(screen.getByRole('button', { name: '📤 Envoyer' }))
+    await user.click(await screen.findByRole('button', { name: '📤 Envoyer le devis' }))
+    expect(await screen.findByText(/Prochain numéro libre : 26-062/)).toBeInTheDocument()
+    expect(callsTo('/api/devis/send')).toHaveLength(0)
+    expect(crmDb.setDevisStatut).not.toHaveBeenCalled()
+  })
+
+  it('bouton Qonto : crée le devis dans Qonto', async () => {
+    const user = userEvent.setup()
+    routes['/api/devis/qonto'] = ({ action }) => (action === 'numbers'
+      ? reply({ ok: true, data: { numbers: [] } })()
+      : reply({ ok: true, data: { devis: { ...draft, qonto_quote_id: 'qq1' }, qontoNumber: '26-050', renumbered: null, mismatch: null, created: true } })())
+    renderWith()
+    await screen.findByRole('dialog', { name: 'Escalier extérieur' })
+    await user.click(screen.getByRole('button', { name: '↗ Qonto' }))
+    await waitFor(() => expect(addToast).toHaveBeenCalledWith('Devis 26-050 enregistré dans Qonto', 'success'))
+  })
+
+  it('la numérotation d’un nouveau devis suit les numéros Qonto', async () => {
+    const user = userEvent.setup()
+    crmDb.loadCrm.mockResolvedValue({ opportunites: [opp], interactions: [], devis: [], missingMigration: false })
+    routes['/api/devis/qonto'] = reply({ ok: true, data: { numbers: ['26-070', '25-900'] } })
+    renderWith()
+    await screen.findByRole('dialog', { name: 'Escalier extérieur' })
+    await waitFor(() => expect(callsTo('/api/devis/qonto')).toHaveLength(1))
+    await user.click(screen.getByRole('button', { name: /Créer le devis/ }))
+    const yy = String(new Date().getFullYear()).slice(-2)
+    if (yy === '26') expect(await screen.findByRole('dialog', { name: /Devis 26-071/ })).toBeInTheDocument()
   })
 })

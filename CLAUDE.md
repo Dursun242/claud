@@ -38,16 +38,17 @@ src/app/
 ├─ contexts/                  → ToastContext + ConfirmContext (non-invasive, context split pour éviter re-renders)
 ├─ hooks/                     → useFloatingMic, useAttachments, useComments, useUndoableDelete, useSignaturesSync, useCrmData...
 ├─ lib/                       → auth, fetchWithRetry, odoo, validators, notifications, activityLog, chantierFinances
-│                               crm.js (logique pure pipeline) + devis.js / devisAi.js (calculs, prix habituels, vérifs devis) + crmDb.js (accès Supabase CRM, hors shared.js)
+│                               crm.js (logique pure pipeline) + devis.js / devisAi.js / qontoDevis.js (calculs, prix habituels, vérifs devis, format Qonto) + crmDb.js (accès Supabase CRM, hors shared.js)
 │
 └─ api/                       → 23 routes. Pattern unique : verifyAuth() + createLogger() + mock-friendly.
     ├─ admin/*                → service role uniquement (users, demo-mode, reset-demo-data)
     ├─ claude/                → proxy Anthropic (rate limit 20/min/IP)
     ├─ devis-ia, devis/send   → CRM : IA de chiffrage + envoi SMTP du devis (staff only, verifyStaff)
+    ├─ devis/qonto            → CRM : enregistre le devis dans Qonto, même numéro (staff only)
     ├─ odoo/*                 → signatures
     ├─ pv-reception/*         → flux PV métier
     ├─ extract-*/             → Claude Vision (devis + contacts)
-    ├─ pappers, qonto         → proxies tiers
+    ├─ pappers, qonto         → proxies tiers (qonto : lecture seule)
     └─ metrics/               → ingest Web Vitals (sendBeacon)
 ```
 
@@ -58,7 +59,7 @@ Stage 2 = **secondaires** (contacts, planning, rdv, counts PJ via RPC `chantier_
 
 Cf. `SB.loadCritical()` / `SB.loadSecondary()` dans `dashboards/shared.js`.
 
-Stage 3 = **CRM** (`crm_opportunites`, `crm_interactions`, `crm_devis`, migrations 025/026/027) via `useCrmData({ enabled })` dans `AdminDashboard` : lancé seulement après le stage 1, partagé (React Query) par CrmV, DashboardV (widget relances), ContactsV (badge affaires), QontoV (→ CRM), AIV (actions IA) et la recherche globale.
+Stage 3 = **CRM** (`crm_opportunites`, `crm_interactions`, `crm_devis`, migrations 025→028) via `useCrmData({ enabled })` dans `AdminDashboard` : lancé seulement après le stage 1, partagé (React Query) par CrmV, DashboardV (widget relances), ContactsV (badge affaires), QontoV (→ CRM), AIV (actions IA) et la recherche globale.
 
 ## Conventions & règles du projet
 
@@ -92,7 +93,7 @@ Voir `.env.example` à la racine. Minimum requis pour dev :
 
 ## Migrations DB
 
-**Ordre critique** : voir `migrations/APPLY_ORDER.md`. Les migrations numérotées 001→027 s'appliquent dans l'ordre via le SQL Editor Supabase. Chaque migration ayant un impact non-trivial a un `<num>_README.md` dédié.
+**Ordre critique** : voir `migrations/APPLY_ORDER.md`. Les migrations numérotées 001→028 s'appliquent dans l'ordre via le SQL Editor Supabase. Chaque migration ayant un impact non-trivial a un `<num>_README.md` dédié.
 
 ## Dette technique assumée
 
