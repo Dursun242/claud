@@ -34,6 +34,7 @@ Exécuter dans cet ordre exact sur une base vierge (Supabase Dashboard → SQL E
 | 026 | `026_crm_qonto_link.sql` | Colonnes `qonto_quote_id` / `qonto_quote_number` sur `crm_opportunites` : création d'une opportunité depuis un devis Qonto, sans doublon. Voir `026_README.md`. |
 | 027 | `027_crm_devis.sql` | **Module Devis** : table `crm_devis` (lignes JSONB, totaux, statut Brouillon / Envoyé / Accepté / Refusé) rattachée à `crm_opportunites`. RLS staff uniquement. Voir `027_README.md`. |
 | 028 | `028_crm_devis_qonto.sql` | Colonnes `qonto_quote_id` / `qonto_client_id` / `qonto_url` / `qonto_synced_at` / `qonto_hash` sur `crm_devis` : enregistrement du devis dans Qonto avec le même numéro. Voir `028_README.md`. |
+| 029 | `029_crm_devis_signature.sql` | Colonnes `odoo_sign_id` / `odoo_sign_url` / `statut_signature` sur `crm_devis` : signature électronique des devis via Odoo Sign. Voir `029_README.md`. |
 
 ## Fichiers NON séquentiels (à ne PAS appliquer en séquence)
 

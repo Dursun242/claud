@@ -44,7 +44,8 @@ src/app/
     ├─ admin/*                → service role uniquement (users, demo-mode, reset-demo-data)
     ├─ claude/                → proxy Anthropic (rate limit 20/min/IP)
     ├─ devis-ia, devis/send   → CRM : IA de chiffrage + envoi SMTP du devis (staff only, verifyStaff)
-    ├─ devis/qonto            → CRM : enregistre le devis dans Qonto, même numéro (staff only)
+    ├─ devis/qonto            → CRM : devis créé dans Qonto (numéro + PDF Qonto), suivi des statuts (staff only)
+    ├─ devis/sign             → CRM : signature électronique du devis via Odoo Sign + suivi (staff only)
     ├─ odoo/*                 → signatures
     ├─ pv-reception/*         → flux PV métier
     ├─ extract-*/             → Claude Vision (devis + contacts)
@@ -59,7 +60,7 @@ Stage 2 = **secondaires** (contacts, planning, rdv, counts PJ via RPC `chantier_
 
 Cf. `SB.loadCritical()` / `SB.loadSecondary()` dans `dashboards/shared.js`.
 
-Stage 3 = **CRM** (`crm_opportunites`, `crm_interactions`, `crm_devis`, migrations 025→028) via `useCrmData({ enabled })` dans `AdminDashboard` : lancé seulement après le stage 1, partagé (React Query) par CrmV, DashboardV (widget relances), ContactsV (badge affaires), QontoV (→ CRM), AIV (actions IA) et la recherche globale.
+Stage 3 = **CRM** (`crm_opportunites`, `crm_interactions`, `crm_devis`, migrations 025→029) via `useCrmData({ enabled })` dans `AdminDashboard` : lancé seulement après le stage 1, partagé (React Query) par CrmV, DashboardV (widget relances), ContactsV (badge affaires), QontoV (→ CRM), AIV (actions IA) et la recherche globale.
 
 ## Conventions & règles du projet
 
@@ -93,7 +94,7 @@ Voir `.env.example` à la racine. Minimum requis pour dev :
 
 ## Migrations DB
 
-**Ordre critique** : voir `migrations/APPLY_ORDER.md`. Les migrations numérotées 001→028 s'appliquent dans l'ordre via le SQL Editor Supabase. Chaque migration ayant un impact non-trivial a un `<num>_README.md` dédié.
+**Ordre critique** : voir `migrations/APPLY_ORDER.md`. Les migrations numérotées 001→029 s'appliquent dans l'ordre via le SQL Editor Supabase. Chaque migration ayant un impact non-trivial a un `<num>_README.md` dédié.
 
 ## Dette technique assumée
 

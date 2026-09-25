@@ -10,10 +10,11 @@ import { parseEmails } from '../../lib/devisAi'
  * filename  : nom de la pièce jointe (PDF édité par Qonto)
  * onPreviewPdf : () => void — ouvre le PDF Qonto pour vérification
  * onDraftAi : () => Promise<{ subject, body }> — absent = bouton IA masqué
- * onSubmit  : ({ to, cc, subject, body, copyMe }) => Promise<void>
+ * canSign   : propose la signature électronique (Odoo Sign)
+ * onSubmit  : ({ to, cc, subject, body, copyMe, sign }) => Promise<void>
  */
-export default function DevisSendForm({ initial = {}, filename, sending, error, onPreviewPdf, onDraftAi, onSubmit, onCancel }) {
-  const [form, setForm] = useState({ to: '', cc: '', subject: '', body: '', copyMe: true, ...initial })
+export default function DevisSendForm({ initial = {}, filename, sending, error, canSign, onPreviewPdf, onDraftAi, onSubmit, onCancel }) {
+  const [form, setForm] = useState({ to: '', cc: '', subject: '', body: '', copyMe: true, sign: !!canSign, ...initial })
   const [localError, setLocalError] = useState('')
   const [drafting, setDrafting] = useState(false)
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
@@ -33,6 +34,7 @@ export default function DevisSendForm({ initial = {}, filename, sending, error, 
     const bad = [...to.invalid, ...cc.invalid]
     if (bad.length) { setLocalError(`Adresse invalide : ${bad.join(', ')}`); return }
     if (!form.subject.trim() || !form.body.trim()) { setLocalError('Objet et message requis.'); return }
+    if (form.sign && to.list.length !== 1) { setLocalError('Signature électronique : un seul destinataire (le signataire).'); return }
     setLocalError('')
     onSubmit(form)
   }
@@ -65,6 +67,12 @@ export default function DevisSendForm({ initial = {}, filename, sending, error, 
           <input type="checkbox" checked={form.copyMe} onChange={e => set('copyMe', e.target.checked)} />
           M’envoyer une copie
         </label>
+        {canSign && (
+          <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontWeight: 600, color: '#1E3A5F' }}>
+            <input type="checkbox" checked={form.sign} onChange={e => set('sign', e.target.checked)} />
+            ✍️ Signature électronique
+          </label>
+        )}
         {onDraftAi && (
           <button type="button" onClick={draft} disabled={drafting || sending}
             style={{ ...btnS, fontSize: 12, padding: '5px 10px', minHeight: 30, marginLeft: 'auto' }}>
@@ -72,11 +80,16 @@ export default function DevisSendForm({ initial = {}, filename, sending, error, 
           </button>
         )}
       </div>
+      {canSign && form.sign && (
+        <div style={{ fontSize: 11, color: '#64748B', marginBottom: 10 }}>
+          Le client reçoit aussi un e-mail d’Odoo Sign pour signer le devis en ligne.
+        </div>
+      )}
       {shownError && <div role="alert" style={{ color: '#DC2626', fontSize: 12, marginBottom: 10, fontWeight: 500 }}>⚠ {shownError}</div>}
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
         <button onClick={onCancel} style={btnS}>Annuler</button>
         <button onClick={submit} disabled={sending} style={{ ...btnP, opacity: sending ? 0.6 : 1 }}>
-          {sending ? 'Envoi…' : '📤 Envoyer le devis'}
+          {sending ? 'Envoi…' : form.sign ? '📤 Envoyer pour signature' : '📤 Envoyer le devis'}
         </button>
       </div>
     </div>

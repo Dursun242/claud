@@ -196,11 +196,13 @@ export async function createSignRequest({ templateId, signerName, signerEmail, r
  * @param {string} params.pdfBase64       - dataURI base64 du PDF
  * @param {string} params.reference       - Numéro OS (ex: OS-2026-020)
  * @param {string} params.operationName   - Nom du chantier (pour l'objet email)
- * @param {Array}  params.signers         - [{name, email, role}] role ∈ 'MOE'|'MOA'|'Entreprise'.
+ * @param {Array}  params.signers         - [{name, email, role}] role ∈ 'MOE'|'MOA'|'Entreprise'|'Client'.
  *   Plusieurs signataires peuvent partager le même role (ex: 2 MOA co-
  *   propriétaires, 2 entreprises) : chacun reçoit sa propre zone/demande.
+ * @param {Object} [params.placement]    - zone unique imposée { page, posX, posY } (ex. devis :
+ *   « bon pour accord » en bas à droite de la dernière page). Ignoré s'il y a plusieurs zones.
  */
-export async function createSignRequestFromPdf({ pdfBase64, reference, operationName, signers }) {
+export async function createSignRequestFromPdf({ pdfBase64, reference, operationName, signers, placement }) {
   // Validation du PDF : taille et signature MIME
   if (typeof pdfBase64 !== 'string' || pdfBase64.length === 0) {
     throw new Error('PDF manquant ou invalide')
@@ -233,7 +235,7 @@ export async function createSignRequestFromPdf({ pdfBase64, reference, operation
   //   - il y a au moins un signataire avec email,
   //   - chaque signataire fourni a bien un email valide,
   //   - le rôle est dans la liste connue { MOE, MOA, Entreprise }.
-  const KNOWN_ROLES = ['MOE', 'MOA', 'Entreprise']
+  const KNOWN_ROLES = ['MOE', 'MOA', 'Entreprise', 'Client']
   const cleanSigners = (signers || []).filter(s => s && s.email)
   if (!cleanSigners.length) {
     throw new Error('Au moins un signataire avec email requis')
@@ -365,6 +367,8 @@ export async function createSignRequestFromPdf({ pdfBase64, reference, operation
       posY: 0.82 - rowFromBottom * ROW_HEIGHT,
     }
   })
+  if (placement && ZONES.length === 1) Object.assign(ZONES[0], { posX: placement.posX ?? ZONES[0].posX, posY: placement.posY ?? ZONES[0].posY })
+  const zonePage = (placement && ZONES.length === 1 && placement.page) || 1
   for (const z of ZONES) {
     const rId = roleIds[z.key]
     if (!rId) throw new Error(`Rôle Odoo manquant pour ${z.key}`)
@@ -373,7 +377,7 @@ export async function createSignRequestFromPdf({ pdfBase64, reference, operation
         [parentField]: parentId,
         responsible_id: rId,
         required: true, type_id: signTypeId,
-        posX: z.posX, posY: z.posY, width: ZONE_WIDTH, height: ZONE_HEIGHT, page: 1,
+        posX: z.posX, posY: z.posY, width: ZONE_WIDTH, height: ZONE_HEIGHT, page: zonePage,
       }])
     } catch (e) {
       throw new Error(`Création zone signature ${z.key} échouée : ${e.message}`)
@@ -568,4 +572,18 @@ export async function getCompletedDocument(requestId) {
     filename: best.name || baseFilename,
     mimetype: best.mimetype || 'application/pdf',
   }
+}
+
+/**
+ * Nombre de pages d'un PDF (base64), estimé depuis les objets « /Type /Page ».
+ * Sert à placer la signature d'un devis sur la dernière page. Retourne 1 si
+ * le décompte est impossible (objets compressés).
+ */
+export function countPdfPages(pdfBase64) {
+  try {
+    const b64 = pdfBase64.includes(',') ? pdfBase64.split(',')[1] : pdfBase64
+    const txt = Buffer.from(b64, 'base64').toString('latin1')
+    const n = (txt.match(/\/Type\s*\/Page(?!s)/g) || []).length
+    return n > 0 ? n : 1
+  } catch { return 1 }
 }

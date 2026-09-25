@@ -167,6 +167,31 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
     return () => { alive = false }
   }, [devisMissing])
 
+  // Suivi des signatures électroniques (Odoo Sign) : une fois au chargement.
+  // Signé → devis « Accepté » (fait côté serveur) + affaire « Gagné ».
+  const signSynced = useRef(false)
+  useEffect(() => {
+    if (devisMissing || loading || signSynced.current) return
+    if (!allDevis.some(d => d.odoo_sign_id && !['Signé', 'Refusé', 'Expiré', 'Annulé'].includes(d.statut_signature))) return
+    signSynced.current = true
+    ;(async () => {
+      try {
+        const { data: r } = await apiPost('/api/devis/sign', { action: 'sync' })
+        const changes = r?.changes || []
+        if (!changes.length) return
+        for (const c of changes) {
+          const o = opportunites.find(x => x.id === c.opportunite_id)
+          if (c.statut_signature === 'Signé' && o && !isClosed(o.etape)) {
+            try { await moveOpportunite(o, 'Gagné', { montant_estime: Number(c.total_ht) || o.montant_estime }) } catch { /* affaire : mise à jour manuelle */ }
+          }
+          addToast(`Devis ${c.numero} : ${c.statut_signature === 'Signé' ? 'signé par le client ✍️' : `signature ${c.statut_signature.toLowerCase()}`}`,
+            c.statut_signature === 'Signé' ? 'success' : 'info')
+        }
+        await reload()
+      } catch { /* Odoo injoignable : nouvel essai au prochain chargement */ signSynced.current = false }
+    })()
+  }, [allDevis, devisMissing, loading, opportunites, reload, addToast])
+
   // Suivi : un devis accepté / annulé dans Qonto l'est aussi dans le CRM
   const reconciled = useRef(new Set())
   useEffect(() => {
@@ -409,6 +434,19 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
     }
     await appDevisPdf(d)
   }
+  const downloadSignedPdf = async (d) => {
+    try {
+      const { data: { session } = {} } = await supabase.auth.getSession()
+      const res = await fetch(`/api/odoo/signed-pdf?requestId=${encodeURIComponent(d.odoo_sign_id)}`, {
+        headers: { Authorization: `Bearer ${session?.access_token || ''}` },
+      })
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || `Erreur ${res.status}`)
+      const buf = new Uint8Array(await res.arrayBuffer())
+      let bin = ''
+      for (let i = 0; i < buf.length; i += 0x8000) bin += String.fromCharCode.apply(null, buf.subarray(i, i + 0x8000))
+      saveBase64Pdf({ base64: btoa(bin), filename: `Devis ${d.numero} signé.pdf` })
+    } catch (e) { addToast(`PDF signé indisponible : ${e?.message || 'erreur'}`, 'error') }
+  }
   const appDevisPdf = async (d) => {
     const o = oppOf(d)
     const lignes = normalizeLignes(d.lignes)
@@ -542,9 +580,20 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
     try {
       // Pièce jointe : uniquement le PDF Qonto vérifié dans la fenêtre
       const { base64, filename } = pdf
+      // Signature électronique : Odoo Sign envoie au client le lien de
+      // signature. Demandée avant le mail : en cas d'échec, rien ne part.
+      let text = form.body
+      if (form.sign) {
+        const contact = contactsById.get(oppOf(d)?.contact_id) || null
+        await apiPost('/api/devis/sign', {
+          action: 'send', devisId: d.id, pdfBase64: base64,
+          signerEmail: form.to, signerName: contact?.nom || contact?.societe || '',
+        })
+        text = `${form.body}\n\nVous allez recevoir un second e-mail (Odoo Sign) pour signer ce devis électroniquement.`
+      }
       try {
         await apiPost('/api/devis/send', {
-          to: form.to, cc: form.cc, subject: form.subject, text: form.body,
+          to: form.to, cc: form.cc, subject: form.subject, text,
           copyMe: form.copyMe, pdfBase64: base64, filename,
         })
       } catch (e) {
@@ -559,9 +608,11 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
         addToast('Envoi direct non configuré : joins le PDF téléchargé au mail qui s’ouvre · relance dans 7 jours', 'info')
         return
       }
-      await markDevisSent(d, `Envoyé par mail à ${form.to}`)
+      await markDevisSent(d, `Envoyé par mail à ${form.to}${form.sign ? ' · signature électronique demandée' : ''}`)
       setSendState(null)
-      addToast(`Devis ${d.numero} envoyé à ${form.to} · relance dans 7 jours`, 'success')
+      addToast(form.sign
+        ? `Devis ${d.numero} envoyé à ${form.to} pour signature électronique`
+        : `Devis ${d.numero} envoyé à ${form.to} · relance dans 7 jours`, 'success')
     } catch (e) {
       setSendState(st => (st ? { ...st, error: e?.message || 'Envoi impossible' } : st))
     } finally { setSaving(false) }
@@ -894,7 +945,7 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
               onNew: () => openNewDevis(selected, { resume: false }),
               onOpen: openDevis, onPdf: (d) => downloadDevisPdf(d).catch(e => addToast(e?.message || 'PDF impossible', 'error')),
               onSend: sendDevis, onAccept: acceptDevis, onRefuse: refuseDevis,
-              onDuplicate: duplicateDevisAction, onDelete: removeDevis, onQonto: qontoDevis,
+              onDuplicate: duplicateDevisAction, onDelete: removeDevis, onQonto: qontoDevis, onSignedPdf: downloadSignedPdf,
             }}
           />
         )}
@@ -935,7 +986,7 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
         )}
         {sendState?.status === 'ready' && (
           <DevisSendForm initial={sendState.initial} filename={sendState.pdf.filename}
-            sending={saving} error={sendState.error} onPreviewPdf={previewQontoPdf}
+            sending={saving} error={sendState.error} onPreviewPdf={previewQontoPdf} canSign
             onDraftAi={draftEmailAi} onSubmit={submitSend} onCancel={closeSend} />
         )}
       </Modal>
