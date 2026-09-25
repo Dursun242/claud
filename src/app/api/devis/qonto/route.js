@@ -22,6 +22,7 @@ import { nextDevisNumero } from '@/app/lib/devis'
 import {
   toQontoQuote, qontoClientPayload, matchQontoClient,
   isNumberTaken, isNumberRequired, isUnitRejected, qontoErrorDetail, totalsMismatch, qontoFingerprint,
+  isTinMissing, sirenFromContact,
 } from '@/app/lib/qontoDevis'
 
 export const maxDuration = 30
@@ -156,7 +157,25 @@ async function sync(admin, token, devisId) {
     : { data: null }
 
   const clientId = await resolveClient(token, devis, contact)
-  const { r, created, sentNumber } = await pushQuote(token, devis, clientId)
+  let { r, created, sentNumber } = await pushQuote(token, devis, clientId)
+
+  // Qonto exige le SIREN du client : on le complète depuis la fiche contact
+  // (client Qonto existant ou créé sans), puis on renvoie le devis.
+  if (!r.ok && isTinMissing(r.status, r.json || r.text)) {
+    const siren = sirenFromContact(contact)
+    if (!siren) {
+      throw new QontoError(
+        `Qonto exige le SIREN / SIRET du client pour établir le devis : renseigne le champ SIRET de la fiche contact${contact?.nom ? ` « ${contact.nom} »` : ''} (bouton Pappers pour le retrouver), puis réessaie.`,
+        422, 'CLIENT_TIN_MISSING',
+      )
+    }
+    const u = await qonto(token, 'PATCH', `/clients/${encodeURIComponent(clientId)}`, { tax_identification_number: siren })
+    if (!u.ok) {
+      log.error(`maj SIREN client ${u.status}`, u.text.slice(0, 500))
+      throw new QontoError(`Qonto refuse le SIREN ${siren} pour ce client : ${qontoErrorDetail(u.json) || `erreur ${u.status}`}`, 422, 'CLIENT_TIN_REJECTED')
+    }
+    ;({ r, created, sentNumber } = await pushQuote(token, devis, clientId))
+  }
 
   if (!r.ok) {
     if (isNumberTaken(r.status, r.json || r.text)) {

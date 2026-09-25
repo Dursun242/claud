@@ -132,6 +132,30 @@ describe('/api/devis/qonto', () => {
     expect(body.data.numberConflict).toBe('26-054')
   })
 
+  it('Qonto exige le SIREN : complété depuis la fiche contact puis devis renvoyé', async () => {
+    db.crm_devis = { ...DEVIS, qonto_client_id: 'qc1' }
+    db.contacts = { ...db.contacts, siret: '921 536 181 00024' }
+    fetchWithRetry
+      .mockResolvedValueOnce(json(422, { errors: [{ source: { pointer: '/customer/tin_number' }, detail: '`tin_number` must have a value' }] }))
+      .mockResolvedValueOnce(json(200, { client: { id: 'qc1' } }))
+      .mockResolvedValueOnce(json(201, { quote: { id: 'qq1', number: 'D-2026-033' } }))
+    const res = await POST(req({ action: 'sync', devisId: 'd1' }))
+    expect(res.status).toBe(200)
+    expect(calls()).toEqual(['POST /quotes', 'PATCH /clients/qc1', 'POST /quotes'])
+    expect(JSON.parse(fetchWithRetry.mock.calls[1][1].body)).toEqual({ tax_identification_number: '921536181' })
+  })
+
+  it('Qonto exige le SIREN mais la fiche contact n’en a pas : message clair', async () => {
+    db.crm_devis = { ...DEVIS, qonto_client_id: 'qc1' }
+    fetchWithRetry.mockResolvedValueOnce(json(422, { errors: [{ source: { pointer: '/customer/tin_number' }, detail: '`tin_number` must have a value' }] }))
+    const res = await POST(req({ action: 'sync', devisId: 'd1' }))
+    const body = await res.json()
+    expect(res.status).toBe(422)
+    expect(body.code).toBe('CLIENT_TIN_MISSING')
+    expect(body.error).toMatch(/SIRET de la fiche contact « Jean Dupont »/)
+    expect(updates).toEqual([])
+  })
+
   it('unité refusée : renvoie le devis sans unités', async () => {
     db.crm_devis = { ...DEVIS, qonto_client_id: 'qc1' }
     fetchWithRetry

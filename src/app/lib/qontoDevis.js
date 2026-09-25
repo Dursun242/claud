@@ -59,6 +59,19 @@ export function toQontoQuote(devis = {}, { clientId, withUnits = true, number } 
   }
 }
 
+/** SIREN (9 chiffres) tiré du SIRET / SIREN de la fiche contact, sinon null. */
+export function sirenFromContact(contact = {}) {
+  const digits = String(contact?.siret || '').replace(/\D/g, '')
+  return digits.length === 14 || digits.length === 9 ? digits.slice(0, 9) : null
+}
+
+/** Qonto exige le numéro d'identification fiscale (SIREN) du client. */
+export function isTinMissing(status, body) {
+  if (status !== 422 && status !== 400) return false
+  const txt = typeof body === 'string' ? body : JSON.stringify(body || {})
+  return /tin_number|tax_identification/i.test(txt)
+}
+
 /**
  * Client Qonto à créer à partir du contact de l'affaire : société si le
  * contact a une raison sociale, particulier sinon.
@@ -77,7 +90,13 @@ export function qontoClientPayload(contact = {}) {
   }
   const tva = String(contact.tva_intra || '').replace(/\s/g, '').toUpperCase()
   if (societe || !nom.includes(' ')) {
-    return { kind: 'company', name: societe || nom, ...(/^FR[0-9A-Z]{2}\d{9}$/.test(tva) ? { vat_number: tva } : {}), ...base }
+    const siren = sirenFromContact(contact)
+    return {
+      kind: 'company', name: societe || nom,
+      ...(/^FR[0-9A-Z]{2}\d{9}$/.test(tva) ? { vat_number: tva } : {}),
+      ...(siren ? { tax_identification_number: siren } : {}),
+      ...base,
+    }
   }
   // Convention « NOM Prénom » : les mots en majuscules forment le nom de
   // famille (« OZKAN Dursun » → Dursun / OZKAN), sinon « Prénom Nom ».
@@ -113,14 +132,14 @@ export function matchQontoClient(clients = [], contact = {}) {
 export function isNumberTaken(status, body) {
   if (status !== 422 && status !== 409) return false
   const txt = typeof body === 'string' ? body : JSON.stringify(body || {})
-  return /number/i.test(txt) && /(taken|already|exist|unique|utilis)/i.test(txt)
+  return /(^|[^_a-z])number/i.test(txt) && /(taken|already|exist|unique|utilis)/i.test(txt)
 }
 
 /** Qonto exige un numéro (numérotation automatique désactivée). */
 export function isNumberRequired(status, body) {
   if (status !== 422) return false
   const txt = typeof body === 'string' ? body : JSON.stringify(body || {})
-  return /number/i.test(txt) && /(blank|required|missing|empty|can.t be|must be|obligatoire|vide)/i.test(txt)
+  return /(^|[^_a-z])number/i.test(txt) && /(blank|required|missing|empty|can.t be|must be|obligatoire|vide)/i.test(txt)
 }
 
 /** Qonto a refusé l'unité d'une ligne (liste d'unités imposée). */

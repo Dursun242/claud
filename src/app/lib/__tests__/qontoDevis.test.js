@@ -1,6 +1,7 @@
 import {
   toQontoQuote, qontoClientPayload, matchQontoClient,
   isNumberTaken, isUnitRejected, qontoErrorDetail, totalsMismatch, qontoFingerprint,
+  isNumberRequired, isTinMissing, sirenFromContact,
 } from '../qontoDevis'
 
 const devis = {
@@ -100,3 +101,21 @@ describe('erreurs et contrôles', () => {
     expect(qontoFingerprint(devis)).not.toBe(qontoFingerprint({ ...devis, remise_pct: 5 }))
   })
 })
+
+describe('SIREN du client', () => {
+  it('SIREN tiré du SIRET (ou SIREN) de la fiche, envoyé pour une société', () => {
+    expect(sirenFromContact({ siret: '921 536 181 00024' })).toBe('921536181')
+    expect(sirenFromContact({ siret: '921536181' })).toBe('921536181')
+    expect(sirenFromContact({ siret: '12345' })).toBeNull()
+    expect(qontoClientPayload({ societe: 'SCI Dupont', siret: '92153618100024' }).tax_identification_number).toBe('921536181')
+    expect(qontoClientPayload({ societe: 'SCI Dupont' }).tax_identification_number).toBeUndefined()
+  })
+
+  it('reconnaît l’erreur tin_number sans la confondre avec le numéro du devis', () => {
+    const tin = { errors: [{ source: { pointer: '/customer/tin_number' }, detail: '`tin_number` must have a value' }] }
+    expect(isTinMissing(422, tin)).toBe(true)
+    expect(isNumberRequired(422, { errors: [{ source: { pointer: '/customer/tin_number' }, detail: "can't be blank" }] })).toBe(false)
+    expect(isNumberRequired(422, { errors: [{ source: { pointer: '/number' }, detail: "can't be blank" }] })).toBe(true)
+  })
+})
+
