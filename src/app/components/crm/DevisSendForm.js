@@ -7,11 +7,12 @@ import { parseEmails } from '../../lib/devisAi'
  * Fenêtre d'envoi d'un devis par mail (contenu de modale).
  *
  * initial   : { to, cc, subject, body } pré-rempli par le parent
- * filename  : nom de la pièce jointe affichée
+ * filename  : nom de la pièce jointe (PDF édité par Qonto)
+ * onPreviewPdf : () => void — ouvre le PDF Qonto pour vérification
  * onDraftAi : () => Promise<{ subject, body }> — absent = bouton IA masqué
  * onSubmit  : ({ to, cc, subject, body, copyMe }) => Promise<void>
  */
-export default function DevisSendForm({ initial = {}, filename, sending, error, onDraftAi, onSubmit, onCancel }) {
+export default function DevisSendForm({ initial = {}, filename, sending, error, onPreviewPdf, onDraftAi, onSubmit, onCancel }) {
   const [form, setForm] = useState({ to: '', cc: '', subject: '', body: '', copyMe: true, ...initial })
   const [localError, setLocalError] = useState('')
   const [drafting, setDrafting] = useState(false)
@@ -54,7 +55,12 @@ export default function DevisSendForm({ initial = {}, filename, sending, error, 
           onChange={e => set('body', e.target.value)} />
       </FF>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 12, fontSize: 12, color: '#334155' }}>
-        <span style={{ background: '#F1F5F9', border: '1px solid #E2E8F0', borderRadius: 6, padding: '4px 8px' }}>📎 {filename}</span>
+        <span style={{ background: '#F1F5F9', border: '1px solid #E2E8F0', borderRadius: 6, padding: '4px 8px' }}>📎 {filename} · Qonto</span>
+        {onPreviewPdf && (
+          <button type="button" onClick={onPreviewPdf} style={{ ...btnS, fontSize: 12, padding: '5px 10px', minHeight: 30 }}>
+            👁 Vérifier le PDF Qonto
+          </button>
+        )}
         <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
           <input type="checkbox" checked={form.copyMe} onChange={e => set('copyMe', e.target.checked)} />
           M’envoyer une copie

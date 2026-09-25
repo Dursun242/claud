@@ -20,10 +20,12 @@ const devis = {
 }
 
 describe('toQontoQuote', () => {
-  it('convertit lignes, TVA en fraction, remise en montant, même numéro', () => {
+  it('convertit lignes, TVA en fraction, remise en montant ; pas de numéro (Qonto numérote)', () => {
     const q = toQontoQuote(devis, { clientId: 'c1' })
+    expect(q.number).toBeUndefined()
+    expect(toQontoQuote(devis, { clientId: 'c1', number: '26-061' }).number).toBe('26-061')
     expect(q).toMatchObject({
-      client_id: 'c1', number: '26-050', issue_date: '2026-09-25', expiry_date: '2026-10-25',
+      client_id: 'c1', issue_date: '2026-09-25', expiry_date: '2026-10-25',
       currency: 'EUR', header: 'Escalier extérieur', terms_and_conditions: 'Paiement à 30 jours.',
       discount: { type: 'amount', value: '120.00' },
     })
@@ -88,8 +90,8 @@ describe('erreurs et contrôles', () => {
     expect(totalsMismatch({ total_amount: { value: '1500.00' } }, devis)).toEqual({ qonto: 1500, app: 1269.9 })
   })
 
-  it('empreinte stable, sensible au contenu mais pas au statut', () => {
-    expect(qontoFingerprint(devis)).toBe(qontoFingerprint({ ...devis, statut: 'Envoyé' }))
+  it('empreinte stable, sensible au contenu mais pas au statut ni au numéro', () => {
+    expect(qontoFingerprint(devis)).toBe(qontoFingerprint({ ...devis, statut: 'Envoyé', numero: '26-099' }))
     expect(qontoFingerprint(devis)).not.toBe(qontoFingerprint({ ...devis, remise_pct: 5 }))
   })
 })

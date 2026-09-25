@@ -18,11 +18,11 @@ import {
   linkOpportuniteToChantier, upsertDevis, setDevisStatut, deleteDevis,
 } from '../lib/crmDb'
 import {
-  devisFromOpportunite, duplicateDevis, validateDevis, computeDevisTotals,
+  devisFromOpportunite, duplicateDevis, validateDevis, computeDevisTotals, numeroProvisoire, isNumeroProvisoire,
   normalizeLignes, devisMailContent, companySignature,
 } from '../lib/devis'
 import DevisEditor, { fmtEur } from '../components/crm/DevisEditor'
-import DevisList from '../components/crm/DevisList'
+import DevisList, { qontoState } from '../components/crm/DevisList'
 import DevisSendForm from '../components/crm/DevisSendForm'
 import { buildPriceHistory, checkDevis, buildAiContext } from '../lib/devisAi'
 import { supabase } from '../supabaseClient'
@@ -80,12 +80,8 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
   const { opportunites, interactions, missingMigration } = crm
   const allDevis = useMemo(() => crm.devis || [], [crm.devis])
   const devisMissing = !!crm.devisMissing
-  // Numéros déjà utilisés dans Qonto : la numérotation continue à leur suite
-  const [qontoNumbers, setQontoNumbers] = useState([])
-  const numberingBase = useMemo(
-    () => [...allDevis, ...qontoNumbers.map(numero => ({ numero }))],
-    [allDevis, qontoNumbers],
-  )
+  // Devis Qonto { id, number, status } : suivi des statuts
+  const [qontoQuotes, setQontoQuotes] = useState([])
 
   const [view, setView] = useState('pipeline')       // pipeline | relances | closed
   const [q, setQ] = useState('')
@@ -159,15 +155,43 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
   }
   const closeOppModal = () => { setOppModal(null); setOppError('') }
 
-  // Numéros Qonto chargés une fois (silencieux si Qonto n'est pas connecté)
+  // Devis Qonto chargés une fois (silencieux si Qonto n'est pas connecté)
   useEffect(() => {
     if (devisMissing) return
     let alive = true
     apiPost('/api/devis/qonto', { action: 'numbers' })
-      .then(({ data: d }) => { if (alive) setQontoNumbers(d?.numbers || []) })
+      .then(({ data: d }) => {
+        if (alive) setQontoQuotes(d?.quotes || [])
+      })
       .catch(() => {})
     return () => { alive = false }
   }, [devisMissing])
+
+  // Suivi : un devis accepté / annulé dans Qonto l'est aussi dans le CRM
+  const reconciled = useRef(new Set())
+  useEffect(() => {
+    if (!qontoQuotes.length || !allDevis.length) return
+    const byId = new Map(qontoQuotes.map(q => [q.id, q]))
+    const todo = allDevis.filter(d => {
+      const q = d.qonto_quote_id && byId.get(d.qonto_quote_id)
+      if (!q || reconciled.current.has(d.id)) return false
+      return (q.status === 'approved' && d.statut !== 'Accepté') || (q.status === 'canceled' && d.statut !== 'Refusé' && d.statut !== 'Accepté')
+    })
+    if (!todo.length) return
+    todo.forEach(d => reconciled.current.add(d.id))
+    ;(async () => {
+      for (const d of todo) {
+        const accepted = byId.get(d.qonto_quote_id).status === 'approved'
+        try {
+          await setDevisStatut(d, accepted ? 'Accepté' : 'Refusé')
+          const o = opportunites.find(x => x.id === d.opportunite_id)
+          if (accepted && o && !isClosed(o.etape)) await moveOpportunite(o, 'Gagné', { montant_estime: Number(d.total_ht) || o.montant_estime })
+          addToast(`Devis ${d.numero} ${accepted ? 'accepté' : 'annulé'} dans Qonto : mis à jour dans le CRM`, accepted ? 'success' : 'info')
+        } catch { /* nouvel essai au prochain chargement */ reconciled.current.delete(d.id) }
+      }
+      await reload()
+    })()
+  }, [qontoQuotes, allDevis, opportunites, reload, addToast])
 
   // Raccourci « n » = nouvelle affaire
   useEffect(() => {
@@ -354,12 +378,38 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
     // que d'en créer un second.
     const draft = resume && allDevis.find(d => d.opportunite_id === o.id && d.statut === 'Brouillon')
     setDevisError('')
-    setDevisForm(draft ? toForm(draft) : devisFromOpportunite(o, numberingBase))
+    setDevisForm(draft ? toForm(draft) : { ...devisFromOpportunite(o), numero: numeroProvisoire() })
   }
   const openDevis = (d) => { setDevisError(''); setDevisForm(toForm(d)) }
   const closeDevis = () => { setDevisForm(null); setDevisError('') }
 
+  // PDF officiel : celui généré par Qonto (Qonto le produit parfois avec
+  // quelques secondes de retard après la création : un second essai).
+  const qontoPdf = async (d) => {
+    try {
+      return (await apiPost('/api/devis/qonto', { action: 'pdf', devisId: d.id })).data
+    } catch (e) {
+      if (e.code !== 'PDF_UNAVAILABLE') throw e
+      await new Promise(r => setTimeout(r, 2500))
+      return (await apiPost('/api/devis/qonto', { action: 'pdf', devisId: d.id })).data
+    }
+  }
+  const saveBase64Pdf = ({ base64, filename }) => {
+    if (typeof window === 'undefined' || !window.URL?.createObjectURL) return
+    const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0))
+    const url = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }))
+    const a = document.createElement('a')
+    a.href = url; a.download = filename; a.click()
+    setTimeout(() => URL.revokeObjectURL(url), 10_000)
+  }
   const downloadDevisPdf = async (d) => {
+    if (d.qonto_quote_id && qontoState(d) === 'ok') {
+      try { saveBase64Pdf(await qontoPdf(d)); return }
+      catch (e) { addToast(`PDF Qonto indisponible (${e?.message || 'erreur'}) : PDF de l’application à la place`, 'info') }
+    }
+    await appDevisPdf(d)
+  }
+  const appDevisPdf = async (d) => {
     const o = oppOf(d)
     const lignes = normalizeLignes(d.lignes)
     const { generateDevisPdf } = await import('../generators')
@@ -370,7 +420,7 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
     })
   }
   const previewDevis = async () => {
-    try { await downloadDevisPdf(devisForm) }
+    try { await appDevisPdf(devisForm) }
     catch (e) { addToast(e?.message || 'Génération du PDF impossible', 'error') }
   }
 
@@ -420,11 +470,14 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
   // Retourne le devis à jour (numéro éventuellement repris de Qonto).
   const syncQonto = async (d) => {
     const { data: r } = await apiPost('/api/devis/qonto', { action: 'sync', devisId: d.id })
-    if (r.qontoNumber) setQontoNumbers(ns => (ns.includes(r.qontoNumber) ? ns : [r.qontoNumber, ...ns]))
     if (r.mismatch) {
       addToast(`Qonto affiche ${fmtEur(r.mismatch.qonto)} TTC contre ${fmtEur(r.mismatch.app)} ici : vérifie le devis dans Qonto`, 'error')
     }
-    if (r.renumbered) addToast(`Qonto a numéroté ce devis ${r.renumbered} : numéro repris dans l’application`, 'info')
+    if (r.numberConflict) {
+      addToast(`Qonto a numéroté ce devis ${r.numberConflict}, mais ce numéro est déjà pris par un autre devis de l’application`, 'error')
+    } else if (r.renumbered && !isNumeroProvisoire(d.numero)) {
+      addToast(`Numéro Qonto repris dans l’application : ${r.renumbered}`, 'info')
+    }
     return { ...d, ...r.devis, created: r.created }
   }
   const qontoDevis = async (d) => {
@@ -438,13 +491,32 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
     } finally { setSaving(false) }
   }
 
-  // Ouvre la fenêtre d'envoi pré-remplie (destinataire, objet, message).
-  const sendDevis = (d) => {
-    const o = oppOf(d)
-    if (!o) return
-    const contact = contactsById.get(o.contact_id) || null
-    const { to, subject, body } = devisMailContent(d, contact, COMPANY)
-    setSendState({ devis: d, initial: { to, subject, body }, error: '' })
+  // Fenêtre d'envoi : le devis est d'abord mis à jour dans Qonto, puis son
+  // PDF Qonto est récupéré pour vérification. On n'envoie que ce PDF-là.
+  const sendToken = useRef(0)
+  const prepareSend = async (d) => {
+    const token = ++sendToken.current
+    setSendState({ devis: d, status: 'loading', initial: null, pdf: null, error: '' })
+    try {
+      if (qontoState(d) !== 'ok') d = await syncQonto(d)
+      const pdf = await qontoPdf(d)
+      if (token !== sendToken.current) return
+      const contact = contactsById.get(oppOf(d)?.contact_id) || null
+      setSendState({ devis: d, status: 'ready', initial: devisMailContent(d, contact, COMPANY), pdf, error: '' })
+    } catch (e) {
+      if (token !== sendToken.current) return
+      setSendState({ devis: d, status: 'error', initial: null, pdf: null, error: e?.message || 'Devis Qonto indisponible' })
+    }
+  }
+  const sendDevis = (d) => { if (oppOf(d)) prepareSend(d) }
+  const closeSend = () => { sendToken.current++; setSendState(null) }
+  const previewQontoPdf = () => {
+    const { pdf } = sendState || {}
+    if (!pdf || typeof window === 'undefined' || !window.URL?.createObjectURL) return
+    const bytes = Uint8Array.from(atob(pdf.base64), c => c.charCodeAt(0))
+    const url = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }))
+    window.open(url, '_blank', 'noopener')
+    setTimeout(() => URL.revokeObjectURL(url), 60_000)
   }
 
   const draftEmailAi = async () => {
@@ -463,32 +535,13 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
   }
 
   const submitSend = async (form) => {
-    let d = sendState.devis
-    const o = oppOf(d)
-    const contact = contactsById.get(o?.contact_id) || null
+    const { devis: d, pdf } = sendState
+    if (!pdf) return
     setSaving(true)
     setSendState(st => ({ ...st, error: '' }))
     try {
-      // Le devis envoyé est aussi enregistré dans Qonto (même numéro).
-      // Numéro déjà pris : on bloque l'envoi ; autre souci Qonto : on
-      // envoie quand même et on prévient.
-      try {
-        const before = d.numero
-        d = await syncQonto(d)
-        if (d.numero !== before) {
-          form = { ...form, subject: form.subject.split(before).join(d.numero), body: form.body.split(before).join(d.numero) }
-        }
-      } catch (e) {
-        if (e.code === 'NUMBER_TAKEN') throw e
-        if (e.code !== 'QONTO_NOT_CONFIGURED' && e.code !== 'MIGRATION_028') {
-          addToast(`Devis non enregistré dans Qonto : ${e?.message || 'erreur'}`, 'error')
-        }
-      }
-      const lignes = normalizeLignes(d.lignes)
-      const { generateDevisPdf } = await import('../generators')
-      const { base64, filename } = await generateDevisPdf({ ...d, lignes }, {
-        contact, opportunite: o, totals: computeDevisTotals(lignes, d), returnBase64: true,
-      })
+      // Pièce jointe : uniquement le PDF Qonto vérifié dans la fenêtre
+      const { base64, filename } = pdf
       try {
         await apiPost('/api/devis/send', {
           to: form.to, cc: form.cc, subject: form.subject, text: form.body,
@@ -496,8 +549,8 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
         })
       } catch (e) {
         if (e.code !== 'EMAIL_NOT_CONFIGURED') throw e
-        // Repli : PDF téléchargé + mail pré-rempli dans la messagerie
-        await downloadDevisPdf(d)
+        // Repli : PDF Qonto téléchargé + mail pré-rempli dans la messagerie
+        saveBase64Pdf(pdf)
         await markDevisSent(d, `Préparé pour ${form.to}`)
         setSendState(null)
         if (typeof window !== 'undefined') {
@@ -521,16 +574,32 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
     let saved
     try {
       saved = await upsertDevis(devisForm)
-      await reload()
     } catch (e) {
       setDevisError(e?.message || "Erreur lors de l'enregistrement.")
       setSaving(false)
       return
     }
+    // Chaque devis enregistré est créé (ou mis à jour) dans Qonto
+    let qontoError = ''
+    try {
+      saved = await syncQonto(saved)
+    } catch (e) {
+      if (e.code === 'NUMBER_TAKEN') {
+        // Numéro déjà utilisé dans Qonto : on reste dans l'éditeur pour le changer
+        setDevisForm(toForm(saved))
+        setDevisError(e.message)
+        await reload()
+        setSaving(false)
+        return
+      }
+      qontoError = e?.message || 'erreur inconnue'
+    }
+    await reload()
     setSaving(false)
     closeDevis()
+    if (qontoError) addToast(`Devis enregistré dans l’application mais PAS dans Qonto (pas de numéro Qonto) : ${qontoError}`, 'error')
     if (send) sendDevis(saved)
-    else addToast(`Devis ${saved.numero} enregistré`, 'success')
+    else if (!qontoError) addToast(`Devis ${saved.numero} enregistré dans l’application et dans Qonto`, 'success')
   }
 
   const acceptDevis = async (d) => {
@@ -553,7 +622,7 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
   }
   const duplicateDevisAction = (d) => {
     setDevisError('')
-    setDevisForm(toForm(duplicateDevis(d, numberingBase)))
+    setDevisForm(toForm({ ...duplicateDevis(d), numero: numeroProvisoire() }))
   }
   const removeDevis = async (d) => {
     const ok = await confirm({ title: `Supprimer le devis ${d.numero} ?`, confirmLabel: 'Supprimer', danger: true })
@@ -833,7 +902,7 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
 
       {/* ─── ÉDITEUR DE DEVIS ─── */}
       <Modal open={!!devisForm} onClose={closeDevis} wide
-        title={devisForm ? `Devis ${devisForm.numero}${oppOf(devisForm) ? ` · ${oppOf(devisForm).titre}` : ''}` : ''}>
+        title={devisForm ? `${isNumeroProvisoire(devisForm.numero) ? 'Nouveau devis' : `Devis ${devisForm.numero}`}${oppOf(devisForm) ? ` · ${oppOf(devisForm).titre}` : ''}` : ''}>
         {devisForm && (
           <DevisEditor form={devisForm} setForm={setDevisForm} m={m} error={devisError} saving={saving}
             onCancel={closeDevis} onPreview={previewDevis}
@@ -843,12 +912,31 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
       </Modal>
 
       {/* ─── ENVOI DU DEVIS PAR MAIL ─── */}
-      <Modal open={!!sendState} onClose={() => !saving && setSendState(null)}
+      <Modal open={!!sendState} onClose={() => !saving && closeSend()}
         title={sendState ? `Envoyer le devis ${sendState.devis.numero}` : ''}>
-        {sendState && (
-          <DevisSendForm initial={sendState.initial} filename={`${sendState.devis.numero}.pdf`}
-            sending={saving} error={sendState.error}
-            onDraftAi={draftEmailAi} onSubmit={submitSend} onCancel={() => setSendState(null)} />
+        {sendState?.status === 'loading' && (
+          <div role="status" style={{ padding: '24px 4px', fontSize: 13, color: '#475569' }}>
+            Récupération du devis dans Qonto…
+          </div>
+        )}
+        {sendState?.status === 'error' && (
+          <div>
+            <div role="alert" style={{ color: '#DC2626', fontSize: 13, marginBottom: 12, fontWeight: 500 }}>
+              ⚠ Devis Qonto indisponible : {sendState.error}
+            </div>
+            <div style={{ fontSize: 12, color: '#64748B', marginBottom: 12 }}>
+              Seul le devis édité par Qonto peut être envoyé.
+            </div>
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button onClick={closeSend} style={btnS}>Fermer</button>
+              <button onClick={() => prepareSend(sendState.devis)} style={btnP}>Réessayer</button>
+            </div>
+          </div>
+        )}
+        {sendState?.status === 'ready' && (
+          <DevisSendForm initial={sendState.initial} filename={sendState.pdf.filename}
+            sending={saving} error={sendState.error} onPreviewPdf={previewQontoPdf}
+            onDraftAi={draftEmailAi} onSubmit={submitSend} onCancel={closeSend} />
         )}
       </Modal>
 
