@@ -1,7 +1,6 @@
 import {
   computeDevisTotals, ligneTotal, nextDevisNumero, devisFromOpportunite, duplicateDevis,
-  validateDevis, normalizeLignes, isDevisStale, isDevisExpired, devisMailto, addDaysISO,
-} from '../devis'
+  validateDevis, normalizeLignes, isDevisStale, isDevisExpired, devisMailto, addDaysISO, mergeUnites, UNITES } from '../devis'
 
 describe('ligneTotal / computeDevisTotals', () => {
   it('calcule le HT d’une ligne et ignore les titres', () => {
@@ -155,3 +154,12 @@ describe('devisMailto / addDaysISO', () => {
     expect(addDaysISO('2026-01-31', 1)).toBe('2026-02-01')
   })
 })
+
+describe('mergeUnites', () => {
+  it('unités de base puis celles des devis Qonto / CRM, sans doublon', () => {
+    const list = mergeUnites(['forfait', 'Heure', ' pièce ', '', null], ['m2', 'M²', 'heure'])
+    expect(list.slice(0, UNITES.length)).toEqual(UNITES)
+    expect(list.slice(UNITES.length)).toEqual(['Heure', 'm2', 'pièce'])
+  })
+})
+

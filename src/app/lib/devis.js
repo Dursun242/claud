@@ -22,7 +22,30 @@ export const DEVIS_STATUT_COLORS = {
 // Taux usuels en bâtiment : 20 % (neuf), 10 % (rénovation logement > 2 ans),
 // 5,5 % (rénovation énergétique), 0 % (autoliquidation / exonéré).
 export const TVA_TAUX = [20, 10, 5.5, 0]
-export const UNITES = ['u', 'forfait', 'ens', 'm²', 'ml', 'm³', 'h', 'j', 'kg']
+// Unités usuelles du bâtiment et de la maîtrise d'œuvre (Qonto accepte
+// n'importe quel libellé : la liste est complétée par celles des devis Qonto).
+export const UNITES = [
+  'u', 'forfait', 'ens', 'lot', 'pce', 'point',
+  'm', 'ml', 'm²', 'm³', 'km', 'cm', 'mm',
+  'h', 'j', 'demi-j', 'semaine', 'mois', 'an', 'vacation', 'visite', 'réunion',
+  'kg', 't', 'l',
+]
+
+/**
+ * Liste des unités proposées : unités de base, puis celles déjà utilisées
+ * (devis Qonto, devis du CRM), sans doublon ni valeur vide.
+ */
+export function mergeUnites(...extras) {
+  const seen = new Set(UNITES.map(u => u.toLowerCase()))
+  const more = []
+  for (const u of extras.flat()) {
+    const v = String(u ?? '').trim().slice(0, 20)
+    if (!v || seen.has(v.toLowerCase())) continue
+    seen.add(v.toLowerCase())
+    more.push(v)
+  }
+  return [...UNITES, ...more.sort((a, b) => a.localeCompare(b, 'fr'))]
+}
 
 export const VALIDITE_JOURS = 30
 

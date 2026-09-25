@@ -18,7 +18,7 @@ import {
   linkOpportuniteToChantier, upsertDevis, setDevisStatut, deleteDevis,
 } from '../lib/crmDb'
 import {
-  devisFromOpportunite, duplicateDevis, validateDevis, computeDevisTotals, numeroProvisoire, isNumeroProvisoire,
+  devisFromOpportunite, duplicateDevis, validateDevis, computeDevisTotals, numeroProvisoire, isNumeroProvisoire, mergeUnites,
   normalizeLignes, devisMailContent, companySignature,
 } from '../lib/devis'
 import DevisEditor, { fmtEur } from '../components/crm/DevisEditor'
@@ -82,6 +82,7 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
   const devisMissing = !!crm.devisMissing
   // Devis Qonto { id, number, status } : suivi des statuts
   const [qontoQuotes, setQontoQuotes] = useState([])
+  const [qontoUnits, setQontoUnits] = useState([])     // unités des devis Qonto
 
   const [view, setView] = useState('pipeline')       // pipeline | relances | closed
   const [q, setQ] = useState('')
@@ -155,13 +156,21 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
   }
   const closeOppModal = () => { setOppModal(null); setOppError('') }
 
+  // Unités proposées : base + celles des devis Qonto et du CRM
+  const unites = useMemo(
+    () => mergeUnites(qontoUnits, allDevis.flatMap(d => (d.lignes || []).map(l => l.unite))),
+    [qontoUnits, allDevis],
+  )
+
   // Devis Qonto chargés une fois (silencieux si Qonto n'est pas connecté)
   useEffect(() => {
     if (devisMissing) return
     let alive = true
     apiPost('/api/devis/qonto', { action: 'numbers' })
       .then(({ data: d }) => {
-        if (alive) setQontoQuotes(d?.quotes || [])
+        if (!alive) return
+        setQontoQuotes(d?.quotes || [])
+        setQontoUnits(d?.units || [])
       })
       .catch(() => {})
     return () => { alive = false }
@@ -921,7 +930,7 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
       <Modal open={!!devisForm} onClose={closeDevis} wide
         title={devisForm ? `${isNumeroProvisoire(devisForm.numero) ? 'Nouveau devis' : `Devis ${devisForm.numero}`}${oppOf(devisForm) ? ` · ${oppOf(devisForm).titre}` : ''}` : ''}>
         {devisForm && (
-          <DevisEditor form={devisForm} setForm={setDevisForm} m={m} error={devisError} saving={saving}
+          <DevisEditor form={devisForm} setForm={setDevisForm} m={m} error={devisError} saving={saving} unites={unites}
             onCancel={closeDevis} onPreview={previewDevis}
             onSave={() => saveDevis()} onSend={() => saveDevis({ send: true })}
             history={priceHistory} checks={devisChecks} onAiGenerate={aiGenerate} />

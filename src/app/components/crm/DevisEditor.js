@@ -28,7 +28,7 @@ const miniBtn = {
  */
 export default function DevisEditor({
   form, setForm, m, error, saving, onCancel, onSave, onSend, onPreview,
-  history = [], checks = [], onAiGenerate,
+  history = [], checks = [], onAiGenerate, unites = UNITES,
 }) {
   const [activeLine, setActiveLine] = useState(null)
   const [aiOpen, setAiOpen] = useState(false)
@@ -192,7 +192,7 @@ export default function DevisEditor({
             })(),
             unite: (
               <select style={smallSel} value={l.unite || 'u'} aria-label={`Unité ligne ${i + 1}`} onChange={e => setLigne(i, 'unite', e.target.value)}>
-                {UNITES.map(u => <option key={u} value={u}>{u}</option>)}
+                {(unites.includes(l.unite || 'u') ? unites : [...unites, l.unite]).map(u => <option key={u} value={u}>{u}</option>)}
               </select>
             ),
             quantite: (
