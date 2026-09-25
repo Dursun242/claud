@@ -54,8 +54,23 @@ describe('/api/devis/send', () => {
     expect(sendMail).not.toHaveBeenCalled()
   })
 
-  it('erreur SMTP → 502', async () => {
-    sendMail.mockRejectedValueOnce(new Error('auth failed'))
-    expect((await POST(req(valid))).status).toBe(502)
+  it('erreur SMTP → 502 avec un message explicite', async () => {
+    sendMail.mockRejectedValueOnce(Object.assign(new Error('Invalid login'), { code: 'EAUTH', responseCode: 535 }))
+    const res = await POST(req(valid))
+    expect(res.status).toBe(502)
+    expect((await res.json()).error).toMatch(/mot de passe d’application/)
+    sendMail.mockRejectedValueOnce(Object.assign(new Error('timeout'), { code: 'ETIMEDOUT' }))
+    expect((await (await POST(req(valid))).json()).error).toMatch(/injoignable/)
+  })
+
+  it('tolère espaces et guillemets saisis dans Vercel', async () => {
+    Object.assign(process.env, { SMTP_HOST: ' smtp.gmail.com ', SMTP_PORT: '465', SMTP_PASS: 'abcd efgh ijkl mnop', DEVIS_EMAIL_FROM: '"ID Maîtrise <contact@id-maitrise.com>"' })
+    loadRoute()
+    verifyStaff.mockResolvedValue({ user: { email: 'moe@id-maitrise.com' }, status: 200 })
+    await POST(req(valid))
+    expect(createTransport).toHaveBeenCalledWith(expect.objectContaining({
+      host: 'smtp.gmail.com', port: 465, secure: true, auth: { user: 'contact@id-maitrise.com', pass: 'abcdefghijklmnop' },
+    }))
+    expect(sendMail.mock.calls[0][0].from).toBe('ID Maîtrise <contact@id-maitrise.com>')
   })
 })

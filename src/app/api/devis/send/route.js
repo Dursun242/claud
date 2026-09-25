@@ -22,14 +22,38 @@ const checkRate = createRateLimiter({ limit: 10, windowMs: 60_000 })
 const MAX_PDF_BYTES = 8 * 1024 * 1024
 const MAX_RECIPIENTS = 10
 
+// Valeurs saisies à la main dans Vercel : on tolère espaces et guillemets
+// autour, et les espaces dans le mot de passe d'application Google (affiché
+// par groupes de 4 : « abcd efgh ijkl mnop »).
+const clean = (v) => String(v ?? '').trim().replace(/^(["'])(.*)\1$/, '$2').trim()
+
 function smtpConfig() {
-  const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, DEVIS_EMAIL_FROM } = process.env
-  if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) return null
-  const port = Number(SMTP_PORT) || 465
+  const host = clean(process.env.SMTP_HOST)
+  const user = clean(process.env.SMTP_USER)
+  const pass = clean(process.env.SMTP_PASS).replace(/\s+/g, '')
+  if (!host || !user || !pass) return null
+  const port = Number(clean(process.env.SMTP_PORT)) || 465
   return {
-    transport: { host: SMTP_HOST, port, secure: port === 465, auth: { user: SMTP_USER, pass: SMTP_PASS } },
-    from: DEVIS_EMAIL_FROM || SMTP_USER,
+    transport: { host, port, secure: port === 465, auth: { user, pass } },
+    from: clean(process.env.DEVIS_EMAIL_FROM) || user,
   }
+}
+
+// Message compréhensible selon l'erreur SMTP (nodemailer expose err.code).
+function smtpErrorMessage(err) {
+  const code = err?.code || ''
+  const resp = Number(err?.responseCode) || 0
+  if (code === 'EAUTH' || resp === 535 || resp === 534) {
+    return 'Identifiants refusés par le serveur mail. Avec Gmail, SMTP_PASS doit être un mot de passe d’application (16 caractères), pas le mot de passe du compte.'
+  }
+  if (code === 'ECONNECTION' || code === 'ETIMEDOUT' || code === 'ESOCKET' || code === 'EDNS') {
+    return 'Serveur mail injoignable : vérifie SMTP_HOST (smtp.gmail.com) et SMTP_PORT (465).'
+  }
+  if (code === 'EENVELOPE' || resp === 550 || resp === 553) {
+    return 'Adresse refusée par le serveur mail : vérifie le destinataire et DEVIS_EMAIL_FROM.'
+  }
+  if (code === 'EMESSAGE' || resp === 552) return 'Message refusé par le serveur mail (pièce jointe trop lourde ?).'
+  return 'L’envoi a échoué — vérifie la configuration SMTP.'
 }
 
 export async function POST(request) {
@@ -40,7 +64,10 @@ export async function POST(request) {
     }
     const { user, status } = await verifyStaff(request)
     if (!user) {
-      return Response.json({ error: status === 403 ? 'Réservé à l’équipe' : 'Non autorisé' }, { status })
+      const error = status === 403
+        ? 'Réservé à l’équipe : ton compte doit être admin ou salarié actif (Admin → utilisateurs).'
+        : status === 500 ? 'Configuration serveur incomplète (SUPABASE_SERVICE_ROLE_KEY).' : 'Non autorisé — reconnecte-toi.'
+      return Response.json({ error }, { status })
     }
 
     const cfg = smtpConfig()
@@ -87,7 +114,7 @@ export async function POST(request) {
     })
     return Response.json({ ok: true, messageId: info?.messageId || null, to: to.list })
   } catch (err) {
-    log.error('envoi échoué', err?.message || err)
-    return Response.json({ error: 'L’envoi a échoué — vérifie la configuration SMTP.' }, { status: 502 })
+    log.error('envoi échoué', `${err?.code || ''} ${err?.responseCode || ''} ${err?.message || err}`)
+    return Response.json({ error: smtpErrorMessage(err), code: err?.code || null }, { status: 502 })
   }
 }
