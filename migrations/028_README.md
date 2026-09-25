@@ -37,7 +37,10 @@ et rien n'est envoyé à Qonto.
 - Chaque enregistrement d'un devis dans l'application le crée / met à jour
   dans Qonto. Un échec est affiché (« enregistré dans l'application mais PAS
   dans Qonto : … »).
-- Le PDF envoyé au client et le bouton PDF utilisent le PDF généré par Qonto
-  (repli sur le PDF de l'application s'il n'est pas encore disponible).
+- Envoi : la fenêtre « Envoyer » met le devis à jour dans Qonto, récupère le
+  PDF édité par Qonto (bouton « Vérifier le PDF Qonto »), puis l'envoie. Seul
+  ce PDF part au client : si Qonto ne le fournit pas, l'envoi est impossible
+  (bouton « Réessayer »).
+- Le bouton PDF de la liste télécharge aussi le PDF Qonto.
 - Suivi : à l'ouverture du CRM, un devis accepté dans Qonto passe
   « Accepté » (affaire « Gagné »), un devis annulé passe « Refusé ».

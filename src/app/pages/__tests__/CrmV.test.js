@@ -311,9 +311,11 @@ describe('CrmV — envoi par mail et IA', () => {
     crmDb.setDevisStatut.mockResolvedValue({ ...draft, statut: 'Envoyé' })
     crmDb.moveOpportunite.mockResolvedValue({})
     crmDb.upsertInteraction.mockResolvedValue({})
-    // Réponses par route ; Qonto non connecté par défaut
+    // Réponses par route ; Qonto connecté par défaut (devis créé, PDF prêt)
     routes = {
-      '/api/devis/qonto': () => ({ ok: false, status: 503, json: async () => ({ error: 'Qonto non connecté', code: 'QONTO_NOT_CONFIGURED' }) }),
+      '/api/devis/qonto': ({ action }) => reply({ ok: true, data: action === 'numbers' ? { numbers: [] }
+        : action === 'pdf' ? { base64: 'JVBERi0xLjQ=', filename: 'Devis 26-050.pdf' }
+          : { devis: { ...draft, qonto_quote_id: 'qq1' }, qontoNumber: '26-050', renumbered: null, mismatch: null, created: true } })(),
     }
     global.fetch = jest.fn(async (url, opts) => {
       const r = routes[url]
@@ -334,13 +336,17 @@ describe('CrmV — envoi par mail et IA', () => {
     await user.click(screen.getByRole('button', { name: '📤 Envoyer' }))
     const dlg = await screen.findByRole('dialog', { name: 'Envoyer le devis 26-050' })
     expect(dlg).toBeInTheDocument()
-    expect(screen.getByLabelText('Destinataire')).toHaveValue('cousin@exemple.fr')
+    expect(await screen.findByLabelText('Destinataire')).toHaveValue('cousin@exemple.fr')
     expect(screen.getByDisplayValue('Devis 26-050 — Escalier')).toBeInTheDocument()
+    expect(screen.getByText('📎 Devis 26-050.pdf · Qonto')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '👁 Vérifier le PDF Qonto' })).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: '📤 Envoyer le devis' }))
-    await waitFor(() => expect(crmDb.setDevisStatut).toHaveBeenCalledWith(draft, 'Envoyé'))
+    await waitFor(() => expect(crmDb.setDevisStatut).toHaveBeenCalledWith(expect.objectContaining({ id: 'd1', qonto_quote_id: 'qq1' }), 'Envoyé'))
     const [opts] = callsTo('/api/devis/send')
     expect(opts.headers.Authorization).toBe('Bearer tok')
-    expect(opts.body).toMatchObject({ to: 'cousin@exemple.fr', subject: 'Devis 26-050 — Escalier', filename: '26-050.pdf' })
+    // Seul le PDF édité par Qonto part au client
+    expect(opts.body).toMatchObject({ to: 'cousin@exemple.fr', subject: 'Devis 26-050 — Escalier', pdfBase64: 'JVBERi0xLjQ=', filename: 'Devis 26-050.pdf' })
+    expect(require('../../generators').generateDevisPdf).not.toHaveBeenCalled()
     expect(crmDb.moveOpportunite).toHaveBeenCalledWith(expect.objectContaining({ id: 'o5' }), 'Devis envoyé', { montant_estime: 8000 })
     expect(addToast).toHaveBeenCalledWith('Devis 26-050 envoyé à cousin@exemple.fr · relance dans 7 jours', 'success')
   })
@@ -416,10 +422,32 @@ describe('CrmV — envoi par mail et IA', () => {
     renderWith()
     await screen.findByRole('dialog', { name: 'Escalier extérieur' })
     await user.click(screen.getByRole('button', { name: '📤 Envoyer' }))
-    await user.click(await screen.findByRole('button', { name: '📤 Envoyer le devis' }))
     expect(await screen.findByText(/Prochain numéro libre : 26-062/)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '📤 Envoyer le devis' })).not.toBeInTheDocument()
     expect(callsTo('/api/devis/send')).toHaveLength(0)
     expect(crmDb.setDevisStatut).not.toHaveBeenCalled()
+  })
+
+  it('PDF Qonto indisponible : pas d’envoi du PDF de l’application, bouton Réessayer', async () => {
+    const user = userEvent.setup()
+    const draftInQonto = { ...draft, qonto_quote_id: 'qq1' }
+    crmDb.loadCrm.mockResolvedValue({ opportunites: [opp], interactions: [], devis: [draftInQonto], missingMigration: false })
+    let pdfCalls = 0
+    routes['/api/devis/qonto'] = ({ action }) => {
+      if (action === 'numbers') return reply({ ok: true, data: { numbers: [] } })()
+      if (action === 'pdf' && ++pdfCalls === 1) return reply({ error: 'Qonto refuse l’accès', code: 'QONTO_FORBIDDEN' }, 502)()
+      if (action === 'pdf') return reply({ ok: true, data: { base64: 'JVBERi0xLjQ=', filename: 'Devis 26-050.pdf' } })()
+      return reply({ ok: true, data: { devis: draftInQonto, qontoNumber: '26-050', created: false } })()
+    }
+    routes['/api/devis/send'] = reply({ ok: true })
+    renderWith()
+    await screen.findByRole('dialog', { name: 'Escalier extérieur' })
+    await user.click(screen.getByRole('button', { name: '📤 Envoyer' }))
+    expect(await screen.findByText(/Devis Qonto indisponible : Qonto refuse l’accès/)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '📤 Envoyer le devis' })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Réessayer' }))
+    expect(await screen.findByRole('button', { name: '📤 Envoyer le devis' })).toBeInTheDocument()
+    expect(require('../../generators').generateDevisPdf).not.toHaveBeenCalled()
   })
 
   it('bouton Qonto : crée le devis dans Qonto', async () => {

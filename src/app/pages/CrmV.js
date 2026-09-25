@@ -495,13 +495,32 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
     } finally { setSaving(false) }
   }
 
-  // Ouvre la fenêtre d'envoi pré-remplie (destinataire, objet, message).
-  const sendDevis = (d) => {
-    const o = oppOf(d)
-    if (!o) return
-    const contact = contactsById.get(o.contact_id) || null
-    const { to, subject, body } = devisMailContent(d, contact, COMPANY)
-    setSendState({ devis: d, initial: { to, subject, body }, error: '' })
+  // Fenêtre d'envoi : le devis est d'abord mis à jour dans Qonto, puis son
+  // PDF Qonto est récupéré pour vérification. On n'envoie que ce PDF-là.
+  const sendToken = useRef(0)
+  const prepareSend = async (d) => {
+    const token = ++sendToken.current
+    setSendState({ devis: d, status: 'loading', initial: null, pdf: null, error: '' })
+    try {
+      if (qontoState(d) !== 'ok') d = await syncQonto(d)
+      const pdf = await qontoPdf(d)
+      if (token !== sendToken.current) return
+      const contact = contactsById.get(oppOf(d)?.contact_id) || null
+      setSendState({ devis: d, status: 'ready', initial: devisMailContent(d, contact, COMPANY), pdf, error: '' })
+    } catch (e) {
+      if (token !== sendToken.current) return
+      setSendState({ devis: d, status: 'error', initial: null, pdf: null, error: e?.message || 'Devis Qonto indisponible' })
+    }
+  }
+  const sendDevis = (d) => { if (oppOf(d)) prepareSend(d) }
+  const closeSend = () => { sendToken.current++; setSendState(null) }
+  const previewQontoPdf = () => {
+    const { pdf } = sendState || {}
+    if (!pdf || typeof window === 'undefined' || !window.URL?.createObjectURL) return
+    const bytes = Uint8Array.from(atob(pdf.base64), c => c.charCodeAt(0))
+    const url = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }))
+    window.open(url, '_blank', 'noopener')
+    setTimeout(() => URL.revokeObjectURL(url), 60_000)
   }
 
   const draftEmailAi = async () => {
@@ -520,40 +539,12 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
   }
 
   const submitSend = async (form) => {
-    let d = sendState.devis
-    const o = oppOf(d)
-    const contact = contactsById.get(o?.contact_id) || null
+    const { devis: d, pdf } = sendState
+    if (!pdf) return
     setSaving(true)
     setSendState(st => ({ ...st, error: '' }))
     try {
-      // Le devis envoyé doit être dans Qonto, à jour (même numéro).
-      // Numéro déjà pris : on bloque l'envoi ; autre souci Qonto : on
-      // envoie quand même et on prévient.
-      if (qontoState(d) !== 'ok') {
-        try {
-          const before = d.numero
-          d = await syncQonto(d)
-          if (d.numero !== before) {
-            form = { ...form, subject: form.subject.split(before).join(d.numero), body: form.body.split(before).join(d.numero) }
-          }
-        } catch (e) {
-          if (e.code === 'NUMBER_TAKEN') throw e
-          addToast(`Devis envoyé mais PAS enregistré dans Qonto : ${e?.message || 'erreur'}`, 'error')
-        }
-      }
-      // Pièce jointe : le PDF officiel de Qonto, sinon celui de l'application
-      let pdf = null
-      if (d.qonto_quote_id) {
-        try { pdf = await qontoPdf(d) }
-        catch (e) { addToast(`PDF Qonto indisponible (${e?.message || 'erreur'}) : PDF de l’application joint`, 'info') }
-      }
-      if (!pdf) {
-        const lignes = normalizeLignes(d.lignes)
-        const { generateDevisPdf } = await import('../generators')
-        pdf = await generateDevisPdf({ ...d, lignes }, {
-          contact, opportunite: o, totals: computeDevisTotals(lignes, d), returnBase64: true,
-        })
-      }
+      // Pièce jointe : uniquement le PDF Qonto vérifié dans la fenêtre
       const { base64, filename } = pdf
       try {
         await apiPost('/api/devis/send', {
@@ -562,8 +553,8 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
         })
       } catch (e) {
         if (e.code !== 'EMAIL_NOT_CONFIGURED') throw e
-        // Repli : PDF téléchargé + mail pré-rempli dans la messagerie
-        await downloadDevisPdf(d)
+        // Repli : PDF Qonto téléchargé + mail pré-rempli dans la messagerie
+        saveBase64Pdf(pdf)
         await markDevisSent(d, `Préparé pour ${form.to}`)
         setSendState(null)
         if (typeof window !== 'undefined') {
@@ -925,12 +916,31 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
       </Modal>
 
       {/* ─── ENVOI DU DEVIS PAR MAIL ─── */}
-      <Modal open={!!sendState} onClose={() => !saving && setSendState(null)}
+      <Modal open={!!sendState} onClose={() => !saving && closeSend()}
         title={sendState ? `Envoyer le devis ${sendState.devis.numero}` : ''}>
-        {sendState && (
-          <DevisSendForm initial={sendState.initial} filename={`${sendState.devis.numero}.pdf`}
-            sending={saving} error={sendState.error}
-            onDraftAi={draftEmailAi} onSubmit={submitSend} onCancel={() => setSendState(null)} />
+        {sendState?.status === 'loading' && (
+          <div role="status" style={{ padding: '24px 4px', fontSize: 13, color: '#475569' }}>
+            Récupération du devis dans Qonto…
+          </div>
+        )}
+        {sendState?.status === 'error' && (
+          <div>
+            <div role="alert" style={{ color: '#DC2626', fontSize: 13, marginBottom: 12, fontWeight: 500 }}>
+              ⚠ Devis Qonto indisponible : {sendState.error}
+            </div>
+            <div style={{ fontSize: 12, color: '#64748B', marginBottom: 12 }}>
+              Seul le devis édité par Qonto peut être envoyé.
+            </div>
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button onClick={closeSend} style={btnS}>Fermer</button>
+              <button onClick={() => prepareSend(sendState.devis)} style={btnP}>Réessayer</button>
+            </div>
+          </div>
+        )}
+        {sendState?.status === 'ready' && (
+          <DevisSendForm initial={sendState.initial} filename={sendState.pdf.filename}
+            sending={saving} error={sendState.error} onPreviewPdf={previewQontoPdf}
+            onDraftAi={draftEmailAi} onSubmit={submitSend} onCancel={closeSend} />
         )}
       </Modal>
 
