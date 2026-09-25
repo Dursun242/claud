@@ -15,6 +15,7 @@ import { createRateLimiter } from '@/app/lib/rateLimit'
 import { adminClient } from '@/app/lib/supabaseClients'
 import { isSignToken, decodeSignaturePng, stampSignature, sha256 } from '@/app/lib/devisSignature'
 import { smtpConfig, sendMail } from '@/app/lib/mailer'
+import { getQontoToken, pushQuoteStatus } from '@/app/lib/qontoServer'
 
 export const maxDuration = 30
 
@@ -190,6 +191,11 @@ export async function POST(request) {
       }
     } catch (e) { log.warn('suivi affaire', e?.message || e) }
 
+    // Devis signé → accepté aussi dans Qonto (si l'API le permet)
+    if (devis.qonto_quote_id) {
+      try { await pushQuoteStatus(await getQontoToken(admin), devis.qonto_quote_id, 'Accepté') }
+      catch (e) { log.warn('statut Qonto', e?.message || e) }
+    }
     await notifySigned(admin, devis, { name, signedAt, ip, signed, oppTitre })
     return Response.json({ ok: true, data: { signed_at: signedAt.toISOString(), signed_name: name } })
   } catch (err) {

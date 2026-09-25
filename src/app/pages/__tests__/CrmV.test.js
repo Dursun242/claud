@@ -516,6 +516,41 @@ describe('CrmV — envoi par mail et IA', () => {
     expect(addToast).toHaveBeenCalledWith('Non importés (numéro déjà utilisé dans le CRM) : 26-050', 'error')
   })
 
+  it('accepté dans le CRM : statut reporté à Qonto, sinon rappel de le faire dans Qonto', async () => {
+    const user = userEvent.setup()
+    const sent = { ...draft, statut: 'Envoyé', qonto_quote_id: 'qq1' }
+    crmDb.loadCrm.mockResolvedValue({ opportunites: [{ ...opp, etape: 'Devis envoyé' }], interactions: [], devis: [sent], missingMigration: false })
+    crmDb.setDevisStatut.mockResolvedValue({ ...sent, statut: 'Accepté' })
+    routes['/api/devis/qonto'] = ({ action }) => reply({ ok: true, data: action === 'status' ? { applied: false } : { numbers: [], quotes: [] } })()
+    renderWith()
+    await screen.findByRole('dialog', { name: 'Escalier extérieur' })
+    await user.click(screen.getByRole('button', { name: '✓ Accepté' }))
+    await waitFor(() => expect(callsTo('/api/devis/qonto').map(c => c.body)).toContainEqual({ action: 'status', devisId: 'd1', statut: 'Accepté' }))
+    await waitFor(() => expect(addToast).toHaveBeenCalledWith('Pense à marquer le devis 26-050 « accepté » dans Qonto aussi', 'info'))
+  })
+
+  it('devis supprimé dans Qonto : signalé dans la liste', async () => {
+    const lie = { ...draft, qonto_quote_id: 'qq-disparu' }
+    crmDb.loadCrm.mockResolvedValue({ opportunites: [opp], interactions: [], devis: [lie], missingMigration: false })
+    routes['/api/devis/qonto'] = reply({ ok: true, data: { numbers: [], quotes: [{ id: 'autre', number: 'D-9', status: 'approved' }], units: [], complete: true } })
+    renderWith()
+    expect(await screen.findByText('⚠ supprimé dans Qonto')).toBeInTheDocument()
+  })
+
+  it('suppression d’un devis lié : supprimé dans Qonto puis dans le CRM', async () => {
+    const user = userEvent.setup()
+    const lie = { ...draft, qonto_quote_id: 'qq1' }
+    crmDb.loadCrm.mockResolvedValue({ opportunites: [opp], interactions: [], devis: [lie], missingMigration: false })
+    crmDb.deleteDevis.mockResolvedValue()
+    routes['/api/devis/qonto'] = ({ action }) => reply({ ok: true, data: action === 'delete' ? { deleted: true } : { numbers: [], quotes: [] } })()
+    renderWith()
+    await screen.findByRole('dialog', { name: 'Escalier extérieur' })
+    await user.click(screen.getByRole('button', { name: 'Supprimer le devis 26-050' }))
+    await waitFor(() => expect(crmDb.deleteDevis).toHaveBeenCalled())
+    expect(callsTo('/api/devis/qonto').map(c => c.body)).toContainEqual({ action: 'delete', devisId: 'd1' })
+    expect(addToast).toHaveBeenCalledWith('Devis supprimé (CRM et Qonto)', 'success')
+  })
+
   it('les unités des devis Qonto sont proposées dans l’éditeur', async () => {
     const user = userEvent.setup()
     crmDb.loadCrm.mockResolvedValue({ opportunites: [opp], interactions: [], devis: [], missingMigration: false })

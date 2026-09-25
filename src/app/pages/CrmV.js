@@ -83,6 +83,7 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
   // Devis Qonto { id, number, status } : suivi des statuts
   const [qontoQuotes, setQontoQuotes] = useState([])
   const [qontoUnits, setQontoUnits] = useState([])     // unités des devis Qonto
+  const [qontoComplete, setQontoComplete] = useState(false) // liste Qonto complète
 
   const [view, setView] = useState('pipeline')       // pipeline | relances | closed
   const [q, setQ] = useState('')
@@ -156,6 +157,13 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
   }
   const closeOppModal = () => { setOppModal(null); setOppError('') }
 
+  // Devis liés à Qonto mais absents de la liste Qonto : supprimés dans Qonto
+  const devisAffiches = useMemo(() => {
+    if (!qontoComplete) return allDevis
+    const ids = new Set(qontoQuotes.map(q => String(q.id)))
+    return allDevis.map(d => (d.qonto_quote_id && !ids.has(String(d.qonto_quote_id)) ? { ...d, _qontoDeleted: true } : d))
+  }, [allDevis, qontoQuotes, qontoComplete])
+
   // Unités proposées : base + celles des devis Qonto et du CRM
   const unites = useMemo(
     () => mergeUnites(qontoUnits, allDevis.flatMap(d => (d.lignes || []).map(l => l.unite))),
@@ -171,6 +179,7 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
         if (!alive) return
         setQontoQuotes(d?.quotes || [])
         setQontoUnits(d?.units || [])
+        setQontoComplete(!!d?.complete)
       })
       .catch(() => {})
     return () => { alive = false }
@@ -651,6 +660,18 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
     else if (!qontoError) addToast(`Devis ${saved.numero} enregistré dans l’application et dans Qonto`, 'success')
   }
 
+  // Statut du CRM reporté dans Qonto (accepté / refusé). Qonto ne permet
+  // pas toujours ce changement par l'API : on prévient alors de le faire
+  // dans Qonto.
+  const pushQontoStatus = async (d, statut) => {
+    if (!d.qonto_quote_id) return
+    try {
+      const { data: r } = await apiPost('/api/devis/qonto', { action: 'status', devisId: d.id, statut })
+      if (r?.applied || r?.skipped) return
+    } catch { /* message ci-dessous */ }
+    addToast(`Pense à marquer le devis ${d.numero} « ${statut === 'Accepté' ? 'accepté' : 'refusé'} » dans Qonto aussi`, 'info')
+  }
+
   const acceptDevis = async (d) => {
     const o = oppOf(d)
     setSaving(true)
@@ -660,6 +681,7 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
     } catch (e) { addToast(e?.message || 'Mise à jour impossible', 'error'); setSaving(false); return }
     setSaving(false)
     addToast(`Devis ${d.numero} accepté 🎉`, 'success')
+    await pushQontoStatus(d, 'Accepté')
     if (o && o.etape !== 'Gagné') await changeEtape({ ...o, montant_estime: Number(d.total_ht) || o.montant_estime }, 'Gagné')
   }
   const refuseDevis = async (d) => {
@@ -667,17 +689,37 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
       await setDevisStatut(d, 'Refusé')
       await reload()
       addToast(`Devis ${d.numero} refusé · duplique-le pour une version révisée, ou marque l’affaire perdue`, 'info')
-    } catch (e) { addToast(e?.message || 'Mise à jour impossible', 'error') }
+    } catch (e) { addToast(e?.message || 'Mise à jour impossible', 'error'); return }
+    await pushQontoStatus(d, 'Refusé')
   }
   const duplicateDevisAction = (d) => {
     setDevisError('')
     setDevisForm(toForm({ ...duplicateDevis(d), numero: numeroProvisoire() }))
   }
   const removeDevis = async (d) => {
-    const ok = await confirm({ title: `Supprimer le devis ${d.numero} ?`, confirmLabel: 'Supprimer', danger: true })
+    const inQonto = !!d.qonto_quote_id && !d._qontoDeleted
+    const ok = await confirm({
+      title: `Supprimer le devis ${d.numero} ?`,
+      message: inQonto ? 'Il sera aussi supprimé dans Qonto.' : undefined,
+      confirmLabel: 'Supprimer', danger: true,
+    })
     if (!ok) return
-    try { await deleteDevis(d); await reload(); addToast('Devis supprimé', 'success') }
-    catch (e) { addToast(e?.message || 'Suppression impossible', 'error') }
+    if (inQonto) {
+      try {
+        await apiPost('/api/devis/qonto', { action: 'delete', devisId: d.id })
+      } catch (e) {
+        const crmOnly = await confirm({
+          title: 'Suppression dans Qonto impossible',
+          message: `${e?.message || 'Erreur Qonto'}\n\nSupprimer le devis seulement dans le CRM ?`,
+          confirmLabel: 'Supprimer du CRM', danger: true,
+        })
+        if (!crmOnly) return
+      }
+    }
+    try {
+      await deleteDevis(d); await reload()
+      addToast(inQonto ? 'Devis supprimé (CRM et Qonto)' : 'Devis supprimé', 'success')
+    } catch (e) { addToast(e?.message || 'Suppression impossible', 'error') }
   }
 
   const onDrop = async (etape) => {
@@ -942,7 +984,7 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
             onAddInteraction={(preset) => openNewInteraction(selected, preset)}
             onToggleAction={toggleAction}
             onDeleteInteraction={removeInteraction}
-            devis={allDevis.filter(d => d.opportunite_id === selected.id)}
+            devis={devisAffiches.filter(d => d.opportunite_id === selected.id)}
             devisMissing={devisMissing}
             onNewDevis={() => openNewDevis(selected)}
             devisActions={{

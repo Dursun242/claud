@@ -55,3 +55,14 @@ réutilisée, sinon une affaire est créée (contact retrouvé par email).
 Idempotent : un devis déjà importé ou créé depuis le CRM est ignoré. Un
 numéro déjà utilisé par un autre devis du CRM est signalé et non importé.
 
+## Statuts et suppressions
+
+- Qonto → CRM : devis accepté dans Qonto → « Accepté » (affaire « Gagné »),
+  annulé → « Refusé » ; devis supprimé dans Qonto → signalé « supprimé dans
+  Qonto » dans la liste (« ↻ Qonto » le recrée).
+- CRM → Qonto : suppression d'un devis dans le CRM → supprimé aussi dans
+  Qonto (après confirmation ; si Qonto refuse, choix de ne supprimer que du
+  CRM). Accepté / refusé dans le CRM (ou signé en ligne) → tentative de mise à
+  jour du statut dans Qonto ; Qonto ne documentant pas ce changement par
+  l'API, un message invite à le faire dans Qonto s'il n'est pas appliqué.
+
