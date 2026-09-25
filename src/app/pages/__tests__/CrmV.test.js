@@ -202,6 +202,11 @@ describe('CrmV — devis', () => {
     const user = userEvent.setup()
     crmDb.loadCrm.mockResolvedValue({ ...base, devis: [] })
     crmDb.upsertDevis.mockResolvedValue({ id: 'd1', numero: '26-050' })
+    global.fetch = jest.fn(async (url, opts) => {
+      const { action } = JSON.parse(opts.body)
+      return { ok: true, status: 200, json: async () => ({ ok: true, data: action === 'numbers' ? { numbers: [] }
+        : { devis: { id: 'd1', numero: '26-050', qonto_quote_id: 'qq1' }, qontoNumber: '26-050', renumbered: null, mismatch: null, created: true } }) }
+    })
     renderPage({ focusId: 'o5', focusTs: 20 })
     await screen.findByRole('dialog', { name: 'Escalier extérieur' })
     await user.click(screen.getByRole('button', { name: /Créer le devis/ }))
@@ -220,7 +225,42 @@ describe('CrmV — devis', () => {
     await waitFor(() => expect(crmDb.upsertDevis).toHaveBeenCalledWith(expect.objectContaining({
       opportunite_id: 'o5', statut: 'Brouillon', objet: 'Escalier extérieur',
     })))
-    expect(addToast).toHaveBeenCalledWith('Devis 26-050 enregistré', 'success')
+    await waitFor(() => expect(addToast).toHaveBeenCalledWith('Devis 26-050 enregistré dans l’application et dans Qonto', 'success'))
+    expect(global.fetch).toHaveBeenCalledWith('/api/devis/qonto', expect.objectContaining({ body: JSON.stringify({ action: 'sync', devisId: 'd1' }) }))
+    delete global.fetch
+  })
+
+  it('l’enregistrement signale clairement un devis non créé dans Qonto', async () => {
+    const user = userEvent.setup()
+    crmDb.loadCrm.mockResolvedValue({ ...base, devis: [] })
+    crmDb.upsertDevis.mockResolvedValue({ id: 'd1', numero: '26-050' })
+    global.fetch = jest.fn(async () => ({ ok: false, status: 409, json: async () => ({
+      error: 'Appliquer la migration 028_crm_devis_qonto.sql sur Supabase pour enregistrer les devis dans Qonto.', code: 'MIGRATION_028',
+    }) }))
+    renderPage({ focusId: 'o5', focusTs: 23 })
+    await screen.findByRole('dialog', { name: 'Escalier extérieur' })
+    await user.click(screen.getByRole('button', { name: /Créer le devis/ }))
+    await user.click(await screen.findByRole('button', { name: 'Enregistrer le brouillon' }))
+    await waitFor(() => expect(addToast).toHaveBeenCalledWith(
+      expect.stringMatching(/^Devis 26-050 enregistré dans l’application mais PAS dans Qonto : Appliquer la migration 028/), 'error',
+    ))
+    delete global.fetch
+  })
+
+  it('numéro déjà pris dans Qonto à l’enregistrement : l’éditeur reste ouvert avec le message', async () => {
+    const user = userEvent.setup()
+    crmDb.loadCrm.mockResolvedValue({ ...base, devis: [] })
+    crmDb.upsertDevis.mockResolvedValue({ id: 'd1', numero: '26-050', opportunite_id: 'o5', statut: 'Brouillon', lignes: [] })
+    global.fetch = jest.fn(async (url, opts) => (JSON.parse(opts.body).action === 'numbers'
+      ? { ok: true, status: 200, json: async () => ({ ok: true, data: { numbers: [] } }) }
+      : { ok: false, status: 409, json: async () => ({ error: 'Le numéro 26-050 existe déjà dans Qonto. Prochain numéro libre : 26-062', code: 'NUMBER_TAKEN' }) }))
+    renderPage({ focusId: 'o5', focusTs: 24 })
+    await screen.findByRole('dialog', { name: 'Escalier extérieur' })
+    await user.click(screen.getByRole('button', { name: /Créer le devis/ }))
+    await user.click(await screen.findByRole('button', { name: 'Enregistrer le brouillon' }))
+    expect(await screen.findByText(/Prochain numéro libre : 26-062/)).toBeInTheDocument()
+    expect(screen.getByRole('dialog', { name: /^Devis 26-050/ })).toBeInTheDocument()
+    delete global.fetch
   })
 
   it('un devis envoyé peut être marqué accepté : l’affaire passe « Gagné » au montant du devis', async () => {

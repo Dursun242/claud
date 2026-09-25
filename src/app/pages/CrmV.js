@@ -22,7 +22,7 @@ import {
   normalizeLignes, devisMailContent, companySignature,
 } from '../lib/devis'
 import DevisEditor, { fmtEur } from '../components/crm/DevisEditor'
-import DevisList from '../components/crm/DevisList'
+import DevisList, { qontoState } from '../components/crm/DevisList'
 import DevisSendForm from '../components/crm/DevisSendForm'
 import { buildPriceHistory, checkDevis, buildAiContext } from '../lib/devisAi'
 import { supabase } from '../supabaseClient'
@@ -469,19 +469,19 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
     setSaving(true)
     setSendState(st => ({ ...st, error: '' }))
     try {
-      // Le devis envoyé est aussi enregistré dans Qonto (même numéro).
+      // Le devis envoyé doit être dans Qonto, à jour (même numéro).
       // Numéro déjà pris : on bloque l'envoi ; autre souci Qonto : on
       // envoie quand même et on prévient.
-      try {
-        const before = d.numero
-        d = await syncQonto(d)
-        if (d.numero !== before) {
-          form = { ...form, subject: form.subject.split(before).join(d.numero), body: form.body.split(before).join(d.numero) }
-        }
-      } catch (e) {
-        if (e.code === 'NUMBER_TAKEN') throw e
-        if (e.code !== 'QONTO_NOT_CONFIGURED' && e.code !== 'MIGRATION_028') {
-          addToast(`Devis non enregistré dans Qonto : ${e?.message || 'erreur'}`, 'error')
+      if (qontoState(d) !== 'ok') {
+        try {
+          const before = d.numero
+          d = await syncQonto(d)
+          if (d.numero !== before) {
+            form = { ...form, subject: form.subject.split(before).join(d.numero), body: form.body.split(before).join(d.numero) }
+          }
+        } catch (e) {
+          if (e.code === 'NUMBER_TAKEN') throw e
+          addToast(`Devis envoyé mais PAS enregistré dans Qonto : ${e?.message || 'erreur'}`, 'error')
         }
       }
       const lignes = normalizeLignes(d.lignes)
@@ -521,16 +521,32 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
     let saved
     try {
       saved = await upsertDevis(devisForm)
-      await reload()
     } catch (e) {
       setDevisError(e?.message || "Erreur lors de l'enregistrement.")
       setSaving(false)
       return
     }
+    // Chaque devis enregistré est créé (ou mis à jour) dans Qonto
+    let qontoError = ''
+    try {
+      saved = await syncQonto(saved)
+    } catch (e) {
+      if (e.code === 'NUMBER_TAKEN') {
+        // Numéro déjà utilisé dans Qonto : on reste dans l'éditeur pour le changer
+        setDevisForm(toForm(saved))
+        setDevisError(e.message)
+        await reload()
+        setSaving(false)
+        return
+      }
+      qontoError = e?.message || 'erreur inconnue'
+    }
+    await reload()
     setSaving(false)
     closeDevis()
+    if (qontoError) addToast(`Devis ${saved.numero} enregistré dans l’application mais PAS dans Qonto : ${qontoError}`, 'error')
     if (send) sendDevis(saved)
-    else addToast(`Devis ${saved.numero} enregistré`, 'success')
+    else if (!qontoError) addToast(`Devis ${saved.numero} enregistré dans l’application et dans Qonto`, 'success')
   }
 
   const acceptDevis = async (d) => {
