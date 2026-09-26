@@ -20,6 +20,7 @@ import { createRateLimiter } from '@/app/lib/rateLimit'
 import { adminClient } from '@/app/lib/supabaseClients'
 import { nextDevisNumero } from '@/app/lib/devis'
 import { quoteToOpportunite } from '@/app/lib/crm'
+import { pushQuoteStatus, deleteQuote } from '@/app/lib/qontoServer'
 import {
   toQontoQuote, qontoClientPayload, matchQontoClient,
   isNumberTaken, isNumberRequired, isUnitRejected, qontoErrorDetail, totalsMismatch, qontoFingerprint,
@@ -304,7 +305,26 @@ export async function POST(request) {
         quotes: quotes.map(q => ({ id: q.id, number: q.number, status: q.status })),
         // Unités utilisées dans les devis Qonto (proposées dans l'éditeur)
         units: [...new Set(quotes.flatMap(q => (q.items || []).map(i => String(i?.unit || '').trim())).filter(Boolean))],
+        // Liste complète (sous la limite de pagination) : un devis lié absent
+        // de la liste a été supprimé dans Qonto
+        complete: quotes.length < MAX_PAGES * 100,
       } })
+    }
+    if (body.action === 'status' || body.action === 'delete') {
+      if (!body.devisId || typeof body.devisId !== 'string') return Response.json({ error: 'Devis manquant' }, { status: 400 })
+      const { data: devis } = await admin.from('crm_devis').select('id, numero, qonto_quote_id').eq('id', body.devisId).maybeSingle()
+      if (!devis?.qonto_quote_id) return Response.json({ ok: true, data: { skipped: true } })
+      if (body.action === 'status') {
+        return Response.json({ ok: true, data: await pushQuoteStatus(token, devis.qonto_quote_id, body.statut) })
+      }
+      const r = await deleteQuote(token, devis.qonto_quote_id)
+      if (!r.deleted) {
+        return Response.json({
+          error: `Qonto refuse de supprimer le devis ${devis.numero}${r.detail ? ` : ${r.detail}` : ''} (un devis accepté ou facturé ne peut pas être supprimé).`,
+          code: 'QONTO_DELETE_REFUSED',
+        }, { status: 409 })
+      }
+      return Response.json({ ok: true, data: { deleted: true } })
     }
     if (body.action === 'import') {
       return Response.json({ ok: true, data: await importQuotes(admin, token, user.email) })

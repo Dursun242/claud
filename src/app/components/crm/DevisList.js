@@ -59,13 +59,15 @@ export default function DevisList({ devis = [], missing, saving, onNew, onOpen, 
                     <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 700, color: c, background: c + '1A', borderRadius: 999, padding: '1px 7px' }}>{d.statut}</span>
                     {expired && <span style={{ marginLeft: 6, fontSize: 10, color: '#DC2626', fontWeight: 700 }}>expiré</span>}
                     {!expired && stale && <span style={{ marginLeft: 6, fontSize: 10, color: '#F59E0B', fontWeight: 700 }}>sans réponse</span>}
-                    {qs === 'ok' && <span style={{ marginLeft: 6, fontSize: 10, color: '#047857', fontWeight: 700 }}>✓ Qonto</span>}
+                    {d._qontoDeleted
+                      ? <span style={{ marginLeft: 6, fontSize: 10, color: '#B91C1C', fontWeight: 700 }} title="Clique sur « ↻ Qonto » pour le recréer">⚠ supprimé dans Qonto</span>
+                      : qs === 'ok' && <span style={{ marginLeft: 6, fontSize: 10, color: '#047857', fontWeight: 700 }}>✓ Qonto</span>}
                     {d.statut_signature && (
                       <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: d.statut_signature === 'Signé' ? '#047857' : ['Refusé', 'Expiré', 'Annulé'].includes(d.statut_signature) ? '#B91C1C' : '#7C3AED' }}>
                         ✍️ {d.statut_signature === 'Envoyé' ? 'signature en attente' : d.statut_signature === 'Signé' ? 'signé' : d.statut_signature.toLowerCase()}
                       </span>
                     )}
-                    {qs === 'stale' && <span style={{ marginLeft: 6, fontSize: 10, color: '#B45309', fontWeight: 700 }}>Qonto à mettre à jour</span>}
+                    {!d._qontoDeleted && qs === 'stale' && <span style={{ marginLeft: 6, fontSize: 10, color: '#B45309', fontWeight: 700 }}>Qonto à mettre à jour</span>}
                   </div>
                   <div style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>
                     {fmtEur(d.total_ht)} HT · {fmtEur(d.total_ttc)} TTC

@@ -48,6 +48,7 @@ src/app/
     ├─ devis/qonto            → CRM : devis créé dans Qonto (numéro + PDF Qonto), import des devis Qonto, suivi des statuts (staff only)
     ├─ devis/sign             → CRM : demande de signature électronique d'un devis (staff only)
     ├─ devis/public           → page publique /signer/<jeton> : consultation + signature du devis (sans compte, jeton)
+    ├─ cron/qonto-status      → vérification horaire des devis acceptés / annulés dans Qonto (GitHub Actions, secret CRON_SECRET)
     ├─ odoo/*                 → signatures
     ├─ pv-reception/*         → flux PV métier
     ├─ extract-*/             → Claude Vision (devis + contacts)
@@ -67,7 +68,7 @@ Stage 3 = **CRM** (`crm_opportunites`, `crm_interactions`, `crm_devis`, migratio
 ## Conventions & règles du projet
 
 1. **Server-only pour les secrets** : `ANTHROPIC_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `ODOO_API_KEY`, `PAPPERS_API_KEY`, `qonto-token` n'apparaissent **jamais** dans le bundle client. Les appels tiers passent par les routes `/api/*`. Seule exception : la Base Adresse Nationale (`api-adresse.data.gouv.fr`, publique, sans clé) appelée directement par `components/AddressPicker.js`.
-2. **Auth** : toute route `/api/*` non-admin (sauf `/api/metrics`, `/api/auth/google/callback`, `/api/devis/public` — accès par jeton de signature) fait `verifyAuth(request)` en premier. Retour 401 si absent.
+2. **Auth** : toute route `/api/*` non-admin (sauf `/api/metrics`, `/api/auth/google/callback`, `/api/devis/public` — accès par jeton de signature, `/api/cron/*` — secret `CRON_SECRET`) fait `verifyAuth(request)` en premier. Retour 401 si absent.
 3. **Logging** : routes modernes utilisent `createLogger('source')` (`lib/logger.js`). Certaines routes anciennes utilisent encore `console.error` — migration progressive.
 4. **Toasts, jamais `alert()`** : `useToast()` dans les composants. `useFloatingMic` prend `onError` pour les erreurs hors-UI.
 5. **Tests routes API** : env `node` via pragma `/** @jest-environment node */`. Mock deps via `jest.mock()`. Voir `api/qonto/__tests__/route.test.js` comme modèle canonique (gère `jest.resetModules()` pour caches module-level).

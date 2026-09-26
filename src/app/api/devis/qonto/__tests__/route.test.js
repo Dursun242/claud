@@ -270,6 +270,22 @@ describe('/api/devis/qonto', () => {
     expect(devis.qonto_hash).toBeTruthy()
   })
 
+  it('status : PATCH du statut Qonto ; delete : refus Qonto → 409 explicite', async () => {
+    db.crm_devis = { ...DEVIS, qonto_quote_id: 'qq1' }
+    fetchWithRetry.mockResolvedValueOnce(json(200, { quote: { id: 'qq1', status: 'approved' } }))
+    let body = await (await POST(req({ action: 'status', devisId: 'd1', statut: 'Accepté' }))).json()
+    expect(body.data.applied).toBe(true)
+    fetchWithRetry.mockResolvedValueOnce(json(422, { errors: [{ detail: 'approved quotes cannot be deleted' }] }))
+    const res = await POST(req({ action: 'delete', devisId: 'd1' }))
+    body = await res.json()
+    expect(res.status).toBe(409)
+    expect(body.code).toBe('QONTO_DELETE_REFUSED')
+    expect(body.error).toMatch(/approved quotes cannot be deleted/)
+    db.crm_devis = { ...DEVIS }
+    body = await (await POST(req({ action: 'delete', devisId: 'd1' }))).json()
+    expect(body.data.skipped).toBe(true)
+  })
+
   it('Qonto non connecté, non-staff, action inconnue', async () => {
     verifyStaff.mockResolvedValueOnce({ user: null, status: 403 })
     expect((await POST(req({ action: 'numbers' }))).status).toBe(403)

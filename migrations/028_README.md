@@ -55,3 +55,36 @@ réutilisée, sinon une affaire est créée (contact retrouvé par email).
 Idempotent : un devis déjà importé ou créé depuis le CRM est ignoré. Un
 numéro déjà utilisé par un autre devis du CRM est signalé et non importé.
 
+## Statuts et suppressions
+
+- Qonto → CRM : devis accepté dans Qonto → « Accepté » (affaire « Gagné »),
+  annulé → « Refusé » ; devis supprimé dans Qonto → signalé « supprimé dans
+  Qonto » dans la liste (« ↻ Qonto » le recrée).
+- CRM → Qonto : suppression d'un devis dans le CRM → supprimé aussi dans
+  Qonto (après confirmation ; si Qonto refuse, choix de ne supprimer que du
+  CRM). Accepté / refusé dans le CRM (ou signé en ligne) → tentative de mise à
+  jour du statut dans Qonto ; Qonto ne documentant pas ce changement par
+  l'API, un message invite à le faire dans Qonto s'il n'est pas appliqué.
+
+
+### Vérification automatique (toutes les heures)
+
+Le workflow GitHub `.github/workflows/qonto-status.yml` appelle toutes les
+heures `/api/cron/qonto-status`. Pour chaque devis du CRM lié à Qonto et
+encore « Brouillon » / « Envoyé » :
+
+- accepté dans Qonto → devis « Accepté », affaire « Gagné » ;
+- annulé dans Qonto → devis « Refusé ».
+
+L'équipe est prévenue comme pour une signature en ligne (cloche + mail),
+même si personne n'ouvre l'application.
+
+Mise en place :
+
+1. Vercel → Settings → Environment Variables : `CRON_SECRET` (valeur longue
+   et aléatoire, ex. `openssl rand -hex 32`), puis redéployer.
+2. GitHub → Settings → Secrets and variables → Actions : `CRON_SECRET` (même
+   valeur) et `APP_URL` (URL de production, ex. `https://….vercel.app`).
+3. Test immédiat : onglet Actions → « Suivi des devis Qonto » → Run workflow.
+
+Sans ces secrets, le workflow ne fait rien (pas d'échec).
