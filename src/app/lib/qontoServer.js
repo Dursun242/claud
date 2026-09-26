@@ -49,3 +49,15 @@ export async function deleteQuote(token, quoteId) {
     : (r.json?.message || '')
   return { deleted: false, status: r.status, detail: String(detail).slice(0, 300) }
 }
+
+/** Tous les devis Qonto (pagination, 5 pages de 100 au plus). */
+export async function listQuotes(token, maxPages = 5) {
+  const out = []
+  for (let page = 1; page <= maxPages; page++) {
+    const r = await call(token, 'GET', `/quotes?sort_by=created_at:desc&per_page=100&page=${page}`)
+    if (!r.ok) throw new Error(`Lecture des devis Qonto impossible (${r.status})`)
+    out.push(...(r.json?.quotes || []))
+    if (!r.json?.meta?.next_page) break
+  }
+  return out
+}

@@ -3,7 +3,7 @@
  */
 jest.mock('../fetchWithRetry', () => ({ fetchWithRetry: jest.fn() }))
 const { fetchWithRetry } = require('../fetchWithRetry')
-const { pushQuoteStatus, deleteQuote } = require('../qontoServer')
+const { pushQuoteStatus, deleteQuote, listQuotes } = require('../qontoServer')
 
 const res = (status, body) => ({ ok: status < 300, status, text: async () => (body ? JSON.stringify(body) : '') })
 
@@ -36,5 +36,15 @@ describe('qontoServer', () => {
     expect(await deleteQuote('tok', 'q1')).toEqual({ deleted: true })
     fetchWithRetry.mockResolvedValueOnce(res(422, { errors: [{ detail: 'approved quotes cannot be deleted' }] }))
     expect(await deleteQuote('tok', 'q1')).toMatchObject({ deleted: false, detail: 'approved quotes cannot be deleted' })
+  })
+
+  it('listQuotes : suit la pagination ; erreur si Qonto refuse', async () => {
+    fetchWithRetry
+      .mockResolvedValueOnce(res(200, { quotes: [{ id: 'q1' }], meta: { next_page: 2 } }))
+      .mockResolvedValueOnce(res(200, { quotes: [{ id: 'q2' }], meta: { next_page: null } }))
+    expect((await listQuotes('tok')).map(q => q.id)).toEqual(['q1', 'q2'])
+    expect(fetchWithRetry.mock.calls[1][0]).toMatch(/\/quotes\?sort_by=created_at:desc&per_page=100&page=2$/)
+    fetchWithRetry.mockResolvedValueOnce(res(401, { message: 'unauthorized' }))
+    await expect(listQuotes('tok')).rejects.toThrow(/401/)
   })
 })
