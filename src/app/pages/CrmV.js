@@ -24,6 +24,7 @@ import {
 import DevisEditor, { fmtEur } from '../components/crm/DevisEditor'
 import DevisList, { qontoState } from '../components/crm/DevisList'
 import DevisSendForm from '../components/crm/DevisSendForm'
+import { summarizeDevisEvents } from '../lib/devisTracking'
 import { buildPriceHistory, checkDevis, buildAiContext } from '../lib/devisAi'
 import { supabase } from '../supabaseClient'
 
@@ -166,12 +167,17 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
   }
   const closeOppModal = () => { setOppModal(null); setOppError('') }
 
-  // Devis liés à Qonto mais absents de la liste Qonto : supprimés dans Qonto
+  // Devis liés à Qonto mais absents de la liste Qonto : supprimés dans Qonto.
+  // + suivi des ouvertures du mail / consultations en ligne (migration 030)
+  const suiviDevis = useMemo(() => summarizeDevisEvents(crm.devisEvents || []), [crm.devisEvents])
   const devisAffiches = useMemo(() => {
-    if (!qontoComplete) return allDevis
-    const ids = new Set(qontoQuotes.map(q => String(q.id)))
-    return allDevis.map(d => (d.qonto_quote_id && !ids.has(String(d.qonto_quote_id)) ? { ...d, _qontoDeleted: true } : d))
-  }, [allDevis, qontoQuotes, qontoComplete])
+    const ids = qontoComplete ? new Set(qontoQuotes.map(q => String(q.id))) : null
+    return allDevis.map(d => {
+      const deleted = ids && d.qonto_quote_id && !ids.has(String(d.qonto_quote_id))
+      const suivi = suiviDevis[d.id]
+      return deleted || suivi ? { ...d, ...(deleted ? { _qontoDeleted: true } : {}), ...(suivi ? { _suivi: suivi } : {}) } : d
+    })
+  }, [allDevis, qontoQuotes, qontoComplete, suiviDevis])
 
   // Unités proposées : base + celles des devis Qonto et du CRM
   const unites = useMemo(
@@ -629,7 +635,7 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
       }
       try {
         await apiPost('/api/devis/send', {
-          to: form.to, cc: form.cc, subject: form.subject, text: form.body, signUrl,
+          to: form.to, cc: form.cc, subject: form.subject, text: form.body, signUrl, devisId: d.id,
           copyMe: form.copyMe, pdfBase64: base64, filename, attachments: form.attachments || [],
         })
       } catch (e) {

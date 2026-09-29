@@ -1,7 +1,7 @@
 /**
  * @jest-environment node
  */
-let POST, verifyStaff, sendMail, createTransport, stored
+let POST, verifyStaff, sendMail, createTransport, stored, devisRow, updates
 
 const PDF = Buffer.from('%PDF-1.4 test').toString('base64')
 
@@ -12,8 +12,19 @@ function loadRoute() {
   jest.doMock('nodemailer', () => ({ __esModule: true, default: { createTransport } }))
   jest.doMock('@/app/lib/auth', () => ({ verifyStaff: jest.fn() }))
   stored = {}
+  devisRow = null
+  updates = []
+  const query = () => {
+    const b = {
+      select: () => b, eq: () => b,
+      update: (patch) => { updates.push(patch); return b },
+      maybeSingle: async () => ({ data: devisRow, error: null }),
+      then: (res) => res({ error: null }),
+    }
+    return b
+  }
   jest.doMock('@/app/lib/supabaseClients', () => ({
-    adminClient: () => ({ storage: { from: () => ({
+    adminClient: () => ({ from: query, storage: { from: () => ({
       download: async (p) => (stored[p]
         ? { data: { type: 'application/pdf', arrayBuffer: async () => stored[p] }, error: null }
         : { data: null, error: { message: 'not found' } }),
@@ -23,7 +34,7 @@ function loadRoute() {
   verifyStaff = require('@/app/lib/auth').verifyStaff
 }
 
-const req = (body) => ({ headers: { get: () => '9.9.9.9' }, json: async () => body })
+const req = (body) => ({ url: 'https://claud-dusky.vercel.app/api/devis/send', headers: { get: () => '9.9.9.9' }, json: async () => body })
 const valid = { to: 'client@exemple.fr', cc: '', subject: 'Devis 26-050', text: 'Bonjour', pdfBase64: `data:application/pdf;filename=x;base64,${PDF}`, filename: '26-050.pdf' }
 
 beforeEach(() => {
@@ -39,11 +50,41 @@ describe('/api/devis/send', () => {
     expect(createTransport).toHaveBeenCalledWith(expect.objectContaining({ host: 'smtp.test', port: 587, secure: false }))
     const mail = sendMail.mock.calls[0][0]
     expect(mail).toMatchObject({
-      from: 'ID Maîtrise <contact@id-maitrise.com>', to: ['client@exemple.fr'], bcc: 'moe@id-maitrise.com',
+      from: 'ID Maîtrise <contact@id-maitrise.com>', to: ['client@exemple.fr'],
       replyTo: 'moe@id-maitrise.com', subject: 'Devis 26-050', text: 'Bonjour',
     })
+    expect(mail.bcc).toBeUndefined()
     expect(mail.attachments[0]).toMatchObject({ filename: '26-050.pdf', contentType: 'application/pdf' })
     expect(mail.attachments[0].content.subarray(0, 4).toString()).toBe('%PDF')
+    // Copie à l'expéditeur envoyée à part
+    const copy = sendMail.mock.calls[1][0]
+    expect(copy).toMatchObject({ to: 'moe@id-maitrise.com', subject: '[Copie] Devis 26-050' })
+    expect(copy.attachments[0].filename).toBe('26-050.pdf')
+  })
+
+  it('suivi des ouvertures : image de suivi dans le mail du client, pas dans la copie', async () => {
+    const devisId = '11111111-2222-3333-4444-555555555555'
+    devisRow = { id: devisId, track_token: null }
+    expect((await POST(req({ ...valid, devisId }))).status).toBe(200)
+    const token = updates[0].track_token
+    expect(token).toMatch(/^[0-9a-f]{64}$/)
+    const [client, copy] = sendMail.mock.calls.map(c => c[0])
+    expect(client.html).toContain(`src="https://claud-dusky.vercel.app/api/devis/track?t=${token}"`)
+    expect(copy.html).not.toContain('/api/devis/track')
+
+    // Jeton existant réutilisé (les anciens mails restent suivis)
+    sendMail.mockClear(); updates.length = 0
+    devisRow = { id: devisId, track_token: 'c'.repeat(64) }
+    await POST(req({ ...valid, devisId, copyMe: false }))
+    expect(updates).toHaveLength(0)
+    expect(sendMail).toHaveBeenCalledTimes(1)
+    expect(sendMail.mock.calls[0][0].html).toContain(`track?t=${'c'.repeat(64)}`)
+  })
+
+  it('sans devis connu ou sans migration : mail envoyé sans image de suivi', async () => {
+    devisRow = null
+    await POST(req({ ...valid, devisId: '11111111-2222-3333-4444-555555555555' }))
+    expect(sendMail.mock.calls[0][0].html).not.toContain('/api/devis/track')
   })
 
   it('503 EMAIL_NOT_CONFIGURED sans SMTP', async () => {
@@ -94,7 +135,7 @@ describe('/api/devis/send', () => {
     expect((await POST(req({ ...valid, attachments: ['devis-signature/x/original-1.pdf'] }))).status).toBe(400)
     expect((await POST(req({ ...valid, attachments: ['devis-envoi/../devis-signature/x.pdf'] }))).status).toBe(400)
     expect((await POST(req({ ...valid, attachments: ['devis-envoi/zzz/absent.pdf'] }))).status).toBe(400)
-    expect(sendMail).toHaveBeenCalledTimes(1)
+    expect(sendMail).toHaveBeenCalledTimes(2) // mail + copie à l'expéditeur
   })
 
   it('version HTML aux couleurs de la société, lien de signature en bouton et en texte', async () => {

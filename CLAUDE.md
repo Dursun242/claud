@@ -48,6 +48,7 @@ src/app/
     ├─ devis/qonto            → CRM : devis créé dans Qonto (numéro + PDF Qonto), import des devis Qonto, suivi des statuts (staff only)
     ├─ devis/documents        → CRM : pièces jointes des mails de devis (documents permanents Kbis/décennale + fichiers ponctuels, staff only)
     ├─ devis/sign             → CRM : demande de signature électronique d'un devis (staff only)
+    ├─ devis/track            → image de suivi (1×1) des mails de devis : enregistre les ouvertures (public, jeton)
     ├─ devis/public           → page publique /signer/<jeton> : consultation + signature du devis (sans compte, jeton)
     ├─ cron/qonto-status      → vérification horaire des devis acceptés / annulés dans Qonto (GitHub Actions, secret CRON_SECRET)
     ├─ odoo/*                 → signatures
@@ -64,12 +65,12 @@ Stage 2 = **secondaires** (contacts, planning, rdv, counts PJ via RPC `chantier_
 
 Cf. `SB.loadCritical()` / `SB.loadSecondary()` dans `dashboards/shared.js`.
 
-Stage 3 = **CRM** (`crm_opportunites`, `crm_interactions`, `crm_devis`, migrations 025→029) via `useCrmData({ enabled })` dans `AdminDashboard` : lancé seulement après le stage 1, partagé (React Query) par CrmV, DashboardV (widget relances), ContactsV (badge affaires), QontoV (→ CRM), AIV (actions IA) et la recherche globale.
+Stage 3 = **CRM** (`crm_opportunites`, `crm_interactions`, `crm_devis`, `crm_devis_events`, migrations 025→030) via `useCrmData({ enabled })` dans `AdminDashboard` : lancé seulement après le stage 1, partagé (React Query) par CrmV, DashboardV (widget relances), ContactsV (badge affaires), QontoV (→ CRM), AIV (actions IA) et la recherche globale.
 
 ## Conventions & règles du projet
 
 1. **Server-only pour les secrets** : `ANTHROPIC_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `ODOO_API_KEY`, `PAPPERS_API_KEY`, `qonto-token` n'apparaissent **jamais** dans le bundle client. Les appels tiers passent par les routes `/api/*`. Seule exception : la Base Adresse Nationale (`api-adresse.data.gouv.fr`, publique, sans clé) appelée directement par `components/AddressPicker.js`.
-2. **Auth** : toute route `/api/*` non-admin (sauf `/api/metrics`, `/api/auth/google/callback`, `/api/devis/public` — accès par jeton de signature, `/api/cron/*` — secret `CRON_SECRET`) fait `verifyAuth(request)` en premier. Retour 401 si absent.
+2. **Auth** : toute route `/api/*` non-admin (sauf `/api/metrics`, `/api/auth/google/callback`, `/api/devis/public` et `/api/devis/track` — accès par jeton, `/api/cron/*` — secret `CRON_SECRET`) fait `verifyAuth(request)` en premier. Retour 401 si absent.
 3. **Logging** : routes modernes utilisent `createLogger('source')` (`lib/logger.js`). Certaines routes anciennes utilisent encore `console.error` — migration progressive.
 4. **Toasts, jamais `alert()`** : `useToast()` dans les composants. `useFloatingMic` prend `onError` pour les erreurs hors-UI.
 5. **Tests routes API** : env `node` via pragma `/** @jest-environment node */`. Mock deps via `jest.mock()`. Voir `api/qonto/__tests__/route.test.js` comme modèle canonique (gère `jest.resetModules()` pour caches module-level).
@@ -98,7 +99,7 @@ Voir `.env.example` à la racine. Minimum requis pour dev :
 
 ## Migrations DB
 
-**Ordre critique** : voir `migrations/APPLY_ORDER.md`. Les migrations numérotées 001→029 s'appliquent dans l'ordre via le SQL Editor Supabase. Chaque migration ayant un impact non-trivial a un `<num>_README.md` dédié.
+**Ordre critique** : voir `migrations/APPLY_ORDER.md`. Les migrations numérotées 001→030 s'appliquent dans l'ordre via le SQL Editor Supabase. Chaque migration ayant un impact non-trivial a un `<num>_README.md` dédié.
 
 ## Dette technique assumée
 

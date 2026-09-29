@@ -18,6 +18,7 @@ import { isDocPath, docDisplayName, MAX_ATTACH_TOTAL, MAX_ATTACH_COUNT } from '@
 import { devisMailHtml, isSignUrl } from '@/app/lib/devisMailHtml'
 import { COMPANY } from '@/app/lib/company'
 import { LOGO_CID, LOGO_PNG_BASE64 } from '@/app/lib/companyLogo'
+import { newSignToken } from '@/app/lib/devisSignature'
 
 export const maxDuration = 30
 
@@ -28,6 +29,31 @@ const MAX_PDF_BYTES = 8 * 1024 * 1024
 const MAX_RECIPIENTS = 10
 
 class AttachError extends Error {}
+
+/**
+ * URL de l'image de suivi des ouvertures (migration 030) : jeton propre au
+ * devis, réutilisé d'un envoi à l'autre. null si le suivi n'est pas
+ * disponible (migration absente, devis inconnu) : le mail part sans.
+ */
+async function trackingUrl(request, devisId) {
+  if (typeof devisId !== 'string' || !/^[0-9a-f-]{36}$/i.test(devisId)) return null
+  try {
+    const origin = new URL(request.url).origin
+    const admin = adminClient()
+    const { data: devis, error } = await admin.from('crm_devis').select('id, track_token').eq('id', devisId).maybeSingle()
+    if (error || !devis) return null
+    let token = devis.track_token
+    if (!token) {
+      token = newSignToken()
+      const { error: upErr } = await admin.from('crm_devis').update({ track_token: token }).eq('id', devisId)
+      if (upErr) return null
+    }
+    return `${origin}/api/devis/track?t=${token}`
+  } catch (e) {
+    log.warn('suivi indisponible', e?.message || e)
+    return null
+  }
+}
 
 /** Pièces jointes en plus du devis (Kbis, décennale, fichiers joints). */
 async function loadAttachments(paths) {
@@ -103,25 +129,31 @@ export async function POST(request) {
       throw e
     }
 
+    const logo = { filename: 'logo-id-maitrise.png', content: Buffer.from(LOGO_PNG_BASE64, 'base64'), contentType: 'image/png', cid: LOGO_CID, contentDisposition: 'inline' }
+    const files = [{ filename, content: pdf, contentType: 'application/pdf' }, ...extra]
+    const html = (trackUrl) => devisMailHtml({
+      body: message, signUrl, company: COMPANY, title: subject, logoSrc: `cid:${LOGO_CID}`, trackUrl,
+      attachments: files.map(f => f.filename),
+    })
+    const trackUrl = await trackingUrl(request, body.devisId)
+
     const info = await sendMail(cfg, {
       to: to.list,
       cc: cc.list.length ? cc.list : undefined,
-      // Copie à l'expéditeur : le devis envoyé reste dans la boîte mail
-      bcc: body.copyMe === false ? undefined : (user.email || undefined),
       replyTo: user.email || undefined,
       subject,
       text,
-      html: devisMailHtml({
-        body: message, signUrl, company: COMPANY, title: subject, logoSrc: `cid:${LOGO_CID}`,
-        attachments: [filename, ...extra.map(a => a.filename)],
-      }),
-      attachments: [
-        { filename, content: pdf, contentType: 'application/pdf' },
-        ...extra,
-        // Logo intégré au corps du mail (pas une pièce jointe visible)
-        { filename: 'logo-id-maitrise.png', content: Buffer.from(LOGO_PNG_BASE64, 'base64'), contentType: 'image/png', cid: LOGO_CID, contentDisposition: 'inline' },
-      ],
+      html: html(trackUrl),
+      // Logo intégré au corps du mail (pas une pièce jointe visible)
+      attachments: [...files, logo],
     })
+    // Copie à l'expéditeur (le devis envoyé reste dans sa boîte), envoyée à
+    // part et sans image de suivi : ses propres ouvertures ne comptent pas
+    if (body.copyMe !== false && user.email) {
+      try {
+        await sendMail(cfg, { to: user.email, subject: `[Copie] ${subject}`, text, html: html(null), attachments: [...files, logo] })
+      } catch (e) { log.warn('copie expéditeur', e?.code || e?.message || e) }
+    }
     return Response.json({ ok: true, messageId: info?.messageId || null, to: to.list })
   } catch (err) {
     log.error('envoi échoué', `${err?.code || ''} ${err?.responseCode || ''} ${err?.message || err}`)
