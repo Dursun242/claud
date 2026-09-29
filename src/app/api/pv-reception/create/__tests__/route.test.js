@@ -7,7 +7,7 @@
 // Couvre : auth, validations (chantierId, titre, PDF, signataires, décision),
 // génération du numéro PV-YYYY-XXX, flux success, et les branches d'erreur.
 
-jest.mock('@/app/lib/auth', () => ({ verifyAuth: jest.fn() }))
+jest.mock('@/app/lib/auth', () => ({ verifyStaff: jest.fn() }))
 jest.mock('@/app/lib/odoo', () => ({ createSignRequestFromPdf: jest.fn() }))
 jest.mock('@/app/lib/notifications', () => ({ createNotifications: jest.fn() }))
 jest.mock('@/app/lib/supabaseClients', () => ({ adminClient: jest.fn() }))
@@ -18,7 +18,7 @@ jest.mock('@/app/lib/logger', () => ({
 // eslint-disable-next-line import/first
 import { POST } from '../route'
 // eslint-disable-next-line import/first
-import { verifyAuth } from '@/app/lib/auth'
+import { verifyStaff } from '@/app/lib/auth'
 // eslint-disable-next-line import/first
 import { createSignRequestFromPdf } from '@/app/lib/odoo'
 // eslint-disable-next-line import/first
@@ -94,7 +94,7 @@ function makeSupaStub({
 }
 
 beforeEach(() => {
-  verifyAuth.mockReset()
+  verifyStaff.mockReset()
   createSignRequestFromPdf.mockReset()
   createNotifications.mockReset()
   adminClient.mockReset()
@@ -102,13 +102,19 @@ beforeEach(() => {
 
 describe('POST /api/pv-reception/create', () => {
   it('renvoie 401 sans auth', async () => {
-    verifyAuth.mockResolvedValue(null)
+    verifyStaff.mockResolvedValue({ user: null, status: 401 })
     const res = await POST(makeRequest({ body: {} }))
     expect(res.status).toBe(401)
   })
 
+  it('renvoie 403 pour un client (MOA)', async () => {
+    verifyStaff.mockResolvedValue({ user: null, status: 403 })
+    const res = await POST(makeRequest({ body: { chantierId: 'c1', titre: 'PV' } }))
+    expect(res.status).toBe(403)
+  })
+
   it('renvoie 400 si chantierId ou titre manque', async () => {
-    verifyAuth.mockResolvedValue({ id: 'u1', email: 'u@x.fr' })
+    verifyStaff.mockResolvedValue({ user: { id: 'u1', email: 'u@x.fr' }, status: 200 })
 
     const r1 = await POST(makeRequest({ token: 't', body: { titre: 'PV 1' } }))
     expect(r1.status).toBe(400)
@@ -118,7 +124,7 @@ describe('POST /api/pv-reception/create', () => {
   })
 
   it("renvoie 400 si pdfBase64 absent", async () => {
-    verifyAuth.mockResolvedValue({ id: 'u1', email: 'u@x.fr' })
+    verifyStaff.mockResolvedValue({ user: { id: 'u1', email: 'u@x.fr' }, status: 200 })
     const res = await POST(makeRequest({
       token: 't',
       body: { chantierId: 'c1', titre: 'PV' },
@@ -128,7 +134,7 @@ describe('POST /api/pv-reception/create', () => {
   })
 
   it("renvoie 400 si MOE ou MOA manque", async () => {
-    verifyAuth.mockResolvedValue({ id: 'u1', email: 'u@x.fr' })
+    verifyStaff.mockResolvedValue({ user: { id: 'u1', email: 'u@x.fr' }, status: 200 })
     const res = await POST(makeRequest({
       token: 't',
       body: { chantierId: 'c1', titre: 'PV', pdfBase64: 'xxx', signataireMoeEmail: 'moe@x.fr' },
@@ -138,7 +144,7 @@ describe('POST /api/pv-reception/create', () => {
   })
 
   it("renvoie 400 si la décision n'est pas dans la whitelist", async () => {
-    verifyAuth.mockResolvedValue({ id: 'u1', email: 'u@x.fr' })
+    verifyStaff.mockResolvedValue({ user: { id: 'u1', email: 'u@x.fr' }, status: 200 })
     const res = await POST(makeRequest({
       token: 't',
       body: {
@@ -152,7 +158,7 @@ describe('POST /api/pv-reception/create', () => {
   })
 
   it("Refusé sans motifRefus → 400", async () => {
-    verifyAuth.mockResolvedValue({ id: 'u1', email: 'u@x.fr' })
+    verifyStaff.mockResolvedValue({ user: { id: 'u1', email: 'u@x.fr' }, status: 200 })
     const res = await POST(makeRequest({
       token: 't',
       body: {
@@ -166,7 +172,7 @@ describe('POST /api/pv-reception/create', () => {
   })
 
   it("'Accepté avec réserve' sans reservesAcceptation → 400", async () => {
-    verifyAuth.mockResolvedValue({ id: 'u1', email: 'u@x.fr' })
+    verifyStaff.mockResolvedValue({ user: { id: 'u1', email: 'u@x.fr' }, status: 200 })
     const res = await POST(makeRequest({
       token: 't',
       body: {
@@ -180,7 +186,7 @@ describe('POST /api/pv-reception/create', () => {
   })
 
   it('flow happy path : génère numéro, crée PV, envoie Odoo, met à jour, notifie', async () => {
-    verifyAuth.mockResolvedValue({ id: 'u1', email: 'caller@x.fr' })
+    verifyStaff.mockResolvedValue({ user: { id: 'u1', email: 'caller@x.fr' }, status: 200 })
     const supa = makeSupaStub({
       existingCount: 2, // → numéro attendu PV-YYYY-003
       inserted: { id: 'pv-123', numero: 'will-be-computed' },
@@ -251,7 +257,7 @@ describe('POST /api/pv-reception/create', () => {
   })
 
   it("plusieurs MOA (co-propriétaires) et plusieurs entreprises : tableaux JS bruts en DB, tous transmis à Odoo", async () => {
-    verifyAuth.mockResolvedValue({ id: 'u1', email: 'caller@x.fr' })
+    verifyStaff.mockResolvedValue({ user: { id: 'u1', email: 'caller@x.fr' }, status: 200 })
     const supa = makeSupaStub()
     adminClient.mockReturnValue(supa.client)
     createSignRequestFromPdf.mockResolvedValue({ requestId: 1, signUrl: 'u', state: 'sent' })
@@ -288,7 +294,7 @@ describe('POST /api/pv-reception/create', () => {
   })
 
   it("décision immédiate : statut_reception = décision et decision_immediat=true", async () => {
-    verifyAuth.mockResolvedValue({ id: 'u1', email: 'u@x.fr' })
+    verifyStaff.mockResolvedValue({ user: { id: 'u1', email: 'u@x.fr' }, status: 200 })
     const supa = makeSupaStub()
     adminClient.mockReturnValue(supa.client)
     createSignRequestFromPdf.mockResolvedValue({ requestId: 1, signUrl: 'u', state: 'sent' })
@@ -310,7 +316,7 @@ describe('POST /api/pv-reception/create', () => {
   })
 
   it("renvoie 500 si l'insert Supabase échoue", async () => {
-    verifyAuth.mockResolvedValue({ id: 'u1', email: 'u@x.fr' })
+    verifyStaff.mockResolvedValue({ user: { id: 'u1', email: 'u@x.fr' }, status: 200 })
     const supa = makeSupaStub({ insertError: { message: 'DB down' } })
     adminClient.mockReturnValue(supa.client)
 
@@ -326,7 +332,7 @@ describe('POST /api/pv-reception/create', () => {
   })
 
   it("renvoie 500 si Odoo signature échoue (mais le PV reste créé en DB)", async () => {
-    verifyAuth.mockResolvedValue({ id: 'u1', email: 'u@x.fr' })
+    verifyStaff.mockResolvedValue({ user: { id: 'u1', email: 'u@x.fr' }, status: 200 })
     const supa = makeSupaStub()
     adminClient.mockReturnValue(supa.client)
     createSignRequestFromPdf.mockRejectedValue(new Error('Odoo down'))
@@ -345,7 +351,7 @@ describe('POST /api/pv-reception/create', () => {
   })
 
   it("n'échoue pas si createNotifications jette (notification best-effort)", async () => {
-    verifyAuth.mockResolvedValue({ id: 'u1', email: 'u@x.fr' })
+    verifyStaff.mockResolvedValue({ user: { id: 'u1', email: 'u@x.fr' }, status: 200 })
     const supa = makeSupaStub()
     adminClient.mockReturnValue(supa.client)
     createSignRequestFromPdf.mockResolvedValue({ requestId: 1, signUrl: 'u', state: 'sent' })

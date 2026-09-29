@@ -106,7 +106,8 @@ export async function GET(request) {
     }
 
     // User non-admin : on ne renvoie que son propre profil
-    if (caller?.role !== 'admin') {
+    // Admin désactivé (actif = false) → traité comme un simple utilisateur
+    if (caller?.role !== 'admin' || caller?.actif !== true) {
       return Response.json({ ok: true, data: caller ? [caller] : [] })
     }
 
@@ -137,10 +138,10 @@ export async function POST(request) {
     // Vérifier que l'appelant est bien admin
     const { data: caller } = await supabaseAdmin
       .from('authorized_users')
-      .select('role')
+      .select('role, actif')
       .eq('email', user.email)
       .single()
-    if (caller?.role !== 'admin') return Response.json({ error: 'Accès réservé aux administrateurs' }, { status: 403 })
+    if (caller?.role !== 'admin' || caller?.actif !== true) return Response.json({ error: 'Accès réservé aux administrateurs' }, { status: 403 })
 
     const { email, prenom, nom, role } = await request.json()
     if (!email?.trim() || !prenom?.trim()) {
@@ -199,10 +200,10 @@ export async function DELETE(request) {
 
     const { data: caller } = await supabaseAdmin
       .from('authorized_users')
-      .select('id, role')
+      .select('id, role, actif')
       .eq('email', user.email)
       .single()
-    if (caller?.role !== 'admin') return Response.json({ error: 'Accès réservé aux administrateurs' }, { status: 403 })
+    if (caller?.role !== 'admin' || caller?.actif !== true) return Response.json({ error: 'Accès réservé aux administrateurs' }, { status: 403 })
 
     const { id } = await request.json()
     if (!id) return Response.json({ error: 'ID requis.' }, { status: 400 })

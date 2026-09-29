@@ -1,7 +1,7 @@
 // Route /api/pv-reception/sync-signatures
 // GET → Synchronise les signatures Odoo des PV avec la base de données
 
-import { verifyAuth } from '@/app/lib/auth'
+import { verifyStaff } from '@/app/lib/auth'
 import { getSignRequestsStatusBulk } from '@/app/lib/odoo'
 import { createNotifications } from '@/app/lib/notifications'
 import { adminClient } from '@/app/lib/supabaseClients'
@@ -11,8 +11,8 @@ const log = createLogger('pv-sync')
 
 export async function GET(request) {
   try {
-    const user = await verifyAuth(request)
-    if (!user) return Response.json({ error: 'Non autorisé' }, { status: 401 })
+    const { user, status } = await verifyStaff(request)
+    if (!user) return Response.json({ error: status === 403 ? 'Réservé à l’équipe' : 'Non autorisé' }, { status })
 
     const supa = adminClient()
 

@@ -175,7 +175,7 @@ export default function GlobalSearch({ data, crm = null, onNavigate }) {
           }}
         />
         {query && (
-          <button onClick={() => { setQuery(''); setOpen(false) }} style={{
+          <button onClick={() => { setQuery(''); setOpen(false) }} aria-label="Effacer la recherche" style={{
             position: 'absolute', right: 8, top: '50%',
             transform: 'translateY(-50%)', background: 'none', border: 'none',
             color: '#94A3B8', cursor: 'pointer', fontSize: 14, padding: 0, lineHeight: 1

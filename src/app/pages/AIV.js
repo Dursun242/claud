@@ -290,7 +290,7 @@ RÈGLES :
           "Content-Type":"application/json",
           "Authorization": `Bearer ${session?.access_token || ''}`,
         },
-        body: JSON.stringify({ model:"claude-haiku-4-5-20251001", max_tokens:4000, system:sys,
+        body: JSON.stringify({ max_tokens:4000, system:sys,
           messages:messages
             .filter((m,i)=>m.role!=="assistant"||i>0)
             .concat([{role:"user",content:userMsg}])

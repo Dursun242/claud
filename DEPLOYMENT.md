@@ -68,7 +68,7 @@ npm run build
 - [x] Performance optimized
 - [x] All imports working
 - [x] Toast system integrated
-- [x] Unit tests pass (68 tests : lib + hooks)
+- [x] Unit tests pass (`npm test`)
 - [x] Hooks working
 - [x] CI runs on every PR (lint / tests / build)
 

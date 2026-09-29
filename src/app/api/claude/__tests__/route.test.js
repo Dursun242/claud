@@ -92,10 +92,10 @@ describe('POST /api/claude', () => {
     expect(url).toBe('https://api.anthropic.com/v1/messages')
     expect(init.headers['x-api-key']).toBe('sk-ant-test')
     expect(init.headers['anthropic-version']).toBe('2023-06-01')
-    // Le body doit contenir les params passés
+    // Le modèle est imposé côté serveur, quel que soit celui demandé
     const sent = JSON.parse(init.body)
     expect(sent).toMatchObject({
-      model: 'claude-sonnet-4-6',
+      model: 'claude-haiku-4-5-20251001',
       max_tokens: 2000,
       system: 'Tu es utile.',
       messages: [{ role: 'user', content: 'Salut' }],
@@ -111,6 +111,20 @@ describe('POST /api/claude', () => {
     expect(sent.model).toBe('claude-haiku-4-5-20251001')
     expect(sent.max_tokens).toBe(1000)
     expect(sent.messages).toEqual([])
+  })
+
+  it('plafonne max_tokens et ignore les valeurs invalides', async () => {
+    verifyAuth.mockResolvedValue({ id: 'u1' })
+    fetchWithRetry.mockResolvedValue(fakeOk({}))
+
+    await POST(makeRequest({ token: 't', body: { model: 'claude-opus-5', max_tokens: 64000 } }))
+    let sent = JSON.parse(fetchWithRetry.mock.calls[0][1].body)
+    expect(sent.model).toBe('claude-haiku-4-5-20251001')
+    expect(sent.max_tokens).toBe(4000)
+
+    await POST(makeRequest({ token: 't', body: { max_tokens: -5 } }))
+    sent = JSON.parse(fetchWithRetry.mock.calls[1][1].body)
+    expect(sent.max_tokens).toBe(1000)
   })
 
   it('propage le status code Anthropic en cas d\'erreur', async () => {

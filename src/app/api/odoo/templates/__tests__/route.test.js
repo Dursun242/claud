@@ -3,22 +3,24 @@
  */
 // Tests de la route /api/odoo/templates.
 //
-// GET  → liste les templates Odoo Sign + inspecte les champs sign.template
-// HEAD → ping de connexion (diagnostic)
+// GET  → liste les templates Odoo Sign (staff uniquement)
+// HEAD → ping de connexion (diagnostic, staff uniquement)
 
-jest.mock('@/app/lib/auth', () => ({ verifyAuth: jest.fn() }))
+jest.mock('@/app/lib/auth', () => ({ verifyStaff: jest.fn() }))
 jest.mock('../../../../lib/odoo', () => ({
   getSignTemplates: jest.fn(),
   testConnection: jest.fn(),
-  inspectModel: jest.fn(),
+}))
+jest.mock('@/app/lib/logger', () => ({
+  createLogger: () => ({ error: jest.fn(), warn: jest.fn(), info: jest.fn() }),
 }))
 
 // eslint-disable-next-line import/first
 import { GET, HEAD } from '../route'
 // eslint-disable-next-line import/first
-import { verifyAuth } from '@/app/lib/auth'
+import { verifyStaff } from '@/app/lib/auth'
 // eslint-disable-next-line import/first
-import { getSignTemplates, testConnection, inspectModel } from '../../../../lib/odoo'
+import { getSignTemplates, testConnection } from '../../../../lib/odoo'
 
 function makeRequest({ token } = {}) {
   const headers = new Map()
@@ -27,47 +29,52 @@ function makeRequest({ token } = {}) {
 }
 
 beforeEach(() => {
-  verifyAuth.mockReset()
+  verifyStaff.mockReset()
+  verifyStaff.mockResolvedValue({ user: { id: 'u1' }, status: 200 })
   getSignTemplates.mockReset()
   testConnection.mockReset()
-  inspectModel.mockReset()
-  jest.spyOn(console, 'error').mockImplementation(() => {})
-})
-afterEach(() => {
-  console.error.mockRestore?.()
 })
 
 describe('GET /api/odoo/templates', () => {
   it('renvoie 401 sans auth', async () => {
-    verifyAuth.mockResolvedValue(null)
+    verifyStaff.mockResolvedValue({ user: null, status: 401 })
     const res = await GET(makeRequest())
     expect(res.status).toBe(401)
   })
 
-  it('renvoie les templates + les champs de sign.template (diagnostic)', async () => {
-    verifyAuth.mockResolvedValue({ id: 'u1' })
+  it('renvoie 403 pour un client (MOA)', async () => {
+    verifyStaff.mockResolvedValue({ user: null, status: 403 })
+    const res = await GET(makeRequest({ token: 't' }))
+    expect(res.status).toBe(403)
+    expect(getSignTemplates).not.toHaveBeenCalled()
+  })
+
+  it('renvoie les templates', async () => {
     const templates = [{ id: 1, name: 'Tpl A' }, { id: 2, name: 'Tpl B' }]
     getSignTemplates.mockResolvedValue(templates)
-    inspectModel.mockResolvedValue({ name: { type: 'char' }, active: { type: 'boolean' } })
 
     const res = await GET(makeRequest({ token: 't' }))
     expect(res.status).toBe(200)
-    const json = await res.json()
-    expect(json.templates).toEqual(templates)
-    expect(json._signTemplateFields).toEqual(['name', 'active'])
+    expect(await res.json()).toEqual({ templates })
   })
 
-  it('renvoie 500 avec le message d\'erreur si getSignTemplates jette', async () => {
-    verifyAuth.mockResolvedValue({ id: 'u1' })
-    getSignTemplates.mockRejectedValue(new Error('Odoo down'))
+  it('renvoie 500 avec un message générique si getSignTemplates jette', async () => {
+    getSignTemplates.mockRejectedValue(new Error('Odoo down at https://odoo.interne'))
 
     const res = await GET(makeRequest({ token: 't' }))
     expect(res.status).toBe(500)
-    expect(await res.json()).toEqual({ error: 'Odoo down' })
+    expect(await res.json()).toEqual({ error: 'Erreur Odoo' })
   })
 })
 
 describe('HEAD /api/odoo/templates', () => {
+  it('renvoie 401 sans auth', async () => {
+    verifyStaff.mockResolvedValue({ user: null, status: 401 })
+    const res = await HEAD(makeRequest())
+    expect(res.status).toBe(401)
+    expect(testConnection).not.toHaveBeenCalled()
+  })
+
   it('renvoie les infos de connexion quand Odoo répond', async () => {
     testConnection.mockResolvedValue({ ok: true, version: '18.0', uid: 42 })
 
@@ -81,6 +88,6 @@ describe('HEAD /api/odoo/templates', () => {
 
     const res = await HEAD(makeRequest())
     expect(res.status).toBe(500)
-    expect(await res.json()).toEqual({ error: 'unreachable' })
+    expect(await res.json()).toEqual({ error: 'Erreur Odoo' })
   })
 })

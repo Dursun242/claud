@@ -1,3 +1,10 @@
+-- ⚠ NE PAS RÉEXÉCUTER SUR UNE BASE EXISTANTE ⚠
+-- Script historique : il (re)crée des policies permissives (USING (true) ou
+-- accès à tout le bucket). Les policies Postgres s'additionnent (OR) : le
+-- relancer annulerait les restrictions des migrations 005, 018 et 021
+-- (y compris sur la table settings qui contient le jeton Qonto).
+-- Ordre à jour : migrations/APPLY_ORDER.md.
+
 -- Politiques RLS pour le bucket 'attachments'
 -- Exécuter dans l'éditeur SQL de Supabase Dashboard
 

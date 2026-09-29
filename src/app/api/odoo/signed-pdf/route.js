@@ -2,12 +2,15 @@
 // GET ?requestId=X → récupère et stream le PDF signé depuis Odoo Sign.
 //
 // Auth JWT Supabase obligatoire (empêche de drainer Odoo anonymement).
+// Le requestId doit correspondre à un PV ou un OS visible par l'appelant
+// (lecture sous RLS) : un client ne récupère que les PDF de ses chantiers.
 // Le client appelle avec Authorization: Bearer <token>, reçoit le PDF en
 // blob, déclenche le téléchargement via URL.createObjectURL().
 
 import { verifyAuth } from '@/app/lib/auth'
 import { getCompletedDocument } from '@/app/lib/odoo'
 import { createLogger } from '@/app/lib/logger'
+import { userClientFromToken, extractBearerToken } from '@/app/lib/supabaseClients'
 
 const log = createLogger('odoo-signed-pdf')
 
@@ -20,6 +23,15 @@ export async function GET(request) {
     const requestId = parseInt(searchParams.get('requestId'), 10)
     if (!Number.isInteger(requestId) || requestId <= 0) {
       return Response.json({ error: 'requestId invalide' }, { status: 400 })
+    }
+
+    const supa = userClientFromToken(extractBearerToken(request))
+    const [pvRes, osRes] = await Promise.all([
+      supa.from('proces_verbaux_reception').select('id').eq('odoo_sign_id', requestId).limit(1),
+      supa.from('ordres_service').select('id').eq('odoo_sign_id', requestId).limit(1),
+    ])
+    if (!pvRes.data?.length && !osRes.data?.length) {
+      return Response.json({ error: 'Document introuvable' }, { status: 404 })
     }
 
     const doc = await getCompletedDocument(requestId)

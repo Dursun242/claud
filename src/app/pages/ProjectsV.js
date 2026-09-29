@@ -65,6 +65,35 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
   const [filterStatut,setFilterStatut]=useState("");
   const [filterPhase,setFilterPhase]=useState("");
   const searchInputRef = useRef(null);
+  const [taskBusy,setTaskBusy]=useState(null);
+  const [duplicating,setDuplicating]=useState(false);
+
+  const toggleTask = async (t) => {
+    if (taskBusy) return;
+    setTaskBusy(t.id);
+    try {
+      await SB.upsertTask({...t,statut:t.statut==="Terminé"?"En attente":"Terminé"});
+      await reload();
+    } catch (err) {
+      addToast(err?.message || "Erreur mise à jour tâche", "error");
+    } finally {
+      setTaskBusy(null);
+    }
+  };
+
+  const duplicate = async (ch) => {
+    if (duplicating) return;
+    setDuplicating(true);
+    try {
+      await SB.duplicateChantier(ch);
+      await reload();
+      addToast(`Chantier « ${ch.nom} » dupliqué`, "success");
+    } catch (err) {
+      addToast(err?.message || "Erreur lors de la duplication", "error");
+    } finally {
+      setDuplicating(false);
+    }
+  };
 
   // Phase 3 Hooks - Replaces 9 useState calls + useEffect
   const { attachments, uploadAttachment, deleteAttachment } = useAttachments('chantier', selected);
@@ -325,8 +354,9 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
           </div>
           {!readOnly && <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
             <button
-              onClick={async()=>{await SB.duplicateChantier(ch);reload();}}
-              style={{...btnS,fontSize:12,padding:"8px 14px"}}>Dupliquer</button>
+              onClick={()=>duplicate(ch)} disabled={duplicating}
+              style={{...btnS,fontSize:12,padding:"8px 14px",opacity:duplicating?0.6:1}}>
+              {duplicating?"Duplication…":"Dupliquer"}</button>
             <button onClick={()=>{
               setForm({...ch,
                 lots:ch.lots?.join(", ")||"",
@@ -488,6 +518,7 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
           intervenants={selectedRelated.intervenants || []}
           clientContact={selectedRelated.clientContact}
           onRefresh={reload}
+          readOnly={readOnly}
         />
       )}
 
@@ -511,10 +542,9 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
               marginBottom:6,boxShadow:"0 1px 2px rgba(0,0,0,0.03)"
             }}>
               <button
-                onClick={()=>{
-                  const updated={...t,statut:t.statut==="Terminé"?"En attente":"Terminé"};
-                  SB.upsertTask(updated);reload();
-                }}
+                onClick={()=>toggleTask(t)} disabled={taskBusy===t.id}
+                aria-label={t.statut==="Terminé"?`Marquer « ${t.titre} » comme non terminée`:`Marquer « ${t.titre} » comme terminée`}
+                aria-pressed={t.statut==="Terminé"}
                 style={{
                   width:20,height:20,minWidth:20,minHeight:20,
                   borderRadius:"50%",
@@ -532,6 +562,7 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
               </div>
               <Badge text={t.priorite} color={status[t.priorite]||"#64748B"}/>
               <button onClick={()=>{setDetailForm(t);setDetailModal("editTask");}}
+                aria-label={`Modifier la tâche « ${t.titre} »`}
                 style={{background:"#3B82F6",border:"none",borderRadius:5,
                   padding:"4px 10px",cursor:"pointer",fontSize:9,
                   fontWeight:700,color:"#fff",flexShrink:0}}>✎</button>

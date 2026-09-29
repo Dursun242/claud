@@ -202,7 +202,7 @@ describe('POST /api/admin/users', () => {
   it("refuse un email invalide avec 400", async () => {
     verifyAuth.mockResolvedValue({ email: 'admin@acme.com' })
     createClient.mockReturnValue(makeAdminClient({
-      authorized_users: () => selectSingle({ data: { role: 'admin' }, error: null }),
+      authorized_users: () => selectSingle({ data: { role: 'admin', actif: true }, error: null }),
     }))
 
     const res = await POST(makeRequest({ token: 't', body: { email: 'pas-un-email', prenom: 'X' } }))
@@ -214,7 +214,7 @@ describe('POST /api/admin/users', () => {
   it('refuse un rôle non whitelisté avec 400', async () => {
     verifyAuth.mockResolvedValue({ email: 'admin@acme.com' })
     createClient.mockReturnValue(makeAdminClient({
-      authorized_users: () => selectSingle({ data: { role: 'admin' }, error: null }),
+      authorized_users: () => selectSingle({ data: { role: 'admin', actif: true }, error: null }),
     }))
 
     const res = await POST(makeRequest({ token: 't', body: { email: 'x@x.fr', prenom: 'X', role: 'superadmin' } }))
@@ -241,7 +241,7 @@ describe('POST /api/admin/users', () => {
             chain.single = jest.fn().mockResolvedValue({ data: created, error: null })
             return chain
           },
-          single: jest.fn().mockResolvedValue({ data: { role: 'admin' }, error: null }),
+          single: jest.fn().mockResolvedValue({ data: { role: 'admin', actif: true }, error: null }),
         }
         return chain
       },
@@ -278,7 +278,7 @@ describe('DELETE /api/admin/users', () => {
   it("refuse la self-suppression d'un admin avec 400", async () => {
     verifyAuth.mockResolvedValue({ email: 'admin@acme.com' })
     createClient.mockReturnValue(makeAdminClient({
-      authorized_users: () => selectSingle({ data: { id: 'u-admin', role: 'admin' }, error: null }),
+      authorized_users: () => selectSingle({ data: { id: 'u-admin', role: 'admin', actif: true }, error: null }),
     }))
 
     const res = await DELETE(makeRequest({ token: 't', body: { id: 'u-admin' } }))
@@ -309,7 +309,7 @@ describe('DELETE /api/admin/users', () => {
             if (chain._countMode) return Promise.resolve({ count: 1, error: null })
             return chain
           }),
-          single: jest.fn().mockResolvedValue({ data: { id: 'u-admin', role: 'admin' }, error: null }),
+          single: jest.fn().mockResolvedValue({ data: { id: 'u-admin', role: 'admin', actif: true }, error: null }),
           maybeSingle: jest.fn().mockResolvedValue({
             data: { id: 'u-other-admin', role: 'admin', actif: true }, error: null,
           }),
@@ -346,7 +346,7 @@ describe('DELETE /api/admin/users', () => {
             }
             return chain
           }),
-          single: jest.fn().mockResolvedValue({ data: { id: 'u-admin', role: 'admin' }, error: null }),
+          single: jest.fn().mockResolvedValue({ data: { id: 'u-admin', role: 'admin', actif: true }, error: null }),
           maybeSingle: jest.fn().mockResolvedValue({
             data: { id: 'u-salarie', role: 'salarie', actif: true }, error: null,
           }),

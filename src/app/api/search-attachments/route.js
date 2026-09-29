@@ -32,7 +32,8 @@ export async function GET(request) {
     let query = supa
       .from('attachments')
       .select('id, chantier_id, file_name, file_size, created_at, file_path')
-      .ilike('file_name', `%${q}%`)
+      // % et _ sont des jokers LIKE : on les échappe pour chercher le texte tel quel
+      .ilike('file_name', `%${q.replace(/[\\%_]/g, c => '\\' + c)}%`)
 
     if (chantierId) {
       query = query.eq('chantier_id', chantierId)

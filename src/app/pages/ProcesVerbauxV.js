@@ -225,7 +225,7 @@ export default function ProcesVerbauxV({ data, m, reload, user: _user }) {
                   </p>
                 )}
               </div>
-              <button onClick={() => setSelectedPV(null)} style={{
+              <button onClick={() => setSelectedPV(null)} aria-label="Fermer" style={{
                 background: 'none',
                 border: 'none',
                 fontSize: 20,

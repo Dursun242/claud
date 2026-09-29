@@ -7,7 +7,7 @@
 // templateId Odoo) + met à jour la colonne odoo_sign_* de l'OS côté
 // Supabase. GET vérifie le statut d'une signature existante.
 
-jest.mock('@/app/lib/auth', () => ({ verifyAuth: jest.fn() }))
+jest.mock('@/app/lib/auth', () => ({ verifyStaff: jest.fn() }))
 jest.mock('@/app/lib/odoo', () => ({
   createSignRequest: jest.fn(),
   createSignRequestFromPdf: jest.fn(),
@@ -21,7 +21,7 @@ jest.mock('@/app/lib/logger', () => ({
 // eslint-disable-next-line import/first
 import { POST, GET } from '../route'
 // eslint-disable-next-line import/first
-import { verifyAuth } from '@/app/lib/auth'
+import { verifyStaff } from '@/app/lib/auth'
 // eslint-disable-next-line import/first
 import { createSignRequest, createSignRequestFromPdf, getSignRequestStatus } from '@/app/lib/odoo'
 // eslint-disable-next-line import/first
@@ -55,7 +55,7 @@ function makeSupaUpdateSpy() {
 }
 
 beforeEach(() => {
-  verifyAuth.mockReset()
+  verifyStaff.mockReset()
   createSignRequest.mockReset()
   createSignRequestFromPdf.mockReset()
   getSignRequestStatus.mockReset()
@@ -64,20 +64,27 @@ beforeEach(() => {
 
 describe('POST /api/odoo/sign', () => {
   it('renvoie 401 sans auth', async () => {
-    verifyAuth.mockResolvedValue(null)
+    verifyStaff.mockResolvedValue({ user: null, status: 401 })
     const res = await POST(makeRequest({ body: { pdfBase64: 'xxx', signers: [{ email: 'a@b.c' }] } }))
     expect(res.status).toBe(401)
   })
 
+  it('renvoie 403 pour un client (MOA) sans créer de demande Odoo', async () => {
+    verifyStaff.mockResolvedValue({ user: null, status: 403 })
+    const res = await POST(makeRequest({ body: { pdfBase64: 'xxx', signers: [{ email: 'a@b.c' }] } }))
+    expect(res.status).toBe(403)
+    expect(createSignRequestFromPdf).not.toHaveBeenCalled()
+  })
+
   it("renvoie 400 si ni signers[] ni signerEmail ne sont fournis", async () => {
-    verifyAuth.mockResolvedValue({ id: 'u1' })
+    verifyStaff.mockResolvedValue({ user: { id: 'u1' }, status: 200 })
     const res = await POST(makeRequest({ token: 't', body: { pdfBase64: 'xxx' } }))
     expect(res.status).toBe(400)
     expect((await res.json()).error).toMatch(/signataire/i)
   })
 
   it("flux PDF : appelle createSignRequestFromPdf avec les signers fournis", async () => {
-    verifyAuth.mockResolvedValue({ id: 'u1' })
+    verifyStaff.mockResolvedValue({ user: { id: 'u1' }, status: 200 })
     createSignRequestFromPdf.mockResolvedValue({
       requestId: 42, signUrl: 'https://odoo/sign/42', state: 'sent',
     })
@@ -103,7 +110,7 @@ describe('POST /api/odoo/sign', () => {
   })
 
   it("flux PDF legacy : si signers vide mais signerEmail fourni, construit un [Entreprise]", async () => {
-    verifyAuth.mockResolvedValue({ id: 'u1' })
+    verifyStaff.mockResolvedValue({ user: { id: 'u1' }, status: 200 })
     createSignRequestFromPdf.mockResolvedValue({ requestId: 1, signUrl: 'u', state: 'sent' })
 
     await POST(makeRequest({
@@ -117,7 +124,7 @@ describe('POST /api/odoo/sign', () => {
   })
 
   it("flux template Odoo (pas de pdfBase64) : appelle createSignRequest avec templateId", async () => {
-    verifyAuth.mockResolvedValue({ id: 'u1' })
+    verifyStaff.mockResolvedValue({ user: { id: 'u1' }, status: 200 })
     createSignRequest.mockResolvedValue({ requestId: 99, signUrl: 'u99', state: 'sent' })
 
     const res = await POST(makeRequest({
@@ -132,7 +139,7 @@ describe('POST /api/odoo/sign', () => {
   })
 
   it("flux template : 400 si ni pdfBase64 ni templateId", async () => {
-    verifyAuth.mockResolvedValue({ id: 'u1' })
+    verifyStaff.mockResolvedValue({ user: { id: 'u1' }, status: 200 })
     const res = await POST(makeRequest({
       token: 't', body: { signerEmail: 'x@y.fr' },
     }))
@@ -141,7 +148,7 @@ describe('POST /api/odoo/sign', () => {
   })
 
   it("met à jour ordres_service avec odoo_sign_id + url quand osId fourni", async () => {
-    verifyAuth.mockResolvedValue({ id: 'u1' })
+    verifyStaff.mockResolvedValue({ user: { id: 'u1' }, status: 200 })
     createSignRequestFromPdf.mockResolvedValue({
       requestId: 777, signUrl: 'https://odoo/sign/777', state: 'sent',
     })
@@ -167,7 +174,7 @@ describe('POST /api/odoo/sign', () => {
   })
 
   it("ne touche PAS ordres_service si osId absent", async () => {
-    verifyAuth.mockResolvedValue({ id: 'u1' })
+    verifyStaff.mockResolvedValue({ user: { id: 'u1' }, status: 200 })
     createSignRequestFromPdf.mockResolvedValue({ requestId: 1, signUrl: 'u', state: 'sent' })
 
     await POST(makeRequest({
@@ -179,7 +186,7 @@ describe('POST /api/odoo/sign', () => {
   })
 
   it("renvoie 500 avec le message si Odoo échoue", async () => {
-    verifyAuth.mockResolvedValue({ id: 'u1' })
+    verifyStaff.mockResolvedValue({ user: { id: 'u1' }, status: 200 })
     createSignRequestFromPdf.mockRejectedValue(new Error('Odoo timeout'))
 
     const res = await POST(makeRequest({
@@ -193,13 +200,13 @@ describe('POST /api/odoo/sign', () => {
 
 describe('GET /api/odoo/sign', () => {
   it('renvoie 401 sans auth', async () => {
-    verifyAuth.mockResolvedValue(null)
+    verifyStaff.mockResolvedValue({ user: null, status: 401 })
     const res = await GET(makeRequest({ url: 'http://x/api/odoo/sign?requestId=42' }))
     expect(res.status).toBe(401)
   })
 
   it("renvoie 400 si requestId manque ou <= 0", async () => {
-    verifyAuth.mockResolvedValue({ id: 'u1' })
+    verifyStaff.mockResolvedValue({ user: { id: 'u1' }, status: 200 })
 
     const r1 = await GET(makeRequest({ url: 'http://x/api/odoo/sign', token: 't' }))
     expect(r1.status).toBe(400)
@@ -212,7 +219,7 @@ describe('GET /api/odoo/sign', () => {
   })
 
   it("renvoie le statut Odoo sur requestId valide", async () => {
-    verifyAuth.mockResolvedValue({ id: 'u1' })
+    verifyStaff.mockResolvedValue({ user: { id: 'u1' }, status: 200 })
     getSignRequestStatus.mockResolvedValue({
       id: 42, state: 'signed', reference: 'OS-001',
       items: [{ state: 'signed', partner_id: [1, 'x@y.fr'] }],
@@ -226,7 +233,7 @@ describe('GET /api/odoo/sign', () => {
   })
 
   it("renvoie 500 si Odoo jette", async () => {
-    verifyAuth.mockResolvedValue({ id: 'u1' })
+    verifyStaff.mockResolvedValue({ user: { id: 'u1' }, status: 200 })
     getSignRequestStatus.mockRejectedValue(new Error('Not found'))
 
     const res = await GET(makeRequest({ url: 'http://x/api/odoo/sign?requestId=99', token: 't' }))

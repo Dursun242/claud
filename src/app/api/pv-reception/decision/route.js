@@ -3,7 +3,7 @@
 
 import { verifyAuth } from '@/app/lib/auth'
 import { createNotifications } from '@/app/lib/notifications'
-import { adminClient } from '@/app/lib/supabaseClients'
+import { adminClient, userClientFromToken, extractBearerToken } from '@/app/lib/supabaseClients'
 import { createLogger } from '@/app/lib/logger'
 
 const log = createLogger('pv-decision')
@@ -32,10 +32,9 @@ export async function POST(request) {
       }, { status: 400 })
     }
 
-    const supa = adminClient()
-
-    // Récupérer le PV
-    const { data: pv, error: getErr } = await supa
+    // Lecture avec le JWT de l'appelant : les RLS (pv_select) ne laissent voir
+    // à un client que les PV de ses chantiers. Un PV invisible → 404.
+    const { data: pv, error: getErr } = await userClientFromToken(extractBearerToken(request))
       .from('proces_verbaux_reception')
       .select('id, chantier_id, numero, titre, statut_signature')
       .eq('id', pvId)
@@ -62,7 +61,9 @@ export async function POST(request) {
       updateData.motif_refus = motifRefus
     }
 
-    const { error: updateErr } = await supa
+    // Écriture en service role : le client (MOA) n'a pas de droit d'écriture
+    // RLS sur la table, mais a le droit de rendre sa décision sur son PV.
+    const { error: updateErr } = await adminClient()
       .from('proces_verbaux_reception')
       .update(updateData)
       .eq('id', pvId)
@@ -93,6 +94,6 @@ export async function POST(request) {
     })
   } catch (err) {
     log.error('exception', err?.message || err)
-    return Response.json({ error: 'Erreur serveur: ' + err.message }, { status: 500 })
+    return Response.json({ error: 'Erreur serveur' }, { status: 500 })
   }
 }

@@ -55,8 +55,10 @@ describe('/api/devis-ia', () => {
     expect(url).toBe('https://api.anthropic.com/v1/messages')
     const sent = JSON.parse(opts.body)
     expect(sent.output_config.format.type).toBe('json_schema')
-    expect(sent.fallbacks).toBe('default')
-    expect(opts.headers['anthropic-beta']).toBe('server-side-fallback-2026-07-01')
+    expect(sent.model).toBe('claude-haiku-4-5-20251001')
+    expect(sent.output_config.effort).toBeUndefined()
+    expect(sent.fallbacks).toBeUndefined()
+    expect(opts.headers['anthropic-beta']).toBeUndefined()
     expect(sent.messages[0].content).toMatch(/Escalier 6 marches/)
   })
 

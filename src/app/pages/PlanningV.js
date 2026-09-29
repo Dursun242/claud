@@ -269,9 +269,9 @@ export default function PlanningV({ data, m, reload }) {
           {/* Zoom +/- (Gantt uniquement) */}
           {view === 'gantt' && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <button onClick={() => setPxDay(d => Math.max(8, d - 4))}  style={zBtnS}>−</button>
+              <button onClick={() => setPxDay(d => Math.max(8, d - 4))} aria-label="Dézoomer" style={zBtnS}>−</button>
               <span style={{ fontSize: 10, color: '#94A3B8', minWidth: 34, textAlign: 'center' }}>{pxDay}px/j</span>
-              <button onClick={() => setPxDay(d => Math.min(80, d + 4))} style={zBtnS}>+</button>
+              <button onClick={() => setPxDay(d => Math.min(80, d + 4))} aria-label="Zoomer" style={zBtnS}>+</button>
             </div>
           )}
           {/* Toggle Gantt / Liste */}

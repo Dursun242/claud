@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createSignRequest, createSignRequestFromPdf, getSignRequestStatus } from '@/app/lib/odoo'
-import { verifyAuth } from '@/app/lib/auth'
+import { verifyStaff } from '@/app/lib/auth'
 import { adminClient } from '@/app/lib/supabaseClients'
 import { createLogger } from '@/app/lib/logger'
 
@@ -8,8 +8,8 @@ const log = createLogger('odoo-sign')
 
 // POST /api/odoo/sign — crée une demande de signature pour un OS
 export async function POST(request) {
-  const user = await verifyAuth(request)
-  if (!user) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+  const { user, status } = await verifyStaff(request)
+  if (!user) return NextResponse.json({ error: status === 403 ? 'Réservé à l’équipe' : 'Non autorisé' }, { status })
 
   try {
     const body = await request.json()
@@ -54,8 +54,8 @@ export async function POST(request) {
 
 // GET /api/odoo/sign?requestId=123 — vérifie le statut d'une signature
 export async function GET(request) {
-  const user = await verifyAuth(request)
-  if (!user) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+  const { user, status } = await verifyStaff(request)
+  if (!user) return NextResponse.json({ error: status === 403 ? 'Réservé à l’équipe' : 'Non autorisé' }, { status })
 
   const { searchParams } = new URL(request.url)
   const requestId = parseInt(searchParams.get('requestId'), 10)

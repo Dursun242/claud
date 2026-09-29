@@ -4,12 +4,14 @@
 //
 // Ajoute un jeu minimal de headers de sécurité à chaque réponse HTTP :
 //   - X-Frame-Options: DENY          → anti-clickjacking
+//   - CSP frame-ancestors 'none'     → idem, version moderne (seule directive CSP)
 //   - X-Content-Type-Options: nosniff → bloque le MIME-sniffing
 //   - Referrer-Policy                → limite la fuite d'URL aux tiers
 //   - Strict-Transport-Security      → force HTTPS (1 an, subdomains)
 //   - Permissions-Policy             → coupe APIs navigateur non utilisées
 //
-// Pas de CSP pour l'instant : l'app utilise du style inline massif
+// Pas de CSP complète pour l'instant (seulement frame-ancestors, sans effet
+// sur scripts et styles) : l'app utilise du style inline massif
 // (pattern assumé par le projet) + Google Fonts + Supabase realtime.
 // Une CSP propre nécessite un audit dédié (nonces sur les <style>
 // inline, liste des domaines Supabase/Anthropic/Qonto…). À traiter
@@ -21,6 +23,7 @@ export function middleware() {
   const res = NextResponse.next()
 
   res.headers.set('X-Frame-Options', 'DENY')
+  res.headers.set('Content-Security-Policy', "frame-ancestors 'none'")
   res.headers.set('X-Content-Type-Options', 'nosniff')
   res.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
   res.headers.set(
