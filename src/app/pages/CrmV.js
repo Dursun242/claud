@@ -16,6 +16,7 @@ import {
   upsertInteraction, setActionFaite, deleteInteraction, linkOpportuniteToChantier,
 } from '../lib/crmDb'
 import { isNumeroProvisoire } from '../lib/devis'
+import { upsertById, removeById, patchById } from '../lib/cacheList'
 import DevisEditor from '../components/crm/DevisEditor'
 import DevisSendModal from '../components/crm/DevisSendModal'
 import Kpi from '../components/crm/Kpi'
@@ -37,7 +38,17 @@ import { defaultSujet } from '../components/crm/crmUi'
 export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId, focusTs }) {
   const { addToast } = useToast()
   const confirm = useConfirm()
-  const { crm, loading, error, reload } = useCrmData()
+  const { crm, loading, error, reload, patch } = useCrmData()
+  // Après une écriture dont on connaît le résultat : mise à jour locale du
+  // cache au lieu de recharger toutes les tables du CRM.
+  const applyOpp = async (saved) => {
+    if (saved?.id) patch(c => ({ ...c, opportunites: upsertById(c.opportunites, saved) }))
+    else await reload()
+  }
+  const applyInteraction = async (saved) => {
+    if (saved?.id) patch(c => ({ ...c, interactions: upsertById(c.interactions, saved) }))
+    else await reload()
+  }
   const { opportunites, interactions, missingMigration } = crm
 
   const [view, setView] = useState('pipeline')       // pipeline | relances | closed
@@ -155,7 +166,7 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
     try {
       const saved = await upsertOpportunite({ titre, etape: 'Prospect' })
       setQuick('')
-      await reload()
+      await applyOpp(saved)
       addToast(`Affaire « ${titre} » ajoutée`, 'success')
       setSelectedId(saved.id)
     } catch (e) { addToast(e?.message || 'Ajout impossible', 'error') }
@@ -179,7 +190,7 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
     setSaving(true)
     try {
       const saved = await upsertOpportunite(oppForm)
-      await reload()
+      await applyOpp(saved)
       closeOppModal()
       addToast(oppModal === 'edit' ? 'Affaire mise à jour' : 'Affaire créée', 'success')
       if (oppModal === 'new') setSelectedId(saved.id)
@@ -213,8 +224,7 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
       return
     }
     try {
-      await moveOpportunite(o, etape)
-      await reload()
+      await applyOpp(await moveOpportunite(o, etape))
       addToast(`« ${o.titre} » → ${etape}`, 'success')
       if (etape === 'Gagné' && !o.chantier_id) {
         const ok = await confirm({
@@ -264,21 +274,23 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
     if (err) { setIntError(err); return }
     setSaving(true)
     try {
-      await upsertInteraction({ ...form, date: form.date ? new Date(form.date).toISOString() : undefined })
-      await reload()
+      await applyInteraction(await upsertInteraction({ ...form, date: form.date ? new Date(form.date).toISOString() : undefined }))
       setIntModal(false)
       addToast(form.prochaine_action_date ? `Noté · relance le ${fmtDate(form.prochaine_action_date)}` : 'Échange noté', 'success')
     } catch (e) { setIntError(e?.message || "Erreur lors de l'enregistrement.") }
     finally { setSaving(false) }
   }
   const toggleAction = async (it) => {
-    try { await setActionFaite(it.id, !it.action_faite); await reload() }
-    catch (e) { addToast(e?.message || 'Mise à jour impossible', 'error') }
+    // Optimiste : la case se coche tout de suite, annulée si l'écriture échoue
+    const setFaite = (v) => patch(c => ({ ...c, interactions: patchById(c.interactions, it.id, () => ({ action_faite: v })) }))
+    setFaite(!it.action_faite)
+    try { await setActionFaite(it.id, !it.action_faite) }
+    catch (e) { setFaite(!!it.action_faite); addToast(e?.message || 'Mise à jour impossible', 'error') }
   }
   const removeInteraction = async (it) => {
     const ok = await confirm({ title: 'Supprimer cet échange ?', confirmLabel: 'Supprimer', danger: true })
     if (!ok) return
-    try { await deleteInteraction(it.id); await reload() }
+    try { await deleteInteraction(it.id); patch(c => ({ ...c, interactions: removeById(c.interactions, it.id) })) }
     catch (e) { addToast(e?.message || 'Suppression impossible', 'error') }
   }
 

@@ -6,6 +6,7 @@ import { supabase } from '../supabaseClient'
 import { logout } from '../auth'
 import { FloatingMic, NotificationBell } from '../components'
 import { DashboardSkeleton, PageSkeleton } from '../components/Skeleton'
+import TabErrorBoundary from '../components/TabErrorBoundary'
 import KeyboardHelpModal from '../components/KeyboardHelpModal'
 import MobileNav, { QuickCreateSheet, MOBILE_NAV_HEIGHT } from '../components/MobileNav'
 import { newIntent } from '../lib/navIntent'
@@ -468,73 +469,97 @@ export default function AdminDashboard({ user, profile = null }) {
               Maintenant, les useEffect des pages ne tournent qu'une fois. */}
           {visitedTabs.has('dashboard') && (
             <div style={{ display: tab === 'dashboard' ? 'block' : 'none' }}>
-              <DashboardV data={data} crm={crm} setTab={switchTab} m={isMobile} user={user}/>
+              <TabErrorBoundary name="dashboard" resetKey={data}>
+                <DashboardV data={data} crm={crm} setTab={switchTab} m={isMobile} user={user}/>
+              </TabErrorBoundary>
             </div>
           )}
           {visitedTabs.has('qonto') && (
             <div style={{ display: tab === 'qonto' ? 'block' : 'none' }}>
-              <QontoV m={isMobile} data={data} reload={reload} crm={crm} reloadCrm={reloadCrm} setTab={switchTab}/>
+              <TabErrorBoundary name="qonto" resetKey={data}>
+                <QontoV m={isMobile} data={data} reload={reload} crm={crm} reloadCrm={reloadCrm} setTab={switchTab}/>
+              </TabErrorBoundary>
             </div>
           )}
           {visitedTabs.has('projects') && (
             <div style={{ display: tab === 'projects' ? 'block' : 'none' }}>
-              <ProjectsV data={data} save={save} m={isMobile}
-                reload={reload} user={user} profile={profile}
-                focusId={tab === 'projects' ? focus?.id : null} focusTs={focus?.ts}/>
+              <TabErrorBoundary name="projects" resetKey={data}>
+                <ProjectsV data={data} save={save} m={isMobile}
+                  reload={reload} user={user} profile={profile}
+                  focusId={tab === 'projects' ? focus?.id : null} focusTs={focus?.ts}/>
+              </TabErrorBoundary>
             </div>
           )}
           {visitedTabs.has('planning') && (
             <div style={{ display: tab === 'planning' ? 'block' : 'none' }}>
-              <PlanningV data={data} m={isMobile}/>
+              <TabErrorBoundary name="planning" resetKey={data}>
+                <PlanningV data={data} m={isMobile}/>
+              </TabErrorBoundary>
             </div>
           )}
           {visitedTabs.has('tasks') && (
             <div style={{ display: tab === 'tasks' ? 'block' : 'none' }}>
-              <TasksV data={data} save={save} m={isMobile}
-                reload={reload} focusId={tab === 'tasks' ? focus?.id : null} focusTs={focus?.ts}/>
+              <TabErrorBoundary name="tasks" resetKey={data}>
+                <TasksV data={data} save={save} m={isMobile}
+                  reload={reload} focusId={tab === 'tasks' ? focus?.id : null} focusTs={focus?.ts}/>
+              </TabErrorBoundary>
             </div>
           )}
           {visitedTabs.has('contacts') && (
             <div style={{ display: tab === 'contacts' ? 'block' : 'none' }}>
-              <ContactsV data={data} save={save} m={isMobile}
-                reload={reload} focusId={tab === 'contacts' ? focus?.id : null} focusTs={focus?.ts}
-                crm={crm} setTab={switchTab}/>
+              <TabErrorBoundary name="contacts" resetKey={data}>
+                <ContactsV data={data} save={save} m={isMobile}
+                  reload={reload} focusId={tab === 'contacts' ? focus?.id : null} focusTs={focus?.ts}
+                  crm={crm} setTab={switchTab}/>
+              </TabErrorBoundary>
             </div>
           )}
           {visitedTabs.has('crm') && (
             <div style={{ display: tab === 'crm' ? 'block' : 'none' }}>
-              <CrmV data={data} m={isMobile} reload={reload} setTab={switchTab}
-                focusId={tab === 'crm' ? focus?.id : null} focusTs={focus?.ts}/>
+              <TabErrorBoundary name="crm" resetKey={data}>
+                <CrmV data={data} m={isMobile} reload={reload} setTab={switchTab}
+                  focusId={tab === 'crm' ? focus?.id : null} focusTs={focus?.ts}/>
+              </TabErrorBoundary>
             </div>
           )}
           {visitedTabs.has('reports') && (
             <div style={{ display: tab === 'reports' ? 'block' : 'none' }}>
-              <ReportsV data={data} save={save} m={isMobile}
-                reload={reload} focusId={tab === 'reports' ? focus?.id : null} focusTs={focus?.ts}/>
+              <TabErrorBoundary name="reports" resetKey={data}>
+                <ReportsV data={data} save={save} m={isMobile}
+                  reload={reload} focusId={tab === 'reports' ? focus?.id : null} focusTs={focus?.ts}/>
+              </TabErrorBoundary>
             </div>
           )}
           {visitedTabs.has('os') && (
             <div style={{ display: tab === 'os' ? 'block' : 'none' }}>
-              <OrdresServiceV data={data} m={isMobile}
-                reload={reload} focusId={tab === 'os' ? focus?.id : null} focusTs={focus?.ts}/>
+              <TabErrorBoundary name="os" resetKey={data}>
+                <OrdresServiceV data={data} m={isMobile}
+                  reload={reload} focusId={tab === 'os' ? focus?.id : null} focusTs={focus?.ts}/>
+              </TabErrorBoundary>
             </div>
           )}
           {visitedTabs.has('photos') && (
             <div style={{ display: tab === 'photos' ? 'block' : 'none' }}>
-              <PhotoReportsV data={data} m={isMobile} reload={reload}/>
+              <TabErrorBoundary name="photos" resetKey={data}>
+                <PhotoReportsV data={data} m={isMobile} reload={reload}/>
+              </TabErrorBoundary>
             </div>
           )}
           {visitedTabs.has('admin') && (
             <div style={{ display: tab === 'admin' ? 'block' : 'none' }}>
-              <AdminV m={isMobile} reload={reload} profile={profile}/>
+              <TabErrorBoundary name="admin" resetKey={data}>
+                <AdminV m={isMobile} reload={reload} profile={profile}/>
+              </TabErrorBoundary>
             </div>
           )}
           {visitedTabs.has('ai') && (
             <div style={{ display: tab === 'ai' ? 'block' : 'none' }}>
-              <AIV data={data} save={save} m={isMobile}
-                externalTranscript={floatTranscript}
-                clearExternal={()=>setFloatTranscript("")} reload={reload}
-                crm={crm} reloadCrm={reloadCrm}/>
+              <TabErrorBoundary name="ai" resetKey={data}>
+                <AIV data={data} save={save} m={isMobile}
+                  externalTranscript={floatTranscript}
+                  clearExternal={()=>setFloatTranscript("")} reload={reload}
+                  crm={crm} reloadCrm={reloadCrm}/>
+              </TabErrorBoundary>
             </div>
           )}
         </div>

@@ -6,6 +6,7 @@ import { useToast } from '../contexts/ToastContext'
 import { useConfirm } from '../contexts/ConfirmContext'
 import { useUndoableDelete } from '../hooks/useUndoableDelete'
 import { parseNewIntent } from '../lib/navIntent'
+import { usePatchDashboardTask } from '../hooks/useDashboardData'
 
 // Ordre de priorité canonique (pour le tri)
 const PRIORITY_ORDER = { Urgent: 0, "En cours": 1, "En attente": 2 }
@@ -14,6 +15,7 @@ const TASK_STATUSES = ["Planifié", "En cours", "Terminé"]
 export default function TasksV({ data, save: _save, m, reload, focusId, focusTs }) {
   const { addToast } = useToast()
   const confirm = useConfirm()
+  const patchTask = usePatchDashboardTask()
   const [modal, setModal] = useState(null)
   const [form, setForm] = useState({})
   const [filter, setFilter] = useState("all")
@@ -126,8 +128,8 @@ export default function TasksV({ data, save: _save, m, reload, focusId, focusTs 
     const idx = cy.indexOf(t.statut)
     const next = cy[(idx < 0 ? 0 : idx + 1) % 3]
     try {
-      await SB.upsertTask({ ...t, statut: next })
-      reload()
+      const saved = await SB.upsertTask({ ...t, statut: next })
+      if (!patchTask(saved)) reload()
       if (next === "Terminé") addToast("Tâche terminée ✓", "success")
     } catch (err) {
       addToast("Erreur : " + (err?.message || "mise à jour impossible"), "error")
