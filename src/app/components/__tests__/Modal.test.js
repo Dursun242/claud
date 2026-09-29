@@ -47,13 +47,13 @@ describe('Modal', () => {
     expect(onClose).toHaveBeenCalledTimes(1)
   })
 
-  it('invoque onClose au clic sur le backdrop', async () => {
+  it('NE ferme PAS au clic sur le backdrop (seule la croix ferme)', async () => {
     const onClose = jest.fn()
     render(<Modal open={true} onClose={onClose} title="X"><p/></Modal>)
 
-    // Le dialog lui-même est le backdrop (click propagé).
+    // Le dialog lui-même est le backdrop.
     await userEvent.click(screen.getByRole('dialog'))
-    expect(onClose).toHaveBeenCalled()
+    expect(onClose).not.toHaveBeenCalled()
   })
 
   it('NE ferme PAS quand on clique à l\'intérieur du contenu', async () => {

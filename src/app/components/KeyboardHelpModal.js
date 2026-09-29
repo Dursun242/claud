@@ -16,7 +16,7 @@ export default function KeyboardHelpModal({ open, onClose, tabs = [] }) {
   if (!open) return null
 
   return (
-    <div onClick={onClose} style={{
+    <div style={{
       position: "fixed", inset: 0,
       background: "rgba(15,23,42,0.55)", backdropFilter: "blur(4px)",
       zIndex: 5000,

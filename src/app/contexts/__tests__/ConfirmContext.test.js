@@ -101,14 +101,15 @@ describe('ConfirmContext / useConfirm', () => {
     expect(onResolved).toHaveBeenCalledWith(true)
   })
 
-  it('résout avec false au clic sur le backdrop', async () => {
+  it('ne se ferme PAS au clic sur le backdrop', async () => {
     const onResolved = jest.fn()
     renderWithProvider(<Harness opts={{ title: 'X' }} onResolved={onResolved}/>)
 
     await userEvent.click(screen.getByRole('button', { name: /Déclencher/ }))
     await userEvent.click(screen.getByRole('dialog'))
 
-    expect(onResolved).toHaveBeenCalledWith(false)
+    expect(onResolved).not.toHaveBeenCalled()
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
   })
 
   it('danger=true applique un style rouge sur le bouton Confirmer', async () => {

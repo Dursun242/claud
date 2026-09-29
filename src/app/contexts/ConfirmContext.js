@@ -112,7 +112,6 @@ function ConfirmDialog({ state, onResolve }) {
       aria-labelledby="confirm-title"
       aria-describedby="confirm-message"
       onKeyDown={handleKeyDown}
-      onClick={() => onResolve(false)}
       style={{
         position: 'fixed', inset: 0, zIndex: 10000,
         display: 'flex', alignItems: 'center', justifyContent: 'center',

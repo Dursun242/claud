@@ -12,6 +12,8 @@ import { ANIMATION } from '../lib/motion'
  * - Focus trap : Tab et Shift+Tab bouclent à l'intérieur de la modale
  * - Le focus est rendu au déclencheur à la fermeture
  * - Scroll du body bloqué quand ouvert
+ * - Un clic sur le fond flouté ne ferme PAS la modale (uniquement la croix,
+ *   pour éviter de perdre une saisie par un clic à côté)
  */
 export default function Modal({ open, onClose, title, children, wide = false }) {
   const contentRef = useRef(null)
@@ -101,7 +103,6 @@ export default function Modal({ open, onClose, title, children, wide = false }) 
         padding: isMobile ? 0 : 16,
         animation: ANIMATION.fadeInFast,
       }}
-      onClick={onClose}
     >
       <div
         ref={contentRef}

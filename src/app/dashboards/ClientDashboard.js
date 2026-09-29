@@ -432,7 +432,7 @@ export default function ClientDashboard({ user, profile = null }) {
 
       {/* Aide clavier (déclenchée par « ? ») */}
       {helpOpen && (
-        <div onClick={() => setHelpOpen(false)} style={{
+        <div style={{
           position:'fixed', inset:0, background:'rgba(15,23,42,0.55)', backdropFilter:'blur(4px)',
           zIndex:5000, display:'flex', alignItems:'center', justifyContent:'center', padding:16,
           animation:'fadeIn .15s ease'

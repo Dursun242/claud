@@ -200,7 +200,7 @@ export default function ProcesVerbauxV({ data, m, reload, user: _user }) {
           alignItems: 'center',
           justifyContent: 'center',
           zIndex: 1000
-        }} onClick={() => setSelectedPV(null)}>
+        }}>
           <div style={{
             background: '#fff',
             borderRadius: 12,

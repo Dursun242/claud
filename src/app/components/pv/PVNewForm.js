@@ -231,7 +231,7 @@ export default function PVNewForm({ chantierId, chantier, clientContact, ordresS
       alignItems: 'center',
       justifyContent: 'center',
       zIndex: 1000
-    }} onClick={onClose}>
+    }}>
       <div style={{
         background: '#fff',
         borderRadius: 12,
@@ -587,7 +587,7 @@ export default function PVNewForm({ chantierId, chantier, clientContact, ordresS
           alignItems: 'center',
           justifyContent: 'center',
           zIndex: 2000
-        }} onClick={() => setShowPreview(false)}>
+        }}>
           <div style={{
             background: '#fff',
             borderRadius: 12,

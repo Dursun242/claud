@@ -85,7 +85,7 @@ export default function PVDetail({ pv, onClose, onDecision }) {
       alignItems: 'center',
       justifyContent: 'center',
       zIndex: 1000
-    }} onClick={onClose}>
+    }}>
       <div style={{
         background: '#fff',
         borderRadius: 12,
