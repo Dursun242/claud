@@ -87,7 +87,7 @@ export default function CommentsSection({
   return (
     <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid #E2E8F0' }}>
       <h4 style={{ margin: '0 0 12px 0', fontSize: 13, fontWeight: 700, color: '#0F172A' }}>
-        💬 Commentaires <span style={{ color: '#94A3B8', fontWeight: 500 }}>({comments.length})</span>
+        💬 Commentaires <span style={{ color: '#64748B', fontWeight: 500 }}>({comments.length})</span>
       </h4>
 
       {/* Liste commentaires */}
@@ -130,7 +130,7 @@ export default function CommentsSection({
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2, gap: 8 }}>
                     <strong style={{ color: '#0F172A', fontSize: 12 }}>{comment.author_name || 'Anonyme'}</strong>
-                    <span style={{ fontSize: 10, color: '#94A3B8' }}>{formatRelative(comment.created_at)}</span>
+                    <span style={{ fontSize: 10, color: '#64748B' }}>{formatRelative(comment.created_at)}</span>
                   </div>
                   <p style={{ margin: '0 0 0 0', color: '#475569', lineHeight: 1.5, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
                     {comment.content}

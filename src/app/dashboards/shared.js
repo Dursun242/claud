@@ -784,7 +784,7 @@ export function FF({label, hint, error, required, children}) {
         </div>
       )}
       {hint && !error && (
-        <div style={{fontSize:10,color:"#94A3B8",marginTop:4,fontStyle:"italic"}}>
+        <div style={{fontSize:10,color:"#64748B",marginTop:4,fontStyle:"italic"}}>
           {hint}
         </div>
       )}

@@ -97,7 +97,7 @@ export default function CrmPipeline({
           )
         })}
       </div>
-      <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 6 }}>
+      <div style={{ fontSize: 11, color: '#64748B', marginTop: 6 }}>
         💡 Glisse une carte vers une autre colonne pour la faire avancer. Clique dessus pour voir la fiche.
       </div>
     </div>

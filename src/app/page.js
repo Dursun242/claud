@@ -1,4 +1,5 @@
 'use client'
+import { useEffect } from 'react'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { AuthProvider, useAuth, LoginPage } from './auth'
 import Dashboard from './dashboard'
@@ -32,7 +33,18 @@ function ProtectedApp() {
   return <Dashboard user={user} profile={profile} />
 }
 
+// Service worker (public/sw.js) : permet d'ouvrir l'application sans
+// réseau sur chantier. Production uniquement (en dev il gênerait le
+// rechargement à chaud).
+function useServiceWorker() {
+  useEffect(() => {
+    if (process.env.NODE_ENV !== 'production' || !('serviceWorker' in navigator)) return
+    navigator.serviceWorker.register('/sw.js').catch(() => {})
+  }, [])
+}
+
 export default function Page() {
+  useServiceWorker()
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>

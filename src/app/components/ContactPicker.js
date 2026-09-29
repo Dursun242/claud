@@ -81,7 +81,7 @@ export default function ContactPicker({ contacts = [], value, onChange, onCreate
         <div style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 14 }}>
           <strong style={{ color: '#0F172A' }}>{selected.nom}</strong>
           {selected.societe && <span style={{ color: '#64748B' }}> · {selected.societe}</span>}
-          {selected.type && <span style={{ color: '#94A3B8', fontSize: 11 }}> · {selected.type}</span>}
+          {selected.type && <span style={{ color: '#64748B', fontSize: 11 }}> · {selected.type}</span>}
         </div>
         <button type="button" onClick={() => { onChange(''); setTimeout(() => inputRef.current?.focus(), 0) }}
           aria-label="Retirer le contact" title="Changer de contact"
@@ -105,7 +105,7 @@ export default function ContactPicker({ contacts = [], value, onChange, onCreate
           maxHeight: 260, overflowY: 'auto',
         }}>
           {items.length === 0 && (
-            <div style={{ padding: '10px 12px', fontSize: 12, color: '#94A3B8' }}>
+            <div style={{ padding: '10px 12px', fontSize: 12, color: '#64748B' }}>
               {contacts.length === 0 ? 'Aucun contact dans l’annuaire.' : 'Aucun contact ne correspond.'}
             </div>
           )}
@@ -121,7 +121,7 @@ export default function ContactPicker({ contacts = [], value, onChange, onCreate
               style={{ ...row, background: active === i ? '#F1F5F9' : '#fff' }}>
               <span style={{ fontWeight: 600, color: '#0F172A' }}>{c.nom}</span>
               {c.societe && <span style={{ color: '#64748B' }}> · {c.societe}</span>}
-              <span style={{ float: 'right', fontSize: 10, color: '#94A3B8' }}>{c.type}{c.ville ? ` · ${c.ville}` : ''}</span>
+              <span style={{ float: 'right', fontSize: 10, color: '#64748B' }}>{c.type}{c.ville ? ` · ${c.ville}` : ''}</span>
             </button>
           ))}
         </div>

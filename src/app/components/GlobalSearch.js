@@ -178,7 +178,7 @@ export default function GlobalSearch({ data, crm = null, onNavigate }) {
           <button onClick={() => { setQuery(''); setOpen(false) }} aria-label="Effacer la recherche" style={{
             position: 'absolute', right: 8, top: '50%',
             transform: 'translateY(-50%)', background: 'none', border: 'none',
-            color: '#94A3B8', cursor: 'pointer', fontSize: 14, padding: 0, lineHeight: 1
+            color: '#64748B', cursor: 'pointer', fontSize: 14, padding: 0, lineHeight: 1
           }}>✕</button>
         )}
       </div>
@@ -195,13 +195,13 @@ export default function GlobalSearch({ data, crm = null, onNavigate }) {
           {showRecents && (
             <div>
               <div style={{
-                padding: '8px 14px 4px', fontSize: 10, fontWeight: 700, color: '#94A3B8',
+                padding: '8px 14px 4px', fontSize: 10, fontWeight: 700, color: '#64748B',
                 letterSpacing: '0.08em', textTransform: 'uppercase',
                 display:'flex', alignItems:'center', justifyContent:'space-between'
               }}>
                 <span>⏱ Récents</span>
                 <span style={{
-                  fontSize: 9, color:'#475569', fontWeight:500,
+                  fontSize: 10, color:'#475569', fontWeight:500,
                   textTransform:'none', letterSpacing:0
                 }}>Tape 2 lettres pour chercher</span>
               </div>

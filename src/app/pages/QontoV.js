@@ -403,7 +403,7 @@ export default function QontoV({m, data, reload, crm = null, reloadCrm = null, s
           margin:"0 0 12px",fontSize:13,fontWeight:700,
           color:"#7C3AED",fontFamily:"monospace"
         }}>login:secret-key</p>
-        <p style={{margin:"0 0 16px",fontSize:11,color:"#94A3B8"}}>
+        <p style={{margin:"0 0 16px",fontSize:11,color:"#64748B"}}>
           Trouvez-la dans Qonto → Paramètres → Intégrations → API
         </p>
         <input value={token} onChange={e=>setToken(e.target.value)}
@@ -420,7 +420,7 @@ export default function QontoV({m, data, reload, crm = null, reloadCrm = null, s
           cursor:"pointer",fontFamily:"inherit",
           boxShadow:"0 2px 8px rgba(124,58,237,0.3)"
         }}>Connecter</button>
-        <p style={{margin:"12px 0 0",fontSize:11,color:"#94A3B8"}}>
+        <p style={{margin:"12px 0 0",fontSize:11,color:"#64748B"}}>
           Le token est stocké de façon sécurisée dans votre base Supabase.
         </p>
       </div>
@@ -446,7 +446,7 @@ export default function QontoV({m, data, reload, crm = null, reloadCrm = null, s
               marginLeft:"auto",color:QT.primary,
               cursor:"pointer",fontWeight:600,fontSize:11
             }} onClick={()=>fetchAll()}>Rafraîchir</span>
-            <span style={{color:"#94A3B8",cursor:"pointer",fontSize:11}} onClick={disconnect}>Changer de compte</span>
+            <span style={{color:"#64748B",cursor:"pointer",fontSize:11}} onClick={disconnect}>Changer de compte</span>
           </div>
           {error && (
             <div style={{
@@ -493,7 +493,7 @@ export default function QontoV({m, data, reload, crm = null, reloadCrm = null, s
                   boxShadow:"0 1px 3px rgba(0,0,0,0.06)",borderTop:`3px solid ${k.c}`
                 }}>
                   <div style={{
-                    fontSize:10,fontWeight:600,color:"#94A3B8",
+                    fontSize:10,fontWeight:600,color:"#64748B",
                     textTransform:"uppercase",marginBottom:4
                   }}>{k.l}</div>
                   <div style={{fontSize:m?18:24,fontWeight:700,color:k.c}}>{k.v}</div>
@@ -565,7 +565,7 @@ export default function QontoV({m, data, reload, crm = null, reloadCrm = null, s
                           color:inv.status==="paid"?"#10B981":"#0F172A"
                         }}>{fmtMoney(getAmt(inv))}</div>
                         {(inv.vat_amount?.value||inv.vat_amount_cents) && (
-                          <div style={{fontSize:10,color:"#94A3B8"}}>
+                          <div style={{fontSize:10,color:"#64748B"}}>
                             TVA: {fmtMoney(parseFloat(inv.vat_amount?.value??(inv.vat_amount_cents||0)/100))}
                           </div>
                         )}
@@ -741,7 +741,7 @@ export default function QontoV({m, data, reload, crm = null, reloadCrm = null, s
                           {existing && <Badge text="Dans l'annuaire" color="#10B981"/>}
                         </div>
                         {c.email && <div style={{fontSize:11,color:"#64748B"}}>{c.email}</div>}
-                        {c.phone_number && <div style={{fontSize:11,color:"#94A3B8"}}>{c.phone_number}</div>}
+                        {c.phone_number && <div style={{fontSize:11,color:"#64748B"}}>{c.phone_number}</div>}
                         {c.billing_address?.street_address && (
                           <div style={{fontSize:10,color:"#CBD5E1",marginTop:2}}>
                             {c.billing_address.street_address}{" "}
@@ -749,7 +749,7 @@ export default function QontoV({m, data, reload, crm = null, reloadCrm = null, s
                             {c.billing_address.city}
                           </div>
                         )}
-                        {siret && <div style={{fontSize:10,color:"#94A3B8",marginTop:2}}>SIRET : {siret}</div>}
+                        {siret && <div style={{fontSize:10,color:"#64748B",marginTop:2}}>SIRET : {siret}</div>}
                         {existBySiret && (
                           <div style={{fontSize:10,color:"#10B981",marginTop:2}}>
                             ✓ SIRET identique à : {existBySiret.nom}
@@ -794,7 +794,7 @@ export default function QontoV({m, data, reload, crm = null, reloadCrm = null, s
     <div style={{
       marginTop:16,padding:"10px 14px",background:"#F8FAFC",
       borderRadius:8,display:"flex",alignItems:"center",
-      gap:8,fontSize:11,color:"#94A3B8",flexWrap:"wrap"
+      gap:8,fontSize:11,color:"#64748B",flexWrap:"wrap"
     }}>
       <span style={{
         background:QT.gradient,WebkitBackgroundClip:"text",

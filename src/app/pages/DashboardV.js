@@ -208,14 +208,14 @@ export default function DashboardV({data,crm=null,setTab,m,user,clientMode=false
           e.currentTarget.style.transform="";
         }}>
           <div style={{
-            fontSize:10, fontWeight:700, color:"#94A3B8",
+            fontSize:10, fontWeight:700, color:"#64748B",
             textTransform:"uppercase", letterSpacing:"0.05em", marginBottom:4
           }}>{k.label}</div>
           <div style={{display:"flex",alignItems:"baseline",gap:6}}>
             <span style={{
               fontSize:m?22:26, fontWeight:700, color:k.color, lineHeight:1
             }}>{k.value}</span>
-            {k.total!=null && <span style={{fontSize:11,color:"#94A3B8",fontWeight:500}}>
+            {k.total!=null && <span style={{fontSize:11,color:"#64748B",fontWeight:500}}>
               / {k.total}
             </span>}
           </div>
@@ -287,7 +287,7 @@ export default function DashboardV({data,crm=null,setTab,m,user,clientMode=false
                 <PBar value={ch.depenses} max={ch.budget} color={budgetColor}/>
                 <div style={{
                   display:"flex", justifyContent:"space-between",
-                  marginTop:8, fontSize:10, color:"#94A3B8"
+                  marginTop:8, fontSize:10, color:"#64748B"
                 }}>
                   <span>
                     <span style={{fontWeight:600,color:budgetColor}}>
@@ -377,7 +377,7 @@ export default function DashboardV({data,crm=null,setTab,m,user,clientMode=false
       {allActiveTasks.length===0
         ? <div style={{
             textAlign:"center", padding:"14px 0",
-            fontSize:13, color:"#94A3B8"
+            fontSize:13, color:"#64748B"
           }}>🎉 Aucune tâche en attente</div>
         : <div style={{display:"flex",flexDirection:"column",gap:0}}>
             {allActiveTasks.slice(0,5).map((t,i)=>{
@@ -405,7 +405,7 @@ export default function DashboardV({data,crm=null,setTab,m,user,clientMode=false
                       overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"
                     }}>{t.titre}</div>
                     <div style={{
-                      fontSize:10, color:"#94A3B8", marginTop:2,
+                      fontSize:10, color:"#64748B", marginTop:2,
                       overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"
                     }}>
                       {ch?.nom || "—"}
@@ -439,7 +439,7 @@ export default function DashboardV({data,crm=null,setTab,m,user,clientMode=false
       }}>
         <div>
           <div style={{
-            fontSize:10, color:"#94A3B8", fontWeight:700, marginBottom:4,
+            fontSize:10, color:"#64748B", fontWeight:700, marginBottom:4,
             textTransform:"uppercase", letterSpacing:"0.05em"
           }}>Alloué</div>
           <div style={{fontSize:m?22:26,fontWeight:700,color:"#0F172A"}}>
@@ -448,7 +448,7 @@ export default function DashboardV({data,crm=null,setTab,m,user,clientMode=false
         </div>
         <div>
           <div style={{
-            fontSize:10, color:"#94A3B8", fontWeight:700, marginBottom:4,
+            fontSize:10, color:"#64748B", fontWeight:700, marginBottom:4,
             textTransform:"uppercase", letterSpacing:"0.05em"
           }}>Dépensé</div>
           <div style={{
@@ -460,7 +460,7 @@ export default function DashboardV({data,crm=null,setTab,m,user,clientMode=false
         </div>
         <div>
           <div style={{
-            fontSize:10, color:"#94A3B8", fontWeight:700, marginBottom:4,
+            fontSize:10, color:"#64748B", fontWeight:700, marginBottom:4,
             textTransform:"uppercase", letterSpacing:"0.05em"
           }}>Reste</div>
           <div style={{fontSize:m?22:26,fontWeight:700,color:"#0F172A"}}>

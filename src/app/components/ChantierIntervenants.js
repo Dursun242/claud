@@ -104,7 +104,7 @@ export default function ChantierIntervenants({
             <span style={{ fontWeight: 700, fontSize: 13 }}>{clientContact.nom}</span>
             <Badge text="Client" color="#3B82F6"/>
           </div>
-          <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 2 }}>
+          <div style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>
             {clientContact.tel} • {clientContact.email}
           </div>
         </div>
@@ -133,7 +133,7 @@ export default function ChantierIntervenants({
               <div style={{ fontSize: 11, color: '#64748B' }}>
                 {c.specialite || c.societe || ''}
               </div>
-              <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 2 }}>
+              <div style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>
                 {c.tel} • {c.email}
               </div>
             </div>
@@ -143,7 +143,7 @@ export default function ChantierIntervenants({
                 aria-label={`Retirer ${c.nom}`}
                 title="Retirer cet intervenant"
                 style={{
-                  background: 'none', border: 'none', color: '#94A3B8',
+                  background: 'none', border: 'none', color: '#64748B',
                   fontSize: 16, cursor: 'pointer', padding: 4, lineHeight: 1, flexShrink: 0,
                 }}
               >
@@ -168,7 +168,7 @@ export default function ChantierIntervenants({
         />
         <div style={{ maxHeight: 320, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6 }}>
           {availableContacts.length === 0 ? (
-            <p style={{ color: '#94A3B8', fontSize: 12, textAlign: 'center', padding: '20px 0' }}>
+            <p style={{ color: '#64748B', fontSize: 12, textAlign: 'center', padding: '20px 0' }}>
               Aucun contact disponible. Tous vos contacts sont déjà rattachés, ou aucun ne correspond à la recherche.
             </p>
           ) : availableContacts.map(c => (
@@ -186,7 +186,7 @@ export default function ChantierIntervenants({
             >
               <div style={{ minWidth: 0 }}>
                 <div style={{ fontWeight: 600, fontSize: 12, color: '#0F172A' }}>{c.nom}</div>
-                <div style={{ fontSize: 10, color: '#94A3B8' }}>
+                <div style={{ fontSize: 10, color: '#64748B' }}>
                   {c.type}{c.specialite ? ` • ${c.specialite}` : ''}
                 </div>
               </div>

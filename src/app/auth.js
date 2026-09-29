@@ -3,6 +3,7 @@ import { useState, useEffect, createContext, useContext, useRef } from 'react'
 import Image from 'next/image'
 import { supabase } from './supabaseClient'
 import { writeActivityLog } from './lib/activityLog'
+import { clearOfflineData } from './lib/offlineStore'
 
 const SESSION_LABELS = {
   login:            'Connexion',
@@ -41,6 +42,19 @@ export function useAuth() {
 //   affiche un message dédié sur l'écran de login.
 // - Refresh proactif de la session quand l'utilisateur revient sur
 //   l'onglet après une longue absence (visibilitychange).
+// Dernier profil vérifié par le serveur, par email : permet d'ouvrir
+// l'application hors ligne (sur chantier). Effacé à la déconnexion.
+const PROFILE_KEY = (email) => `idm_profile:${email}`
+function saveCachedProfile(email, profile) {
+  try {
+    if (profile) localStorage.setItem(PROFILE_KEY(email), JSON.stringify(profile))
+    else localStorage.removeItem(PROFILE_KEY(email))
+  } catch {}
+}
+function readCachedProfile(email) {
+  try { return JSON.parse(localStorage.getItem(PROFILE_KEY(email)) || 'null') } catch { return null }
+}
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
@@ -61,6 +75,10 @@ export function AuthProvider({ children }) {
         // Vérification via API serveur (service role key, bypass RLS garanti)
         const email = session.user.email?.trim().toLowerCase()
         let profile = null
+        // Réponse claire du serveur (profil trouvé ou non). Sans réseau (sur
+        // chantier, en sous-sol…) ou si le serveur ne répond pas, on reprend
+        // le dernier profil vérifié sur cet appareil au lieu de déconnecter.
+        let verified = false
         try {
           const res = await fetch('/api/admin/users', {
             headers: { 'Authorization': `Bearer ${session.access_token}` }
@@ -70,8 +88,13 @@ export function AuthProvider({ children }) {
             profile = (json.data || []).find(
               u => u.email?.trim().toLowerCase() === email && u.actif
             )
+            verified = true
+          } else if (res.status === 401 || res.status === 403) {
+            verified = true
           }
         } catch (_) {}
+        if (verified) saveCachedProfile(email, profile)
+        else profile = readCachedProfile(email)
 
         if (isMounted) {
           if (profile) {
@@ -84,6 +107,12 @@ export function AuthProvider({ children }) {
             if (event === 'SIGNED_IN') {
               logSession('login', { provider: session.user.app_metadata?.provider || null })
             }
+          } else if (!verified) {
+            // Pas de réponse du serveur et aucun profil connu sur cet
+            // appareil : on n'ouvre pas l'app, mais on ne déconnecte pas
+            // (la session reste valable au retour du réseau).
+            setUser(null)
+            setProfile(null)
           } else {
             // Log AVANT signOut et AWAIT pour garantir l'insert avant
             // que la session ne soit invalidée côté réseau (critique :
@@ -230,7 +259,7 @@ export function LoginPage() {
 
         <h1 style={{ margin: '0 0 4px', fontSize: 26, fontWeight: 700, color: '#0F172A' }}>ID Maîtrise</h1>
         <p style={{ margin: '0 0 8px', fontSize: 13, color: '#64748B' }}>Ingénierie de la construction</p>
-        <p style={{ margin: '0 0 32px', fontSize: 12, color: '#94A3B8' }}>Tableau de bord de gestion de chantiers</p>
+        <p style={{ margin: '0 0 32px', fontSize: 12, color: '#64748B' }}>Tableau de bord de gestion de chantiers</p>
 
         {denied && (
           <div style={{
@@ -310,7 +339,7 @@ export function LoginPage() {
           )}
         </button>
 
-        <p style={{ margin: '24px 0 0', fontSize: 11, color: '#94A3B8' }}>
+        <p style={{ margin: '24px 0 0', fontSize: 11, color: '#64748B' }}>
           Accès réservé aux collaborateurs et maîtres d&apos;ouvrage ID Maîtrise
         </p>
 
@@ -333,7 +362,7 @@ export function LoginPage() {
         </div>
 
         <div style={{ marginTop: 32, paddingTop: 20, borderTop: '1px solid #F1F5F9' }}>
-          <p style={{ margin: 0, fontSize: 10, color: '#94A3B8' }}>
+          <p style={{ margin: 0, fontSize: 10, color: '#64748B' }}>
             SARL ID MAÎTRISE — 9 Rue Henry Genestal, 76600 Le Havre<br />
             SIRET 921 536 181 00024
           </p>
@@ -348,6 +377,8 @@ export function LoginPage() {
 // d'une expiration de session. AuthProvider le lit au SIGNED_OUT suivant.
 export async function logout() {
   try { sessionStorage.setItem('idm_voluntary_logout', '1') } catch {}
+  // Données hors ligne de cet appareil (profil, cache, file d'attente)
+  await clearOfflineData()
   // Logger AVANT signOut en mode BLOCKING : une fois déconnecté, RLS
   // bloque l'insert. Le await garantit que le log arrive en DB avant
   // la fermeture de la session.

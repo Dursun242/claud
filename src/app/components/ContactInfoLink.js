@@ -30,7 +30,7 @@ export function CopyIconBtn({ onClick }) {
         display: 'inline-flex',
         alignItems: 'center',
         justifyContent: 'center',
-        color: '#94A3B8',
+        color: '#64748B',
         fontFamily: 'inherit',
         opacity: 0.7,
       }}

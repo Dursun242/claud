@@ -179,7 +179,7 @@ export default function ReportsV({ data, save: _save, m, reload, focusId, focusT
     }}>
       <div>
         <h1 style={{margin:0,fontSize:m?18:24,fontWeight:700}}>Comptes Rendus</h1>
-        <div style={{fontSize:11,color:"#94A3B8",marginTop:2}}>
+        <div style={{fontSize:11,color:"#64748B",marginTop:2}}>
           {total} au total
           {hasFilters && <>
             {" "}· <strong>{filteredSortedCRs.length}</strong>{" "}
@@ -267,7 +267,7 @@ export default function ReportsV({ data, save: _save, m, reload, focusId, focusT
                   padding:"3px 9px",fontSize:11,fontWeight:700
                 }}>CR n°{cr.numero}</span>
                 <span style={{fontWeight:700,fontSize:14,color:"#0F172A"}}>{ch?.nom || "—"}</span>
-                <span style={{fontSize:11,color:"#94A3B8"}}>{fmtDate(cr.date)}</span>
+                <span style={{fontSize:11,color:"#64748B"}}>{fmtDate(cr.date)}</span>
               </div>
               <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
                 <button onClick={()=>handlePdf(cr,ch)} disabled={!!generating} title="Télécharger le PDF"
@@ -318,7 +318,7 @@ export default function ReportsV({ data, save: _save, m, reload, focusId, focusT
             {cr.participants && (
               <div style={{fontSize:11}}>
                 <span style={{fontWeight:600,color:"#64748B"}}>Présents :</span>{" "}
-                <span style={{color:"#94A3B8"}}>{cr.participants}</span>
+                <span style={{color:"#64748B"}}>{cr.participants}</span>
               </div>
             )}
             {cr.decisions && (
@@ -402,7 +402,7 @@ export default function ReportsV({ data, save: _save, m, reload, focusId, focusT
                 }}>Tout cocher</button>
                 <button type="button" onClick={()=>setForm({...form,intervenants:[]})}
                   style={{
-                    background:"none",border:"none",color:"#94A3B8",
+                    background:"none",border:"none",color:"#64748B",
                     fontSize:10,fontWeight:700,cursor:"pointer",padding:0
                   }}>Tout décocher</button>
               </div>
@@ -445,7 +445,7 @@ export default function ReportsV({ data, save: _save, m, reload, focusId, focusT
                       {it.nom}
                     </span>
                     {it.societe && it.societe !== it.nom && (
-                      <span style={{fontSize:10,color:"#94A3B8"}}>({it.societe})</span>
+                      <span style={{fontSize:10,color:"#64748B"}}>({it.societe})</span>
                     )}
                   </div>
                 )

@@ -68,6 +68,13 @@ Cf. `SB.loadCritical()` / `SB.loadSecondary()` dans `dashboards/shared.js`.
 
 Stage 3 = **CRM** (`crm_opportunites`, `crm_interactions`, `crm_devis`, `crm_devis_events`, migrations 025→030) via `useCrmData({ enabled })` dans `AdminDashboard` : lancé seulement après le stage 1, partagé (React Query) par CrmV, DashboardV (widget relances), ContactsV (badge affaires), QontoV (→ CRM), AIV (actions IA) et la recherche globale.
 
+## Hors ligne (usage sur chantier)
+
+- `public/sw.js` (production) : l'application s'ouvre sans réseau (page `/` + fichiers `/_next/static`). N'intercepte ni `/api` ni Supabase.
+- `lib/offlineCache.js` + `lib/offlineStore.js` : les données consultées (requêtes `dashboard` et `crm`) sont gardées dans IndexedDB par utilisateur et restaurées au démarrage ; effacées à la déconnexion.
+- File d'attente (`enqueue` / `flushOutbox`) : modifications faites sans réseau, envoyées au retour de la connexion (`hooks/useOfflineSync.js`, handlers dans `roleBasedDashboard.js`). Aujourd'hui : statut des tâches (`hooks/useSaveTask.js`).
+- `auth.js` : sans réponse du serveur, le dernier profil vérifié sur l'appareil est réutilisé (pas de déconnexion hors ligne).
+
 ## Conventions & règles du projet
 
 1. **Server-only pour les secrets** : `ANTHROPIC_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `ODOO_API_KEY`, `PAPPERS_API_KEY`, `qonto-token` n'apparaissent **jamais** dans le bundle client. Les appels tiers passent par les routes `/api/*`. Seule exception : la Base Adresse Nationale (`api-adresse.data.gouv.fr`, publique, sans clé) appelée directement par `components/AddressPicker.js`.

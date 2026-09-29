@@ -426,7 +426,7 @@ RÈGLES :
                 }}/>
               ))}
             </div>
-            <span style={{fontSize:11,color:"#94A3B8",fontStyle:"italic"}}>Claude réfléchit…</span>
+            <span style={{fontSize:11,color:"#64748B",fontStyle:"italic"}}>Claude réfléchit…</span>
           </div>
         )}
         <div ref={endRef}/>

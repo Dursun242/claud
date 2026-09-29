@@ -120,7 +120,7 @@ export function QuickCreateSheet({ open, onClose, actions, isMobile }) {
               }}>{a.emoji}</span>
               <span style={{ minWidth: 0 }}>
                 <span style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#0F172A' }}>{a.label}</span>
-                {a.hint && <span style={{ display: 'block', fontSize: 10.5, color: '#94A3B8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.hint}</span>}
+                {a.hint && <span style={{ display: 'block', fontSize: 10.5, color: '#64748B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.hint}</span>}
               </span>
             </button>
           ))}

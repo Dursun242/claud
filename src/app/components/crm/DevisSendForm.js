@@ -24,7 +24,7 @@ const chip = {
   borderRadius: 6, padding: '4px 8px', maxWidth: '100%',
 }
 const chipX = {
-  background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8', fontSize: 14, lineHeight: 1,
+  background: 'none', border: 'none', cursor: 'pointer', color: '#64748B', fontSize: 14, lineHeight: 1,
   padding: '0 2px', fontFamily: 'inherit',
 }
 const smallBtn = { ...btnS, fontSize: 12, padding: '5px 10px', minHeight: 30 }

@@ -13,7 +13,7 @@ export default function TemplateSelector({
 }) {
   if (templates.length === 0) {
     return (
-      <p style={{ color: '#94A3B8', fontSize: 12 }}>
+      <p style={{ color: '#64748B', fontSize: 12 }}>
         Aucun template. Créez-en un en cliquant sur 💾 sur un {templateType}.
       </p>
     )

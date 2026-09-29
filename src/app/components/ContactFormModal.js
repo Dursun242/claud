@@ -164,7 +164,7 @@ export default function ContactFormModal({
                             {siege.code_postal} {siege.ville} — SIRET {r.siret}
                           </div>
                           {r.libelle_activite_principale && (
-                            <div style={{ fontSize: 10, color: '#94A3B8' }}>
+                            <div style={{ fontSize: 10, color: '#64748B' }}>
                               {r.libelle_activite_principale}
                             </div>
                           )}

@@ -4,7 +4,7 @@
  * EmptyState — état vide engageant et cohérent.
  *
  * Avant : 12+ implémentations différentes pour dire "rien à afficher",
- * allant d'un `<p style={{color:'#94A3B8'}}>Aucun X</p>` discret à des
+ * allant d'un `<p style={{color:'#64748B'}}>Aucun X</p>` discret à des
  * blocs avec icône 36px + sous-titre. Visuellement disparate.
  *
  * Cette version unifie :
@@ -52,7 +52,7 @@ export default function EmptyState({
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontWeight: 600, color: '#334155' }}>{title}</div>
           {description && (
-            <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 2, lineHeight: 1.4 }}>
+            <div style={{ fontSize: 11, color: '#64748B', marginTop: 2, lineHeight: 1.4 }}>
               {description}
             </div>
           )}

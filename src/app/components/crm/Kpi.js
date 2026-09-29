@@ -9,7 +9,7 @@ export default function Kpi({ label, value, sub, color, onClick }) {
     }}>
       <div style={{ fontSize: 10, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</div>
       <div style={{ fontSize: 20, fontWeight: 700, color: '#0F172A', marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value}</div>
-      <div style={{ fontSize: 10, color: '#94A3B8', marginTop: 2 }}>{sub}</div>
+      <div style={{ fontSize: 10, color: '#64748B', marginTop: 2 }}>{sub}</div>
     </Tag>
   )
 }

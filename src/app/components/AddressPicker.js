@@ -140,11 +140,11 @@ export default function AddressPicker({
               <div style={{ fontSize: 11, color: '#64748B' }}>{a.code_postal} {a.ville}{a.contexte ? ` · ${a.contexte}` : ''}</div>
             </button>
           ))}
-          <div style={{ padding: '4px 12px', fontSize: 9, color: '#94A3B8', borderTop: '1px solid #F1F5F9' }}>Base Adresse Nationale</div>
+          <div style={{ padding: '4px 12px', fontSize: 10, color: '#64748B', borderTop: '1px solid #F1F5F9' }}>Base Adresse Nationale</div>
         </div>
       )}
       {failed && (value || '').trim().length >= MIN_CHARS && (
-        <div style={{ fontSize: 10, color: '#94A3B8', marginTop: 3 }}>Suggestions indisponibles — tu peux saisir l&apos;adresse librement.</div>
+        <div style={{ fontSize: 10, color: '#64748B', marginTop: 3 }}>Suggestions indisponibles — tu peux saisir l&apos;adresse librement.</div>
       )}
     </div>
   )

@@ -117,7 +117,7 @@ function Toast({ notif, index, total, onDismiss, onClick, isMobile }) {
         onClick={(e) => { e.stopPropagation(); setClosing(true); setTimeout(() => onDismiss(notif.id), 180) }}
         aria-label="Fermer"
         style={{
-          background: 'transparent', border: 'none', color: '#94A3B8',
+          background: 'transparent', border: 'none', color: '#64748B',
           cursor: 'pointer', padding: 2, fontSize: 14, lineHeight: 1, fontFamily: 'inherit',
           flexShrink: 0,
         }}
@@ -278,7 +278,7 @@ export default function NotificationBell({ userEmail, onNavigate, isMobile = fal
             </div>
 
             {items.length === 0 ? (
-              <div style={{ padding: '24px 16px 28px', textAlign: 'center', color: '#94A3B8', fontSize: 12 }}>
+              <div style={{ padding: '24px 16px 28px', textAlign: 'center', color: '#64748B', fontSize: 12 }}>
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 6, opacity: 0.7 }} aria-hidden="true">
                   <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
                 </svg>
@@ -320,7 +320,7 @@ export default function NotificationBell({ userEmail, onNavigate, isMobile = fal
                               display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden',
                             }}>{n.body}</div>
                           )}
-                          <div style={{ fontSize: 9, color: '#94A3B8', marginTop: 4, fontWeight: 500, letterSpacing: '0.02em' }}>
+                          <div style={{ fontSize: 10, color: '#64748B', marginTop: 4, fontWeight: 500, letterSpacing: '0.02em' }}>
                             {relativeTime(n.created_at)}
                           </div>
                         </div>

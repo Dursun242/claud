@@ -17,7 +17,7 @@ export default function InteractionRow({ it, onToggle, onDelete, context }) {
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 12, fontWeight: 600, color: '#0F172A' }}>
           {it.sujet}
-          <span style={{ fontSize: 10, color: '#94A3B8', fontWeight: 400, marginLeft: 6 }}>{dateStr}</span>
+          <span style={{ fontSize: 10, color: '#64748B', fontWeight: 400, marginLeft: 6 }}>{dateStr}</span>
         </div>
         {context && <div style={{ fontSize: 10, color: '#64748B' }}>{context}</div>}
         {it.contenu && <div style={{ fontSize: 12, color: '#475569', whiteSpace: 'pre-wrap', marginTop: 2 }}>{it.contenu}</div>}

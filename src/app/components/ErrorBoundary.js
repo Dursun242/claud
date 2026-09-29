@@ -46,7 +46,7 @@ export default class ErrorBoundary extends Component {
             </p>
             {this.state.error && (
               <details style={{ textAlign: 'left', marginBottom: 20 }}>
-                <summary style={{ cursor: 'pointer', fontSize: 12, color: '#94A3B8' }}>
+                <summary style={{ cursor: 'pointer', fontSize: 12, color: '#64748B' }}>
                   Détails techniques
                 </summary>
                 <pre style={{
