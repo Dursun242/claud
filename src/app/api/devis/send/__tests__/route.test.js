@@ -1,7 +1,7 @@
 /**
  * @jest-environment node
  */
-let POST, verifyStaff, sendMail, createTransport
+let POST, verifyStaff, sendMail, createTransport, stored
 
 const PDF = Buffer.from('%PDF-1.4 test').toString('base64')
 
@@ -11,6 +11,14 @@ function loadRoute() {
   createTransport = jest.fn(() => ({ sendMail }))
   jest.doMock('nodemailer', () => ({ __esModule: true, default: { createTransport } }))
   jest.doMock('@/app/lib/auth', () => ({ verifyStaff: jest.fn() }))
+  stored = {}
+  jest.doMock('@/app/lib/supabaseClients', () => ({
+    adminClient: () => ({ storage: { from: () => ({
+      download: async (p) => (stored[p]
+        ? { data: { type: 'application/pdf', arrayBuffer: async () => stored[p] }, error: null }
+        : { data: null, error: { message: 'not found' } }),
+    }) } }),
+  }))
   POST = require('../route').POST
   verifyStaff = require('@/app/lib/auth').verifyStaff
 }
@@ -72,5 +80,20 @@ describe('/api/devis/send', () => {
       host: 'smtp.gmail.com', port: 465, secure: true, auth: { user: 'contact@id-maitrise.com', pass: 'abcdefghijklmnop' },
     }))
     expect(sendMail.mock.calls[0][0].from).toBe('ID Maîtrise <contact@id-maitrise.com>')
+  })
+
+  it('joint les documents cochés (Kbis, décennale, fichier ajouté) ; refuse un chemin hors dossier', async () => {
+    stored['devis-documents/1700000000000__Kbis ID Maîtrise.pdf'] = Buffer.from('%PDF kbis')
+    stored['devis-envoi/abc/plan.pdf'] = Buffer.from('%PDF plan')
+    const res = await POST(req({ ...valid, attachments: ['devis-documents/1700000000000__Kbis ID Maîtrise.pdf', 'devis-envoi/abc/plan.pdf'] }))
+    expect(res.status).toBe(200)
+    const files = sendMail.mock.calls[0][0].attachments
+    expect(files.map(f => f.filename)).toEqual(['26-050.pdf', 'Kbis ID Maîtrise.pdf', 'plan.pdf'])
+    expect(files[1].content.toString()).toBe('%PDF kbis')
+
+    expect((await POST(req({ ...valid, attachments: ['devis-signature/x/original-1.pdf'] }))).status).toBe(400)
+    expect((await POST(req({ ...valid, attachments: ['devis-envoi/../devis-signature/x.pdf'] }))).status).toBe(400)
+    expect((await POST(req({ ...valid, attachments: ['devis-envoi/zzz/absent.pdf'] }))).status).toBe(400)
+    expect(sendMail).toHaveBeenCalledTimes(1)
   })
 })

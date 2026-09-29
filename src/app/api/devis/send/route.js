@@ -13,6 +13,8 @@ import { createLogger } from '@/app/lib/logger'
 import { createRateLimiter } from '@/app/lib/rateLimit'
 import { parseEmails } from '@/app/lib/devisAi'
 import { smtpConfig, smtpErrorMessage, sendMail } from '@/app/lib/mailer'
+import { adminClient } from '@/app/lib/supabaseClients'
+import { isDocPath, docDisplayName, MAX_ATTACH_TOTAL, MAX_ATTACH_COUNT } from '@/app/lib/devisDocuments'
 
 export const maxDuration = 30
 
@@ -21,6 +23,28 @@ const checkRate = createRateLimiter({ limit: 10, windowMs: 60_000 })
 
 const MAX_PDF_BYTES = 8 * 1024 * 1024
 const MAX_RECIPIENTS = 10
+
+class AttachError extends Error {}
+
+/** Pièces jointes en plus du devis (Kbis, décennale, fichiers joints). */
+async function loadAttachments(paths) {
+  const list = [...new Set(Array.isArray(paths) ? paths : [])]
+  if (!list.length) return []
+  if (list.length > MAX_ATTACH_COUNT) throw new AttachError('Trop de pièces jointes')
+  if (!list.every(isDocPath)) throw new AttachError('Pièce jointe invalide')
+  const storage = adminClient().storage.from('attachments')
+  const out = []
+  let total = 0
+  for (const path of list) {
+    const { data, error } = await storage.download(path)
+    if (error || !data) throw new AttachError(`Pièce jointe introuvable : ${docDisplayName(path)}`)
+    const content = Buffer.from(await data.arrayBuffer())
+    total += content.length
+    if (total > MAX_ATTACH_TOTAL) throw new AttachError('Pièces jointes trop volumineuses (15 Mo au total).')
+    out.push({ filename: docDisplayName(path), content, ...(data.type ? { contentType: data.type } : {}) })
+  }
+  return out
+}
 
 export async function POST(request) {
   try {
@@ -66,6 +90,12 @@ export async function POST(request) {
     const filename = (String(body.filename || 'Devis.pdf').replace(/[^\w.\- ]+/g, '_').slice(0, 80) || 'Devis.pdf')
       .replace(/(\.pdf)?$/i, '.pdf')
 
+    let extra
+    try { extra = await loadAttachments(body.attachments) } catch (e) {
+      if (e instanceof AttachError) return Response.json({ error: e.message }, { status: 400 })
+      throw e
+    }
+
     const info = await sendMail(cfg, {
       to: to.list,
       cc: cc.list.length ? cc.list : undefined,
@@ -74,7 +104,7 @@ export async function POST(request) {
       replyTo: user.email || undefined,
       subject,
       text,
-      attachments: [{ filename, content: pdf, contentType: 'application/pdf' }],
+      attachments: [{ filename, content: pdf, contentType: 'application/pdf' }, ...extra],
     })
     return Response.json({ ok: true, messageId: info?.messageId || null, to: to.list })
   } catch (err) {

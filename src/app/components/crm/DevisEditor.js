@@ -1,5 +1,5 @@
 'use client'
-import { useMemo, useState } from 'react'
+import { useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { FF, inp, sel, btnP, btnS } from '../../dashboards/shared'
 import {
   TVA_TAUX, UNITES, blankLigne, blankTitre, ligneTotal, computeDevisTotals,
@@ -12,6 +12,19 @@ export const fmtEur = (n) =>
 
 const small = { ...inp, minHeight: 36, padding: '6px 8px', fontSize: 13 }
 const smallSel = { ...sel, minHeight: 36, padding: '6px 4px', fontSize: 13 }
+// Désignation : la zone de texte grandit avec son contenu (pas de texte
+// coupé ni de barre de défilement dans une ligne du devis)
+function AutoTextarea({ value, style, ...props }) {
+  const ref = useRef(null)
+  useLayoutEffect(() => {
+    const el = ref.current
+    if (!el) return
+    el.style.height = 'auto'
+    if (el.scrollHeight > 0) el.style.height = `${el.scrollHeight + 2}px`
+  }, [value])
+  return <textarea ref={ref} rows={1} value={value} style={{ ...style, resize: 'none', overflow: 'hidden', lineHeight: 1.45 }} {...props} />
+}
+
 const miniBtn = {
   background: 'none', border: '1px solid #E2E8F0', borderRadius: 6, cursor: 'pointer',
   padding: '2px 6px', fontSize: 11, color: '#64748B', fontFamily: 'inherit', lineHeight: 1.4,
@@ -78,7 +91,7 @@ export default function DevisEditor({
     } finally { setAiBusy(false) }
   }
 
-  const cols = m ? null : 'minmax(0,1fr) 84px 64px 100px 76px 96px 58px'
+  const cols = m ? null : 'minmax(0,1fr) 96px 64px 104px 84px 108px 60px'
 
   return (
     <div>
@@ -168,7 +181,7 @@ export default function DevisEditor({
                 ? suggestLignes(l.designation, history, 5) : []
               return (
                 <div style={{ position: 'relative', minWidth: 0 }}>
-                  <textarea style={{ ...small, minHeight: 36, resize: 'vertical' }} rows={1} value={l.designation || ''}
+                  <AutoTextarea style={small} value={l.designation || ''}
                     aria-label={`Désignation ligne ${i + 1}`} placeholder="Désignation (tes prix habituels s'affichent en tapant)"
                     onFocus={() => setActiveLine(i)} onBlur={() => setActiveLine(a => (a === i ? null : a))}
                     onChange={e => setLigne(i, 'designation', e.target.value)} />

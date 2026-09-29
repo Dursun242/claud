@@ -46,6 +46,7 @@ src/app/
     ├─ claude/                → proxy Anthropic (rate limit 20/min/IP)
     ├─ devis-ia, devis/send   → CRM : IA de chiffrage + envoi SMTP du devis (staff only, verifyStaff)
     ├─ devis/qonto            → CRM : devis créé dans Qonto (numéro + PDF Qonto), import des devis Qonto, suivi des statuts (staff only)
+    ├─ devis/documents        → CRM : pièces jointes des mails de devis (documents permanents Kbis/décennale + fichiers ponctuels, staff only)
     ├─ devis/sign             → CRM : demande de signature électronique d'un devis (staff only)
     ├─ devis/public           → page publique /signer/<jeton> : consultation + signature du devis (sans compte, jeton)
     ├─ cron/qonto-status      → vérification horaire des devis acceptés / annulés dans Qonto (GitHub Actions, secret CRON_SECRET)
