@@ -8,16 +8,7 @@ import { writeActivityLog, setLogContext, clearLogContext } from '../lib/activit
 
 // ─── SOURCE UNIQUE : INFOS ENTREPRISE ───
 // Modifier ici = mis à jour partout (PDFs, sidebar, footer, assistant IA)
-export const COMPANY = {
-  nom:       "SARL ID MAÎTRISE",
-  activite:  "Ingénierie de la construction",
-  adresse:   "9 Rue Henry Genestal",
-  cpVille:   "76600 LE HAVRE",
-  email:     "contact@id-maitrise.com",
-  siret:     "921 536 181 00024",
-  assurance: "Décennale MIC Insurance - N° LUN2205206",
-  gerant:    "Dursun",
-}
+export { COMPANY } from '../lib/company'
 
 export const LocalDB = {
   get(key) {
