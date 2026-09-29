@@ -620,17 +620,16 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
       // Signature électronique intégrée : le PDF Qonto est conservé et un
       // lien de signature sécurisé est ajouté au mail. Préparée avant le
       // mail : en cas d'échec, rien ne part.
-      let text = form.body
+      let signUrl
       if (form.sign) {
         const { data: sig } = await apiPost('/api/devis/sign', {
           action: 'send', devisId: d.id, pdfBase64: base64, signerEmail: form.to,
         })
-        const link = `${window.location.origin}/signer/${sig.token}`
-        text = `${form.body}\n\nPour signer ce devis en ligne (bon pour accord) :\n${link}`
+        signUrl = `${window.location.origin}/signer/${sig.token}`
       }
       try {
         await apiPost('/api/devis/send', {
-          to: form.to, cc: form.cc, subject: form.subject, text,
+          to: form.to, cc: form.cc, subject: form.subject, text: form.body, signUrl,
           copyMe: form.copyMe, pdfBase64: base64, filename, attachments: form.attachments || [],
         })
       } catch (e) {

@@ -96,4 +96,15 @@ describe('/api/devis/send', () => {
     expect((await POST(req({ ...valid, attachments: ['devis-envoi/zzz/absent.pdf'] }))).status).toBe(400)
     expect(sendMail).toHaveBeenCalledTimes(1)
   })
+
+  it('version HTML aux couleurs de la société, lien de signature en bouton et en texte', async () => {
+    const signUrl = `https://claud-dusky.vercel.app/signer/${'b'.repeat(64)}`
+    expect((await POST(req({ ...valid, signUrl }))).status).toBe(200)
+    const mail = sendMail.mock.calls[0][0]
+    expect(mail.text).toBe(`Bonjour\n\nPour signer ce devis en ligne (bon pour accord) :\n${signUrl}`)
+    expect(mail.html).toContain(`href="${signUrl}"`)
+    expect(mail.html).toContain('SARL ID MAÎTRISE')
+    expect(mail.html).toContain('📎 26-050.pdf')
+    expect((await POST(req({ ...valid, signUrl: 'https://evil.test/x' }))).status).toBe(400)
+  })
 })

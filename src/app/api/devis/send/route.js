@@ -15,6 +15,8 @@ import { parseEmails } from '@/app/lib/devisAi'
 import { smtpConfig, smtpErrorMessage, sendMail } from '@/app/lib/mailer'
 import { adminClient } from '@/app/lib/supabaseClients'
 import { isDocPath, docDisplayName, MAX_ATTACH_TOTAL, MAX_ATTACH_COUNT } from '@/app/lib/devisDocuments'
+import { devisMailHtml, isSignUrl } from '@/app/lib/devisMailHtml'
+import { COMPANY } from '@/app/lib/company'
 
 export const maxDuration = 30
 
@@ -79,8 +81,12 @@ export async function POST(request) {
     }
 
     const subject = String(body.subject || '').replace(/[\r\n]+/g, ' ').trim().slice(0, 200)
-    const text = String(body.text || '').slice(0, 20_000)
-    if (!subject || !text.trim()) return Response.json({ error: 'Objet et message requis' }, { status: 400 })
+    const message = String(body.text || '').slice(0, 20_000)
+    if (!subject || !message.trim()) return Response.json({ error: 'Objet et message requis' }, { status: 400 })
+    // Lien de signature en ligne : bouton dans la version HTML
+    const signUrl = body.signUrl ? String(body.signUrl) : ''
+    if (signUrl && !isSignUrl(signUrl)) return Response.json({ error: 'Lien de signature invalide' }, { status: 400 })
+    const text = signUrl ? `${message}\n\nPour signer ce devis en ligne (bon pour accord) :\n${signUrl}` : message
 
     const b64 = String(body.pdfBase64 || '').replace(/^data:application\/pdf;[^,]*,/, '')
     if (!b64 || !/^[A-Za-z0-9+/=\s]+$/.test(b64)) return Response.json({ error: 'PDF manquant' }, { status: 400 })
@@ -104,6 +110,7 @@ export async function POST(request) {
       replyTo: user.email || undefined,
       subject,
       text,
+      html: devisMailHtml({ body: message, signUrl, company: COMPANY, title: subject, attachments: [filename, ...extra.map(a => a.filename)] }),
       attachments: [{ filename, content: pdf, contentType: 'application/pdf' }, ...extra],
     })
     return Response.json({ ok: true, messageId: info?.messageId || null, to: to.list })

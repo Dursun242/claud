@@ -355,7 +355,7 @@ describe('CrmV — envoi par mail et IA', () => {
     // Signature électronique (cochée par défaut) : PDF Qonto conservé + lien dans le mail
     const [sign] = callsTo('/api/devis/sign')
     expect(sign.body).toMatchObject({ action: 'send', devisId: 'd1', pdfBase64: 'JVBERi0xLjQ=', signerEmail: 'cousin@exemple.fr' })
-    expect(opts.body.text).toContain(`/signer/${'a'.repeat(64)}`)
+    expect(opts.body.signUrl).toMatch(new RegExp(`/signer/${'a'.repeat(64)}$`))
     expect(require('../../generators').generateDevisPdf).not.toHaveBeenCalled()
     expect(crmDb.moveOpportunite).toHaveBeenCalledWith(expect.objectContaining({ id: 'o5' }), 'Devis envoyé', { montant_estime: 8000 })
     expect(addToast).toHaveBeenCalledWith('Devis 26-050 envoyé à cousin@exemple.fr pour signature électronique', 'success')

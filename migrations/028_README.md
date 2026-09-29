@@ -101,3 +101,11 @@ Dans la fenêtre « Envoyer le devis », en plus du PDF Qonto :
 Fichiers stockés dans le bucket privé `attachments` (`devis-documents/` et
 `devis-envoi/`), via `/api/devis/documents` (staff). PDF, JPG, PNG, Word ou
 Excel, 4 Mo maximum par fichier, 15 Mo au total. Aucune migration SQL.
+
+## Mail de devis en HTML
+
+Le mail part en deux versions (le logiciel de messagerie choisit) : texte
+brut et HTML aux couleurs d'ID Maîtrise (`lib/devisMailHtml.js`) — en-tête,
+message saisi, bouton « Consulter et signer le devis » si la signature
+électronique est demandée, liste des pièces jointes, pied de page société
+(`lib/company.js`, source unique des infos société).
