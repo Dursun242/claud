@@ -12,7 +12,7 @@
 // Le token arrive dans Supabase uniquement lors du setup initial
 // (QontoV.saveToken) via le client Supabase direct (HTTPS mTLS).
 
-import { verifyAuth } from '@/app/lib/auth'
+import { verifyStaff } from '@/app/lib/auth'
 import { fetchWithRetry } from '@/app/lib/fetchWithRetry'
 import { createLogger } from '@/app/lib/logger'
 import { adminClient } from '@/app/lib/supabaseClients'
@@ -52,9 +52,9 @@ async function getQontoToken() {
 export async function POST(request) {
   try {
     // 1. Auth JWT Supabase obligatoire
-    const user = await verifyAuth(request)
+    const { user, status } = await verifyStaff(request)
     if (!user) {
-      return Response.json({ error: 'Non autorisé' }, { status: 401 })
+      return Response.json({ error: status === 403 ? 'Réservé à l’équipe' : 'Non autorisé' }, { status })
     }
 
     // 2. Body : uniquement `endpoint`, pas de token

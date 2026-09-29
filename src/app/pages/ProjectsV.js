@@ -488,6 +488,7 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
           intervenants={selectedRelated.intervenants || []}
           clientContact={selectedRelated.clientContact}
           onRefresh={reload}
+          readOnly={readOnly}
         />
       )}
 

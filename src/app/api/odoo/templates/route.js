@@ -1,29 +1,40 @@
 import { NextResponse } from 'next/server'
-import { getSignTemplates, testConnection, inspectModel } from '../../../lib/odoo'
-import { verifyAuth } from '@/app/lib/auth'
+import { getSignTemplates, testConnection } from '../../../lib/odoo'
+import { verifyStaff } from '@/app/lib/auth'
+import { createLogger } from '@/app/lib/logger'
+
+const log = createLogger('odoo-templates')
+
+async function denyUnlessStaff(request) {
+  const { user, status } = await verifyStaff(request)
+  if (user) return null
+  return NextResponse.json({ error: status === 403 ? 'Réservé à l’équipe' : 'Non autorisé' }, { status })
+}
 
 // GET /api/odoo/templates — liste les templates Odoo Sign
 export async function GET(request) {
-  const user = await verifyAuth(request)
-  if (!user) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+  const denied = await denyUnlessStaff(request)
+  if (denied) return denied
 
   try {
     const templates = await getSignTemplates()
-    // Inspecter les champs sign.template pour le diagnostic
-    const fields = await inspectModel('sign.template')
-    return NextResponse.json({ templates, _signTemplateFields: Object.keys(fields) })
+    return NextResponse.json({ templates })
   } catch (err) {
-    console.error('❌ Odoo templates:', err.message)
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    log.error('templates', err?.message || err)
+    return NextResponse.json({ error: 'Erreur Odoo' }, { status: 500 })
   }
 }
 
-// GET /api/odoo/templates?test=1 — teste la connexion
-export async function HEAD(_request) {
+// HEAD /api/odoo/templates — teste la connexion
+export async function HEAD(request) {
+  const denied = await denyUnlessStaff(request)
+  if (denied) return denied
+
   try {
     const info = await testConnection()
     return NextResponse.json(info)
   } catch (err) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    log.error('test connexion', err?.message || err)
+    return NextResponse.json({ error: 'Erreur Odoo' }, { status: 500 })
   }
 }

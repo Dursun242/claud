@@ -10,7 +10,7 @@
 //   - Cache court (5s) du token
 //   - Invalidation cache sur 401 Qonto
 
-jest.mock('@/app/lib/auth', () => ({ verifyAuth: jest.fn() }))
+jest.mock('@/app/lib/auth', () => ({ verifyStaff: jest.fn() }))
 jest.mock('@/app/lib/fetchWithRetry', () => ({ fetchWithRetry: jest.fn() }))
 jest.mock('@/app/lib/supabaseClients', () => ({ adminClient: jest.fn() }))
 jest.mock('@/app/lib/logger', () => ({
@@ -19,18 +19,18 @@ jest.mock('@/app/lib/logger', () => ({
 
 // Le module met en cache le token à l'échelle du module → chaque test
 // doit réinitialiser l'état avec jest.resetModules() pour repartir propre.
-let POST, verifyAuth, fetchWithRetry, adminClient
+let POST, verifyStaff, fetchWithRetry, adminClient
 
 function loadRoute() {
   jest.resetModules()
-  jest.doMock('@/app/lib/auth', () => ({ verifyAuth: jest.fn() }))
+  jest.doMock('@/app/lib/auth', () => ({ verifyStaff: jest.fn() }))
   jest.doMock('@/app/lib/fetchWithRetry', () => ({ fetchWithRetry: jest.fn() }))
   jest.doMock('@/app/lib/supabaseClients', () => ({ adminClient: jest.fn() }))
   jest.doMock('@/app/lib/logger', () => ({
     createLogger: () => ({ debug: () => {}, info: () => {}, warn: () => {}, error: () => {} }),
   }))
   POST = require('../route').POST
-  verifyAuth = require('@/app/lib/auth').verifyAuth
+  verifyStaff = require('@/app/lib/auth').verifyStaff
   fetchWithRetry = require('@/app/lib/fetchWithRetry').fetchWithRetry
   adminClient = require('@/app/lib/supabaseClients').adminClient
 }
@@ -68,38 +68,45 @@ beforeEach(() => { loadRoute() })
 
 describe('POST /api/qonto', () => {
   it('renvoie 401 sans auth', async () => {
-    verifyAuth.mockResolvedValue(null)
+    verifyStaff.mockResolvedValue({ user: null, status: 401 })
     const res = await POST(makeRequest({ body: { endpoint: 'clients' } }))
     expect(res.status).toBe(401)
   })
 
+  it('renvoie 403 pour un client (MOA) sans appeler Qonto', async () => {
+    verifyStaff.mockResolvedValue({ user: null, status: 403 })
+    const res = await POST(makeRequest({ body: { endpoint: 'clients' } }))
+    expect(res.status).toBe(403)
+    expect(fetchWithRetry).not.toHaveBeenCalled()
+  })
+
   it('renvoie 400 si endpoint manquant', async () => {
-    verifyAuth.mockResolvedValue({ id: 'u1' })
+    verifyStaff.mockResolvedValue({ user: { id: 'u1' }, status: 200 })
     const res = await POST(makeRequest({ token: 't', body: {} }))
     expect(res.status).toBe(400)
   })
 
   it('renvoie 403 pour un endpoint non whitelisté', async () => {
-    verifyAuth.mockResolvedValue({ id: 'u1' })
+    verifyStaff.mockResolvedValue({ user: { id: 'u1' }, status: 200 })
     const res = await POST(makeRequest({ token: 't', body: { endpoint: 'memberships' } }))
     expect(res.status).toBe(403)
   })
 
   it("refuse 'memberships/clients' (tentative de contournement par sous-string)", async () => {
     // Avant le fix regex, `.includes('clients')` laissait passer.
-    verifyAuth.mockResolvedValue({ id: 'u1' })
+    verifyStaff.mockResolvedValue({ user: { id: 'u1' }, status: 200 })
     const res = await POST(makeRequest({ token: 't', body: { endpoint: 'memberships/clients' } }))
     expect(res.status).toBe(403)
   })
 
   it("refuse les path traversal ('../clients')", async () => {
-    verifyAuth.mockResolvedValue({ id: 'u1' })
+    verifyStaff.mockResolvedValue({ user: { id: 'u1' }, status: 200 })
     const res = await POST(makeRequest({ token: 't', body: { endpoint: '../clients' } }))
     expect(res.status).toBe(403)
   })
 
   it("accepte les endpoints avec UUID comme 'client_invoices/<uuid>'", async () => {
-    verifyAuth.mockResolvedValue({ id: 'u1' })
+    verifyStaff.mockResolvedValue({ user: { id: 'u1' }, status: 200 })
     adminClient.mockReturnValue(supaWithToken('login:s'))
     fetchWithRetry.mockResolvedValue(fakeOk({ client_invoice: {} }))
 
@@ -110,7 +117,7 @@ describe('POST /api/qonto', () => {
   })
 
   it("renvoie 400 si le token Qonto n'est pas configuré en DB", async () => {
-    verifyAuth.mockResolvedValue({ id: 'u1' })
+    verifyStaff.mockResolvedValue({ user: { id: 'u1' }, status: 200 })
     adminClient.mockReturnValue(supaWithToken(null))
 
     const res = await POST(makeRequest({ token: 't', body: { endpoint: 'clients' } }))
@@ -119,7 +126,7 @@ describe('POST /api/qonto', () => {
   })
 
   it('proxy la réponse Qonto et envoie le token en header Authorization', async () => {
-    verifyAuth.mockResolvedValue({ id: 'u1' })
+    verifyStaff.mockResolvedValue({ user: { id: 'u1' }, status: 200 })
     adminClient.mockReturnValue(supaWithToken('login:secret-123'))
     fetchWithRetry.mockResolvedValue(fakeOk({ clients: [{ id: 'c1' }] }))
 
@@ -134,7 +141,7 @@ describe('POST /api/qonto', () => {
   })
 
   it('accepte des endpoints avec query string (client_invoices?exclude_imports=false)', async () => {
-    verifyAuth.mockResolvedValue({ id: 'u1' })
+    verifyStaff.mockResolvedValue({ user: { id: 'u1' }, status: 200 })
     adminClient.mockReturnValue(supaWithToken('login:s'))
     fetchWithRetry.mockResolvedValue(fakeOk({ client_invoices: [] }))
 
@@ -148,7 +155,7 @@ describe('POST /api/qonto', () => {
   })
 
   it('propage le status code Qonto en cas d\'erreur', async () => {
-    verifyAuth.mockResolvedValue({ id: 'u1' })
+    verifyStaff.mockResolvedValue({ user: { id: 'u1' }, status: 200 })
     adminClient.mockReturnValue(supaWithToken('login:s'))
     fetchWithRetry.mockResolvedValue(fakeErr(429, 'rate limited'))
 
@@ -157,7 +164,7 @@ describe('POST /api/qonto', () => {
   })
 
   it('met en cache le token sur 2 appels rapprochés (1 seul SELECT Supabase)', async () => {
-    verifyAuth.mockResolvedValue({ id: 'u1' })
+    verifyStaff.mockResolvedValue({ user: { id: 'u1' }, status: 200 })
     const supa = supaWithToken('login:cached')
     adminClient.mockReturnValue(supa)
     fetchWithRetry.mockResolvedValue(fakeOk({}))
@@ -170,7 +177,7 @@ describe('POST /api/qonto', () => {
   })
 
   it('invalide le cache sur 401 Qonto (token révoqué) → refait un SELECT au prochain appel', async () => {
-    verifyAuth.mockResolvedValue({ id: 'u1' })
+    verifyStaff.mockResolvedValue({ user: { id: 'u1' }, status: 200 })
     const supa = supaWithToken('login:old')
     adminClient.mockReturnValue(supa)
     fetchWithRetry.mockResolvedValueOnce(fakeErr(401, 'unauth'))
