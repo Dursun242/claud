@@ -31,14 +31,16 @@ const log = (sb, action, entityType, id, label) =>
  *             missingMigration: boolean, devisMissing: boolean }}
  */
 export async function loadCrm(sb = defaultClient) {
-  const [opp, inter, dev] = await Promise.all([
+  const [opp, inter, dev, ev] = await Promise.all([
     sb.from('crm_opportunites').select('*').order('updated_at', { ascending: false }),
     sb.from('crm_interactions').select('*').order('date', { ascending: false }).limit(1000),
     sb.from('crm_devis').select('*').order('created_at', { ascending: false }).limit(1000),
+    // Suivi des ouvertures / consultations (migration 030, facultative)
+    sb.from('crm_devis_events').select('devis_id, kind, created_at').order('created_at', { ascending: false }).limit(3000),
   ])
   if (opp.error) {
     if (isMissingTable(opp.error)) {
-      return { opportunites: [], interactions: [], devis: [], missingMigration: true, devisMissing: true }
+      return { opportunites: [], interactions: [], devis: [], devisEvents: [], missingMigration: true, devisMissing: true }
     }
     throw new Error('Erreur chargement CRM : ' + opp.error.message)
   }
@@ -46,6 +48,7 @@ export async function loadCrm(sb = defaultClient) {
     opportunites: opp.data || [],
     interactions: inter.error ? [] : (inter.data || []),
     devis: dev?.error ? [] : (dev?.data || []),
+    devisEvents: ev?.error ? [] : (ev?.data || []),
     missingMigration: false,
     devisMissing: !!(dev?.error && isMissingTable(dev.error)),
   }

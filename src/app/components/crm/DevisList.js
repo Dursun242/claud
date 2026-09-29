@@ -20,6 +20,21 @@ export function qontoState(d = {}) {
  * Les actions proposées dépendent du statut : Brouillon → Envoyer,
  * Envoyé → Accepté / Refusé, toujours : PDF, Qonto, Dupliquer, Supprimer.
  */
+const fmtDT = (iso) => new Date(iso).toLocaleString('fr-FR', { timeZone: 'Europe/Paris', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+const EVENT_LABEL = { ouverture: 'mail ouvert', consultation: 'devis consulté en ligne', pdf: 'PDF consulté en ligne' }
+
+/** Suivi du devis envoyé : ouvertures du mail et consultations en ligne. */
+function SuiviLine({ suivi }) {
+  const detail = suivi.events.slice(0, 15).map(e => `${fmtDT(e.created_at)} — ${EVENT_LABEL[e.kind] || e.kind}`).join('\n')
+  return (
+    <div title={detail} style={{ fontSize: 11, color: '#0369A1', marginTop: 3, fontWeight: 600 }}>
+      {suivi.ouvertures > 0 && <span>👁 ouvert {suivi.ouvertures}× · dernier le {fmtDT(suivi.derniereOuverture)}</span>}
+      {suivi.ouvertures > 0 && suivi.consultations > 0 && <span style={{ color: '#94A3B8' }}> · </span>}
+      {suivi.consultations > 0 && <span>🔗 consulté en ligne {suivi.consultations}× · dernier le {fmtDT(suivi.derniereConsultation)}</span>}
+    </div>
+  )
+}
+
 export default function DevisList({ devis = [], missing, saving, onNew, onOpen, onPdf, onSend, onAccept, onRefuse, onDuplicate, onDelete, onQonto, onSignedPdf }) {
   return (
     <div style={{ marginBottom: 14 }}>
@@ -73,6 +88,7 @@ export default function DevisList({ devis = [], missing, saving, onNew, onOpen, 
                     {fmtEur(d.total_ht)} HT · {fmtEur(d.total_ttc)} TTC
                     {d.date_envoi ? ` · envoyé le ${fmtD(d.date_envoi)}` : ` · du ${fmtD(d.date_emission)}`}
                   </div>
+                  {d._suivi && <SuiviLine suivi={d._suivi} />}
                 </button>
                 <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                   <button onClick={() => onPdf(d)} style={act} aria-label={`Télécharger le PDF ${d.numero}`}>PDF</button>

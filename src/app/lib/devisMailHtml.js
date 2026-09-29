@@ -48,8 +48,9 @@ export function isSignUrl(url) {
  * @param {object} p.company      COMPANY (lib/company.js)
  * @param {string} [p.title]      titre (objet du mail) pour l'aperçu
  * @param {string} [p.logoSrc]    image du logo (ex. « cid:… ») ; sans logo : en-tête texte
+ * @param {string} [p.trackUrl]   image de suivi des ouvertures (1×1, invisible)
  */
-export function devisMailHtml({ body, signUrl, attachments = [], company = {}, title = '', logoSrc = '' }) {
+export function devisMailHtml({ body, signUrl, attachments = [], company = {}, title = '', logoSrc = '', trackUrl = '' }) {
   const header = logoSrc
     ? `<tr><td style="background:#FFFFFF;padding:22px 32px 16px;">
           <img src="${escapeHtml(logoSrc)}" width="280" height="79" alt="${escapeHtml(company.nom || 'ID Maîtrise')}" style="display:block;width:280px;max-width:100%;height:auto;border:0;">
@@ -96,7 +97,8 @@ ${textToHtml(body)}
         <tr><td style="padding:18px 32px;background:#F8FAFC;border-top:1px solid #E2E8F0;font-size:12px;line-height:1.6;color:${MUTED};">
           ${footer}
         </td></tr>
-      </table>
+      </table>${trackUrl ? `
+      <img src="${escapeHtml(trackUrl)}" width="1" height="1" alt="" style="display:block;width:1px;height:1px;border:0;opacity:0;">` : ''}
     </td></tr>
   </table>
 </body></html>`

@@ -16,6 +16,7 @@ import { adminClient } from '@/app/lib/supabaseClients'
 import { isSignToken, decodeSignaturePng, stampSignature, sha256 } from '@/app/lib/devisSignature'
 import { notifyTeam, fmtEur } from '@/app/lib/devisNotify'
 import { getQontoToken, pushQuoteStatus } from '@/app/lib/qontoServer'
+import { recordDevisEvent } from '@/app/lib/devisTracking'
 
 export const maxDuration = 30
 
@@ -62,6 +63,10 @@ export async function GET(request) {
     const admin = adminClient()
     const devis = await findByToken(admin, searchParams.get('token'))
     if (!devis) return fail('Lien de signature invalide ou expiré.', 404)
+    // Suivi (migration 030) : le client a consulté le devis en ligne
+    await recordDevisEvent(admin, devis.id, searchParams.get('pdf') ? 'pdf' : 'consultation', {
+      ip: clientIp(request), userAgent: request.headers.get('user-agent'), log,
+    })
 
     if (searchParams.get('pdf')) {
       const path = devis.statut_signature === 'Signé' && devis.signed_pdf_path ? devis.signed_pdf_path : devis.sign_pdf_path

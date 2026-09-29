@@ -1,0 +1,26 @@
+import { render, screen } from '@testing-library/react'
+import DevisList from '../DevisList'
+
+const noop = () => {}
+const base = { id: 'd1', numero: 'D-2026-040', statut: 'Envoyé', total_ht: 9050, total_ttc: 10860, date_emission: '2026-09-29', date_envoi: '2026-09-29', lignes: [] }
+const props = { onNew: noop, onOpen: noop, onPdf: noop, onSend: noop, onAccept: noop, onRefuse: noop, onDuplicate: noop, onDelete: noop }
+
+describe('DevisList — suivi', () => {
+  it('affiche ouvertures du mail et consultations en ligne, détail au survol', () => {
+    const _suivi = {
+      ouvertures: 3, consultations: 1,
+      derniereOuverture: '2026-09-29T08:12:00Z', derniereConsultation: '2026-09-29T08:15:00Z',
+      events: [{ kind: 'consultation', created_at: '2026-09-29T08:15:00Z' }, { kind: 'ouverture', created_at: '2026-09-29T08:12:00Z' }],
+    }
+    render(<DevisList devis={[{ ...base, _suivi }]} {...props} />)
+    const line = screen.getByText(/ouvert 3×/).parentElement
+    expect(line).toHaveTextContent('👁 ouvert 3× · dernier le 29/09 10:12')
+    expect(line).toHaveTextContent('🔗 consulté en ligne 1×')
+    expect(line.getAttribute('title')).toMatch(/29\/09 10:15 — devis consulté en ligne\n29\/09 10:12 — mail ouvert/)
+  })
+
+  it('rien sans suivi', () => {
+    render(<DevisList devis={[base]} {...props} />)
+    expect(screen.queryByText(/ouvert \d+×/)).not.toBeInTheDocument()
+  })
+})

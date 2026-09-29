@@ -18,6 +18,8 @@ function fakeAdmin() {
         select: () => b,
         eq: (k, v) => { q.filters.push([k, v]); return b },
         neq: () => b,
+        gte: () => b,
+        limit: async () => ({ data: [] }),
         update: (patch) => { q.patch = patch; updates.push({ table, patch }); return b },
         insert: async (row) => { inserts.push({ table, row }); return { error: null } },
         maybeSingle: async () => ({ data: table === 'crm_devis' ? (q.filters.some(([k, v]) => k === 'sign_token' && v === db.devis?.sign_token) ? db.devis : null) : db[table], error: null }),
@@ -146,5 +148,15 @@ describe('/api/devis/public', () => {
   it('POST : double clic → le second est refusé', async () => {
     db.alreadySigned = true
     expect((await POST(sign())).status).toBe(409)
+  })
+
+  it('suivi : consultation de la page et du PDF enregistrées', async () => {
+    await GET(req())
+    await GET(req({ url: `https://app.test/api/devis/public?token=${TOKEN}&pdf=1` }))
+    const events = inserts.filter(i => i.table === 'crm_devis_events').map(i => i.row)
+    expect(events).toEqual([
+      expect.objectContaining({ devis_id: 'd1', kind: 'consultation', ip: '9.8.7.6', user_agent: 'Safari iOS' }),
+      expect.objectContaining({ devis_id: 'd1', kind: 'pdf' }),
+    ])
   })
 })
