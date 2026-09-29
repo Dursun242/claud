@@ -998,7 +998,7 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
       </Modal>
 
       {/* ─── ÉDITEUR DE DEVIS ─── */}
-      <Modal open={!!devisForm} onClose={closeDevis} wide
+      <Modal open={!!devisForm} onClose={closeDevis} wide="xl"
         title={devisForm ? `${isNumeroProvisoire(devisForm.numero) ? 'Nouveau devis' : `Devis ${devisForm.numero}`}${oppOf(devisForm) ? ` · ${oppOf(devisForm).titre}` : ''}` : ''}>
         {devisForm && (
           <DevisEditor form={devisForm} setForm={setDevisForm} m={m} error={devisError} saving={saving} unites={unites}

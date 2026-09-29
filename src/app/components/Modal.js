@@ -112,9 +112,10 @@ export default function Modal({ open, onClose, title, children, wide = false }) 
           // pour un look bottom-sheet natif
           borderRadius: isMobile ? '16px 16px 0 0' : 16,
           padding: isMobile ? '18px 16px 20px' : '20px',
-          width: wide ? 700 : 520,
+          // wide : 700 px ; wide="xl" : 1040 px (éditeur de devis)
+          width: wide === 'xl' ? 1040 : wide ? 700 : 520,
           maxWidth: '100%',
-          maxHeight: isMobile ? '92vh' : '85vh',
+          maxHeight: isMobile ? '92vh' : wide === 'xl' ? '92vh' : '85vh',
           overflow: 'auto',
           boxShadow: '0 25px 50px rgba(15,23,42,0.25)',
           animation: ANIMATION.popIn,
