@@ -105,7 +105,8 @@ Excel, 4 Mo maximum par fichier, 15 Mo au total. Aucune migration SQL.
 ## Mail de devis en HTML
 
 Le mail part en deux versions (le logiciel de messagerie choisit) : texte
-brut et HTML aux couleurs d'ID Maîtrise (`lib/devisMailHtml.js`) — en-tête,
+brut et HTML aux couleurs d'ID Maîtrise (`lib/devisMailHtml.js`) — en-tête avec logo
+(image intégrée, `lib/companyLogo.js`, source `public/images/logo-id-maitrise.png`),
 message saisi, bouton « Consulter et signer le devis » si la signature
 électronique est demandée, liste des pièces jointes, pied de page société
 (`lib/company.js`, source unique des infos société).

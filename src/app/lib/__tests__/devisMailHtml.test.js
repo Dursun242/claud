@@ -36,4 +36,11 @@ describe('devisMailHtml', () => {
     expect(isSignUrl('https://x.test/signer/abc')).toBe(false)
     expect(isSignUrl('javascript:alert(1)//signer/' + 'f'.repeat(64))).toBe(false)
   })
+
+  it('en-tête : logo si fourni, sinon nom de la société en texte', () => {
+    const withLogo = devisMailHtml({ body: 'x', company: COMPANY, logoSrc: 'cid:logo-id-maitrise' })
+    expect(withLogo).toContain('<img src="cid:logo-id-maitrise"')
+    expect(withLogo).toContain('alt="SARL ID MAÎTRISE"')
+    expect(devisMailHtml({ body: 'x', company: COMPANY })).not.toContain('<img')
+  })
 })

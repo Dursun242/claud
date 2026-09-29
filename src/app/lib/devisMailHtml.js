@@ -47,8 +47,18 @@ export function isSignUrl(url) {
  * @param {string[]} [p.attachments] noms des pièces jointes
  * @param {object} p.company      COMPANY (lib/company.js)
  * @param {string} [p.title]      titre (objet du mail) pour l'aperçu
+ * @param {string} [p.logoSrc]    image du logo (ex. « cid:… ») ; sans logo : en-tête texte
  */
-export function devisMailHtml({ body, signUrl, attachments = [], company = {}, title = '' }) {
+export function devisMailHtml({ body, signUrl, attachments = [], company = {}, title = '', logoSrc = '' }) {
+  const header = logoSrc
+    ? `<tr><td style="background:#FFFFFF;padding:22px 32px 16px;">
+          <img src="${escapeHtml(logoSrc)}" width="280" height="79" alt="${escapeHtml(company.nom || 'ID Maîtrise')}" style="display:block;width:280px;max-width:100%;height:auto;border:0;">
+        </td></tr>
+        <tr><td style="height:4px;background:${NAVY};font-size:0;line-height:0;">&nbsp;</td></tr>`
+    : `<tr><td style="background:${NAVY};padding:22px 32px;">
+          <div style="font-size:20px;font-weight:700;letter-spacing:.08em;color:#FFFFFF;">ID MAÎTRISE</div>
+          <div style="font-size:12px;color:#CBD5E1;margin-top:2px;">${escapeHtml(company.activite || 'Maîtrise d’œuvre')}</div>
+        </td></tr>`
   const sign = signUrl && isSignUrl(signUrl) ? `
           <tr><td style="padding:6px 32px 26px;">
             <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;width:100%;">
@@ -78,10 +88,7 @@ export function devisMailHtml({ body, signUrl, attachments = [], company = {}, t
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#F1F5F9;">
     <tr><td align="center" style="padding:24px 12px;">
       <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:600px;background:#FFFFFF;border-radius:12px;overflow:hidden;font-family:${FONT};">
-        <tr><td style="background:${NAVY};padding:22px 32px;">
-          <div style="font-size:20px;font-weight:700;letter-spacing:.08em;color:#FFFFFF;">ID MAÎTRISE</div>
-          <div style="font-size:12px;color:#CBD5E1;margin-top:2px;">${escapeHtml(company.activite || 'Maîtrise d’œuvre')}</div>
-        </td></tr>
+        ${header}
         <tr><td style="height:3px;background:${ACCENT};font-size:0;line-height:0;">&nbsp;</td></tr>
         <tr><td style="padding:28px 32px 10px;font-size:15px;line-height:1.6;color:${TEXT};">
 ${textToHtml(body)}
