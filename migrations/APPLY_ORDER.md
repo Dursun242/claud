@@ -36,6 +36,7 @@ Exécuter dans cet ordre exact sur une base vierge (Supabase Dashboard → SQL E
 | 028 | `028_crm_devis_qonto.sql` | Colonnes `qonto_quote_id` / `qonto_client_id` / `qonto_url` / `qonto_synced_at` / `qonto_hash` sur `crm_devis` : enregistrement du devis dans Qonto avec le même numéro. Voir `028_README.md`. |
 | 029 | `029_crm_devis_signature.sql` | Signature électronique intégrée des devis (lien sécurisé, signature apposée sur le PDF Qonto, preuves). Voir `029_README.md`. |
 | 030 | `030_crm_devis_suivi.sql` | Suivi des devis : ouvertures du mail (image de suivi) et consultations du lien de signature, visibles par l'équipe. Voir `030_README.md`. |
+| 031 | `031_securite_fonctions_index.sql` | Retire l'exécution publique (RPC) des fonctions internes de notification (`create_activity_notification`, `_ex`, `chantier_name`) + index `rdv(chantier_id)` et `contact_chantiers(chantier_id)`. Sans impact sur les notifications automatiques. |
 
 ## Fichiers NON séquentiels (à ne PAS appliquer en séquence)
 
@@ -46,7 +47,7 @@ Exécuter dans cet ordre exact sur une base vierge (Supabase Dashboard → SQL E
 | `add-odoo-sign-to-os.sql` | Legacy / ad-hoc | idem |
 | `fix-add-admin-user.sql` | Hotfix ponctuel | idem |
 | `fix-create-storage-bucket.sql` | Hotfix ponctuel | idem |
-| `fix-storage-rls-policies.sql` | Hotfix ponctuel | idem |
+| `fix-storage-rls-policies.sql` | ⚠ Obsolète | **Ne pas réexécuter** : rouvre tout le bucket, annule les policies préfixées de 021. |
 
 ## Migrations externes (hors dossier)
 
