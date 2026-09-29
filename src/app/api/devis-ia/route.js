@@ -21,7 +21,7 @@ export const maxDuration = 60
 const log = createLogger('devis-ia')
 const checkRate = createRateLimiter({ limit: 10, windowMs: 60_000 })
 
-const MODEL = 'claude-opus-5'
+const MODEL = 'claude-haiku-4-5-20251001'
 
 const GENERATE_SYSTEM = `Tu es l'assistant de chiffrage de SARL ID MAÎTRISE, bureau d'ingénierie
 de la construction et maîtrise d'œuvre au Havre (Normandie).
@@ -50,7 +50,7 @@ validité si fournie, et propose d'échanger. Le devis est en pièce jointe. Pas
 formule creuse ni d'emoji. Termine par la signature fournie. "body" est du texte
 brut avec des retours à la ligne.`
 
-async function callClaude({ system, user, schema, effort, maxTokens }) {
+async function callClaude({ system, user, schema, maxTokens }) {
   const res = await fetchWithRetry('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     timeoutMs: 55_000,
@@ -59,15 +59,13 @@ async function callClaude({ system, user, schema, effort, maxTokens }) {
       'Content-Type': 'application/json',
       'x-api-key': process.env.ANTHROPIC_API_KEY,
       'anthropic-version': '2023-06-01',
-      // Repli automatique sur un autre modèle en cas de refus des classifieurs
-      'anthropic-beta': 'server-side-fallback-2026-07-01',
     },
     body: JSON.stringify({
       model: MODEL,
       max_tokens: maxTokens,
-      fallbacks: 'default',
       system,
-      output_config: { effort, format: { type: 'json_schema', schema } },
+      // Haiku 4.5 : sortie JSON structurée oui, paramètre `effort` non (400)
+      output_config: { format: { type: 'json_schema', schema } },
       messages: [{ role: 'user', content: user }],
     }),
   })
@@ -118,7 +116,6 @@ export async function POST(request) {
         system: GENERATE_SYSTEM,
         user: `Contexte (JSON) :\n${context}\n\nBesoin à chiffrer :\n${description}`,
         schema: AI_DEVIS_SCHEMA,
-        effort: 'medium',
         maxTokens: 16000,
       })
       if (r.error) return Response.json({ error: r.error }, { status: r.status })
@@ -153,7 +150,6 @@ export async function POST(request) {
         system: EMAIL_SYSTEM,
         user: `Informations (JSON) :\n${JSON.stringify(payload)}`,
         schema: AI_EMAIL_SCHEMA,
-        effort: 'low',
         maxTokens: 4000,
       })
       if (r.error) return Response.json({ error: r.error }, { status: r.status })

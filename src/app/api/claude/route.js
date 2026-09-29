@@ -7,12 +7,24 @@
 //   Anthropic (= coût direct sur la carte bancaire).
 // - Rate limit en mémoire par IP en plus : 20 req/min, même pattern que
 //   /api/extract-*. Double filet de sécurité.
+// - Modèle imposé côté serveur (Haiku 4.5) et max_tokens plafonné : le client
+//   ne peut ni choisir un modèle plus cher ni demander une sortie illimitée.
 
 import { verifyAuth } from '@/app/lib/auth'
 import { fetchWithRetry } from '@/app/lib/fetchWithRetry'
 import { createLogger } from '@/app/lib/logger'
 
 const log = createLogger('claude')
+
+const MODEL = 'claude-haiku-4-5-20251001'
+const DEFAULT_MAX_TOKENS = 1000
+const MAX_TOKENS_CAP = 4000
+
+function clampMaxTokens(value) {
+  const n = Number.parseInt(value, 10)
+  if (!Number.isFinite(n) || n <= 0) return DEFAULT_MAX_TOKENS
+  return Math.min(n, MAX_TOKENS_CAP)
+}
 
 // Rate limiting simple en mémoire (par IP)
 const rateLimit = new Map(); // ip → { count, resetAt }
@@ -75,8 +87,8 @@ export async function POST(request) {
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: body.model || "claude-haiku-4-5-20251001",
-        max_tokens: body.max_tokens || 1000,
+        model: MODEL,
+        max_tokens: clampMaxTokens(body.max_tokens),
         system: body.system || "",
         messages: body.messages || [],
       }),
