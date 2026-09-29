@@ -1,18 +1,21 @@
-'use client'
 /**
- * notifications.js — helper de création et distribution des notifications.
+ * notifications.js — création et distribution des notifications (SERVEUR).
  *
- * Chaque upsert* dans shared.js appelle createNotifications() avec le type
- * d'entité et son payload. Ce helper :
- *   1. Résout la liste des destinataires (staff + MOA concerné)
+ * Utilisé par les routes API (PV de réception…). Les créations / mises à
+ * jour faites dans l'application passent, elles, par les triggers SQL
+ * (migrations 011+). Ce helper :
+ *   1. Résout la liste des destinataires (staff actif + MOA du chantier)
  *   2. Construit titre + corps détaillé + auteur formaté
  *   3. Insère le tout en bulk dans la table `notifications`
  *
- * Important : on n'envoie jamais de notif à l'auteur de l'action
- *             (évite le bruit "tu as créé X").
+ * Tout passe par le client service role : la liste des utilisateurs
+ * (emails, rôles) n'est jamais lisible depuis le navigateur.
  */
 
-import { supabase } from '../supabaseClient'
+import { adminClient } from './supabaseClients'
+
+const STAFF_ROLES = ['admin', 'salarie', 'salarié']
+const norm = (e) => String(e || '').toLowerCase().trim()
 
 // Formatage humain d'une taille en octets
 function formatSize(bytes) {
@@ -115,18 +118,17 @@ function tabFor(entityType) {
 }
 
 /**
- * Résout le display-name de l'acteur (prénom + rôle) depuis authorized_users,
+ * Display-name de l'acteur (prénom nom + rôle) depuis authorized_users,
  * fallback sur le local-part de l'email.
- *
- * Passe par la RPC `get_user_display` (SECURITY DEFINER, migration 018)
- * pour éviter d'exposer un SELECT direct sur authorized_users aux clients.
  */
-async function resolveActorDisplay(actorEmail) {
+async function resolveActorDisplay(admin, actorEmail) {
   if (!actorEmail) return null
   try {
-    const { data } = await supabase
-      .rpc('get_user_display', { p_email: actorEmail })
-    const row = Array.isArray(data) ? data[0] : data
+    const { data } = await admin
+      .from('authorized_users')
+      .select('email, prenom, nom, role')
+      .ilike('email', actorEmail)
+    const row = (data || []).find(u => norm(u.email) === actorEmail)
     if (row) {
       const name = [row.prenom, row.nom].filter(Boolean).join(' ').trim() || actorEmail.split('@')[0]
       const role = row.role === 'admin' ? 'admin'
@@ -140,42 +142,28 @@ async function resolveActorDisplay(actorEmail) {
 }
 
 /**
- * Résout la liste des destinataires. Chaque panneau "Activité récente"
- * fonctionne comme un journal historique : chaque utilisateur voit
- * tout ce qui le concerne, y compris ses propres actions.
+ * Destinataires. Chaque panneau « Activité récente » fonctionne comme un
+ * journal : chacun voit tout ce qui le concerne, y compris ses actions.
  *
- *   - Staff (admin/salarié) : TOUS les actifs, y compris l'acteur.
- *   - Client (MOA) du chantier : inclus y compris s'il est l'acteur.
+ *   - Staff (admin/salarié) : tous les actifs, y compris l'acteur.
+ *   - Client (MOA) du chantier : clients actifs dont le prénom correspond
+ *     au champ `client` du chantier (règle historique du projet).
  */
-async function resolveRecipients({ chantierId, actorEmail: _actorEmail }) {
+async function resolveRecipients(admin, { chantierId }) {
+  const [{ data: users }, chResult] = await Promise.all([
+    admin.from('authorized_users').select('email, prenom, role, actif').eq('actif', true),
+    chantierId
+      ? admin.from('chantiers').select('client').eq('id', chantierId).maybeSingle()
+      : Promise.resolve({ data: null }),
+  ])
+  const clientFirstName = norm(chResult?.data?.client)
   const recipients = new Set()
-
-  // Staff (admin + salarié actifs) via RPC SECURITY DEFINER (migration 018)
-  // — évite d'exposer un SELECT direct sur authorized_users aux clients.
-  const { data: staff } = await supabase.rpc('get_staff_recipients')
-  ;(staff || []).forEach(u => {
-    const e = (u.email || '').toLowerCase().trim()
-    if (e) recipients.add(e)
-  })
-
-  // Client MOA du chantier (matching prénom) — même logique via RPC.
-  if (chantierId) {
-    const { data: ch } = await supabase
-      .from('chantiers')
-      .select('client')
-      .eq('id', chantierId)
-      .maybeSingle()
-    const clientFirstName = (ch?.client || '').toLowerCase().trim()
-    if (clientFirstName) {
-      const { data: clients } = await supabase
-        .rpc('get_client_recipients_by_firstname', { p_firstname: clientFirstName })
-      ;(clients || []).forEach(u => {
-        const e = (u.email || '').toLowerCase().trim()
-        if (e) recipients.add(e)
-      })
-    }
+  for (const u of users || []) {
+    const e = norm(u.email)
+    if (!e) continue
+    if (STAFF_ROLES.includes(u.role)) recipients.add(e)
+    else if (u.role === 'client' && clientFirstName && norm(u.prenom) === clientFirstName) recipients.add(e)
   }
-
   return Array.from(recipients)
 }
 
@@ -188,7 +176,7 @@ async function resolveRecipients({ chantierId, actorEmail: _actorEmail }) {
  * @param {string} [params.chantierId]
  * @param {string} params.action      — 'create' (par défaut) | 'update' | 'delete'
  * @param {Object} [params.data]      — payload de l'entité (pour titre + body)
- * @param {string} [params.actorEmail] — email de l'acteur (on ne lui envoie pas à lui-même)
+ * @param {string} [params.actorEmail] — email de l'acteur (affiché dans le titre)
  */
 export async function createNotifications({ entityType, entityId, chantierId, action = 'create', data, actorEmail }) {
   try {
@@ -203,17 +191,18 @@ export async function createNotifications({ entityType, entityId, chantierId, ac
       return // Silencieusement ignoré
     }
 
-    const actor = (actorEmail || '').toLowerCase().trim()
-    // Récupère le nom du chantier + nom de l'acteur (best-effort, parallélisé)
-    const [chResult, actorDisplay] = await Promise.all([
+    const admin = adminClient()
+    const actor = norm(actorEmail)
+    // Nom du chantier + nom de l'acteur + destinataires (best-effort, parallélisé)
+    const [chResult, actorDisplay, recipients] = await Promise.all([
       chantierId
-        ? supabase.from('chantiers').select('nom').eq('id', chantierId).maybeSingle()
+        ? admin.from('chantiers').select('nom').eq('id', chantierId).maybeSingle()
         : Promise.resolve({ data: null }),
-      resolveActorDisplay(actor),
+      resolveActorDisplay(admin, actor),
+      resolveRecipients(admin, { chantierId }),
     ])
     const chantierName = chResult?.data?.nom || null
 
-    const recipients = await resolveRecipients({ chantierId, actorEmail: actor })
     if (!recipients.length) return
 
     const baseTitle = titleFor(entityType, action, data, chantierName)
@@ -233,7 +222,7 @@ export async function createNotifications({ entityType, entityId, chantierId, ac
       target_tab,
     }))
 
-    const { error } = await supabase.from('notifications').insert(rows)
+    const { error } = await admin.from('notifications').insert(rows)
     if (error) console.warn('[notifications] insert échec:', error.message)
   } catch (err) {
     console.warn('[notifications] exception:', err?.message || err)
