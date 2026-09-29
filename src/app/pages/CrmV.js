@@ -45,6 +45,15 @@ async function apiPost(path, body) {
   return json
 }
 
+// Dépôt d'un fichier (multipart) sur une route /api/* avec le JWT
+async function apiUpload(path, formData) {
+  const { data: { session } = {} } = await supabase.auth.getSession()
+  const res = await fetch(path, { method: 'POST', headers: { Authorization: `Bearer ${session?.access_token || ''}` }, body: formData })
+  const json = await res.json().catch(() => ({}))
+  if (!res.ok || !json.ok) throw new Error(json.error || (res.status === 413 ? 'Fichier trop volumineux (4 Mo maximum).' : `Erreur ${res.status}`))
+  return json
+}
+
 const TYPES_PROJET = ['Rénovation', 'Construction neuve', 'Extension', 'Réhabilitation', 'Aménagement', 'Autre']
 const todayISO = () => new Date().toISOString().slice(0, 10)
 const addDays = (n) => { const d = new Date(); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10) }
@@ -564,6 +573,27 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
     setTimeout(() => URL.revokeObjectURL(url), 60_000)
   }
 
+  // Pièces jointes du mail : documents permanents (Kbis, décennale…) + fichiers
+  const devisDocsApi = useMemo(() => ({
+    list: async () => (await apiPost('/api/devis/documents', { action: 'list' })).data.docs,
+    upload: async (file, permanent) => {
+      const fd = new FormData()
+      fd.append('file', file)
+      fd.append('permanent', permanent ? '1' : '0')
+      return (await apiUpload('/api/devis/documents', fd)).data
+    },
+    remove: async (doc) => {
+      const ok = await confirm({
+        title: `Retirer « ${doc.name} » ?`,
+        message: 'Il ne sera plus proposé en pièce jointe des prochains devis.',
+        confirmLabel: 'Retirer', danger: true,
+      })
+      if (!ok) return false
+      await apiPost('/api/devis/documents', { action: 'remove', path: doc.path })
+      return true
+    },
+  }), [confirm])
+
   const draftEmailAi = async () => {
     const d = sendState.devis
     const o = oppOf(d)
@@ -601,7 +631,7 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
       try {
         await apiPost('/api/devis/send', {
           to: form.to, cc: form.cc, subject: form.subject, text,
-          copyMe: form.copyMe, pdfBase64: base64, filename,
+          copyMe: form.copyMe, pdfBase64: base64, filename, attachments: form.attachments || [],
         })
       } catch (e) {
         if (e.code !== 'EMAIL_NOT_CONFIGURED') throw e
@@ -1032,7 +1062,7 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
         )}
         {sendState?.status === 'ready' && (
           <DevisSendForm initial={sendState.initial} filename={sendState.pdf.filename}
-            sending={saving} error={sendState.error} onPreviewPdf={previewQontoPdf} canSign
+            sending={saving} error={sendState.error} onPreviewPdf={previewQontoPdf} canSign docsApi={devisDocsApi}
             onDraftAi={draftEmailAi} onSubmit={submitSend} onCancel={closeSend} />
         )}
       </Modal>

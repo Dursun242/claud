@@ -317,6 +317,7 @@ describe('CrmV — envoi par mail et IA', () => {
       '/api/devis/qonto': ({ action }) => reply({ ok: true, data: action === 'numbers' ? { numbers: [] }
         : action === 'pdf' ? { base64: 'JVBERi0xLjQ=', filename: 'Devis 26-050.pdf' }
           : { devis: { ...draft, qonto_quote_id: 'qq1' }, qontoNumber: '26-050', renumbered: null, mismatch: null, created: true } })(),
+      '/api/devis/documents': () => reply({ ok: true, data: { docs: [{ path: 'devis-documents/1__Kbis.pdf', name: 'Kbis.pdf' }] } })(),
       '/api/devis/sign': ({ action }) => reply({ ok: true, data: action === 'signed-pdf'
         ? { base64: 'JVBERi0xLjQ=', filename: 'Devis 26-050 signé.pdf' } : { token: 'a'.repeat(64) } })(),
     }
@@ -343,12 +344,14 @@ describe('CrmV — envoi par mail et IA', () => {
     expect(screen.getByDisplayValue('Devis 26-050 — Escalier')).toBeInTheDocument()
     expect(screen.getByText('📎 Devis 26-050.pdf · Qonto')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '👁 Vérifier le PDF Qonto' })).toBeInTheDocument()
+    // Documents permanents (Kbis…) proposés cochés
+    expect(await screen.findByLabelText('Joindre Kbis.pdf')).toBeChecked()
     await user.click(screen.getByRole('button', { name: /^📤 Envoyer (le devis|pour signature)$/ }))
     await waitFor(() => expect(crmDb.setDevisStatut).toHaveBeenCalledWith(expect.objectContaining({ id: 'd1', qonto_quote_id: 'qq1' }), 'Envoyé'))
     const [opts] = callsTo('/api/devis/send')
     expect(opts.headers.Authorization).toBe('Bearer tok')
-    // Seul le PDF édité par Qonto part au client
-    expect(opts.body).toMatchObject({ to: 'cousin@exemple.fr', subject: 'Devis 26-050 — Escalier', pdfBase64: 'JVBERi0xLjQ=', filename: 'Devis 26-050.pdf' })
+    // Le PDF édité par Qonto + les documents cochés
+    expect(opts.body).toMatchObject({ to: 'cousin@exemple.fr', subject: 'Devis 26-050 — Escalier', pdfBase64: 'JVBERi0xLjQ=', filename: 'Devis 26-050.pdf', attachments: ['devis-documents/1__Kbis.pdf'] })
     // Signature électronique (cochée par défaut) : PDF Qonto conservé + lien dans le mail
     const [sign] = callsTo('/api/devis/sign')
     expect(sign.body).toMatchObject({ action: 'send', devisId: 'd1', pdfBase64: 'JVBERi0xLjQ=', signerEmail: 'cousin@exemple.fr' })

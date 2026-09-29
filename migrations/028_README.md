@@ -88,3 +88,16 @@ Mise en place :
 3. Test immédiat : onglet Actions → « Suivi des devis Qonto » → Run workflow.
 
 Sans ces secrets, le workflow ne fait rien (pas d'échec).
+
+## Pièces jointes du mail de devis
+
+Dans la fenêtre « Envoyer le devis », en plus du PDF Qonto :
+
+- **Documents permanents** (Kbis, attestation décennale…) : ajoutés une fois
+  avec « + Document permanent », puis proposés **cochés** à chaque envoi
+  (décocher au besoin ; × pour les retirer de la liste).
+- **📎 Joindre un fichier** : pièce jointe pour ce mail seulement.
+
+Fichiers stockés dans le bucket privé `attachments` (`devis-documents/` et
+`devis-envoi/`), via `/api/devis/documents` (staff). PDF, JPG, PNG, Word ou
+Excel, 4 Mo maximum par fichier, 15 Mo au total. Aucune migration SQL.
