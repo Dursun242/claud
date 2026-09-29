@@ -29,11 +29,11 @@ export async function POST(request) {
     const supa = admin()
     const { data: caller } = await supa
       .from('authorized_users')
-      .select('role')
+      .select('role, actif')
       .eq('email', user.email?.toLowerCase().trim())
       .maybeSingle()
 
-    if (caller?.role !== 'admin') return Response.json({ error: 'Accès admin requis' }, { status: 403 })
+    if (caller?.role !== 'admin' || caller?.actif !== true) return Response.json({ error: 'Accès admin requis' }, { status: 403 })
 
     // Créer des OS de test pour chaque chantier démo
     const today = new Date()

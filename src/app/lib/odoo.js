@@ -10,6 +10,17 @@ const ODOO_DB = process.env.ODOO_DB
 const ODOO_USER = process.env.ODOO_USER
 const ODOO_API_KEY = process.env.ODOO_API_KEY
 
+// Méthodes Odoo sans effet de bord : on peut les rejouer après un timeout.
+// Tout le reste (create, write, action_*…) n'est tenté qu'une fois : un
+// timeout côté client n'empêche pas Odoo d'avoir exécuté la requête, et un
+// rejeu créerait par exemple une 2e demande de signature.
+const IDEMPOTENT_METHODS = new Set(['search', 'search_read', 'search_count', 'read', 'fields_get', 'name_search'])
+
+function isRetryable(service, method, args) {
+  if (service !== 'object' || method !== 'execute_kw') return true
+  return IDEMPOTENT_METHODS.has(args?.[4])
+}
+
 async function jsonrpc(service, method, args) {
   if (!ODOO_URL) throw new Error('Variable ODOO_URL manquante dans Vercel')
   let res
@@ -26,9 +37,10 @@ async function jsonrpc(service, method, args) {
       // Odoo Sign peut être long sur des actions lourdes (création sign.request
       // avec PDF 10-20 Mo) : 30s au lieu du défaut 15s.
       timeoutMs: 30000,
+      ...(isRetryable(service, method, args) ? {} : { maxRetries: 0 }),
     })
   } catch (err) {
-    throw new Error(`Connexion Odoo impossible (${ODOO_URL}) : ${err.message}`)
+    throw new Error(`Connexion Odoo impossible : ${err.message}`)
   }
   if (!res.ok) throw new Error(`Odoo HTTP ${res.status}: ${res.statusText}`)
   const json = await res.json()

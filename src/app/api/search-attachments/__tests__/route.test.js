@@ -163,4 +163,13 @@ describe('GET /api/search-attachments', () => {
     // → on s'attend à "plan" (et pas "  PLAN  ").
     expect(supa._att.ilike).toHaveBeenCalledWith('file_name', '%plan%')
   })
+
+  it('échappe les jokers LIKE (% et _) saisis par l\'utilisateur', async () => {
+    verifyAuth.mockResolvedValue({ id: 'u1' })
+    extractBearerToken.mockReturnValue('tok')
+    const supa = makeSupaStub()
+    userClientFromToken.mockReturnValue(supa)
+    await GET(makeRequest('http://x/api/search-attachments?q=' + encodeURIComponent('50%_plan'), { token: 'tok' }))
+    expect(supa._att.ilike).toHaveBeenCalledWith('file_name', '%50\\%\\_plan%')
+  })
 })

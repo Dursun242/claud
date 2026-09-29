@@ -474,7 +474,7 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
         gap:8,
       }}>
         <span>{importError}</span>
-        <button onClick={()=>setImportError("")} style={{
+        <button onClick={()=>setImportError("")} aria-label="Fermer le message" style={{
           background:"none",border:"none",cursor:"pointer",
           color:"#DC2626",fontSize:16,padding:0
         }}>✕</button>

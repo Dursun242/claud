@@ -105,7 +105,7 @@ export default function PVDetail({ pv, onClose, onDecision }) {
               {pv.titre}
             </p>
           </div>
-          <button onClick={onClose} style={{
+          <button onClick={onClose} aria-label="Fermer" style={{
             background: 'none',
             border: 'none',
             fontSize: 20,

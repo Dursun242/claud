@@ -44,7 +44,9 @@ const nextConfig = {
         headers: [
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
-          { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+          // Même valeur que le middleware : deux valeurs différentes pour ce
+          // header peuvent être ignorées par le navigateur.
+          { key: 'X-Frame-Options', value: 'DENY' },
         ],
       },
       {

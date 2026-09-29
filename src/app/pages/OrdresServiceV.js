@@ -739,7 +739,7 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly})
         gap:8,
       }}>
         <span>{importError}</span>
-        <button onClick={()=>setImportError("")}
+        <button onClick={()=>setImportError("")} aria-label="Fermer le message"
           style={{background:"none",border:"none",cursor:"pointer",
             color:"#DC2626",fontSize:16,padding:0}}>✕</button>
       </div>

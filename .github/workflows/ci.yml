@@ -1,8 +1,8 @@
 name: CI
 
 on:
+  # Toutes les PR (y compris celles empilées sur une autre branche que main)
   pull_request:
-    branches: [main]
   push:
     branches: [main]
 

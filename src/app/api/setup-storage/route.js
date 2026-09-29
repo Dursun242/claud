@@ -13,8 +13,8 @@ async function verifyAdmin(request) {
   if (!user) return false
 
   const adminClient = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } })
-  const { data } = await adminClient.from('authorized_users').select('role').eq('email', user.email).single()
-  return data?.role === 'admin'
+  const { data } = await adminClient.from('authorized_users').select('role, actif').eq('email', user.email).single()
+  return data?.role === 'admin' && data?.actif === true
 }
 
 export async function POST(request) {

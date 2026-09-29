@@ -25,8 +25,8 @@ async function requireAdmin(request) {
   const user = await verifyAuth(request)
   if (!user) return { error: 'Non autorisé', status: 401 }
   const supa = admin()
-  const { data: caller } = await supa.from('authorized_users').select('role').eq('email', user.email?.toLowerCase().trim()).maybeSingle()
-  if (caller?.role !== 'admin') return { error: 'Accès admin requis', status: 403 }
+  const { data: caller } = await supa.from('authorized_users').select('role, actif').eq('email', user.email?.toLowerCase().trim()).maybeSingle()
+  if (caller?.role !== 'admin' || caller?.actif !== true) return { error: 'Accès admin requis', status: 403 }
   return { user, supa }
 }
 

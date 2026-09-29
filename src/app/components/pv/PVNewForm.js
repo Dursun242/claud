@@ -600,7 +600,7 @@ export default function PVNewForm({ chantierId, chantier, clientContact, ordresS
           }} onClick={(e) => e.stopPropagation()}>
             <div style={{ padding: 16, borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>Aperçu du PV</h3>
-              <button onClick={() => setShowPreview(false)} style={{ background: 'none', border: 'none', fontSize: 24, cursor: 'pointer', color: '#94A3B8' }}>×</button>
+              <button onClick={() => setShowPreview(false)} aria-label="Fermer l'aperçu" style={{ background: 'none', border: 'none', fontSize: 24, cursor: 'pointer', color: '#94A3B8' }}>×</button>
             </div>
             <iframe
               title="Aperçu PV"

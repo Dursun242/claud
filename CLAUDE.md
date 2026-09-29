@@ -16,7 +16,7 @@ Application de gestion de chantiers BTP pour **ID Maîtrise** (SARL, Le Havre). 
 - **Odoo JSON-RPC** : signatures électroniques via module Sign
 - **Qonto API** : import factures/devis (proxy read-only)
 - **Pappers API** : enrichissement SIRET des contacts
-- **Jest + @testing-library/react** : 248 tests, 10 s d'exécution
+- **Jest + @testing-library/react** : ~540 tests, 10 s d'exécution
 
 ## Topologie
 
@@ -41,7 +41,7 @@ src/app/
 ├─ lib/                       → auth, fetchWithRetry, odoo, validators, notifications, activityLog, chantierFinances
 │                               mailer.js (SMTP serveur) · crm.js (logique pure pipeline) + devis.js / devisAi.js / qontoDevis.js (calculs, prix habituels, vérifs devis, format Qonto) + crmDb.js (accès Supabase CRM, hors shared.js)
 │
-└─ api/                       → 23 routes. Pattern unique : verifyAuth() + createLogger() + mock-friendly.
+└─ api/                       → 31 routes. Pattern unique : verifyAuth() / verifyStaff() + createLogger() + mock-friendly.
     ├─ admin/*                → service role uniquement (users, demo-mode, reset-demo-data)
     ├─ claude/                → proxy Anthropic (rate limit 20/min/IP)
     ├─ devis-ia, devis/send   → CRM : IA de chiffrage + envoi SMTP du devis (staff only, verifyStaff)
@@ -70,7 +70,7 @@ Stage 3 = **CRM** (`crm_opportunites`, `crm_interactions`, `crm_devis`, `crm_dev
 ## Conventions & règles du projet
 
 1. **Server-only pour les secrets** : `ANTHROPIC_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `ODOO_API_KEY`, `PAPPERS_API_KEY`, `qonto-token` n'apparaissent **jamais** dans le bundle client. Les appels tiers passent par les routes `/api/*`. Seule exception : la Base Adresse Nationale (`api-adresse.data.gouv.fr`, publique, sans clé) appelée directement par `components/AddressPicker.js`.
-2. **Auth** : toute route `/api/*` non-admin (sauf `/api/metrics`, `/api/auth/google/callback`, `/api/devis/public` et `/api/devis/track` — accès par jeton, `/api/cron/*` — secret `CRON_SECRET`) fait `verifyAuth(request)` en premier. Retour 401 si absent.
+2. **Auth** : toute route `/api/*` non-admin (sauf `/api/metrics`, `/api/auth/google/callback`, `/api/devis/public` et `/api/devis/track` — accès par jeton, `/api/cron/*` — secret `CRON_SECRET`) fait `verifyAuth(request)` en premier. Retour 401 si absent. Les routes qu'un client MOA n'utilise pas (Qonto, CRM/devis, création de signatures ou de PV…) utilisent `verifyStaff(request)` (401/403). Une route ouverte aux clients qui écrit en service role relit d'abord la ressource avec `userClientFromToken` (RLS) pour vérifier que le chantier est bien le sien (cf. `pv-reception/decision`, `upload`).
 3. **Logging** : routes modernes utilisent `createLogger('source')` (`lib/logger.js`). Certaines routes anciennes utilisent encore `console.error` — migration progressive.
 4. **Toasts, jamais `alert()`** : `useToast()` dans les composants. `useFloatingMic` prend `onError` pour les erreurs hors-UI.
 5. **Tests routes API** : env `node` via pragma `/** @jest-environment node */`. Mock deps via `jest.mock()`. Voir `api/qonto/__tests__/route.test.js` comme modèle canonique (gère `jest.resetModules()` pour caches module-level).
@@ -85,7 +85,7 @@ Stage 3 = **CRM** (`crm_opportunites`, `crm_interactions`, `crm_devis`, `crm_dev
 npm install          # deps
 npm run dev          # dev sur :3000
 npm run build        # build prod
-npm test             # Jest (248 tests, ~10 s)
+npm test             # Jest (~540 tests, ~10 s)
 npm test -- --ci src/app/api/qonto  # tests filtrés
 npm run lint         # next lint
 ```
@@ -110,7 +110,7 @@ Voir `.env.example` à la racine. Minimum requis pour dev :
 
 ## Avant de committer
 
-1. `npm test` doit passer (248/248)
+1. `npm test` doit passer (100 %)
 2. `npm run lint` propre ou tu sais pourquoi
 3. `npm run build` sans erreur
 4. Commit avec message explicite (voir `git log`). Pas d'emoji, pas de texte promo. Français ou anglais cohérent avec le contexte.

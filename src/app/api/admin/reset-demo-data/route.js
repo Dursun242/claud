@@ -22,10 +22,10 @@ export async function POST(request) {
     const supa = admin()
     const { data: caller } = await supa
       .from('authorized_users')
-      .select('role')
+      .select('role, actif')
       .eq('email', user.email?.toLowerCase().trim())
       .maybeSingle()
-    if (caller?.role !== 'admin') return Response.json({ error: 'Accès admin requis' }, { status: 403 })
+    if (caller?.role !== 'admin' || caller?.actif !== true) return Response.json({ error: 'Accès admin requis' }, { status: 403 })
 
     // Appel de la fonction SQL
     const { error: rpcErr } = await supa.rpc('seed_demo_data')

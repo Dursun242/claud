@@ -17,7 +17,7 @@ import { verifyAuth } from '@/app/lib/auth'
 import { createClient } from '@supabase/supabase-js'
 
 // Stub du client Supabase avec router par table.
-function makeAdminClient({ callerRole, settingsValue = 'off', upsertError = null } = {}) {
+function makeAdminClient({ callerRole, callerActif = true, settingsValue = 'off', upsertError = null } = {}) {
   const upsertSpy = jest.fn().mockResolvedValue({ error: upsertError })
   const insertSpy = jest.fn().mockResolvedValue({ error: null })
   const from = jest.fn((table) => {
@@ -26,7 +26,7 @@ function makeAdminClient({ callerRole, settingsValue = 'off', upsertError = null
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
         maybeSingle: jest.fn().mockResolvedValue({
-          data: callerRole ? { role: callerRole } : null,
+          data: callerRole ? { role: callerRole, actif: callerActif } : null,
           error: null,
         }),
       }
@@ -82,6 +82,13 @@ describe('GET /api/admin/demo-mode', () => {
     verifyAuth.mockResolvedValue({ email: 'bob@x.fr' })
     createClient.mockReturnValue(makeAdminClient({ callerRole: 'salarie' }))
 
+    const res = await GET(makeRequest({ token: 't' }))
+    expect(res.status).toBe(403)
+  })
+
+  it('renvoie 403 pour un admin désactivé (actif = false)', async () => {
+    verifyAuth.mockResolvedValue({ email: 'ancien@x.fr' })
+    createClient.mockReturnValue(makeAdminClient({ callerRole: 'admin', callerActif: false }))
     const res = await GET(makeRequest({ token: 't' }))
     expect(res.status).toBe(403)
   })
