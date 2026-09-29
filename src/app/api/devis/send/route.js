@@ -17,6 +17,7 @@ import { adminClient } from '@/app/lib/supabaseClients'
 import { isDocPath, docDisplayName, MAX_ATTACH_TOTAL, MAX_ATTACH_COUNT } from '@/app/lib/devisDocuments'
 import { devisMailHtml, isSignUrl } from '@/app/lib/devisMailHtml'
 import { COMPANY } from '@/app/lib/company'
+import { LOGO_CID, LOGO_PNG_BASE64 } from '@/app/lib/companyLogo'
 
 export const maxDuration = 30
 
@@ -110,8 +111,16 @@ export async function POST(request) {
       replyTo: user.email || undefined,
       subject,
       text,
-      html: devisMailHtml({ body: message, signUrl, company: COMPANY, title: subject, attachments: [filename, ...extra.map(a => a.filename)] }),
-      attachments: [{ filename, content: pdf, contentType: 'application/pdf' }, ...extra],
+      html: devisMailHtml({
+        body: message, signUrl, company: COMPANY, title: subject, logoSrc: `cid:${LOGO_CID}`,
+        attachments: [filename, ...extra.map(a => a.filename)],
+      }),
+      attachments: [
+        { filename, content: pdf, contentType: 'application/pdf' },
+        ...extra,
+        // Logo intégré au corps du mail (pas une pièce jointe visible)
+        { filename: 'logo-id-maitrise.png', content: Buffer.from(LOGO_PNG_BASE64, 'base64'), contentType: 'image/png', cid: LOGO_CID, contentDisposition: 'inline' },
+      ],
     })
     return Response.json({ ok: true, messageId: info?.messageId || null, to: to.list })
   } catch (err) {

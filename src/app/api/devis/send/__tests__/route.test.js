@@ -88,7 +88,7 @@ describe('/api/devis/send', () => {
     const res = await POST(req({ ...valid, attachments: ['devis-documents/1700000000000__Kbis ID Maîtrise.pdf', 'devis-envoi/abc/plan.pdf'] }))
     expect(res.status).toBe(200)
     const files = sendMail.mock.calls[0][0].attachments
-    expect(files.map(f => f.filename)).toEqual(['26-050.pdf', 'Kbis ID Maîtrise.pdf', 'plan.pdf'])
+    expect(files.map(f => f.filename)).toEqual(['26-050.pdf', 'Kbis ID Maîtrise.pdf', 'plan.pdf', 'logo-id-maitrise.png'])
     expect(files[1].content.toString()).toBe('%PDF kbis')
 
     expect((await POST(req({ ...valid, attachments: ['devis-signature/x/original-1.pdf'] }))).status).toBe(400)
@@ -105,6 +105,11 @@ describe('/api/devis/send', () => {
     expect(mail.html).toContain(`href="${signUrl}"`)
     expect(mail.html).toContain('SARL ID MAÎTRISE')
     expect(mail.html).toContain('📎 26-050.pdf')
+    // Logo intégré (cid) au corps du mail
+    expect(mail.html).toContain('src="cid:logo-id-maitrise"')
+    const logo = mail.attachments.find(a => a.cid === 'logo-id-maitrise')
+    expect(logo).toMatchObject({ contentType: 'image/png', contentDisposition: 'inline' })
+    expect(logo.content.subarray(1, 4).toString()).toBe('PNG')
     expect((await POST(req({ ...valid, signUrl: 'https://evil.test/x' }))).status).toBe(400)
   })
 })
