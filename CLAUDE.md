@@ -36,10 +36,11 @@ src/app/
 │
 ├─ pages/                     → 1 page = 1 onglet. DashboardV, ProjectsV, OrdresServiceV, ContactsV, CrmV, AIV, ...
 ├─ components/                → briques UI réutilisables (Modal, Badge, Skeleton, OsCard, ChantierCard, PVRow...)
+│                               components/crm/ : écrans du CRM (pipeline, fiche affaire, formulaires, devis) — CrmV.js ne fait qu'orchestrer
 ├─ contexts/                  → ToastContext + ConfirmContext (non-invasive, context split pour éviter re-renders)
-├─ hooks/                     → useFloatingMic, useAttachments, useComments, useUndoableDelete, useSignaturesSync, useCrmData...
+├─ hooks/                     → useFloatingMic, useAttachments, useComments, useUndoableDelete, useSignaturesSync, useCrmData, useCrmDevis (logique devis du CRM)...
 ├─ lib/                       → auth, fetchWithRetry, odoo, validators, notifications, activityLog, chantierFinances
-│                               mailer.js (SMTP serveur) · crm.js (logique pure pipeline) + devis.js / devisAi.js / qontoDevis.js (calculs, prix habituels, vérifs devis, format Qonto) + crmDb.js (accès Supabase CRM, hors shared.js)
+│                               mailer.js (SMTP serveur) · crm.js (logique pure pipeline) + devis.js / devisAi.js / qontoDevis.js (calculs, prix habituels, vérifs devis, format Qonto) + crmDb.js (accès Supabase CRM, hors shared.js) + crmApi.js (appels /api/* du CRM avec JWT, PDF base64)
 │
 └─ api/                       → 23 routes. Pattern unique : verifyAuth() + createLogger() + mock-friendly.
     ├─ admin/*                → service role uniquement (users, demo-mode, reset-demo-data)
