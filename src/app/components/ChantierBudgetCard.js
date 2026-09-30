@@ -29,7 +29,7 @@ export default function ChantierBudgetCard({ finances, m }) {
         gap: 12, marginBottom: 12,
       }}>
         <div style={{ background: '#F8FAFC', borderRadius: 8, padding: 10 }}>
-          <div style={{ fontSize: 10, color: '#94A3B8', fontWeight: 600, textTransform: 'uppercase' }}>Budget</div>
+          <div style={{ fontSize: 10, color: '#64748B', fontWeight: 600, textTransform: 'uppercase' }}>Budget</div>
           <div style={{ fontSize: 18, fontWeight: 700, color: '#0F172A' }}>
             {fmtMoney(finances.budget)}
           </div>
@@ -38,16 +38,16 @@ export default function ChantierBudgetCard({ finances, m }) {
           style={{ background: '#F8FAFC', borderRadius: 8, padding: 10 }}
           title={`${finances.engageCount} OS engagés (hors brouillon/annulé)`}
         >
-          <div style={{ fontSize: 10, color: '#94A3B8', fontWeight: 600, textTransform: 'uppercase' }}>Engagé (OS)</div>
+          <div style={{ fontSize: 10, color: '#64748B', fontWeight: 600, textTransform: 'uppercase' }}>Engagé (OS)</div>
           <div style={{ fontSize: 18, fontWeight: 700, color: budgetColor }}>
             {fmtMoney(finances.engageMontant)}
           </div>
-          <div style={{ fontSize: 10, color: '#94A3B8', marginTop: 2 }}>
+          <div style={{ fontSize: 10, color: '#64748B', marginTop: 2 }}>
             {finances.engageCount} OS · dont {finances.realiseCount} terminé{finances.realiseCount > 1 ? 's' : ''}
           </div>
         </div>
         <div style={{ background: '#F8FAFC', borderRadius: 8, padding: 10 }}>
-          <div style={{ fontSize: 10, color: '#94A3B8', fontWeight: 600, textTransform: 'uppercase' }}>
+          <div style={{ fontSize: 10, color: '#64748B', fontWeight: 600, textTransform: 'uppercase' }}>
             {finances.depassement > 0 ? 'Dépassement' : 'Reste à engager'}
           </div>
           <div style={{
@@ -60,7 +60,7 @@ export default function ChantierBudgetCard({ finances, m }) {
           </div>
         </div>
         <div style={{ background: '#F8FAFC', borderRadius: 8, padding: 10 }}>
-          <div style={{ fontSize: 10, color: '#94A3B8', fontWeight: 600, textTransform: 'uppercase' }}>Avancement</div>
+          <div style={{ fontSize: 10, color: '#64748B', fontWeight: 600, textTransform: 'uppercase' }}>Avancement</div>
           <div style={{ fontSize: 18, fontWeight: 700, color: budgetColor }}>{ratio}%</div>
         </div>
       </div>

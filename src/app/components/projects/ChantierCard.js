@@ -61,7 +61,7 @@ function ChantierCardImpl({ ch, counts, m, readOnly, onOpen, onEdit, onDelete })
             <Badge text={ch.statut} color={statusColors[ch.statut] || '#64748B'}/>
           </div>
           <div style={{ fontSize: 12, color: '#64748B' }}>{ch.client} — {ch.adresse}</div>
-          <div style={{ display: 'flex', gap: 12, marginTop: 4, fontSize: 11, color: '#94A3B8' }}>
+          <div style={{ display: 'flex', gap: 12, marginTop: 4, fontSize: 11, color: '#64748B' }}>
             <span>{counts.os} OS</span>
             <span>{counts.cr} CR</span>
             <span>{counts.tasks} tâches</span>
@@ -96,7 +96,7 @@ function ChantierCardImpl({ ch, counts, m, readOnly, onOpen, onEdit, onDelete })
       </div>
       <div style={{ padding: `0 ${m ? 14 : 18}px ${m ? 14 : 18}px`, marginTop: -4 }}>
         <PBar value={isDone ? 100 : Math.min(progress, 100)} max={100} color={progressColor}/>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4, fontSize: 11, color: '#94A3B8' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4, fontSize: 11, color: '#64748B' }}>
           <span>{fmtDate(start)} → {fmtDate(end)}</span>
           <span style={{ color: progressColor, fontWeight: 600 }}>
             {isDone ? 'Terminé' : progress + '%'}

@@ -19,13 +19,13 @@ export default function OpportuniteCard({ o, contact, dormant, draggable, onDrag
       }}>
       <div style={{ fontSize: 13, fontWeight: 600, color: '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.titre}</div>
       <div style={{ fontSize: 11, color: '#64748B', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-        {contact ? (contact.societe || contact.nom) : <span style={{ color: '#94A3B8', fontStyle: 'italic' }}>Sans contact</span>}
+        {contact ? (contact.societe || contact.nom) : <span style={{ color: '#64748B', fontStyle: 'italic' }}>Sans contact</span>}
         {o.type_projet ? ` · ${o.type_projet}` : ''}
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
         {Number(o.montant_estime) > 0
           ? <span style={{ fontSize: 12, fontWeight: 700, color: '#1E3A5F' }}>{fmtMoney(o.montant_estime)}</span>
-          : <span style={{ fontSize: 11, color: '#94A3B8' }}>Montant ?</span>}
+          : <span style={{ fontSize: 11, color: '#64748B' }}>Montant ?</span>}
         <span style={{ flex: 1 }} />
         {late && <span title="Décision attendue dépassée" style={{ fontSize: 10, color: '#DC2626', fontWeight: 700 }}>⚠</span>}
         {isDormant && <span title={`Aucun échange depuis ${dormant} j`} style={{ fontSize: 10, color: '#F59E0B', fontWeight: 700 }}>💤 {dormant} j</span>}

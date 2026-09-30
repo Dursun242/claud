@@ -174,7 +174,7 @@ export default function AdminV({ m, reload, profile }) {
       }}>
         <div style={{ fontSize: 36, marginBottom: 10 }}>🔒</div>
         <h1 style={{ margin: "0 0 10px", fontSize: 20, fontWeight: 700, color: "#DC2626" }}>Accès refusé</h1>
-        <p style={{ margin: 0, color: "#94A3B8", fontSize: 14 }}>
+        <p style={{ margin: 0, color: "#64748B", fontSize: 14 }}>
           Seuls les administrateurs peuvent accéder à cette section.
         </p>
       </div>
@@ -275,7 +275,7 @@ export default function AdminV({ m, reload, profile }) {
       <h1 style={{ margin: "0 0 4px", fontSize: m ? 18 : 24, fontWeight: 700 }}>
         🔒 Administration
       </h1>
-      <div style={{ fontSize: 11, color: "#94A3B8", marginBottom: 14 }}>
+      <div style={{ fontSize: 11, color: "#64748B", marginBottom: 14 }}>
         Gestion des accès et journal d&apos;activité — admin uniquement.
       </div>
 
@@ -301,7 +301,7 @@ export default function AdminV({ m, reload, profile }) {
         <p style={{ margin: "0 0 12px", fontSize: 13, color: "#64748B", lineHeight: 1.6 }}>
           Si vous obtenez <strong>&quot;Bucket not found&quot;</strong>{' '}
           lors d&apos;un upload, cliquez sur ce bouton.<br />
-          <span style={{ fontSize: 11, color: "#94A3B8" }}>
+          <span style={{ fontSize: 11, color: "#64748B" }}>
             Nécessite <code>SUPABASE_SERVICE_ROLE_KEY</code> dans les variables Vercel.
           </span>
         </p>
@@ -315,7 +315,7 @@ export default function AdminV({ m, reload, profile }) {
             color: setupMsg.startsWith("✅") ? "#10B981" : "#EF4444"
           }}>{setupMsg}</div>
         )}
-        {!setupMsg && <div style={{ marginTop: 10, fontSize: 11, color: "#94A3B8" }}>
+        {!setupMsg && <div style={{ marginTop: 10, fontSize: 11, color: "#64748B" }}>
           Si l&apos;erreur persiste : Supabase Dashboard → Storage →{' '}
           New bucket → nom : <strong>attachments</strong>
         </div>}
@@ -397,7 +397,7 @@ export default function AdminV({ m, reload, profile }) {
             {demoResetBusy ? "⏳ Reset…" : "🔄 Réinitialiser les données démo"}
           </button>
           <div style={{
-            fontSize: 10, color: "#94A3B8", alignSelf: "center",
+            fontSize: 10, color: "#64748B", alignSelf: "center",
             flex: "1 1 200px", minWidth: 180, lineHeight: 1.4
           }}>
             Recrée le chantier Villa Moreau + 3 OS + 2 CR + 4 tâches. Utile entre deux rendez-vous.
@@ -543,7 +543,7 @@ export default function AdminV({ m, reload, profile }) {
               <div style={{fontSize:13,fontWeight:600,color:"#334155",marginBottom:4}}>
                 {hasFilters ? "Aucun résultat" : "Aucun utilisateur"}
               </div>
-              <div style={{fontSize:11,color:"#94A3B8"}}>
+              <div style={{fontSize:11,color:"#64748B"}}>
                 {hasFilters ? "Essaie d'élargir ta recherche." : "Ajoute le premier utilisateur ci-dessus."}
               </div>
             </div>

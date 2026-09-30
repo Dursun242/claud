@@ -50,7 +50,7 @@ function ListeView({ filteredChantiers, osByChantier, m: _m }) {
                   {c.date_debut ? fmtDate(c.date_debut) : '—'} → {c.date_fin ? fmtDate(c.date_fin) : '—'}
                 </div>
               </div>
-              <div style={{ fontSize: 11, color: '#94A3B8' }}>{osList.length} OS</div>
+              <div style={{ fontSize: 11, color: '#64748B' }}>{osList.length} OS</div>
             </div>
             {/* Lignes OS */}
             <div>
@@ -62,7 +62,7 @@ function ListeView({ filteredChantiers, osByChantier, m: _m }) {
                   </div>
                   <div style={{ flex: 1, minWidth: 120 }}>
                     <div style={{ fontSize: 12, color: '#0F172A', fontWeight: 600 }}>{os.artisan_specialite || os.artisan_nom || '—'}</div>
-                    <div style={{ fontSize: 10, color: '#94A3B8' }}>{os.artisan_nom}</div>
+                    <div style={{ fontSize: 10, color: '#64748B' }}>{os.artisan_nom}</div>
                   </div>
                   <div style={{ fontSize: 11, color: '#64748B', whiteSpace: 'nowrap' }}>
                     {os.date_intervention ? fmtDate(os.date_intervention) : '—'}
@@ -260,7 +260,7 @@ export default function PlanningV({ data, m, reload }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 10 }}>
         <div>
           <h1 style={{ margin: 0, fontSize: m ? 18 : 24, fontWeight: 700 }}>Planning</h1>
-          <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 2 }}>
+          <div style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>
             {osPlanned.length} OS planifié{osPlanned.length !== 1 ? 's' : ''}
             {filter !== 'all' && <> · filtre actif</>}
           </div>
@@ -270,7 +270,7 @@ export default function PlanningV({ data, m, reload }) {
           {view === 'gantt' && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
               <button onClick={() => setPxDay(d => Math.max(8, d - 4))} aria-label="Dézoomer" style={zBtnS}>−</button>
-              <span style={{ fontSize: 10, color: '#94A3B8', minWidth: 34, textAlign: 'center' }}>{pxDay}px/j</span>
+              <span style={{ fontSize: 10, color: '#64748B', minWidth: 34, textAlign: 'center' }}>{pxDay}px/j</span>
               <button onClick={() => setPxDay(d => Math.min(80, d + 4))} aria-label="Zoomer" style={zBtnS}>+</button>
             </div>
           )}
@@ -322,7 +322,7 @@ export default function PlanningV({ data, m, reload }) {
         <div style={{ background: '#fff', borderRadius: 12, boxShadow: '0 1px 3px rgba(15,23,42,0.06)', overflow: 'hidden' }}>
 
           {/* Aide */}
-          <div style={{ padding: '5px 14px', borderBottom: '1px solid #F1F5F9', fontSize: 10, color: '#94A3B8', display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+          <div style={{ padding: '5px 14px', borderBottom: '1px solid #F1F5F9', fontSize: 10, color: '#64748B', display: 'flex', gap: 14, flexWrap: 'wrap' }}>
             <span>↔ Glisser la barre pour déplacer</span>
             <span>⊣⊢ Bord droit pour redimensionner</span>
             {saving && <span style={{ color: '#3B82F6', fontWeight: 600 }}>💾 Sauvegarde…</span>}
@@ -333,7 +333,7 @@ export default function PlanningV({ data, m, reload }) {
 
               {/* ── En-tête mois (sticky) ── */}
               <div style={{ display: 'flex', position: 'sticky', top: 0, zIndex: 10, background: '#F8FAFC', borderBottom: '2px solid #E2E8F0' }}>
-                <div style={{ width: LABEL_W, flexShrink: 0, borderRight: '2px solid #E2E8F0', padding: '0 12px', display: 'flex', alignItems: 'center', fontSize: 10, fontWeight: 700, color: '#94A3B8', letterSpacing: '0.05em', height: 34 }}>
+                <div style={{ width: LABEL_W, flexShrink: 0, borderRight: '2px solid #E2E8F0', padding: '0 12px', display: 'flex', alignItems: 'center', fontSize: 10, fontWeight: 700, color: '#64748B', letterSpacing: '0.05em', height: 34 }}>
                   CHANTIER / OS
                 </div>
                 <div style={{ width: totalW, flexShrink: 0, position: 'relative', height: 34 }}>
@@ -405,7 +405,7 @@ export default function PlanningV({ data, m, reload }) {
                             <div style={{ fontSize: 11, fontWeight: 600, color: '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                               {os.artisan_specialite || os.artisan_nom || os.numero}
                             </div>
-                            <div style={{ fontSize: 9, color: osColor, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            <div style={{ fontSize: 10, color: osColor, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                               {os.numero} · {os.statut}
                             </div>
                           </div>
@@ -444,7 +444,7 @@ export default function PlanningV({ data, m, reload }) {
                             >
                               {/* Libellé dans la barre */}
                               {barWidth > 32 && (
-                                <span style={{ position: 'absolute', left: 5, top: '50%', transform: 'translateY(-50%)', fontSize: 9, fontWeight: 700, color: osColor, pointerEvents: 'none', whiteSpace: 'nowrap', overflow: 'hidden', maxWidth: barWidth - 20 }}>
+                                <span style={{ position: 'absolute', left: 5, top: '50%', transform: 'translateY(-50%)', fontSize: 10, fontWeight: 700, color: osColor, pointerEvents: 'none', whiteSpace: 'nowrap', overflow: 'hidden', maxWidth: barWidth - 20 }}>
                                   {os.artisan_specialite || os.numero}
                                 </span>
                               )}

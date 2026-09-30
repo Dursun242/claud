@@ -153,7 +153,7 @@ export default function DevisEditor({
       {/* ─── Lignes ─── */}
       <div style={{ fontSize: 12, fontWeight: 700, color: '#0F172A', margin: '4px 0 6px' }}>Détail</div>
       {!m && (
-        <div style={{ display: 'grid', gridTemplateColumns: cols, gap: 6, fontSize: 10, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.04em', padding: '0 2px 4px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: cols, gap: 6, fontSize: 10, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em', padding: '0 2px 4px' }}>
           <span>Désignation</span><span>Unité</span><span>Qté</span><span>PU HT</span><span>TVA</span><span style={{ textAlign: 'right' }}>Total HT</span><span />
         </div>
       )}

@@ -243,7 +243,7 @@ export default function LogsV({ m, profile, embedded = false }) {
         textAlign: "center", border: "1.5px solid #FECACA"
       }}>
         <h1 style={{ margin: "0 0 10px", fontSize: 20, fontWeight: 700, color: "#DC2626" }}>🔒 Accès refusé</h1>
-        <p style={{ margin: 0, color: "#94A3B8", fontSize: 14 }}>
+        <p style={{ margin: 0, color: "#64748B", fontSize: 14 }}>
           Seuls les administrateurs peuvent consulter le journal d&apos;activité.
         </p>
       </div>
@@ -263,7 +263,7 @@ export default function LogsV({ m, profile, embedded = false }) {
           {!embedded && (
             <h1 style={{ margin: 0, fontSize: m ? 18 : 24, fontWeight: 700 }}>📋 Journal d&apos;activité</h1>
           )}
-          <div style={{ fontSize: 11, color: "#94A3B8", marginTop: embedded ? 0 : 2 }}>
+          <div style={{ fontSize: 11, color: "#64748B", marginTop: embedded ? 0 : 2 }}>
             {embedded
               ? <>Connexions, créations, modifications et suppressions.</>
               : <>Connexions, créations, modifications et suppressions — admin uniquement.</>
@@ -344,7 +344,7 @@ export default function LogsV({ m, profile, embedded = false }) {
           padding: "10px 14px", marginBottom: 12, fontSize: 13, color: "#DC2626"
         }}>
           ⚠ {error}
-          <div style={{ fontSize: 11, marginTop: 4, color: '#94A3B8' }}>
+          <div style={{ fontSize: 11, marginTop: 4, color: '#64748B' }}>
             {errorCode === 'MIGRATION_MISSING'
               ? <>La table <code>activity_logs</code> n&apos;existe pas.{' '}
                 Exécute la migration <code>007_activity_logs_consolidated.sql</code>{' '}
@@ -360,7 +360,7 @@ export default function LogsV({ m, profile, embedded = false }) {
       {loading ? (
         <div style={{
           background: "#fff", borderRadius: 12, padding: "40px 24px",
-          textAlign: "center", color: "#94A3B8", fontSize: 13
+          textAlign: "center", color: "#64748B", fontSize: 13
         }}>
           <div style={{
             width: 32, height: 32, border: "3px solid #E2E8F0",
@@ -378,7 +378,7 @@ export default function LogsV({ m, profile, embedded = false }) {
           <div style={{ fontSize: 14, fontWeight: 700, color: "#334155", marginBottom: 4 }}>
             {hasFilters ? 'Aucun résultat' : 'Journal vide'}
           </div>
-          <div style={{ fontSize: 12, color: "#94A3B8", marginBottom: 14 }}>
+          <div style={{ fontSize: 12, color: "#64748B", marginBottom: 14 }}>
             {hasFilters
               ? "Essaie d'élargir les filtres."
               : "Les actions des utilisateurs apparaîtront ici dès qu'ils se connecteront" +
@@ -410,11 +410,11 @@ export default function LogsV({ m, profile, embedded = false }) {
                   }}>
                     {a.label}
                   </span>
-                  <span style={{ fontSize: 10, color: '#94A3B8' }}>{formatWhen(l.created_at)}</span>
+                  <span style={{ fontSize: 10, color: '#64748B' }}>{formatWhen(l.created_at)}</span>
                 </div>
                 <div style={{ fontSize: 13, fontWeight: 600, color: '#0F172A', marginBottom: 2 }}>
                   {l.user_prenom || '—'}{' '}
-                  <span style={{ fontSize: 11, fontWeight: 400, color: '#94A3B8' }}>· {l.user_email}</span>
+                  <span style={{ fontSize: 11, fontWeight: 400, color: '#64748B' }}>· {l.user_email}</span>
                 </div>
                 <div style={{ fontSize: 12, color: '#475569' }}>
                   <span style={{ fontWeight: 600 }}>{ENTITY_LABELS[l.entity_type] || l.entity_type || '—'}</span>
@@ -477,7 +477,7 @@ export default function LogsV({ m, profile, embedded = false }) {
                           color: '#64748B', fontSize: 12 }}>{formatWhen(l.created_at)}</td>
                         <td style={tdStyle}>
                           <div style={{ fontWeight: 600, color: '#0F172A' }}>{l.user_prenom || '—'}</div>
-                          <div style={{ fontSize: 11, color: '#94A3B8' }}>{l.user_email}</div>
+                          <div style={{ fontSize: 11, color: '#64748B' }}>{l.user_email}</div>
                         </td>
                         <td style={tdStyle}>
                           <span style={{
@@ -502,7 +502,7 @@ export default function LogsV({ m, profile, embedded = false }) {
                             {src === 'ai' && <span style={sourceBadge}>🤖 IA</span>}
                             {src === 'duplicate' && <span style={sourceBadge}>📋 Copie</span>}
                             {hasMeta && (
-                              <span style={{ fontSize: 10, color: '#94A3B8' }}>
+                              <span style={{ fontSize: 10, color: '#64748B' }}>
                                 {isOpen ? '▾' : '▸'}
                               </span>
                             )}
@@ -514,7 +514,7 @@ export default function LogsV({ m, profile, embedded = false }) {
                           <td colSpan={5} style={{ padding: '10px 14px' }}>
                             <pre style={metaStyle}>{JSON.stringify(l.metadata, null, 2)}</pre>
                             {l.user_agent && (
-                              <div style={{ fontSize: 10, color: '#94A3B8', marginTop: 4 }}>
+                              <div style={{ fontSize: 10, color: '#64748B', marginTop: 4 }}>
                                 Appareil : {l.user_agent}
                               </div>
                             )}
@@ -555,7 +555,7 @@ const sourceBadge = {
   display: 'inline-flex', alignItems: 'center', gap: 3,
   padding: '1px 6px', borderRadius: 4, background: '#F0FDFA',
   border: '1px solid #99F6E4', color: '#0F766E',
-  fontSize: 9, fontWeight: 700, whiteSpace: 'nowrap',
+  fontSize: 10, fontWeight: 700, whiteSpace: 'nowrap',
 }
 const metaStyle = {
   fontSize: 11, color: '#334155',

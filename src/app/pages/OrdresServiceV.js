@@ -598,7 +598,7 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly})
     }}>
       <div>
         <h1 style={{margin:0,fontSize:m?18:24,fontWeight:700,color:"#0F172A"}}>Ordres de Service</h1>
-        <div style={{fontSize:11,color:"#94A3B8",marginTop:2}}>
+        <div style={{fontSize:11,color:"#64748B",marginTop:2}}>
           {countByStatus.all} au total
           {statusFilter !== "all" && (
             <> · <strong>{filteredSortedOS.length}</strong>{" "}
@@ -756,7 +756,7 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly})
           {searchOS || statusFilter !== "all" ? (
             <>
               <div style={{fontSize:14,fontWeight:700,color:"#334155",marginBottom:4}}>Aucun résultat</div>
-              <div style={{fontSize:12,color:"#94A3B8",marginBottom:14}}>
+              <div style={{fontSize:12,color:"#64748B",marginBottom:14}}>
                 Essaie d&apos;élargir ta recherche ou de changer de statut.
               </div>
               <button onClick={()=>{setSearchOS("");setStatusFilter("all");}}
@@ -765,7 +765,7 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly})
           ) : (
             <>
               <div style={{fontSize:14,fontWeight:700,color:"#334155",marginBottom:4}}>Aucun ordre de service</div>
-              <div style={{fontSize:12,color:"#94A3B8",marginBottom:14}}>
+              <div style={{fontSize:12,color:"#64748B",marginBottom:14}}>
                 Crée-en un ou importe un devis par photo pour démarrer.
               </div>
               <div style={{display:"flex",gap:8,justifyContent:"center",flexWrap:"wrap"}}>

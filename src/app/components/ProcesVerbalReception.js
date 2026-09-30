@@ -67,7 +67,7 @@ export default function ProcesVerbalReception({ chantierId, chantier, ordresServ
         </div>}
 
         {loading ? (
-          <p style={{ color: '#94A3B8', fontSize: 12 }}>Chargement…</p>
+          <p style={{ color: '#64748B', fontSize: 12 }}>Chargement…</p>
         ) : pvs.length === 0 ? (
           <EmptyState
             compact

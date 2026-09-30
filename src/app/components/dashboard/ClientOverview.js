@@ -6,7 +6,7 @@ const card = (m) => ({
   boxShadow: '0 1px 3px rgba(0,0,0,0.06)', marginBottom: 18,
 })
 const h2 = { margin: '0 0 12px', fontSize: 16, fontWeight: 700, color: '#0F172A' }
-const label = { fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#94A3B8', marginBottom: 6 }
+const label = { fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#64748B', marginBottom: 6 }
 const ellipsis = { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }
 
 /**
@@ -42,7 +42,7 @@ export default function ClientOverview({ overview, onOpen, m }) {
     <section style={card(m)} aria-labelledby="client-progress">
       <h2 id="client-progress" style={h2}>📍 Où en sont les travaux ?</h2>
       {enCours.length === 0 && aVenir.length === 0 ? (
-        <div style={{ fontSize: 13, color: '#94A3B8', padding: '6px 0' }}>
+        <div style={{ fontSize: 13, color: '#64748B', padding: '6px 0' }}>
           Le planning détaillé n&apos;est pas encore disponible. Votre maître d&apos;œuvre le complétera prochainement.
         </div>
       ) : (<>
@@ -60,7 +60,7 @@ export default function ClientOverview({ overview, onOpen, m }) {
                     style={{ height: 6, background: '#E2E8F0', borderRadius: 3, overflow: 'hidden' }}>
                     <div style={{ width: `${p.avancement}%`, height: '100%', background: '#10B981' }} />
                   </div>
-                  <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 3, ...ellipsis }}>
+                  <div style={{ fontSize: 11, color: '#64748B', marginTop: 3, ...ellipsis }}>
                     {p.chantier ? `${p.chantier} · ` : ''}fin prévue {fmtDate(p.fin)}
                   </div>
                 </div>
@@ -87,7 +87,7 @@ export default function ClientOverview({ overview, onOpen, m }) {
       <section style={card(m)} aria-labelledby="client-last-cr">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 8 }}>
           <h2 id="client-last-cr" style={{ ...h2, margin: 0 }}>📝 Dernier compte rendu</h2>
-          <span style={{ fontSize: 11, color: '#94A3B8', whiteSpace: 'nowrap' }}>n°{dernierCR.numero} · {fmtDate(dernierCR.date)}</span>
+          <span style={{ fontSize: 11, color: '#64748B', whiteSpace: 'nowrap' }}>n°{dernierCR.numero} · {fmtDate(dernierCR.date)}</span>
         </div>
         {dernierCR.chantier && <div style={{ fontSize: 12, color: '#64748B', marginBottom: 6 }}>{dernierCR.chantier}</div>}
         <p style={{

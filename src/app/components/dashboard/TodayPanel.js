@@ -50,7 +50,7 @@ export default function TodayPanel({ agenda, onOpen, m }) {
       </div>
 
       {total === 0 ? (
-        <div style={{ textAlign: 'center', padding: '10px 0', fontSize: 13, color: '#94A3B8' }}>
+        <div style={{ textAlign: 'center', padding: '10px 0', fontSize: 13, color: '#64748B' }}>
           ✅ Rien d&apos;urgent aujourd&apos;hui — bonne journée !
         </div>
       ) : sections.map(sec => {
@@ -77,7 +77,7 @@ export default function TodayPanel({ agenda, onOpen, m }) {
                       <span aria-hidden style={{ fontSize: 16 }}>{k.emoji}</span>
                       <span style={{ flex: 1, minWidth: 0 }}>
                         <span style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{it.title}</span>
-                        {it.sub && <span style={{ display: 'block', fontSize: 11, color: '#94A3B8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{it.sub}</span>}
+                        {it.sub && <span style={{ display: 'block', fontSize: 11, color: '#64748B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{it.sub}</span>}
                       </span>
                       {it.late && it.date && (
                         <span style={{ fontSize: 11, fontWeight: 700, color: '#DC2626', whiteSpace: 'nowrap' }}>{fmtDate(it.date)}</span>
@@ -101,7 +101,7 @@ export default function TodayPanel({ agenda, onOpen, m }) {
 
       {agenda.rdvUpcoming.length > 0 && (
         <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid #F1F5F9' }}>
-          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#94A3B8', marginBottom: 6 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#64748B', marginBottom: 6 }}>
             Rendez-vous à venir
           </div>
           {agenda.rdvUpcoming.slice(0, 3).map(r => (

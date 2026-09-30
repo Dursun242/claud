@@ -302,7 +302,7 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
         <div>
           <h1 style={{ margin: 0, fontSize: m ? 18 : 24, fontWeight: 700 }}>CRM</h1>
-          <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 2 }}>
+          <div style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>
             {stats.actives === 0 ? 'Tes affaires en cours, du premier appel au chantier.' :
               `${stats.actives} affaire${stats.actives > 1 ? 's' : ''} en cours · ${fmtMoney(stats.montantPipeline)}`}
           </div>

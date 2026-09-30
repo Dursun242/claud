@@ -46,14 +46,14 @@ function OsCardImpl({
             {os.artisan_nom}{os.artisan_specialite ? ` · ${os.artisan_specialite}` : ''}{' '}
             — Client : {os.client_nom}
           </div>
-          <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 2 }}>
+          <div style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>
             Émis {fmtDate(os.date_emission)} • Intervention {fmtDate(os.date_intervention)}{' '}
             • {(os.prestations || []).length} prestation(s)
           </div>
         </div>
         <div style={{ textAlign: 'right' }}>
           <div style={{ fontSize: 18, fontWeight: 700, color: '#1E3A5F' }}>{fmtMoney(os.montant_ttc || 0)}</div>
-          <div style={{ fontSize: 10, color: '#94A3B8' }}>HT: {fmtMoney(os.montant_ht || 0)}</div>
+          <div style={{ fontSize: 10, color: '#64748B' }}>HT: {fmtMoney(os.montant_ht || 0)}</div>
         </div>
       </div>
       <div style={{ display: 'flex', gap: 6, marginTop: 10, flexWrap: 'wrap' }}>

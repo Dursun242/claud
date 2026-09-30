@@ -110,7 +110,7 @@ export default function PVDetail({ pv, onClose, onDecision }) {
             border: 'none',
             fontSize: 20,
             cursor: 'pointer',
-            color: '#94A3B8'
+            color: '#64748B'
           }}>×</button>
         </div>
 
@@ -118,13 +118,13 @@ export default function PVDetail({ pv, onClose, onDecision }) {
         <div style={{ background: '#F8FAFC', borderRadius: 8, padding: 12, marginBottom: 12, fontSize: 12 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
-              <div style={{ color: '#94A3B8', fontSize: 10, fontWeight: 600 }}>DATE RÉCEPTION</div>
+              <div style={{ color: '#64748B', fontSize: 10, fontWeight: 600 }}>DATE RÉCEPTION</div>
               <div style={{ color: '#0F172A', fontWeight: 600, marginTop: 2 }}>
                 {formatDate(pv.date_reception)}
               </div>
             </div>
             <div>
-              <div style={{ color: '#94A3B8', fontSize: 10, fontWeight: 600 }}>STATUT SIGNATURE</div>
+              <div style={{ color: '#64748B', fontSize: 10, fontWeight: 600 }}>STATUT SIGNATURE</div>
               <div style={{ color: '#0F172A', fontWeight: 600, marginTop: 2 }}>
                 {pv.statut_signature}
               </div>
@@ -189,19 +189,19 @@ export default function PVDetail({ pv, onClose, onDecision }) {
           {pv.signataire_moe_email && (
             <div style={{ color: '#0F172A', marginBottom: 4 }}>
               <strong>MOE:</strong> {pv.signataire_moe_email}
-              {pv.date_signature_moe && <span style={{ color: '#94A3B8', marginLeft: 8 }}>✓ {formatDate(pv.date_signature_moe)}</span>}
+              {pv.date_signature_moe && <span style={{ color: '#64748B', marginLeft: 8 }}>✓ {formatDate(pv.date_signature_moe)}</span>}
             </div>
           )}
           {(pv.signataire_moa_emails?.length ? pv.signataire_moa_emails : (pv.signataire_moa_email ? [pv.signataire_moa_email] : [])).map((email, idx) => (
             <div key={`moa-${idx}`} style={{ color: '#0F172A', marginBottom: 4 }}>
               <strong>MOA{idx > 0 ? ` ${idx + 1}` : ''}:</strong> {email}
-              {idx === 0 && pv.date_signature_moa && <span style={{ color: '#94A3B8', marginLeft: 8 }}>✓ {formatDate(pv.date_signature_moa)}</span>}
+              {idx === 0 && pv.date_signature_moa && <span style={{ color: '#64748B', marginLeft: 8 }}>✓ {formatDate(pv.date_signature_moa)}</span>}
             </div>
           ))}
           {(pv.signataire_entreprise_emails?.length ? pv.signataire_entreprise_emails : (pv.signataire_entreprise_email ? [pv.signataire_entreprise_email] : [])).map((email, idx) => (
             <div key={`ent-${idx}`} style={{ color: '#0F172A', marginBottom: 4 }}>
               <strong>Entreprise{idx > 0 ? ` ${idx + 1}` : ''}:</strong> {email}
-              {idx === 0 && pv.date_signature_entreprise && <span style={{ color: '#94A3B8', marginLeft: 8 }}>✓ {formatDate(pv.date_signature_entreprise)}</span>}
+              {idx === 0 && pv.date_signature_entreprise && <span style={{ color: '#64748B', marginLeft: 8 }}>✓ {formatDate(pv.date_signature_entreprise)}</span>}
             </div>
           ))}
         </div>

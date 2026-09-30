@@ -112,7 +112,7 @@ function AttachmentRow({ att, onDelete }) {
           fontSize: 12, fontWeight: 600, color: '#0F172A',
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>{att.file_name}</div>
-        <div style={{ fontSize: 10, color: '#94A3B8', marginTop: 1, display: 'flex', gap: 6, alignItems: 'center' }}>
+        <div style={{ fontSize: 10, color: '#64748B', marginTop: 1, display: 'flex', gap: 6, alignItems: 'center' }}>
           <span style={{ color: kind.color, fontWeight: 700, letterSpacing: '0.04em' }}>{kind.label}</span>
           {att.file_size ? <span>· {formatSize(att.file_size)}</span> : null}
         </div>
@@ -126,7 +126,7 @@ function AttachmentRow({ att, onDelete }) {
         title="Supprimer"
         className="u-icon-btn u-icon-btn--danger"
         style={{
-          color: '#94A3B8',
+          color: '#64748B',
           padding: 8,
           width: 32, height: 32,
           borderRadius: 6,
@@ -172,7 +172,7 @@ export default function AttachmentsSection({ attachments = [], onUpload, onDelet
     <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #E2E8F0' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
         <span style={{ fontSize: 12, fontWeight: 700, color: '#334155' }}>
-          📎 Pièces jointes <span style={{ color: '#94A3B8', fontWeight: 500 }}>({attachments.length})</span>
+          📎 Pièces jointes <span style={{ color: '#64748B', fontWeight: 500 }}>({attachments.length})</span>
         </span>
         <button
           onClick={() => fileInputRef.current?.click()}

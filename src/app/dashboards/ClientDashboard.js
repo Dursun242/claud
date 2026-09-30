@@ -208,7 +208,7 @@ export default function ClientDashboard({ user, profile = null }) {
         {/* Logo */}
         <div style={{ padding:'16px 20px 12px', borderBottom:'1px solid rgba(255,255,255,0.07)' }}>
           <div style={{ fontSize:16, fontWeight:800, color:'#fff', letterSpacing:1, marginBottom:2 }}>ID MAÎTRISE</div>
-          <div style={{ fontSize:9, color:'#64748B', letterSpacing:2, textTransform:'uppercase' }}>Espace Client</div>
+          <div style={{ fontSize:10, color:'#64748B', letterSpacing:2, textTransform:'uppercase' }}>Espace Client</div>
         </div>
 
         {/* Navigation */}
@@ -277,7 +277,7 @@ export default function ClientDashboard({ user, profile = null }) {
                   {user.user_metadata?.full_name || user.email}
                 </div>
                 <div style={{
-                  fontSize:9, color:'#64748B',
+                  fontSize:10, color:'#64748B',
                   overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'
                 }}>
                   Maître d&apos;Ouvrage
@@ -292,7 +292,7 @@ export default function ClientDashboard({ user, profile = null }) {
           }}>
             Déconnexion
           </button>
-          <div style={{ fontSize:9, color:'#334155', textAlign:'center', marginTop:10 }}>
+          <div style={{ fontSize:10, color:'#334155', textAlign:'center', marginTop:10 }}>
             SARL ID MAÎTRISE · Le Havre
           </div>
         </div>
@@ -321,7 +321,7 @@ export default function ClientDashboard({ user, profile = null }) {
               }}>☰</button>
             <div style={{ flex:1, minWidth:0, display:'flex', flexDirection:'column', lineHeight:1.15 }}>
               <span style={{
-                fontSize:10, fontWeight:600, color:'#94A3B8',
+                fontSize:10, fontWeight:600, color:'#64748B',
                 letterSpacing:'0.06em', textTransform:'uppercase'
               }}>Espace client</span>
               <span style={{
@@ -470,7 +470,7 @@ export default function ClientDashboard({ user, profile = null }) {
                 }}>×</button>
             </div>
             <div style={{
-              fontSize:10, fontWeight:700, color:'#94A3B8',
+              fontSize:10, fontWeight:700, color:'#64748B',
               letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:6
             }}>
               Aller à (appuie sur <kbd style={kbdStyleC}>g</kbd> puis…)
@@ -484,7 +484,7 @@ export default function ClientDashboard({ user, profile = null }) {
                 <kbd style={kbdStyleC}>{t.sc}</kbd>
               </div>
             ))}
-            <div style={{ fontSize:10, color:'#94A3B8', marginTop:10, borderTop:'1px solid #E2E8F0', paddingTop:10 }}>
+            <div style={{ fontSize:10, color:'#64748B', marginTop:10, borderTop:'1px solid #E2E8F0', paddingTop:10 }}>
               Appuie sur <kbd style={kbdStyleC}>?</kbd> à tout moment pour réouvrir
               cette aide · <kbd style={kbdStyleC}>Esc</kbd> pour fermer
             </div>

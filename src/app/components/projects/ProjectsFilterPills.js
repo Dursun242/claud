@@ -14,7 +14,7 @@ function ProjectsFilterPillsImpl({ filterStatut, filterPhase, onStatut, onPhase,
         overflowX: m ? 'auto' : 'visible', paddingBottom: m ? 4 : 0,
       }}>
         <span style={{
-          fontSize: 10, fontWeight: 700, color: '#94A3B8',
+          fontSize: 10, fontWeight: 700, color: '#64748B',
           textTransform: 'uppercase', letterSpacing: '0.05em',
           alignSelf: 'center', marginRight: 4,
         }}>Statut</span>
@@ -38,7 +38,7 @@ function ProjectsFilterPillsImpl({ filterStatut, filterPhase, onStatut, onPhase,
         overflowX: m ? 'auto' : 'visible', paddingBottom: m ? 4 : 0,
       }}>
         <span style={{
-          fontSize: 10, fontWeight: 700, color: '#94A3B8',
+          fontSize: 10, fontWeight: 700, color: '#64748B',
           textTransform: 'uppercase', letterSpacing: '0.05em',
           alignSelf: 'center', marginRight: 4,
         }}>Phase</span>

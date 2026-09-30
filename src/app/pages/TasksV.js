@@ -6,7 +6,7 @@ import { useToast } from '../contexts/ToastContext'
 import { useConfirm } from '../contexts/ConfirmContext'
 import { useUndoableDelete } from '../hooks/useUndoableDelete'
 import { parseNewIntent } from '../lib/navIntent'
-import { usePatchDashboardTask } from '../hooks/useDashboardData'
+import { useSaveTask } from '../hooks/useSaveTask'
 
 // Ordre de priorité canonique (pour le tri)
 const PRIORITY_ORDER = { Urgent: 0, "En cours": 1, "En attente": 2 }
@@ -15,7 +15,7 @@ const TASK_STATUSES = ["Planifié", "En cours", "Terminé"]
 export default function TasksV({ data, save: _save, m, reload, focusId, focusTs }) {
   const { addToast } = useToast()
   const confirm = useConfirm()
-  const patchTask = usePatchDashboardTask()
+  const saveTask = useSaveTask()
   const [modal, setModal] = useState(null)
   const [form, setForm] = useState({})
   const [filter, setFilter] = useState("all")
@@ -128,9 +128,9 @@ export default function TasksV({ data, save: _save, m, reload, focusId, focusTs 
     const idx = cy.indexOf(t.statut)
     const next = cy[(idx < 0 ? 0 : idx + 1) % 3]
     try {
-      const saved = await SB.upsertTask({ ...t, statut: next })
-      if (!patchTask(saved)) reload()
-      if (next === "Terminé") addToast("Tâche terminée ✓", "success")
+      const r = await saveTask({ ...t, statut: next }, reload)
+      if (r === "queued") addToast("Hors ligne : enregistré sur l'appareil, envoi au retour du réseau", "info")
+      else if (next === "Terminé") addToast("Tâche terminée ✓", "success")
     } catch (err) {
       addToast("Erreur : " + (err?.message || "mise à jour impossible"), "error")
     }
@@ -156,7 +156,7 @@ export default function TasksV({ data, save: _save, m, reload, focusId, focusTs 
     }}>
       <div>
         <h1 style={{margin:0,fontSize:m?18:24,fontWeight:700}}>Tâches</h1>
-        <div style={{fontSize:11,color:"#94A3B8",marginTop:2}}>
+        <div style={{fontSize:11,color:"#64748B",marginTop:2}}>
           {countByStatus.all} au total
           {hasFilters && <> · <strong>{filteredTasks.length}</strong> affichée{filteredTasks.length>1?"s":""}</>}
         </div>
@@ -225,7 +225,7 @@ export default function TasksV({ data, save: _save, m, reload, focusId, focusTs 
         {hasFilters ? (
           <>
             <div style={{fontSize:14,fontWeight:700,color:"#334155",marginBottom:4}}>Aucun résultat</div>
-            <div style={{fontSize:12,color:"#94A3B8",marginBottom:14}}>
+            <div style={{fontSize:12,color:"#64748B",marginBottom:14}}>
               Essaie d&apos;élargir ta recherche ou de changer de filtre.
             </div>
             <button onClick={()=>{setQ("");setFilter("all")}}
@@ -234,7 +234,7 @@ export default function TasksV({ data, save: _save, m, reload, focusId, focusTs 
         ) : (
           <>
             <div style={{fontSize:14,fontWeight:700,color:"#334155",marginBottom:4}}>Aucune tâche 🎉</div>
-            <div style={{fontSize:12,color:"#94A3B8",marginBottom:14}}>
+            <div style={{fontSize:12,color:"#64748B",marginBottom:14}}>
               Crée ta première tâche pour commencer à suivre le travail.
             </div>
             <button onClick={openNew} style={{...btnP,fontSize:12}}>+ Nouvelle tâche</button>
@@ -276,7 +276,7 @@ export default function TasksV({ data, save: _save, m, reload, focusId, focusTs 
                 overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",
                 textDecoration:t.statut==="Terminé"?"line-through":"none"
               }}>{t.titre}</div>
-              <div style={{fontSize:10,color:"#94A3B8",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+              <div style={{fontSize:10,color:"#64748B",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
                 {ch?.nom || "—"}{t.lot ? ` · ${t.lot}` : ""}
               </div>
             </div>

@@ -29,7 +29,7 @@ function SuiviLine({ suivi }) {
   return (
     <div title={detail} style={{ fontSize: 11, color: '#0369A1', marginTop: 3, fontWeight: 600 }}>
       {suivi.ouvertures > 0 && <span>👁 ouvert {suivi.ouvertures}× · dernier le {fmtDT(suivi.derniereOuverture)}</span>}
-      {suivi.ouvertures > 0 && suivi.consultations > 0 && <span style={{ color: '#94A3B8' }}> · </span>}
+      {suivi.ouvertures > 0 && suivi.consultations > 0 && <span style={{ color: '#64748B' }}> · </span>}
       {suivi.consultations > 0 && <span>🔗 consulté en ligne {suivi.consultations}× · dernier le {fmtDT(suivi.derniereConsultation)}</span>}
     </div>
   )
@@ -40,7 +40,7 @@ export default function DevisList({ devis = [], missing, saving, onNew, onOpen, 
     <div style={{ marginBottom: 14 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
         <h3 style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#0F172A', flex: 1 }}>
-          Devis <span style={{ color: '#94A3B8', fontWeight: 500 }}>({devis.length})</span>
+          Devis <span style={{ color: '#64748B', fontWeight: 500 }}>({devis.length})</span>
         </h3>
         {!missing && (
           <button onClick={onNew} disabled={saving} style={{ ...act, background: '#F1F5F9' }}>📄 Nouveau devis</button>

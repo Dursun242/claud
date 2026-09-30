@@ -400,7 +400,7 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
     }}>
       <div>
         <h1 style={{margin:0,fontSize:m?18:24,fontWeight:700}}>Contacts</h1>
-        <p style={{margin:"2px 0 0",fontSize:12,color:"#94A3B8"}}>
+        <p style={{margin:"2px 0 0",fontSize:12,color:"#64748B"}}>
           {data.contacts.length} contact{data.contacts.length>1?"s":""}
           {(q || tf !== "all") && <> · <strong>{list.length}</strong> affiché{list.length>1?"s":""}</>}
         </p>
@@ -545,7 +545,7 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
         {data.contacts.length === 0 ? (
           <>
             <div style={{fontSize:14,fontWeight:700,color:"#334155",marginBottom:4}}>Aucun contact pour l'instant</div>
-            <div style={{fontSize:12,color:"#94A3B8",marginBottom:14}}>
+            <div style={{fontSize:12,color:"#64748B",marginBottom:14}}>
               Crée ton premier contact ou importe-en un depuis une photo/capture.
             </div>
             <div style={{display:"flex",gap:8,justifyContent:"center",flexWrap:"wrap"}}>
@@ -557,7 +557,7 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
         ) : (
           <>
             <div style={{fontSize:14,fontWeight:700,color:"#334155",marginBottom:4}}>Aucun résultat</div>
-            <div style={{fontSize:12,color:"#94A3B8",marginBottom:14}}>
+            <div style={{fontSize:12,color:"#64748B",marginBottom:14}}>
               Essaie d&apos;élargir ta recherche ou de changer de filtre.
             </div>
             <button onClick={()=>{setQ("");setTf("all");}}
@@ -623,7 +623,7 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
                 )}
               </div>
               {(c.ville||c.adresse) && (
-                <div style={{fontSize:10,color:"#94A3B8",marginTop:3,display:"inline-flex",alignItems:"center",gap:5}}>
+                <div style={{fontSize:10,color:"#64748B",marginTop:3,display:"inline-flex",alignItems:"center",gap:5}}>
                   📍 {[c.adresse,c.code_postal,c.ville].filter(Boolean).join(", ")}
                   <CopyIconBtn onClick={() =>
                     copyToClipboard([c.adresse,c.code_postal,c.ville].filter(Boolean).join(", "), "Adresse")
@@ -631,7 +631,7 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
                 </div>
               )}
               {c.siret && (
-                <div style={{fontSize:10,color:"#94A3B8",marginTop:2,display:"inline-flex",alignItems:"center",gap:5}}>
+                <div style={{fontSize:10,color:"#64748B",marginTop:2,display:"inline-flex",alignItems:"center",gap:5}}>
                   SIRET : {c.siret}
                   <CopyIconBtn onClick={() => copyToClipboard(c.siret, "SIRET", c)}/>
                 </div>

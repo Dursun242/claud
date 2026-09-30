@@ -107,7 +107,7 @@ export default function DocumentSearch({ chantierId = null }) {
           overflowY: 'auto',
         }}>
           {loading ? (
-            <div style={{ padding: 16, textAlign: 'center', color: '#94A3B8', fontSize: 12 }}>
+            <div style={{ padding: 16, textAlign: 'center', color: '#64748B', fontSize: 12 }}>
               Recherche en cours...
             </div>
           ) : results.length === 0 ? (
@@ -151,7 +151,7 @@ export default function DocumentSearch({ chantierId = null }) {
                     }}>
                       {doc.file_name}
                     </div>
-                    <div style={{ fontSize: 10, color: '#94A3B8', marginTop: 2 }}>
+                    <div style={{ fontSize: 10, color: '#64748B', marginTop: 2 }}>
                       {doc.chantier_nom} • {formatSize(doc.file_size)}
                     </div>
                   </div>

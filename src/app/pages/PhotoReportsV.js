@@ -260,7 +260,7 @@ export default function PhotoReportsV({ data, m }) {
       }}>
         <div>
           <h1 style={{ margin: 0, fontSize: m ? 18 : 24, fontWeight: 700 }}>Reportage Photo</h1>
-          <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 2 }}>
+          <div style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>
             Sélectionne jusqu'à {MAX_PHOTOS} photos puis génère le reportage PDF
           </div>
         </div>
@@ -272,7 +272,7 @@ export default function PhotoReportsV({ data, m }) {
         boxShadow: '0 1px 3px rgba(15,23,42,0.06)', marginBottom: 14,
       }}>
         <div style={{
-          fontSize: 11, fontWeight: 700, color: '#94A3B8',
+          fontSize: 11, fontWeight: 700, color: '#64748B',
           textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8
         }}>
           1. Chantier
@@ -292,7 +292,7 @@ export default function PhotoReportsV({ data, m }) {
           </div>
         )}
         <div style={{ marginTop: 14 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
             Météo (optionnel)
           </div>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -319,7 +319,7 @@ export default function PhotoReportsV({ data, m }) {
           marginBottom: 10, flexWrap: 'wrap', gap: 8
         }}>
           <div style={{
-            fontSize: 11, fontWeight: 700, color: '#94A3B8',
+            fontSize: 11, fontWeight: 700, color: '#64748B',
             textTransform: 'uppercase', letterSpacing: '0.05em'
           }}>
             2. Photos ({photos.length}/{MAX_PHOTOS})
@@ -379,7 +379,7 @@ export default function PhotoReportsV({ data, m }) {
             <div style={{ fontSize: 14, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
               Sélectionne des photos de ton chantier
             </div>
-            <div style={{ fontSize: 12, color: '#94A3B8' }}>
+            <div style={{ fontSize: 12, color: '#64748B' }}>
               Depuis la galerie, l'appareil photo, ou tes fichiers · Max {MAX_PHOTOS} photos
             </div>
           </div>
@@ -472,7 +472,7 @@ export default function PhotoReportsV({ data, m }) {
         }}>
           <div>
             <div style={{
-            fontSize: 11, fontWeight: 700, color: '#94A3B8',
+            fontSize: 11, fontWeight: 700, color: '#64748B',
             textTransform: 'uppercase', letterSpacing: '0.05em'
           }}>
               3. Générer le reportage

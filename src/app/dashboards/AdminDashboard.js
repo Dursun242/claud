@@ -310,7 +310,7 @@ export default function AdminDashboard({ user, profile = null }) {
         <div style={{padding:"16px 16px 12px",borderBottom:"1px solid rgba(255,255,255,0.08)"}}>
           <div style={{fontSize:17,fontWeight:700}}>ID MAÎTRISE</div>
           <div style={{
-            fontSize:10,color:"#94A3B8",marginTop:2,letterSpacing:"0.05em"
+            fontSize:10,color:"#64748B",marginTop:2,letterSpacing:"0.05em"
           }}>MAÎTRISE D'ŒUVRE • LE HAVRE</div>
         </div>
         <GlobalSearch data={data} crm={crm} onNavigate={switchTab} />
@@ -397,7 +397,7 @@ export default function AdminDashboard({ user, profile = null }) {
                   overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"
                 }}>{user.user_metadata?.full_name || user.email}</div>
                 <div style={{
-                  fontSize:9,color:"#64748B",
+                  fontSize:10,color:"#64748B",
                   overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"
                 }}>{user.email}</div>
               </div>
@@ -407,12 +407,12 @@ export default function AdminDashboard({ user, profile = null }) {
             width:"100%",padding:"6px 10px",borderRadius:6,
             border:"1px solid rgba(255,255,255,0.1)",
             background:"rgba(255,255,255,0.05)",
-            color:"#94A3B8",fontSize:10,cursor:"pointer",
+            color:"#64748B",fontSize:10,cursor:"pointer",
             fontFamily:"inherit",fontWeight:500
           }}>
             Déconnexion
           </button>
-          <div style={{fontSize:9,color:"#475569",marginTop:6}}>
+          <div style={{fontSize:10,color:"#475569",marginTop:6}}>
             SARL ID MAITRISE<br/>9 Rue Henry Genestal, 76600 Le Havre
           </div>
         </div>
@@ -443,7 +443,7 @@ export default function AdminDashboard({ user, profile = null }) {
               }}>☰</button>
             <div style={{flex:1,minWidth:0,display:"flex",flexDirection:"column",lineHeight:1.15}}>
               <span style={{
-                fontSize:10,fontWeight:600,color:"#94A3B8",
+                fontSize:10,fontWeight:600,color:"#64748B",
                 letterSpacing:"0.06em",textTransform:"uppercase"
               }}>ID Maîtrise</span>
               <span style={{

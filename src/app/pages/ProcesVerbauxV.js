@@ -76,7 +76,7 @@ export default function ProcesVerbauxV({ data, m, reload, user: _user }) {
       {/* En-tête */}
       <div style={{ marginBottom: 16 }}>
         <h1 style={{ margin: 0, fontSize: m ? 18 : 24, fontWeight: 700 }}>Procès-verbaux de réception</h1>
-        <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 2 }}>
+        <div style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>
           {allPVs.length} PV{allPVs.length !== 1 ? 's' : ''}
         </div>
       </div>
@@ -146,7 +146,7 @@ export default function ProcesVerbauxV({ data, m, reload, user: _user }) {
                       {pv.titre}
                     </div>
                     {chantier && (
-                      <div style={{ fontSize: 10, color: '#94A3B8', marginTop: 2 }}>
+                      <div style={{ fontSize: 10, color: '#64748B', marginTop: 2 }}>
                         {chantier.nom}
                       </div>
                     )}
@@ -220,7 +220,7 @@ export default function ProcesVerbauxV({ data, m, reload, user: _user }) {
                   {selectedPV.titre}
                 </p>
                 {chantiersMap.get(selectedPV.chantier_id) && (
-                  <p style={{ margin: '4px 0 0 0', fontSize: 11, color: '#94A3B8' }}>
+                  <p style={{ margin: '4px 0 0 0', fontSize: 11, color: '#64748B' }}>
                     {chantiersMap.get(selectedPV.chantier_id).nom}
                   </p>
                 )}
@@ -230,7 +230,7 @@ export default function ProcesVerbauxV({ data, m, reload, user: _user }) {
                 border: 'none',
                 fontSize: 20,
                 cursor: 'pointer',
-                color: '#94A3B8'
+                color: '#64748B'
               }}>×</button>
             </div>
 
@@ -238,13 +238,13 @@ export default function ProcesVerbauxV({ data, m, reload, user: _user }) {
             <div style={{ background: '#F8FAFC', borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 12 }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div>
-                  <div style={{ color: '#94A3B8', fontSize: 10, fontWeight: 600 }}>DATE RÉCEPTION</div>
+                  <div style={{ color: '#64748B', fontSize: 10, fontWeight: 600 }}>DATE RÉCEPTION</div>
                   <div style={{ color: '#0F172A', fontWeight: 600, marginTop: 2 }}>
                     {formatDate(selectedPV.date_reception)}
                   </div>
                 </div>
                 <div>
-                  <div style={{ color: '#94A3B8', fontSize: 10, fontWeight: 600 }}>STATUT SIGNATURE</div>
+                  <div style={{ color: '#64748B', fontSize: 10, fontWeight: 600 }}>STATUT SIGNATURE</div>
                   <div style={{ color: '#0F172A', fontWeight: 600, marginTop: 2 }}>
                     {selectedPV.statut_signature}
                   </div>

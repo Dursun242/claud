@@ -58,7 +58,7 @@ export default function FloatingMic({
           >
             <div
               style={{
-                fontSize: 9,
+                fontSize: 10,
                 fontWeight: 700,
                 color: '#00FF88',
                 textTransform: 'uppercase',

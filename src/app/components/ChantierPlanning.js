@@ -21,7 +21,7 @@ export default function ChantierPlanning({ items = [] }) {
         }}>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 13, fontWeight: 600, color: '#0F172A' }}>{p.tache}</div>
-            <div style={{ fontSize: 10, color: '#94A3B8' }}>
+            <div style={{ fontSize: 10, color: '#64748B' }}>
               {p.lot} • {fmtDate(p.debut)} → {fmtDate(p.fin)}
             </div>
           </div>

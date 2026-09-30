@@ -19,7 +19,7 @@ import { useToast } from '../contexts/ToastContext'
 import { useConfirm } from '../contexts/ConfirmContext'
 import { computeChantierFinances } from '../lib/chantierFinances'
 import { parseNewIntent } from '../lib/navIntent'
-import { usePatchDashboardTask } from '../hooks/useDashboardData'
+import { useSaveTask } from '../hooks/useSaveTask'
 
 // Style doux pour les boutons d'action dans la vue détail (PDF/XLS/etc.)
 // Remplace les blocs rouge/vert/bleu saturés par des pastilles pastel.
@@ -58,7 +58,7 @@ function Section({ title, count, color, children }) {
 export default function ProjectsV({ data, save: _save, m, reload, user, profile, focusId, focusTs, readOnly }) {
   const { addToast } = useToast();
   const confirm = useConfirm();
-  const patchTask = usePatchDashboardTask();
+  const saveTask = useSaveTask();
   const [modal,setModal]=useState(null);const [form,setForm]=useState({});
   const [selected,setSelected]=useState(null);
   const [detailModal,setDetailModal]=useState(null);
@@ -74,8 +74,8 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
     if (taskBusy) return;
     setTaskBusy(t.id);
     try {
-      const saved = await SB.upsertTask({...t,statut:t.statut==="Terminé"?"En attente":"Terminé"});
-      if (!patchTask(saved)) await reload();
+      const r = await saveTask({...t,statut:t.statut==="Terminé"?"En attente":"Terminé"}, reload);
+      if (r === "queued") addToast("Hors ligne : enregistré sur l'appareil, envoi au retour du réseau", "info");
     } catch (err) {
       addToast(err?.message || "Erreur mise à jour tâche", "error");
     } finally {
@@ -344,8 +344,8 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
               <Badge text={ch.statut} color={status[ch.statut]||"#64748B"}/>
             </div>
             <div style={{fontSize:14,color:"#64748B",marginBottom:2}}>{ch.client}</div>
-            <div style={{fontSize:13,color:"#94A3B8"}}>{ch.adresse}</div>
-            <div style={{fontSize:12,color:"#94A3B8",marginTop:4}}>
+            <div style={{fontSize:13,color:"#64748B"}}>{ch.adresse}</div>
+            <div style={{fontSize:12,color:"#64748B",marginTop:4}}>
               Du {fmtDate(ch.date_debut||ch.dateDebut)} au {fmtDate(ch.date_fin||ch.dateFin)}
             </div>
             {ch.lots?.length>0 && (
@@ -402,7 +402,7 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
             padding:"6px 12px",fontSize:11,fontWeight:700,
             cursor:"pointer",opacity:0.7}}>📋 Template</button>
         </div>}
-        {chOS.length===0 ? <p style={{color:"#94A3B8",fontSize:12}}>Aucun OS pour ce chantier</p> :
+        {chOS.length===0 ? <p style={{color:"#64748B",fontSize:12}}>Aucun OS pour ce chantier</p> :
           chOS.map(os=>(
             // Sur mobile : colonne (titre au-dessus, boutons en dessous)
             // Sur desktop : ligne (titre à gauche, boutons à droite)
@@ -472,7 +472,7 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
             borderRadius:6,padding:"6px 12px",
             fontSize:11,fontWeight:700,cursor:"pointer"}}>+ Nouveau CR</button>
         </div>}
-        {chCR.length===0 ? <p style={{color:"#94A3B8",fontSize:12}}>Aucun CR pour ce chantier</p> :
+        {chCR.length===0 ? <p style={{color:"#64748B",fontSize:12}}>Aucun CR pour ce chantier</p> :
           chCR.sort((a,b)=>new Date(b.date)-new Date(a.date)).map(cr=>(
             <div key={cr.id} style={{
               background:"#fff",borderRadius:10,padding:12,marginBottom:8,
@@ -488,7 +488,7 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
                     background:"#1E3A5F",color:"#fff",borderRadius:5,
                     padding:"2px 8px",fontSize:11,fontWeight:700,whiteSpace:"nowrap"
                   }}>CR n°{cr.numero}</span>
-                  <span style={{fontSize:11,color:"#94A3B8"}}>{fmtDate(cr.date)}</span>
+                  <span style={{fontSize:11,color:"#64748B"}}>{fmtDate(cr.date)}</span>
                 </div>
                 <div style={{fontSize:12,color:"#334155",lineHeight:1.5}}>
                   {(cr.resume||"").substring(0,100)}{(cr.resume||"").length>100?"...":""}
@@ -536,7 +536,7 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
             borderRadius:6,padding:"6px 12px",
             fontSize:11,fontWeight:700,cursor:"pointer"}}>+ Nouvelle tâche</button>
         </div>
-        {chTasks.length===0 ? <p style={{color:"#94A3B8",fontSize:12}}>Aucune tâche pour ce chantier</p> :
+        {chTasks.length===0 ? <p style={{color:"#64748B",fontSize:12}}>Aucune tâche pour ce chantier</p> :
           chTasks.map(t=>(
             <div key={t.id} style={{
               display:"flex",alignItems:"center",gap:10,
@@ -560,13 +560,13 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
               </button>
               <div style={{flex:1,opacity:t.statut==="Terminé"?0.5:1}}>
                 <div style={{fontSize:13,fontWeight:600,color:"#0F172A"}}>{t.titre}</div>
-                <div style={{fontSize:10,color:"#94A3B8"}}>{t.lot} • {fmtDate(t.echeance)}</div>
+                <div style={{fontSize:10,color:"#64748B"}}>{t.lot} • {fmtDate(t.echeance)}</div>
               </div>
               <Badge text={t.priorite} color={status[t.priorite]||"#64748B"}/>
               <button onClick={()=>{setDetailForm(t);setDetailModal("editTask");}}
                 aria-label={`Modifier la tâche « ${t.titre} »`}
                 style={{background:"#3B82F6",border:"none",borderRadius:5,
-                  padding:"4px 10px",cursor:"pointer",fontSize:9,
+                  padding:"4px 10px",cursor:"pointer",fontSize:10,
                   fontWeight:700,color:"#fff",flexShrink:0}}>✎</button>
             </div>
           ))
@@ -720,7 +720,7 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
                   }}>Tout cocher</button>
                   <button type="button" onClick={()=>setDetailForm({...detailForm,intervenants:[]})}
                     style={{
-                      background:"none",border:"none",color:"#94A3B8",
+                      background:"none",border:"none",color:"#64748B",
                       fontSize:10,fontWeight:700,cursor:"pointer",padding:0
                     }}>Tout décocher</button>
                 </div>
@@ -763,7 +763,7 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
                         {it.nom}
                       </span>
                       {it.societe && it.societe !== it.nom && (
-                        <span style={{fontSize:10,color:"#94A3B8"}}>({it.societe})</span>
+                        <span style={{fontSize:10,color:"#64748B"}}>({it.societe})</span>
                       )}
                     </div>
                   )
@@ -848,7 +848,7 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
     }}>
       <div>
         <h1 style={{margin:0,fontSize:m?18:24,fontWeight:700}}>Chantiers</h1>
-        <div style={{fontSize:11,color:"#94A3B8",marginTop:2}}>
+        <div style={{fontSize:11,color:"#64748B",marginTop:2}}>
           {data.chantiers.length} au total
           {hasFilters && <>
             {" "}· <strong>{chantiersFiltered.length}</strong>{" "}
@@ -905,7 +905,7 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
         {hasFilters ? (
           <>
             <div style={{fontSize:14,fontWeight:700,color:"#334155",marginBottom:4}}>Aucun résultat</div>
-            <div style={{fontSize:12,color:"#94A3B8",marginBottom:14}}>
+            <div style={{fontSize:12,color:"#64748B",marginBottom:14}}>
               Essaie d'élargir ta recherche ou de changer les filtres.
             </div>
             <button
@@ -915,7 +915,7 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
         ) : (
           <>
             <div style={{fontSize:14,fontWeight:700,color:"#334155",marginBottom:4}}>Aucun chantier</div>
-            <div style={{fontSize:12,color:"#94A3B8",marginBottom:14}}>Démarre en créant ton premier chantier.</div>
+            <div style={{fontSize:12,color:"#64748B",marginBottom:14}}>Démarre en créant ton premier chantier.</div>
             <button onClick={openNew} style={{...btnP,fontSize:12}}>+ Nouveau chantier</button>
           </>
         )}

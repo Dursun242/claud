@@ -24,7 +24,7 @@ export default function OpportuniteDetail({
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
         <Badge text={o.etape} color={color} />
         {Number(o.montant_estime) > 0 && <span style={{ fontSize: 13, fontWeight: 700, color: '#1E3A5F' }}>{fmtMoney(o.montant_estime)}</span>}
-        {!closed && <span style={{ fontSize: 11, color: '#94A3B8' }} title="Chances de gagner">{o.probabilite} % de chances</span>}
+        {!closed && <span style={{ fontSize: 11, color: '#64748B' }} title="Chances de gagner">{o.probabilite} % de chances</span>}
         <span style={{ flex: 1 }} />
         <button onClick={onEdit} style={{ ...btnS, fontSize: 12, padding: '6px 10px' }}>✎ Modifier</button>
         <button onClick={onDelete} aria-label="Supprimer l'affaire" title="Supprimer"
@@ -134,7 +134,7 @@ export default function OpportuniteDetail({
       {/* Échanges */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, flexWrap: 'wrap' }}>
         <h3 style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#0F172A', flex: 1 }}>
-          Échanges <span style={{ color: '#94A3B8', fontWeight: 500 }}>({interactions.length})</span>
+          Échanges <span style={{ color: '#64748B', fontWeight: 500 }}>({interactions.length})</span>
         </h3>
         {INTERACTION_TYPES.map(t => (
           <button key={t} onClick={() => onAddInteraction({ type: t })} title={`Noter : ${t}`} aria-label={`Noter ${t}`}
@@ -155,7 +155,7 @@ export default function OpportuniteDetail({
 function Info({ label, value }) {
   return (
     <div style={{ minWidth: 0 }}>
-      <span style={{ fontSize: 10, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</span>
+      <span style={{ fontSize: 10, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</span>
       <div style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{value}</div>
     </div>
   )

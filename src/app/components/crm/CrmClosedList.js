@@ -20,7 +20,7 @@ export default function CrmClosedList({ list, m, contactsById, chantiers, onOpen
           }}>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 13, fontWeight: 600, color: '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.titre}</div>
-              <div style={{ fontSize: 10, color: '#94A3B8' }}>
+              <div style={{ fontSize: 10, color: '#64748B' }}>
                 {c?.nom || '—'}{o.date_cloture ? ` · le ${fmtDate(o.date_cloture)}` : ''}
                 {o.etape === 'Perdu' && o.motif_perte ? ` · ${o.motif_perte}` : ''}
                 {ch ? ` · chantier ${ch.nom}` : ''}
