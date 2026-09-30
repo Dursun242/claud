@@ -13,6 +13,7 @@
 import { verifyAuth } from '@/app/lib/auth'
 import { fetchWithRetry } from '@/app/lib/fetchWithRetry'
 import { createLogger } from '@/app/lib/logger'
+import { describeAnthropicError } from '@/app/lib/anthropicError'
 
 const log = createLogger('claude')
 
@@ -98,11 +99,9 @@ export async function POST(request) {
 
     if (!response.ok) {
       const errorText = await response.text().catch(() => '');
-      log.error(`Anthropic ${response.status}`, errorText);
-      return Response.json(
-        { error: 'Erreur du service IA' },
-        { status: response.status }
-      );
+      log.error(`Anthropic ${response.status}`, errorText.slice(0, 500));
+      const { message, status } = describeAnthropicError(response.status, errorText);
+      return Response.json({ error: message }, { status });
     }
 
     const data = await response.json();

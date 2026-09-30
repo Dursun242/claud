@@ -157,14 +157,29 @@ describe('POST /api/extract-contact', () => {
     expect((await res.json()).error).toMatch(/vide/i)
   })
 
-  it("propage le status code Anthropic en cas d'erreur", async () => {
+  it("erreur Anthropic : message explicite (surcharge → 503)", async () => {
     verifyAuth.mockResolvedValue({ id: 'u1' })
     fetchWithRetry.mockResolvedValue(fakeErr(529, 'overloaded'))
 
     const res = await POST(makeRequest({
       token: 't', body: { imageBase64: 'JVBERi', mediaType: 'image/jpeg' },
     }))
-    expect(res.status).toBe(529)
+    expect(res.status).toBe(503)
+    expect((await res.json()).error).toMatch(/surchargé/)
+  })
+
+  it("image refusée par Anthropic (dimensions) → 422 avec conseil, pas « Erreur du service IA »", async () => {
+    verifyAuth.mockResolvedValue({ id: 'u1' })
+    fetchWithRetry.mockResolvedValue(fakeErr(400, JSON.stringify({
+      type: 'error',
+      error: { type: 'invalid_request_error', message: 'image dimensions exceed max allowed size: 8000 pixels' },
+    })))
+
+    const res = await POST(makeRequest({
+      token: 't', body: { imageBase64: 'JVBERi', mediaType: 'image/jpeg' },
+    }))
+    expect(res.status).toBe(422)
+    expect((await res.json()).error).toMatch(/Image refusée/)
   })
 
   it("rate limit : 429 après 10 requêtes sur la même IP", async () => {

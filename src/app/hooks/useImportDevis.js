@@ -24,34 +24,7 @@
 import { useRef, useState, useCallback } from 'react'
 import { supabase } from '../supabaseClient'
 import { SB } from '../dashboards/shared'
-
-async function resizeImageToBase64(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      const img = new Image()
-      img.onload = () => {
-        const MAX_W = 1600
-        let { width, height } = img
-        if (width > MAX_W) {
-          height = Math.round(height * (MAX_W / width))
-          width = MAX_W
-        }
-        const canvas = document.createElement('canvas')
-        canvas.width = width
-        canvas.height = height
-        const ctx = canvas.getContext('2d')
-        ctx.drawImage(img, 0, 0, width, height)
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.85)
-        resolve({ base64: dataUrl.split(',')[1], mediaType: 'image/jpeg' })
-      }
-      img.onerror = () => reject(new Error('Image illisible'))
-      img.src = e.target.result
-    }
-    reader.onerror = () => reject(new Error('Lecture fichier échouée'))
-    reader.readAsDataURL(file)
-  })
-}
+import { resizeImageForAI } from '../lib/imageForAI'
 
 // Trouve un contact existant qui matche la société, le nom ou le SIRET
 // extraits (priorité SIRET > société > nom). Permet de réutiliser
@@ -103,7 +76,7 @@ export function useImportDevis({ chantiers = [], contacts = [], nextNum, onReady
     } catch (_) {}
 
     try {
-      const { base64, mediaType } = await resizeImageToBase64(file)
+      const { base64, mediaType } = await resizeImageForAI(file)
 
       const { data: { session } } = await supabase.auth.getSession()
       if (!session?.access_token) {

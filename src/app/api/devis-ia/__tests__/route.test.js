@@ -76,9 +76,11 @@ describe('/api/devis-ia', () => {
     expect(await res.json()).toEqual({ ok: true, data: { subject: 'Devis 26-050', body: 'Bonjour,\nci-joint…' } })
   })
 
-  it('erreur Anthropic → 502, action inconnue → 400', async () => {
+  it('erreur Anthropic → message explicite (5xx → 503), action inconnue → 400', async () => {
     fetchWithRetry.mockResolvedValue({ ok: false, status: 500, text: async () => 'boom' })
-    expect((await POST(req({ action: 'email', devis: {} }))).status).toBe(502)
+    const res = await POST(req({ action: 'email', devis: {} }))
+    expect(res.status).toBe(503)
+    expect((await res.json()).error).toMatch(/surchargé/)
     expect((await POST(req({ action: 'autre' }))).status).toBe(400)
   })
 })
