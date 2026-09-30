@@ -52,16 +52,26 @@ export default function QontoV({m, data, reload, crm = null, reloadCrm = null, s
   // PDFs dont on sait (après fetch) qu'ils ne sont pas disponibles via l'API
   const [pdfUnavailable, setPdfUnavailable] = useState(() => new Set());
 
-  // Charge le token depuis Supabase (cross-device)
-  useEffect(() => {
-    (async () => {
-      try {
-        const { data: row } = await supabase.from('settings').select('value').eq('key','qonto-token').single();
-        const t = row?.value;
-        if (t && t.includes(":")) { setSavedToken(t); setToken(t); }
-      } catch {}
-    })();
+  // Jeton Qonto : lu, enregistré et supprimé uniquement côté serveur
+  // (/api/qonto/token). Le navigateur ne connaît que le login.
+  // `savedToken` contient donc le login Qonto, pas la clé secrète.
+  const tokenApi = useCallback(async (method, body) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const res = await fetch('/api/qonto/token', {
+      method,
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token || ''}` },
+      ...(body ? { body: JSON.stringify(body) } : {}),
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok || !json.ok) throw new Error(json.error || `Erreur ${res.status}`);
+    return json;
   }, []);
+
+  useEffect(() => {
+    tokenApi('GET')
+      .then(({ connected: c, login }) => { if (c) setSavedToken(login || 'Qonto'); })
+      .catch(() => {});
+  }, [tokenApi]);
 
   const saveToken = async () => {
     const t = token.trim();
@@ -71,15 +81,24 @@ export default function QontoV({m, data, reload, crm = null, reloadCrm = null, s
       return;
     }
     setError("");
-    // Sauvegarde dans Supabase uniquement (pas de localStorage — token sensible)
-    await supabase.from('settings').upsert({ key: 'qonto-token', value: t });
-    SB.log('update', 'settings', 'qonto-token', 'Qonto — connexion', { action: 'connect' });
-    setSavedToken(t);
-    // useEffect [savedToken] déclenchera automatiquement fetchAll()
+    try {
+      const { login } = await tokenApi('POST', { token: t });
+      SB.log('update', 'settings', 'qonto-token', 'Qonto — connexion', { action: 'connect' });
+      setToken("");
+      setSavedToken(login || 'Qonto');
+      // useEffect [savedToken] déclenchera automatiquement fetchAll()
+    } catch (e) {
+      setError(e.message || "Enregistrement du token impossible");
+    }
   };
 
   const disconnect = async () => {
-    await supabase.from('settings').delete().eq('key','qonto-token');
+    try {
+      await tokenApi('DELETE');
+    } catch (e) {
+      setError(e.message || "Déconnexion impossible");
+      return;
+    }
     SB.log('delete', 'settings', 'qonto-token', 'Qonto — déconnexion', { action: 'disconnect' });
     setSavedToken(""); setToken(""); setConnected(false); setError("");
     setInvoices([]); setQuotes([]); setClients([]);
@@ -420,8 +439,9 @@ export default function QontoV({m, data, reload, crm = null, reloadCrm = null, s
           cursor:"pointer",fontFamily:"inherit",
           boxShadow:"0 2px 8px rgba(124,58,237,0.3)"
         }}>Connecter</button>
+        {error && <p role="alert" style={{margin:"12px 0 0",fontSize:12,color:"#DC2626",fontWeight:600}}>❌ {error}</p>}
         <p style={{margin:"12px 0 0",fontSize:11,color:"#94A3B8"}}>
-          Le token est stocké de façon sécurisée dans votre base Supabase.
+          Le token est stocké de façon sécurisée dans votre base Supabase (lisible seulement par le serveur).
         </p>
       </div>
     ) : (
