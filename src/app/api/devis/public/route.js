@@ -15,6 +15,7 @@ import { createRateLimiter } from '@/app/lib/rateLimit'
 import { adminClient } from '@/app/lib/supabaseClients'
 import { isSignToken, decodeSignaturePng, stampSignature, sha256 } from '@/app/lib/devisSignature'
 import { notifyTeam, fmtEur } from '@/app/lib/devisNotify'
+import { planWorkForDevis, planSummary } from '@/app/lib/devisWon'
 import { getQontoToken, pushQuoteStatus } from '@/app/lib/qontoServer'
 import { recordDevisEvent } from '@/app/lib/devisTracking'
 
@@ -37,7 +38,7 @@ async function findByToken(admin, token) {
 const isExpired = (d) => !!d.date_validite && d.date_validite < todayParis()
 
 /** Prévient l'équipe d'une signature (cloche + mail avec le PDF signé). */
-function notifySigned(admin, devis, { name, signedAt, ip, signed, oppTitre }) {
+function notifySigned(admin, devis, { name, signedAt, ip, signed, oppTitre, plan }) {
   const quand = signedAt.toLocaleString('fr-FR', { timeZone: 'Europe/Paris', dateStyle: 'short', timeStyle: 'short' })
   const title = `✍️ Devis ${devis.numero} signé par ${name}`
   return notifyTeam(admin, {
@@ -51,6 +52,7 @@ function notifySigned(admin, devis, { name, signedAt, ip, signed, oppTitre }) {
       `Montant : ${fmtEur(devis.total_ht)} HT · ${fmtEur(devis.total_ttc)} TTC`,
       `Signé par : ${name}, le ${quand}${ip ? ` (IP ${ip})` : ''}`, '',
       'Le devis est passé « Accepté » et l’affaire « Gagné » dans le CRM. Le PDF signé est joint.',
+      planSummary(plan),
     ],
     attachments: [{ filename: `Devis ${String(devis.numero).replace(/[^\w.\- ]+/g, '_')} signé.pdf`, content: signed, contentType: 'application/pdf' }],
   }, log)
@@ -171,12 +173,15 @@ export async function POST(request) {
       }
     } catch (e) { log.warn('suivi affaire', e?.message || e) }
 
+    // Travail planifié : chantier (créé si besoin) + tâche « Lancer les travaux »
+    const plan = await planWorkForDevis(admin, devis, { how: 'signé', log })
+
     // Devis signé → accepté aussi dans Qonto (si l'API le permet)
     if (devis.qonto_quote_id) {
       try { await pushQuoteStatus(await getQontoToken(admin), devis.qonto_quote_id, 'Accepté') }
       catch (e) { log.warn('statut Qonto', e?.message || e) }
     }
-    await notifySigned(admin, devis, { name, signedAt, ip, signed, oppTitre })
+    await notifySigned(admin, devis, { name, signedAt, ip, signed, oppTitre, plan })
     return Response.json({ ok: true, data: { signed_at: signedAt.toISOString(), signed_name: name } })
   } catch (err) {
     log.error('POST', err?.message || err)

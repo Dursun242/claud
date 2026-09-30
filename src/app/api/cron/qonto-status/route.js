@@ -12,6 +12,7 @@ import { createLogger } from '@/app/lib/logger'
 import { adminClient } from '@/app/lib/supabaseClients'
 import { getQontoToken, listQuotes } from '@/app/lib/qontoServer'
 import { notifyTeam, fmtEur } from '@/app/lib/devisNotify'
+import { planWorkForDevis, planSummary } from '@/app/lib/devisWon'
 
 export const maxDuration = 60
 
@@ -66,6 +67,8 @@ export async function GET(request) {
       } catch (e) { log.warn('affaire', e?.message || e) }
 
       const accepte = statut === 'Accepté'
+      // Accepté : chantier (créé si besoin) + tâche « Lancer les travaux »
+      const plan = accepte ? await planWorkForDevis(admin, d, { how: 'accepté dans Qonto', log }) : null
       const title = accepte ? `✅ Devis ${d.numero} accepté dans Qonto` : `❌ Devis ${d.numero} annulé dans Qonto`
       await notifyTeam(admin, {
         devisId: d.id,
@@ -79,6 +82,7 @@ export async function GET(request) {
           accepte
             ? 'Le devis est passé « Accepté » et l’affaire « Gagné » dans le CRM.'
             : 'Le devis est passé « Refusé » dans le CRM.',
+          planSummary(plan),
         ],
       }, log)
       changes.push({ numero: d.numero, statut })

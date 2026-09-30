@@ -4,7 +4,7 @@
 import { PDFDocument } from 'pdf-lib'
 import crypto from 'node:crypto'
 
-let GET, POST, db, updates, uploads, inserts, sendMail
+let GET, POST, db, updates, uploads, inserts, sendMail, planWorkForDevis
 
 const TOKEN = 'b'.repeat(64)
 const PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='
@@ -59,6 +59,11 @@ beforeEach(() => {
   jest.doMock('@/app/lib/mailer', () => ({
     smtpConfig: () => ({ transport: {}, from: 'contact@id-maitrise.com', notify: 'contact@id-maitrise.com' }),
     sendMail,
+  }))
+  planWorkForDevis = jest.fn().mockResolvedValue({ chantier: { id: 'ch1', nom: 'Garage Ozkan' }, chantierCreated: true, taskCreated: true })
+  jest.doMock('@/app/lib/devisWon', () => ({
+    planWorkForDevis,
+    planSummary: jest.requireActual('@/app/lib/devisWon').planSummary,
   }))
   ;({ GET, POST } = require('../route'))
   updates = []; uploads = []; inserts = []
@@ -120,6 +125,18 @@ describe('/api/devis/public', () => {
     expect(mail).toMatchObject({ to: 'contact@id-maitrise.com', subject: '✍️ Devis D-2026-032 signé par Dursun OZKAN' })
     expect(mail.text).toContain('Affaire : Garage Ozkan')
     expect(mail.attachments[0].content.subarray(0, 4).toString()).toBe('%PDF')
+  })
+
+  it('POST : devis signé → chantier + tâche « Lancer les travaux » planifiés, annoncés dans le mail', async () => {
+    expect((await POST(sign())).status).toBe(200)
+    expect(planWorkForDevis).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ id: 'd1', numero: 'D-2026-032' }), expect.objectContaining({ how: 'signé' }))
+    expect(sendMail.mock.calls[0][1].text).toContain('Chantier créé : « Garage Ozkan » · tâche « Lancer les travaux » ajoutée')
+  })
+
+  it('POST : refus de signature (déjà signé) → rien n’est planifié', async () => {
+    db.devis.statut_signature = 'Signé'
+    expect((await POST(sign())).status).toBe(409)
+    expect(planWorkForDevis).not.toHaveBeenCalled()
   })
 
   it('POST : un échec d’envoi du mail ne bloque pas la signature', async () => {
