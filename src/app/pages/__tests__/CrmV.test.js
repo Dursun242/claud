@@ -585,3 +585,35 @@ describe('CrmV — envoi par mail et IA', () => {
     expect(addToast).not.toHaveBeenCalledWith(expect.stringMatching(/Numéro Qonto repris/), 'info')
   })
 })
+
+describe('CrmV — mises à jour ciblées (sans tout recharger)', () => {
+  it('ajout rapide : la nouvelle affaire apparaît sans relire les tables du CRM', async () => {
+    const user = userEvent.setup()
+    crmDb.upsertOpportunite.mockResolvedValue({ id: 'o9', titre: 'Extension Leroy', etape: 'Prospect', montant_estime: 0 })
+    renderPage()
+    await screen.findByText('Rénovation Dupont')
+    const chargements = crmDb.loadCrm.mock.calls.length
+    await user.type(screen.getByRole('textbox', { name: /Ajouter une affaire rapidement/ }), 'Extension Leroy{Enter}')
+    expect(await screen.findByRole('dialog', { name: 'Extension Leroy' })).toBeInTheDocument()
+    expect(crmDb.loadCrm).toHaveBeenCalledTimes(chargements)
+  })
+
+  it('cocher une relance : elle quitte la liste tout de suite, et revient si l’enregistrement échoue', async () => {
+    const user = userEvent.setup()
+    let rejeter
+    crmDb.setActionFaite.mockImplementation(() => new Promise((_, reject) => { rejeter = reject }))
+    renderPage()
+    await screen.findByText('Rénovation Dupont')
+    await user.click(screen.getByRole('button', { name: /^Relances \d+$/ }))
+    const box = await screen.findByRole('checkbox', { name: 'Marquer la relance comme faite' })
+    const chargements = crmDb.loadCrm.mock.calls.length
+    await user.click(box)
+    // Cochée = faite : la relance sort de « Relances » sans attendre le serveur
+    await waitFor(() => expect(screen.queryByRole('checkbox', { name: 'Marquer la relance comme faite' })).not.toBeInTheDocument())
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    rejeter(new Error('Réseau indisponible'))
+    expect(await screen.findByRole('checkbox', { name: 'Marquer la relance comme faite' })).not.toBeChecked()
+    expect(addToast).toHaveBeenCalledWith('Réseau indisponible', 'error')
+    expect(crmDb.loadCrm).toHaveBeenCalledTimes(chargements)
+  })
+})

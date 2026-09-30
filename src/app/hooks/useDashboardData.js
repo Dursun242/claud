@@ -2,6 +2,7 @@
 import { useMemo, useCallback } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { SB, defaultData } from '../dashboards/shared'
+import { patchById } from '../lib/cacheList'
 
 // ─── Query keys ───
 // Exposées pour que les mutations puissent invalider ciblé
@@ -86,4 +87,24 @@ export function useDashboardData() {
     // null tant que la query n'a pas résolu.
     hasChantiers: criticalQ.data ? criticalQ.data.chantiers?.length > 0 : null,
   }
+}
+
+/**
+ * usePatchDashboardTask — remplace une tâche dans le cache du dashboard
+ * admin après son enregistrement, sans recharger les 4 tables du stage 1.
+ * Renvoie false si la tâche n'est pas dans le cache (dashboard client,
+ * cache vide) : l'appelant recharge alors normalement.
+ */
+export function usePatchDashboardTask() {
+  const queryClient = useQueryClient()
+  return useCallback((row) => {
+    const cached = queryClient.getQueryData(DASHBOARD_KEYS.critical)
+    if (!row?.id || !cached?.tasks?.some(t => t.id === row.id)) return false
+    queryClient.setQueryData(DASHBOARD_KEYS.critical, (old) => ({
+      ...old,
+      tasks: patchById(old.tasks, row.id, () => ({ ...row, chantierId: row.chantier_id })),
+    }))
+    queryClient.invalidateQueries({ queryKey: DASHBOARD_KEYS.critical, refetchType: 'none' })
+    return true
+  }, [queryClient])
 }

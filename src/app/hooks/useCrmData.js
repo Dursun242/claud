@@ -13,6 +13,11 @@ const EMPTY = { opportunites: [], interactions: [], devis: [], devisEvents: [], 
  * Chargé à la demande (premier affichage de l'onglet CRM), pas au cold
  * start : le pipeline commercial n'est pas nécessaire au dashboard.
  * Cache 5 min comme useDashboardData ; `reload()` invalide la query.
+ *
+ * `patch(fn)` met à jour le cache localement (fn reçoit { opportunites,
+ * interactions, … } et renvoie la nouvelle version) sans recharger les
+ * tables : utilisé après une écriture dont on connaît le résultat. La
+ * query est marquée périmée pour être relue au prochain montage.
  */
 export function useCrmData({ enabled = true } = {}) {
   const queryClient = useQueryClient()
@@ -26,10 +31,15 @@ export function useCrmData({ enabled = true } = {}) {
     () => queryClient.invalidateQueries({ queryKey: CRM_KEY }),
     [queryClient],
   )
+  const patch = useCallback((fn) => {
+    queryClient.setQueryData(CRM_KEY, (old) => (old ? fn(old) : old))
+    queryClient.invalidateQueries({ queryKey: CRM_KEY, refetchType: 'none' })
+  }, [queryClient])
   return {
     crm: q.data || EMPTY,
     loading: q.isLoading,
     error: q.error || null,
     reload,
+    patch,
   }
 }

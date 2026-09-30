@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { logout } from '../auth'
 import { I, Icon } from './shared'
 import { DashboardSkeleton, PageSkeleton } from '../components/Skeleton'
+import TabErrorBoundary from '../components/TabErrorBoundary'
 import { FloatingMic, NotificationBell } from '../components'
 import MobileNav, { MOBILE_NAV_HEIGHT } from '../components/MobileNav'
 import { useFloatingMic } from '../hooks/useFloatingMic'
@@ -363,49 +364,65 @@ export default function ClientDashboard({ user, profile = null }) {
               explication détaillée du pattern. */}
           {visitedTabs.has('dashboard') && (
             <div style={{ display: tab === 'dashboard' ? 'block' : 'none' }}>
-              <DashboardV data={data} setTab={switchTab} m={isMobile} user={user} clientMode />
+              <TabErrorBoundary name="dashboard" resetKey={data}>
+                <DashboardV data={data} setTab={switchTab} m={isMobile} user={user} clientMode />
+              </TabErrorBoundary>
             </div>
           )}
           {visitedTabs.has('projects') && (
             <div style={{ display: tab === 'projects' ? 'block' : 'none' }}>
-              <ProjectsV data={data} save={save} m={isMobile}
-                reload={reload} user={user} profile={profile} readOnly
-                focusId={tab === 'projects' ? focus?.id : null} focusTs={focus?.ts} />
+              <TabErrorBoundary name="projects" resetKey={data}>
+                <ProjectsV data={data} save={save} m={isMobile}
+                  reload={reload} user={user} profile={profile} readOnly
+                  focusId={tab === 'projects' ? focus?.id : null} focusTs={focus?.ts} />
+              </TabErrorBoundary>
             </div>
           )}
           {visitedTabs.has('tasks') && (
             <div style={{ display: tab === 'tasks' ? 'block' : 'none' }}>
-              <TasksV data={data} save={save} m={isMobile} reload={reload} />
+              <TabErrorBoundary name="tasks" resetKey={data}>
+                <TasksV data={data} save={save} m={isMobile} reload={reload} />
+              </TabErrorBoundary>
             </div>
           )}
           {visitedTabs.has('reports') && (
             <div style={{ display: tab === 'reports' ? 'block' : 'none' }}>
-              <ReportsV data={data} save={save} m={isMobile} reload={reload} readOnly
-                focusId={tab === 'reports' ? focus?.id : null} focusTs={focus?.ts} />
+              <TabErrorBoundary name="reports" resetKey={data}>
+                <ReportsV data={data} save={save} m={isMobile} reload={reload} readOnly
+                  focusId={tab === 'reports' ? focus?.id : null} focusTs={focus?.ts} />
+              </TabErrorBoundary>
             </div>
           )}
           {visitedTabs.has('os') && (
             <div style={{ display: tab === 'os' ? 'block' : 'none' }}>
-              <OrdresServiceV data={data} m={isMobile} reload={reload} readOnly
-                focusId={tab === 'os' ? focus?.id : null} focusTs={focus?.ts} />
+              <TabErrorBoundary name="os" resetKey={data}>
+                <OrdresServiceV data={data} m={isMobile} reload={reload} readOnly
+                  focusId={tab === 'os' ? focus?.id : null} focusTs={focus?.ts} />
+              </TabErrorBoundary>
             </div>
           )}
           {visitedTabs.has('planning') && (
             <div style={{ display: tab === 'planning' ? 'block' : 'none' }}>
-              <PlanningV data={data} m={isMobile} />
+              <TabErrorBoundary name="planning" resetKey={data}>
+                <PlanningV data={data} m={isMobile} />
+              </TabErrorBoundary>
             </div>
           )}
           {visitedTabs.has('pv') && (
             <div style={{ display: tab === 'pv' ? 'block' : 'none' }}>
-              <ProcesVerbauxV data={data} m={isMobile} reload={reload} user={user} />
+              <TabErrorBoundary name="pv" resetKey={data}>
+                <ProcesVerbauxV data={data} m={isMobile} reload={reload} user={user} />
+              </TabErrorBoundary>
             </div>
           )}
           {visitedTabs.has('ai') && (
             <div style={{ display: tab === 'ai' ? 'block' : 'none' }}>
-              <AIV data={data} save={save} m={isMobile}
-                reload={reload} user={user} profile={profile} clientMode
-                externalTranscript={floatTranscript}
-                clearExternal={()=>setFloatTranscript("")} />
+              <TabErrorBoundary name="ai" resetKey={data}>
+                <AIV data={data} save={save} m={isMobile}
+                  reload={reload} user={user} profile={profile} clientMode
+                  externalTranscript={floatTranscript}
+                  clearExternal={()=>setFloatTranscript("")} />
+              </TabErrorBoundary>
             </div>
           )}
         </div>

@@ -19,6 +19,7 @@ import { useToast } from '../contexts/ToastContext'
 import { useConfirm } from '../contexts/ConfirmContext'
 import { computeChantierFinances } from '../lib/chantierFinances'
 import { parseNewIntent } from '../lib/navIntent'
+import { usePatchDashboardTask } from '../hooks/useDashboardData'
 
 // Style doux pour les boutons d'action dans la vue détail (PDF/XLS/etc.)
 // Remplace les blocs rouge/vert/bleu saturés par des pastilles pastel.
@@ -57,6 +58,7 @@ function Section({ title, count, color, children }) {
 export default function ProjectsV({ data, save: _save, m, reload, user, profile, focusId, focusTs, readOnly }) {
   const { addToast } = useToast();
   const confirm = useConfirm();
+  const patchTask = usePatchDashboardTask();
   const [modal,setModal]=useState(null);const [form,setForm]=useState({});
   const [selected,setSelected]=useState(null);
   const [detailModal,setDetailModal]=useState(null);
@@ -72,8 +74,8 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
     if (taskBusy) return;
     setTaskBusy(t.id);
     try {
-      await SB.upsertTask({...t,statut:t.statut==="Terminé"?"En attente":"Terminé"});
-      await reload();
+      const saved = await SB.upsertTask({...t,statut:t.statut==="Terminé"?"En attente":"Terminé"});
+      if (!patchTask(saved)) await reload();
     } catch (err) {
       addToast(err?.message || "Erreur mise à jour tâche", "error");
     } finally {
