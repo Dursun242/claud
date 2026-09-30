@@ -12,7 +12,7 @@ Application de gestion de chantiers BTP pour **ID Maîtrise** (SARL, Le Havre). 
 
 - **Next.js 15** (App Router) + **React 18**
 - **Supabase** : Postgres + Auth OAuth Google + Storage + RLS strictes par rôle
-- **IA** (`lib/ai.js`) : Claude Haiku 4.5 ou Mistral Small selon `AI_PROVIDER`, secours automatique sur l'autre fournisseur — assistant IA, chiffrage de devis, extraction vision (devis photo, contacts photo), analyse Qonto. Appels HTTP directs, pas de SDK.
+- **IA** (`lib/ai.js`) : Claude Haiku 4.5 ou Mistral Small selon `AI_PROVIDER` (texte) et `AI_PROVIDER_VISION` (images, Claude par défaut), secours automatique sur l'autre fournisseur — assistant IA, chiffrage de devis, extraction vision (devis photo, contacts photo), analyse Qonto. Appels HTTP directs, pas de SDK.
 - **Odoo JSON-RPC** : signatures électroniques via module Sign
 - **Qonto API** : import factures/devis (proxy read-only)
 - **Pappers API** : enrichissement SIRET des contacts

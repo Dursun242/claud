@@ -3,10 +3,14 @@
 // ═══════════════════════════════════════════════════════════════
 //
 // Choix du fournisseur (variables d'environnement Vercel) :
-//   AI_PROVIDER=anthropic (défaut) | mistral
+//   AI_PROVIDER=anthropic (défaut) | mistral          → demandes texte
+//   AI_PROVIDER_VISION=anthropic (défaut) | mistral   → demandes avec image
+//     (import de contact / devis par photo : Claude lit mieux les petites
+//     écritures ; indépendant de AI_PROVIDER)
 //   ANTHROPIC_API_KEY, MISTRAL_API_KEY
 //   ANTHROPIC_MODEL (défaut claude-haiku-4-5-20251001)
-//   MISTRAL_MODEL   (défaut mistral-small-latest — lit aussi les images)
+//   MISTRAL_MODEL   (défaut mistral-small-latest)
+//   MISTRAL_VISION_MODEL (facultatif, pour les images ; défaut MISTRAL_MODEL)
 //
 // Secours automatique : si le fournisseur principal est indisponible
 // (crédit épuisé, clé refusée, trop de demandes, panne, délai dépassé) et
@@ -28,9 +32,15 @@ const DEFAULT_MISTRAL_MODEL = 'mistral-small-latest'
 
 const keyOf = (p) => (p === 'mistral' ? process.env.MISTRAL_API_KEY : process.env.ANTHROPIC_API_KEY)
 
-/** Ordre d'essai : fournisseur choisi puis l'autre, parmi ceux qui ont une clé. */
-export function providerOrder() {
-  const wanted = String(process.env.AI_PROVIDER || 'anthropic').toLowerCase().trim() === 'mistral' ? 'mistral' : 'anthropic'
+const hasImage = (messages) => (messages || []).some(m => Array.isArray(m?.content) && m.content.some(p => p?.type === 'image'))
+
+/**
+ * Ordre d'essai : fournisseur choisi puis l'autre, parmi ceux qui ont une clé.
+ * `vision` : la demande contient une image (AI_PROVIDER_VISION, Claude par défaut).
+ */
+export function providerOrder({ vision = false } = {}) {
+  const setting = vision ? (process.env.AI_PROVIDER_VISION || 'anthropic') : (process.env.AI_PROVIDER || 'anthropic')
+  const wanted = String(setting).toLowerCase().trim() === 'mistral' ? 'mistral' : 'anthropic'
   const other = wanted === 'mistral' ? 'anthropic' : 'mistral'
   return [wanted, other].filter(p => !!keyOf(p))
 }
@@ -102,9 +112,9 @@ function mistralText(content) {
   return ''
 }
 
-async function callMistral({ system, messages, maxTokens, json, timeoutMs, maxRetries }) {
+async function callMistral({ system, messages, maxTokens, json, timeoutMs, maxRetries, vision }) {
   const body = {
-    model: process.env.MISTRAL_MODEL || DEFAULT_MISTRAL_MODEL,
+    model: (vision && process.env.MISTRAL_VISION_MODEL) || process.env.MISTRAL_MODEL || DEFAULT_MISTRAL_MODEL,
     max_tokens: maxTokens,
     messages: [
       ...(system ? [{ role: 'system', content: system }] : []),
@@ -150,7 +160,8 @@ function isProviderSide(status, bodyText) {
  *                  | { ok: false, status: number, message: string, provider?: string, raw?: string }>}
  */
 export async function generate({ system, messages, maxTokens = 1024, json = false, timeoutMs = 30_000, maxRetries = 1, log } = {}) {
-  const order = providerOrder()
+  const vision = hasImage(messages)
+  const order = providerOrder({ vision })
   if (!order.length) {
     log?.error('aucune clé IA configurée (ANTHROPIC_API_KEY / MISTRAL_API_KEY)')
     return { ok: false, status: 500, message: 'Configuration serveur invalide (IA non configurée).' }
@@ -159,7 +170,7 @@ export async function generate({ system, messages, maxTokens = 1024, json = fals
   for (const provider of order) {
     let r
     try {
-      r = await (provider === 'mistral' ? callMistral : callAnthropic)({ system, messages, maxTokens, json, timeoutMs, maxRetries })
+      r = await (provider === 'mistral' ? callMistral : callAnthropic)({ system, messages, maxTokens, json, timeoutMs, maxRetries, vision })
     } catch (e) {
       r = { ok: false, status: 503, message: 'Service IA injoignable : réessayez dans quelques instants.', raw: e?.message, retryable: true }
     }
