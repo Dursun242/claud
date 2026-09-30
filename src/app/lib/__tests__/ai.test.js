@@ -19,6 +19,8 @@ beforeEach(() => {
   jest.clearAllMocks()
   process.env = { ...ENV }
   delete process.env.AI_PROVIDER
+  delete process.env.AI_PROVIDER_VISION
+  delete process.env.MISTRAL_VISION_MODEL
   delete process.env.MISTRAL_MODEL
   delete process.env.ANTHROPIC_MODEL
   process.env.ANTHROPIC_API_KEY = 'sk-ant'
@@ -47,7 +49,7 @@ describe('providerOrder', () => {
 })
 
 describe('generate — Mistral', () => {
-  beforeEach(() => { process.env.AI_PROVIDER = 'mistral' })
+  beforeEach(() => { process.env.AI_PROVIDER = 'mistral'; process.env.AI_PROVIDER_VISION = 'mistral' })
 
   it('envoie image (data URL), consignes en message system et JSON libre', async () => {
     fetchWithRetry.mockResolvedValue(mistralReply('{"nom":"Dupont"}'))
@@ -84,6 +86,33 @@ describe('generate — Mistral', () => {
   it('finish_reason length → réponse tronquée', async () => {
     fetchWithRetry.mockResolvedValue(mistralReply('{"a":', 'length'))
     expect((await generate({ messages: [{ role: 'user', content: 'x' }] })).stopReason).toBe('max_tokens')
+  })
+})
+
+describe('generate — images (AI_PROVIDER_VISION)', () => {
+  it('AI_PROVIDER=mistral : le texte part chez Mistral, les images restent chez Claude par défaut', async () => {
+    process.env.AI_PROVIDER = 'mistral'
+    fetchWithRetry.mockResolvedValue(anthropicReply('{"nom":"Dupont"}'))
+    const img = await generate({ messages: IMAGE_MSG, json: true })
+    expect(img.provider).toBe('anthropic')
+    expect(fetchWithRetry.mock.calls[0][0]).toBe('https://api.anthropic.com/v1/messages')
+
+    fetchWithRetry.mockResolvedValue(mistralReply('Bonjour'))
+    const txt = await generate({ messages: [{ role: 'user', content: 'Salut' }] })
+    expect(txt.provider).toBe('mistral')
+  })
+
+  it('AI_PROVIDER_VISION=mistral + MISTRAL_VISION_MODEL : modèle dédié aux images', async () => {
+    process.env.AI_PROVIDER_VISION = 'mistral'
+    process.env.MISTRAL_VISION_MODEL = 'mistral-medium-latest'
+    fetchWithRetry.mockResolvedValue(mistralReply('{}'))
+    await generate({ messages: IMAGE_MSG, json: true })
+    expect(sentBody().model).toBe('mistral-medium-latest')
+  })
+
+  it('images sans clé Anthropic : Mistral quand même', () => {
+    delete process.env.ANTHROPIC_API_KEY
+    expect(providerOrder({ vision: true })).toEqual(['mistral'])
   })
 })
 
