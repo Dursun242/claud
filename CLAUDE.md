@@ -50,8 +50,8 @@ src/app/
     ├─ devis/documents        → CRM : pièces jointes des mails de devis (documents permanents Kbis/décennale + fichiers ponctuels, staff only)
     ├─ devis/sign             → CRM : demande de signature électronique d'un devis (staff only)
     ├─ devis/track            → image de suivi (1×1) des mails de devis : enregistre les ouvertures (public, jeton)
-    ├─ devis/public           → page publique /signer/<jeton> : consultation + signature du devis (sans compte, jeton)
-    ├─ cron/qonto-status      → vérification horaire des devis acceptés / annulés dans Qonto (GitHub Actions, secret CRON_SECRET)
+    ├─ devis/public           → page publique /signer/<jeton> : consultation + signature du devis (sans compte, jeton) ; signé → chantier + tâche « Lancer les travaux » (lib/devisWon.js)
+    ├─ cron/qonto-status      → vérification horaire des devis acceptés / annulés dans Qonto (GitHub Actions, secret CRON_SECRET) ; accepté → chantier + tâche (lib/devisWon.js)
     ├─ odoo/*                 → signatures
     ├─ pv-reception/*         → flux PV métier
     ├─ extract-*/             → Claude Vision (devis + contacts)
