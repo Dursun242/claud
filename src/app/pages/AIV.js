@@ -13,6 +13,9 @@ import { prepareCrmForAI } from '../lib/crm'
 // on le charge à la demande pour alléger le bundle initial de la page.
 const ReactMarkdown = dynamic(() => import('react-markdown'), { ssr: false })
 
+// Fournisseur IA ayant répondu (cf. lib/ai.js, variable AI_PROVIDER)
+const PROVIDER_LABELS = { anthropic: 'Claude (Anthropic)', mistral: 'Mistral' }
+
 // Message d'accueil de l'assistant (identique après un reset)
 const welcomeForAdmin = (name) => ({
   role: "assistant",
@@ -334,7 +337,8 @@ RÈGLES :
           addToast("Erreur : " + err.message, "error");
         }
       }
-      setMessages(prev=>[...prev,{role:"assistant",content:text}]);
+      // provider : fournisseur qui a réellement répondu (renvoyé par le serveur)
+      setMessages(prev=>[...prev,{role:"assistant",content:text,provider:result.provider}]);
     } catch(err) {
       // Unmount pendant une requête IA : on ne pollue pas l'UI avec un toast.
       if (err?.name === 'AbortError') return;
@@ -413,6 +417,11 @@ RÈGLES :
               border:msg.role==="user"?"none":"1px solid #E2E8F0"
             }}>
               {msg.role==="assistant"?renderMd(msg.content):msg.content}
+              {msg.role==="assistant" && msg.provider && (
+                <div style={{marginTop:6,fontSize:10,color:"#64748B",textAlign:"right"}}>
+                  via {PROVIDER_LABELS[msg.provider] || msg.provider}
+                </div>
+              )}
             </div>
           </div>
         ))}
@@ -426,7 +435,7 @@ RÈGLES :
                 }}/>
               ))}
             </div>
-            <span style={{fontSize:11,color:"#64748B",fontStyle:"italic"}}>Claude réfléchit…</span>
+            <span style={{fontSize:11,color:"#64748B",fontStyle:"italic"}}>L’IA réfléchit…</span>
           </div>
         )}
         <div ref={endRef}/>
