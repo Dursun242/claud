@@ -8,6 +8,10 @@
 
 import { verifyAuth } from '@/app/lib/auth'
 import { fetchWithRetry } from '@/app/lib/fetchWithRetry'
+import { createLogger } from '@/app/lib/logger'
+import { describeAnthropicError } from '@/app/lib/anthropicError'
+
+const log = createLogger('extract-os-data')
 
 // Rate limiting simple en mémoire (par IP)
 const rateLimit = new Map();
@@ -193,8 +197,9 @@ export async function POST(request) {
 
     if (!anthropicResponse.ok) {
       const errText = await anthropicResponse.text().catch(() => '');
-      console.error(`[extract-os-data] Anthropic ${anthropicResponse.status} ${errText}`);
-      return Response.json({ error: 'Erreur du service IA' }, { status: anthropicResponse.status });
+      log.error(`Anthropic ${anthropicResponse.status}`, errText.slice(0, 500));
+      const { message, status } = describeAnthropicError(anthropicResponse.status, errText);
+      return Response.json({ error: message }, { status });
     }
 
     const claudeData = await anthropicResponse.json();

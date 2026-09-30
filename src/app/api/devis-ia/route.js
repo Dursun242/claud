@@ -13,6 +13,7 @@
 import { verifyStaff } from '@/app/lib/auth'
 import { fetchWithRetry } from '@/app/lib/fetchWithRetry'
 import { createLogger } from '@/app/lib/logger'
+import { describeAnthropicError } from '@/app/lib/anthropicError'
 import { createRateLimiter } from '@/app/lib/rateLimit'
 import { AI_DEVIS_SCHEMA, AI_EMAIL_SCHEMA, normalizeAiLignes } from '@/app/lib/devisAi'
 
@@ -72,7 +73,8 @@ async function callClaude({ system, user, schema, maxTokens }) {
   if (!res.ok) {
     const txt = await res.text().catch(() => '')
     log.error(`Anthropic ${res.status}`, txt.slice(0, 500))
-    return { error: 'Erreur du service IA', status: res.status === 429 ? 429 : 502 }
+    const { message, status } = describeAnthropicError(res.status, txt)
+    return { error: message, status }
   }
   const data = await res.json()
   if (data?.stop_reason === 'refusal') return { error: 'Demande refusée par l’IA', status: 422 }

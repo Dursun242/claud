@@ -14,6 +14,7 @@ import { supabase } from '../supabaseClient'
 import { usePappersSearch } from '../hooks/usePappersSearch'
 import { oppsByContact } from '../lib/crm'
 import { parseNewIntent } from '../lib/navIntent'
+import { resizeImageForAI } from '../lib/imageForAI'
 
 const TYPE_COLORS = {
   Artisan:"#F59E0B",Client:"#3B82F6",Fournisseur:"#10B981",
@@ -237,39 +238,7 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
   // importXxxFromSearch + fetchPappers (réutilisé par enrichFromSiret
   // plus bas pour enrichir un contact depuis un SIRET extrait par photo).
 
-  // ─── Import par photo (Claude Vision) ─────
-  //
-  // Resize une image via canvas pour rester sous 1600px de largeur
-  // et ≤ 5 Mo. Retourne { base64, mediaType }.
-  const resizeImage = (file) => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const img = new Image();
-        img.onload = () => {
-          const MAX_W = 1600;
-          let { width, height } = img;
-          if (width > MAX_W) {
-            height = Math.round(height * (MAX_W / width));
-            width = MAX_W;
-          }
-          const canvas = document.createElement('canvas');
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0, width, height);
-          // JPEG qualité 0.85 — bon compromis taille/lisibilité pour OCR
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
-          const base64 = dataUrl.split(',')[1];
-          resolve({ base64, mediaType: 'image/jpeg' });
-        };
-        img.onerror = () => reject(new Error("Image illisible"));
-        img.src = e.target.result;
-      };
-      reader.onerror = () => reject(new Error("Lecture fichier échouée"));
-      reader.readAsDataURL(file);
-    });
-  };
+  // ─── Import par photo (Claude Vision) : image préparée par lib/imageForAI ───
 
   // Si Claude a extrait un SIRET, on enrichit automatiquement via Pappers
   // pour fiabiliser les données officielles (adresse, TVA intra, dénomination).
@@ -306,7 +275,7 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
 
     try {
       // 1. Redimensionne + convertit en base64
-      const { base64, mediaType } = await resizeImage(file);
+      const { base64, mediaType } = await resizeImageForAI(file);
 
       // 2. Récupère le JWT Supabase pour authentifier la requête
       const { data: { session } } = await supabase.auth.getSession();
