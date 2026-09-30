@@ -105,6 +105,8 @@ export async function POST(request) {
       content: [{ type: 'text', text: ai.text }],
       stop_reason: ai.stopReason === 'max_tokens' ? 'max_tokens' : 'end_turn',
       provider: ai.provider,
+      // Secours utilisé : le fournisseur choisi (AI_PROVIDER) a échoué
+      ...(ai.fallbackFrom ? { fallback_from: ai.fallbackFrom, fallback_reason: ai.fallbackReason } : {}),
     });
 
   } catch (error) {

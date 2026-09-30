@@ -338,7 +338,8 @@ RÈGLES :
         }
       }
       // provider : fournisseur qui a réellement répondu (renvoyé par le serveur)
-      setMessages(prev=>[...prev,{role:"assistant",content:text,provider:result.provider}]);
+      setMessages(prev=>[...prev,{role:"assistant",content:text,provider:result.provider,
+        fallbackFrom:result.fallback_from,fallbackReason:result.fallback_reason}]);
     } catch(err) {
       // Unmount pendant une requête IA : on ne pollue pas l'UI avec un toast.
       if (err?.name === 'AbortError') return;
@@ -420,6 +421,12 @@ RÈGLES :
               {msg.role==="assistant" && msg.provider && (
                 <div style={{marginTop:6,fontSize:10,color:"#64748B",textAlign:"right"}}>
                   via {PROVIDER_LABELS[msg.provider] || msg.provider}
+                  {msg.fallbackFrom && (
+                    <div style={{color:"#B45309"}}>
+                      secours : {PROVIDER_LABELS[msg.fallbackFrom] || msg.fallbackFrom} indisponible
+                      {msg.fallbackReason ? ` — ${msg.fallbackReason}` : ""}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
