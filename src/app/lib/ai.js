@@ -146,7 +146,7 @@ function isProviderSide(status, bodyText) {
 
 /**
  * Appelle l'IA. Ne lève jamais.
- * @returns {Promise<{ ok: true, text: string, stopReason: 'end'|'max_tokens'|'refusal', provider: string }
+ * @returns {Promise<{ ok: true, text: string, stopReason: 'end'|'max_tokens'|'refusal', provider: string, fallbackFrom?: string, fallbackReason?: string }
  *                  | { ok: false, status: number, message: string, provider?: string, raw?: string }>}
  */
 export async function generate({ system, messages, maxTokens = 1024, json = false, timeoutMs = 30_000, maxRetries = 1, log } = {}) {
@@ -164,7 +164,11 @@ export async function generate({ system, messages, maxTokens = 1024, json = fals
       r = { ok: false, status: 503, message: 'Service IA injoignable : réessayez dans quelques instants.', raw: e?.message, retryable: true }
     }
     if (r.ok) {
-      if (last) log?.warn(`secours IA : ${last.provider} indisponible, réponse par ${provider}`)
+      if (last) {
+        log?.warn(`secours IA : ${last.provider} indisponible, réponse par ${provider}`)
+        // Indique au navigateur que le fournisseur choisi a échoué, et pourquoi
+        return { ...r, provider, fallbackFrom: last.provider, fallbackReason: last.message }
+      }
       return { ...r, provider }
     }
     log?.error(`${provider} ${r.status}`, String(r.raw || '').slice(0, 500))

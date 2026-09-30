@@ -95,6 +95,8 @@ describe('generate — secours entre fournisseurs', () => {
     const log = { error: jest.fn(), warn: jest.fn() }
     const r = await generate({ messages: IMAGE_MSG, json: true, log })
     expect(r).toMatchObject({ ok: true, provider: 'mistral', text: '{"ok":true}' })
+    expect(r.fallbackFrom).toBe('anthropic')
+    expect(r.fallbackReason).toMatch(/Crédit/)
     expect(fetchWithRetry.mock.calls.map(c => c[0])).toEqual([
       'https://api.anthropic.com/v1/messages', 'https://api.mistral.ai/v1/chat/completions',
     ])
