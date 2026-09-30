@@ -12,7 +12,7 @@ Application de gestion de chantiers BTP pour **ID Maîtrise** (SARL, Le Havre). 
 
 - **Next.js 15** (App Router) + **React 18**
 - **Supabase** : Postgres + Auth OAuth Google + Storage + RLS strictes par rôle
-- **Anthropic SDK** (Claude Haiku 4.5) : assistant IA + extraction vision (devis photo, contacts photo)
+- **IA** (`lib/ai.js`) : Claude Haiku 4.5 ou Mistral Small selon `AI_PROVIDER`, secours automatique sur l'autre fournisseur — assistant IA, chiffrage de devis, extraction vision (devis photo, contacts photo), analyse Qonto. Appels HTTP directs, pas de SDK.
 - **Odoo JSON-RPC** : signatures électroniques via module Sign
 - **Qonto API** : import factures/devis (proxy read-only)
 - **Pappers API** : enrichissement SIRET des contacts
@@ -44,7 +44,7 @@ src/app/
 │
 └─ api/                       → 31 routes. Pattern unique : verifyAuth() / verifyStaff() + createLogger() + mock-friendly.
     ├─ admin/*                → service role uniquement (users, demo-mode, reset-demo-data)
-    ├─ claude/                → proxy Anthropic (rate limit 20/min/IP)
+    ├─ claude/                → assistant IA (Claude ou Mistral via lib/ai.js, réponse au format Anthropic, rate limit 20/min/IP)
     ├─ devis-ia, devis/send   → CRM : IA de chiffrage + envoi SMTP du devis (staff only, verifyStaff)
     ├─ devis/qonto            → CRM : devis créé dans Qonto (numéro + PDF Qonto), import des devis Qonto, suivi des statuts (staff only)
     ├─ devis/documents        → CRM : pièces jointes des mails de devis (documents permanents Kbis/décennale + fichiers ponctuels, staff only)

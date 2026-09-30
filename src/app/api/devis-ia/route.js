@@ -11,9 +11,8 @@
 // quoi faire du résultat (remplacer / ajouter les lignes, etc.).
 
 import { verifyStaff } from '@/app/lib/auth'
-import { fetchWithRetry } from '@/app/lib/fetchWithRetry'
 import { createLogger } from '@/app/lib/logger'
-import { describeAnthropicError } from '@/app/lib/anthropicError'
+import { generate, stripJsonFence, providerOrder } from '@/app/lib/ai'
 import { createRateLimiter } from '@/app/lib/rateLimit'
 import { AI_DEVIS_SCHEMA, AI_EMAIL_SCHEMA, normalizeAiLignes } from '@/app/lib/devisAi'
 
@@ -21,8 +20,6 @@ export const maxDuration = 60
 
 const log = createLogger('devis-ia')
 const checkRate = createRateLimiter({ limit: 10, windowMs: 60_000 })
-
-const MODEL = 'claude-haiku-4-5-20251001'
 
 const GENERATE_SYSTEM = `Tu es l'assistant de chiffrage de SARL ID MAÎTRISE, bureau d'ingénierie
 de la construction et maîtrise d'œuvre au Havre (Normandie).
@@ -51,39 +48,21 @@ validité si fournie, et propose d'échanger. Le devis est en pièce jointe. Pas
 formule creuse ni d'emoji. Termine par la signature fournie. "body" est du texte
 brut avec des retours à la ligne.`
 
-async function callClaude({ system, user, schema, maxTokens }) {
-  const res = await fetchWithRetry('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    timeoutMs: 55_000,
-    maxRetries: 1,
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': process.env.ANTHROPIC_API_KEY,
-      'anthropic-version': '2023-06-01',
-    },
-    body: JSON.stringify({
-      model: MODEL,
-      max_tokens: maxTokens,
-      system,
-      // Haiku 4.5 : sortie JSON structurée oui, paramètre `effort` non (400)
-      output_config: { format: { type: 'json_schema', schema } },
-      messages: [{ role: 'user', content: user }],
-    }),
+// Appel IA (Claude ou Mistral selon AI_PROVIDER, cf. lib/ai.js) avec
+// sortie JSON structurée selon `schema`.
+async function callAI({ system, user, schema, maxTokens }) {
+  const r = await generate({
+    system, maxTokens, json: schema, log,
+    timeoutMs: 55_000, maxRetries: 1,
+    messages: [{ role: 'user', content: user }],
   })
-  if (!res.ok) {
-    const txt = await res.text().catch(() => '')
-    log.error(`Anthropic ${res.status}`, txt.slice(0, 500))
-    const { message, status } = describeAnthropicError(res.status, txt)
-    return { error: message, status }
-  }
-  const data = await res.json()
-  if (data?.stop_reason === 'refusal') return { error: 'Demande refusée par l’IA', status: 422 }
-  if (data?.stop_reason === 'max_tokens') return { error: 'Réponse IA tronquée — simplifie la description', status: 502 }
-  const text = (data?.content || []).filter(b => b.type === 'text').map(b => b.text).join('')
+  if (!r.ok) return { error: r.message, status: r.status }
+  if (r.stopReason === 'refusal') return { error: 'Demande refusée par l’IA', status: 422 }
+  if (r.stopReason === 'max_tokens') return { error: 'Réponse IA tronquée — simplifie la description', status: 502 }
   try {
-    return { json: JSON.parse(text) }
+    return { json: JSON.parse(stripJsonFence(r.text)) }
   } catch {
-    log.error('JSON invalide', text.slice(0, 500))
+    log.error('JSON invalide', String(r.text).slice(0, 500))
     return { error: 'Réponse IA illisible', status: 502 }
   }
 }
@@ -100,8 +79,8 @@ export async function POST(request) {
     if (!user) {
       return Response.json({ error: status === 403 ? 'Réservé à l’équipe' : 'Non autorisé' }, { status })
     }
-    if (!process.env.ANTHROPIC_API_KEY) {
-      log.error('ANTHROPIC_API_KEY manquante')
+    if (!providerOrder().length) {
+      log.error('aucune clé IA (ANTHROPIC_API_KEY / MISTRAL_API_KEY)')
       return Response.json({ error: 'Configuration serveur invalide' }, { status: 500 })
     }
 
@@ -114,7 +93,7 @@ export async function POST(request) {
         return Response.json({ error: 'Décris le besoin en quelques mots.' }, { status: 400 })
       }
       const context = JSON.stringify(body.context || {}).slice(0, 20_000)
-      const r = await callClaude({
+      const r = await callAI({
         system: GENERATE_SYSTEM,
         user: `Contexte (JSON) :\n${context}\n\nBesoin à chiffrer :\n${description}`,
         schema: AI_DEVIS_SCHEMA,
@@ -148,7 +127,7 @@ export async function POST(request) {
         signature: str(body.signature, 300),
         consigne: str(body.instructions, 1000),
       }
-      const r = await callClaude({
+      const r = await callAI({
         system: EMAIL_SYSTEM,
         user: `Informations (JSON) :\n${JSON.stringify(payload)}`,
         schema: AI_EMAIL_SCHEMA,

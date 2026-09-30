@@ -86,7 +86,12 @@ describe('POST /api/claude', () => {
       },
     }))
     expect(res.status).toBe(200)
-    expect(await res.json()).toEqual(claudeReply)
+    // Réponse normalisée (même forme quel que soit le fournisseur IA)
+    expect(await res.json()).toEqual({
+      content: [{ type: 'text', text: 'Bonjour' }],
+      stop_reason: 'end_turn',
+      provider: 'anthropic',
+    })
 
     const [url, init] = fetchWithRetry.mock.calls[0]
     expect(url).toBe('https://api.anthropic.com/v1/messages')

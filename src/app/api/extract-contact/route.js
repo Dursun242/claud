@@ -6,9 +6,8 @@
 // client qui pré-remplit le formulaire.
 
 import { verifyAuth } from '@/app/lib/auth'
-import { fetchWithRetry } from '@/app/lib/fetchWithRetry'
 import { createLogger } from '@/app/lib/logger'
-import { describeAnthropicError } from '@/app/lib/anthropicError'
+import { generate } from '@/app/lib/ai'
 
 const log = createLogger('extract-contact')
 
@@ -127,60 +126,27 @@ export async function POST(request) {
       return Response.json({ error: 'Image trop volumineuse (max 5 Mo)' }, { status: 400 });
     }
 
-    const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
-    if (!ANTHROPIC_API_KEY) {
-      console.error('[extract-contact] ANTHROPIC_API_KEY manquante');
-      return Response.json({ error: 'Configuration serveur invalide' }, { status: 500 });
-    }
-
-    // Appel Claude Vision
-    const anthropicResponse = await fetchWithRetry('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      timeoutMs: 30000,
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 1024,
-        system: SYSTEM_PROMPT,
-        messages: [
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'image',
-                source: {
-                  type: 'base64',
-                  media_type: mediaType,
-                  data: imageBase64,
-                },
-              },
-              {
-                type: 'text',
-                text: 'Extrais les informations du contact principal de cette image' +
-                  ' et retourne-les au format JSON strict comme indiqué.',
-              },
-            ],
-          },
+    // Appel IA vision (Claude ou Mistral selon AI_PROVIDER, cf. lib/ai.js)
+    const ai = await generate({
+      system: SYSTEM_PROMPT,
+      maxTokens: 1024,
+      json: true,
+      log,
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'image', mediaType, base64: imageBase64 },
+          { type: 'text', text: 'Extrais les informations du contact principal de cette image et retourne-les au format JSON strict comme indiqué.' },
         ],
-      }),
+      }],
     });
-
-    if (!anthropicResponse.ok) {
-      const errText = await anthropicResponse.text().catch(() => '');
-      log.error(`Anthropic ${anthropicResponse.status}`, errText.slice(0, 500));
-      const { message, status } = describeAnthropicError(anthropicResponse.status, errText);
-      return Response.json({ error: message }, { status });
+    if (!ai.ok) {
+      return Response.json({ error: ai.message }, { status: ai.status });
     }
-
-    const claudeData = await anthropicResponse.json();
-    const textResponse = claudeData?.content?.[0]?.text || '';
+    const textResponse = ai.text || '';
 
     if (!textResponse) {
-      console.error('[extract-contact] Réponse Claude vide', claudeData);
+      log.error('Réponse IA vide');
       return Response.json({ error: 'Réponse IA vide' }, { status: 500 });
     }
 
@@ -196,7 +162,7 @@ export async function POST(request) {
     try {
       extracted = JSON.parse(cleaned);
     } catch (parseErr) {
-      console.error('[extract-contact] JSON parse failed:', cleaned);
+      log.error('JSON invalide', cleaned.slice(0, 500));
       return Response.json({
         error: 'Extraction échouée — la réponse IA n\'est pas un JSON valide. Essaie avec une photo plus nette.',
       }, { status: 500 });
@@ -210,7 +176,7 @@ export async function POST(request) {
     return Response.json({ ok: true, data: extracted });
 
   } catch (error) {
-    console.error('[extract-contact] exception:', error);
+    log.error('exception', error?.message || error);
     return Response.json({ error: 'Erreur serveur' }, { status: 500 });
   }
 }
