@@ -18,7 +18,8 @@ export function qontoState(d = {}) {
 /**
  * Liste des devis d'une affaire (fiche opportunité).
  * Les actions proposées dépendent du statut : Brouillon → Envoyer,
- * Envoyé → Accepté / Refusé, toujours : PDF, Qonto, Dupliquer, Supprimer.
+ * Envoyé → Renvoyer (tant que non signé) / Accepté / Refusé,
+ * toujours : PDF, Qonto, Dupliquer, Supprimer.
  */
 const fmtDT = (iso) => new Date(iso).toLocaleString('fr-FR', { timeZone: 'Europe/Paris', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
 const EVENT_LABEL = { ouverture: 'mail ouvert', consultation: 'devis consulté en ligne', pdf: 'PDF consulté en ligne' }
@@ -96,6 +97,12 @@ export default function DevisList({ devis = [], missing, saving, onNew, onOpen, 
                     <button onClick={() => onSend(d)} disabled={saving} style={{ ...act, background: '#1E3A5F', color: '#fff', borderColor: '#1E3A5F' }}>📤 Envoyer</button>
                   )}
                   {d.statut === 'Envoyé' && (<>
+                    {d.statut_signature !== 'Signé' && (
+                      // Mauvaise adresse, mail perdu… : même fenêtre d'envoi. Une nouvelle
+                      // demande de signature remplace le lien précédent (ancien lien invalide).
+                      <button onClick={() => onSend(d)} disabled={saving} style={act}
+                        title="Renvoyer le devis (adresse corrigée, relance) — l'ancien lien de signature ne fonctionnera plus">↻ Renvoyer</button>
+                    )}
                     <button onClick={() => onAccept(d)} disabled={saving} style={{ ...act, background: '#ECFDF5', color: '#047857', borderColor: '#A7F3D0' }}>✓ Accepté</button>
                     <button onClick={() => onRefuse(d)} disabled={saving} style={{ ...act, background: '#FEF2F2', color: '#B91C1C', borderColor: '#FECACA' }}>Refusé</button>
                   </>)}

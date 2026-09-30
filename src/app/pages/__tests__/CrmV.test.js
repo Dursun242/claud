@@ -361,6 +361,27 @@ describe('CrmV — envoi par mail et IA', () => {
     expect(addToast).toHaveBeenCalledWith('Devis 26-050 envoyé à cousin@exemple.fr pour signature électronique', 'success')
   })
 
+  it('renvoi d’un devis déjà envoyé (mauvaise adresse) : nouvelle demande de signature vers l’adresse corrigée', async () => {
+    const user = userEvent.setup()
+    const sent = { ...draft, statut: 'Envoyé', date_envoi: '2026-09-25', qonto_quote_id: 'qq1', statut_signature: 'Envoyé' }
+    crmDb.loadCrm.mockResolvedValue({ opportunites: [{ ...opp, etape: 'Devis envoyé' }], interactions: [], devis: [sent], missingMigration: false })
+    crmDb.setDevisStatut.mockResolvedValue(sent)
+    routes['/api/devis/send'] = reply({ ok: true, to: ['bon@exemple.fr'] })
+    // Email du contact corrigé après le premier envoi
+    renderWith({ data: { chantiers: [], contacts: [{ ...contacts[0], email: 'bon@exemple.fr' }] } })
+    await screen.findByRole('dialog', { name: 'Escalier extérieur' })
+    expect(screen.queryByRole('button', { name: '📤 Envoyer' })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: '↻ Renvoyer' }))
+    await screen.findByRole('dialog', { name: 'Envoyer le devis 26-050' })
+    expect(await screen.findByLabelText('Destinataire')).toHaveValue('bon@exemple.fr')
+    await user.click(screen.getByRole('button', { name: /^📤 Envoyer (le devis|pour signature)$/ }))
+    await waitFor(() => expect(addToast).toHaveBeenCalledWith('Devis 26-050 envoyé à bon@exemple.fr pour signature électronique', 'success'))
+    const [sign] = callsTo('/api/devis/sign')
+    expect(sign.body).toMatchObject({ action: 'send', devisId: 'd1', signerEmail: 'bon@exemple.fr' })
+    expect(callsTo('/api/devis/send')[0].body).toMatchObject({ to: 'bon@exemple.fr' })
+    expect(crmDb.setDevisStatut).toHaveBeenCalledWith(expect.objectContaining({ id: 'd1' }), 'Envoyé')
+  })
+
   it('sans signature électronique : pas d’appel Odoo Sign', async () => {
     const user = userEvent.setup()
     routes['/api/devis/send'] = reply({ ok: true, to: ['cousin@exemple.fr'] })

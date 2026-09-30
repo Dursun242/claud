@@ -24,3 +24,20 @@ describe('DevisList — suivi', () => {
     expect(screen.queryByText(/ouvert \d+×/)).not.toBeInTheDocument()
   })
 })
+
+describe('DevisList — renvoi', () => {
+  it('devis envoyé non signé : bouton « Renvoyer » qui rouvre l’envoi', () => {
+    const onSend = jest.fn()
+    render(<DevisList devis={[{ ...base, statut_signature: 'Envoyé' }]} {...props} onSend={onSend} />)
+    screen.getByRole('button', { name: '↻ Renvoyer' }).click()
+    expect(onSend).toHaveBeenCalledWith(expect.objectContaining({ id: 'd1' }))
+  })
+
+  it('pas de renvoi une fois signé, ni pour un brouillon (bouton Envoyer)', () => {
+    const { rerender } = render(<DevisList devis={[{ ...base, statut_signature: 'Signé' }]} {...props} />)
+    expect(screen.queryByRole('button', { name: '↻ Renvoyer' })).not.toBeInTheDocument()
+    rerender(<DevisList devis={[{ ...base, statut: 'Brouillon' }]} {...props} />)
+    expect(screen.queryByRole('button', { name: '↻ Renvoyer' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '📤 Envoyer' })).toBeInTheDocument()
+  })
+})
