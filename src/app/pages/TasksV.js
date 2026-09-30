@@ -45,6 +45,7 @@ export default function TasksV({ data, save: _save, m, reload, focusId, focusTs 
         return (
           (t.titre || "").toLowerCase().includes(search) ||
           (t.lot || "").toLowerCase().includes(search) ||
+          (t.entreprise || "").toLowerCase().includes(search) ||
           (ch?.nom || "").toLowerCase().includes(search)
         )
       })
@@ -277,7 +278,10 @@ export default function TasksV({ data, save: _save, m, reload, focusId, focusTs 
                 textDecoration:t.statut==="Terminé"?"line-through":"none"
               }}>{t.titre}</div>
               <div style={{fontSize:10,color:"#64748B",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
-                {ch?.nom || "—"}{t.lot ? ` · ${t.lot}` : ""}
+                {ch?.nom || "—"}{t.entreprise ? ` · ${t.entreprise}` : ""}{t.lot ? ` · ${t.lot}` : ""}
+                {t.nb_rappels > 0 && t.statut !== "Terminé" && (
+                  <span style={{color:"#B91C1C",fontWeight:700}}> · 🔔 {t.nb_rappels} rappel{t.nb_rappels>1?"s":""}</span>
+                )}
               </div>
             </div>
             {/* Sur mobile, on n'affiche que le pictogramme pour économiser la largeur */}
@@ -329,6 +333,10 @@ export default function TasksV({ data, save: _save, m, reload, focusId, focusTs 
       <FF label="Titre *">
         <input style={inp} value={form.titre||""}
           onChange={e=>setForm({...form,titre:e.target.value})}/>
+      </FF>
+      <FF label="Entreprise">
+        <input style={inp} value={form.entreprise||""} placeholder="Entreprise chargée de l'action"
+          onChange={e=>setForm({...form,entreprise:e.target.value})}/>
       </FF>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0 12px"}}>
         <FF label="Lot">

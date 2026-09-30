@@ -1,7 +1,10 @@
 'use client'
 import { useState, useEffect, useMemo, useRef } from 'react'
-import { SB, fmtDate, FF, inp, sel, btnP, btnS } from '../dashboards/shared'
-import { Modal, EmptyState } from '../components'
+import { SB, fmtDate, btnP } from '../dashboards/shared'
+import { EmptyState } from '../components'
+import CRFormModal from '../components/cr/CRFormModal'
+import CRSendModal from '../components/cr/CRSendModal'
+import { crTaskStats } from '../lib/crSuivi'
 import { useToast } from '../contexts/ToastContext'
 import { useConfirm } from '../contexts/ConfirmContext'
 import { useUndoableDelete } from '../hooks/useUndoableDelete'
@@ -23,11 +26,11 @@ const crBtn = (color, bg, border) => ({
 export default function ReportsV({ data, save: _save, m, reload, focusId, focusTs, readOnly }) {
   const { addToast } = useToast()
   const confirm = useConfirm()
+  // Fenêtre CR : { initial } (nouveau : { chantierId } ; modification : le CR)
   const [modal, setModal] = useState(null)
-  const [form, setForm] = useState({})
+  const [sendCr, setSendCr] = useState(null)
   const [searchCR, setSearchCR] = useState("")
   const [chantierFilter, setChantierFilter] = useState("") // "" = tous
-  const [formError, setFormError] = useState("")
   const searchInputRef = useRef(null)
 
   // Delete avec undo (5s pour annuler)
@@ -55,58 +58,18 @@ export default function ReportsV({ data, save: _save, m, reload, focusId, focusT
   }
 
   const openNew = (chId) => {
-    const ch = (typeof chId === 'string' && data.chantiers.find(c => c.id === chId)) || data.chantiers[0]
-    setForm({
-      chantierId: ch?.id || "",
-      date: new Date().toISOString().split("T")[0],
-      numero: (data.compteRendus || []).length + 1,
-      resume: "", participants: "", decisions: "", intervenants: []
-    })
-    setFormError("")
-    setModal("new")
+    const id = (typeof chId === 'string' && chId) || chantierFilter || data.chantiers[0]?.id || ""
+    setModal({ initial: { chantierId: id } })
   }
-  const openEdit = (cr) => { setForm(cr); setFormError(""); setModal("edit") }
-  const closeModal = () => { setModal(null); setFormError("") }
-
-  // Intervenants disponibles pour le chantier actuellement sélectionné dans
-  // la modale (déduits des OS + rattachés manuellement via contact_chantiers,
-  // même logique que la fiche chantier / ChantierIntervenants).
-  const modalIntervenants = useMemo(() => {
-    const chId = form.chantierId
-    if (!chId) return []
-    const contactMap = new Map((data.contacts || []).map(c => [c.nom, c]))
-    const contactById = new Map((data.contacts || []).map(c => [c.id, c]))
-    const artisanNames = [...new Set((data.ordresService || [])
-      .filter(o => o.chantier_id === chId)
-      .map(o => o.artisan_nom).filter(Boolean))]
-    const seen = new Set()
-    const list = []
-    artisanNames.map(n => contactMap.get(n)).filter(Boolean).forEach(c => {
-      if (seen.has(c.id)) return
-      seen.add(c.id); list.push(c)
-    })
-    ;(data.contactChantiers || []).filter(cc => cc.chantier_id === chId).forEach(link => {
-      if (seen.has(link.contact_id)) return
-      const c = contactById.get(link.contact_id)
-      if (!c) return
-      seen.add(c.id); list.push(c)
-    })
-    return list
-  }, [form.chantierId, data.contacts, data.ordresService, data.contactChantiers])
-
-  const handleSave = async () => {
-    setFormError("")
-    if (!form.chantierId) { setFormError("Sélectionne un chantier."); return }
-    if (!form.date) { setFormError("La date est requise."); return }
-    try {
-      await SB.upsertCR(form)
-      setModal(null)
-      reload()
-      addToast(modal === "edit" ? "CR mis à jour" : "CR créé", "success")
-    } catch (err) {
-      setFormError(err?.message || "Erreur lors de l'enregistrement.")
-    }
+  const openEdit = (cr) => setModal({ initial: { ...cr, chantierId: cr.chantierId || cr.chantier_id } })
+  const closeModal = () => setModal(null)
+  const handleSaved = async (cr, { send }) => {
+    setModal(null)
+    await reload()
+    if (send) setSendCr(cr)
   }
+  const chantierOf = (cr) => data.chantiers.find(c => c.id === (cr?.chantierId || cr?.chantier_id)) || null
+
   const handleDelete = async (cr) => {
     const ok = await confirm({
       title: `Supprimer le CR n°${cr.numero} ?`,
@@ -127,13 +90,13 @@ export default function ReportsV({ data, save: _save, m, reload, focusId, focusT
       const t = e.target
       const tag = (t?.tagName || '').toLowerCase()
       if (tag === 'input' || tag === 'textarea' || tag === 'select' || t?.isContentEditable) return
-      if (modal) return
+      if (modal || sendCr) return
       if (e.key === 'n' || e.key === 'N') { e.preventDefault(); openNewRef.current?.() }
     }
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [modal])
+  }, [modal, sendCr])
 
   // Focus depuis la recherche globale : pré-remplit la recherche locale
   // avec le numéro du CR pour filtrer la liste et afficher la carte
@@ -305,6 +268,10 @@ export default function ReportsV({ data, save: _save, m, reload, focusId, focusT
                   ) : '📊 XLS'}
                 </button>
                 {!readOnly && (
+                  <button onClick={()=>setSendCr(cr)} title="Envoyer le CR et la convocation par mail"
+                    style={crBtn("#1E3A5F","#F1F5F9","#CBD5E1")}>✉ Envoyer</button>
+                )}
+                {!readOnly && (
                   <button onClick={()=>openEdit(cr)} title="Modifier"
                     style={crBtn("#1D4ED8","#EFF6FF","#BFDBFE")}>✎ Modifier</button>
                 )}
@@ -315,6 +282,7 @@ export default function ReportsV({ data, save: _save, m, reload, focusId, focusT
               </div>
             </div>
             {cr.resume && <div style={{fontSize:13,color:"#334155",lineHeight:1.6,marginBottom:8}}>{cr.resume}</div>}
+            <CRCardSummary cr={cr} />
             {cr.participants && (
               <div style={{fontSize:11}}>
                 <span style={{fontWeight:600,color:"#64748B"}}>Présents :</span>{" "}
@@ -333,157 +301,27 @@ export default function ReportsV({ data, save: _save, m, reload, focusId, focusT
       })
     )}
 
-    <Modal open={!!modal} onClose={closeModal} title={modal==="new"?"Nouveau compte rendu":"Modifier le CR"} wide>
-      <div style={{display:"grid",gridTemplateColumns:m?"1fr":"1fr 1fr 1fr",gap:"0 12px"}}>
-        <FF label="Chantier *">
-          <select style={sel} value={form.chantierId||""}
-            onChange={e=>setForm({...form,chantierId:e.target.value,intervenants:[]})}>
-            <option value="">— Sélectionner —</option>
-            {data.chantiers.map(c=><option key={c.id} value={c.id}>{c.nom}</option>)}
-          </select>
-        </FF>
-        <FF label="Date *">
-          <input type="date" style={inp} value={form.date||""}
-            onChange={e=>setForm({...form,date:e.target.value})}/>
-        </FF>
-        <FF label="N°">
-          <input type="number" style={inp} value={form.numero||""}
-            onChange={e=>setForm({...form,numero:e.target.value})}/>
-        </FF>
-      </div>
-      <FF label="Résumé">
-        <textarea style={{...inp,minHeight:80,resize:"vertical"}}
-          value={form.resume||""}
-          onChange={e=>setForm({...form,resume:e.target.value})}
-          placeholder="Points abordés pendant la réunion…"/>
-      </FF>
-      <FF label="Intervenants">
-        {!form.chantierId ? (
-          <div style={{
-            background:"#F8FAFC",border:"1px dashed #CBD5E1",borderRadius:8,
-            padding:"12px 14px",marginBottom:8
-          }}>
-            <p style={{color:"#64748B",fontSize:11,margin:0}}>
-              Sélectionne d&apos;abord un chantier pour voir ses intervenants.
-            </p>
-          </div>
-        ) : modalIntervenants.length === 0 ? (
-          <div style={{
-            background:"#F8FAFC",border:"1px dashed #CBD5E1",borderRadius:8,
-            padding:"12px 14px",marginBottom:8
-          }}>
-            <p style={{color:"#64748B",fontSize:11,margin:0}}>
-              Aucun intervenant sur ce chantier — ajoutez-en depuis sa fiche (onglet Chantiers), puis revenez ici.
-            </p>
-          </div>
-        ) : (
-          <div style={{
-            background:"#F8FAFC",border:"1px solid #E2E8F0",borderRadius:8,
-            padding:10,marginBottom:8
-          }}>
-            <div style={{
-              display:"flex",alignItems:"center",justifyContent:"space-between",
-              marginBottom:8
-            }}>
-              <span style={{fontSize:11,fontWeight:700,color:"#0F172A"}}>
-                {(form.intervenants||[]).length === 0
-                  ? "Aucun sélectionné"
-                  : `${(form.intervenants||[]).length} sélectionné${(form.intervenants||[]).length>1?"s":""}`}
-              </span>
-              <div style={{display:"flex",gap:10}}>
-                <button type="button" onClick={()=>{
-                  setForm({...form,intervenants:modalIntervenants.map(it=>({
-                    nom: it.nom, email: it.email||"", societe: it.societe||it.nom||"",
-                    tel: it.tel||"", siret: it.siret||""
-                  }))});
-                }} style={{
-                  background:"none",border:"none",color:"#3B82F6",
-                  fontSize:10,fontWeight:700,cursor:"pointer",padding:0
-                }}>Tout cocher</button>
-                <button type="button" onClick={()=>setForm({...form,intervenants:[]})}
-                  style={{
-                    background:"none",border:"none",color:"#64748B",
-                    fontSize:10,fontWeight:700,cursor:"pointer",padding:0
-                  }}>Tout décocher</button>
-              </div>
-            </div>
-            <div style={{display:"flex",flexDirection:"column",gap:6}}>
-              {modalIntervenants.map(it=>{
-                const selectedList = form.intervenants||[];
-                const isSel = selectedList.some(s=>s.nom===it.nom);
-                const toggle = ()=>{
-                  const next = isSel
-                    ? selectedList.filter(s=>s.nom!==it.nom)
-                    : [...selectedList,{
-                        nom: it.nom, email: it.email||"",
-                        societe: it.societe||it.nom||"",
-                        tel: it.tel||"", siret: it.siret||""
-                      }];
-                  setForm({...form,intervenants:next});
-                };
-                return (
-                  <div key={it.id||it.nom} role="checkbox" aria-checked={isSel} tabIndex={0}
-                    onClick={toggle}
-                    onKeyDown={(e)=>{ if (e.key===" "||e.key==="Enter") { e.preventDefault(); toggle(); } }}
-                    style={{
-                      display:"flex",alignItems:"center",gap:8,
-                      padding:"9px 12px",borderRadius:6,cursor:"pointer",
-                      border:isSel?"1.5px solid #3B82F6":"1px solid #E2E8F0",
-                      background:isSel?"#EFF6FF":"#fff",
-                      transition:"background 0.1s, border-color 0.1s"
-                    }}>
-                    <span aria-hidden="true" style={{
-                      width:18,height:18,minWidth:18,borderRadius:5,
-                      border:isSel?"none":"1.5px solid #CBD5E1",
-                      background:isSel?"#3B82F6":"#fff",
-                      display:"flex",alignItems:"center",justifyContent:"center",
-                      fontSize:12,color:"#fff",fontWeight:700
-                    }}>
-                      {isSel && "✓"}
-                    </span>
-                    <span style={{fontSize:12,fontWeight:600,color:isSel?"#1D4ED8":"#0F172A"}}>
-                      {it.nom}
-                    </span>
-                    {it.societe && it.societe !== it.nom && (
-                      <span style={{fontSize:10,color:"#64748B"}}>({it.societe})</span>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        )}
-      </FF>
-      <FF label="Participants (notes libres, optionnel)">
-        <input style={inp} value={form.participants||""}
-          onChange={e=>setForm({...form,participants:e.target.value})}
-          placeholder="Ex: et 2 riverains présents"/>
-      </FF>
-      <FF label="Décisions">
-        <textarea style={{...inp,minHeight:50,resize:"vertical"}}
-          value={form.decisions||""}
-          onChange={e=>setForm({...form,decisions:e.target.value})}
-          placeholder="Décisions prises pendant la réunion…"/>
-      </FF>
-      {formError && (
-        <div style={{
-          background:"#FEF2F2",border:"1px solid #FECACA",borderRadius:8,
-          padding:"8px 12px",marginTop:10,fontSize:12,color:"#DC2626",
-          display:"flex",alignItems:"center",gap:8,
-        }}>
-          <span style={{fontSize:14}}>⚠</span>
-          <span style={{flex:1}}>{formError}</span>
-          <button onClick={()=>setFormError("")} aria-label="Fermer"
-            style={{
-              background:"none",border:"none",cursor:"pointer",
-              color:"#DC2626",fontSize:14,padding:0,lineHeight:1
-            }}>✕</button>
-        </div>
-      )}
-      <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginTop:12}}>
-        <button onClick={closeModal} style={btnS}>Annuler</button>
-        <button onClick={handleSave} style={btnP}>Enregistrer</button>
-      </div>
-    </Modal>
+    <CRFormModal open={!!modal} initial={modal?.initial} data={data} m={m}
+      onClose={closeModal} onSaved={handleSaved} />
+    <CRSendModal cr={sendCr} chantier={chantierOf(sendCr)} onClose={() => setSendCr(null)} />
   </div>)
+}
+
+// Bilan des actions + prochaine réunion sur la carte d'un CR
+function CRCardSummary({ cr }) {
+  const st = crTaskStats(cr.taches_suivi)
+  const next = cr.prochaine_reunion
+  if (!st.total && !next?.date) return null
+  const chip = (text, color, bg) => (
+    <span style={{ fontSize: 10, fontWeight: 700, color, background: bg, borderRadius: 5, padding: "2px 7px" }}>{text}</span>
+  )
+  return (
+    <div style={{ display: "flex", gap: 5, flexWrap: "wrap", alignItems: "center", marginBottom: 8 }}>
+      {st.nouveau > 0 && chip(`${st.nouveau} nouvelle${st.nouveau > 1 ? "s" : ""}`, "#7C3AED", "#F5F3FF")}
+      {st.fait > 0 && chip(`${st.fait} soldée${st.fait > 1 ? "s" : ""}`, "#047857", "#ECFDF5")}
+      {st.en_cours > 0 && chip(`${st.en_cours} en cours`, "#1D4ED8", "#EFF6FF")}
+      {st.relance > 0 && chip(`🔔 ${st.relance} relancée${st.relance > 1 ? "s" : ""}`, "#B91C1C", "#FEF2F2")}
+      {next?.date && chip(`Prochaine réunion : ${fmtDate(next.date)}${next.heure ? ` ${String(next.heure).slice(0, 5)}` : ""}`, "#1E3A5F", "#F1F5F9")}
+    </div>
+  )
 }

@@ -20,6 +20,8 @@ import { useConfirm } from '../contexts/ConfirmContext'
 import { computeChantierFinances } from '../lib/chantierFinances'
 import { parseNewIntent } from '../lib/navIntent'
 import { useSaveTask } from '../hooks/useSaveTask'
+import CRFormModal from '../components/cr/CRFormModal'
+import CRSendModal from '../components/cr/CRSendModal'
 
 // Style doux pour les boutons d'action dans la vue détail (PDF/XLS/etc.)
 // Remplace les blocs rouge/vert/bleu saturés par des pastilles pastel.
@@ -69,6 +71,8 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
   const searchInputRef = useRef(null);
   const [taskBusy,setTaskBusy]=useState(null);
   const [duplicating,setDuplicating]=useState(false);
+  const [crModal,setCrModal]=useState(null);
+  const [sendCr,setSendCr]=useState(null);
 
   const toggleTask = async (t) => {
     if (taskBusy) return;
@@ -462,13 +466,7 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
       {/* COMPTES RENDUS */}
       <Section title="Comptes Rendus" count={chCR.length} color="#3B82F6">
         {!readOnly && <div style={{display:"flex",gap:8,marginBottom:12}}>
-          <button onClick={()=>{
-            setDetailForm({chantierId:ch.id,
-              date:new Date().toISOString().split("T")[0],
-              numero:(chCR.length+1),
-              resume:"",participants:"",decisions:"",intervenants:[]
-            });setDetailModal("newCR");
-          }} style={{background:"#3B82F6",color:"#fff",border:"none",
+          <button onClick={()=>setCrModal({ initial: { chantierId: ch.id } })} style={{background:"#3B82F6",color:"#fff",border:"none",
             borderRadius:6,padding:"6px 12px",
             fontSize:11,fontWeight:700,cursor:"pointer"}}>+ Nouveau CR</button>
         </div>}
@@ -500,7 +498,11 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
                 <button onClick={()=>generateCRExcel(cr,ch)} title="Excel"
                   style={detailBtn("#047857","#ECFDF5","#A7F3D0")}>📊 XLS</button>
                 {!readOnly && (
-                  <button onClick={()=>{setDetailForm(cr);setDetailModal("editCR");}}
+                  <button onClick={()=>setSendCr(cr)} title="Envoyer le CR et la convocation par mail"
+                    style={detailBtn("#1E3A5F","#F1F5F9","#CBD5E1")}>✉ Envoyer</button>
+                )}
+                {!readOnly && (
+                  <button onClick={()=>setCrModal({ initial: { ...cr, chantierId: ch.id } })}
                     title="Modifier" style={detailBtn("#1D4ED8","#EFF6FF","#BFDBFE")}>
                     ✎ Modifier
                   </button>
@@ -560,7 +562,12 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
               </button>
               <div style={{flex:1,opacity:t.statut==="Terminé"?0.5:1}}>
                 <div style={{fontSize:13,fontWeight:600,color:"#0F172A"}}>{t.titre}</div>
-                <div style={{fontSize:10,color:"#64748B"}}>{t.lot} • {fmtDate(t.echeance)}</div>
+                <div style={{fontSize:10,color:"#64748B"}}>
+                  {[t.entreprise, t.lot, fmtDate(t.echeance)].filter(Boolean).join(" • ")}
+                  {t.nb_rappels > 0 && t.statut !== "Terminé" && (
+                    <span style={{color:"#B91C1C",fontWeight:700}}> • 🔔 {t.nb_rappels} rappel{t.nb_rappels>1?"s":""}</span>
+                  )}
+                </div>
               </div>
               <Badge text={t.priorite} color={status[t.priorite]||"#64748B"}/>
               <button onClick={()=>{setDetailForm(t);setDetailModal("editTask");}}
@@ -664,132 +671,10 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
         </div>
       </Modal>
 
-      <Modal
-        open={detailModal==="newCR"||detailModal==="editCR"}
-        onClose={()=>setDetailModal(null)}
-        title={detailModal==="newCR"?"Nouveau Compte Rendu":"Modifier le CR"}
-      >
-        <div style={{display:"grid",gridTemplateColumns:m?"1fr":"1fr 1fr",gap:"0 12px"}}>
-          <FF label="Date">
-            <input type="date" style={inp} value={detailForm.date||""}
-              onChange={e=>setDetailForm({...detailForm,date:e.target.value})}/>
-          </FF>
-          <FF label="N°">
-            <input type="number" style={inp} value={detailForm.numero||""}
-              onChange={e=>setDetailForm({...detailForm,numero:e.target.value})}/>
-          </FF>
-        </div>
-        <FF label="Résumé">
-          <textarea style={{...inp,minHeight:70,resize:"vertical"}}
-            value={detailForm.resume||""}
-            onChange={e=>setDetailForm({...detailForm,resume:e.target.value})}/>
-        </FF>
-        <FF label="Intervenants">
-          {intervenants.length === 0 ? (
-            <div style={{
-              background:"#F8FAFC",border:"1px dashed #CBD5E1",borderRadius:8,
-              padding:"12px 14px",marginBottom:8
-            }}>
-              <p style={{color:"#64748B",fontSize:11,margin:0}}>
-                Aucun intervenant sur ce chantier — ajoutez-en depuis la section &quot;Intervenants&quot; en bas de la fiche chantier, puis revenez ici.
-              </p>
-            </div>
-          ) : (
-            <div style={{
-              background:"#F8FAFC",border:"1px solid #E2E8F0",borderRadius:8,
-              padding:10,marginBottom:8
-            }}>
-              <div style={{
-                display:"flex",alignItems:"center",justifyContent:"space-between",
-                marginBottom:8
-              }}>
-                <span style={{fontSize:11,fontWeight:700,color:"#0F172A"}}>
-                  {(detailForm.intervenants||[]).length === 0
-                    ? "Aucun sélectionné"
-                    : `${(detailForm.intervenants||[]).length} sélectionné${(detailForm.intervenants||[]).length>1?"s":""}`}
-                </span>
-                <div style={{display:"flex",gap:10}}>
-                  <button type="button" onClick={()=>{
-                    setDetailForm({...detailForm,intervenants:intervenants.map(it=>({
-                      nom: it.nom, email: it.email||"", societe: it.societe||it.nom||"",
-                      tel: it.tel||"", siret: it.siret||""
-                    }))});
-                  }} style={{
-                    background:"none",border:"none",color:"#3B82F6",
-                    fontSize:10,fontWeight:700,cursor:"pointer",padding:0
-                  }}>Tout cocher</button>
-                  <button type="button" onClick={()=>setDetailForm({...detailForm,intervenants:[]})}
-                    style={{
-                      background:"none",border:"none",color:"#64748B",
-                      fontSize:10,fontWeight:700,cursor:"pointer",padding:0
-                    }}>Tout décocher</button>
-                </div>
-              </div>
-              <div style={{display:"flex",flexDirection:"column",gap:6}}>
-                {intervenants.map(it=>{
-                  const selectedList = detailForm.intervenants||[];
-                  const isSel = selectedList.some(s=>s.nom===it.nom);
-                  const toggle = ()=>{
-                    const next = isSel
-                      ? selectedList.filter(s=>s.nom!==it.nom)
-                      : [...selectedList,{
-                          nom: it.nom, email: it.email||"",
-                          societe: it.societe||it.nom||"",
-                          tel: it.tel||"", siret: it.siret||""
-                        }];
-                    setDetailForm({...detailForm,intervenants:next});
-                  };
-                  return (
-                    <div key={it.id||it.nom} role="checkbox" aria-checked={isSel} tabIndex={0}
-                      onClick={toggle}
-                      onKeyDown={(e)=>{ if (e.key===" "||e.key==="Enter") { e.preventDefault(); toggle(); } }}
-                      style={{
-                        display:"flex",alignItems:"center",gap:8,
-                        padding:"9px 12px",borderRadius:6,cursor:"pointer",
-                        border:isSel?"1.5px solid #3B82F6":"1px solid #E2E8F0",
-                        background:isSel?"#EFF6FF":"#fff",
-                        transition:"background 0.1s, border-color 0.1s"
-                      }}>
-                      <span aria-hidden="true" style={{
-                        width:18,height:18,minWidth:18,borderRadius:5,
-                        border:isSel?"none":"1.5px solid #CBD5E1",
-                        background:isSel?"#3B82F6":"#fff",
-                        display:"flex",alignItems:"center",justifyContent:"center",
-                        fontSize:12,color:"#fff",fontWeight:700
-                      }}>
-                        {isSel && "✓"}
-                      </span>
-                      <span style={{fontSize:12,fontWeight:600,color:isSel?"#1D4ED8":"#0F172A"}}>
-                        {it.nom}
-                      </span>
-                      {it.societe && it.societe !== it.nom && (
-                        <span style={{fontSize:10,color:"#64748B"}}>({it.societe})</span>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          )}
-        </FF>
-        <FF label="Participants (notes libres, optionnel)">
-          <input style={inp} value={detailForm.participants||""}
-            onChange={e=>setDetailForm({...detailForm,participants:e.target.value})}
-            placeholder="Ex: et 2 riverains présents"/>
-        </FF>
-        <FF label="Décisions">
-          <textarea style={{...inp,minHeight:50,resize:"vertical"}}
-            value={detailForm.decisions||""}
-            onChange={e=>setDetailForm({...detailForm,decisions:e.target.value})}/>
-        </FF>
-        <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginTop:12}}>
-          <button onClick={()=>setDetailModal(null)} style={btnS}>Annuler</button>
-          <button onClick={async()=>{
-            await SB.upsertCR({...detailForm,chantierId:ch.id});
-            setDetailModal(null);reload();
-          }} style={btnP}>Enregistrer</button>
-        </div>
-      </Modal>
+      <CRFormModal open={!!crModal} initial={crModal?.initial} data={data} m={m} lockChantier
+        onClose={()=>setCrModal(null)}
+        onSaved={async (cr, { send }) => { setCrModal(null); await reload(); if (send) setSendCr(cr); }} />
+      <CRSendModal cr={sendCr} chantier={ch} onClose={()=>setSendCr(null)} />
 
       <Modal
         open={detailModal==="newTask"||detailModal==="editTask"}

@@ -299,19 +299,25 @@ export const SB = {
   // Tâches
   async upsertTask(t) {
     const chId = t.chantierId||t.chantier_id||null;
-    const row = {
+    const base = {
       chantier_id: chId||null, titre: t.titre,
       priorite: t.priorite, statut: t.statut,
       echeance: t.echeance||null, lot: t.lot||null
     };
+    // Entreprise chargée de l'action (migration 033) : écrite seulement si
+    // le champ est présent, sans bloquer si la colonne n'existe pas encore.
+    const row = 'entreprise' in t ? { ...base, entreprise: t.entreprise || null } : base;
+    const missingCol = (e) => e && row !== base && (e.code === 'PGRST204' || e.code === '42703');
     if (t.id && String(t.id).length > 10) {
-      const { data, error } = await supabase.from('taches')
+      let { data, error } = await supabase.from('taches')
         .update(row).eq('id', t.id).select().single();
+      if (missingCol(error)) ({ data, error } = await supabase.from('taches').update(base).eq('id', t.id).select().single());
       if (error) throw new Error("Erreur mise à jour tâche : " + error.message);
       this.log('update', 'task', data.id, data.titre);
       return data;
     } else {
-      const { data, error } = await supabase.from('taches').insert(row).select().single();
+      let { data, error } = await supabase.from('taches').insert(row).select().single();
+      if (missingCol(error)) ({ data, error } = await supabase.from('taches').insert(base).select().single());
       if (error) throw new Error("Erreur création tâche : " + error.message);
       this.log('create', 'task', data.id, data.titre);
       return data;
