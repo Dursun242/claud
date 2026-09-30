@@ -7,17 +7,16 @@
 //   Anthropic (= coût direct sur la carte bancaire).
 // - Rate limit en mémoire par IP en plus : 20 req/min, même pattern que
 //   /api/extract-*. Double filet de sécurité.
-// - Modèle imposé côté serveur (Haiku 4.5) et max_tokens plafonné : le client
-//   ne peut ni choisir un modèle plus cher ni demander une sortie illimitée.
+// - Modèle imposé côté serveur (lib/ai.js : Claude Haiku 4.5 ou Mistral selon
+//   AI_PROVIDER) et max_tokens plafonné : le client ne peut ni choisir un
+//   modèle plus cher ni demander une sortie illimitée.
 
 import { verifyAuth } from '@/app/lib/auth'
-import { fetchWithRetry } from '@/app/lib/fetchWithRetry'
 import { createLogger } from '@/app/lib/logger'
-import { describeAnthropicError } from '@/app/lib/anthropicError'
+import { generate } from '@/app/lib/ai'
 
 const log = createLogger('claude')
 
-const MODEL = 'claude-haiku-4-5-20251001'
 const DEFAULT_MAX_TOKENS = 1000
 const MAX_TOKENS_CAP = 4000
 
@@ -53,6 +52,20 @@ setInterval(() => {
   }
 }, WINDOW_MS * 5);
 
+// Bloc Anthropic ({ type: 'text' } / { type: 'image', source: base64 }) →
+// partie du format commun de lib/ai.js
+function toCommonPart(block) {
+  if (block?.type === 'image' && block.source?.type === 'base64') {
+    return { type: 'image', mediaType: block.source.media_type, base64: block.source.data }
+  }
+  return { type: 'text', text: String(block?.text ?? '') }
+}
+function toCommonMessage(m) {
+  const role = m?.role === 'assistant' ? 'assistant' : 'user'
+  if (Array.isArray(m?.content)) return { role, content: m.content.map(toCommonPart) }
+  return { role, content: String(m?.content ?? '') }
+}
+
 export async function POST(request) {
   try {
     // 1. Vérification rate limit par IP
@@ -71,41 +84,28 @@ export async function POST(request) {
     }
 
     const body = await request.json();
-    const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
+    // Messages au format Anthropic (texte ou blocs) → format commun lib/ai.js
+    const messages = (Array.isArray(body.messages) ? body.messages : []).map(toCommonMessage);
 
-    if (!ANTHROPIC_API_KEY) {
-      return Response.json(
-        { error: "ANTHROPIC_API_KEY non configurée sur le serveur." },
-        { status: 500 }
-      );
-    }
-
-    const response = await fetchWithRetry("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        max_tokens: clampMaxTokens(body.max_tokens),
-        system: body.system || "",
-        messages: body.messages || [],
-      }),
+    // Claude ou Mistral selon AI_PROVIDER (secours automatique sur l'autre)
+    const ai = await generate({
+      system: typeof body.system === 'string' ? body.system : '',
+      messages,
+      maxTokens: clampMaxTokens(body.max_tokens),
       // Claude peut prendre ~20s sur une vision ou un long prompt ; on laisse 30s
       timeoutMs: 30000,
+      log,
     });
-
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => '');
-      log.error(`Anthropic ${response.status}`, errorText.slice(0, 500));
-      const { message, status } = describeAnthropicError(response.status, errorText);
-      return Response.json({ error: message }, { status });
+    if (!ai.ok) {
+      return Response.json({ error: ai.message }, { status: ai.status });
     }
 
-    const data = await response.json();
-    return Response.json(data);
+    // Réponse au format Anthropic (le navigateur lit content[].text)
+    return Response.json({
+      content: [{ type: 'text', text: ai.text }],
+      stop_reason: ai.stopReason === 'max_tokens' ? 'max_tokens' : 'end_turn',
+      provider: ai.provider,
+    });
 
   } catch (error) {
     log.error('exception', error?.message || error);

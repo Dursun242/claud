@@ -1,4 +1,4 @@
-// Route /api/ai-qonto — analyse IA des factures Qonto via Claude.
+// Route /api/ai-qonto — analyse IA des factures Qonto (Claude ou Mistral, lib/ai.js).
 //
 // Sécurité : même pattern que /api/qonto
 // - Auth JWT Supabase obligatoire
@@ -6,14 +6,13 @@
 //   (service role key), jamais passé dans le body HTTP.
 // - Rate limit par IP : la route appelle Claude (coût direct), même
 //   logique que /api/claude et /api/extract-*.
-import { Anthropic } from "@anthropic-ai/sdk"
 import { verifyStaff } from '@/app/lib/auth'
 import { fetchWithRetry } from '@/app/lib/fetchWithRetry'
 import { adminClient } from '@/app/lib/supabaseClients'
 import { createLogger } from '@/app/lib/logger'
 import { createRateLimiter, clientIp } from '@/app/lib/rateLimit'
+import { generate } from '@/app/lib/ai'
 
-const client = new Anthropic()
 const log = createLogger('ai-qonto')
 
 const checkRateLimit = createRateLimiter({ limit: 5, windowMs: 60_000 })
@@ -99,20 +98,17 @@ ${JSON.stringify(invoicesSummary, null, 2)}
 
 Réponds en JSON avec: { summary: string, topClients: array, paymentRate: string, recommendations: array }`
 
-    // 6. Appel Claude
-    const message = await client.messages.create({
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: 1024,
-      messages: [
-        {
-          role: "user",
-          content: prompt,
-        },
-      ],
+    // 6. Appel IA (Claude ou Mistral selon AI_PROVIDER, cf. lib/ai.js)
+    const ai = await generate({
+      maxTokens: 1024,
+      json: true,
+      log,
+      messages: [{ role: "user", content: prompt }],
     })
-
-    const responseText =
-      message.content[0].type === "text" ? message.content[0].text : ""
+    if (!ai.ok) {
+      return Response.json({ error: ai.message }, { status: ai.status })
+    }
+    const responseText = ai.text || ""
 
     // Parser JSON (Claude peut entourer de markdown malgré l'instruction)
     let analysis = {}

@@ -15,7 +15,6 @@ const nextConfig = {
     optimizePackageImports: [
       'jspdf',
       'jspdf-autotable',
-      '@anthropic-ai/sdk',
       '@tanstack/react-query',
       '@supabase/supabase-js',
       'react-markdown',
