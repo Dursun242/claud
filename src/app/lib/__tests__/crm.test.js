@@ -2,7 +2,7 @@ import {
   ETAPES, ETAPES_ACTIVES, probaForEtape, nextEtape, groupByEtape,
   pipelineStats, classifyFollowUps, daysSinceLastInteraction,
   validateOpportunite, validateInteraction, opportuniteToChantier,
-  oppsByContact, quoteToOpportunite, prepareCrmForAI,
+  oppsByContact, quoteToOpportunite, prepareCrmForAI, devisNumeroOf, isFollowUpObsolete, followUpContext,
 } from '../crm'
 
 describe('crm — étapes', () => {
@@ -87,6 +87,39 @@ describe('crm — relances', () => {
     expect(r.overdue.map(i => i.id)).toEqual(['f', 'b'])
     expect(r.today.map(i => i.id)).toEqual(['c'])
     expect(r.upcoming.map(i => i.id)).toEqual(['a'])
+  })
+
+  it('relances sans objet masquées : devis répondu ou affaire close', () => {
+    const crm = {
+      opportunites: [
+        { id: 'o-open', etape: 'Devis envoyé' },
+        { id: 'o-won', etape: 'Gagné', date_cloture: '2026-09-20' },
+      ],
+      devis: [
+        { numero: 'D-2026-038', statut: 'Accepté' },
+        { numero: '26-052', statut: 'Envoyé', statut_signature: 'Signé' },
+        { numero: 'D-2026-040', statut: 'Envoyé' },
+      ],
+    }
+    const r = classifyFollowUps([
+      { id: 'accepte', opportunite_id: 'o-open', sujet: 'Devis D-2026-038 envoyé', prochaine_action_date: '2026-09-25' },
+      { id: 'signe', opportunite_id: 'o-open', sujet: 'Devis 26-052 envoyé', prochaine_action_date: '2026-09-25' },
+      { id: 'attente', opportunite_id: 'o-open', sujet: 'Devis D-2026-040 envoyé', prochaine_action_date: '2026-09-25' },
+      { id: 'avant-cloture', opportunite_id: 'o-won', sujet: 'Appel', created_at: '2026-09-18T08:00:00Z', prochaine_action_date: '2026-09-22' },
+      { id: 'apres-cloture', opportunite_id: 'o-won', sujet: 'Demander un avis', created_at: '2026-09-21T08:00:00Z', prochaine_action_date: '2026-09-28' },
+    ], today, crm)
+    expect([...r.overdue, ...r.today, ...r.upcoming].map(i => i.id)).toEqual(['attente', 'apres-cloture'])
+    // Sans le contexte du CRM, rien n'est masqué (compatibilité)
+    expect(classifyFollowUps([{ id: 'x', sujet: 'Devis D-2026-038 envoyé', prochaine_action_date: '2026-09-25' }], today).upcoming).toHaveLength(1)
+  })
+
+  it('numéro de devis d’une relance', () => {
+    expect(devisNumeroOf('Devis 26-050 envoyé')).toBe('26-050')
+    expect(devisNumeroOf('Devis D-2026-038 renvoyé (nouvelle adresse)')).toBe('D-2026-038')
+    expect(devisNumeroOf('Devis D-2026-032 signé en ligne')).toBeNull()
+    expect(devisNumeroOf('Appel client')).toBeNull()
+    const ctx = followUpContext({ opportunites: [{ id: 'o', etape: 'Perdu' }] })
+    expect(isFollowUpObsolete({ opportunite_id: 'o', sujet: 'Relance' }, ctx)).toBe(true)
   })
 
   it('daysSinceLastInteraction : null sans interaction, sinon nombre de jours', () => {

@@ -19,6 +19,26 @@ function addDaysISO(iso, n) {
   return d.toISOString().slice(0, 10)
 }
 
+/**
+ * Réponse reçue sur un devis : solde les relances encore ouvertes.
+ * `wholeOpp` : l'affaire est gagnée → toutes ses relances programmées ;
+ * sinon seulement celles de ce devis (« Devis N envoyé »). Jamais bloquant.
+ */
+export async function closeDevisFollowUps(admin, devis, { wholeOpp = false, log } = {}) {
+  if (!devis?.opportunite_id) return 0
+  try {
+    let q = admin.from('crm_interactions').update({ action_faite: true })
+      .eq('opportunite_id', devis.opportunite_id).eq('action_faite', false).not('prochaine_action_date', 'is', null)
+    if (!wholeOpp) q = q.ilike('sujet', `Devis ${devis.numero} %`)
+    const { data, error } = await q.select('id')
+    if (error) throw new Error(error.message)
+    return (data || []).length
+  } catch (e) {
+    log?.warn?.('relances', e?.message || e)
+    return 0
+  }
+}
+
 export const taskTitleForDevis = (devis, how = 'signé') => `Lancer les travaux — devis ${devis.numero} ${how}`
 
 /**

@@ -1,7 +1,7 @@
 /**
  * @jest-environment node
  */
-let GET, db, updates, inserts, sendMail, listQuotes, planWorkForDevis
+let GET, db, updates, inserts, sendMail, listQuotes, planWorkForDevis, closeDevisFollowUps
 
 const SECRET = 's3cret-cron'
 
@@ -47,8 +47,10 @@ beforeEach(() => {
     sendMail,
   }))
   planWorkForDevis = jest.fn().mockResolvedValue({ chantier: { id: 'ch1', nom: 'Garage Martin' }, chantierCreated: true, taskCreated: true })
+  closeDevisFollowUps = jest.fn().mockResolvedValue(1)
   jest.doMock('@/app/lib/devisWon', () => ({
     planWorkForDevis,
+    closeDevisFollowUps,
     planSummary: jest.requireActual('@/app/lib/devisWon').planSummary,
   }))
   ;({ GET } = require('../route'))
@@ -103,6 +105,12 @@ describe('/api/cron/qonto-status', () => {
     expect(planWorkForDevis).toHaveBeenCalledTimes(1)
     expect(planWorkForDevis).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ id: 'd1' }), expect.objectContaining({ how: 'accepté dans Qonto' }))
     expect(sendMail.mock.calls[0][1].text).toContain('Chantier créé : « Garage Martin »')
+  })
+
+  it('réponse reçue → relances soldées (toute l’affaire si accepté, le devis si annulé)', async () => {
+    await GET(req())
+    expect(closeDevisFollowUps).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ id: 'd1' }), expect.objectContaining({ wholeOpp: true }))
+    expect(closeDevisFollowUps).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ numero: 'D-2026-041' }), expect.objectContaining({ wholeOpp: false }))
   })
 
   it('pas de double notification si le devis a déjà été mis à jour', async () => {

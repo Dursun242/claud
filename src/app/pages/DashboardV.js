@@ -71,7 +71,7 @@ export default function DashboardV({data,crm=null,setTab,m,user,clientMode=false
   const { crmStats, relances, nbOverdue } = useMemo(() => {
     const opps = crm?.opportunites || []
     const oppById = new Map(opps.map(o => [o.id, o]))
-    const f = classifyFollowUps(crm?.interactions || [])
+    const f = classifyFollowUps(crm?.interactions || [], new Date(), { opportunites: opps, devis: crm?.devis || [] })
     const toItem = (late) => (it) => {
       const o = oppById.get(it.opportunite_id)
       return {

@@ -1,7 +1,7 @@
 /**
  * @jest-environment node
  */
-import { planWorkForDevis, planSummary, taskTitleForDevis } from '../devisWon'
+import { planWorkForDevis, planSummary, taskTitleForDevis, closeDevisFollowUps } from '../devisWon'
 
 // Faux client Supabase : tables en mémoire, sous-ensemble des appels utilisés
 function fakeAdmin(tables) {
@@ -86,5 +86,36 @@ describe('planWorkForDevis', () => {
     expect(planSummary({ chantier: { nom: 'X' }, chantierCreated: true, taskCreated: true })).toMatch(/Chantier créé : « X » · tâche/)
     expect(planSummary(null)).toBeNull()
     expect(taskTitleForDevis({ numero: 'D-1' })).toBe('Lancer les travaux — devis D-1 signé')
+  })
+})
+
+describe('closeDevisFollowUps', () => {
+  function chainAdmin({ error = null, rows = [{ id: 'i1' }] } = {}) {
+    const calls = []
+    const b = {
+      update: (p) => { calls.push(['update', p]); return b },
+      eq: (c, v) => { calls.push(['eq', c, v]); return b },
+      not: (c, op, v) => { calls.push(['not', c, op, v]); return b },
+      ilike: (c, v) => { calls.push(['ilike', c, v]); return b },
+      select: async () => ({ data: error ? null : rows, error }),
+    }
+    return { calls, from: (t) => { calls.push(['from', t]); return b } }
+  }
+  it('affaire gagnée : toutes ses relances ouvertes soldées', async () => {
+    const admin = chainAdmin({ rows: [{ id: 'a' }, { id: 'b' }] })
+    expect(await closeDevisFollowUps(admin, DEVIS, { wholeOpp: true })).toBe(2)
+    expect(admin.calls).toEqual(expect.arrayContaining([
+      ['from', 'crm_interactions'], ['update', { action_faite: true }], ['eq', 'opportunite_id', 'o1'], ['eq', 'action_faite', false],
+    ]))
+    expect(admin.calls.some(c => c[0] === 'ilike')).toBe(false)
+  })
+  it('devis refusé : seulement les relances de ce devis ; erreur sans effet', async () => {
+    const admin = chainAdmin()
+    await closeDevisFollowUps(admin, DEVIS)
+    expect(admin.calls).toContainEqual(['ilike', 'sujet', 'Devis D-2026-041 %'])
+    const warn = jest.fn()
+    expect(await closeDevisFollowUps(chainAdmin({ error: { message: 'boom' } }), DEVIS, { log: { warn } })).toBe(0)
+    expect(warn).toHaveBeenCalled()
+    expect(await closeDevisFollowUps(chainAdmin(), { numero: 'X' })).toBe(0)
   })
 })

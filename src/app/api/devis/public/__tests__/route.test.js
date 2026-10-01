@@ -4,7 +4,7 @@
 import { PDFDocument } from 'pdf-lib'
 import crypto from 'node:crypto'
 
-let GET, POST, db, updates, uploads, inserts, sendMail, planWorkForDevis
+let GET, POST, db, updates, uploads, inserts, sendMail, planWorkForDevis, closeDevisFollowUps
 
 const TOKEN = 'b'.repeat(64)
 const PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='
@@ -61,8 +61,10 @@ beforeEach(() => {
     sendMail,
   }))
   planWorkForDevis = jest.fn().mockResolvedValue({ chantier: { id: 'ch1', nom: 'Garage Ozkan' }, chantierCreated: true, taskCreated: true })
+  closeDevisFollowUps = jest.fn().mockResolvedValue(1)
   jest.doMock('@/app/lib/devisWon', () => ({
     planWorkForDevis,
+    closeDevisFollowUps,
     planSummary: jest.requireActual('@/app/lib/devisWon').planSummary,
   }))
   ;({ GET, POST } = require('../route'))
@@ -130,6 +132,8 @@ describe('/api/devis/public', () => {
   it('POST : devis signé → chantier + tâche « Lancer les travaux » planifiés, annoncés dans le mail', async () => {
     expect((await POST(sign())).status).toBe(200)
     expect(planWorkForDevis).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ id: 'd1', numero: 'D-2026-032' }), expect.objectContaining({ how: 'signé' }))
+    // Devis signé : relances de l'affaire soldées
+    expect(closeDevisFollowUps).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ id: 'd1' }), expect.objectContaining({ wholeOpp: true }))
     expect(sendMail.mock.calls[0][1].text).toContain('Chantier créé : « Garage Ozkan » · tâche « Lancer les travaux » ajoutée')
   })
 
