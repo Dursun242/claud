@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react'
 import { useToast } from '../../contexts/ToastContext'
 import { useCrEditor } from '../../hooks/useCrEditor'
 import { useDictation } from '../../hooks/useDictation'
+import { useLeaveGuard } from '../../hooks/useLeaveGuard'
 import {
   chantierIntervenants, entrepriseOf, lotKey, crTaskStats, aiContext, globalProgress,
 } from '../../lib/crSuivi'
@@ -30,6 +31,7 @@ export default function CREditor({ open, initial, data, onClose, onSaved, lockCh
   const { addToast } = useToast()
   const ed = useCrEditor({ open, initial, data })
   const dictation = useDictation({ onError: (msg) => addToast(msg, 'warning') })
+  useLeaveGuard(open)
   // Mode choisi par l'utilisateur ; sinon selon l'écran (téléphone → Réunion)
   const [modeChoice, setMode] = useState(null)
   const mode = modeChoice || (m ? 'reunion' : 'redaction')

@@ -199,8 +199,9 @@ export default function ProcesVerbauxV({ data, m, reload, user: _user }) {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 1000
-        }} onClick={() => setSelectedPV(null)}>
+          zIndex: 1000,
+          overscrollBehavior: 'contain',
+        }}>
           <div style={{
             background: '#fff',
             borderRadius: 12,
@@ -210,7 +211,7 @@ export default function ProcesVerbauxV({ data, m, reload, user: _user }) {
             maxHeight: '90vh',
             overflowY: 'auto',
             boxShadow: '0 20px 25px rgba(0,0,0,0.2)'
-          }} onClick={(e) => e.stopPropagation()}>
+          }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: 20 }}>
               <div>
                 <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#0F172A' }}>

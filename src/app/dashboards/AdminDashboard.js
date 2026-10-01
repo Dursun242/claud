@@ -9,6 +9,7 @@ import { DashboardSkeleton, PageSkeleton } from '../components/Skeleton'
 import TabErrorBoundary from '../components/TabErrorBoundary'
 import KeyboardHelpModal from '../components/KeyboardHelpModal'
 import MobileNav, { QuickCreateSheet, MOBILE_NAV_HEIGHT } from '../components/MobileNav'
+import LeaveGuardNotice from '../components/LeaveGuardNotice'
 import { newIntent } from '../lib/navIntent'
 import { useFloatingMic } from '../hooks/useFloatingMic'
 import { useToast } from '../contexts/ToastContext'
@@ -585,6 +586,9 @@ export default function AdminDashboard({ user, profile = null }) {
       )}
       <QuickCreateSheet open={createOpen} onClose={()=>setCreateOpen(false)}
         actions={createActions} isMobile={isMobile} />
+
+      {/* Message quand le retour du téléphone est bloqué (fenêtre de saisie ouverte) */}
+      <LeaveGuardNotice />
 
       {/* KEYBOARD SHORTCUTS HELP — déclenché par « ? » */}
       <KeyboardHelpModal open={helpOpen} onClose={() => setHelpOpen(false)} tabs={tabs} />

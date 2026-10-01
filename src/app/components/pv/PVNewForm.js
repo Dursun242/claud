@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../supabaseClient'
 import { useToast } from '../../contexts/ToastContext'
+import { useLeaveGuard } from '../../hooks/useLeaveGuard'
 import { generatePVPdf } from '../../generators'
 
 // Modale de création d'un PV de réception : saisie titre + signataires,
@@ -9,6 +10,8 @@ import { generatePVPdf } from '../../generators'
 // décision (accepté / réserve / refusé), aperçu PDF puis envoi en
 // signature via Odoo Sign.
 export default function PVNewForm({ chantierId, chantier, clientContact, ordresService = [], intervenants: intervenantsProp, onClose, onSuccess }) {
+  // Ne se ferme que par ✕ / Annuler ; retour du téléphone et rechargement protégés
+  useLeaveGuard(true)
   const [form, setForm] = useState({
     titre: '',
     description: '',
@@ -230,8 +233,9 @@ export default function PVNewForm({ chantierId, chantier, clientContact, ordresS
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      zIndex: 1000
-    }} onClick={onClose}>
+      zIndex: 1000,
+      overscrollBehavior: 'contain',
+    }}>
       <div style={{
         background: '#fff',
         borderRadius: 12,
@@ -240,7 +244,7 @@ export default function PVNewForm({ chantierId, chantier, clientContact, ordresS
         width: '90%',
         maxHeight: '90vh',
         overflowY: 'auto'
-      }} onClick={(e) => e.stopPropagation()}>
+      }}>
         <h2 style={{ margin: '0 0 20px 0', fontSize: 16, fontWeight: 700, color: '#0F172A' }}>
           Nouveau PV de réception
         </h2>

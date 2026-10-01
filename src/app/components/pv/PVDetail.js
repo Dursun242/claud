@@ -2,11 +2,14 @@
 import { useState } from 'react'
 import { supabase } from '../../supabaseClient'
 import { useToast } from '../../contexts/ToastContext'
+import { useLeaveGuard } from '../../hooks/useLeaveGuard'
 import { formatDate, decisionColor } from './pvStatusHelpers'
 
 // Modale de détail d'un PV : infos, signataires, téléchargement du PDF
 // signé et décision finale (Accepté / avec réserve / Refusé).
 export default function PVDetail({ pv, onClose, onDecision }) {
+  // Ne se ferme que par ✕ / Annuler ; retour du téléphone et rechargement protégés
+  useLeaveGuard(true)
   const [decision, setDecision] = useState('')
   const [motif, setMotif] = useState('')
   const [saving, setSaving] = useState(false)
@@ -84,8 +87,9 @@ export default function PVDetail({ pv, onClose, onDecision }) {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      zIndex: 1000
-    }} onClick={onClose}>
+      zIndex: 1000,
+      overscrollBehavior: 'contain',
+    }}>
       <div style={{
         background: '#fff',
         borderRadius: 12,
@@ -95,7 +99,7 @@ export default function PVDetail({ pv, onClose, onDecision }) {
         maxHeight: '90vh',
         overflowY: 'auto',
         boxShadow: '0 20px 25px rgba(0,0,0,0.2)'
-      }} onClick={(e) => e.stopPropagation()}>
+      }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: 20 }}>
           <div>
             <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#0F172A' }}>

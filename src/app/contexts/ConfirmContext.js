@@ -30,6 +30,11 @@ export function useConfirm() {
   return ctx
 }
 
+/** Comme useConfirm, mais null hors ConfirmProvider (composants génériques). */
+export function useOptionalConfirm() {
+  return useContext(ConfirmContext)
+}
+
 export function ConfirmProvider({ children }) {
   const [state, setState] = useState(null) // null ou { title, message, confirmLabel, cancelLabel, danger }
   const resolverRef = useRef(null)
