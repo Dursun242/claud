@@ -35,6 +35,29 @@ it('CR complet : page de garde, convocation, suivi des actions', async () => {
   expect(pages(out.base64)).toBeGreaterThanOrEqual(3)
 })
 
+it('CR par lot avec photos et avancement', async () => {
+  const photo = jest.requireActual('../logo').LOGO_B64
+  const cr = {
+    id: 'cr', numero: 4, date: '2026-09-30', resume: 'RAS',
+    sections: [
+      { lot: 'Généralités', observations: 'Sécurité OK', photos: [] },
+      { lot: 'Électricité', entreprise: 'Martin Élec', avancement: 20, avancement_prec: 10, prevu: 40, observations: 'Retard', photos: [{ path: 'a', legende: 'Tableau' }] },
+      { lot: 'Peinture', photos: [] },
+    ],
+    taches_suivi: [
+      { num: 1, lot: 'Électricité', titre: 'Poser le tableau', suivi: 'relance', rappels: 2, priorite: 'Urgent', echeance: '2026-09-20',
+        photos: Array.from({ length: 7 }, (_, i) => ({ path: i % 2 ? 'a' : 'absente', legende: `vue ${i}` })) },
+      { num: 2, lot: 'Lot inconnu', titre: 'Point hors section', suivi: 'nouveau', priorite: 'En cours' },
+    ],
+  }
+  const out = await generateCRPdf(cr, chantier, { returnBase64: true, images: { a: photo } })
+  expect(pages(out.base64)).toBeGreaterThanOrEqual(2)
+  // Un point dont le lot n'a pas de section est quand même imprimé
+  const pdfText = Buffer.from(out.base64.split(',')[1], 'base64').toString('latin1')
+  expect(pdfText).toContain('Point hors section')
+  expect(pdfText).toContain('LOT INCONNU')
+})
+
 it('ancien CR (sans convocation ni actions)', async () => {
   const out = await generateCRPdf({ numero: 1, date: '2025-01-10', resume: 'RAS', participants: 'Martin, Durand' }, chantier, { returnBase64: true })
   expect(pages(out.base64)).toBe(2)

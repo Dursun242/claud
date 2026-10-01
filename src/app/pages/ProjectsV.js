@@ -20,7 +20,9 @@ import { useConfirm } from '../contexts/ConfirmContext'
 import { computeChantierFinances } from '../lib/chantierFinances'
 import { parseNewIntent } from '../lib/navIntent'
 import { useSaveTask } from '../hooks/useSaveTask'
-import CRFormModal from '../components/cr/CRFormModal'
+import CREditor from '../components/cr/CREditor'
+import { markDiffused } from '../lib/crDb'
+import { loadCrImages } from '../lib/crPhotos'
 import CRSendModal from '../components/cr/CRSendModal'
 
 // Style doux pour les boutons d'action dans la vue détail (PDF/XLS/etc.)
@@ -127,7 +129,7 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
     const ch = selectedChantier;
     const chTasks = (data.tasks || []).filter(t => (t.chantierId || t.chantier_id) === ch.id);
     const chOS = (data.ordresService || []).filter(o => o.chantier_id === ch.id);
-    const chCR = (data.compteRendus || []).filter(c => (c.chantierId || c.chantier_id) === ch.id);
+    const chCR = (data.compteRendus || []).filter(c => (c.chantierId || c.chantier_id) === ch.id && !(readOnly && c.statut === 'Brouillon'));
     const chPlanning = (data.planning || []).filter(p => (p.chantierId || p.chantier_id) === ch.id);
     const artisanNames = [...new Set(chOS.map(o => o.artisan_nom).filter(Boolean))];
     const contactMap = new Map((data.contacts || []).map(c => [c.nom, c]));
@@ -162,7 +164,7 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
     const finances = computeChantierFinances(ch.budget, chOS);
 
     return { chTasks, chOS, chCR, chPlanning, intervenants, clientContact, finances };
-  }, [selectedChantier, data.tasks, data.ordresService, data.compteRendus, data.planning, data.contacts, data.contactChantiers]);
+  }, [selectedChantier, data.tasks, data.ordresService, data.compteRendus, data.planning, data.contacts, data.contactChantiers, readOnly]);
 
   const chantiersFiltered = useMemo(() => {
     const search = q.toLowerCase().trim();
@@ -487,13 +489,14 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
                     padding:"2px 8px",fontSize:11,fontWeight:700,whiteSpace:"nowrap"
                   }}>CR n°{cr.numero}</span>
                   <span style={{fontSize:11,color:"#64748B"}}>{fmtDate(cr.date)}</span>
+                  {cr.statut === 'Brouillon' && <span style={{fontSize:10,fontWeight:700,color:"#92400E",background:"#FEF3C7",borderRadius:5,padding:"1px 6px"}}>Brouillon</span>}
                 </div>
                 <div style={{fontSize:12,color:"#334155",lineHeight:1.5}}>
                   {(cr.resume||"").substring(0,100)}{(cr.resume||"").length>100?"...":""}
                 </div>
               </div>
               <div style={{display:"flex",gap:4,flexShrink:0,flexWrap:"wrap",justifyContent:m?"flex-start":"flex-end"}}>
-                <button onClick={()=>generateCRPdf(cr,ch)} title="PDF"
+                <button onClick={async()=>generateCRPdf(cr,ch,{ images: await loadCrImages(cr) })} title="PDF"
                   style={detailBtn("#DC2626","#FEF2F2","#FECACA")}>📄 PDF</button>
                 <button onClick={()=>generateCRExcel(cr,ch)} title="Excel"
                   style={detailBtn("#047857","#ECFDF5","#A7F3D0")}>📊 XLS</button>
@@ -671,10 +674,11 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
         </div>
       </Modal>
 
-      <CRFormModal open={!!crModal} initial={crModal?.initial} data={data} m={m} lockChantier
+      <CREditor open={!!crModal} initial={crModal?.initial} data={data} m={m} lockChantier
         onClose={()=>setCrModal(null)}
         onSaved={async (cr, { send }) => { setCrModal(null); await reload(); if (send) setSendCr(cr); }} />
-      <CRSendModal cr={sendCr} chantier={ch} onClose={()=>setSendCr(null)} />
+      <CRSendModal cr={sendCr} chantier={ch} onClose={()=>setSendCr(null)}
+        onSent={async (cr) => { if (cr?.id && cr.statut !== 'Diffusé') { await markDiffused(cr.id); reload(); } }} />
 
       <Modal
         open={detailModal==="newTask"||detailModal==="editTask"}

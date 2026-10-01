@@ -2,9 +2,10 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { SB, fmtDate, btnP } from '../dashboards/shared'
 import { EmptyState } from '../components'
-import CRFormModal from '../components/cr/CRFormModal'
+import CREditor from '../components/cr/CREditor'
 import CRSendModal from '../components/cr/CRSendModal'
-import { crTaskStats } from '../lib/crSuivi'
+import { crTaskStats, globalProgress } from '../lib/crSuivi'
+import { markDiffused } from '../lib/crDb'
 import { useToast } from '../contexts/ToastContext'
 import { useConfirm } from '../contexts/ConfirmContext'
 import { useUndoableDelete } from '../hooks/useUndoableDelete'
@@ -45,7 +46,11 @@ export default function ReportsV({ data, save: _save, m, reload, focusId, focusT
   const handlePdf = async (cr, ch) => {
     if (generating) return
     setGenerating({ id: cr.id, kind: 'pdf' })
-    try { const { generateCRPdf } = await import('../generators'); await generateCRPdf(cr, ch); addToast(`PDF CR n°${cr.numero} généré`, 'success') }
+    try {
+      const [{ generateCRPdf }, { loadCrImages }] = await Promise.all([import('../generators'), import('../lib/crPhotos')])
+      await generateCRPdf(cr, ch, { images: await loadCrImages(cr) })
+      addToast(`PDF CR n°${cr.numero} généré`, 'success')
+    }
     catch (err) { addToast('Erreur PDF : ' + (err?.message || 'génération impossible'), 'error') }
     finally { setGenerating(null) }
   }
@@ -114,7 +119,8 @@ export default function ReportsV({ data, save: _save, m, reload, focusId, focusT
   // Exclut les CR en cours de suppression (fenêtre d'undo ouverte).
   const filteredSortedCRs = useMemo(() => {
     const s = searchCR.toLowerCase().trim()
-    let list = (data.compteRendus || []).filter(cr => !pendingDeleteIds.has(cr.id))
+    // Le maître d'ouvrage ne voit pas les brouillons (filtré aussi par la RLS, migration 033)
+    let list = (data.compteRendus || []).filter(cr => !pendingDeleteIds.has(cr.id) && !(readOnly && cr.statut === 'Brouillon'))
     if (chantierFilter) list = list.filter(cr => (cr.chantierId || cr.chantier_id) === chantierFilter)
     if (s) {
       list = list.filter(cr => {
@@ -130,7 +136,7 @@ export default function ReportsV({ data, save: _save, m, reload, focusId, focusT
       })
     }
     return [...list].sort((a, b) => new Date(b.date) - new Date(a.date))
-  }, [searchCR, chantierFilter, data.compteRendus, data.chantiers, pendingDeleteIds])
+  }, [searchCR, chantierFilter, data.compteRendus, data.chantiers, pendingDeleteIds, readOnly])
 
   const hasFilters = !!(searchCR || chantierFilter)
   const total = (data.compteRendus || []).length
@@ -231,6 +237,9 @@ export default function ReportsV({ data, save: _save, m, reload, focusId, focusT
                 }}>CR n°{cr.numero}</span>
                 <span style={{fontWeight:700,fontSize:14,color:"#0F172A"}}>{ch?.nom || "—"}</span>
                 <span style={{fontSize:11,color:"#64748B"}}>{fmtDate(cr.date)}</span>
+                {cr.statut === 'Brouillon' && (
+                  <span style={{fontSize:10,fontWeight:700,color:"#92400E",background:"#FEF3C7",borderRadius:5,padding:"2px 7px"}}>Brouillon — non diffusé</span>
+                )}
               </div>
               <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
                 <button onClick={()=>handlePdf(cr,ch)} disabled={!!generating} title="Télécharger le PDF"
@@ -269,7 +278,7 @@ export default function ReportsV({ data, save: _save, m, reload, focusId, focusT
                 </button>
                 {!readOnly && (
                   <button onClick={()=>setSendCr(cr)} title="Envoyer le CR et la convocation par mail"
-                    style={crBtn("#1E3A5F","#F1F5F9","#CBD5E1")}>✉ Envoyer</button>
+                    style={crBtn("#1E3A5F","#F1F5F9","#CBD5E1")}>✉ {cr.statut === 'Brouillon' ? 'Diffuser' : 'Renvoyer'}</button>
                 )}
                 {!readOnly && (
                   <button onClick={()=>openEdit(cr)} title="Modifier"
@@ -301,9 +310,10 @@ export default function ReportsV({ data, save: _save, m, reload, focusId, focusT
       })
     )}
 
-    <CRFormModal open={!!modal} initial={modal?.initial} data={data} m={m}
+    <CREditor open={!!modal} initial={modal?.initial} data={data} m={m}
       onClose={closeModal} onSaved={handleSaved} />
-    <CRSendModal cr={sendCr} chantier={chantierOf(sendCr)} onClose={() => setSendCr(null)} />
+    <CRSendModal cr={sendCr} chantier={chantierOf(sendCr)} onClose={() => setSendCr(null)}
+      onSent={async (cr) => { if (cr?.id && cr.statut !== 'Diffusé') { await markDiffused(cr.id); reload() } }} />
   </div>)
 }
 
@@ -311,16 +321,18 @@ export default function ReportsV({ data, save: _save, m, reload, focusId, focusT
 function CRCardSummary({ cr }) {
   const st = crTaskStats(cr.taches_suivi)
   const next = cr.prochaine_reunion
-  if (!st.total && !next?.date) return null
+  const progress = globalProgress(cr.sections || [])
+  if (!st.total && !next?.date && progress == null) return null
   const chip = (text, color, bg) => (
     <span style={{ fontSize: 10, fontWeight: 700, color, background: bg, borderRadius: 5, padding: "2px 7px" }}>{text}</span>
   )
   return (
     <div style={{ display: "flex", gap: 5, flexWrap: "wrap", alignItems: "center", marginBottom: 8 }}>
-      {st.nouveau > 0 && chip(`${st.nouveau} nouvelle${st.nouveau > 1 ? "s" : ""}`, "#7C3AED", "#F5F3FF")}
-      {st.fait > 0 && chip(`${st.fait} soldée${st.fait > 1 ? "s" : ""}`, "#047857", "#ECFDF5")}
+      {st.nouveau > 0 && chip(`${st.nouveau} nouveau${st.nouveau > 1 ? "x" : ""}`, "#7C3AED", "#F5F3FF")}
+      {st.fait > 0 && chip(`${st.fait} soldé${st.fait > 1 ? "s" : ""}`, "#047857", "#ECFDF5")}
       {st.en_cours > 0 && chip(`${st.en_cours} en cours`, "#1D4ED8", "#EFF6FF")}
-      {st.relance > 0 && chip(`🔔 ${st.relance} relancée${st.relance > 1 ? "s" : ""}`, "#B91C1C", "#FEF2F2")}
+      {st.relance > 0 && chip(`🔔 ${st.relance} relancé${st.relance > 1 ? "s" : ""}`, "#B91C1C", "#FEF2F2")}
+      {progress != null && chip(`Avancement ${progress} %`, "#0F172A", "#F1F5F9")}
       {next?.date && chip(`Prochaine réunion : ${fmtDate(next.date)}${next.heure ? ` ${String(next.heure).slice(0, 5)}` : ""}`, "#1E3A5F", "#F1F5F9")}
     </div>
   )

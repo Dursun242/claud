@@ -1,7 +1,7 @@
 'use client'
 import { LOGO_B64 } from './logo'
 import { COMPANY as ENT, SB } from './dashboards/shared'
-import { crTaskStats, daysLate, fmtLongDate, isoWeek, priorityLabel } from './lib/crSuivi'
+import { crTaskStats, daysLate, fmtLongDate, isoWeek, priorityLabel, globalProgress, lotOf, lotKey, GENERAL } from './lib/crSuivi'
 
 // Lazy-load jsPDF + plugin autotable : évite de charger ~180 KB au démarrage
 // de l'app. La promesse est mise en cache pour éviter les imports répétés.
@@ -729,13 +729,15 @@ export async function generateDevisPdf(devis, opts = {}) {
 //
 // Page 1 — page de garde : n° du CR, date et semaine de la réunion,
 // opération (chantier, MOA, MOE), convocation à la prochaine réunion,
-// intervenants avec présence et convocation, bilan des actions.
-// Pages suivantes : résumé, suivi des actions (relances en rouge, soldées en
-// vert, nouvelles en bleu), décisions, diffusion. En-tête et « Page x / n »
-// sur chaque page.
+// intervenants avec présence et convocation, bilan (avancement, points).
+// Pages suivantes : synthèse, avancement par lot (réel / prévu / écart),
+// puis une section par lot (Généralités d'abord) : observations, tableau
+// des points (relances en rouge, soldés en vert, nouveaux en bleu), photos.
+// Décisions, prochaine réunion. En-tête et « Page x / n » sur chaque page.
 //
-// opts.returnBase64 : renvoie { base64, filename } au lieu de télécharger
-// (envoi par mail).
+// opts.images        : { [path]: dataUrl } photos à imprimer (lib/crPhotos.loadCrImages)
+// opts.returnBase64  : renvoie { base64, filename } au lieu de télécharger (mail)
+// opts.preview       : ouvre le PDF dans un nouvel onglet (aperçu)
 const PRESENCE_COLORS = { 'Présent': [4, 120, 87], 'Absent': [185, 28, 28], 'Excusé': [180, 83, 9] }
 const SUIVI_PDF = { relance: 'RELANCE', en_cours: 'En cours', fait: 'FAIT', nouveau: 'NOUVEAU' }
 
@@ -750,6 +752,8 @@ export async function generateCRPdf(cr, chantier, opts = {}) {
   const next = cr.prochaine_reunion?.date ? cr.prochaine_reunion : null
   const suivi = Array.isArray(cr.taches_suivi) ? cr.taches_suivi : []
   const stats = crTaskStats(suivi)
+  const images = opts.images || {}
+  const progress = globalProgress(cr.sections || [])
   const crIntervenants = cr.intervenants || []
   const withPresence = crIntervenants.some(it => it.presence || it.convoque !== undefined)
 
@@ -871,16 +875,17 @@ export async function generateCRPdf(cr, chantier, opts = {}) {
     doc.text(pLines, margin, y); y += pLines.length * 3.8 + 3
   }
 
-  // Bilan des actions
-  if (stats.total > 0) {
+  // Bilan des points
+  if (stats.total > 0 || progress != null) {
     if (y > h - 45) { doc.addPage(); y = 26 }
     y += 2
     const items = [
-      ["Actions suivies", stats.total, NOIR],
-      ["Nouvelles", stats.nouveau, BLEU_CLAIR],
-      ["Soldées", stats.fait, [4, 120, 87]],
-      ["Relancées", stats.relance, [185, 28, 28]],
-      ["Urgentes", stats.urgent, [185, 28, 28]],
+      ...(progress != null ? [["Avancement", `${progress} %`, BLEU]] : []),
+      ["Points suivis", stats.total, NOIR],
+      ["Nouveaux", stats.nouveau, BLEU_CLAIR],
+      ["Soldés", stats.fait, [4, 120, 87]],
+      ["Relancés", stats.relance, [185, 28, 28]],
+      ["Urgents", stats.urgent, [185, 28, 28]],
     ]
     const cw = usable / items.length
     items.forEach(([label, n, color], i) => {
@@ -933,17 +938,57 @@ export async function generateCRPdf(cr, chantier, opts = {}) {
     }
   }
 
-  title("RÉSUMÉ DES ÉCHANGES")
-  textBlock(cr.resume)
+  // Sections : celles du CR (par lot) ou, pour un ancien CR, regroupement
+  // des points par lot.
+  const crSections = [...(Array.isArray(cr.sections) ? cr.sections : [])]
+  for (const lot of [GENERAL, ...suivi.map(r => lotOf(r))]) {
+    if (!crSections.some(x => lotKey(x.lot) === lotKey(lot))) {
+      const sec = { lot, observations: '', photos: [] }
+      if (lotKey(lot) === lotKey(GENERAL)) crSections.unshift(sec); else crSections.push(sec)
+    }
+  }
+  const pointsOf = (lot) => suivi.filter(r => lotKey(lotOf(r)) === lotKey(lot))
+  const imageOf = (p) => p?.dataUrl || (p?.path && images[p.path]) || null
 
-  if (suivi.length > 0) {
-    title("SUIVI DES ACTIONS")
-    const body = suivi.map((r, i) => {
+  const photoGrid = (photos) => {
+    const list = photos.filter(p => imageOf(p.photo || p))
+    if (!list.length) return
+    const gap = 5
+    const perRow = 3
+    const cw = (usable - gap * (perRow - 1)) / perRow
+    const ch = cw * 0.75
+    for (let i = 0; i < list.length; i += perRow) {
+      if (y + ch + 10 > h - 22) { doc.addPage(); y = 28 }
+      for (let j = 0; j < perRow && i + j < list.length; j++) {
+        const item = list[i + j]
+        const photo = item.photo || item
+        const src = imageOf(photo)
+        const x = margin + j * (cw + gap)
+        doc.setFillColor(...GRIS_CLAIR); doc.rect(x, y, cw, ch, 'F')
+        try {
+          const props = doc.getImageProperties(src)
+          const ratio = Math.min(cw / props.width, ch / props.height)
+          const iw = props.width * ratio, ih = props.height * ratio
+          doc.addImage(src, props.fileType || 'JPEG', x + (cw - iw) / 2, y + (ch - ih) / 2, iw, ih)
+        } catch (e) { /* image illisible */ }
+        const caption = [item.num ? `Point n°${item.num}` : '', photo.legende].filter(Boolean).join(' — ')
+        if (caption) {
+          doc.setFontSize(7); doc.setFont("helvetica", "italic"); doc.setTextColor(...GRIS)
+          doc.text(doc.splitTextToSize(sanitize(caption), cw)[0], x, y + ch + 3.5)
+          doc.setFont("helvetica", "normal")
+        }
+      }
+      y += ch + 7
+    }
+  }
+
+  const pointsTable = (rows) => {
+    const body = rows.map(r => {
       const late = r.suivi === 'relance' ? daysLate(r.echeance, cr.date) : 0
-      const origine = r.origine && Number(r.origine) !== Number(cr.numero) ? `\n(issue du CR n°${r.origine})` : ''
+      const origine = r.origine && Number(r.origine) !== Number(cr.numero) ? `\n(depuis le CR n°${r.origine})` : ''
       const etat = r.suivi === 'relance' && r.rappels > 1 ? `RELANCE n°${r.rappels}` : (SUIVI_PDF[r.suivi] || r.suivi || '—')
       return [
-        String(i + 1),
+        r.num ? String(r.num) : '—',
         sanitize(`${r.titre || '—'}${origine}`),
         sanitize(r.entreprise || '—'),
         `${r.echeance ? fmtD(r.echeance) : '—'}${late ? `\nretard ${late} j` : ''}`,
@@ -953,15 +998,15 @@ export async function generateCRPdf(cr, chantier, opts = {}) {
     })
     autoTable(doc, {
       startY: y,
-      head: [["N°", "Action", "Entreprise", "Échéance", "Priorité", "État"]],
+      head: [["N°", "Point", "Entreprise", "Échéance", "Priorité", "État"]],
       body,
       margin: { left: margin, right: margin, top: 28, bottom: 20 },
-      headStyles: { fillColor: BLEU, textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 7.5 },
+      headStyles: { fillColor: [71, 85, 105], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 7.5 },
       bodyStyles: { fontSize: 7.5, textColor: NOIR, valign: 'middle' },
       columnStyles: {
-        0: { cellWidth: usable * 0.06, halign: 'center' },
+        0: { cellWidth: usable * 0.07, halign: 'center', fontStyle: 'bold' },
         1: { cellWidth: usable * 0.38 },
-        2: { cellWidth: usable * 0.2 },
+        2: { cellWidth: usable * 0.19 },
         3: { cellWidth: usable * 0.13, halign: 'center' },
         4: { cellWidth: usable * 0.1, halign: 'center' },
         5: { cellWidth: usable * 0.13, halign: 'center', fontStyle: 'bold' },
@@ -969,7 +1014,7 @@ export async function generateCRPdf(cr, chantier, opts = {}) {
       styles: { lineWidth: 0.2, lineColor: [226, 232, 240], cellPadding: 1.8 },
       didParseCell: (d) => {
         if (d.section !== 'body') return
-        const r = suivi[d.row.index]
+        const r = rows[d.row.index]
         if (r?.suivi === 'relance') d.cell.styles.fillColor = [254, 242, 242]
         else if (r?.suivi === 'fait') d.cell.styles.fillColor = [236, 253, 245]
         if (d.column.index === 5) {
@@ -980,10 +1025,75 @@ export async function generateCRPdf(cr, chantier, opts = {}) {
         if (d.column.index === 3 && String(d.cell.raw).includes('retard')) d.cell.styles.textColor = [185, 28, 28]
       },
     })
-    y = doc.lastAutoTable.finalY + 3
+    y = doc.lastAutoTable.finalY + 5
+  }
+
+  if (cr.resume) {
+    title("SYNTHÈSE DE LA RÉUNION")
+    textBlock(cr.resume)
+  }
+
+  // Avancement par lot
+  const avRows = crSections.filter(s => lotKey(s.lot) !== lotKey(GENERAL) && (s.avancement != null || s.prevu != null))
+  if (avRows.length) {
+    title("AVANCEMENT PAR LOT")
+    autoTable(doc, {
+      startY: y,
+      head: [["Lot", "Entreprise", "CR précédent", "Avancement", "Prévu", "Écart"]],
+      body: avRows.map(s => {
+        const ecart = s.avancement != null && s.prevu != null ? s.avancement - s.prevu : null
+        return [
+          sanitize(s.lot), sanitize(s.entreprise || '—'),
+          s.avancement_prec != null ? `${s.avancement_prec} %` : '—',
+          s.avancement != null ? `${s.avancement} %` : '—',
+          s.prevu != null ? `${s.prevu} %` : '—',
+          ecart == null ? '—' : `${ecart > 0 ? '+' : ''}${ecart} pts`,
+        ]
+      }),
+      margin: { left: margin, right: margin, top: 28, bottom: 20 },
+      headStyles: { fillColor: BLEU, textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 7.5 },
+      bodyStyles: { fontSize: 7.5, textColor: NOIR },
+      columnStyles: { 0: { fontStyle: 'bold' }, 2: { halign: 'center' }, 3: { halign: 'center', fontStyle: 'bold' }, 4: { halign: 'center' }, 5: { halign: 'center' } },
+      alternateRowStyles: { fillColor: GRIS_CLAIR },
+      styles: { lineWidth: 0.2, lineColor: [226, 232, 240], cellPadding: 1.8 },
+      didParseCell: (d) => {
+        if (d.section === 'body' && d.column.index === 5 && d.cell.raw !== '—') {
+          d.cell.styles.textColor = String(d.cell.raw).startsWith('-') ? [185, 28, 28] : [4, 120, 87]
+        }
+      },
+    })
+    y = doc.lastAutoTable.finalY + 7
+  }
+
+  // Une section par lot (Généralités d'abord)
+  for (const s of crSections) {
+    const rows = pointsOf(s.lot)
+    const photos = [
+      ...(s.photos || []),
+      ...rows.flatMap(r => (r.photos || []).map(photo => ({ photo, num: r.num }))),
+    ]
+    if (!rows.length && !s.observations && !photos.some(p => imageOf(p.photo || p))) continue
+    if (y > h - 50) { doc.addPage(); y = 28 }
+    section += 1
+    doc.setFillColor(...BLEU); doc.rect(margin, y - 4.5, usable, 7.5, 'F')
+    doc.setFontSize(9.5); doc.setFont("helvetica", "bold"); doc.setTextColor(255, 255, 255)
+    doc.text(sanitize(`${section}. ${String(s.lot).toUpperCase()}`), margin + 3, y)
+    const right = [s.entreprise, s.avancement != null ? `avancement ${s.avancement} %` : ''].filter(Boolean).join('  |  ')
+    if (right) {
+      doc.setFontSize(8); doc.setFont("helvetica", "normal")
+      doc.text(sanitize(right), w - margin - 3, y, { align: "right" })
+    }
+    y += 7
+    if (s.observations) textBlock(s.observations)
+    if (rows.length) pointsTable(rows)
+    photoGrid(photos)
+    y += 2
+  }
+  if (suivi.length > 0) {
     doc.setFontSize(7); doc.setFont("helvetica", "italic"); doc.setTextColor(...GRIS)
-    const legend = doc.splitTextToSize("Toute action non réalisée à son échéance est relancée au compte rendu suivant et sa priorité est relevée d'un niveau.", usable)
-    doc.text(legend, margin, y + 2); y += legend.length * 3.2 + 6
+    if (y > h - 30) { doc.addPage(); y = 28 }
+    const legend = doc.splitTextToSize("Les points gardent leur numéro d'un compte rendu à l'autre. Tout point non réalisé à son échéance est relancé au compte rendu suivant et sa priorité est relevée d'un niveau.", usable)
+    doc.text(legend, margin, y); y += legend.length * 3.2 + 6
     doc.setFont("helvetica", "normal")
   }
 
@@ -1021,6 +1131,10 @@ export async function generateCRPdf(cr, chantier, opts = {}) {
   SB.log('generate_pdf', 'cr', cr.id || null,
     `CR n°${cr.numero || 'X'}`, { format: 'pdf', chantier_id: chantier?.id || null })
   if (opts.returnBase64) return { base64: doc.output('datauristring'), filename }
+  if (opts.preview && typeof window !== 'undefined') {
+    const url = doc.output('bloburl')
+    if (window.open(url, '_blank')) return { filename }
+  }
   doc.save(filename)
   return { filename }
 }
@@ -1108,11 +1222,20 @@ export function generateCRExcel(cr, chantier) {
   const q = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`
   const suivi = Array.isArray(cr.taches_suivi) ? cr.taches_suivi : []
   if (suivi.length > 0) {
-    csv += `SUIVI DES ACTIONS\n`
-    csv += `N°;Action;Entreprise;Échéance;Priorité;État;Rappels;CR d'origine\n`
-    suivi.forEach((r, idx) => {
-      csv += [idx + 1, q(r.titre), q(r.entreprise), fmtD(r.echeance), priorityLabel(r.priorite),
+    csv += `SUIVI DES POINTS\n`
+    csv += `N°;Lot;Point;Entreprise;Échéance;Priorité;État;Rappels;CR d'origine\n`
+    suivi.forEach((r) => {
+      csv += [r.num || "", q(lotOf(r)), q(r.titre), q(r.entreprise), fmtD(r.echeance), priorityLabel(r.priorite),
         SUIVI_PDF[r.suivi] || r.suivi || "", r.rappels || 0, r.origine || ""].join(";") + "\n"
+    })
+    csv += `\n`
+  }
+  const lotsCr = (cr.sections || []).filter(x => x.avancement != null || x.observations)
+  if (lotsCr.length > 0) {
+    csv += `LOTS\n`
+    csv += `Lot;Entreprise;Avancement;Prévu;Observations\n`
+    lotsCr.forEach(x => {
+      csv += [q(x.lot), q(x.entreprise), x.avancement ?? "", x.prevu ?? "", q(x.observations)].join(";") + "\n"
     })
     csv += `\n`
   }

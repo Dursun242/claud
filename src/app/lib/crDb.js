@@ -1,8 +1,8 @@
 /**
  * Enregistrement d'un compte rendu avec ses actions (migration 033).
  *
- * Ordre : réunion suivante dans l'agenda (table rdv) → CR (avec la photo
- * des actions) → tâches créées / mises à jour. Les identifiants sont
+ * Ordre : photos locales déposées → réunion suivante dans l'agenda (table
+ * rdv) → CR (sections par lot + photo des points) → tâches créées / mises à jour. Les identifiants sont
  * générés ici pour que la photo du CR et les tâches se référencent sans
  * seconde écriture du CR (qui déclencherait une notification « CR modifié »).
  *
@@ -11,9 +11,10 @@
  */
 import { supabase as defaultClient } from '../supabaseClient'
 import { writeActivityLog } from './activityLog'
-import { planCrTasks } from './crSuivi'
+import { planCrTasks, sectionsForDb } from './crSuivi'
+import { uploadPhoto } from './crPhotos'
 
-const TASK_033 = ['entreprise', 'cr_origine_id', 'cr_origine_numero', 'nb_rappels', 'dernier_rappel_cr_id']
+const TASK_033 = ['entreprise', 'num_point', 'photos', 'cr_origine_id', 'cr_origine_numero', 'nb_rappels', 'dernier_rappel_cr_id']
 
 export const isMissingColumn = (err) => !!err && (err.code === 'PGRST204' || err.code === '42703'
   || /column .*(does not exist|schema cache)/i.test(err.message || ''))
@@ -54,21 +55,50 @@ async function syncNextMeeting(sb, { next, prevNext, chantierId, numero, interve
   }
 }
 
+/** Dépose les photos encore locales (points et sections). Jamais bloquant. */
+async function uploadPending({ rows, sections, chantierId, upload }) {
+  const failures = []
+  const cache = new Map()
+  const up = async (list = []) => Promise.all((list || []).map(async (p) => {
+    if (!p || p.path || !p.dataUrl) return p
+    try {
+      if (!cache.has(p.dataUrl)) cache.set(p.dataUrl, upload(p.dataUrl, chantierId))
+      return { path: await cache.get(p.dataUrl), legende: p.legende || '' }
+    } catch (e) {
+      failures.push(e?.message || 'photo non envoyée')
+      return p
+    }
+  }))
+  const outRows = []
+  for (const r of rows) outRows.push(r.photos?.length ? { ...r, photos: await up(r.photos) } : r)
+  const outSections = []
+  for (const s of sections) outSections.push(s.photos?.length ? { ...s, photos: await up(s.photos) } : s)
+  return { rows: outRows, sections: outSections, failures }
+}
+
 /**
  * @param {object} p
  * @param {object} p.form   CR saisi (id si modification, chantierId, date, numero,
- *                          resume, participants, decisions, intervenants, prochaine_reunion)
- * @param {Array}  p.rows   actions (lib/crSuivi.initialRows / newRow)
+ *                          resume, participants, decisions, intervenants,
+ *                          prochaine_reunion, statut)
+ * @param {Array}  p.rows      points (lib/crSuivi.initialRows / newRow)
+ * @param {Array}  p.sections  sections par lot (lib/crSuivi.buildSections)
+ * @param {number} [p.nextNum] numéro du prochain point du chantier
  * @param {object} [p.previousNext] prochaine_reunion enregistrée avant modification
- * @returns {Promise<{cr, snapshot, migrationMissing, failures: string[]}>}
+ * @returns {Promise<{cr, snapshot, migrationMissing, failures: string[], photoFailures: string[], rows, sections}>}
  */
-export async function saveCr({ form, rows = [], previousNext = null, sb = defaultClient, newId = uuid }) {
+export async function saveCr({
+  form, rows = [], sections = [], nextNum = 1, previousNext = null,
+  sb = defaultClient, newId = uuid, upload = uploadPhoto,
+}) {
   const isNew = !(form.id && String(form.id).length > 10)
   const crId = isNew ? newId() : form.id
   const chantierId = form.chantierId || form.chantier_id || null
   const numero = Number(form.numero) || 1
   const intervenants = form.intervenants || []
-  const plan = planCrTasks({ rows, crId, crNumero: numero, chantierId, newId })
+
+  const uploaded = await uploadPending({ rows, sections, chantierId, upload })
+  const plan = planCrTasks({ rows: uploaded.rows, crId, crNumero: numero, chantierId, newId, nextNum })
 
   const next = form.prochaine_reunion?.date ? {
     date: form.prochaine_reunion.date,
@@ -83,7 +113,10 @@ export async function saveCr({ form, rows = [], previousNext = null, sb = defaul
     resume: form.resume || '', participants: form.participants || '', decisions: form.decisions || '',
     intervenants,
   }
-  const full = { ...base, prochaine_reunion: next, taches_suivi: plan.snapshot }
+  const full = {
+    ...base, prochaine_reunion: next, taches_suivi: plan.snapshot,
+    sections: sectionsForDb(uploaded.sections), statut: form.statut === 'Diffusé' ? 'Diffusé' : 'Brouillon',
+  }
   const write = (row) => (isNew
     ? sb.from('compte_rendus').insert({ id: crId, ...row }).select().single()
     : sb.from('compte_rendus').update(row).eq('id', crId).select().single())
@@ -99,10 +132,14 @@ export async function saveCr({ form, rows = [], previousNext = null, sb = defaul
 
   const failures = []
   const run = async (label, exec, payload) => {
-    let res = await exec(migrationMissing ? without(payload, TASK_033) : payload)
+    let row = migrationMissing ? without(payload, TASK_033) : payload
+    if (!Object.keys(row).length) return
+    let res = await exec(row)
     if (res.error && !migrationMissing && isMissingColumn(res.error)) {
       migrationMissing = true
-      res = await exec(without(payload, TASK_033))
+      row = without(payload, TASK_033)
+      if (!Object.keys(row).length) return
+      res = await exec(row)
     }
     if (res.error) failures.push(`${label} : ${res.error.message}`)
   }
@@ -121,9 +158,28 @@ export async function saveCr({ form, rows = [], previousNext = null, sb = defaul
   }
 
   return {
-    cr: { ...data, chantierId: data.chantier_id, taches_suivi: data.taches_suivi || plan.snapshot },
+    cr: {
+      ...data, chantierId: data.chantier_id,
+      taches_suivi: data.taches_suivi || plan.snapshot,
+      sections: data.sections || sectionsForDb(uploaded.sections),
+      prochaine_reunion: data.prochaine_reunion !== undefined ? data.prochaine_reunion : next,
+    },
     snapshot: plan.snapshot,
     migrationMissing,
     failures,
+    photoFailures: uploaded.failures,
+    rows: uploaded.rows,
+    sections: uploaded.sections,
+  }
+}
+
+/** CR envoyé aux intervenants : statut « Diffusé ». Jamais bloquant. */
+export async function markDiffused(crId, sb = defaultClient) {
+  try {
+    const { error } = await sb.from('compte_rendus')
+      .update({ statut: 'Diffusé', diffuse_le: new Date().toISOString() }).eq('id', crId)
+    return !error
+  } catch {
+    return false
   }
 }

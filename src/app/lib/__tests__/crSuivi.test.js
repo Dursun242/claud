@@ -1,5 +1,7 @@
 import {
   nextCrNumero, previousCr, daysLate, initialRows, newRow, planCrTasks, effectivePriority,
+  nextPointNumber, plannedProgress, buildSections, globalProgress, sectionsForDb, aiContext, applyAiResult,
+  guessEntreprise, GENERAL, lotOf,
   escalatePriority, priorityLabel, crTaskStats, chantierIntervenants, carryIntervenants,
   actionsFor, crMailText, crMailSubject, defaultNextMeeting, defaultCrDate, isoWeek, fmtLongDate,
 } from '../crSuivi'
@@ -18,9 +20,9 @@ const crs = [
 ]
 
 const tasks = [
-  { id: 't-late', chantier_id: CH, titre: 'Reprise enduit', statut: 'En cours', priorite: 'En cours', echeance: '2026-09-25', entreprise: 'Martin Élec', nb_rappels: 1, cr_origine_numero: 1 },
-  { id: 't-ok', chantier_id: CH, titre: 'Pose tableau', statut: 'Planifié', priorite: 'En attente', echeance: '2026-10-10' },
-  { id: 't-done-since', chantier_id: CH, titre: 'Évacuation gravats', statut: 'Terminé', priorite: 'En cours' },
+  { id: 't-late', chantier_id: CH, titre: 'Reprise enduit', statut: 'En cours', priorite: 'En cours', echeance: '2026-09-25', entreprise: 'Martin Élec', nb_rappels: 1, cr_origine_numero: 1, num_point: 1, lot: 'Électricité' },
+  { id: 't-ok', chantier_id: CH, titre: 'Pose tableau', statut: 'Planifié', priorite: 'En attente', echeance: '2026-10-10', num_point: 2, lot: 'Électricité' },
+  { id: 't-done-since', chantier_id: CH, titre: 'Évacuation gravats', statut: 'Terminé', priorite: 'En cours', num_point: 3 },
   { id: 't-old', chantier_id: CH, titre: 'Vieux point', statut: 'Terminé' },
   { id: 't-other', chantier_id: 'autre', titre: 'Autre chantier', statut: 'En cours' },
 ]
@@ -142,12 +144,12 @@ describe('planCrTasks', () => {
       { ...newRow({ crDate: '2026-09-30' }), titre: ' Fournir PV essais ', entreprise: 'Durand Plomberie', priorite: 'Urgent' },
       newRow({ crDate: '2026-09-30' }),
     ]
-    const plan = planCrTasks({ rows, crId: 'cr-c', crNumero: 3, chantierId: CH, newId: () => 'id-1' })
+    const plan = planCrTasks({ rows, crId: 'cr-c', crNumero: 3, chantierId: CH, newId: () => 'id-1', nextNum: 4 })
     expect(plan.inserts).toEqual([expect.objectContaining({
-      id: 'id-1', chantier_id: CH, titre: 'Fournir PV essais', entreprise: 'Durand Plomberie',
+      id: 'id-1', chantier_id: CH, titre: 'Fournir PV essais', entreprise: 'Durand Plomberie', num_point: 4, lot: null,
       priorite: 'Urgent', statut: 'Planifié', cr_origine_id: 'cr-c', cr_origine_numero: 3, echeance: '2026-10-07',
     })])
-    expect(plan.snapshot).toEqual([expect.objectContaining({ id: 'id-1', suivi: 'nouveau', origine: 3 })])
+    expect(plan.snapshot).toEqual([expect.objectContaining({ id: 'id-1', num: 4, lot: GENERAL, suivi: 'nouveau', origine: 3 })])
   })
 
   it('modifications (échéance, entreprise) reportées sur la tâche', () => {
@@ -214,5 +216,96 @@ describe('mails', () => {
     const text = crMailText({ intro: 'Ci-joint.', cr, it: { nom: 'BET', convoque: false } })
     expect(text).not.toContain('convoqué')
     expect(text).not.toContain('Actions à votre charge')
+  })
+})
+
+describe('numéros de point', () => {
+  it('suivent le plus grand numéro du chantier', () => {
+    expect(nextPointNumber(tasks, CH)).toBe(4)
+    expect(nextPointNumber(tasks, 'vide')).toBe(1)
+  })
+  it('un point existant sans numéro en reçoit un, gardé ensuite', () => {
+    const old = { id: 'old', chantier_id: CH, titre: 'Ancien', statut: 'En cours', priorite: 'En cours', echeance: '2026-12-01' }
+    const rows = initialRows({ tasks: [old], chantierId: CH, crDate: '2026-09-30' })
+    const plan = planCrTasks({ rows, crId: 'cr-c', crNumero: 3, chantierId: CH, newId: () => 'x', nextNum: 7 })
+    expect(plan.updates).toEqual([{ id: 'old', patch: { num_point: 7 } }])
+    expect(plan.snapshot[0]).toMatchObject({ num: 7, lot: GENERAL })
+  })
+  it('changement de lot et photos reportés sur la tâche (photos locales ignorées)', () => {
+    const rows = initialRows({ tasks, chantierId: CH, crDate: '2026-09-30' }).map(r => (r.id === 't-ok'
+      ? { ...r, lot: 'Plomberie', photos: [{ path: 'chantier/x/1.jpg', legende: 'avant' }, { dataUrl: 'data:…' }] } : r))
+    const plan = planCrTasks({ rows, crId: 'cr-c', crNumero: 3, chantierId: CH, newId: () => 'x', nextNum: 9 })
+    expect(plan.updates.find(u => u.id === 't-ok').patch).toEqual({ lot: 'Plomberie', photos: [{ path: 'chantier/x/1.jpg', legende: 'avant' }] })
+  })
+})
+
+describe('sections par lot', () => {
+  const chantier = { id: CH, lots: ['Électricité', 'Plomberie'] }
+  const planning = [
+    { chantier_id: CH, lot: 'Électricité', tache: 'Câblage', debut: '2026-09-01', fin: '2026-10-31' },
+    { chantier_id: CH, lot: 'Plomberie', tache: 'Réseaux', debut: '2026-09-01', fin: '2026-09-10' },
+  ]
+  it('avancement prévu d’après le planning', () => {
+    expect(plannedProgress(planning, CH, 'électricité', '2026-09-30')).toBe(48)
+    expect(plannedProgress(planning, CH, 'Plomberie', '2026-09-30')).toBe(100)
+    expect(plannedProgress(planning, CH, 'Peinture', '2026-09-30')).toBeNull()
+  })
+  it('entreprise devinée d’après les OS', () => {
+    const os = [{ chantier_id: CH, artisan_nom: 'Martin', artisan_specialite: 'Électricité générale' }]
+    expect(guessEntreprise(os, CH, 'Électricité')).toBe('Martin')
+    expect(guessEntreprise(os, CH, 'electricite', [{ nom: 'Martin', societe: 'Martin Élec' }])).toBe('Martin Élec')
+    expect(guessEntreprise(os, CH, 'Plomberie')).toBe('')
+  })
+  it('Généralités, lots du chantier, du CR précédent et des points ; précédent repris', () => {
+    const previous = { sections: [{ lot: 'Électricité', entreprise: 'Martin Élec', avancement: 30 }, { lot: 'Menuiseries', avancement: 10 }] }
+    const rows = [{ lot: 'Peinture' }, { lot: '' }]
+    const secs = buildSections({ chantier, previous, rows, planning, crDate: '2026-09-30' })
+    expect(secs.map(s => s.lot)).toEqual([GENERAL, 'Électricité', 'Plomberie', 'Menuiseries', 'Peinture'])
+    expect(secs[1]).toMatchObject({ entreprise: 'Martin Élec', avancement: 30, avancement_prec: 30, prevu: 48 })
+    expect(secs[2]).toMatchObject({ avancement: null, prevu: 100 })
+  })
+  it('CR existant : ses sections', () => {
+    const cr = { id: 'c', sections: [{ lot: 'Gros œuvre', avancement: 80, observations: 'ok' }] }
+    const secs = buildSections({ chantier, cr, rows: [], crDate: '2026-09-30' })
+    expect(secs.map(s => s.lot)).toEqual([GENERAL, 'Gros œuvre'])
+    expect(secs[1].observations).toBe('ok')
+  })
+  it('avancement global et enregistrement', () => {
+    const secs = [{ key: 'generalites', lot: GENERAL }, { key: 'a', lot: 'A', avancement: 40 }, { key: 'b', lot: 'B', avancement: '' }, { key: 'c', lot: 'C', avancement: 81 }]
+    expect(globalProgress(secs)).toBe(61)
+    expect(sectionsForDb([{ key: 'a', lot: 'A', avancement: '120', photos: [{ dataUrl: 'x' }, { path: 'p', legende: 'l' }] }]))
+      .toEqual([{ lot: 'A', entreprise: '', avancement: 100, avancement_prec: null, prevu: null, observations: '', photos: [{ path: 'p', legende: 'l' }] }])
+  })
+})
+
+describe('dictée + IA', () => {
+  const sections = [
+    { key: 'generalites', lot: GENERAL, observations: '' },
+    { key: 'electricite', lot: 'Électricité', entreprise: 'Martin Élec', observations: 'Déjà noté.' },
+  ]
+  const rows = initialRows({ tasks, chantierId: CH, crDate: '2026-09-30' })
+  it('contexte envoyé : lots et points existants', () => {
+    const ctx = aiContext({ sections, rows })
+    expect(ctx.lots).toEqual([{ lot: GENERAL, entreprise: '' }, { lot: 'Électricité', entreprise: 'Martin Élec' }])
+    expect(ctx.points.map(p => p.id)).toEqual(['t-late', 't-ok'])
+  })
+  it('applique la proposition validée', () => {
+    const out = applyAiResult({ sections, rows, resume: 'Début.', decisions: '' }, {
+      resume: 'Bonne réunion.',
+      decisions: 'Carrelage validé.',
+      lots: [{ lot: 'electricite', observations: 'Tableau absent.', avancement: 25 }, { lot: 'Peinture', observations: 'Démarrage lundi.', avancement: null }],
+      points_existants: [{ id: 't-ok', etat: 'fait', echeance: null }, { id: 't-late', etat: 'relance', echeance: '2026-10-09' }],
+      nouveaux_points: [{ lot: 'Électricité', titre: 'Fournir le schéma', entreprise: '', echeance: '2026-10-07', priorite: 'Urgent' }],
+    }, { crDate: '2026-09-30' })
+    expect(out.resume).toBe('Début.\nBonne réunion.')
+    expect(out.decisions).toBe('Carrelage validé.')
+    const elec = out.sections.find(s => s.lot === 'Électricité')
+    expect(elec).toMatchObject({ observations: 'Déjà noté.\nTableau absent.', avancement: 25 })
+    expect(out.sections.map(s => s.lot)).toContain('Peinture')
+    expect(out.rows.find(r => r.id === 't-ok').suivi).toBe('fait')
+    expect(out.rows.find(r => r.id === 't-late')).toMatchObject({ suivi: 'relance', echeance: '2026-10-09' })
+    const added = out.rows.find(r => r.isNew)
+    expect(added).toMatchObject({ titre: 'Fournir le schéma', lot: 'Électricité', entreprise: 'Martin Élec', echeance: '2026-10-07', priorite: 'Urgent' })
+    expect(lotOf(added)).toBe('Électricité')
   })
 })

@@ -6,6 +6,7 @@ import { useToast } from '../../contexts/ToastContext'
 import { apiPost } from '../../lib/crmApi'
 import { parseEmails } from '../../lib/devisAi'
 import { COMPANY } from '../../lib/company'
+import { loadCrImages } from '../../lib/crPhotos'
 import { crMailSubject, crMailIntro, crMailText, actionsFor } from '../../lib/crSuivi'
 
 /**
@@ -13,7 +14,7 @@ import { crMailSubject, crMailIntro, crMailText, actionsFor } from '../../lib/cr
  * par destinataire avec la convocation et ses propres actions / relances.
  * Sans SMTP configuré : PDF téléchargé + mail pré-rempli.
  */
-export default function CRSendModal({ cr, chantier, onClose }) {
+export default function CRSendModal({ cr, chantier, onClose, onSent }) {
   const { addToast } = useToast()
   const [subject, setSubject] = useState('')
   const [intro, setIntro] = useState('')
@@ -48,13 +49,14 @@ export default function CRSendModal({ cr, chantier, onClose }) {
     setSending(true)
     try {
       const { generateCRPdf } = await import('../../generators')
-      const pdf = await generateCRPdf(cr, chantier, { returnBase64: true })
+      const pdf = await generateCRPdf(cr, chantier, { returnBase64: true, images: await loadCrImages(cr) })
       const messages = recipients.map(it => ({ to: it.email, text: crMailText({ intro, cr, it, company: COMPANY }) }))
       try {
         const res = await apiPost('/api/cr/send', { subject, messages, pdfBase64: pdf.base64, filename: pdf.filename })
         const failed = res.failed || []
         addToast(`CR n°${cr.numero} envoyé à ${res.sent.length} destinataire${res.sent.length > 1 ? 's' : ''}`
           + (failed.length ? ` — échec : ${failed.map(f => f.to).join(', ')}` : ''), failed.length ? 'warning' : 'success')
+        await onSent?.(cr)
         onClose()
       } catch (e) {
         if (e.code !== 'EMAIL_NOT_CONFIGURED') throw e
@@ -65,6 +67,7 @@ export default function CRSendModal({ cr, chantier, onClose }) {
         window.location.href = `mailto:?bcc=${encodeURIComponent(recipients.map(r => r.email).join(','))}`
           + `&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
         addToast('Envoi automatique non configuré : PDF téléchargé, joins-le au mail qui s’ouvre.', 'info')
+        await onSent?.(cr)
         onClose()
       }
     } catch (e) {
