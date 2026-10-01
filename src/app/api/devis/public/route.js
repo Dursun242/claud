@@ -15,7 +15,7 @@ import { createRateLimiter } from '@/app/lib/rateLimit'
 import { adminClient } from '@/app/lib/supabaseClients'
 import { isSignToken, decodeSignaturePng, stampSignature, sha256 } from '@/app/lib/devisSignature'
 import { notifyTeam, fmtEur } from '@/app/lib/devisNotify'
-import { planWorkForDevis, planSummary } from '@/app/lib/devisWon'
+import { planWorkForDevis, planSummary, closeDevisFollowUps } from '@/app/lib/devisWon'
 import { getQontoToken, pushQuoteStatus } from '@/app/lib/qontoServer'
 import { recordDevisEvent } from '@/app/lib/devisTracking'
 
@@ -172,6 +172,8 @@ export async function POST(request) {
         })
       }
     } catch (e) { log.warn('suivi affaire', e?.message || e) }
+    // Devis signé : plus de relance à faire sur cette affaire
+    await closeDevisFollowUps(admin, devis, { wholeOpp: true, log })
 
     // Travail planifié : chantier (créé si besoin) + tâche « Lancer les travaux »
     const plan = await planWorkForDevis(admin, devis, { how: 'signé', log })

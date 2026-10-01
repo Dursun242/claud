@@ -87,6 +87,8 @@ export async function upsertOpportunite(o, sb = defaultClient) {
       .update(row).eq('id', o.id).select().single()
     if (error) throw new Error('Erreur mise à jour opportunité : ' + error.message)
     log(sb, 'update', 'crm_opportunite', data.id, data.titre)
+    // Affaire gagnée / perdue : les relances en attente n'ont plus d'objet
+    if (isClosed(etape)) await closeFollowUps({ opportuniteId: data.id }, sb)
     return data
   }
   const { data: { user } = {} } = await sb.auth.getUser()
@@ -135,6 +137,24 @@ export async function upsertInteraction(i, sb = defaultClient) {
   if (error) throw new Error('Erreur création interaction : ' + error.message)
   log(sb, 'create', 'crm_interaction', data.id, data.sujet)
   return data
+}
+
+/**
+ * Solde les relances encore ouvertes devenues sans objet : celles de
+ * l'affaire (affaire gagnée / perdue) ou celles d'un devis précis (devis
+ * accepté / refusé). Jamais bloquant ; renvoie le nombre de relances soldées.
+ */
+export async function closeFollowUps({ opportuniteId, devisNumero = null }, sb = defaultClient) {
+  if (!opportuniteId) return 0
+  try {
+    let q = sb.from('crm_interactions').update({ action_faite: true })
+      .eq('opportunite_id', opportuniteId).eq('action_faite', false).not('prochaine_action_date', 'is', null)
+    if (devisNumero) q = q.ilike('sujet', `Devis ${devisNumero} %`)
+    const { data, error } = await q.select('id')
+    return error ? 0 : (data || []).length
+  } catch {
+    return 0
+  }
 }
 
 /** Coche / décoche la prochaine action d'une interaction. */
@@ -226,6 +246,10 @@ export async function setDevisStatut(devis, statut, sb = defaultClient) {
     .update(patch).eq('id', devis.id).select().single()
   if (error) throw new Error('Erreur mise à jour devis : ' + error.message)
   log(sb, 'update', 'crm_devis', devis.id, `Devis ${devis.numero} → ${statut}`)
+  // Réponse reçue : la relance « Relancer le devis » n'a plus d'objet
+  if ((statut === 'Accepté' || statut === 'Refusé') && devis.numero) {
+    await closeFollowUps({ opportuniteId: data.opportunite_id || devis.opportunite_id, devisNumero: devis.numero }, sb)
+  }
   return data
 }
 

@@ -113,15 +113,58 @@ export function pipelineStats(opps = [], today = new Date()) {
   }
 }
 
+// Statuts d'un devis qui rendent sa relance inutile (réponse reçue)
+const DEVIS_REPONDU = ['Accepté', 'Refusé']
+
+/** Numéro de devis cité par une interaction (« Devis 26-050 envoyé »…). */
+export function devisNumeroOf(sujet) {
+  const m = /^Devis\s+(\S+)\s+(envoy|renvoy)/i.exec(String(sujet || '').trim())
+  return m ? m[1] : null
+}
+
 /**
- * Relances : interactions non faites avec une prochaine_action_date.
+ * Relance devenue sans objet :
+ * - le devis qu'elle cite a reçu une réponse (accepté, refusé, signé) ;
+ * - ou l'affaire est close (gagnée / perdue) et la relance a été programmée
+ *   avant la clôture (une relance ajoutée après reste affichée).
+ * @param {object} it  interaction
+ * @param {{ oppsById?: Map, devisByNumero?: Map }} ctx
+ */
+export function isFollowUpObsolete(it, { oppsById, devisByNumero } = {}) {
+  const num = devisNumeroOf(it.sujet)
+  const d = num && devisByNumero?.get(num)
+  if (d && (DEVIS_REPONDU.includes(d.statut) || d.statut_signature === 'Signé')) return true
+  const o = it.opportunite_id && oppsById?.get(it.opportunite_id)
+  if (o && isClosed(o.etape)) {
+    const closedOn = o.date_cloture ? String(o.date_cloture).slice(0, 10) : null
+    const created = it.created_at || it.date
+    const createdOn = created ? String(created).slice(0, 10) : null
+    if (!closedOn || !createdOn || createdOn <= closedOn) return true
+  }
+  return false
+}
+
+/** Contexte de isFollowUpObsolete à partir des affaires et devis du CRM. */
+export function followUpContext({ opportunites = [], devis = [] } = {}) {
+  return {
+    oppsById: new Map(opportunites.map(o => [o.id, o])),
+    devisByNumero: new Map(devis.filter(d => d.numero).map(d => [String(d.numero), d])),
+  }
+}
+
+/**
+ * Relances : interactions non faites avec une prochaine_action_date, hors
+ * relances devenues sans objet (devis répondu, affaire close) si `crm`
+ * ({ opportunites, devis }) est fourni.
  * Retourne { overdue: [...], today: [...], upcoming: [...] } triées par date.
  */
-export function classifyFollowUps(interactions = [], today = new Date()) {
+export function classifyFollowUps(interactions = [], today = new Date(), crm = null) {
   const td = isoDay(today)
+  const ctx = crm ? followUpContext(crm) : null
   const overdue = [], todayList = [], upcoming = []
   for (const it of interactions) {
     if (it.action_faite || !it.prochaine_action_date) continue
+    if (ctx && isFollowUpObsolete(it, ctx)) continue
     const d = String(it.prochaine_action_date).slice(0, 10)
     if (d < td) overdue.push(it)
     else if (d === td) todayList.push(it)
@@ -245,7 +288,7 @@ export function quoteToOpportunite(q, contacts = []) {
 export function prepareCrmForAI(crm = {}, today = new Date()) {
   const opps = crm.opportunites || []
   const inters = crm.interactions || []
-  const f = classifyFollowUps(inters, today)
+  const f = classifyFollowUps(inters, today, { opportunites: opps, devis: crm.devis || [] })
   return {
     opportunites: opps.slice(0, 60).map(o => ({
       id: o.id, titre: o.titre, etape: o.etape, montant_estime: num(o.montant_estime),

@@ -1,6 +1,6 @@
 import { btnP, btnS, fmtMoney, fmtDate } from '../../dashboards/shared'
 import { Badge, EmptyState } from '../index'
-import { ETAPES_ACTIVES, ETAPE_COLORS, INTERACTION_TYPES, INTERACTION_ICONS, isClosed, nextEtape } from '../../lib/crm'
+import { ETAPES_ACTIVES, ETAPE_COLORS, INTERACTION_TYPES, INTERACTION_ICONS, isClosed, nextEtape, isFollowUpObsolete, followUpContext } from '../../lib/crm'
 import DevisList from './DevisList'
 import InteractionRow from './InteractionRow'
 import { NEXT_STEP, todayISO, iconBtn } from './crmUi'
@@ -16,7 +16,8 @@ export default function OpportuniteDetail({
   const closed = isClosed(o.etape)
   const next = nextEtape(o.etape)
   const hint = NEXT_STEP[o.etape]
-  const pendingRelance = interactions.find(i => i.prochaine_action_date && !i.action_faite)
+  const relanceCtx = followUpContext({ opportunites: [o], devis })
+  const pendingRelance = interactions.find(i => i.prochaine_action_date && !i.action_faite && !isFollowUpObsolete(i, relanceCtx))
   const draft = devis.find(d => d.statut === 'Brouillon')
   return (
     <div>

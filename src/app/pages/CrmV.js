@@ -99,7 +99,11 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
 
   const grouped = useMemo(() => groupByEtape(filtered), [filtered])
   const stats = useMemo(() => pipelineStats(opportunites), [opportunites])
-  const followUps = useMemo(() => classifyFollowUps(interactions), [interactions])
+  // Relances sans objet (devis accepté / refusé / signé, affaire close) masquées
+  const followUps = useMemo(
+    () => classifyFollowUps(interactions, new Date(), { opportunites, devis: crm.devis || [] }),
+    [interactions, opportunites, crm.devis],
+  )
   const nbRelances = followUps.overdue.length + followUps.today.length
   const nbActifsFiltres = filtered.filter(o => !isClosed(o.etape)).length
   const isFirstUse = opportunites.length === 0 && !q
