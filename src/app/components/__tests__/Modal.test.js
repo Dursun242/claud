@@ -1,6 +1,8 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import Modal from '../Modal'
+import { ConfirmProvider } from '../../contexts/ConfirmContext'
+import { activeLeaveGuards } from '../../lib/leaveGuard'
 
 describe('Modal', () => {
   it('ne rend RIEN dans le DOM quand open=false', () => {
@@ -47,13 +49,13 @@ describe('Modal', () => {
     expect(onClose).toHaveBeenCalledTimes(1)
   })
 
-  it('invoque onClose au clic sur le backdrop', async () => {
+  it('NE ferme PAS au clic à côté (backdrop) : évite de perdre une saisie', async () => {
     const onClose = jest.fn()
     render(<Modal open={true} onClose={onClose} title="X"><p/></Modal>)
 
-    // Le dialog lui-même est le backdrop (click propagé).
+    // Le dialog lui-même est le backdrop.
     await userEvent.click(screen.getByRole('dialog'))
-    expect(onClose).toHaveBeenCalled()
+    expect(onClose).not.toHaveBeenCalled()
   })
 
   it('NE ferme PAS quand on clique à l\'intérieur du contenu', async () => {
@@ -68,12 +70,38 @@ describe('Modal', () => {
     expect(onClose).not.toHaveBeenCalled()
   })
 
-  it('ferme sur Escape', async () => {
+  it('NE ferme PAS sur Échap', async () => {
     const onClose = jest.fn()
-    render(<Modal open={true} onClose={onClose} title="X"><p/></Modal>)
+    render(<Modal open={true} onClose={onClose} title="X"><input aria-label="champ" /></Modal>)
 
     await userEvent.keyboard('{Escape}')
+    expect(onClose).not.toHaveBeenCalled()
+  })
+
+  it('✕ après une saisie : demande confirmation avant de fermer', async () => {
+    const onClose = jest.fn()
+    const user = userEvent.setup()
+    render(
+      <ConfirmProvider>
+        <Modal open={true} onClose={onClose} title="X"><input aria-label="champ" /></Modal>
+      </ConfirmProvider>
+    )
+    await user.type(screen.getByLabelText('champ'), 'abc')
+    await user.click(screen.getByRole('button', { name: 'Fermer' }))
+    expect(onClose).not.toHaveBeenCalled()
+    await user.click(await screen.findByRole('button', { name: 'Continuer la saisie' }))
+    expect(onClose).not.toHaveBeenCalled()
+    await user.click(screen.getByRole('button', { name: 'Fermer' }))
+    await user.click(await screen.findByRole('button', { name: 'Fermer sans enregistrer' }))
     expect(onClose).toHaveBeenCalledTimes(1)
+  })
+
+  it('protège la page tant qu’elle est ouverte (retour du téléphone, fermeture)', () => {
+    const { rerender } = render(<Modal open={true} onClose={() => {}} title="X"><p/></Modal>)
+    expect(activeLeaveGuards()).toBe(1)
+    expect(window.history.state).toEqual(expect.objectContaining({ idmGuard: true }))
+    rerender(<Modal open={false} onClose={() => {}} title="X"><p/></Modal>)
+    expect(activeLeaveGuards()).toBe(0)
   })
 
   it('bloque le scroll du body quand ouverte, le rétablit à la fermeture', () => {

@@ -1,20 +1,46 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
 import { ANIMATION } from '../lib/motion'
+import { useLeaveGuard } from '../hooks/useLeaveGuard'
+import { useOptionalConfirm } from '../contexts/ConfirmContext'
 
 /**
  * Composant Modal réutilisable
- * Modale avec backdrop, close button, focus trap et Escape.
+ * Modale avec backdrop, close button et focus trap.
+ *
+ * Protection du travail en cours :
+ * - la modale ne se ferme QUE par ✕ ou par les boutons de la fenêtre
+ *   (Annuler, Enregistrer…) : ni clic à côté, ni touche Échap ;
+ * - ✕ après une saisie demande confirmation ;
+ * - tant qu'elle est ouverte, le retour du téléphone, la fermeture ou le
+ *   rechargement de la page ne font pas perdre la saisie (useLeaveGuard).
  *
  * Accessibilité :
  * - role="dialog" + aria-modal="true" + aria-labelledby
- * - Escape ferme la modale (si onClose est fourni)
  * - Focus trap : Tab et Shift+Tab bouclent à l'intérieur de la modale
  * - Le focus est rendu au déclencheur à la fermeture
  * - Scroll du body bloqué quand ouvert
  */
 export default function Modal({ open, onClose, title, children, wide = false }) {
   const contentRef = useRef(null)
+  const dirty = useRef(false)
+  const confirm = useOptionalConfirm()
+  useLeaveGuard(open)
+  useEffect(() => { if (open) dirty.current = false }, [open])
+  const closeFromX = async () => {
+    if (!onClose) return
+    if (dirty.current && confirm) {
+      const ok = await confirm({
+        title: 'Fermer sans enregistrer ?',
+        message: 'Ce que tu as saisi dans cette fenêtre sera perdu.',
+        confirmLabel: 'Fermer sans enregistrer',
+        cancelLabel: 'Continuer la saisie',
+        danger: true,
+      })
+      if (!ok) return
+    }
+    onClose()
+  }
   const previouslyFocused = useRef(null)
   const titleId = useRef(`modal-title-${Math.random().toString(36).slice(2, 9)}`)
   // Détection mobile pour padding et arrondis adaptés (évite d'écraser
@@ -29,15 +55,10 @@ export default function Modal({ open, onClose, title, children, wide = false }) 
     }
   }, [])
 
-  // Escape pour fermer + focus trap Tab/Shift+Tab
+  // Focus trap Tab/Shift+Tab (Échap ne ferme pas : évite de perdre une saisie)
   useEffect(() => {
     if (!open) return
     const handler = (e) => {
-      if (e.key === 'Escape' && onClose) {
-        e.preventDefault()
-        onClose()
-        return
-      }
       if (e.key !== 'Tab') return
       const root = contentRef.current
       if (!root) return
@@ -55,7 +76,7 @@ export default function Modal({ open, onClose, title, children, wide = false }) 
     }
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
-  }, [open, onClose])
+  }, [open])
 
   // Bloque le scroll du body quand la modale est ouverte + gère le focus
   useEffect(() => {
@@ -100,12 +121,13 @@ export default function Modal({ open, onClose, title, children, wide = false }) 
         backdropFilter: 'blur(4px)',
         padding: isMobile ? 0 : 16,
         animation: ANIMATION.fadeInFast,
+        overscrollBehavior: 'contain',
       }}
-      onClick={onClose}
     >
       <div
         ref={contentRef}
-        onClick={(e) => e.stopPropagation()}
+        onInput={() => { dirty.current = true }}
+        onChange={() => { dirty.current = true }}
         style={{
           background: '#fff',
           // Sur mobile : bord plat en bas, plein écran avec marge haut,
@@ -120,6 +142,7 @@ export default function Modal({ open, onClose, title, children, wide = false }) 
           boxShadow: '0 25px 50px rgba(15,23,42,0.25)',
           animation: ANIMATION.popIn,
           WebkitOverflowScrolling: 'touch',
+          overscrollBehavior: 'contain',
         }}
       >
         <div
@@ -148,7 +171,8 @@ export default function Modal({ open, onClose, title, children, wide = false }) 
             {title}
           </h3>
           <button
-            onClick={onClose}
+            type="button"
+            onClick={closeFromX}
             aria-label="Fermer"
             className="u-icon-btn u-icon-btn--soft"
             style={{

@@ -8,6 +8,7 @@ import { DashboardSkeleton, PageSkeleton } from '../components/Skeleton'
 import TabErrorBoundary from '../components/TabErrorBoundary'
 import { FloatingMic, NotificationBell } from '../components'
 import MobileNav, { MOBILE_NAV_HEIGHT } from '../components/MobileNav'
+import LeaveGuardNotice from '../components/LeaveGuardNotice'
 import { useFloatingMic } from '../hooks/useFloatingMic'
 import { useToast } from '../contexts/ToastContext'
 import { useClientDashboardData } from '../hooks/useClientDashboardData'
@@ -446,6 +447,9 @@ export default function ClientDashboard({ user, profile = null }) {
         <MobileNav items={MOBILE_NAV_ITEMS} active={tab} onSelect={switchTab}
           onMenu={() => setSidebarOpen(true)} />
       )}
+
+      {/* Message quand le retour du téléphone est bloqué (fenêtre de saisie ouverte) */}
+      <LeaveGuardNotice />
 
       {/* Aide clavier (déclenchée par « ? ») */}
       {helpOpen && (
