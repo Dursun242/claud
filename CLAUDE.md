@@ -37,10 +37,12 @@ src/app/
 ├─ pages/                     → 1 page = 1 onglet. DashboardV, ProjectsV, OrdresServiceV, ContactsV, CrmV, AIV, ...
 ├─ components/                → briques UI réutilisables (Modal, Badge, Skeleton, OsCard, ChantierCard, PVRow...)
 │                               components/crm/ : écrans du CRM (pipeline, fiche affaire, formulaires, devis) — CrmV.js ne fait qu'orchestrer
+│                               components/cr/ : éditeur plein écran des comptes rendus (CREditor : mode Réunion pas à pas / mode Rédaction ; sections par lot, points, photos, dictée + IA, présences/convocation) + envoi par mail (CRSendModal), partagé par ReportsV et ProjectsV
 ├─ contexts/                  → ToastContext + ConfirmContext (non-invasive, context split pour éviter re-renders)
-├─ hooks/                     → useFloatingMic, useAttachments, useComments, useUndoableDelete, useSignaturesSync, useCrmData, useCrmDevis (logique devis du CRM)...
+├─ hooks/                     → useFloatingMic, useAttachments, useComments, useUndoableDelete, useSignaturesSync, useCrmData, useCrmDevis (logique devis du CRM), useCrEditor (état + brouillon local d'un CR), useDictation (dictée vers un champ)...
 ├─ lib/                       → auth, fetchWithRetry, odoo, validators, notifications, activityLog, chantierFinances
 │                               mailer.js (SMTP serveur) · notifications.js (serveur, service role) · crm.js (logique pure pipeline) + devis.js / devisAi.js / qontoDevis.js (calculs, prix habituels, vérifs devis, format Qonto) + crmDb.js (accès Supabase CRM, hors shared.js) + crmApi.js (appels /api/* du CRM avec JWT, PDF base64)
+│                               crSuivi.js (CR : numéro par chantier, points numérotés repris d'un CR à l'autre, relances + montée de priorité, sections par lot / avancement prévu, application de la proposition IA, textes des mails) · crEditor.js (état de l'éditeur, brouillon, aperçu) · crDb.js (enregistrement CR + tâches + rdv, statut Brouillon / Diffusé) · crPhotos.js (photos : réduction, dépôt, lecture pour le PDF) · crAi.js (schéma + nettoyage de la réponse IA)
 │
 └─ api/                       → 31 routes. Pattern unique : verifyAuth() / verifyStaff() + createLogger() + mock-friendly.
     ├─ admin/*                → service role uniquement (users, demo-mode, reset-demo-data)
@@ -49,6 +51,8 @@ src/app/
     ├─ devis/qonto            → CRM : devis créé dans Qonto (numéro + PDF Qonto), import des devis Qonto, suivi des statuts (staff only)
     ├─ devis/documents        → CRM : pièces jointes des mails de devis (documents permanents Kbis/décennale + fichiers ponctuels, staff only)
     ├─ devis/sign             → CRM : demande de signature électronique d'un devis (staff only)
+    ├─ cr/send                → envoi du CR par mail (PDF + convocation + actions de chaque entreprise, un mail par destinataire, staff only)
+    ├─ cr/ia                  → dictée de réunion → proposition structurée (observations / avancement par lot, états des points, nouveaux points, décisions), staff only
     ├─ devis/track            → image de suivi (1×1) des mails de devis : enregistre les ouvertures (public, jeton)
     ├─ devis/public           → page publique /signer/<jeton> : consultation + signature du devis (sans compte, jeton) ; signé → chantier + tâche « Lancer les travaux » (lib/devisWon.js)
     ├─ cron/qonto-status      → vérification horaire des devis acceptés / annulés dans Qonto (GitHub Actions, secret CRON_SECRET) ; accepté → chantier + tâche (lib/devisWon.js)
@@ -74,6 +78,7 @@ Stage 3 = **CRM** (`crm_opportunites`, `crm_interactions`, `crm_devis`, `crm_dev
 - `public/sw.js` (production) : l'application s'ouvre sans réseau (page `/` + fichiers `/_next/static`). N'intercepte ni `/api` ni Supabase.
 - `lib/offlineCache.js` + `lib/offlineStore.js` : les données consultées (requêtes `dashboard` et `crm`) sont gardées dans IndexedDB par utilisateur et restaurées au démarrage ; effacées à la déconnexion.
 - File d'attente (`enqueue` / `flushOutbox`) : modifications faites sans réseau, envoyées au retour de la connexion (`hooks/useOfflineSync.js`, handlers dans `roleBasedDashboard.js`). Aujourd'hui : statut des tâches (`hooks/useSaveTask.js`).
+- Comptes rendus : le brouillon en cours (photos comprises) est gardé dans IndexedDB (`cr-draft:*`) pendant la saisie et proposé à la réouverture ; l'enregistrement se fait au retour du réseau.
 - `auth.js` : sans réponse du serveur, le dernier profil vérifié sur l'appareil est réutilisé (pas de déconnexion hors ligne).
 
 ## Conventions & règles du projet
@@ -108,7 +113,7 @@ Voir `.env.example` à la racine. Minimum requis pour dev :
 
 ## Migrations DB
 
-**Ordre critique** : voir `migrations/APPLY_ORDER.md`. Les migrations numérotées 001→030 s'appliquent dans l'ordre via le SQL Editor Supabase. Chaque migration ayant un impact non-trivial a un `<num>_README.md` dédié.
+**Ordre critique** : voir `migrations/APPLY_ORDER.md`. Les migrations numérotées 001→033 s'appliquent dans l'ordre via le SQL Editor Supabase. Chaque migration ayant un impact non-trivial a un `<num>_README.md` dédié.
 
 ## Dette technique assumée
 

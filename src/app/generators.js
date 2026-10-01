@@ -1,6 +1,7 @@
 'use client'
 import { LOGO_B64 } from './logo'
 import { COMPANY as ENT, SB } from './dashboards/shared'
+import { crTaskStats, daysLate, fmtLongDate, isoWeek, priorityLabel, globalProgress, lotOf, lotKey, GENERAL } from './lib/crSuivi'
 
 // Lazy-load jsPDF + plugin autotable : évite de charger ~180 KB au démarrage
 // de l'app. La promesse est mise en cache pour éviter les imports répétés.
@@ -725,136 +726,417 @@ export async function generateDevisPdf(devis, opts = {}) {
 // ══════════════════════════════════════
 // GÉNÉRATEUR PDF — COMPTE RENDU DE CHANTIER
 // ══════════════════════════════════════
-export async function generateCRPdf(cr, chantier) {
+//
+// Page 1 — page de garde : n° du CR, date et semaine de la réunion,
+// opération (chantier, MOA, MOE), convocation à la prochaine réunion,
+// intervenants avec présence et convocation, bilan (avancement, points).
+// Pages suivantes : synthèse, avancement par lot (réel / prévu / écart),
+// puis une section par lot (Généralités d'abord) : observations, tableau
+// des points (relances en rouge, soldés en vert, nouveaux en bleu), photos.
+// Décisions, prochaine réunion. En-tête et « Page x / n » sur chaque page.
+//
+// opts.images        : { [path]: dataUrl } photos à imprimer (lib/crPhotos.loadCrImages)
+// opts.returnBase64  : renvoie { base64, filename } au lieu de télécharger (mail)
+// opts.preview       : ouvre le PDF dans un nouvel onglet (aperçu)
+const PRESENCE_COLORS = { 'Présent': [4, 120, 87], 'Absent': [185, 28, 28], 'Excusé': [180, 83, 9] }
+const SUIVI_PDF = { relance: 'RELANCE', en_cours: 'En cours', fait: 'FAIT', nouveau: 'NOUVEAU' }
+
+export async function generateCRPdf(cr, chantier, opts = {}) {
   const { jsPDF, autoTable } = await loadJsPdf()
   const doc = new jsPDF('p', 'mm', 'a4')
   const w = doc.internal.pageSize.getWidth()
+  const h = doc.internal.pageSize.getHeight()
   const margin = 18
   const usable = w - margin * 2
-
-  // Logo (left)
-  let y = 12
-  try { doc.addImage(LOGO_B64, 'JPEG', margin, y - 5, 48, 14) } catch(e) {}
-
-  // Titre (right, aligned with logo)
-  doc.setFontSize(14); doc.setFont("helvetica", "bold"); doc.setTextColor(...BLEU)
-  doc.text("COMPTE RENDU", w - margin, y, { align: "right" })
-  doc.setFontSize(11); doc.setTextColor(...BLEU_CLAIR)
-  doc.text(`DE CHANTIER N°${cr.numero || "—"}`, w - margin, y + 6, { align: "right" })
-
-  // Infos sous logo
-  y = 24
-  doc.setFontSize(7); doc.setFont("helvetica", "normal"); doc.setTextColor(...GRIS)
-  doc.text(`${ENT.adresse}, ${ENT.cpVille} — SIRET: ${ENT.siret}`, margin, y)
-  doc.text(`${ENT.email} — ${ENT.assurance}`, margin, y + 3.5)
-
-  y = 31
-  doc.setDrawColor(...BLEU); doc.setLineWidth(0.7); doc.line(margin, y, w - margin, y); y += 5
-
-  // Infos chantier
-  doc.setFillColor(...GRIS_CLAIR); doc.roundedRect(margin, y, usable, 16, 1.5, 1.5, 'F')
-  doc.setFontSize(8); doc.setFont("helvetica", "bold"); doc.setTextColor(...BLEU)
-  doc.text("CHANTIER", margin + 3, y + 5)
-  doc.setFontSize(10); doc.setFont("helvetica", "bold"); doc.setTextColor(...NOIR)
-  doc.text(chantier?.nom || "—", margin + 28, y + 5)
-  doc.setFontSize(7.5); doc.setFont("helvetica", "bold"); doc.setTextColor(...GRIS)
-  doc.text("Client :", margin + 3, y + 11)
-  doc.setFont("helvetica", "normal"); doc.setTextColor(...NOIR)
-  doc.text(chantier?.client || "—", margin + 18, y + 11)
-  doc.setFont("helvetica", "bold"); doc.setTextColor(...GRIS)
-  doc.text("Date :", margin + usable/2, y + 5)
-  doc.setFont("helvetica", "normal"); doc.setTextColor(...NOIR)
-  doc.text(fmtD(cr.date), margin + usable/2 + 13, y + 5)
-  doc.setFont("helvetica", "bold"); doc.setTextColor(...GRIS)
-  doc.text("Phase :", margin + usable/2, y + 11)
-  doc.setFont("helvetica", "normal"); doc.setTextColor(...NOIR)
-  doc.text(chantier?.phase || "—", margin + usable/2 + 15, y + 11)
-  y += 22
-
-  // Intervenants / participants
-  // Tableau (N°, Nom, Entreprise, Email, Téléphone) si des intervenants ont
-  // été sélectionnés par case à cocher ; sinon rétrocompat sur le champ
-  // texte libre "participants" des anciens CR.
+  const OR = [200, 164, 92]
+  const next = cr.prochaine_reunion?.date ? cr.prochaine_reunion : null
+  const suivi = Array.isArray(cr.taches_suivi) ? cr.taches_suivi : []
+  const stats = crTaskStats(suivi)
+  const images = opts.images || {}
+  const progress = globalProgress(cr.sections || [])
   const crIntervenants = cr.intervenants || []
-  doc.setFontSize(9); doc.setFont("helvetica", "bold"); doc.setTextColor(...BLEU)
-  doc.text("INTERVENANTS / PRÉSENTS", margin, y); y += 4
+  const withPresence = crIntervenants.some(it => it.presence || it.convoque !== undefined)
 
+  // ── PAGE DE GARDE ──────────────────────────────────────────
+  try { doc.addImage(LOGO_B64, 'JPEG', margin, 10, 52, 15) } catch(e) {}
+  doc.setFontSize(8); doc.setFont("helvetica", "bold"); doc.setTextColor(...BLEU)
+  doc.text(sanitize(ENT.nom), w - margin, 13, { align: "right" })
+  doc.setFont("helvetica", "normal"); doc.setTextColor(...GRIS); doc.setFontSize(7)
+  doc.text(sanitize(ENT.activite || ""), w - margin, 16.5, { align: "right" })
+  doc.text(`${ENT.adresse}, ${ENT.cpVille}`, w - margin, 20, { align: "right" })
+  doc.text(ENT.email, w - margin, 23.5, { align: "right" })
+
+  // Bandeau titre
+  let y = 32
+  doc.setFillColor(...BLEU); doc.rect(0, y, w, 40, 'F')
+  doc.setFillColor(...OR); doc.rect(0, y + 40, w, 1.5, 'F')
+  doc.setTextColor(255, 255, 255)
+  doc.setFontSize(10); doc.setFont("helvetica", "bold")
+  doc.text("COMPTE RENDU DE RÉUNION DE CHANTIER", margin, y + 11)
+  doc.setFontSize(30)
+  doc.text(`N° ${cr.numero || "—"}`, margin, y + 29)
+  doc.setFontSize(9); doc.setFont("helvetica", "normal")
+  doc.text("Réunion du", w - margin, y + 11, { align: "right" })
+  doc.setFontSize(13); doc.setFont("helvetica", "bold")
+  doc.text(sanitize(fmtLongDate(cr.date) || fmtD(cr.date)), w - margin, y + 19, { align: "right" })
+  const week = isoWeek(cr.date)
+  if (week) {
+    doc.setFontSize(9); doc.setFont("helvetica", "normal")
+    doc.text(`Semaine ${week}`, w - margin, y + 26, { align: "right" })
+  }
+
+  // Opération
+  y = 84
+  doc.setFontSize(7.5); doc.setFont("helvetica", "bold"); doc.setTextColor(...OR)
+  doc.text("OPÉRATION", margin, y)
+  doc.setFontSize(15); doc.setTextColor(...NOIR)
+  const nomLines = doc.splitTextToSize(sanitize(chantier?.nom || "—"), usable)
+  doc.text(nomLines, margin, y + 7); y += 7 + nomLines.length * 6
+  doc.setFontSize(8.5); doc.setFont("helvetica", "normal"); doc.setTextColor(...GRIS)
+  if (chantier?.adresse) { doc.text(sanitize(chantier.adresse), margin, y); y += 5 }
+  y += 1
+  const infoLine = (label, value) => {
+    doc.setFont("helvetica", "bold"); doc.setTextColor(...GRIS); doc.text(label, margin, y)
+    doc.setFont("helvetica", "normal"); doc.setTextColor(...NOIR); doc.text(sanitize(value || "—"), margin + 34, y)
+    y += 5
+  }
+  infoLine("Maître d'ouvrage", chantier?.client)
+  infoLine("Maître d'oeuvre", ENT.nom)
+  if (chantier?.phase) infoLine("Phase", chantier.phase)
+  y += 3
+
+  // Convocation
+  if (next) {
+    const boxH = 27
+    doc.setFillColor(239, 246, 255); doc.setDrawColor(...BLEU); doc.setLineWidth(0.6)
+    doc.roundedRect(margin, y, usable, boxH, 2, 2, 'FD')
+    doc.setFontSize(8); doc.setFont("helvetica", "bold"); doc.setTextColor(...BLEU)
+    doc.text("CONVOCATION — PROCHAINE RÉUNION DE CHANTIER", margin + 5, y + 6.5)
+    doc.setFontSize(13); doc.setTextColor(...NOIR)
+    const heure = next.heure ? ` à ${String(next.heure).slice(0, 5).replace(':', 'h')}` : ''
+    doc.text(sanitize(`${fmtLongDate(next.date)}${heure}`), margin + 5, y + 14)
+    doc.setFontSize(8.5); doc.setFont("helvetica", "normal")
+    if (next.lieu) doc.text(sanitize(`Lieu : ${next.lieu}`), margin + 5, y + 19.5)
+    doc.setFontSize(7.5); doc.setFont("helvetica", "italic"); doc.setTextColor(...GRIS)
+    doc.text("Les intervenants convoqués sont tenus d'être présents ou représentés.", margin + 5, y + 24)
+    doc.setFont("helvetica", "normal")
+    y += boxH + 7
+  }
+
+  // Intervenants
+  doc.setFontSize(9); doc.setFont("helvetica", "bold"); doc.setTextColor(...BLEU)
+  doc.text("INTERVENANTS", margin, y); y += 3
   if (crIntervenants.length > 0) {
-    const body = crIntervenants.map((it, idx) => [
-      String(idx + 1),
-      sanitize(it.nom || "—"),
-      sanitize(it.societe || "—"),
-      it.email || "—",
-      it.tel || "—",
-    ])
+    const head = withPresence
+      ? [["Intervenant", "Entreprise / rôle", "Contact", "Présence", "Convoqué"]]
+      : [["Intervenant", "Entreprise / rôle", "Contact"]]
+    const body = crIntervenants.map(it => {
+      const row = [
+        sanitize(it.nom || "—"),
+        sanitize([it.societe && it.societe !== it.nom ? it.societe : "", it.role].filter(Boolean).join("\n") || "—"),
+        sanitize([it.tel, it.email].filter(Boolean).join("\n") || "—"),
+      ]
+      if (withPresence) row.push(it.presence || "—", it.convoque === false ? "—" : "OUI")
+      return row
+    })
     autoTable(doc, {
-      startY: y,
-      head: [["N°", "Nom", "Entreprise", "Email", "Téléphone"]],
-      body,
-      margin: { left: margin, right: margin },
+      startY: y, head, body,
+      margin: { left: margin, right: margin, top: 26, bottom: 20 },
       headStyles: { fillColor: BLEU, textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 7.5 },
-      bodyStyles: { fontSize: 7.5, textColor: NOIR },
+      bodyStyles: { fontSize: 7.5, textColor: NOIR, valign: 'middle' },
       alternateRowStyles: { fillColor: GRIS_CLAIR },
-      columnStyles: {
-        0: { cellWidth: usable * 0.06, halign: 'center' },
-        1: { cellWidth: usable * 0.24 },
-        2: { cellWidth: usable * 0.28 },
-        3: { cellWidth: usable * 0.28 },
-        4: { cellWidth: usable * 0.14 },
+      columnStyles: withPresence ? {
+        0: { cellWidth: usable * 0.22, fontStyle: 'bold' },
+        1: { cellWidth: usable * 0.25 },
+        2: { cellWidth: usable * 0.29 },
+        3: { cellWidth: usable * 0.12, halign: 'center' },
+        4: { cellWidth: usable * 0.12, halign: 'center' },
+      } : { 0: { cellWidth: usable * 0.3, fontStyle: 'bold' }, 1: { cellWidth: usable * 0.32 } },
+      styles: { lineWidth: 0.2, lineColor: [226, 232, 240], cellPadding: 1.8 },
+      didParseCell: (d) => {
+        if (d.section !== 'body' || !withPresence) return
+        if (d.column.index === 3 && PRESENCE_COLORS[d.cell.raw]) {
+          d.cell.styles.textColor = PRESENCE_COLORS[d.cell.raw]; d.cell.styles.fontStyle = 'bold'
+        }
+        if (d.column.index === 4 && d.cell.raw === 'OUI') { d.cell.styles.textColor = BLEU; d.cell.styles.fontStyle = 'bold' }
       },
-      styles: { lineWidth: 0.2, lineColor: [226, 232, 240] },
     })
     y = doc.lastAutoTable.finalY + 4
     if (cr.participants) {
       doc.setFontSize(7.5); doc.setFont("helvetica", "italic"); doc.setTextColor(...GRIS)
       const noteLines = doc.splitTextToSize(sanitize(`Également présents : ${cr.participants}`), usable)
-      doc.text(noteLines, margin, y); y += noteLines.length * 3.5 + 4
+      doc.text(noteLines, margin, y); y += noteLines.length * 3.5 + 3
       doc.setFont("helvetica", "normal")
-    } else {
-      y += 2
     }
   } else {
+    y += 2
     doc.setFontSize(8.5); doc.setFont("helvetica", "normal"); doc.setTextColor(...NOIR)
     const pLines = doc.splitTextToSize(sanitize(cr.participants) || "—", usable)
-    doc.text(pLines, margin, y); y += pLines.length * 3.8 + 5
+    doc.text(pLines, margin, y); y += pLines.length * 3.8 + 3
   }
 
-  // Résumé
-  if (y > 240) { doc.addPage(); y = 20 }
-  doc.setFontSize(9); doc.setFont("helvetica", "bold"); doc.setTextColor(...BLEU)
-  doc.text("RÉSUMÉ DES ÉCHANGES", margin, y); y += 4
-  doc.setFontSize(8.5); doc.setFont("helvetica", "normal"); doc.setTextColor(...NOIR)
-  const rLines = doc.splitTextToSize(sanitize(cr.resume) || "—", usable - 6)
-  const rH = rLines.length * 4 + 6
-  doc.setDrawColor(226,232,240); doc.setLineWidth(0.3); doc.rect(margin, y, usable, rH)
-  doc.text(rLines, margin + 3, y + 5); y += rH + 6
+  // Bilan des points
+  if (stats.total > 0 || progress != null) {
+    if (y > h - 45) { doc.addPage(); y = 26 }
+    y += 2
+    const items = [
+      ...(progress != null ? [["Avancement", `${progress} %`, BLEU]] : []),
+      ["Points suivis", stats.total, NOIR],
+      ["Nouveaux", stats.nouveau, BLEU_CLAIR],
+      ["Soldés", stats.fait, [4, 120, 87]],
+      ["Relancés", stats.relance, [185, 28, 28]],
+      ["Urgents", stats.urgent, [185, 28, 28]],
+    ]
+    const cw = usable / items.length
+    items.forEach(([label, n, color], i) => {
+      const x = margin + i * cw
+      doc.setFillColor(...GRIS_CLAIR); doc.roundedRect(x + 1, y, cw - 2, 15, 1.5, 1.5, 'F')
+      doc.setFontSize(14); doc.setFont("helvetica", "bold"); doc.setTextColor(...color)
+      doc.text(String(n), x + cw / 2, y + 7.5, { align: "center" })
+      doc.setFontSize(6.5); doc.setFont("helvetica", "normal"); doc.setTextColor(...GRIS)
+      doc.text(label.toUpperCase(), x + cw / 2, y + 12, { align: "center" })
+    })
+    y += 19
+  }
 
-  // Décisions
+  // Diffusion (bas de la page de garde)
+  const diffY = Math.max(y + 4, h - 34)
+  if (diffY < h - 22) {
+    doc.setDrawColor(...OR); doc.setLineWidth(0.4); doc.line(margin, diffY, margin + 30, diffY)
+    doc.setFontSize(7.5); doc.setFont("helvetica", "bold"); doc.setTextColor(...BLEU)
+    doc.text("DIFFUSION", margin, diffY + 5)
+    doc.setFont("helvetica", "normal"); doc.setTextColor(...GRIS)
+    doc.text("Intervenants listés ci-dessus et maître d'ouvrage.", margin, diffY + 9)
+    doc.text("Sans observation écrite sous 8 jours, le présent compte rendu est réputé approuvé.", margin, diffY + 12.5)
+  }
+
+  // ── CORPS ──────────────────────────────────────────────────
+  doc.addPage(); y = 28
+  let section = 0
+  const title = (t) => {
+    if (y > h - 45) { doc.addPage(); y = 28 }
+    section += 1
+    doc.setFontSize(10); doc.setFont("helvetica", "bold"); doc.setTextColor(...BLEU)
+    doc.text(`${section}. ${t}`, margin, y)
+    doc.setDrawColor(...OR); doc.setLineWidth(0.5); doc.line(margin, y + 1.5, margin + 18, y + 1.5)
+    y += 6
+  }
+  const textBlock = (text, { fill = null, bar = null, color = NOIR } = {}) => {
+    doc.setFontSize(8.5); doc.setFont("helvetica", "normal")
+    const lines = doc.splitTextToSize(sanitize(text) || "—", usable - 6)
+    let i = 0
+    while (i < lines.length) {
+      const room = Math.max(1, Math.floor((h - 24 - y - 6) / 4))
+      const chunk = lines.slice(i, i + room)
+      const bh = chunk.length * 4 + 5
+      if (fill) { doc.setFillColor(...fill); doc.roundedRect(margin, y, usable, bh, 1.5, 1.5, 'F') }
+      else { doc.setDrawColor(226, 232, 240); doc.setLineWidth(0.3); doc.rect(margin, y, usable, bh) }
+      if (bar) { doc.setDrawColor(...bar); doc.setLineWidth(0.8); doc.line(margin, y, margin, y + bh) }
+      doc.setTextColor(...color); doc.text(chunk, margin + 3, y + 5)
+      y += bh + 6; i += chunk.length
+      if (i < lines.length) { doc.addPage(); y = 28 }
+    }
+  }
+
+  // Sections : celles du CR (par lot) ou, pour un ancien CR, regroupement
+  // des points par lot.
+  const crSections = [...(Array.isArray(cr.sections) ? cr.sections : [])]
+  for (const lot of [GENERAL, ...suivi.map(r => lotOf(r))]) {
+    if (!crSections.some(x => lotKey(x.lot) === lotKey(lot))) {
+      const sec = { lot, observations: '', photos: [] }
+      if (lotKey(lot) === lotKey(GENERAL)) crSections.unshift(sec); else crSections.push(sec)
+    }
+  }
+  const pointsOf = (lot) => suivi.filter(r => lotKey(lotOf(r)) === lotKey(lot))
+  const imageOf = (p) => p?.dataUrl || (p?.path && images[p.path]) || null
+
+  const photoGrid = (photos) => {
+    const list = photos.filter(p => imageOf(p.photo || p))
+    if (!list.length) return
+    const gap = 5
+    const perRow = 3
+    const cw = (usable - gap * (perRow - 1)) / perRow
+    const ch = cw * 0.75
+    for (let i = 0; i < list.length; i += perRow) {
+      if (y + ch + 10 > h - 22) { doc.addPage(); y = 28 }
+      for (let j = 0; j < perRow && i + j < list.length; j++) {
+        const item = list[i + j]
+        const photo = item.photo || item
+        const src = imageOf(photo)
+        const x = margin + j * (cw + gap)
+        doc.setFillColor(...GRIS_CLAIR); doc.rect(x, y, cw, ch, 'F')
+        try {
+          const props = doc.getImageProperties(src)
+          const ratio = Math.min(cw / props.width, ch / props.height)
+          const iw = props.width * ratio, ih = props.height * ratio
+          doc.addImage(src, props.fileType || 'JPEG', x + (cw - iw) / 2, y + (ch - ih) / 2, iw, ih)
+        } catch (e) { /* image illisible */ }
+        const caption = [item.num ? `Point n°${item.num}` : '', photo.legende].filter(Boolean).join(' — ')
+        if (caption) {
+          doc.setFontSize(7); doc.setFont("helvetica", "italic"); doc.setTextColor(...GRIS)
+          doc.text(doc.splitTextToSize(sanitize(caption), cw)[0], x, y + ch + 3.5)
+          doc.setFont("helvetica", "normal")
+        }
+      }
+      y += ch + 7
+    }
+  }
+
+  const pointsTable = (rows) => {
+    const body = rows.map(r => {
+      const late = r.suivi === 'relance' ? daysLate(r.echeance, cr.date) : 0
+      const origine = r.origine && Number(r.origine) !== Number(cr.numero) ? `\n(depuis le CR n°${r.origine})` : ''
+      const etat = r.suivi === 'relance' && r.rappels > 1 ? `RELANCE n°${r.rappels}` : (SUIVI_PDF[r.suivi] || r.suivi || '—')
+      return [
+        r.num ? String(r.num) : '—',
+        sanitize(`${r.titre || '—'}${origine}`),
+        sanitize(r.entreprise || '—'),
+        `${r.echeance ? fmtD(r.echeance) : '—'}${late ? `\nretard ${late} j` : ''}`,
+        priorityLabel(r.priorite),
+        etat,
+      ]
+    })
+    autoTable(doc, {
+      startY: y,
+      head: [["N°", "Point", "Entreprise", "Échéance", "Priorité", "État"]],
+      body,
+      margin: { left: margin, right: margin, top: 28, bottom: 20 },
+      headStyles: { fillColor: [71, 85, 105], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 7.5 },
+      bodyStyles: { fontSize: 7.5, textColor: NOIR, valign: 'middle' },
+      columnStyles: {
+        0: { cellWidth: usable * 0.07, halign: 'center', fontStyle: 'bold' },
+        1: { cellWidth: usable * 0.38 },
+        2: { cellWidth: usable * 0.19 },
+        3: { cellWidth: usable * 0.13, halign: 'center' },
+        4: { cellWidth: usable * 0.1, halign: 'center' },
+        5: { cellWidth: usable * 0.13, halign: 'center', fontStyle: 'bold' },
+      },
+      styles: { lineWidth: 0.2, lineColor: [226, 232, 240], cellPadding: 1.8 },
+      didParseCell: (d) => {
+        if (d.section !== 'body') return
+        const r = rows[d.row.index]
+        if (r?.suivi === 'relance') d.cell.styles.fillColor = [254, 242, 242]
+        else if (r?.suivi === 'fait') d.cell.styles.fillColor = [236, 253, 245]
+        if (d.column.index === 5) {
+          d.cell.styles.textColor = r?.suivi === 'relance' ? [185, 28, 28]
+            : r?.suivi === 'fait' ? [4, 120, 87] : r?.suivi === 'nouveau' ? BLEU_CLAIR : NOIR
+        }
+        if (d.column.index === 4 && d.cell.raw === 'Urgente') { d.cell.styles.textColor = [185, 28, 28]; d.cell.styles.fontStyle = 'bold' }
+        if (d.column.index === 3 && String(d.cell.raw).includes('retard')) d.cell.styles.textColor = [185, 28, 28]
+      },
+    })
+    y = doc.lastAutoTable.finalY + 5
+  }
+
+  if (cr.resume) {
+    title("SYNTHÈSE DE LA RÉUNION")
+    textBlock(cr.resume)
+  }
+
+  // Avancement par lot
+  const avRows = crSections.filter(s => lotKey(s.lot) !== lotKey(GENERAL) && (s.avancement != null || s.prevu != null))
+  if (avRows.length) {
+    title("AVANCEMENT PAR LOT")
+    autoTable(doc, {
+      startY: y,
+      head: [["Lot", "Entreprise", "CR précédent", "Avancement", "Prévu", "Écart"]],
+      body: avRows.map(s => {
+        const ecart = s.avancement != null && s.prevu != null ? s.avancement - s.prevu : null
+        return [
+          sanitize(s.lot), sanitize(s.entreprise || '—'),
+          s.avancement_prec != null ? `${s.avancement_prec} %` : '—',
+          s.avancement != null ? `${s.avancement} %` : '—',
+          s.prevu != null ? `${s.prevu} %` : '—',
+          ecart == null ? '—' : `${ecart > 0 ? '+' : ''}${ecart} pts`,
+        ]
+      }),
+      margin: { left: margin, right: margin, top: 28, bottom: 20 },
+      headStyles: { fillColor: BLEU, textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 7.5 },
+      bodyStyles: { fontSize: 7.5, textColor: NOIR },
+      columnStyles: { 0: { fontStyle: 'bold' }, 2: { halign: 'center' }, 3: { halign: 'center', fontStyle: 'bold' }, 4: { halign: 'center' }, 5: { halign: 'center' } },
+      alternateRowStyles: { fillColor: GRIS_CLAIR },
+      styles: { lineWidth: 0.2, lineColor: [226, 232, 240], cellPadding: 1.8 },
+      didParseCell: (d) => {
+        if (d.section === 'body' && d.column.index === 5 && d.cell.raw !== '—') {
+          d.cell.styles.textColor = String(d.cell.raw).startsWith('-') ? [185, 28, 28] : [4, 120, 87]
+        }
+      },
+    })
+    y = doc.lastAutoTable.finalY + 7
+  }
+
+  // Une section par lot (Généralités d'abord)
+  for (const s of crSections) {
+    const rows = pointsOf(s.lot)
+    const photos = [
+      ...(s.photos || []),
+      ...rows.flatMap(r => (r.photos || []).map(photo => ({ photo, num: r.num }))),
+    ]
+    if (!rows.length && !s.observations && !photos.some(p => imageOf(p.photo || p))) continue
+    if (y > h - 50) { doc.addPage(); y = 28 }
+    section += 1
+    doc.setFillColor(...BLEU); doc.rect(margin, y - 4.5, usable, 7.5, 'F')
+    doc.setFontSize(9.5); doc.setFont("helvetica", "bold"); doc.setTextColor(255, 255, 255)
+    doc.text(sanitize(`${section}. ${String(s.lot).toUpperCase()}`), margin + 3, y)
+    const right = [s.entreprise, s.avancement != null ? `avancement ${s.avancement} %` : ''].filter(Boolean).join('  |  ')
+    if (right) {
+      doc.setFontSize(8); doc.setFont("helvetica", "normal")
+      doc.text(sanitize(right), w - margin - 3, y, { align: "right" })
+    }
+    y += 7
+    if (s.observations) textBlock(s.observations)
+    if (rows.length) pointsTable(rows)
+    photoGrid(photos)
+    y += 2
+  }
+  if (suivi.length > 0) {
+    doc.setFontSize(7); doc.setFont("helvetica", "italic"); doc.setTextColor(...GRIS)
+    if (y > h - 30) { doc.addPage(); y = 28 }
+    const legend = doc.splitTextToSize("Les points gardent leur numéro d'un compte rendu à l'autre. Tout point non réalisé à son échéance est relancé au compte rendu suivant et sa priorité est relevée d'un niveau.", usable)
+    doc.text(legend, margin, y); y += legend.length * 3.2 + 6
+    doc.setFont("helvetica", "normal")
+  }
+
   if (cr.decisions) {
-    if (y > 240) { doc.addPage(); y = 20 }
-    doc.setFontSize(9); doc.setFont("helvetica", "bold"); doc.setTextColor(...BLEU)
-    doc.text("DÉCISIONS & ACTIONS À MENER", margin, y); y += 4
-    const dLines = doc.splitTextToSize(sanitize(cr.decisions), usable - 6)
-    const dH = dLines.length * 4 + 6
-    doc.setFillColor(254, 243, 199); doc.roundedRect(margin, y, usable, dH, 1.5, 1.5, 'F')
-    doc.setDrawColor(245, 158, 11); doc.setLineWidth(0.5); doc.line(margin, y, margin, y + dH)
-    doc.setFontSize(8.5); doc.setFont("helvetica", "normal"); doc.setTextColor(146, 64, 14)
-    doc.text(dLines, margin + 3, y + 5); y += dH + 6
+    title("DÉCISIONS")
+    textBlock(cr.decisions, { fill: [254, 243, 199], bar: [245, 158, 11], color: [146, 64, 14] })
   }
 
-  // Diffusion
-  if (y > 250) { doc.addPage(); y = 20 }
-  doc.setFontSize(9); doc.setFont("helvetica", "bold"); doc.setTextColor(...BLEU)
-  doc.text("DIFFUSION", margin, y); y += 4
+  if (y > h - 40) { doc.addPage(); y = 28 }
   doc.setFontSize(7.5); doc.setFont("helvetica", "normal"); doc.setTextColor(...GRIS)
-  doc.text("Ce compte rendu est diffusé aux participants et au maître d'ouvrage.", margin, y); y += 3.5
-  doc.text("En l'absence de remarque dans un délai de 8 jours, il est réputé approuvé.", margin, y); y += 3.5
-  doc.text(`Établi par ${ENT.nom}, le ${fmtD(cr.date)}.`, margin, y); y += 10
+  doc.text(sanitize(`Établi par ${ENT.nom}, maître d'oeuvre, le ${fmtD(cr.date)}.`), margin, y + 2)
+  if (next) {
+    const heure = next.heure ? ` à ${String(next.heure).slice(0, 5).replace(':', 'h')}` : ''
+    doc.setFont("helvetica", "bold"); doc.setTextColor(...BLEU)
+    doc.text(sanitize(`Prochaine réunion : ${fmtLongDate(next.date)}${heure}${next.lieu ? `, ${next.lieu}` : ''}`), margin, y + 7)
+  }
 
-  pied(doc, w, margin, y)
-  doc.save(`CR-${cr.numero || "X"}-${(chantier?.nom || "chantier").replace(/\s+/g, "_")}.pdf`)
+  // En-têtes (pages 2+) et pieds de page sur toutes les pages
+  const total = doc.getNumberOfPages()
+  for (let p = 1; p <= total; p++) {
+    doc.setPage(p)
+    if (p > 1) {
+      doc.setFontSize(8); doc.setFont("helvetica", "bold"); doc.setTextColor(...BLEU)
+      doc.text(sanitize(`CR n°${cr.numero || "-"}  |  ${chantier?.nom || ""}`), margin, 14)
+      doc.setFont("helvetica", "normal"); doc.setTextColor(...GRIS)
+      doc.text(`Réunion du ${fmtD(cr.date)}`, w - margin, 14, { align: "right" })
+      doc.setDrawColor(...BLEU); doc.setLineWidth(0.5); doc.line(margin, 17, w - margin, 17)
+    }
+    pied(doc, w, margin, h - 12)
+    doc.setFontSize(6.5); doc.setTextColor(148, 163, 184)
+    doc.text(`Page ${p} / ${total}`, w - margin, h - 5, { align: "right" })
+  }
+
+  const filename = `CR-${cr.numero || "X"}-${(chantier?.nom || "chantier").replace(/[^\w-]+/g, "_")}.pdf`
   SB.log('generate_pdf', 'cr', cr.id || null,
     `CR n°${cr.numero || 'X'}`, { format: 'pdf', chantier_id: chantier?.id || null })
+  if (opts.returnBase64) return { base64: doc.output('datauristring'), filename }
+  if (opts.preview && typeof window !== 'undefined') {
+    const url = doc.output('bloburl')
+    if (window.open(url, '_blank')) return { filename }
+  }
+  doc.save(filename)
+  return { filename }
 }
 
 // ══════════════════════════════════════
@@ -921,9 +1203,9 @@ export function generateCRExcel(cr, chantier) {
   const crIntervenants = cr.intervenants || []
   if (crIntervenants.length > 0) {
     csv += `INTERVENANTS\n`
-    csv += `N°;Nom;Entreprise;Email;Téléphone\n`
+    csv += `N°;Nom;Entreprise;Email;Téléphone;Présence;Convoqué\n`
     crIntervenants.forEach((it, idx) => {
-      csv += `${idx + 1};${it.nom||""};${it.societe||""};${it.email||""};${it.tel||""}\n`
+      csv += `${idx + 1};${it.nom||""};${it.societe||""};${it.email||""};${it.tel||""};${it.presence||""};${it.convoque === false ? "" : (it.presence ? "oui" : "")}\n`
     })
     if (cr.participants) csv += `Également présents;${cr.participants}\n`
   } else {
@@ -937,6 +1219,31 @@ export function generateCRExcel(cr, chantier) {
   csv += `DÉCISIONS & ACTIONS\n`
   csv += `"${(cr.decisions||"").replace(/"/g, '""')}"\n`
   csv += `\n`
+  const q = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`
+  const suivi = Array.isArray(cr.taches_suivi) ? cr.taches_suivi : []
+  if (suivi.length > 0) {
+    csv += `SUIVI DES POINTS\n`
+    csv += `N°;Lot;Point;Entreprise;Échéance;Priorité;État;Rappels;CR d'origine\n`
+    suivi.forEach((r) => {
+      csv += [r.num || "", q(lotOf(r)), q(r.titre), q(r.entreprise), fmtD(r.echeance), priorityLabel(r.priorite),
+        SUIVI_PDF[r.suivi] || r.suivi || "", r.rappels || 0, r.origine || ""].join(";") + "\n"
+    })
+    csv += `\n`
+  }
+  const lotsCr = (cr.sections || []).filter(x => x.avancement != null || x.observations)
+  if (lotsCr.length > 0) {
+    csv += `LOTS\n`
+    csv += `Lot;Entreprise;Avancement;Prévu;Observations\n`
+    lotsCr.forEach(x => {
+      csv += [q(x.lot), q(x.entreprise), x.avancement ?? "", x.prevu ?? "", q(x.observations)].join(";") + "\n"
+    })
+    csv += `\n`
+  }
+  const next = cr.prochaine_reunion
+  if (next?.date) {
+    csv += `PROCHAINE RÉUNION;${fmtD(next.date)};${next.heure || ""};${q(next.lieu)}\n`
+    csv += `\n`
+  }
   csv += `${ENT.nom};${ENT.adresse};${ENT.cpVille};SIRET ${ENT.siret}\n`
 
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })

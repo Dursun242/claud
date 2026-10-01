@@ -46,6 +46,7 @@ function tx(mode, fn) {
 
 export const cacheGet = (key) => tx('readonly', (s) => s.get(key))
 export const cacheSet = (key, value) => tx('readwrite', (s) => s.put(value, key))
+export const cacheDelete = (key) => tx('readwrite', (s) => s.delete(key))
 const cacheClearAll = () => tx('readwrite', (s) => s.clear())
 
 // ─── File d'attente ───

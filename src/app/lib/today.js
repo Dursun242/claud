@@ -129,7 +129,7 @@ export function buildClientOverview(data = {}, { today = localISO(), horizon = 3
       debut: day(p.debut), chantier: chantierNom(p.chantierId || p.chantier_id),
     }))
 
-  const dernierCR = [...(data.compteRendus || [])]
+  const dernierCR = [...(data.compteRendus || [])].filter(c => c.statut !== 'Brouillon')
     .sort((a, b) => day(b.date).localeCompare(day(a.date)))[0] || null
 
   const osToSign = (data.ordresService || [])
