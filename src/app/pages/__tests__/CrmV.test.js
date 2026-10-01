@@ -127,6 +127,18 @@ describe('CrmV', () => {
     expect(await screen.findByText('En retard')).toBeInTheDocument()
     expect(screen.getByText(/Envoyer le devis/)).toBeInTheDocument()
   })
+
+  it('affaires gagnées et perdues dans deux vues distinctes', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await screen.findByText('Rénovation Dupont')
+    await user.click(screen.getByRole('button', { name: /^Gagnées 1$/ }))
+    expect(await screen.findByText('Extension Martin')).toBeInTheDocument()
+    expect(screen.getByText(/Affaires gagnées/)).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /^Perdues 0$/ }))
+    expect(await screen.findByText('Aucune affaire perdue')).toBeInTheDocument()
+    expect(screen.queryByText('Extension Martin')).not.toBeInTheDocument()
+  })
 })
 
 describe('CrmV — navigation entrante (focusId)', () => {
@@ -180,7 +192,7 @@ describe('CrmV — fiche affaire', () => {
     await screen.findByRole('dialog', { name: 'Rénovation Dupont' })
     // o1 est en « Qualifié » avec une relance en attente → bandeau relance
     expect(screen.getByText(/Relance prévue/)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Gagnée/ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /🎉 Gagnée/ })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /^Perdue$/ })).toBeInTheDocument()
     // Noter un appel : le sujet est pré-rempli avec le contact
     await user.click(screen.getByRole('button', { name: 'Noter Appel' }))
