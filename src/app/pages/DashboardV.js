@@ -1,10 +1,12 @@
 'use client'
 import { useMemo } from 'react'
 import { pct, fmtMoney, phase, PBar, COMPANY } from '../dashboards/shared'
-import { pipelineStats, classifyFollowUps } from '../lib/crm'
+import { classifyFollowUps } from '../lib/crm'
 import { buildAgenda, buildClientOverview, localISO } from '../lib/today'
 import { newIntent } from '../lib/navIntent'
 import TodayPanel from '../components/dashboard/TodayPanel'
+import CrmPanel from '../components/dashboard/CrmPanel'
+import { buildCrmInsights } from '../lib/crmInsights'
 import ClientOverview from '../components/dashboard/ClientOverview'
 
 // Salutation selon l'heure de la journée
@@ -68,7 +70,7 @@ export default function DashboardV({data,crm=null,setTab,m,user,clientMode=false
   }, [data.tasks, data.chantiers, data.ordresService]);
 
   // CRM : relances à traiter (en retard + aujourd'hui) et pipeline actif
-  const { crmStats, relances, nbOverdue } = useMemo(() => {
+  const { crmInsights, hasCrm, relances, nbOverdue } = useMemo(() => {
     const opps = crm?.opportunites || []
     const oppById = new Map(opps.map(o => [o.id, o]))
     const f = classifyFollowUps(crm?.interactions || [], new Date(), { opportunites: opps, devis: crm?.devis || [] })
@@ -81,12 +83,14 @@ export default function DashboardV({data,crm=null,setTab,m,user,clientMode=false
         tab: 'crm', focus: o?.id || 'relances',
       }
     }
+    const contactsById = new Map((data.contacts || []).map(c => [c.id, c]))
     return {
-      crmStats: pipelineStats(opps),
+      crmInsights: buildCrmInsights(crm || {}, { contactsById }),
+      hasCrm: opps.length > 0 || (crm?.devis || []).length > 0,
       relances: [...f.overdue.map(toItem(true)), ...f.today.map(toItem(false))],
       nbOverdue: f.overdue.length,
     }
-  }, [crm])
+  }, [crm, data.contacts])
 
   // « Ma journée » (admin) / suivi des travaux (client)
   const today = localISO()
@@ -304,31 +308,11 @@ export default function DashboardV({data,crm=null,setTab,m,user,clientMode=false
       </div>
     )}
 
-    {/* CRM — résumé du pipeline. Les relances du jour sont dans « Ma journée ».
-        Masqué tant qu'il n'y a aucune affaire active. */}
-    {!clientMode && crmStats.actives>0 && (
-      <div style={{
-        background:"#fff", borderRadius:14, padding:m?14:18,
-        boxShadow:"0 1px 3px rgba(0,0,0,0.06)", marginBottom:18
-      }}>
-        <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:8}}>
-          <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
-            <h2 style={{margin:0,fontSize:16,fontWeight:700,color:"#0F172A"}}>🎯 CRM</h2>
-            <span style={{fontSize:11,color:"#64748B"}}>
-              {crmStats.actives} affaire{crmStats.actives>1?"s":""} · {fmtMoney(crmStats.montantPipeline)} · pondéré {fmtMoney(crmStats.montantPondere)}
-            </span>
-            {nbOverdue>0 && (
-              <span style={{background:"#EF4444",color:"#fff",borderRadius:6,padding:"2px 8px",fontSize:11,fontWeight:700}}>
-                {nbOverdue} relance{nbOverdue>1?"s":""} en retard
-              </span>
-            )}
-          </div>
-          <button onClick={()=>setTab("crm")} style={{
-            fontSize:11, color:"#3B82F6", background:"none", border:"none",
-            cursor:"pointer", fontWeight:600, fontFamily:"inherit"
-          }}>Voir le pipeline →</button>
-        </div>
-      </div>
+    {/* COMMERCIAL — chiffres clés du CRM + signaux à saisir (devis consultés,
+        signatures en attente, devis qui expirent, affaires dormantes…).
+        Les relances du jour sont dans « Ma journée ». */}
+    {!clientMode && hasCrm && (
+      <CrmPanel insights={crmInsights} nbOverdue={nbOverdue} onOpen={setTab} m={m}/>
     )}
 
     {/* À FAIRE — tâches actives triées par priorité/échéance (interne MOE) */}
