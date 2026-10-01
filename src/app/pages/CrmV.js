@@ -51,7 +51,7 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
   }
   const { opportunites, interactions, missingMigration } = crm
 
-  const [view, setView] = useState('pipeline')       // pipeline | relances | closed
+  const [view, setView] = useState('pipeline')       // pipeline | relances | won | lost
   const [q, setQ] = useState('')
   const [quick, setQuick] = useState('')              // ajout rapide (barre en haut)
   const [mobileStage, setMobileStage] = useState(null)
@@ -364,7 +364,7 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
         <div style={{ display: 'grid', gridTemplateColumns: m ? '1fr 1fr' : 'repeat(4, 1fr)', gap: 10, marginBottom: 14 }}>
           <Kpi label="En cours" value={fmtMoney(stats.montantPipeline)} sub={`${stats.actives} affaire${stats.actives > 1 ? 's' : ''}`} color="#3B82F6" onClick={() => setView('pipeline')} />
           <Kpi label="Prévision" value={fmtMoney(stats.montantPondere)} sub="selon les chances de chaque affaire" color="#8B5CF6" />
-          <Kpi label="Gagné ce mois" value={fmtMoney(stats.montantGagneMois)} sub={`${stats.gagneesMois} affaire${stats.gagneesMois > 1 ? 's' : ''}`} color="#10B981" onClick={() => setView('closed')} />
+          <Kpi label="Gagné ce mois" value={fmtMoney(stats.montantGagneMois)} sub={`${stats.gagneesMois} affaire${stats.gagneesMois > 1 ? 's' : ''}`} color="#10B981" onClick={() => setView('won')} />
           <Kpi label="À relancer" value={String(nbRelances)} sub={followUps.overdue.length ? `${followUps.overdue.length} en retard` : nbRelances ? "aujourd'hui" : 'rien en attente'}
             color={followUps.overdue.length ? '#EF4444' : '#F59E0B'} onClick={() => setView('relances')} />
         </div>
@@ -374,7 +374,8 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
           {[
             { k: 'pipeline', l: 'Pipeline', c: '#3B82F6', n: stats.actives },
             { k: 'relances', l: 'Relances', c: '#F59E0B', n: nbRelances },
-            { k: 'closed',   l: 'Terminées', c: '#64748B', n: grouped['Gagné'].length + grouped['Perdu'].length },
+            { k: 'won',      l: 'Gagnées',  c: '#10B981', n: grouped['Gagné'].length },
+            { k: 'lost',     l: 'Perdues',  c: '#EF4444', n: grouped['Perdu'].length },
           ].map(p => {
             const active = view === p.k
             return (
@@ -412,9 +413,9 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
           onToggle={toggleAction} onOpen={(id) => setSelectedId(id)} />
       )}
 
-      {/* ─── TERMINÉES ─── */}
-      {view === 'closed' && (
-        <CrmClosedList list={[...grouped['Gagné'], ...grouped['Perdu']]} m={m}
+      {/* ─── GAGNÉES / PERDUES ─── */}
+      {(view === 'won' || view === 'lost') && (
+        <CrmClosedList kind={view} list={view === 'won' ? grouped['Gagné'] : grouped['Perdu']}
           contactsById={contactsById} chantiers={data?.chantiers || []} onOpen={setSelectedId} />
       )}
 
