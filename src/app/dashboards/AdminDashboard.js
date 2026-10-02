@@ -511,7 +511,7 @@ export default function AdminDashboard({ user, profile = null }) {
               <TabErrorBoundary name="contacts" resetKey={data}>
                 <ContactsV data={data} save={save} m={isMobile}
                   reload={reload} focusId={tab === 'contacts' ? focus?.id : null} focusTs={focus?.ts}
-                  crm={crm} setTab={switchTab}/>
+                  crm={crm} reloadCrm={reloadCrm} setTab={switchTab}/>
               </TabErrorBoundary>
             </div>
           )}

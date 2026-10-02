@@ -15,6 +15,15 @@ import { usePappersSearch } from '../hooks/usePappersSearch'
 import { oppsByContact } from '../lib/crm'
 import { parseNewIntent } from '../lib/navIntent'
 import { resizeImageForAI } from '../lib/imageForAI'
+import { findDuplicateGroups, duplicateReasons, pairKey } from '../lib/contactDuplicates'
+import { mergeContacts } from '../lib/contactsMerge'
+import DuplicatesModal from '../components/contacts/DuplicatesModal'
+
+// Paires marquées « pas un doublon » (sur cet appareil)
+const IGNORED_KEY = 'idm_contacts_not_duplicates'
+const readIgnored = () => {
+  try { return new Set(JSON.parse(localStorage.getItem(IGNORED_KEY) || '[]')) } catch { return new Set() }
+}
 
 const TYPE_COLORS = {
   Artisan:"#F59E0B",Client:"#3B82F6",Fournisseur:"#10B981",
@@ -23,7 +32,7 @@ const TYPE_COLORS = {
 }
 const TYPES = ["Artisan","Sous-traitant","Prestataire","Client","Fournisseur","MOA","Architecte","BET"]
 
-export default function ContactsV({ data, save: _save, m, reload, focusId, focusTs, crm = null, setTab = null }) {
+export default function ContactsV({ data, save: _save, m, reload, focusId, focusTs, crm = null, reloadCrm = null, setTab = null }) {
   const { addToast } = useToast();
   const confirm = useConfirm();
   const [modal,setModal]=useState(null);
@@ -113,6 +122,50 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
   };
   // Affaires CRM par contact (badge sur la carte + lien vers le pipeline)
   const crmByContact = useMemo(() => oppsByContact(crm?.opportunites || []), [crm?.opportunites]);
+
+  // ─── Doublons ───
+  const [dupOpen, setDupOpen] = useState(false);
+  const [merging, setMerging] = useState(false);
+  const [ignored, setIgnored] = useState(() => new Set());
+  useEffect(() => { setIgnored(readIgnored()); }, []);
+  const dupGroups = useMemo(
+    () => findDuplicateGroups((data.contacts || []).filter(c => !pendingDeleteIds.has(c.id)), ignored),
+    [data.contacts, ignored, pendingDeleteIds]
+  );
+  // Ce qui est rattaché à un contact (affaires, chantiers, OS)
+  const usage = (c) => ({
+    affaires: crmByContact.get(c.id)?.n || 0,
+    chantiers: (data.contactChantiers || []).filter(l => l.contact_id === c.id).length
+      + (data.chantiers || []).filter(ch => ch.client === c.nom).length,
+    os: (data.ordresService || []).filter(o => o.artisan_nom === c.nom).length,
+  });
+  const ignoreGroup = (g) => {
+    const next = new Set(ignored);
+    for (let i = 0; i < g.ids.length; i++) for (let j = i + 1; j < g.ids.length; j++) next.add(pairKey(g.ids[i], g.ids[j]));
+    setIgnored(next);
+    try { localStorage.setItem(IGNORED_KEY, JSON.stringify([...next])); } catch { /* navigation privée */ }
+    addToast("Contacts marqués « pas un doublon »", "info");
+  };
+  const handleMerge = async ({ keep, drops, fields }) => {
+    setMerging(true);
+    try {
+      const { moved } = await mergeContacts({ keep, drops, fields });
+      await reload();
+      reloadCrm?.();
+      const details = [
+        moved.affaires && `${moved.affaires} affaire${moved.affaires > 1 ? 's' : ''}`,
+        moved.chantiers && `${moved.chantiers} chantier${moved.chantiers > 1 ? 's' : ''}`,
+        moved.os && `${moved.os} OS`,
+      ].filter(Boolean).join(', ');
+      addToast(`Contacts fusionnés en « ${fields.nom} »${details ? ` — repris : ${details}` : ''}`, "success");
+      return true;
+    } catch (err) {
+      addToast(err?.message || "Fusion impossible", "error");
+      return false;
+    } finally {
+      setMerging(false);
+    }
+  };
 
   const list = useMemo(() => {
     const search = q.toLowerCase();
@@ -208,6 +261,19 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
     const tvaCheck = validateTvaIntra(form.tva_intra);
     if (!tvaCheck.valid) warnings.push(`TVA ${tvaCheck.message}`);
 
+    // Nouveau contact qui ressemble à un contact existant : on prévient
+    if (modal === "new") {
+      const twin = (data.contacts || []).map(c => ({ c, r: duplicateReasons(form, c).filter(x => x !== 'même SIRET') })).find(x => x.r.length);
+      if (twin) {
+        const ok = await confirm({
+          title: "Ce contact existe peut-être déjà",
+          message: `« ${twin.c.nom} »${twin.c.societe ? ` (${twin.c.societe})` : ""} a ${twin.r.join(" et ")}. Créer quand même un nouveau contact ?`,
+          confirmLabel: "Créer quand même",
+          cancelLabel: "Revenir à la fiche",
+        });
+        if (!ok) return;
+      }
+    }
     try {
       await SB.upsertContact(form);
       setModal(null);
@@ -408,6 +474,18 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
             <>📸 Importer photo / capture</>
           )}
         </button>
+        {dupGroups.length > 0 && (
+          <button
+            onClick={() => setDupOpen(true)}
+            title="Contacts qui semblent en double : vérifier et fusionner"
+            style={{
+              ...btnS, fontSize: 12, background: "#FFF7ED", color: "#9A3412",
+              border: "1.5px solid #FED7AA", display: "flex", alignItems: "center", gap: 6,
+            }}
+          >
+            👥 Doublons ({dupGroups.length})
+          </button>
+        )}
         <button
           onClick={handleExportCSV}
           title="Exporter la liste filtrée au format CSV (Excel)"
@@ -657,6 +735,9 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
       ))}
     </div>
     )}
+
+    <DuplicatesModal open={dupOpen} groups={dupGroups} usage={usage} merging={merging}
+      onClose={() => setDupOpen(false)} onIgnore={ignoreGroup} onMerge={handleMerge} />
 
     {/* MODAL — Formulaire contact (délégué à ContactFormModal) */}
     <ContactFormModal
