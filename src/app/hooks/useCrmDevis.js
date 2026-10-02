@@ -23,7 +23,8 @@ import { qontoState } from '../components/crm/DevisList'
 import { addDays } from '../components/crm/crmUi'
 import { summarizeDevisEvents } from '../lib/devisTracking'
 import { buildPriceHistory, checkDevis, buildAiContext } from '../lib/devisAi'
-import { apiPost, apiUpload, saveBase64Pdf, openBase64Pdf } from '../lib/crmApi'
+import { apiPost, saveBase64Pdf, openBase64Pdf } from '../lib/crmApi'
+import { supabase } from '../supabaseClient'
 
 export function useCrmDevis({ crm, opportunites, interactions, contactsById, reload, setSaving, changeEtape }) {
   const { addToast } = useToast()
@@ -271,11 +272,15 @@ export function useCrmDevis({ crm, opportunites, interactions, contactsById, rel
   // Pièces jointes du mail : documents permanents (Kbis, décennale…) + fichiers
   const devisDocsApi = useMemo(() => ({
     list: async () => (await apiPost('/api/devis/documents', { action: 'list' })).data.docs,
+    // Dépôt direct dans Storage via une URL signée (pas de limite Vercel)
     upload: async (file, permanent) => {
-      const fd = new FormData()
-      fd.append('file', file)
-      fd.append('permanent', permanent ? '1' : '0')
-      return (await apiUpload('/api/devis/documents', fd)).data
+      const { data: prep } = await apiPost('/api/devis/documents', {
+        action: 'prepare', name: file.name, type: file.type, size: file.size, permanent: !!permanent,
+      })
+      const { error } = await supabase.storage.from('attachments')
+        .uploadToSignedUrl(prep.path, prep.token, file, { contentType: prep.type })
+      if (error) throw new Error(`Dépôt de « ${prep.name} » impossible : ${error.message}`)
+      return { path: prep.path, name: prep.name, size: prep.size }
     },
     remove: async (doc) => {
       const ok = await confirm({
