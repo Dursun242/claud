@@ -35,6 +35,7 @@ const ACTION_STYLES = {
   seed:            { bg: '#F1F5F9', color: '#475569', border: '#CBD5E1', label: 'Initialisation' },
   export_csv:      { bg: '#F5F3FF', color: '#5B21B6', border: '#DDD6FE', label: 'Export CSV' },
   convert:         { bg: '#ECFDF5', color: '#047857', border: '#A7F3D0', label: 'Conversion en chantier' },
+  merge:           { bg: '#FFF7ED', color: '#9A3412', border: '#FED7AA', label: 'Fusion de doublons' },
 }
 const ENTITY_LABELS = {
   chantier:     'Chantier',
