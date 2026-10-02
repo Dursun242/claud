@@ -30,7 +30,7 @@ const chipX = {
 const smallBtn = { ...btnS, fontSize: 12, padding: '5px 10px', minHeight: 30 }
 
 export default function DevisSendForm({ initial = {}, filename, sending, error, canSign, docsApi, onPreviewPdf, onDraftAi, onSubmit, onCancel }) {
-  const [form, setForm] = useState({ to: '', cc: '', subject: '', body: '', copyMe: true, sign: !!canSign, ...initial })
+  const [form, setForm] = useState({ to: '', cc: '', subject: '', body: '', copyMe: false, sign: !!canSign, ...initial })
   const [localError, setLocalError] = useState('')
   const [drafting, setDrafting] = useState(false)
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))

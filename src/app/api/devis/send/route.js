@@ -147,9 +147,10 @@ export async function POST(request) {
       // Logo intégré au corps du mail (pas une pièce jointe visible)
       attachments: [...files, logo],
     })
-    // Copie à l'expéditeur (le devis envoyé reste dans sa boîte), envoyée à
-    // part et sans image de suivi : ses propres ouvertures ne comptent pas
-    if (body.copyMe !== false && user.email) {
+    // Copie à l'expéditeur seulement si demandée (case « M'envoyer une
+    // copie », décochée par défaut), envoyée à part et sans image de suivi :
+    // ses propres ouvertures ne comptent pas
+    if (body.copyMe === true && user.email) {
       try {
         await sendMail(cfg, { to: user.email, subject: `[Copie] ${subject}`, text, html: html(null), attachments: [...files, logo] })
       } catch (e) { log.warn('copie expéditeur', e?.code || e?.message || e) }
