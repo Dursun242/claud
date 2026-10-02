@@ -73,8 +73,21 @@ export function isTinMissing(status, body) {
 }
 
 /**
- * Client Qonto à créer à partir du contact de l'affaire : société si le
- * contact a une raison sociale, particulier sinon.
+ * Le contact est un particulier : ni raison sociale, ni SIRET, ni TVA, et
+ * soit de type Client / MOA, soit un nom de personne (« Prénom Nom »).
+ * Qonto n'exige pas de SIREN pour un particulier.
+ */
+export function isParticulier(contact = {}) {
+  if (String(contact.societe || '').trim()) return false
+  if (sirenFromContact(contact)) return false
+  if (String(contact.tva_intra || '').trim()) return false
+  const nom = String(contact.nom || '').trim()
+  return ['Client', 'MOA'].includes(contact.type) || nom.includes(' ')
+}
+
+/**
+ * Client Qonto à créer à partir du contact de l'affaire : particulier
+ * (isParticulier), société sinon.
  */
 export function qontoClientPayload(contact = {}) {
   const societe = cut(contact.societe, 200)
@@ -89,7 +102,7 @@ export function qontoClientPayload(contact = {}) {
     currency: 'EUR',
   }
   const tva = String(contact.tva_intra || '').replace(/\s/g, '').toUpperCase()
-  if (societe || !nom.includes(' ')) {
+  if (!isParticulier(contact)) {
     const siren = sirenFromContact(contact)
     return {
       kind: 'company', name: societe || nom,
@@ -106,14 +119,21 @@ export function qontoClientPayload(contact = {}) {
   if (upper.length && upper.length < words.length) {
     return { kind: 'individual', first_name: words.filter(w => !isUpper(w)).join(' '), last_name: upper.join(' '), ...base }
   }
+  // Nom seul (« GRUGET ») : nom de famille sans prénom
+  if (words.length === 1) return { kind: 'individual', last_name: words[0], ...base }
   const [first, ...rest] = words
   return { kind: 'individual', first_name: first, last_name: rest.join(' '), ...base }
 }
 
 const clientName = (c = {}) => c.name || [c.first_name, c.last_name].filter(Boolean).join(' ')
 
-/** Retrouve le client Qonto du contact (email d'abord, puis nom). */
-export function matchQontoClient(clients = [], contact = {}) {
+/**
+ * Retrouve le client Qonto du contact (email d'abord, puis nom). Pour un
+ * particulier, les clients « société » sont ignorés (un client créé à tort
+ * comme société exigerait un SIREN).
+ */
+export function matchQontoClient(allClients = [], contact = {}) {
+  const clients = isParticulier(contact) ? allClients.filter(c => c.kind !== 'company') : allClients
   const email = String(contact.email || '').trim().toLowerCase()
   if (email) {
     const byEmail = clients.find(c => String(c.email || '').trim().toLowerCase() === email)

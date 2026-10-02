@@ -110,11 +110,15 @@ async function resolveClient(token, devis, contact) {
   if (!contact) throw new QontoError('Associe un contact (le client) à l’affaire avant d’enregistrer le devis dans Qonto.', 400)
   const found = matchQontoClient(await listAll(token, '/clients', 'clients'), contact)
   if (found?.id) return found.id
-  const r = await qonto(token, 'POST', '/clients', qontoClientPayload(contact))
+  const payload = qontoClientPayload(contact)
+  const r = await qonto(token, 'POST', '/clients', payload)
   const id = r.json?.client?.id || r.json?.id
   if (!r.ok || !id) {
     log.error(`création client ${r.status}`, r.text.slice(0, 500))
-    throw new QontoError(`Création du client dans Qonto refusée : ${qontoErrorDetail(r.json) || r.status}. Complète la fiche contact (nom, adresse, code postal, ville).`, 422)
+    const prenom = payload.kind === 'individual' && !payload.first_name
+      ? ` Pour un particulier, Qonto peut demander le prénom : écris le nom de la fiche sous la forme « ${contact.nom} Prénom ».`
+      : ''
+    throw new QontoError(`Création du client dans Qonto refusée : ${qontoErrorDetail(r.json) || r.status}. Complète la fiche contact (nom, adresse, code postal, ville).${prenom}`, 422)
   }
   return id
 }
@@ -167,7 +171,7 @@ async function sync(admin, token, devisId) {
     const siren = sirenFromContact(contact)
     if (!siren) {
       throw new QontoError(
-        `Qonto exige le SIREN / SIRET du client pour établir le devis : renseigne le champ SIRET de la fiche contact${contact?.nom ? ` « ${contact.nom} »` : ''} (bouton Pappers pour le retrouver), puis réessaie.`,
+        `Qonto exige le SIREN / SIRET du client pour établir le devis : renseigne le champ SIRET de la fiche contact${contact?.nom ? ` « ${contact.nom} »` : ''} (bouton Pappers pour le retrouver), puis réessaie. S’il s’agit d’un particulier, mets le type « Client » sur sa fiche et vide les champs Société / SIRET / TVA.`,
         422, 'CLIENT_TIN_MISSING',
       )
     }

@@ -1,7 +1,7 @@
 import {
   toQontoQuote, qontoClientPayload, matchQontoClient,
   isNumberTaken, isUnitRejected, qontoErrorDetail, totalsMismatch, qontoFingerprint,
-  isNumberRequired, isTinMissing, sirenFromContact, qontoQuoteToDevis,
+  isNumberRequired, isTinMissing, sirenFromContact, qontoQuoteToDevis, isParticulier,
 } from '../qontoDevis'
 
 const devis = {
@@ -54,12 +54,37 @@ describe('toQontoQuote', () => {
 })
 
 describe('client Qonto', () => {
+  it('particulier : client / MOA ou nom de personne, sans société / SIRET / TVA', () => {
+    expect(isParticulier({ nom: 'GRUGET', type: 'Client' })).toBe(true)
+    expect(isParticulier({ nom: 'Jean Dupont', type: 'Artisan' })).toBe(true)
+    expect(isParticulier({ nom: 'Bati76', type: 'Artisan' })).toBe(false)
+    expect(isParticulier({ nom: 'GRUGET', type: 'Client', societe: 'SCI Gruget' })).toBe(false)
+    expect(isParticulier({ nom: 'GRUGET', type: 'Client', tva_intra: 'FR12345678901' })).toBe(false)
+  })
+
+  it('particulier : un client Qonto « société » du même nom est ignoré', () => {
+    const clients = [
+      { id: 'co', kind: 'company', name: 'GRUGET' },
+      { id: 'ind', kind: 'individual', last_name: 'GRUGET' },
+    ]
+    expect(matchQontoClient(clients, { nom: 'GRUGET', type: 'Client' })?.id).toBe('ind')
+    expect(matchQontoClient([clients[0]], { nom: 'GRUGET', type: 'Client' })).toBeNull()
+    expect(matchQontoClient([clients[0]], { nom: 'GRUGET', type: 'Artisan' })?.id).toBe('co')
+  })
+
   it('société si raison sociale, particulier sinon', () => {
     expect(qontoClientPayload({ societe: 'SCI Dupont', nom: 'Jean Dupont', email: 'a@b.fr', tva_intra: 'FR 12 345678901', ville: 'Le Havre' }))
       .toMatchObject({ kind: 'company', name: 'SCI Dupont', email: 'a@b.fr', vat_number: 'FR12345678901', city: 'Le Havre', country_code: 'FR' })
     expect(qontoClientPayload({ nom: 'Jean de la Tour' }))
       .toMatchObject({ kind: 'individual', first_name: 'Jean', last_name: 'de la Tour' })
-    expect(qontoClientPayload({ nom: 'Dupont' })).toMatchObject({ kind: 'company', name: 'Dupont' })
+    // Nom seul : société pour un artisan / fournisseur, particulier pour un client
+    expect(qontoClientPayload({ nom: 'Dupont', type: 'Artisan' })).toMatchObject({ kind: 'company', name: 'Dupont' })
+    const gruget = qontoClientPayload({ nom: 'GRUGET', type: 'Client', ville: 'Le Havre' })
+    expect(gruget).toMatchObject({ kind: 'individual', last_name: 'GRUGET', city: 'Le Havre' })
+    expect(gruget).not.toHaveProperty('first_name')
+    expect(gruget).not.toHaveProperty('tax_identification_number')
+    // Client avec SIRET : société
+    expect(qontoClientPayload({ nom: 'GRUGET', type: 'Client', siret: '92153618100024' })).toMatchObject({ kind: 'company', tax_identification_number: '921536181' })
     // « NOM Prénom » : le nom en majuscules est le nom de famille
     expect(qontoClientPayload({ nom: 'OZKAN Dursun' }))
       .toMatchObject({ kind: 'individual', first_name: 'Dursun', last_name: 'OZKAN' })
