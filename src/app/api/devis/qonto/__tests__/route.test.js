@@ -104,6 +104,21 @@ describe('/api/devis/qonto', () => {
     expect(JSON.parse(fetchWithRetry.mock.calls[1][1].body).client_id).toBe('qc9')
   })
 
+  it('client particulier (nom seul) : client Qonto « particulier », sans SIREN ; l’ancien client « société » est ignoré', async () => {
+    db.contacts = { id: 'c1', nom: 'GRUGET', type: 'Client', email: 'gruget@exemple.fr', ville: 'Le Havre' }
+    fetchWithRetry
+      .mockResolvedValueOnce(json(200, { clients: [{ id: 'qc-co', kind: 'company', name: 'GRUGET', email: 'gruget@exemple.fr' }], meta: {} }))
+      .mockResolvedValueOnce(json(201, { client: { id: 'qc-ind' } }))
+      .mockResolvedValueOnce(json(201, { quote: { id: 'qq1', number: '26-060' } }))
+    const res = await POST(req({ action: 'sync', devisId: 'd1' }))
+    expect(res.status).toBe(200)
+    expect(calls()).toEqual(['GET /clients?per_page=100&page=1', 'POST /clients', 'POST /quotes'])
+    const client = JSON.parse(fetchWithRetry.mock.calls[1][1].body)
+    expect(client).toMatchObject({ kind: 'individual', last_name: 'GRUGET', email: 'gruget@exemple.fr' })
+    expect(client).not.toHaveProperty('tax_identification_number')
+    expect(JSON.parse(fetchWithRetry.mock.calls[2][1].body).client_id).toBe('qc-ind')
+  })
+
   it('Qonto exige un numéro : le CRM continue la séquence de Qonto', async () => {
     db.crm_devis = { ...DEVIS, qonto_client_id: 'qc1' }
     fetchWithRetry
