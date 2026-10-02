@@ -56,7 +56,13 @@ describe('/api/devis/send', () => {
     expect(mail.bcc).toBeUndefined()
     expect(mail.attachments[0]).toMatchObject({ filename: '26-050.pdf', contentType: 'application/pdf' })
     expect(mail.attachments[0].content.subarray(0, 4).toString()).toBe('%PDF')
-    // Copie à l'expéditeur envoyée à part
+    // Pas de copie à l'expéditeur par défaut
+    expect(sendMail).toHaveBeenCalledTimes(1)
+  })
+
+  it('copie à l’expéditeur seulement si demandée', async () => {
+    await POST(req({ ...valid, copyMe: true }))
+    expect(sendMail).toHaveBeenCalledTimes(2)
     const copy = sendMail.mock.calls[1][0]
     expect(copy).toMatchObject({ to: 'moe@id-maitrise.com', subject: '[Copie] Devis 26-050' })
     expect(copy.attachments[0].filename).toBe('26-050.pdf')
@@ -65,7 +71,7 @@ describe('/api/devis/send', () => {
   it('suivi des ouvertures : image de suivi dans le mail du client, pas dans la copie', async () => {
     const devisId = '11111111-2222-3333-4444-555555555555'
     devisRow = { id: devisId, track_token: null }
-    expect((await POST(req({ ...valid, devisId }))).status).toBe(200)
+    expect((await POST(req({ ...valid, devisId, copyMe: true }))).status).toBe(200)
     const token = updates[0].track_token
     expect(token).toMatch(/^[0-9a-f]{64}$/)
     const [client, copy] = sendMail.mock.calls.map(c => c[0])
@@ -135,7 +141,7 @@ describe('/api/devis/send', () => {
     expect((await POST(req({ ...valid, attachments: ['devis-signature/x/original-1.pdf'] }))).status).toBe(400)
     expect((await POST(req({ ...valid, attachments: ['devis-envoi/../devis-signature/x.pdf'] }))).status).toBe(400)
     expect((await POST(req({ ...valid, attachments: ['devis-envoi/zzz/absent.pdf'] }))).status).toBe(400)
-    expect(sendMail).toHaveBeenCalledTimes(2) // mail + copie à l'expéditeur
+    expect(sendMail).toHaveBeenCalledTimes(1) // pas de copie à l'expéditeur par défaut
   })
 
   it('version HTML aux couleurs de la société, lien de signature en bouton et en texte', async () => {
