@@ -2,6 +2,7 @@
  * @jest-environment node
  */
 let POST, verifyStaff, storage
+const { docDisplayName } = require('@/app/lib/devisDocuments')
 
 function loadRoute() {
   jest.resetModules()
@@ -12,6 +13,7 @@ function loadRoute() {
       { id: null, name: 'sous-dossier' },
     ], error: null }),
     upload: jest.fn().mockResolvedValue({ error: null }),
+    createSignedUploadUrl: jest.fn(async (path) => ({ data: { path, token: 'jeton', signedUrl: 'https://x' }, error: null })),
     remove: jest.fn().mockResolvedValue({ error: null }),
   }
   jest.doMock('@/app/lib/auth', () => ({ verifyStaff: jest.fn() }))
@@ -43,12 +45,30 @@ describe('/api/devis/documents', () => {
   it('dépose un document permanent ou un fichier ponctuel ; refuse format et taille', async () => {
     const perm = await (await POST(fileReq(fakeFile('Kbis 2026.pdf', 'application/pdf'), true))).json()
     expect(perm.data.path).toMatch(/^devis-documents\/\d+__Kbis 2026\.pdf$/)
+    // Nom avec accents : clé Storage encodée (Supabase refuse les accents), nom d'origine conservé
     const once = await (await POST(fileReq(fakeFile('../plan/étage.png', 'image/png'), false))).json()
     expect(once.data).toMatchObject({ name: 'étage.png' })
-    expect(once.data.path).toMatch(/^devis-envoi\/[0-9a-f-]{36}\/étage\.png$/)
+    expect(once.data.path).toMatch(/^devis-envoi\/[0-9a-f-]{36}\/u-[A-Za-z0-9_-]+$/)
+    expect(docDisplayName(once.data.path)).toBe('étage.png')
     expect((await POST(fileReq(fakeFile('x.exe', 'application/x-msdownload'), false))).status).toBe(400)
     expect((await POST(fileReq(fakeFile('gros.pdf', 'application/pdf', 5 * 1024 * 1024), false))).status).toBe(400)
     expect(storage.upload).toHaveBeenCalledTimes(2)
+  })
+
+  it('prepare : URL de dépôt signée (10 Mo), clé sans accent, type déduit de l’extension', async () => {
+    const res = await POST(jsonReq({ action: 'prepare', name: 'Attestation décennale 2026.pdf', type: '', size: 8 * 1024 * 1024, permanent: true }))
+    expect(res.status).toBe(200)
+    const { data } = await res.json()
+    expect(data).toMatchObject({ token: 'jeton', name: 'Attestation décennale 2026.pdf', type: 'application/pdf' })
+    expect(data.path).toMatch(/^devis-documents\/\d+__u-[A-Za-z0-9_-]+$/)
+    expect(storage.createSignedUploadUrl).toHaveBeenCalledWith(data.path)
+    expect(docDisplayName(data.path)).toBe('Attestation décennale 2026.pdf')
+
+    const big = await POST(jsonReq({ action: 'prepare', name: 'scan.pdf', type: 'application/pdf', size: 11 * 1024 * 1024 }))
+    expect(big.status).toBe(400)
+    expect((await big.json()).error).toContain('10 Mo')
+    const heic = await POST(jsonReq({ action: 'prepare', name: 'IMG_0001.HEIC', type: 'image/heic', size: 1000 }))
+    expect((await heic.json()).error).toContain('HEIC')
   })
 
   it('retire un document permanent seulement', async () => {

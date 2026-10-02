@@ -49,7 +49,7 @@ src/app/
     ├─ claude/                → assistant IA (Claude ou Mistral via lib/ai.js, réponse au format Anthropic, rate limit 20/min/IP)
     ├─ devis-ia, devis/send   → CRM : IA de chiffrage + envoi SMTP du devis (staff only, verifyStaff)
     ├─ devis/qonto            → CRM : devis créé dans Qonto (numéro + PDF Qonto), import des devis Qonto, suivi des statuts (staff only)
-    ├─ devis/documents        → CRM : pièces jointes des mails de devis (documents permanents Kbis/décennale + fichiers ponctuels, staff only)
+    ├─ devis/documents        → CRM : pièces jointes des mails de devis (documents permanents Kbis/décennale + fichiers ponctuels, dépôt direct dans Storage par URL signée, 10 Mo, staff only)
     ├─ devis/sign             → CRM : demande de signature électronique d'un devis (staff only)
     ├─ cr/send                → envoi du CR par mail (PDF + convocation + actions de chaque entreprise, un mail par destinataire, staff only)
     ├─ cr/ia                  → dictée de réunion → proposition structurée (observations / avancement par lot, états des points, nouveaux points, décisions), staff only
