@@ -291,3 +291,79 @@ export function requestMailText({ contact = {}, compliance, link, expireLe, comp
   ].filter((l, i, arr) => !(l === '' && arr[i - 1] === '')).join('\n')
   return { subject, text }
 }
+
+// ─── Planification des relances et suivi (écran « Suivi des documents ») ───
+
+/** Nombre maximal de mails de relance par passage (un passage par jour ouvré). */
+export const MAX_RELANCES_PAR_PASSAGE = 15
+
+const lastSent = (r) => (r ? String(r.dernier_envoi || r.created_at || '') : '')
+
+/** Lundi suivant si la date tombe un samedi ou un dimanche (AAAA-MM-JJ). */
+export function nextWeekday(iso) {
+  const d = new Date(`${iso}T12:00:00Z`)
+  const wd = d.getUTCDay()
+  if (wd === 6) d.setUTCDate(d.getUTCDate() + 2)
+  if (wd === 0) d.setUTCDate(d.getUTCDate() + 1)
+  return d.toISOString().slice(0, 10)
+}
+
+/**
+ * Relances dues maintenant, dans l'ordre d'envoi : d'abord les entreprises
+ * jamais sollicitées, puis la demande la plus ancienne ; à nom égal, ordre
+ * alphabétique. Le cron envoie les MAX_RELANCES_PAR_PASSAGE premières.
+ */
+export function planRelances({ contacts = [], byContact, lastRequest = new Map(), activeIds = new Set(), today, now = new Date() } = {}) {
+  return contacts
+    .filter(c => isSubject(c) && activeIds.has(c.id) && c.email)
+    .map(c => ({ contact: c, compliance: complianceOf(byContact, c.id, today), lastRequest: lastRequest.get(c.id) || null }))
+    .filter(x => needsAutoRelance({ compliance: x.compliance, lastRequest: x.lastRequest, now }))
+    .sort((a, b) => lastSent(a.lastRequest).localeCompare(lastSent(b.lastRequest))
+      || String(a.contact.nom || '').localeCompare(String(b.contact.nom || ''), 'fr'))
+    .map((x, i) => ({ ...x, kinds: kindsToRequest(x.compliance), passage: Math.floor(i / MAX_RELANCES_PAR_PASSAGE) }))
+}
+
+/**
+ * Suivi de l'avancement : une ligne par entreprise soumise (artisan,
+ * sous-traitant, prestataire), état de chaque document, dernière demande,
+ * prochaine relance ; statistiques sur les entreprises actives.
+ */
+export function buildSuivi({ contacts = [], byContact, lastRequest = new Map(), activeIds = new Set(), today, now = new Date() } = {}) {
+  const plan = planRelances({ contacts, byContact, lastRequest, activeIds, today, now })
+  const planned = new Map(plan.map(p => [p.contact.id, p]))
+  const rows = contacts.filter(isSubject).map(c => {
+    const compliance = complianceOf(byContact, c.id, today)
+    const req = lastRequest.get(c.id) || null
+    const active = activeIds.has(c.id)
+    const toRequest = kindsToRequest(compliance)
+    let relance
+    if (!active) relance = { kind: 'inactive' }
+    else if (compliance.status === 'ok') relance = { kind: 'a_jour' }
+    else if (!toRequest.length) relance = { kind: 'equipe' }
+    else if (!c.email) relance = { kind: 'sans_email' }
+    else if (planned.has(c.id)) relance = { kind: 'prevue', passage: planned.get(c.id).passage }
+    else relance = { kind: 'date', date: nextWeekday(addDays(lastSent(req).slice(0, 10) || today, RELANCE_JOURS)) }
+    const recus = DOC_KINDS.filter(k => ['ok', 'bientot'].includes(compliance.kinds[k].status)).length
+    return { contact: c, active, compliance, lastRequest: req, relance, recus }
+  }).sort((a, b) => (b.active - a.active) || (a.recus - b.recus) || String(a.contact.nom).localeCompare(String(b.contact.nom), 'fr'))
+  const act = rows.filter(r => r.active)
+  return {
+    rows,
+    plan,
+    stats: {
+      actives: act.length,
+      aJour: act.filter(r => r.compliance.status === 'ok').length,
+      docsRecus: act.reduce((n, r) => n + r.recus, 0),
+      docsTotal: act.length * DOC_KINDS.length,
+      sansEmail: act.filter(r => r.relance.kind === 'sans_email').length,
+      prochainPassage: plan.filter(p => p.passage === 0).length,
+      enAttente: plan.length,
+    },
+  }
+}
+
+function addDays(iso, n) {
+  const d = new Date(`${iso}T12:00:00Z`)
+  d.setUTCDate(d.getUTCDate() + n)
+  return d.toISOString().slice(0, 10)
+}

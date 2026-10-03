@@ -20,6 +20,7 @@ import { mergeContacts } from '../lib/contactsMerge'
 import DuplicatesModal from '../components/contacts/DuplicatesModal'
 import ConformiteBadge from '../components/conformite/ConformiteBadge'
 import ConformiteModal from '../components/conformite/ConformiteModal'
+import ConformiteSuiviModal from '../components/conformite/ConformiteSuiviModal'
 import { useConformite } from '../hooks/useConformite'
 import { isSubject, complianceOf, activeCompanyIds } from '../lib/conformite'
 
@@ -45,6 +46,7 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
   // Documents administratifs des entreprises (Kbis, décennale, fiscale, URSSAF)
   const conf = useConformite({ enabled: active !== false });
   const [docsFor, setDocsFor] = useState(null);
+  const [suiviOpen, setSuiviOpen] = useState(false);
   const activeIds = useMemo(() => activeCompanyIds(data), [data]);
   // Entreprises sur un chantier en cours dont un document est à revoir
   const docsToReview = useMemo(() => new Set((data.contacts || [])
@@ -597,6 +599,18 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
           </button>
         );
       })}
+      {conf.ready && (
+        <button onClick={()=>setSuiviOpen(true)}
+          title="Avancement des documents des entreprises et aperçu des relances automatiques"
+          style={{
+            display:"inline-flex",alignItems:"center",gap:6,
+            padding:"5px 11px",borderRadius:999,fontSize:11,fontWeight:700,
+            border:"1px solid #BAE6FD",background:"#F0F9FF",color:"#0369A1",
+            cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap",
+          }}>
+          📊 Suivi des documents
+        </button>
+      )}
       {docsToReview.size > 0 && (
         <button onClick={()=>setTf(tf==="__docs"?"all":"__docs")}
           title="Entreprises sur un chantier en cours dont un document (Kbis, décennale, fiscale, URSSAF) est manquant, expiré ou expire bientôt"
@@ -770,6 +784,10 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
       ))}
     </div>
     )}
+
+    <ConformiteSuiviModal open={suiviOpen} onClose={() => setSuiviOpen(false)}
+      contacts={data.contacts || []} conformite={conf} activeIds={activeIds}
+      onOpenContact={(id) => { setSuiviOpen(false); setDocsFor(id); }} />
 
     <ConformiteModal open={!!docsFor} onClose={() => setDocsFor(null)}
       contact={(data.contacts || []).find(c => c.id === docsFor) || null}
