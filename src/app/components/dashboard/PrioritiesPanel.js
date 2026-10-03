@@ -5,7 +5,7 @@ import { useMotDuJour } from '../../hooks/useMotDuJour'
 const COLOR = {
   task: '#F59E0B', rdv: '#2563EB', relance: '#EC4899', planning: '#10B981', os: '#8B5CF6',
   chaud: '#DC2626', signature: '#7C3AED', expire: '#D97706', sans_reponse: '#B45309',
-  brouillon: '#64748B', dormante: '#64748B',
+  brouillon: '#64748B', dormante: '#64748B', conformite: '#B91C1C',
 }
 
 /**

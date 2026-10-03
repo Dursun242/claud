@@ -22,6 +22,7 @@
 //   devis sans réponse       20 + montant (1 pt / 1 000 € HT, max 10)
 //   devis brouillon          15
 //   affaire dormante         10
+//   documents d'entreprise   28 à 68 (lib/conformite.conformiteItems, via `extraItems`)
 //
 // Doublons : un élément n'apparaît qu'une fois ; côté CRM, une relance et un
 // signal sur la même affaire (même écran ouvert) sont fusionnés, le plus
@@ -191,10 +192,11 @@ const compare = (a, b) => (b.score - a.score)
  * @param {string} [p.today]    AAAA-MM-JJ (défaut : aujourd'hui, heure locale)
  * @param {string} [p.now]      HH:MM : écarte les rendez-vous du jour passés depuis plus d'1 h
  * @param {number} [p.limit=3]  nombre d'éléments dans `top`
+ * @param {Array}  [p.extraItems] éléments déjà notés (ex. documents des entreprises)
  * @returns {{ top: object[], rest: object[], total: number }}
  */
-export function buildPriorities({ agenda = {}, crmItems = [], today = localISO(), now = null, limit = 3 } = {}) {
-  const all = [...fromAgenda(agenda || {}, today, now), ...fromCrm(crmItems, today)].sort(compare)
+export function buildPriorities({ agenda = {}, crmItems = [], today = localISO(), now = null, limit = 3, extraItems = [] } = {}) {
+  const all = [...fromAgenda(agenda || {}, today, now), ...fromCrm(crmItems, today), ...(extraItems || [])].sort(compare)
   const seen = new Set()
   const list = []
   for (const it of all) {

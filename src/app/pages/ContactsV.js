@@ -18,6 +18,10 @@ import { resizeImageForAI } from '../lib/imageForAI'
 import { findDuplicateGroups, duplicateReasons, pairKey } from '../lib/contactDuplicates'
 import { mergeContacts } from '../lib/contactsMerge'
 import DuplicatesModal from '../components/contacts/DuplicatesModal'
+import ConformiteBadge from '../components/conformite/ConformiteBadge'
+import ConformiteModal from '../components/conformite/ConformiteModal'
+import { useConformite } from '../hooks/useConformite'
+import { isSubject, complianceOf, activeCompanyIds } from '../lib/conformite'
 
 // Paires marquées « pas un doublon » (sur cet appareil)
 const IGNORED_KEY = 'idm_contacts_not_duplicates'
@@ -38,6 +42,15 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
   const [modal,setModal]=useState(null);
   const [form,setForm]=useState({});
   const [tf,setTf]=useState("all");
+  // Documents administratifs des entreprises (Kbis, décennale, fiscale, URSSAF)
+  const conf = useConformite({ enabled: active !== false });
+  const [docsFor, setDocsFor] = useState(null);
+  const activeIds = useMemo(() => activeCompanyIds(data), [data]);
+  // Entreprises sur un chantier en cours dont un document est à revoir
+  const docsToReview = useMemo(() => new Set((data.contacts || [])
+    .filter(c => isSubject(c) && activeIds.has(c.id)
+      && complianceOf(conf.byContact, c.id, conf.today).status !== "ok")
+    .map(c => c.id)), [data.contacts, activeIds, conf.byContact, conf.today]);
   const [q,setQ]=useState("");
   const [formError, setFormError] = useState("");
   // Recherche entreprise (annuaire de l'État : entreprises + dirigeants) — voir hooks/useEntrepriseSearch.js
@@ -171,7 +184,8 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
     const search = q.toLowerCase();
     return (data.contacts || []).filter(c => {
       if (pendingDeleteIds.has(c.id)) return false;
-      if (tf !== "all" && c.type !== tf) return false;
+      if (tf === "__docs") { if (!docsToReview.has(c.id)) return false; }
+      else if (tf !== "all" && c.type !== tf) return false;
       if (!q) return true;
       return (
         (c.nom||"").toLowerCase().includes(search) ||
@@ -182,7 +196,7 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
         (c.siret||"").includes(search)
       );
     });
-  }, [data.contacts, q, tf, pendingDeleteIds]);
+  }, [data.contacts, q, tf, pendingDeleteIds, docsToReview]);
 
   const emptyForm = {
     nom:"",type:"Artisan",specialite:"",societe:"",fonction:"",
@@ -227,6 +241,7 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
   useEffect(() => {
     if (!focusId) return;
     if (parseNewIntent(focusId)) { openNew(); return; }
+    if (String(focusId).startsWith("docs:")) { setDocsFor(String(focusId).slice(5)); return; }
     const contact = (data.contacts || []).find(c => c.id === focusId);
     if (contact?.nom) {
       setQ(contact.nom);
@@ -582,6 +597,19 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
           </button>
         );
       })}
+      {docsToReview.size > 0 && (
+        <button onClick={()=>setTf(tf==="__docs"?"all":"__docs")}
+          title="Entreprises sur un chantier en cours dont un document (Kbis, décennale, fiscale, URSSAF) est manquant, expiré ou expire bientôt"
+          style={{
+            display:"inline-flex",alignItems:"center",gap:6,
+            padding:"5px 11px",borderRadius:999,fontSize:11,fontWeight:700,
+            border:`1px solid ${tf==="__docs"?"#B91C1C":"#FECACA"}`,
+            background:tf==="__docs"?"#B91C1C":"#FEF2F2",
+            color:tf==="__docs"?"#fff":"#B91C1C",cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap",
+          }}>
+          📄 Documents à revoir <span style={{fontSize:10,opacity:0.85,fontWeight:600}}>{docsToReview.size}</span>
+        </button>
+      )}
     </div>
 
     {/* Contact Cards */}
@@ -690,6 +718,11 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
                   🏅 {c.qualifications}
                 </div>
               )}
+              {isSubject(c) && conf.ready && !conf.missingMigration && (
+                <div style={{marginTop:6}}>
+                  <ConformiteBadge compliance={complianceOf(conf.byContact, c.id, conf.today)} onClick={()=>setDocsFor(c.id)}/>
+                </div>
+              )}
               {setTab && (() => {
                 const k = crmByContact.get(c.id);
                 return (
@@ -737,6 +770,13 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
       ))}
     </div>
     )}
+
+    <ConformiteModal open={!!docsFor} onClose={() => setDocsFor(null)}
+      contact={(data.contacts || []).find(c => c.id === docsFor) || null}
+      compliance={complianceOf(conf.byContact, docsFor, conf.today)}
+      lastRequest={conf.lastRequest.get(docsFor) || null}
+      missingMigration={conf.missingMigration}
+      onChanged={() => { conf.reload(); reload?.(); }} />
 
     <DuplicatesModal open={dupOpen} groups={dupGroups} usage={usage} merging={merging}
       onClose={() => setDupOpen(false)} onIgnore={ignoreGroup} onMerge={handleMerge} />

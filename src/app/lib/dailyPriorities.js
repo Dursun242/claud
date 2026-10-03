@@ -9,6 +9,7 @@ import { classifyFollowUps } from './crm'
 import { buildCrmInsights } from './crmInsights'
 import { buildAgenda } from './today'
 import { buildPriorities } from './priorities'
+import { activeCompanyIds, conformiteItems } from './conformite'
 
 /**
  * Partie CRM : relances à traiter (en retard + aujourd'hui) au format de
@@ -40,6 +41,11 @@ export function buildCrmDaily(crm, { contacts = [], now = new Date() } = {}) {
   }
 }
 
+/** Documents des entreprises actives à revoir (Kbis, décennale, fiscale, URSSAF). */
+export function buildConformiteItems(data = {}, docs = [], today) {
+  return conformiteItems({ contacts: data.contacts || [], docs, activeIds: activeCompanyIds(data), today })
+}
+
 /**
  * Chaîne complète (utilisée telle quelle côté serveur ; DashboardV enchaîne
  * les mêmes appels en les mémoïsant séparément).
@@ -50,10 +56,12 @@ export function buildCrmDaily(crm, { contacts = [], now = new Date() } = {}) {
  * @param {string} [p.nowHM]   HH:MM (écarte les rendez-vous passés depuis plus d'1 h)
  * @param {Date}   [p.now]     instant de référence pour le CRM
  * @param {number} [p.limit=3]
+ * @param {Array}  [p.conformiteDocs] documents des entreprises (contact_documents) ; null = non suivis
  */
-export function buildDailyPriorities({ data = {}, crm = null, today, nowHM = null, now = new Date(), limit = 3 } = {}) {
+export function buildDailyPriorities({ data = {}, crm = null, today, nowHM = null, now = new Date(), limit = 3, conformiteDocs = null } = {}) {
   const daily = buildCrmDaily(crm, { contacts: data.contacts, now })
   const agenda = buildAgenda(data, { today, relances: daily.relances })
-  const priorities = buildPriorities({ agenda, crmItems: daily.crmInsights.items, today, now: nowHM, limit })
+  const extraItems = conformiteDocs ? buildConformiteItems(data, conformiteDocs, today) : []
+  const priorities = buildPriorities({ agenda, crmItems: daily.crmInsights.items, today, now: nowHM, limit, extraItems })
   return { ...daily, agenda, priorities }
 }

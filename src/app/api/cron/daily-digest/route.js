@@ -47,20 +47,31 @@ const requestUrl = (request) => {
 // Mêmes tables et même mise en forme que le tableau de bord de l'équipe
 // (SB.loadCritical / SB.loadSecondary) ; seules celles utiles aux priorités.
 async function loadDashboard(admin) {
-  const [ch, ta, os, co, pl, rv] = await Promise.all([
+  const [ch, ta, os, co, pl, rv, cc] = await Promise.all([
     admin.from('chantiers').select('*').or(NOT_DEMO_FILTER).order('created_at', { ascending: false }),
     admin.from('taches').select('*').order('created_at', { ascending: false }),
     admin.from('ordres_service').select('*').order('created_at', { ascending: false }).limit(200),
     admin.from('contacts').select('*').order('nom'),
     admin.from('planning').select('*').order('debut'),
     admin.from('rdv').select('*').order('date'),
+    admin.from('contact_chantiers').select('*'),
   ])
-  const failed = [['chantiers', ch], ['taches', ta], ['ordres_service', os], ['contacts', co], ['planning', pl], ['rdv', rv]]
+  const failed = [['chantiers', ch], ['taches', ta], ['ordres_service', os], ['contacts', co], ['planning', pl], ['rdv', rv], ['contact_chantiers', cc]]
     .find(([, r]) => r.error)
   if (failed) throw new Error(`Chargement ${failed[0]} impossible : ${failed[1].error.message}`)
   const { _demoIds, ...critical } = mapCriticalData({ chantiers: ch.data, taches: ta.data, ordresService: os.data })
-  const secondary = mapSecondaryData({ contacts: co.data, planning: pl.data, rdv: rv.data }, _demoIds)
+  const secondary = mapSecondaryData({ contacts: co.data, planning: pl.data, rdv: rv.data, contactChantiers: cc.data }, _demoIds)
   return { ...critical, ...secondary }
+}
+
+// Documents des entreprises (migration 036) ; null si la table n'existe pas
+async function loadConformiteDocs(admin) {
+  const { data, error } = await admin.from('contact_documents').select('*')
+  if (error) {
+    if (!/does not exist|schema cache/i.test(error.message || '')) log.warn('documents des entreprises', error.message)
+    return null
+  }
+  return data || []
 }
 
 async function staffEmails(admin) {
@@ -144,9 +155,9 @@ export async function GET(request) {
     if (lastErr) return Response.json({ error: 'Lecture de la date du dernier envoi impossible : ' + lastErr.message }, { status: 500 })
     if (lastRow?.value === clock.today) return Response.json({ ok: true, skipped: 'déjà envoyé aujourd’hui' })
 
-    const [data, crm] = await Promise.all([loadDashboard(admin), loadCrmWith(admin)])
+    const [data, crm, conformiteDocs] = await Promise.all([loadDashboard(admin), loadCrmWith(admin), loadConformiteDocs(admin)])
     const { priorities } = buildDailyPriorities({
-      data, crm, today: clock.today, nowHM: clock.hm,
+      data, crm, today: clock.today, nowHM: clock.hm, conformiteDocs,
       // Date de Paris pour le CRM (lib/crm.js lit la date UTC de l'instant)
       now: new Date(`${clock.today}T12:00:00Z`),
     })

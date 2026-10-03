@@ -20,6 +20,8 @@
 // Format commun :
 //   messages : [{ role: 'user'|'assistant', content: string | Part[] }]
 //   Part     : { type: 'text', text } | { type: 'image', mediaType, base64 }
+//            | { type: 'document', mediaType: 'application/pdf', base64 }
+//              (PDF : Claude uniquement — sans clé Anthropic, la demande échoue)
 //   json     : schéma JSON (sortie structurée) | true (JSON libre) | false
 
 import { fetchWithRetry } from './fetchWithRetry'
@@ -32,7 +34,8 @@ const DEFAULT_MISTRAL_MODEL = 'mistral-small-latest'
 
 const keyOf = (p) => (p === 'mistral' ? process.env.MISTRAL_API_KEY : process.env.ANTHROPIC_API_KEY)
 
-const hasImage = (messages) => (messages || []).some(m => Array.isArray(m?.content) && m.content.some(p => p?.type === 'image'))
+const hasPart = (messages, type) => (messages || []).some(m => Array.isArray(m?.content) && m.content.some(p => p?.type === type))
+const hasImage = (messages) => hasPart(messages, 'image') || hasPart(messages, 'document')
 
 /**
  * Ordre d'essai : fournisseur choisi puis l'autre, parmi ceux qui ont une clé.
@@ -50,7 +53,9 @@ function toAnthropicContent(content) {
   if (typeof content === 'string') return content
   return content.map(p => (p.type === 'image'
     ? { type: 'image', source: { type: 'base64', media_type: p.mediaType, data: p.base64 } }
-    : { type: 'text', text: p.text }))
+    : p.type === 'document'
+      ? { type: 'document', source: { type: 'base64', media_type: p.mediaType || 'application/pdf', data: p.base64 } }
+      : { type: 'text', text: p.text }))
 }
 
 async function callAnthropic({ system, messages, maxTokens, json, timeoutMs, maxRetries }) {
@@ -161,7 +166,11 @@ function isProviderSide(status, bodyText) {
  */
 export async function generate({ system, messages, maxTokens = 1024, json = false, timeoutMs = 30_000, maxRetries = 1, log } = {}) {
   const vision = hasImage(messages)
-  const order = providerOrder({ vision })
+  // Les PDF ne sont lus que par Claude (pas d'envoi de PDF à Mistral)
+  const order = providerOrder({ vision }).filter(p => !hasPart(messages, 'document') || p === 'anthropic')
+  if (!order.length && hasPart(messages, 'document') && providerOrder({ vision }).length) {
+    return { ok: false, status: 503, message: 'Lecture des PDF indisponible : elle nécessite la clé Anthropic (ANTHROPIC_API_KEY).' }
+  }
   if (!order.length) {
     log?.error('aucune clé IA configurée (ANTHROPIC_API_KEY / MISTRAL_API_KEY)')
     return { ok: false, status: 500, message: 'Configuration serveur invalide (IA non configurée).' }

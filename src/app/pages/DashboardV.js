@@ -7,7 +7,8 @@ import TodayPanel from '../components/dashboard/TodayPanel'
 import PrioritiesPanel from '../components/dashboard/PrioritiesPanel'
 import { buildPriorities } from '../lib/priorities'
 import CrmPanel from '../components/dashboard/CrmPanel'
-import { buildCrmDaily } from '../lib/dailyPriorities'
+import { buildCrmDaily, buildConformiteItems } from '../lib/dailyPriorities'
+import { useConformite } from '../hooks/useConformite'
 import ClientOverview from '../components/dashboard/ClientOverview'
 
 // Salutation selon l'heure de la journée
@@ -83,12 +84,18 @@ export default function DashboardV({data,crm=null,ready=true,setTab,m,user,clien
     () => (clientMode ? null : buildAgenda(data, { today, relances })),
     [clientMode, data, today, relances]
   )
+  // Documents des entreprises actives à revoir (Kbis, décennale, fiscale, URSSAF)
+  const conformite = useConformite({ enabled: !clientMode });
+  const conformiteItems = useMemo(
+    () => (clientMode || conformite.missingMigration ? [] : buildConformiteItems(data, conformite.docs, today)),
+    [clientMode, conformite.missingMigration, conformite.docs, data, today]
+  )
   // « Mes priorités du jour » : chantier + commercial en un seul classement.
   // Heure à la minute : un rendez-vous passé depuis plus d'1 h en sort.
   const nowHM = new Date().toTimeString().slice(0, 5)
   const priorities = useMemo(
-    () => (agenda ? buildPriorities({ agenda, crmItems: crmInsights.items, today, now: nowHM }) : null),
-    [agenda, crmInsights, today, nowHM]
+    () => (agenda ? buildPriorities({ agenda, crmItems: crmInsights.items, today, now: nowHM, extraItems: conformiteItems }) : null),
+    [agenda, crmInsights, today, nowHM, conformiteItems]
   )
   const overview = useMemo(
     () => (clientMode ? buildClientOverview(data, { today }) : null),
