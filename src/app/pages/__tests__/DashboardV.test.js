@@ -3,6 +3,10 @@ import userEvent from '@testing-library/user-event'
 import DashboardV from '../DashboardV'
 import { localISO } from '../../lib/today'
 
+// Documents des entreprises : données fournies par le test (pas de React Query)
+const mockConformite = { docs: [], missingMigration: false }
+jest.mock('../../hooks/useConformite', () => ({ useConformite: () => mockConformite }))
+
 const today = localISO()
 const data = {
   chantiers: [{ id: 'ch1', nom: 'Maison Dupont', client: 'Dupont', statut: 'En cours', budget: 1000, depenses: 200 }],
@@ -52,5 +56,21 @@ describe('DashboardV', () => {
     expect(screen.queryByText(/À faire/)).toBeNull()
     await userEvent.click(screen.getByRole('button', { name: /Lire le compte rendu/ }))
     expect(setTab).toHaveBeenCalledWith('reports', 'cr1')
+  })
+
+  it('priorités : une entreprise sur un chantier en cours dont l’URSSAF a expiré', async () => {
+    const setTab = jest.fn()
+    const withCompany = {
+      ...data,
+      contacts: [{ id: 'c1', nom: 'Costa', type: 'Artisan', specialite: 'Plomberie' }],
+      ordresService: [{ ...data.ordresService[0], chantier_id: 'ch1' }],
+    }
+    mockConformite.docs = [{ id: 'd1', contact_id: 'c1', kind: 'urssaf', valide_au: '2020-01-01', anomalies: [], created_at: '2020-01-01' }]
+    render(<DashboardV data={withCompany} setTab={setTab} m={false} user={null} />)
+    const item = screen.getByRole('button', { name: /Documents — Costa/ })
+    expect(item).toHaveTextContent(/URSSAF expirée depuis/)
+    await userEvent.click(item)
+    expect(setTab).toHaveBeenCalledWith('contacts', 'docs:c1')
+    mockConformite.docs = []
   })
 })

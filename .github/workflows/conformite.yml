@@ -1,0 +1,30 @@
+# Documents des entreprises : relance automatique (Kbis, décennale,
+# attestation fiscale, URSSAF) des entreprises actives dont un document
+# expire ou a expiré. Du lundi au vendredi vers 8 h (heure de Paris).
+# Une première demande n'est jamais envoyée automatiquement (voir
+# src/app/api/cron/conformite/route.js).
+# Secrets GitHub requis : APP_URL et CRON_SECRET (comme le mail du matin).
+name: Documents des entreprises — relances
+
+on:
+  schedule:
+    - cron: '10 6 * * 1-5'
+  workflow_dispatch:
+
+jobs:
+  relances:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Relancer les entreprises
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$APP_URL" ] || [ -z "$CRON_SECRET" ]; then
+            echo "Secrets APP_URL / CRON_SECRET absents : relances ignorées."
+            exit 0
+          fi
+          curl --fail-with-body -sS --max-time 90 \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            "${APP_URL%/}/api/cron/conformite"

@@ -25,6 +25,7 @@ import CREditor from '../components/cr/CREditor'
 import { markDiffused } from '../lib/crDb'
 import { loadCrImages } from '../lib/crPhotos'
 import CRSendModal from '../components/cr/CRSendModal'
+import { useConformite } from '../hooks/useConformite'
 
 // Style doux pour les boutons d'action dans la vue détail (PDF/XLS/etc.)
 // Remplace les blocs rouge/vert/bleu saturés par des pastilles pastel.
@@ -64,6 +65,8 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
   const { addToast } = useToast();
   const confirm = useConfirm();
   const saveTask = useSaveTask();
+  // Documents des entreprises (équipe uniquement) : pastille dans les intervenants
+  const conformite = useConformite({ enabled: !readOnly && active !== false });
   const [modal,setModal]=useState(null);const [form,setForm]=useState({});
   const [selected,setSelected]=useState(null);
   const [detailModal,setDetailModal]=useState(null);
@@ -598,6 +601,7 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
         allContacts={data.contacts || []}
         onChange={reload}
         readOnly={readOnly}
+        conformite={readOnly || conformite.missingMigration ? null : conformite}
       />
       <ChantierPlanning items={chPlanning} />
 

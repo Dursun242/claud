@@ -15,6 +15,8 @@ import Modal from './Modal'
 import { SB } from '../dashboards/shared'
 import { useToast } from '../contexts/ToastContext'
 import { useConfirm } from '../contexts/ConfirmContext'
+import ConformiteBadge from './conformite/ConformiteBadge'
+import { isSubject, complianceOf } from '../lib/conformite'
 
 const TYPE_COLOR = {
   Artisan: '#F59E0B',
@@ -26,6 +28,7 @@ const TYPE_COLOR = {
 export default function ChantierIntervenants({
   intervenants = [], clientContact = null,
   chantierId = null, allContacts = [], onChange, readOnly = false,
+  conformite = null, // useConformite() : pastille « Documents » des entreprises
 }) {
   const total = intervenants.length + (clientContact ? 1 : 0)
   const [showPicker, setShowPicker] = useState(false)
@@ -129,6 +132,9 @@ export default function ChantierIntervenants({
                 <span style={{ fontWeight: 700, fontSize: 13 }}>{c.nom}</span>
                 <Badge text={c.type} color={TYPE_COLOR[c.type] || '#94A3B8'}/>
                 {c._source === 'os' && <Badge text="Auto (OS)" color="#94A3B8"/>}
+                {conformite?.ready && isSubject(c) && (
+                  <ConformiteBadge compact compliance={complianceOf(conformite.byContact, c.id, conformite.today)}/>
+                )}
               </div>
               <div style={{ fontSize: 11, color: '#64748B' }}>
                 {c.specialite || c.societe || ''}

@@ -42,6 +42,7 @@ jest.mock('../../hooks/useComments', () => ({ useComments: () => ({ comments: []
 const mockSync = () => Promise.resolve(0)
 jest.mock('../../hooks/useSignaturesSync', () => ({ useSignaturesSync: () => ({ sync: mockSync }) }))
 jest.mock('../../hooks/useSaveTask', () => ({ useSaveTask: () => jest.fn() }))
+jest.mock('../../hooks/useConformite', () => ({ useConformite: () => ({ ready: false, byContact: new Map(), missingMigration: false }) }))
 jest.mock('../../components/cr/CREditor', () => () => null)
 jest.mock('../../components/cr/CRSendModal', () => () => null)
 jest.mock('../../lib/crDb', () => ({ markDiffused: jest.fn() }))

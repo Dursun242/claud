@@ -28,6 +28,7 @@ src/app/
 ├─ (src/middleware.js)       → headers sécurité (pas de CSP, voir "dette")
 ├─ auth.js                    → login + AuthProvider Supabase
 ├─ signer/[token]/page.js     → page publique de signature d'un devis (sans compte, jeton)
+├─ deposer/[token]/page.js    → page publique de dépôt des documents d'une entreprise (Kbis, décennale, fiscale, URSSAF ; sans compte, jeton)
 │
 ├─ dashboards/
 │   ├─ shared.js              ⚠ 880+ lignes. SB (CRUD), constants, icons, styles, widgets. À splitter un jour.
@@ -42,6 +43,7 @@ src/app/
 ├─ hooks/                     → useFloatingMic, useAttachments, useComments, useUndoableDelete, useSignaturesSync, useCrmData, useCrmDevis (logique devis du CRM), useCrEditor (état + brouillon local d'un CR), useDictation (dictée vers un champ)...
 ├─ lib/                       → auth, fetchWithRetry, odoo, validators, notifications, activityLog, chantierFinances
 │                               mailer.js (SMTP serveur) · notifications.js (serveur, service role) · crm.js (logique pure pipeline) + devis.js / devisAi.js / qontoDevis.js (calculs, prix habituels, vérifs devis, format Qonto) + crmDb.js (accès Supabase CRM, hors shared.js) + crmApi.js (appels /api/* du CRM avec JWT, PDF base64)
+│                               conformite.js (documents des entreprises : règles de validité, état par entreprise, entreprises actives, priorités, relances, texte du mail) · conformiteAi.js (lecture IA des documents) · conformiteServer.js (dépôt signé, lecture, enregistrement, demandes) · conformiteClient.js (dépôt depuis le navigateur)
 │                               crSuivi.js (CR : numéro par chantier, points numérotés repris d'un CR à l'autre, relances + montée de priorité, sections par lot / avancement prévu, application de la proposition IA, textes des mails) · crEditor.js (état de l'éditeur, brouillon, aperçu) · crDb.js (enregistrement CR + tâches + rdv, statut Brouillon / Diffusé) · crPhotos.js (photos : réduction, dépôt, lecture pour le PDF) · crAi.js (schéma + nettoyage de la réponse IA)
 │
 └─ api/                       → 35 routes. Pattern unique : verifyAuth() / verifyStaff() + createLogger() + mock-friendly.
@@ -56,6 +58,9 @@ src/app/
     ├─ devis/track            → image de suivi (1×1) des mails de devis : enregistre les ouvertures (public, jeton)
     ├─ devis/public           → page publique /signer/<jeton> : consultation + signature du devis (sans compte, jeton) ; signé → chantier + tâche « Lancer les travaux » (lib/devisWon.js)
     ├─ cron/qonto-status      → vérification horaire des devis acceptés / annulés dans Qonto (GitHub Actions, secret CRON_SECRET) ; accepté → chantier + tâche (lib/devisWon.js)
+    ├─ conformite             → documents des entreprises (staff only) : dépôt par URL signée, lecture IA des dates (PDF → Claude uniquement), correction, demande par mail avec lien de dépôt
+    ├─ conformite/public      → page /deposer/<jeton> : état des documents + dépôt par l'entreprise (sans compte, jeton 30 jours), l'équipe est prévenue
+    ├─ cron/conformite        → relance automatique (GitHub Actions, CRON_SECRET) des entreprises actives dont un document expire ; jamais de première demande automatique
     ├─ cron/daily-digest      → mail du matin : priorités du jour (lib/dailyPriorities.js, même liste que le tableau de bord) + mot du jour IA, à l'équipe à 7 h (Paris) du lundi au vendredi, un envoi par jour (settings.daily_digest_last_sent) ; GitHub Actions, secret CRON_SECRET, ?force=1 pour un envoi manuel
     ├─ odoo/*                 → signatures
     ├─ pv-reception/*         → flux PV métier
@@ -85,7 +90,7 @@ Stage 3 = **CRM** (`crm_opportunites`, `crm_interactions`, `crm_devis`, `crm_dev
 ## Conventions & règles du projet
 
 1. **Server-only pour les secrets** : `ANTHROPIC_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `ODOO_API_KEY`, `qonto-token` n'apparaissent **jamais** dans le bundle client. Les appels tiers passent par les routes `/api/*`. Seule exception : la Base Adresse Nationale (`api-adresse.data.gouv.fr`, publique, sans clé) appelée directement par `components/AddressPicker.js`.
-2. **Auth** : toute route `/api/*` non-admin (sauf `/api/metrics`, `/api/auth/google/callback`, `/api/devis/public` et `/api/devis/track` — accès par jeton, `/api/cron/*` — secret `CRON_SECRET`) fait `verifyAuth(request)` en premier. Retour 401 si absent. Les routes qu'un client MOA n'utilise pas (Qonto, CRM/devis, création de signatures ou de PV…) utilisent `verifyStaff(request)` (401/403). Une route ouverte aux clients qui écrit en service role relit d'abord la ressource avec `userClientFromToken` (RLS) pour vérifier que le chantier est bien le sien (cf. `pv-reception/decision`, `upload`).
+2. **Auth** : toute route `/api/*` non-admin (sauf `/api/metrics`, `/api/auth/google/callback`, `/api/devis/public`, `/api/devis/track` et `/api/conformite/public` — accès par jeton, `/api/cron/*` — secret `CRON_SECRET`) fait `verifyAuth(request)` en premier. Retour 401 si absent. Les routes qu'un client MOA n'utilise pas (Qonto, CRM/devis, création de signatures ou de PV…) utilisent `verifyStaff(request)` (401/403). Une route ouverte aux clients qui écrit en service role relit d'abord la ressource avec `userClientFromToken` (RLS) pour vérifier que le chantier est bien le sien (cf. `pv-reception/decision`, `upload`).
 3. **Logging** : toutes les routes utilisent `createLogger('source')` (`lib/logger.js`), jamais `console.error` directement.
 4. **Toasts, jamais `alert()`** : `useToast()` dans les composants. `useFloatingMic` prend `onError` pour les erreurs hors-UI.
 4 bis. **Fenêtres de saisie** : passer par `components/Modal` (ne se ferme que par ✕ ou les boutons ; ✕ après saisie demande confirmation). Toute autre fenêtre ou écran plein page de saisie appelle `useLeaveGuard(open)` (`hooks/useLeaveGuard.js`) : retour du téléphone bloqué, fermeture / rechargement de la page confirmés. Pas de fermeture au clic sur le fond.
@@ -119,7 +124,7 @@ Voir `.env.example` à la racine. Minimum requis pour dev :
 
 ## Migrations DB
 
-**Ordre critique** : voir `migrations/APPLY_ORDER.md`. Les migrations numérotées 001→035 s'appliquent dans l'ordre via le SQL Editor Supabase. Chaque migration ayant un impact non-trivial a un `<num>_README.md` dédié.
+**Ordre critique** : voir `migrations/APPLY_ORDER.md`. Les migrations numérotées 001→036 s'appliquent dans l'ordre via le SQL Editor Supabase. Chaque migration ayant un impact non-trivial a un `<num>_README.md` dédié.
 
 ## Dette technique assumée
 

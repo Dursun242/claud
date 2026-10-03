@@ -248,6 +248,20 @@ describe('/api/cron/daily-digest', () => {
     expect(priorities.total).toBe(5)
   })
 
+  it('documents des entreprises : une entreprise active dont la décennale a expiré figure dans le mail', async () => {
+    db.contacts = [{ id: 'c1', nom: 'Costa', type: 'Artisan' }]
+    db.contact_documents = [{ id: 'd1', contact_id: 'c1', kind: 'decennale', valide_au: '2026-09-30', anomalies: [], created_at: '2026-01-01' }]
+    db.contact_chantiers = []
+    await call()
+    expect(sendMail.mock.calls[0][1].text).toContain('Documents — Costa')
+  })
+
+  it('documents des entreprises : sans la migration 036, le mail part comme avant', async () => {
+    db.errors = { contact_documents: 'relation "contact_documents" does not exist' }
+    const { body } = await call()
+    expect(body).toMatchObject({ ok: true, sent: 2 })
+  })
+
   it('IA en échec : le mail part sans la phrase', async () => {
     generate.mockResolvedValueOnce({ ok: false, status: 503, message: 'Service IA momentanément surchargé' })
     const { body } = await call()

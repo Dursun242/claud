@@ -183,3 +183,34 @@ describe('helpers', () => {
     expect(stripJsonFence(' {"a":1} ')).toBe('{"a":1}')
   })
 })
+
+describe('documents PDF', () => {
+  const PDF_MSG = [{ role: 'user', content: [
+    { type: 'document', mediaType: 'application/pdf', base64: 'JVBERi0x' },
+    { type: 'text', text: 'Lis ce document' },
+  ] }]
+
+  it('envoyés à Claude en bloc « document »', async () => {
+    fetchWithRetry.mockResolvedValueOnce(anthropicReply('{}'))
+    const r = await generate({ messages: PDF_MSG })
+    expect(r).toMatchObject({ ok: true, provider: 'anthropic' })
+    expect(sentBody().messages[0].content[0]).toEqual({ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: 'JVBERi0x' } })
+  })
+
+  it('jamais envoyés à Mistral : pas de secours, même si Mistral est choisi pour les images', async () => {
+    process.env.AI_PROVIDER_VISION = 'mistral'
+    fetchWithRetry.mockResolvedValueOnce(err(529, 'overloaded'))
+    const r = await generate({ messages: PDF_MSG })
+    expect(r.ok).toBe(false)
+    expect(fetchWithRetry).toHaveBeenCalledTimes(1)
+    expect(fetchWithRetry.mock.calls[0][0]).toMatch(/anthropic/)
+  })
+
+  it('sans clé Anthropic : message clair', async () => {
+    delete process.env.ANTHROPIC_API_KEY
+    const r = await generate({ messages: PDF_MSG })
+    expect(r).toMatchObject({ ok: false, status: 503 })
+    expect(r.message).toMatch(/ANTHROPIC_API_KEY/)
+    expect(fetchWithRetry).not.toHaveBeenCalled()
+  })
+})
