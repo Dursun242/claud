@@ -225,7 +225,7 @@ export default function ConformiteModal({ open, onClose, contact, compliance, la
           <div style={{ marginTop: 14, background: '#F0F9FF', border: '1px solid #BAE6FD', borderRadius: 8, padding: 12 }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: '#0C4A6E', marginBottom: 4 }}>Demander les documents à l’entreprise</div>
             <div style={{ ...small, marginBottom: 8 }}>
-              Un mail lui envoie un lien (valable 30 jours) pour déposer elle-même ses documents, sans compte. Tant qu’elle travaille sur un chantier en cours, elle est relancée automatiquement chaque semaine si un document manque, est erroné ou expire.
+              Un mail lui envoie un lien (valable 30 jours) pour déposer elle-même ses documents, sans compte. Ensuite, elle est relancée automatiquement chaque semaine tant qu’un document manque, est erroné ou expire (sauf si vous suspendez ses relances).
             </div>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="email de l’entreprise"

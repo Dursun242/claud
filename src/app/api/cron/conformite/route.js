@@ -5,7 +5,8 @@
 //
 // Appelée par GitHub Actions (.github/workflows/conformite.yml) avec
 // l'en-tête Authorization: Bearer <CRON_SECRET>. Ne concerne que les
-// entreprises qui travaillent sur un chantier en cours et ont un email.
+// entreprises suivies (sur un chantier en cours, ou à qui une demande a été
+// envoyée) et qui ont un email (lib/conformite.trackedReason).
 // Règles (lib/conformite.needsAutoRelance) : un mail par semaine tant qu'un
 // document manque, est erroné (à renvoyer) ou expire bientôt. Ce que
 // l'équipe vérifie elle-même (dates à saisir, IBAN qui change) ne déclenche

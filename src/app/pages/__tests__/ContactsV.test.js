@@ -55,12 +55,19 @@ describe('ContactsV', () => {
   it('s’affiche avec le bandeau « Suivi des documents » et la pastille des entreprises', async () => {
     render(<ContactsV data={data} m reload={jest.fn()} active />)
     const banner = screen.getByRole('button', { name: /Suivi des documents des entreprises/ })
-    expect(banner).toHaveTextContent('0/1 entreprise à jour · 0/5 documents · 1 relance au prochain passage')
+    expect(banner).toHaveTextContent('0/1 entreprise suivie à jour · 0/5 documents · 1 relance au prochain passage')
     expect(screen.getByRole('button', { name: /Aucun document/ })).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: /Documents à revoir/ }))
     expect(screen.queryByText('M. Dupont')).toBeNull()
     await userEvent.click(banner)
     expect(screen.getByText('Aperçu des relances automatiques')).toBeInTheDocument()
+  })
+
+  it('une fiche à laquelle une demande a été envoyée est suivie, même sans chantier ni type artisan', () => {
+    mockConf = { ...mockConf, lastRequest: new Map([['c2', { dernier_envoi: '2026-10-01T08:00:00Z', envois: 1 }]]) }
+    render(<ContactsV data={data} m reload={jest.fn()} active />)
+    expect(screen.getByRole('button', { name: /Suivi des documents des entreprises/ })).toHaveTextContent('0/2 entreprises suivies à jour')
+    expect(screen.getAllByRole('button', { name: /Aucun document/ })).toHaveLength(2)
   })
 
   it('migrations absentes : bandeau « À activer »', () => {

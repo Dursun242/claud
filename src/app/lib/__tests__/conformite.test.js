@@ -236,3 +236,36 @@ describe('suspension des relances', () => {
     expect(g.b.kind).toBe('suspendue')
   })
 })
+
+describe('entreprises suivies : chantier en cours ou demande manuelle', () => {
+  const { trackedReason, buildSuivi, planRelances, complianceByContact } = require('../conformite')
+  const now = new Date('2026-10-03T08:00:00Z')
+  const contacts = [
+    { id: 'a', nom: 'Artisan actif', type: 'Artisan', email: 'a@x.fr' },
+    { id: 'm', nom: 'Demandé sans chantier', type: 'Artisan', email: 'm@x.fr' },
+    { id: 'f', nom: 'Fournisseur demandé', type: 'Fournisseur', email: 'f@x.fr' },
+    { id: 'n', nom: 'Artisan non suivi', type: 'Artisan', email: 'n@x.fr' },
+    { id: 'i', nom: 'Inactif demandé', type: 'Artisan', email: 'i@x.fr', actif: false },
+  ]
+  const activeIds = new Set(['a'])
+  const lastRequest = new Map([
+    ['m', { dernier_envoi: '2026-09-20T08:00:00Z', envois: 1 }],
+    ['f', { dernier_envoi: '2026-10-02T08:00:00Z', envois: 1 }],
+    ['i', { dernier_envoi: '2026-09-01T08:00:00Z', envois: 1 }],
+  ])
+  const byContact = complianceByContact([], TODAY)
+
+  it('origine du suivi', () => {
+    expect(contacts.map(c => trackedReason(c, activeIds, lastRequest))).toEqual(['chantier', 'demande', 'demande', null, null])
+  })
+
+  it('figurent dans le suivi et dans les relances', () => {
+    const { rows, stats } = buildSuivi({ contacts, byContact, lastRequest, activeIds, today: TODAY, now })
+    const by = Object.fromEntries(rows.map(r => [r.contact.id, r]))
+    expect(by.f).toMatchObject({ active: true, origine: 'demande', relance: { kind: 'date', date: '2026-10-09' } })
+    expect(by.m).toMatchObject({ active: true, origine: 'demande', relance: { kind: 'prevue', passage: 0 } })
+    expect(by.n).toMatchObject({ active: false, relance: { kind: 'inactive' } })
+    expect(stats.actives).toBe(3)
+    expect(planRelances({ contacts, byContact, lastRequest, activeIds, today: TODAY, now }).map(p => p.contact.id)).toEqual(['a', 'm'])
+  })
+})
