@@ -22,7 +22,7 @@ import ConformiteBadge from '../components/conformite/ConformiteBadge'
 import ConformiteModal from '../components/conformite/ConformiteModal'
 import ConformiteSuiviModal from '../components/conformite/ConformiteSuiviModal'
 import { useConformite } from '../hooks/useConformite'
-import { isSubject, complianceOf, activeCompanyIds } from '../lib/conformite'
+import { isSubject, complianceOf, activeCompanyIds, buildSuivi } from '../lib/conformite'
 
 // Paires marquées « pas un doublon » (sur cet appareil)
 const IGNORED_KEY = 'idm_contacts_not_duplicates'
@@ -47,6 +47,11 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
   const conf = useConformite({ enabled: active !== false });
   const [docsFor, setDocsFor] = useState(null);
   const [suiviOpen, setSuiviOpen] = useState(false);
+  // Résumé affiché sur le bandeau « Suivi des documents »
+  const suiviStats = useMemo(() => (conf.ready && !conf.missingMigration ? buildSuivi({
+    contacts: data.contacts || [], byContact: conf.byContact, lastRequest: conf.lastRequest,
+    activeIds, today: conf.today, globalPause: conf.globalPause,
+  }).stats : null), [conf.ready, conf.missingMigration, conf.byContact, conf.lastRequest, conf.today, conf.globalPause, data.contacts, activeIds]);
   const activeIds = useMemo(() => activeCompanyIds(data), [data]);
   // Entreprises sur un chantier en cours dont un document est à revoir
   const docsToReview = useMemo(() => new Set((data.contacts || [])
@@ -564,6 +569,29 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
         />
       </div>
     </div>
+    {/* Bandeau « Suivi des documents » : bien visible, aussi sur téléphone */}
+    {conf.ready && (
+      <button onClick={()=>setSuiviOpen(true)}
+        title="Avancement des documents des entreprises et aperçu des relances automatiques"
+        style={{
+          display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,width:"100%",
+          background:"#F0F9FF",border:"1.5px solid #BAE6FD",borderRadius:12,padding:m?"10px 12px":"12px 14px",
+          marginBottom:12,cursor:"pointer",fontFamily:"inherit",textAlign:"left",
+        }}>
+        <span style={{minWidth:0}}>
+          <span style={{display:"block",fontSize:14,fontWeight:700,color:"#0C4A6E"}}>📊 Suivi des documents des entreprises</span>
+          <span style={{display:"block",fontSize:11,color:"#0369A1",marginTop:2}}>
+            {conf.missingMigration ? "À activer : migrations 036 à 038 dans Supabase"
+              : suiviStats ? [
+                `${suiviStats.aJour}/${suiviStats.actives} entreprise${suiviStats.actives>1?"s":""} à jour`,
+                `${suiviStats.docsRecus}/${suiviStats.docsTotal} documents`,
+                conf.globalPause ? "relances suspendues" : `${suiviStats.prochainPassage} relance${suiviStats.prochainPassage>1?"s":""} au prochain passage`,
+              ].join(" · ") : ""}
+          </span>
+        </span>
+        <span style={{fontSize:12,fontWeight:700,color:"#0369A1",flexShrink:0}}>Ouvrir →</span>
+      </button>
+    )}
     <div style={{
       display:"flex",gap:6,marginBottom:14,flexWrap:"wrap",
       overflowX:m?"auto":"visible",paddingBottom:m?4:0
@@ -599,18 +627,6 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
           </button>
         );
       })}
-      {conf.ready && (
-        <button onClick={()=>setSuiviOpen(true)}
-          title="Avancement des documents des entreprises et aperçu des relances automatiques"
-          style={{
-            display:"inline-flex",alignItems:"center",gap:6,
-            padding:"5px 11px",borderRadius:999,fontSize:11,fontWeight:700,
-            border:"1px solid #BAE6FD",background:"#F0F9FF",color:"#0369A1",
-            cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap",
-          }}>
-          📊 Suivi des documents
-        </button>
-      )}
       {docsToReview.size > 0 && (
         <button onClick={()=>setTf(tf==="__docs"?"all":"__docs")}
           title="Entreprises sur un chantier en cours dont un document (Kbis, décennale, fiscale, URSSAF) est manquant, expiré ou expire bientôt"
