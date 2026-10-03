@@ -145,13 +145,18 @@ describe('/api/cron/daily-digest', () => {
     expect(sendMail).not.toHaveBeenCalled()
   })
 
-  it('hors créneau : seul l’appel qui tombe à 7 h à Paris envoie (été comme hiver)', async () => {
-    at('2026-10-05T06:25:00Z') // 8 h 25 à Paris (heure d'été)
+  it('hors créneau : envoi seulement entre 7 h et 9 h 59 à Paris (été comme hiver)', async () => {
+    at('2026-10-05T08:25:00Z') // 10 h 25 à Paris (heure d'été)
     expect((await call()).body).toEqual({ ok: true, skipped: 'hors créneau' })
     at('2026-11-02T05:25:00Z') // lundi, 6 h 25 à Paris (heure d'hiver)
     expect((await call()).body).toEqual({ ok: true, skipped: 'hors créneau' })
     expect(sendMail).not.toHaveBeenCalled()
     at('2026-11-02T06:25:00Z') // lundi, 7 h 25 à Paris (heure d'hiver)
+    expect((await call()).body).toMatchObject({ ok: true, sent: 2, failed: 0 })
+  })
+
+  it('cron GitHub en retard : l’envoi part encore à 8 h 40 à Paris', async () => {
+    at('2026-10-05T06:40:00Z') // lundi, 8 h 40 à Paris (heure d'été)
     expect((await call()).body).toMatchObject({ ok: true, sent: 2, failed: 0 })
   })
 

@@ -7,6 +7,7 @@ import { supabase } from '../supabaseClient'
 export const BADGE_WINDOW_DAYS = 7
 // Notifications brutes chargées pour la liste (avant regroupement)
 const FETCH_LIMIT = 40
+const RELOAD_DEBOUNCE_MS = 300
 // Lignes affichées après regroupement
 export const MAX_GROUPS = 10
 
@@ -109,6 +110,10 @@ export function useNotifications(userEmail) {
   // Realtime : écoute les INSERT + UPDATE sur MES notifications
   useEffect(() => {
     if (!email) return
+    // Un « tout marquer comme lu » produit un UPDATE par ligne : on regroupe
+    // les événements proches en un seul rechargement.
+    let timer = null
+    let pendingNew = false
     const channel = supabase
       .channel(`notifications:${email}`)
       .on('postgres_changes', {
@@ -119,14 +124,20 @@ export function useNotifications(userEmail) {
       }, (payload) => {
         // Seuls les INSERT d'un autre auteur déclenchent le signal "nouvelle activité"
         const actor = (payload?.new?.actor_email || '').toLowerCase().trim()
-        const isNew = payload?.eventType === 'INSERT' && actor !== email
-        Promise.resolve(load()).then(() => {
-          if (isNew) setNewItemSignal((n) => n + 1)
-        })
+        if (payload?.eventType === 'INSERT' && actor !== email) pendingNew = true
+        clearTimeout(timer)
+        timer = setTimeout(() => {
+          const signal = pendingNew
+          pendingNew = false
+          Promise.resolve(load()).then(() => {
+            if (signal) setNewItemSignal((n) => n + 1)
+          })
+        }, RELOAD_DEBOUNCE_MS)
       })
       .subscribe()
     channelRef.current = channel
     return () => {
+      clearTimeout(timer)
       try { supabase.removeChannel(channel) } catch (_) {}
       channelRef.current = null
     }

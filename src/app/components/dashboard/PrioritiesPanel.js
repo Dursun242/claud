@@ -17,10 +17,12 @@ const COLOR = {
  * @param onOpen      (tab, focusId) => void
  * @param userId      id de l'utilisateur (cache du mot du jour)
  * @param today       AAAA-MM-JJ
+ * @param ready       toutes les données sont chargées (le mot du jour n'est
+ *                    demandé qu'une fois la liste définitive)
  */
-export default function PrioritiesPanel({ priorities, onOpen, userId, today, m }) {
+export default function PrioritiesPanel({ priorities, onOpen, userId, today, ready = true, m }) {
   const { top, total } = priorities
-  const mot = useMotDuJour({ items: top, total, userId, today })
+  const mot = useMotDuJour({ items: top, total, userId, today, enabled: ready })
   const more = total - top.length
 
   return (

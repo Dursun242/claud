@@ -21,7 +21,7 @@ const getGreeting = () => {
 
 // clientMode : vue maître d'ouvrage (lecture seule) — pas d'actions de
 // création, pas de CRM ni de tâches internes, mais le suivi des travaux.
-export default function DashboardV({data,crm=null,setTab,m,user,clientMode=false}) {
+export default function DashboardV({data,crm=null,ready=true,setTab,m,user,clientMode=false}) {
   // Toutes les dérivées memoïsées : recalculées uniquement si data change,
   // pas à chaque re-render dû à un toast ou un resize.
   const {
@@ -122,7 +122,7 @@ export default function DashboardV({data,crm=null,setTab,m,user,clientMode=false
     {clientMode && overview && <ClientOverview overview={overview} onOpen={setTab} m={m}/>}
 
     {/* MES PRIORITÉS DU JOUR — par quoi commencer, et pourquoi */}
-    {!clientMode && priorities && <PrioritiesPanel priorities={priorities} onOpen={setTab} userId={user?.id} today={today} m={m}/>}
+    {!clientMode && priorities && <PrioritiesPanel priorities={priorities} ready={ready} onOpen={setTab} userId={user?.id} today={today} m={m}/>}
 
     {/* MA JOURNÉE — ce qui demande une action aujourd'hui */}
     {!clientMode && agenda && <TodayPanel agenda={agenda} onOpen={setTab} m={m}/>}

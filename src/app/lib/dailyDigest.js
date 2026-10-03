@@ -12,6 +12,10 @@ const FONT = "'Segoe UI', Helvetica, Arial, sans-serif"
 
 export const TIME_ZONE = 'Europe/Paris'
 export const SEND_HOUR = 7
+// Dernière heure (Paris) où l'envoi est encore accepté : GitHub Actions
+// peut lancer un cron avec beaucoup de retard. L'anti-doublon du jour
+// empêche un second envoi.
+export const LAST_SEND_HOUR = 9
 export const REST_LIMIT = 10
 
 /**

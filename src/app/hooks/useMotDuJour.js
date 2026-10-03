@@ -19,14 +19,15 @@ function readCache(key) {
   try { return window.localStorage.getItem(key) || memory.get(key) || '' } catch { return memory.get(key) || '' }
 }
 
-// Enregistre le texte du jour et efface les anciens de cet utilisateur
-function writeCache(key, text, userPrefix) {
+// Enregistre le texte et efface ceux des jours précédents de cet
+// utilisateur (ceux du jour restent : la liste peut revenir à un état connu)
+function writeCache(key, text, userPrefix, dayPrefix) {
   memory.set(key, text)
   try {
     const ls = window.localStorage
     for (let i = ls.length - 1; i >= 0; i--) {
       const k = ls.key(i)
-      if (k && k.startsWith(userPrefix) && k !== key) ls.removeItem(k)
+      if (k && k.startsWith(userPrefix) && !k.startsWith(dayPrefix)) ls.removeItem(k)
     }
     ls.setItem(key, text)
   } catch { /* stockage indisponible : on garde le texte en mémoire seulement */ }
@@ -56,14 +57,22 @@ async function fetchMot(digest) {
  * @param {string}  p.today   AAAA-MM-JJ
  * @returns {string} la phrase, ou '' tant qu'elle n'est pas disponible
  */
-export function useMotDuJour({ items = [], total = 0, userId, today }) {
+export function useMotDuJour({ items = [], total = 0, userId, today, enabled = true }) {
   const digest = useMemo(() => (items.length ? prioritiesDigest(items, total) : ''), [items, total])
   const userPrefix = `${PREFIX}${userId || 'anon'}:`
-  const key = digest ? `${userPrefix}${today}:${hashText(digest)}` : null
+  const dayPrefix = `${userPrefix}${today}:`
+  const key = digest ? `${dayPrefix}${hashText(digest)}` : null
   const [state, setState] = useState(() => ({ key, text: readCache(key) }))
 
   useEffect(() => {
     if (!key) return undefined
+    // Pas d'appel tant que la liste n'est pas définitive (chargement en
+    // plusieurs étapes) ; un texte déjà en cache s'affiche quand même.
+    if (!enabled) {
+      const cached = readCache(key)
+      if (cached) setState({ key, text: cached })
+      return undefined
+    }
     const cached = readCache(key)
     if (cached) { setState({ key, text: cached }); return undefined }
     if (failed.has(key)) return undefined
@@ -72,14 +81,14 @@ export function useMotDuJour({ items = [], total = 0, userId, today }) {
     let p = pending.get(key)
     if (!p) {
       p = fetchMot(digest)
-        .then(text => { if (text) writeCache(key, text, userPrefix); return text })
+        .then(text => { if (text) writeCache(key, text, userPrefix, dayPrefix); return text })
         .catch(() => { failed.add(key); return '' })
         .finally(() => pending.delete(key))
       pending.set(key, p)
     }
     p.then(text => { if (alive && text) setState({ key, text }) })
     return () => { alive = false }
-  }, [key, digest, userPrefix])
+  }, [key, digest, userPrefix, dayPrefix, enabled])
 
   return state.key === key ? state.text : ''
 }

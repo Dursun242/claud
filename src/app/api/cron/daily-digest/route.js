@@ -24,7 +24,7 @@ import { mapCriticalData, mapSecondaryData, NOT_DEMO_FILTER } from '@/app/lib/da
 import { loadCrmWith } from '@/app/lib/crmLoad'
 import { buildDailyPriorities } from '@/app/lib/dailyPriorities'
 import { MOT_DU_JOUR_SYSTEM, prioritiesDigest, motDuJourPrompt, cleanMotDuJour } from '@/app/lib/priorities'
-import { parisClock, buildDigestMail, SEND_HOUR } from '@/app/lib/dailyDigest'
+import { parisClock, buildDigestMail, SEND_HOUR, LAST_SEND_HOUR } from '@/app/lib/dailyDigest'
 
 export const maxDuration = 60
 
@@ -103,7 +103,10 @@ async function motDuJour(top, total) {
       system: MOT_DU_JOUR_SYSTEM,
       messages: [{ role: 'user', content: motDuJourPrompt(prioritiesDigest(top, total)) }],
       maxTokens: 150,
-      timeoutMs: 20_000,
+      // Court et sans nouvel essai : la route doit rester sous maxDuration
+      // même si les deux fournisseurs répondent mal.
+      timeoutMs: 12_000,
+      maxRetries: 0,
       log,
     })
     if (!ai?.ok) { log.warn('mot du jour indisponible', ai?.message || ''); return '' }
@@ -128,7 +131,8 @@ export async function GET(request) {
   const url = requestUrl(request)
   const force = url?.searchParams.get('force') === '1'
   const clock = parisClock(new Date())
-  if (!force && (clock.weekday < 1 || clock.weekday > 5 || clock.hour !== SEND_HOUR)) {
+  if (!force && (clock.weekday < 1 || clock.weekday > 5
+    || clock.hour < SEND_HOUR || clock.hour > LAST_SEND_HOUR)) {
     return Response.json({ ok: true, skipped: 'hors créneau' })
   }
 
@@ -151,11 +155,13 @@ export async function GET(request) {
     const emails = await staffEmails(admin)
     if (!emails.length) return Response.json({ ok: true, skipped: 'aucun destinataire' })
 
+    // Mot du jour AVANT de réserver la journée : si la fonction est coupée
+    // pendant l'appel IA, la journée n'est pas marquée envoyée à tort.
+    const mot = await motDuJour(priorities.top, priorities.total)
+
     if (!(await claimDay(admin, lastRow, clock.today))) {
       return Response.json({ ok: true, skipped: 'déjà envoyé aujourd’hui' })
     }
-
-    const mot = await motDuJour(priorities.top, priorities.total)
     const appUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || url?.origin || ''
     // Top 3, puis les 10 suivantes en liste courte
     const mail = buildDigestMail({ priorities, dateLabel: clock.label, mot, appUrl })

@@ -38,6 +38,9 @@ export function useCrmData({ enabled = true } = {}) {
   return {
     crm: q.data || EMPTY,
     loading: q.isLoading,
+    // CRM chargé (ou en échec) — faux tant que la requête n'a pas abouti,
+    // y compris quand elle n'est pas encore lancée (enabled: false).
+    ready: q.status !== 'pending',
     error: q.error || null,
     reload,
     patch,

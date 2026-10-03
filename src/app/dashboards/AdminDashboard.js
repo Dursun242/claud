@@ -83,11 +83,11 @@ export default function AdminDashboard({ user, profile = null }) {
   // (secondary) avec cache staleTime 5 min. Avant on avait un useEffect
   // qui refetch à chaque mount ; maintenant la nav entre onglets est
   // instantanée tant que la cache est fresh.
-  const { data: loadedData, loading, reload, hasChantiers } = useDashboardData();
+  const { data: loadedData, loading, reload, hasChantiers, secondaryReady } = useDashboardData();
   // Stage 3 : CRM (pipeline + interactions), lancé seulement après le
   // stage 1. Partagé via React Query par CrmV, DashboardV, ContactsV,
   // QontoV, AIV et la recherche globale.
-  const { crm, reload: reloadCrm } = useCrmData({ enabled: !!loadedData });
+  const { crm, reload: reloadCrm, ready: crmReady } = useCrmData({ enabled: !!loadedData });
 
   // Seed premier login : si la DB est vide après le 1er fetch, on sème
   // les données de démo une seule fois, puis on invalide la query.
@@ -472,7 +472,7 @@ export default function AdminDashboard({ user, profile = null }) {
           {visitedTabs.has('dashboard') && (
             <div style={{ display: tab === 'dashboard' ? 'block' : 'none' }}>
               <TabErrorBoundary name="dashboard" resetKey={data}>
-                <DashboardV data={data} crm={crm} setTab={switchTab} m={isMobile} user={user}/>
+                <DashboardV data={data} crm={crm} ready={secondaryReady && crmReady} setTab={switchTab} m={isMobile} user={user}/>
               </TabErrorBoundary>
             </div>
           )}
