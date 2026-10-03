@@ -20,6 +20,7 @@ function fakeAdmin() {
         then: (res) => {
           if (table === 'authorized_users') return res({ data: db.staff, error: null })
           if (table === 'crm_devis' && q.patch) return res({ data: db.alreadyDone ? [] : [{ id: 'x' }], error: null })
+          if (table === 'crm_opportunites' && q.patch) return res({ data: null, error: db.oppUpdateError || null })
           return res({ data: db.crm_devis, error: null })
         },
       }
@@ -52,6 +53,7 @@ beforeEach(() => {
     planWorkForDevis,
     closeDevisFollowUps,
     planSummary: jest.requireActual('@/app/lib/devisWon').planSummary,
+    planFailure: jest.requireActual('@/app/lib/devisWon').planFailure,
   }))
   ;({ GET } = require('../route'))
   updates = []; inserts = []
@@ -105,6 +107,29 @@ describe('/api/cron/qonto-status', () => {
     expect(planWorkForDevis).toHaveBeenCalledTimes(1)
     expect(planWorkForDevis).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ id: 'd1' }), expect.objectContaining({ how: 'accepté dans Qonto' }))
     expect(sendMail.mock.calls[0][1].text).toContain('Chantier créé : « Garage Martin »')
+  })
+
+  it('échec de la mise à jour de l’affaire → journalisé, le mail n’annonce pas « Gagné »', async () => {
+    db.oppUpdateError = { message: 'permission denied' }
+    const body = await (await GET(req())).json()
+    expect(body.changes).toEqual(expect.arrayContaining([{ numero: 'D-2026-040', statut: 'Accepté' }]))
+    const text = sendMail.mock.calls[0][1].text
+    expect(text).not.toContain('l’affaire « Gagné » dans le CRM')
+    expect(text).toContain('l’affaire n’a pas pu passer « Gagné » : à faire à la main')
+    expect(console.warn).toHaveBeenCalled()
+  })
+
+  it('planification échouée → le mail demande de créer chantier et tâche à la main', async () => {
+    planWorkForDevis.mockResolvedValueOnce({ chantier: null, chantierCreated: false, taskCreated: false, failed: true })
+    await GET(req())
+    const text = sendMail.mock.calls[0][1].text
+    expect(text).toContain('Chantier et tâche non créés automatiquement : à faire à la main.')
+    expect(text).toContain('l’affaire « Gagné » dans le CRM')
+  })
+
+  it('planification réussie → pas de ligne d’échec', async () => {
+    await GET(req())
+    expect(sendMail.mock.calls[0][1].text).not.toMatch(/à faire à la main/)
   })
 
   it('réponse reçue → relances soldées (toute l’affaire si accepté, le devis si annulé)', async () => {

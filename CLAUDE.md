@@ -16,7 +16,7 @@ Application de gestion de chantiers BTP pour **ID Maîtrise** (SARL, Le Havre). 
 - **Odoo JSON-RPC** : signatures électroniques via module Sign
 - **Qonto API** : import factures/devis (proxy read-only)
 - **Annuaire des entreprises** (`recherche-entreprises.api.gouv.fr`, État, gratuit, sans clé) : recherche par SIRET / nom / dirigeant pour les contacts (`api/entreprises`, `lib/entreprises.js`)
-- **Jest + @testing-library/react** : ~540 tests, 10 s d'exécution
+- **Jest + @testing-library/react** : ~780 tests, ~20 s d'exécution
 
 ## Topologie
 
@@ -25,12 +25,12 @@ src/app/
 ├─ page.js                    → entrée app (AuthProvider + dashboard)
 ├─ layout.js                  → root layout + next/font DM Sans
 ├─ RootWrapper.js             → providers (Toast, Confirm, WebVitals)
-├─ middleware.js              → headers sécurité (pas de CSP, voir "dette")
+├─ (src/middleware.js)       → headers sécurité (pas de CSP, voir "dette")
 ├─ auth.js                    → login + AuthProvider Supabase
 ├─ signer/[token]/page.js     → page publique de signature d'un devis (sans compte, jeton)
 │
 ├─ dashboards/
-│   ├─ shared.js              ⚠ 720+ lignes. SB (CRUD), constants, icons, styles, widgets. À splitter un jour.
+│   ├─ shared.js              ⚠ 880+ lignes. SB (CRUD), constants, icons, styles, widgets. À splitter un jour.
 │   ├─ AdminDashboard.js      → shell admin + lazy-load pages
 │   └─ ClientDashboard.js     → shell client + lazy-load pages
 │
@@ -44,7 +44,7 @@ src/app/
 │                               mailer.js (SMTP serveur) · notifications.js (serveur, service role) · crm.js (logique pure pipeline) + devis.js / devisAi.js / qontoDevis.js (calculs, prix habituels, vérifs devis, format Qonto) + crmDb.js (accès Supabase CRM, hors shared.js) + crmApi.js (appels /api/* du CRM avec JWT, PDF base64)
 │                               crSuivi.js (CR : numéro par chantier, points numérotés repris d'un CR à l'autre, relances + montée de priorité, sections par lot / avancement prévu, application de la proposition IA, textes des mails) · crEditor.js (état de l'éditeur, brouillon, aperçu) · crDb.js (enregistrement CR + tâches + rdv, statut Brouillon / Diffusé) · crPhotos.js (photos : réduction, dépôt, lecture pour le PDF) · crAi.js (schéma + nettoyage de la réponse IA)
 │
-└─ api/                       → 31 routes. Pattern unique : verifyAuth() / verifyStaff() + createLogger() + mock-friendly.
+└─ api/                       → 34 routes. Pattern unique : verifyAuth() / verifyStaff() + createLogger() + mock-friendly.
     ├─ admin/*                → service role uniquement (users, demo-mode, reset-demo-data)
     ├─ claude/                → assistant IA (Claude ou Mistral via lib/ai.js, réponse au format Anthropic, rate limit 20/min/IP)
     ├─ devis-ia, devis/send   → CRM : IA de chiffrage + envoi SMTP du devis (staff only, verifyStaff)
@@ -104,7 +104,7 @@ Stage 3 = **CRM** (`crm_opportunites`, `crm_interactions`, `crm_devis`, `crm_dev
 npm install          # deps
 npm run dev          # dev sur :3000
 npm run build        # build prod
-npm test             # Jest (~540 tests, ~10 s)
+npm test             # Jest (~780 tests, ~20 s)
 npm test -- --ci src/app/api/qonto  # tests filtrés
 npm run lint         # next lint
 ```
@@ -118,11 +118,11 @@ Voir `.env.example` à la racine. Minimum requis pour dev :
 
 ## Migrations DB
 
-**Ordre critique** : voir `migrations/APPLY_ORDER.md`. Les migrations numérotées 001→033 s'appliquent dans l'ordre via le SQL Editor Supabase. Chaque migration ayant un impact non-trivial a un `<num>_README.md` dédié.
+**Ordre critique** : voir `migrations/APPLY_ORDER.md`. Les migrations numérotées 001→034 s'appliquent dans l'ordre via le SQL Editor Supabase. Chaque migration ayant un impact non-trivial a un `<num>_README.md` dédié.
 
 ## Dette technique assumée
 
-- **`shared.js` = 720+ lignes** → plan de split documenté dans `/docs/` (à créer).
+- **`shared.js` = 880+ lignes** → plan de split documenté dans `/docs/` (à créer).
 - **Pas de CSP** → refacto styles inline → classes ou ajout nonces (~1 j).
 - **Tests pages `*V.js`** quasi absents (seulement `CrmV`, composants, hooks, routes API).
 - **Pas d'i18n** → tout en français dur (OK pour cible mono-langue).

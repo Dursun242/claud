@@ -12,7 +12,7 @@ import { useSaveTask } from '../hooks/useSaveTask'
 const PRIORITY_ORDER = { Urgent: 0, "En cours": 1, "En attente": 2 }
 const TASK_STATUSES = ["Planifié", "En cours", "Terminé"]
 
-export default function TasksV({ data, save: _save, m, reload, focusId, focusTs }) {
+export default function TasksV({ data, save: _save, m, reload, focusId, focusTs, active }) {
   const { addToast } = useToast()
   const confirm = useConfirm()
   const saveTask = useSaveTask()
@@ -86,6 +86,8 @@ export default function TasksV({ data, save: _save, m, reload, focusId, focusTs 
   useEffect(() => { openNewRef.current = openNew })
   useEffect(() => {
     const handler = (e) => {
+      // Onglet caché (resté monté) : on ignore
+      if (active === false) return
       if (e.altKey || e.ctrlKey || e.metaKey) return
       const t = e.target
       const tag = (t?.tagName || '').toLowerCase()
@@ -96,7 +98,7 @@ export default function TasksV({ data, save: _save, m, reload, focusId, focusTs 
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [modal])
+  }, [modal, active])
 
   const handleSave = async () => {
     setFormError("")
@@ -271,6 +273,8 @@ export default function TasksV({ data, save: _save, m, reload, focusId, focusTs 
               {t.statut==="Terminé" && <Icon d={I.check} size={12} color="#fff"/>}
             </button>
             <div onClick={()=>openEdit(t)}
+              role="button" tabIndex={0}
+              onKeyDown={e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); openEdit(t); } }}
               style={{flex:"1 1 0",minWidth:0,cursor:"pointer",opacity:t.statut==="Terminé"?0.5:1}}>
               <div style={{
                 fontSize:13,fontWeight:600,color:"#0F172A",

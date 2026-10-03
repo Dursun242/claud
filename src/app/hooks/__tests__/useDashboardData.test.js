@@ -156,21 +156,39 @@ describe('useDashboardData', () => {
     expect(SB.loadCritical).toHaveBeenCalledTimes(2)
   })
 
-  it("secondary n'est pas appelé tant que critical n'a pas résolu", async () => {
-    // critical met 50ms à résoudre
+  it('secondary part en parallèle de critical (sans attendre sa réponse)', async () => {
     let resolveCritical
     SB.loadCritical.mockReturnValue(new Promise(r => { resolveCritical = r }))
     SB.loadSecondary.mockResolvedValue({})
     const { wrapper } = makeWrapper()
 
-    renderHook(() => useDashboardData(), { wrapper })
+    const { result } = renderHook(() => useDashboardData(), { wrapper })
 
-    // À ce stade, secondary n'a PAS encore été appelé
-    expect(SB.loadSecondary).not.toHaveBeenCalled()
-
-    // On résout critical → secondary doit partir
-    resolveCritical({ chantiers: [], tasks: [], compteRendus: [], ordresService: [], _demoIds: new Set() })
+    // critical toujours en attente, secondary déjà lancé
     await waitFor(() => expect(SB.loadSecondary).toHaveBeenCalledTimes(1))
+    expect(result.current.data).toBeNull()
+
+    resolveCritical({ chantiers: [], tasks: [], compteRendus: [], ordresService: [], _demoIds: new Set() })
+    await waitFor(() => expect(result.current.data).not.toBeNull())
+  })
+
+  it('un échec de rechargement garde les données précédentes (pas de liste vidée)', async () => {
+    SB.loadCritical
+      .mockResolvedValueOnce({ chantiers: [{ id: 'c1' }], tasks: [{ id: 't1' }], compteRendus: [], ordresService: [], _demoIds: new Set() })
+      .mockResolvedValueOnce({ error: 'Chargement taches impossible : timeout' })
+    SB.loadSecondary
+      .mockResolvedValueOnce({ contacts: [{ id: 'ct1' }], planning: [], rdv: [], attachmentCountsByChantier: new Map() })
+      .mockRejectedValueOnce(new Error('Chargement contacts impossible : timeout'))
+    const { wrapper } = makeWrapper()
+
+    const { result } = renderHook(() => useDashboardData(), { wrapper })
+    await waitFor(() => expect(result.current.data?.contacts).toHaveLength(1))
+
+    await act(async () => { await result.current.reload() })
+
+    await waitFor(() => expect(result.current.error?.message).toMatch(/taches/))
+    expect(result.current.data.tasks).toHaveLength(1)
+    expect(result.current.data.contacts).toHaveLength(1)
   })
 
   it('DASHBOARD_KEYS exporte les deux query keys', () => {

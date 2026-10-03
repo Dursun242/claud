@@ -259,6 +259,8 @@ export default function DashboardV({data,crm=null,setTab,m,user,clientMode=false
             const phaseColor = phase[ch.phase]||"#94A3B8";
             return(
               <div key={ch.id} onClick={()=>setTab("projects",ch.id)}
+                role="button" tabIndex={0} aria-label={`Ouvrir le chantier ${ch.nom}`}
+                onKeyDown={e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); setTab("projects",ch.id); } }}
                 style={{
                   border:`1.5px solid #E2E8F0`,
                   borderLeft:`4px solid ${phaseColor}`,
@@ -373,7 +375,10 @@ export default function DashboardV({data,crm=null,setTab,m,user,clientMode=false
               const dotColor = isUrgent?"#EF4444":isOverdue?"#F59E0B":"#CBD5E1";
               const titleColor = isUrgent?"#EF4444":isOverdue?"#B45309":"#0F172A";
               return(
-                <div key={t.id} onClick={()=>setTab("tasks",t.id)} style={{
+                <div key={t.id} onClick={()=>setTab("tasks",t.id)}
+                  role="button" tabIndex={0}
+                  onKeyDown={e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); setTab("tasks",t.id); } }}
+                  style={{
                   cursor:"pointer", padding:"8px 0",
                   borderBottom:isLast?"none":"1px solid #F1F5F9",
                   display:"flex", alignItems:"center", gap:10,

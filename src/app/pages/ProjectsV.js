@@ -59,7 +59,7 @@ function Section({ title, count, color, children }) {
   )
 }
 
-export default function ProjectsV({ data, save: _save, m, reload, user, profile, focusId, focusTs, readOnly }) {
+export default function ProjectsV({ data, save: _save, m, reload, user, profile, focusId, focusTs, readOnly, active }) {
   const { addToast } = useToast();
   const confirm = useConfirm();
   const saveTask = useSaveTask();
@@ -233,6 +233,8 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
   useEffect(() => { openNewRef.current = openNew; });
   useEffect(() => {
     const handler = (e) => {
+      // Onglet caché (resté monté) ou client en lecture seule : on ignore
+      if (readOnly || active === false) return;
       if (e.altKey || e.ctrlKey || e.metaKey) return;
       const t = e.target;
       const tag = (t?.tagName || '').toLowerCase();
@@ -243,7 +245,7 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [modal, detailModal, selected]);
+  }, [modal, detailModal, selected, readOnly, active]);
   const handleSave=async()=>{
     if(saving) return;
     setSaving(true);
@@ -678,7 +680,13 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
         onClose={()=>setCrModal(null)}
         onSaved={async (cr, { send }) => { setCrModal(null); await reload(); if (send) setSendCr(cr); }} />
       <CRSendModal cr={sendCr} chantier={ch} onClose={()=>setSendCr(null)}
-        onSent={async (cr) => { if (cr?.id && cr.statut !== 'Diffusé') { await markDiffused(cr.id); reload(); } }} />
+        onSent={async (cr) => {
+          if (cr?.id && cr.statut !== 'Diffusé') {
+            const ok = await markDiffused(cr.id);
+            if (!ok) addToast("CR envoyé, mais son statut n'a pas pu passer à « Diffusé »", "warning");
+            reload();
+          }
+        }} />
 
       <Modal
         open={detailModal==="newTask"||detailModal==="editTask"}

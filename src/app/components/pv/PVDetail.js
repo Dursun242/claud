@@ -24,9 +24,13 @@ export default function PVDetail({ pv, onClose, onDecision }) {
 
     setSaving(true)
     try {
+      const { data: { session } } = await supabase.auth.getSession()
       const res = await fetch('/api/pv-reception/decision', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+        },
         body: JSON.stringify({
           pvId: pv.id,
           decision,
@@ -34,7 +38,10 @@ export default function PVDetail({ pv, onClose, onDecision }) {
         })
       })
 
-      if (!res.ok) throw new Error('Erreur enregistrement')
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error(body.error || 'Erreur enregistrement')
+      }
       addToast(`PV ${decision}`, 'success')
       onDecision()
       onClose()

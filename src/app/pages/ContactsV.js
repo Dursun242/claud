@@ -32,7 +32,7 @@ const TYPE_COLORS = {
 }
 const TYPES = ["Artisan","Sous-traitant","Prestataire","Client","Fournisseur","MOA","Architecte","BET"]
 
-export default function ContactsV({ data, save: _save, m, reload, focusId, focusTs, crm = null, reloadCrm = null, setTab = null }) {
+export default function ContactsV({ data, save: _save, m, reload, focusId, focusTs, crm = null, reloadCrm = null, setTab = null, active }) {
   const { addToast } = useToast();
   const confirm = useConfirm();
   const [modal,setModal]=useState(null);
@@ -204,6 +204,8 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
   useEffect(() => { openNewRef.current = openNew; });
   useEffect(() => {
     const handler = (e) => {
+      // Onglet caché (resté monté) : on ignore
+      if (active === false) return;
       if (e.altKey || e.ctrlKey || e.metaKey) return;
       const t = e.target;
       const tag = (t?.tagName || '').toLowerCase();
@@ -214,7 +216,7 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [modal]);
+  }, [modal, active]);
 
   // Focus depuis la recherche globale : au lieu d'ouvrir une modale,
   // on pré-remplit la recherche locale avec le nom du contact et on

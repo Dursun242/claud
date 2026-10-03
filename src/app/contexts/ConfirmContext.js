@@ -1,5 +1,5 @@
 'use client'
-import { createContext, useContext, useState, useCallback, useMemo, useRef } from 'react'
+import { createContext, useContext, useState, useCallback, useMemo, useRef, useEffect } from 'react'
 import { ANIMATION } from '../lib/motion'
 
 /**
@@ -18,7 +18,8 @@ import { ANIMATION } from '../lib/motion'
  * La modale supporte :
  * - Focus trap (via le composant Modal sous-jacent)
  * - Escape = Annuler
- * - Enter = Confirmer (focus automatique sur le bouton confirmer)
+ * - Enter = Confirmer (focus automatique sur le bouton confirmer ; sur un
+ *   bouton, Entrée garde son effet natif : « Annuler » annule)
  * - `danger: true` → bouton rouge pour les actions destructives
  */
 
@@ -82,16 +83,23 @@ function ConfirmDialog({ state, onResolve }) {
   // Auto-focus sur le bouton Confirmer à l'ouverture (pour un Enter direct)
   // + focus trap Tab/Shift+Tab + Escape = cancel + body scroll lock
   const isOpen = !!state
-  if (typeof window !== 'undefined' && isOpen) {
-    // setTimeout car le render est synchrone ; on attend le mount du bouton
-    setTimeout(() => confirmBtnRef.current?.focus(), 30)
-  }
+  useEffect(() => {
+    if (!isOpen) return
+    // setTimeout : on laisse l'animation d'ouverture démarrer avant le focus
+    const id = setTimeout(() => confirmBtnRef.current?.focus(), 30)
+    return () => clearTimeout(id)
+  }, [isOpen])
 
   if (!isOpen) return null
 
   const handleKeyDown = (e) => {
     if (e.key === 'Escape') { e.preventDefault(); onResolve(false); return }
-    if (e.key === 'Enter')  { e.preventDefault(); onResolve(true); return }
+    // Entrée sur un bouton : on laisse le clic natif du bouton agir
+    // (sinon Tab sur « Annuler » + Entrée confirmerait la suppression)
+    if (e.key === 'Enter') {
+      if ((e.target?.tagName || '').toLowerCase() === 'button') return
+      e.preventDefault(); onResolve(true); return
+    }
     // Focus trap simple
     if (e.key === 'Tab' && contentRef.current) {
       const focusables = contentRef.current.querySelectorAll('button')

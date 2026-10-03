@@ -41,14 +41,17 @@ function userStub(pv) {
   return chain
 }
 
-// Client admin : .from().update().eq() → { error }
-function adminStub() {
-  const eq = jest.fn().mockResolvedValue({ error: null })
+// Client admin : .from().update().eq().or().select() → { data, error }
+// rows = lignes renvoyées par la mise à jour conditionnelle ([] = aucune).
+function adminStub(rows = [{ id: 'pv1' }]) {
+  const select = jest.fn().mockResolvedValue({ data: rows, error: null })
+  const or = jest.fn(() => ({ select }))
+  const eq = jest.fn(() => ({ or }))
   const update = jest.fn(() => ({ eq }))
-  return { client: { from: jest.fn(() => ({ update })) }, update, eq }
+  return { client: { from: jest.fn(() => ({ update })) }, update, eq, or }
 }
 
-const PV = { id: 'pv1', chantier_id: 'c1', numero: 'PV-001', titre: 'Réception', statut_signature: 'Signé' }
+const PV = { id: 'pv1', chantier_id: 'c1', numero: 'PV-001', titre: 'Réception', statut_signature: 'Signé', statut_reception: 'En attente' }
 
 beforeEach(() => {
   jest.clearAllMocks()
@@ -82,6 +85,36 @@ describe('POST /api/pv-reception/decision', () => {
     expect(res.status).toBe(200)
     expect(admin.update).toHaveBeenCalledWith(expect.objectContaining({ statut_reception: 'Refusé', motif_refus: 'Fissures' }))
     expect(admin.eq).toHaveBeenCalledWith('id', 'pv1')
+    expect(admin.or).toHaveBeenCalledWith('statut_reception.is.null,statut_reception.eq."En attente"')
+  })
+
+  it('accepte un PV dont statut_reception est NULL (pas encore de décision)', async () => {
+    userClientFromToken.mockReturnValue(userStub({ ...PV, statut_reception: null }))
+    const admin = adminStub()
+    adminClient.mockReturnValue(admin.client)
+
+    const res = await POST(makeRequest({ pvId: 'pv1', decision: 'Accepté' }))
+    expect(res.status).toBe(200)
+  })
+
+  it('renvoie 409 sans rien écrire si une décision est déjà enregistrée', async () => {
+    userClientFromToken.mockReturnValue(userStub({ ...PV, statut_reception: 'Accepté' }))
+    const admin = adminStub()
+    adminClient.mockReturnValue(admin.client)
+
+    const res = await POST(makeRequest({ pvId: 'pv1', decision: 'Refusé', motifRefus: 'Changement d\'avis' }))
+    expect(res.status).toBe(409)
+    expect((await res.json()).error).toMatch(/déjà été enregistrée/)
+    expect(admin.update).not.toHaveBeenCalled()
+  })
+
+  it('renvoie 409 si la décision a été prise entre la lecture et l\'écriture', async () => {
+    userClientFromToken.mockReturnValue(userStub(PV))
+    const admin = adminStub([])
+    adminClient.mockReturnValue(admin.client)
+
+    const res = await POST(makeRequest({ pvId: 'pv1', decision: 'Accepté' }))
+    expect(res.status).toBe(409)
   })
 
   it('refuse une décision sur un PV non signé', async () => {

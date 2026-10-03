@@ -39,6 +39,7 @@ Exécuter dans cet ordre exact sur une base vierge (Supabase Dashboard → SQL E
 | 031 | `031_securite_fonctions_index.sql` | Retire l'exécution publique (RPC) des fonctions internes de notification (`create_activity_notification`, `_ex`, `chantier_name`) + index `rdv(chantier_id)` et `contact_chantiers(chantier_id)`. Sans impact sur les notifications automatiques. |
 | 032 | `032_notifications_qonto_serveur.sql` | Notifications et jeton Qonto côté serveur uniquement : retire l'accès RPC aux fonctions « destinataires » (018), supprime la policy INSERT de `notifications`, rend la ligne `settings.qonto-token` invisible via l'API. **À appliquer après le déploiement** de la version qui contient `/api/qonto/token`. |
 | 033 | `033_cr_suivi_taches.sql` | **Refonte des comptes rendus** : sections par lot (avancement, observations, photos), points suivis d'un CR à l'autre (n° de point, entreprise, photos, rappels, CR d'origine), convocation (`prochaine_reunion`), statut Brouillon / Diffusé (le maître d'ouvrage ne voit pas les brouillons). Sans elle, les CR restent enregistrables (sans le suivi). |
+| 034 | `034_durcissement_audit.sql` | **[Sécu]** Retire l'exécution RPC de `seed_demo_data()` et `resolve_client_user_id(TEXT)` (service role conservé), plus de notification sur la modification d'un CR en « Brouillon », suppression / écrasement des fichiers du bucket `attachments` réservés à l'équipe. À appliquer après 033. Voir `034_README.md`. |
 
 ## Fichiers NON séquentiels (à ne PAS appliquer en séquence)
 

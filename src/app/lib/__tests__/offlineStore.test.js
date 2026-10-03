@@ -28,6 +28,32 @@ describe('file d’attente hors ligne', () => {
     expect(readOutbox(EMAIL)).toEqual([])
   })
 
+  it('flushOutbox garde en file une opération sans handler (jamais jetée) et s’arrête là pour garder l’ordre', async () => {
+    enqueue(EMAIL, { type: 'task', payload: { id: 'a' } })
+    enqueue(EMAIL, { type: 'inconnu', payload: { id: 'x' } })
+    enqueue(EMAIL, { type: 'task', payload: { id: 'b' } })
+    const sent = []
+    const r = await flushOutbox(EMAIL, { task: async (p) => { sent.push(p.id) } })
+    expect(sent).toEqual(['a'])
+    expect(r).toEqual({ sent: 1, remaining: 2 })
+    expect(readOutbox(EMAIL).map(o => o.type)).toEqual(['inconnu', 'task'])
+  })
+
+  it('enqueue lève si la file ne peut pas être écrite (stockage plein) et ne prévient pas l’interface', () => {
+    const counts = []
+    const on = (e) => counts.push(e.detail.count)
+    window.addEventListener(OUTBOX_EVENT, on)
+    const spy = jest.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('QuotaExceededError') })
+    try {
+      expect(() => enqueue(EMAIL, { type: 'task', payload: { id: 'a' } })).toThrow(/non enregistrée/)
+    } finally {
+      spy.mockRestore()
+      window.removeEventListener(OUTBOX_EVENT, on)
+    }
+    expect(readOutbox(EMAIL)).toEqual([])
+    expect(counts).toEqual([])
+  })
+
   it('prévient l’interface à chaque changement de la file', () => {
     const counts = []
     const on = (e) => counts.push(e.detail.count)

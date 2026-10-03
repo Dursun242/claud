@@ -1,7 +1,7 @@
 /**
  * @jest-environment node
  */
-import { planWorkForDevis, planSummary, taskTitleForDevis, closeDevisFollowUps } from '../devisWon'
+import { planWorkForDevis, planSummary, planFailure, taskTitleForDevis, closeDevisFollowUps } from '../devisWon'
 
 // Faux client Supabase : tables en mémoire, sous-ensemble des appels utilisés
 function fakeAdmin(tables) {
@@ -78,8 +78,48 @@ describe('planWorkForDevis', () => {
   it('ne lève jamais (erreur base journalisée)', async () => {
     const log = { warn: jest.fn() }
     const admin = { from: () => { throw new Error('base indisponible') } }
-    await expect(planWorkForDevis(admin, DEVIS, { log })).resolves.toEqual({ chantier: null, chantierCreated: false, taskCreated: false })
+    await expect(planWorkForDevis(admin, DEVIS, { log })).resolves.toEqual({ chantier: null, chantierCreated: false, taskCreated: false, failed: true })
     expect(log.warn).toHaveBeenCalled()
+  })
+
+  it('échec du rattachement chantier/affaire → s’arrête (pas de tâche) et le signale', async () => {
+    const log = { warn: jest.fn() }
+    const admin = fakeAdmin({ crm_opportunites: [{ id: 'o1', titre: 'Cuisine Dupont', chantier_id: null }] })
+    const from = admin.from.getMockImplementation()
+    admin.from.mockImplementation((table) => {
+      const q = from(table)
+      if (table === 'crm_opportunites') q.update = () => ({ eq: async () => ({ error: { message: 'RLS' } }) })
+      return q
+    })
+    const plan = await planWorkForDevis(admin, DEVIS, { log })
+    expect(plan).toMatchObject({ chantierCreated: true, taskCreated: false, failed: true })
+    expect(admin.db.taches).toHaveLength(0)
+    expect(log.warn).toHaveBeenCalledWith('planification des travaux', expect.stringMatching(/rattachement chantier\/affaire : RLS/))
+  })
+
+  it('échec de lecture des tâches existantes → aucune tâche créée (pas de doublon)', async () => {
+    const log = { warn: jest.fn() }
+    const admin = fakeAdmin({
+      crm_opportunites: [{ id: 'o1', titre: 'Cuisine Dupont', chantier_id: 'ch-9' }],
+      chantiers: [{ id: 'ch-9', nom: 'Chantier existant' }],
+    })
+    const from = admin.from.getMockImplementation()
+    admin.from.mockImplementation((table) => {
+      const q = from(table)
+      if (table === 'taches') q.limit = async () => ({ data: null, error: { message: 'timeout' } })
+      return q
+    })
+    const plan = await planWorkForDevis(admin, DEVIS, { log })
+    expect(plan).toMatchObject({ chantier: { id: 'ch-9' }, taskCreated: false, failed: true })
+    expect(admin.db.taches).toHaveLength(0)
+    expect(log.warn).toHaveBeenCalledWith('planification des travaux', expect.stringMatching(/lecture tâche : timeout/))
+  })
+
+  it('planFailure : ligne d’échec seulement quand la planification a échoué', () => {
+    expect(planFailure(null)).toBeNull()
+    expect(planFailure({ chantier: { nom: 'X' }, chantierCreated: true, taskCreated: true })).toBeNull()
+    expect(planFailure({ chantier: null, failed: true })).toBe('Chantier et tâche non créés automatiquement : à faire à la main.')
+    expect(planFailure({ chantier: { nom: 'X' }, failed: true })).toMatch(/Planification incomplète pour « X ».*à faire à la main/)
   })
 
   it('planSummary / taskTitleForDevis', () => {

@@ -45,7 +45,8 @@ export const taskTitleForDevis = (devis, how = 'signé') => `Lancer les travaux 
  * @param {object} admin  client Supabase service role
  * @param {object} devis  ligne crm_devis (id, numero, objet, opportunite_id, total_ht)
  * @param {{ how?: string, log?: object }} [opts] how : « signé » | « accepté dans Qonto »
- * @returns {Promise<{ chantier: {id, nom}|null, chantierCreated: boolean, taskCreated: boolean }>}
+ * @returns {Promise<{ chantier: {id, nom}|null, chantierCreated: boolean, taskCreated: boolean, failed?: true }>}
+ *          failed : une étape a échoué (journalisée), à compléter à la main
  */
 export async function planWorkForDevis(admin, devis, { how = 'signé', log } = {}) {
   const result = { chantier: null, chantierCreated: false, taskCreated: false }
@@ -75,7 +76,10 @@ export async function planWorkForDevis(admin, devis, { how = 'signé', log } = {
       if (error) throw new Error('création chantier : ' + error.message)
       result.chantier = ch
       result.chantierCreated = true
-      if (opp) await admin.from('crm_opportunites').update({ chantier_id: ch.id }).eq('id', opp.id)
+      if (opp) {
+        const { error: oppErr } = await admin.from('crm_opportunites').update({ chantier_id: ch.id }).eq('id', opp.id)
+        if (oppErr) throw new Error('rattachement chantier/affaire : ' + oppErr.message)
+      }
       if (contact) {
         const { error: linkErr } = await admin.from('contact_chantiers').insert({ contact_id: contact.id, chantier_id: ch.id })
         if (linkErr) log?.warn('lien contact/chantier', linkErr.message)
@@ -84,7 +88,8 @@ export async function planWorkForDevis(admin, devis, { how = 'signé', log } = {
 
     // 2. Tâche « Lancer les travaux » (une seule par devis)
     const titre = taskTitleForDevis(devis, how)
-    const { data: existing } = await admin.from('taches').select('id').eq('chantier_id', result.chantier.id).eq('titre', titre).limit(1)
+    const { data: existing, error: existErr } = await admin.from('taches').select('id').eq('chantier_id', result.chantier.id).eq('titre', titre).limit(1)
+    if (existErr) throw new Error('lecture tâche : ' + existErr.message)
     if (!existing?.length) {
       const { error } = await admin.from('taches').insert({
         chantier_id: result.chantier.id, titre, priorite: 'Urgent', statut: 'Planifié',
@@ -95,8 +100,16 @@ export async function planWorkForDevis(admin, devis, { how = 'signé', log } = {
     }
   } catch (e) {
     log?.warn('planification des travaux', e?.message || e)
+    result.failed = true
   }
   return result
+}
+
+/** Ligne de mail signalant une planification échouée (ou null). */
+export function planFailure(plan) {
+  if (!plan || (plan.chantier && !plan.failed)) return null
+  if (!plan.chantier) return 'Chantier et tâche non créés automatiquement : à faire à la main.'
+  return `Planification incomplète pour « ${plan.chantier.nom} » (tâche « Lancer les travaux » et rattachement à l’affaire à vérifier) : à faire à la main.`
 }
 
 /** Ligne de mail décrivant ce qui a été planifié (ou null). */

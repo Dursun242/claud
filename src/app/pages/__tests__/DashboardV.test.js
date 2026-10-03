@@ -18,9 +18,23 @@ describe('DashboardV', () => {
     const setTab = jest.fn()
     render(<DashboardV data={data} setTab={setTab} m={false} user={null} />)
     expect(screen.getByText(/Ma journée/)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Commander carrelage/ })).toBeInTheDocument()
+    // « Ma journée » + liste des tâches actives
+    expect(screen.getAllByRole('button', { name: /Commander carrelage/ })).toHaveLength(2)
     await userEvent.click(screen.getByRole('button', { name: /Nouvel OS/ }))
     expect(setTab).toHaveBeenCalledWith('os', 'new')
+  })
+
+  it('cartes chantier et lignes de tâche utilisables au clavier (Entrée / Espace)', async () => {
+    const setTab = jest.fn()
+    render(<DashboardV data={data} setTab={setTab} m={false} user={null} />)
+    const card = screen.getByRole('button', { name: 'Ouvrir le chantier Maison Dupont' })
+    card.focus()
+    await userEvent.keyboard('{Enter}')
+    expect(setTab).toHaveBeenCalledWith('projects', 'ch1')
+    const row = screen.getAllByRole('button', { name: /Commander carrelage/ }).find((el) => el.tagName === 'DIV')
+    row.focus()
+    await userEvent.keyboard(' ')
+    expect(setTab).toHaveBeenCalledWith('tasks', 't1')
   })
 
   it('client : suivi des travaux, sans actions de création ni tâches internes', async () => {

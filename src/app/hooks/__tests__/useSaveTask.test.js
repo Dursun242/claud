@@ -45,6 +45,24 @@ describe('useSaveTask', () => {
     ])
   })
 
+  it('sans réseau et file impossible à écrire : erreur remontée, écran inchangé', async () => {
+    SB.upsertTask.mockRejectedValue(new Error('Erreur mise à jour tâche : TypeError: Failed to fetch'))
+    const spy = jest.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('QuotaExceededError') })
+    const { client, save } = setup()
+    try {
+      await expect(save({ ...TASK, statut: 'Terminé' })).rejects.toThrow(/non enregistrée/)
+    } finally { spy.mockRestore() }
+    expect(client.getQueryData(DASHBOARD_KEYS.critical).tasks[0].statut).toBe('En cours')
+    expect(readOutbox('chef@idm.fr')).toEqual([])
+  })
+
+  it('sans réseau, tâche absente du cache : erreur d’origine, rien en file', async () => {
+    SB.upsertTask.mockRejectedValue(new Error('Erreur mise à jour tâche : TypeError: Failed to fetch'))
+    const { save } = setup()
+    await expect(save({ ...TASK, id: 'autre' })).rejects.toThrow('Failed to fetch')
+    expect(readOutbox('chef@idm.fr')).toEqual([])
+  })
+
   it('erreur métier (droits…) : remontée, rien en file', async () => {
     SB.upsertTask.mockRejectedValue(new Error('Erreur mise à jour tâche : permission denied'))
     const { save } = setup()

@@ -344,8 +344,16 @@ export function useCrmDevis({ crm, opportunites, interactions, contactsById, rel
         addToast('Envoi direct non configuré : joins le PDF téléchargé au mail qui s’ouvre · relance dans 7 jours', 'info')
         return
       }
-      await markDevisSent(d, `Envoyé par mail à ${form.to}${form.sign ? ' · signature électronique demandée' : ''}`)
+      // Le mail est parti : un échec de la mise à jour ne doit pas laisser
+      // croire que l'envoi a échoué (sinon renvoi → devis reçu en double).
       setSendState(null)
+      try {
+        await markDevisSent(d, `Envoyé par mail à ${form.to}${form.sign ? ' · signature électronique demandée' : ''}`)
+      } catch (e) {
+        addToast(`Mail envoyé, mais statut du devis non mis à jour : à corriger à la main (${e?.message || 'erreur'})`, 'warning', 10000)
+        try { await reload() } catch { /* affichage rafraîchi au prochain chargement */ }
+        return
+      }
       addToast(form.sign
         ? `Devis ${d.numero} envoyé à ${form.to} pour signature électronique`
         : `Devis ${d.numero} envoyé à ${form.to} · relance dans 7 jours`, 'success')

@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNotifications } from '../hooks/useNotifications'
 
 function relativeTime(iso) {
@@ -50,12 +50,15 @@ function Toast({ notif, index, total, onDismiss, onClick, isMobile }) {
   const [hover, setHover] = useState(false)
   const [closing, setClosing] = useState(false)
   const timerRef = useRef(null)
+  // Minuteur de l'animation de fermeture (220 / 180 ms), coupé au démontage
+  const closeTimerRef = useRef(null)
+  useEffect(() => () => clearTimeout(closeTimerRef.current), [])
 
   useEffect(() => {
     if (hover) { clearTimeout(timerRef.current); return }
     timerRef.current = setTimeout(() => {
       setClosing(true)
-      setTimeout(() => onDismiss(notif.id), 220)
+      closeTimerRef.current = setTimeout(() => onDismiss(notif.id), 220)
     }, TOAST_DURATION_MS)
     return () => clearTimeout(timerRef.current)
   }, [hover, notif.id, onDismiss])
@@ -69,7 +72,11 @@ function Toast({ notif, index, total, onDismiss, onClick, isMobile }) {
     <div
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
-      onClick={() => { setClosing(true); setTimeout(() => { onDismiss(notif.id); onClick?.(notif) }, 180) }}
+      onClick={() => {
+        setClosing(true)
+        clearTimeout(closeTimerRef.current)
+        closeTimerRef.current = setTimeout(() => { onDismiss(notif.id); onClick?.(notif) }, 180)
+      }}
       style={{
         width: isMobile ? '92vw' : 340,
         maxWidth: 360,
@@ -167,7 +174,8 @@ export default function NotificationBell({ userEmail, onNavigate, isMobile = fal
     })
   }, [newItemSignal, items])
 
-  const dismissToast = (id) => setToasts((q) => q.filter((t) => t.id !== id))
+  // Stable : dans les deps du minuteur de chaque Toast (sinon il repartirait à chaque rendu)
+  const dismissToast = useCallback((id) => setToasts((q) => q.filter((t) => t.id !== id)), [])
 
   const handleToastClick = (notif) => {
     if (!notif.read_at) markAsRead(notif.id)

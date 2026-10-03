@@ -12,7 +12,7 @@ import { createLogger } from '@/app/lib/logger'
 import { adminClient } from '@/app/lib/supabaseClients'
 import { getQontoToken, listQuotes } from '@/app/lib/qontoServer'
 import { notifyTeam, fmtEur } from '@/app/lib/devisNotify'
-import { planWorkForDevis, planSummary, closeDevisFollowUps } from '@/app/lib/devisWon'
+import { planWorkForDevis, planSummary, planFailure, closeDevisFollowUps } from '@/app/lib/devisWon'
 
 export const maxDuration = 60
 
@@ -56,15 +56,20 @@ export async function GET(request) {
       if (upErr || !upd?.length) continue
 
       let oppTitre = ''
+      let oppEchec = false
       try {
         const { data: opp } = await admin.from('crm_opportunites').select('id, titre, etape').eq('id', d.opportunite_id).maybeSingle()
         oppTitre = opp?.titre || ''
         if (statut === 'Accepté' && opp && !['Gagné', 'Perdu'].includes(opp.etape)) {
-          await admin.from('crm_opportunites').update({
+          const { error: oppErr } = await admin.from('crm_opportunites').update({
             etape: 'Gagné', probabilite: 100, date_cloture: today, montant_estime: Number(d.total_ht) || null,
           }).eq('id', opp.id)
+          if (oppErr) {
+            oppEchec = true
+            log.warn(`affaire « Gagné » non enregistrée (devis ${d.numero})`, oppErr.message)
+          }
         }
-      } catch (e) { log.warn('affaire', e?.message || e) }
+      } catch (e) { oppEchec = true; log.warn('affaire', e?.message || e) }
 
       const accepte = statut === 'Accepté'
       // Réponse reçue : relances soldées (toute l'affaire si accepté)
@@ -82,9 +87,12 @@ export async function GET(request) {
           oppTitre ? `Affaire : ${oppTitre}` : null,
           `Montant : ${fmtEur(d.total_ht)} HT · ${fmtEur(d.total_ttc)} TTC`, '',
           accepte
-            ? 'Le devis est passé « Accepté » et l’affaire « Gagné » dans le CRM.'
+            ? (oppEchec
+              ? 'Le devis est passé « Accepté » dans le CRM, mais l’affaire n’a pas pu passer « Gagné » : à faire à la main.'
+              : 'Le devis est passé « Accepté » et l’affaire « Gagné » dans le CRM.')
             : 'Le devis est passé « Refusé » dans le CRM.',
           planSummary(plan),
+          planFailure(plan),
         ],
       }, log)
       changes.push({ numero: d.numero, statut })

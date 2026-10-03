@@ -15,7 +15,7 @@ import { createRateLimiter } from '@/app/lib/rateLimit'
 import { adminClient } from '@/app/lib/supabaseClients'
 import { isSignToken, decodeSignaturePng, stampSignature, sha256 } from '@/app/lib/devisSignature'
 import { notifyTeam, fmtEur } from '@/app/lib/devisNotify'
-import { planWorkForDevis, planSummary, closeDevisFollowUps } from '@/app/lib/devisWon'
+import { planWorkForDevis, planSummary, planFailure, closeDevisFollowUps } from '@/app/lib/devisWon'
 import { getQontoToken, pushQuoteStatus } from '@/app/lib/qontoServer'
 import { recordDevisEvent } from '@/app/lib/devisTracking'
 
@@ -53,6 +53,7 @@ function notifySigned(admin, devis, { name, signedAt, ip, signed, oppTitre, plan
       `Signé par : ${name}, le ${quand}${ip ? ` (IP ${ip})` : ''}`, '',
       'Le devis est passé « Accepté » et l’affaire « Gagné » dans le CRM. Le PDF signé est joint.',
       planSummary(plan),
+      planFailure(plan),
     ],
     attachments: [{ filename: `Devis ${String(devis.numero).replace(/[^\w.\- ]+/g, '_')} signé.pdf`, content: signed, contentType: 'application/pdf' }],
   }, log)
