@@ -327,10 +327,23 @@ export function nextWeekday(iso) {
  * jamais sollicitées, puis la demande la plus ancienne ; à nom égal, ordre
  * alphabétique. Le cron envoie les MAX_RELANCES_PAR_PASSAGE premières.
  */
+/**
+ * Entreprise suivie (documents et relances) : artisan, sous-traitant ou
+ * prestataire sur un chantier en cours, ou toute fiche à laquelle une
+ * demande de documents a été envoyée (même sans chantier en cours).
+ * @returns {'chantier'|'demande'|null}
+ */
+export function trackedReason(c, activeIds = new Set(), lastRequest = new Map()) {
+  if (!c || c.actif === false) return null
+  if (isSubject(c) && activeIds.has(c.id)) return 'chantier'
+  if (lastRequest.has(c.id)) return 'demande'
+  return null
+}
+
 export function planRelances({ contacts = [], byContact, lastRequest = new Map(), activeIds = new Set(), today, now = new Date(), globalPause = false } = {}) {
   if (globalPause) return []
   return contacts
-    .filter(c => isSubject(c) && activeIds.has(c.id) && c.email && !relancePause(c, today))
+    .filter(c => trackedReason(c, activeIds, lastRequest) && c.email && !relancePause(c, today))
     .map(c => ({ contact: c, compliance: complianceOf(byContact, c.id, today), lastRequest: lastRequest.get(c.id) || null }))
     .filter(x => needsAutoRelance({ compliance: x.compliance, lastRequest: x.lastRequest, now }))
     .sort((a, b) => lastSent(a.lastRequest).localeCompare(lastSent(b.lastRequest))
@@ -346,10 +359,12 @@ export function planRelances({ contacts = [], byContact, lastRequest = new Map()
 export function buildSuivi({ contacts = [], byContact, lastRequest = new Map(), activeIds = new Set(), today, now = new Date(), globalPause = false } = {}) {
   const plan = planRelances({ contacts, byContact, lastRequest, activeIds, today, now, globalPause })
   const planned = new Map(plan.map(p => [p.contact.id, p]))
-  const rows = contacts.filter(isSubject).map(c => {
+  const rows = contacts.filter(c => isSubject(c) || lastRequest.has(c.id)).map(c => {
     const compliance = complianceOf(byContact, c.id, today)
     const req = lastRequest.get(c.id) || null
-    const active = activeIds.has(c.id)
+    // « active » = suivie : chantier en cours ou demande envoyée
+    const origine = trackedReason(c, activeIds, lastRequest)
+    const active = !!origine
     const toRequest = kindsToRequest(compliance)
     let relance
     if (!active) relance = { kind: 'inactive' }
@@ -361,7 +376,7 @@ export function buildSuivi({ contacts = [], byContact, lastRequest = new Map(), 
     else if (planned.has(c.id)) relance = { kind: 'prevue', passage: planned.get(c.id).passage }
     else relance = { kind: 'date', date: nextWeekday(addDays(lastSent(req).slice(0, 10) || today, RELANCE_JOURS)) }
     const recus = DOC_KINDS.filter(k => ['ok', 'bientot'].includes(compliance.kinds[k].status)).length
-    return { contact: c, active, compliance, lastRequest: req, relance, recus, pause: relancePause(c, today) }
+    return { contact: c, active, origine, compliance, lastRequest: req, relance, recus, pause: relancePause(c, today) }
   }).sort((a, b) => (b.active - a.active) || (a.recus - b.recus) || String(a.contact.nom).localeCompare(String(b.contact.nom), 'fr'))
   const act = rows.filter(r => r.active)
   return {

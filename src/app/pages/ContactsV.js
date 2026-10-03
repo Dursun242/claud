@@ -22,7 +22,7 @@ import ConformiteBadge from '../components/conformite/ConformiteBadge'
 import ConformiteModal from '../components/conformite/ConformiteModal'
 import ConformiteSuiviModal from '../components/conformite/ConformiteSuiviModal'
 import { useConformite } from '../hooks/useConformite'
-import { isSubject, complianceOf, activeCompanyIds, buildSuivi } from '../lib/conformite'
+import { isSubject, complianceOf, activeCompanyIds, buildSuivi, trackedReason } from '../lib/conformite'
 
 // Paires marquées « pas un doublon » (sur cet appareil)
 const IGNORED_KEY = 'idm_contacts_not_duplicates'
@@ -50,9 +50,9 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
   const activeIds = useMemo(() => activeCompanyIds(data), [data]);
   // Entreprises sur un chantier en cours dont un document est à revoir
   const docsToReview = useMemo(() => new Set((data.contacts || [])
-    .filter(c => isSubject(c) && activeIds.has(c.id)
+    .filter(c => trackedReason(c, activeIds, conf.lastRequest)
       && complianceOf(conf.byContact, c.id, conf.today).status !== "ok")
-    .map(c => c.id)), [data.contacts, activeIds, conf.byContact, conf.today]);
+    .map(c => c.id)), [data.contacts, activeIds, conf.lastRequest, conf.byContact, conf.today]);
   // Résumé affiché sur le bandeau « Suivi des documents »
   const suiviStats = useMemo(() => (conf.ready && !conf.missingMigration ? buildSuivi({
     contacts: data.contacts || [], byContact: conf.byContact, lastRequest: conf.lastRequest,
@@ -583,7 +583,7 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
           <span style={{display:"block",fontSize:11,color:"#0369A1",marginTop:2}}>
             {conf.missingMigration ? "À activer : migrations 036 à 038 dans Supabase"
               : suiviStats ? [
-                `${suiviStats.aJour}/${suiviStats.actives} entreprise${suiviStats.actives>1?"s":""} à jour`,
+                `${suiviStats.aJour}/${suiviStats.actives} entreprise${suiviStats.actives>1?"s":""} suivie${suiviStats.actives>1?"s":""} à jour`,
                 `${suiviStats.docsRecus}/${suiviStats.docsTotal} documents`,
                 conf.globalPause ? "relances suspendues" : `${suiviStats.prochainPassage} relance${suiviStats.prochainPassage>1?"s":""} au prochain passage`,
               ].join(" · ") : ""}
@@ -629,7 +629,7 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
       })}
       {docsToReview.size > 0 && (
         <button onClick={()=>setTf(tf==="__docs"?"all":"__docs")}
-          title="Entreprises sur un chantier en cours dont un document (Kbis, décennale, fiscale, URSSAF) est manquant, expiré ou expire bientôt"
+          title="Entreprises suivies (chantier en cours ou demande envoyée) dont un document est manquant, erroné, expiré ou expire bientôt"
           style={{
             display:"inline-flex",alignItems:"center",gap:6,
             padding:"5px 11px",borderRadius:999,fontSize:11,fontWeight:700,
@@ -748,7 +748,7 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
                   🏅 {c.qualifications}
                 </div>
               )}
-              {isSubject(c) && conf.ready && !conf.missingMigration && (
+              {(isSubject(c) || conf.lastRequest.has(c.id)) && conf.ready && !conf.missingMigration && (
                 <div style={{marginTop:6}}>
                   <ConformiteBadge compliance={complianceOf(conf.byContact, c.id, conf.today)} onClick={()=>setDocsFor(c.id)}/>
                 </div>

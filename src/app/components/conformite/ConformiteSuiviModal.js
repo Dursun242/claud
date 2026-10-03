@@ -28,7 +28,7 @@ function relanceText(r) {
     case 'pause_globale': return 'Toutes les relances sont suspendues'
     case 'equipe': return 'Aucune : à vérifier par vous'
     case 'a_jour': return '—'
-    default: return 'Aucune : pas de chantier en cours'
+    default: return 'Aucune : ni chantier en cours, ni demande'
   }
 }
 
@@ -106,7 +106,7 @@ export default function ConformiteSuiviModal({ open, onClose, contacts = [], con
           {/* ── Avancement ── */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10, marginBottom: 14 }}>
             <div style={{ border: '1px solid #E2E8F0', borderRadius: 10, padding: 12 }}>
-              <div style={small}>Entreprises sur un chantier en cours, à jour</div>
+              <div style={small}>Entreprises suivies à jour (chantier en cours ou demande envoyée)</div>
               <div style={{ fontSize: 22, fontWeight: 800, color: '#0F172A', margin: '2px 0 6px' }}>{stats.aJour} / {stats.actives}</div>
               <Bar value={stats.aJour} total={stats.actives} color="#059669" />
             </div>
@@ -176,11 +176,11 @@ export default function ConformiteSuiviModal({ open, onClose, contacts = [], con
             <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A' }}>Détail par entreprise</div>
             <label style={{ ...small, display: 'flex', alignItems: 'center', gap: 6 }}>
               <input type="checkbox" checked={all} onChange={e => setAll(e.target.checked)} />
-              Inclure les entreprises sans chantier en cours
+              Inclure les entreprises non suivies (ni chantier en cours, ni demande)
             </label>
           </div>
           {rows.length === 0 ? (
-            <div style={{ ...small, padding: '12px 0' }}>Aucune entreprise (artisan, sous-traitant, prestataire) sur un chantier en cours.</div>
+            <div style={{ ...small, padding: '12px 0' }}>Aucune entreprise suivie : ni artisan, sous-traitant ou prestataire sur un chantier en cours, ni demande envoyée.</div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
@@ -201,7 +201,10 @@ export default function ConformiteSuiviModal({ open, onClose, contacts = [], con
                           style={{ background: 'none', border: 'none', padding: 0, color: '#0F172A', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, textAlign: 'left' }}>
                           {r.contact.nom}
                         </button>
-                        <div style={small}>{r.recus}/{DOC_KINDS.length} reçus</div>
+                        <div style={small}>
+                          {r.recus}/{DOC_KINDS.length} reçus
+                          {r.origine === 'demande' && <span style={{ marginLeft: 6, color: '#7C3AED', fontWeight: 700 }}>· demande manuelle</span>}
+                        </div>
                       </td>
                       {DOC_KINDS.map(k => {
                         const st = r.compliance.kinds[k].status
