@@ -164,6 +164,34 @@ describe('/api/conformite', () => {
     expect((await POST(req({ action: 'request', contactId: 'c1', email: 'pas un mail' }))).status).toBe(400)
   })
 
+  it('pause : suspend jusqu’à une date, reprend ; sans la migration 038 : message clair', async () => {
+    const r1 = await (await POST(req({ action: 'pause', contactId: 'c1', paused: true, until: '2026-11-01' }))).json()
+    expect(r1.data).toMatchObject({ relances_suspendues: true, relances_reprise_le: '2026-11-01' })
+    await POST(req({ action: 'pause', contactId: 'c1', paused: false }))
+    expect(db.tables.contacts[0]).toMatchObject({ relances_suspendues: false, relances_reprise_le: null })
+    expect((await POST(req({ action: 'pause', contactId: 'zz', paused: true }))).status).toBe(404)
+    db = memoryDb({ contacts: [{ ...CONTACT }] }, { errors: { contacts: { code: '42703', message: 'column "relances_suspendues" does not exist' } } })
+    adminClient.mockReturnValue(db.client)
+    const res = await POST(req({ action: 'pause', contactId: 'c1', paused: true }))
+    expect(res.status).toBe(503)
+    expect((await res.json()).error).toMatch(/migration 038/)
+  })
+
+  it('pause_all : suspension générale gardée dans settings', async () => {
+    await POST(req({ action: 'pause_all', paused: true }))
+    expect(db.tables.settings).toEqual([expect.objectContaining({ key: 'conformite_relances_pause', value: 'on' })])
+    await POST(req({ action: 'pause_all', paused: false }))
+    expect(db.tables.settings).toEqual([expect.objectContaining({ key: 'conformite_relances_pause', value: 'off' })])
+  })
+
+  it('relancer : envoi immédiat à plusieurs entreprises, sans email signalé', async () => {
+    db.tables.contacts.push({ id: 'c2', nom: 'Sans Mail', type: 'Artisan' })
+    const { data } = await (await POST(req({ action: 'relancer', contactIds: ['c1', 'c2', 'c1'] }))).json()
+    expect(data).toEqual({ sent: ['Costa Plomberie'], failed: ['Sans Mail'] })
+    expect(sendMail).toHaveBeenCalledTimes(1)
+    expect((await POST(req({ action: 'relancer', contactIds: [] }))).status).toBe(400)
+  })
+
   it('migration absente : message clair', async () => {
     db = memoryDb({ contacts: [{ ...CONTACT }] }, { errors: { contact_documents: { code: '42P01', message: 'relation does not exist' } } })
     adminClient.mockReturnValue(db.client)

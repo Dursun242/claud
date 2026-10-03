@@ -5,7 +5,7 @@
 
 import crypto from 'node:crypto'
 import { generate, stripJsonFence } from './ai'
-import { DOC_KINDS, DOC_META, computeValidUntil, identityAnomalies, contactCompliance, requestMailText, isIsoDate, normIban } from './conformite'
+import { DOC_KINDS, DOC_META, computeValidUntil, identityAnomalies, contactCompliance, requestMailText, isIsoDate, normIban, PAUSE_KEY } from './conformite'
 import { validateIban } from './validators'
 import { DOC_READ_SCHEMA, DOC_READ_SYSTEM, docReadPrompt, cleanDocRead } from './conformiteAi'
 import { safeFileName, storageName } from './devisDocuments'
@@ -276,4 +276,35 @@ export async function notifyDeposit(admin, { contact, kind, doc }, log) {
       if (error) log?.warn('notification dépôt', error.message)
     }
   } catch (e) { log?.warn('notification dépôt', e?.message || e) }
+}
+
+// ─── Suspension des relances automatiques ───
+
+export const PAUSE_MIGRATION_MSG = 'Suspension des relances non activée : appliquer la migration 038 dans Supabase.'
+
+/** Suspend (sans limite ou jusqu'à une date) ou reprend les relances d'une entreprise. */
+export async function setContactPause(admin, { contactId, paused, until }, log) {
+  const patch = paused
+    ? { relances_suspendues: true, relances_reprise_le: isIsoDate(until) ? until : null }
+    : { relances_suspendues: false, relances_reprise_le: null }
+  const { data, error } = await admin.from('contacts').update(patch).eq('id', contactId).select('id, relances_suspendues, relances_reprise_le')
+  if (error) {
+    if (error.code === '42703' || /relances_/i.test(error.message || '')) return fail(PAUSE_MIGRATION_MSG, 503)
+    log?.error('suspension des relances', error.message)
+    return fail('Enregistrement impossible.', 500)
+  }
+  if (!data?.length) return fail('Entreprise introuvable.', 404)
+  return { data: data[0] }
+}
+
+/** Toutes les relances automatiques suspendues ? */
+export async function getGlobalPause(admin) {
+  const { data } = await admin.from('settings').select('value').eq('key', PAUSE_KEY).maybeSingle()
+  return data?.value === 'on'
+}
+
+export async function setGlobalPause(admin, paused, log) {
+  const { error } = await admin.from('settings').upsert({ key: PAUSE_KEY, value: paused ? 'on' : 'off' }, { onConflict: 'key' })
+  if (error) { log?.error('suspension générale des relances', error.message); return fail('Enregistrement impossible.', 500) }
+  return { data: { paused: !!paused } }
 }

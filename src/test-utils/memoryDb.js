@@ -48,6 +48,11 @@ export function memoryDb(seed = {}, { errors = {} } = {}) {
     const b = {
       select() { return b },
       insert(v) { st.op = 'insert'; st.values = v; return b },
+      upsert(v, { onConflict = 'id' } = {}) {
+        const existing = rows().find(r => r[onConflict] === v[onConflict])
+        if (existing) { st.op = 'update'; st.values = v; st.filters.push(['eq', onConflict, v[onConflict]]) } else { st.op = 'insert'; st.values = v }
+        return b
+      },
       update(v) { st.op = 'update'; st.values = v; return b },
       delete() { st.op = 'delete'; return b },
       eq(k, v) { st.filters.push(['eq', k, v]); return b },

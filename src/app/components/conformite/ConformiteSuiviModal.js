@@ -1,6 +1,10 @@
 'use client'
 import { useMemo, useState } from 'react'
 import Modal from '../Modal'
+import RelanceControls from './RelanceControls'
+import { useToast } from '../../contexts/ToastContext'
+import { useConfirm } from '../../contexts/ConfirmContext'
+import { conformitePost } from '../../hooks/useConformite'
 import { DOC_KINDS, DOC_META, STATUS_META, MAX_RELANCES_PAR_PASSAGE, buildSuivi } from '../../lib/conformite'
 
 const fmtD = (iso) => (iso ? String(iso).slice(0, 10).split('-').reverse().join('/') : '')
@@ -20,6 +24,8 @@ function relanceText(r) {
     case 'prevue': return r.passage === 0 ? 'Au prochain passage' : `Dans ${r.passage + 1} passages`
     case 'date': return `Le ${fmtD(r.date)}`
     case 'sans_email': return 'Aucune : pas d’email sur la fiche'
+    case 'suspendue': return r.jusquau ? `Suspendues jusqu’au ${fmtD(r.jusquau)}` : 'Suspendues'
+    case 'pause_globale': return 'Toutes les relances sont suspendues'
     case 'equipe': return 'Aucune : à vérifier par vous'
     case 'a_jour': return '—'
     default: return 'Aucune : pas de chantier en cours'
@@ -40,11 +46,50 @@ function Bar({ value, total, color }) {
  * documents reçus), grille entreprise × document, aperçu des relances
  * automatiques (ordre et date d'envoi, comme le cron).
  */
-export default function ConformiteSuiviModal({ open, onClose, contacts = [], conformite, activeIds, onOpenContact }) {
+export default function ConformiteSuiviModal({ open, onClose, contacts = [], conformite, activeIds, onOpenContact, onChanged }) {
+  const { addToast } = useToast()
+  const confirm = useConfirm()
   const [all, setAll] = useState(false)
+  const [busy, setBusy] = useState(null)
   const suivi = useMemo(() => buildSuivi({
     contacts, byContact: conformite.byContact, lastRequest: conformite.lastRequest, activeIds, today: conformite.today,
-  }), [contacts, conformite.byContact, conformite.lastRequest, activeIds, conformite.today])
+    globalPause: conformite.globalPause,
+  }), [contacts, conformite.byContact, conformite.lastRequest, activeIds, conformite.today, conformite.globalPause])
+
+  // Envoi immédiat de la demande (ne change pas la règle : prochaine relance automatique 7 jours après)
+  const relancer = async (list, label) => {
+    const ok = await confirm({
+      title: label,
+      message: `Envoyer maintenant le mail de demande de documents à : ${list.map(c => c.nom).join(', ')} ?`,
+      confirmLabel: 'Envoyer',
+    })
+    if (!ok) return
+    setBusy('relancer')
+    try {
+      const r = await conformitePost({ action: 'relancer', contactIds: list.map(c => c.id) })
+      if (r.sent.length) addToast(`${r.sent.length} mail${r.sent.length > 1 ? 's' : ''} envoyé${r.sent.length > 1 ? 's' : ''}`, 'success')
+      if (r.failed.length) addToast(`Non envoyé : ${r.failed.join(', ')} (email absent ou refusé)`, 'error')
+      onChanged?.()
+    } catch (err) { addToast(err.message, 'error') } finally { setBusy(null) }
+  }
+
+  const toggleAll = async () => {
+    const paused = !conformite.globalPause
+    if (paused) {
+      const ok = await confirm({
+        title: 'Suspendre toutes les relances ?',
+        message: 'Plus aucun mail automatique ne partira aux entreprises jusqu’à ce que vous repreniez. Les envois manuels restent possibles.',
+        confirmLabel: 'Suspendre', danger: true,
+      })
+      if (!ok) return
+    }
+    setBusy('pause')
+    try {
+      await conformitePost({ action: 'pause_all', paused })
+      addToast(paused ? 'Relances automatiques suspendues' : 'Relances automatiques reprises', 'success')
+      onChanged?.()
+    } catch (err) { addToast(err.message, 'error') } finally { setBusy(null) }
+  }
   const { stats, plan } = suivi
   const rows = all ? suivi.rows : suivi.rows.filter(r => r.active)
   const next = plan.filter(p => p.passage === 0)
@@ -74,11 +119,26 @@ export default function ConformiteSuiviModal({ open, onClose, contacts = [], con
 
           {/* ── Aperçu des relances ── */}
           <div style={{ background: '#F0F9FF', border: '1px solid #BAE6FD', borderRadius: 10, padding: 12, marginBottom: 14 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#0C4A6E', marginBottom: 4 }}>Aperçu des relances automatiques</div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#0C4A6E' }}>Aperçu des relances automatiques</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: conformite.globalPause ? '#B45309' : '#047857' }}>
+                  {conformite.globalPause ? '⏸ Suspendues' : '● Actives'}
+                </span>
+                <button type="button" onClick={toggleAll} disabled={!!busy}
+                  style={{ fontSize: 11, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', borderRadius: 6, padding: '4px 10px',
+                    background: conformite.globalPause ? '#ECFDF5' : '#fff', color: conformite.globalPause ? '#047857' : '#B45309',
+                    border: `1px solid ${conformite.globalPause ? '#A7F3D0' : '#FDE68A'}` }}>
+                  {conformite.globalPause ? '▶ Reprendre les relances' : '⏸ Tout suspendre'}
+                </button>
+              </div>
+            </div>
             <div style={{ ...small, marginBottom: 8, lineHeight: 1.5 }}>
               Chaque jour ouvré le matin, au plus {MAX_RELANCES_PAR_PASSAGE} mails ; chaque entreprise est relancée une fois par semaine tant qu’un document manque, est erroné ou expire.
             </div>
-            {next.length === 0 ? (
+            {conformite.globalPause ? (
+              <div style={{ fontSize: 12, color: '#B45309', fontWeight: 600 }}>Toutes les relances automatiques sont suspendues : aucun mail ne part tant que vous ne les reprenez pas.</div>
+            ) : next.length === 0 ? (
               <div style={{ fontSize: 12, color: '#047857', fontWeight: 600 }}>Aucune relance au prochain passage.</div>
             ) : (
               <>
@@ -98,6 +158,10 @@ export default function ConformiteSuiviModal({ open, onClose, contacts = [], con
                   ))}
                 </ol>
                 {later > 0 && <div style={{ ...small, marginTop: 6 }}>Puis {later} autre{later > 1 ? 's' : ''} aux passages suivants (limite de {MAX_RELANCES_PAR_PASSAGE} par jour).</div>}
+                <button type="button" disabled={!!busy} onClick={() => relancer(next.map(p => p.contact), `Envoyer maintenant ${next.length} mail${next.length > 1 ? 's' : ''} ?`)}
+                  style={{ marginTop: 8, fontSize: 12, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', borderRadius: 6, padding: '6px 12px', background: '#0369A1', color: '#fff', border: 'none' }}>
+                  {busy === 'relancer' ? 'Envoi…' : `Envoyer maintenant (${next.length})`}
+                </button>
               </>
             )}
             {stats.sansEmail > 0 && (
@@ -126,6 +190,7 @@ export default function ConformiteSuiviModal({ open, onClose, contacts = [], con
                     {DOC_KINDS.map(k => <th key={k} style={{ padding: '6px 4px', fontWeight: 600, textAlign: 'center' }}>{DOC_META[k].label}</th>)}
                     <th style={{ padding: '6px 4px', fontWeight: 600 }}>Dernière demande</th>
                     <th style={{ padding: '6px 4px', fontWeight: 600 }}>Prochaine relance</th>
+                    <th style={{ padding: '6px 4px', fontWeight: 600 }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -156,7 +221,20 @@ export default function ConformiteSuiviModal({ open, onClose, contacts = [], con
                           <div>{r.lastRequest.derniere_visite ? `lien ouvert le ${fmtD(r.lastRequest.derniere_visite)}` : 'lien pas ouvert'}</div>
                         </> : 'Jamais'}
                       </td>
-                      <td style={{ padding: '6px 4px', ...small, color: r.relance.kind === 'sans_email' ? '#B45309' : '#64748B' }}>{relanceText(r.relance)}</td>
+                      <td style={{ padding: '6px 4px', ...small, color: ['sans_email', 'suspendue', 'pause_globale'].includes(r.relance.kind) ? '#B45309' : '#64748B' }}>{relanceText(r.relance)}</td>
+                      <td style={{ padding: '6px 4px' }}>
+                        {r.compliance.status !== 'ok' && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-start' }}>
+                            {r.contact.email && (
+                              <button type="button" disabled={!!busy} onClick={() => relancer([r.contact], `Relancer ${r.contact.nom} ?`)}
+                                style={{ fontSize: 10, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', borderRadius: 6, padding: '3px 8px', background: '#F0F9FF', color: '#0369A1', border: '1px solid #BAE6FD', whiteSpace: 'nowrap' }}>
+                                ✉ Relancer
+                              </button>
+                            )}
+                            <RelanceControls compact contact={r.contact} pause={r.pause} onChanged={onChanged} />
+                          </div>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>

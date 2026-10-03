@@ -73,6 +73,15 @@ describe('/api/cron/conformite', () => {
     expect(sendMail.mock.calls[0][1].subject).toMatch(/^Rappel/)
   })
 
+  it('suspension : générale (aucun envoi) ou par entreprise', async () => {
+    db.tables.settings = [{ key: 'conformite_relances_pause', value: 'on' }]
+    expect(await (await call()).json()).toEqual({ ok: true, skipped: 'relances suspendues' })
+    expect(sendMail).not.toHaveBeenCalled()
+    db.tables.settings = [{ key: 'conformite_relances_pause', value: 'off' }]
+    db.tables.contacts[1].relances_suspendues = true
+    expect((await (await call('?dry=1')).json()).entreprises).toEqual(['Costa Plomberie'])
+  })
+
   it('migration absente : ignoré sans erreur', async () => {
     db = memoryDb({}, { errors: { contact_documents: { code: '42P01', message: 'relation "contact_documents" does not exist' } } })
     adminClient.mockReturnValue(db.client)
