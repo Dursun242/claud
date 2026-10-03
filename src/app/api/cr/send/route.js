@@ -98,8 +98,9 @@ export async function POST(request) {
     if (!sent.length) {
       return Response.json({ error: smtpErrorMessage(lastErr), code: lastErr?.code || null, failed }, { status: 502 })
     }
-    // Copie à l'expéditeur (liste des destinataires + premier message)
-    if (body.copyMe !== false && user.email) {
+    // Copie à l'expéditeur seulement si demandée (copyMe: true) : liste des
+    // destinataires + premier message
+    if (body.copyMe === true && user.email) {
       const text = `Compte rendu envoyé à : ${sent.join(', ')}\n\n---\n\n${messages[0].text}`
       try {
         await sendMail(cfg, { to: user.email, subject: `[Copie] ${subject}`, text, html: html(text), attachments: [...files, logo] })
