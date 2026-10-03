@@ -4,7 +4,7 @@
 //
 // Pourquoi : aujourd'hui les logs sont dispersés dans tout le code, sans
 // format commun. Ce wrapper ajoute :
-//   - un tag source ([pappers], [qonto], [auth]…) pour grep facile
+//   - un tag source ([entreprises], [qonto], [auth]…) pour grep facile
 //   - un timestamp ISO
 //   - un hook unique pour brancher Sentry / Datadog plus tard sans refactor
 //
@@ -20,7 +20,7 @@ function format(level, source, message, extra) {
 }
 
 /**
- * @param {string} source — ex: 'pappers', 'qonto', 'auth'
+ * @param {string} source — ex: 'entreprises', 'qonto', 'auth'
  */
 export function createLogger(source) {
   return {

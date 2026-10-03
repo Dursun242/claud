@@ -15,7 +15,7 @@ Application de gestion de chantiers BTP pour **ID Maîtrise** (SARL, Le Havre). 
 - **IA** (`lib/ai.js`) : Claude Haiku 4.5 ou Mistral Small selon `AI_PROVIDER` (texte) et `AI_PROVIDER_VISION` (images, Claude par défaut), secours automatique sur l'autre fournisseur — assistant IA, chiffrage de devis, extraction vision (devis photo, contacts photo), analyse Qonto. Appels HTTP directs, pas de SDK.
 - **Odoo JSON-RPC** : signatures électroniques via module Sign
 - **Qonto API** : import factures/devis (proxy read-only)
-- **Pappers API** : enrichissement SIRET des contacts
+- **Annuaire des entreprises** (`recherche-entreprises.api.gouv.fr`, État, gratuit, sans clé) : recherche par SIRET / nom / dirigeant pour les contacts (`api/entreprises`, `lib/entreprises.js`)
 - **Jest + @testing-library/react** : ~540 tests, 10 s d'exécution
 
 ## Topologie
@@ -59,7 +59,7 @@ src/app/
     ├─ odoo/*                 → signatures
     ├─ pv-reception/*         → flux PV métier
     ├─ extract-*/             → Claude Vision (devis + contacts)
-    ├─ pappers, qonto         → proxies tiers (qonto : lecture seule)
+    ├─ entreprises, qonto     → proxies tiers (annuaire des entreprises de l'État ; qonto : lecture seule)
     ├─ qonto/token            → connexion Qonto (état staff, enregistrement/suppression admin) — le jeton n'est jamais renvoyé au navigateur
     └─ metrics/               → ingest Web Vitals (sendBeacon)
 ```
@@ -83,7 +83,7 @@ Stage 3 = **CRM** (`crm_opportunites`, `crm_interactions`, `crm_devis`, `crm_dev
 
 ## Conventions & règles du projet
 
-1. **Server-only pour les secrets** : `ANTHROPIC_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `ODOO_API_KEY`, `PAPPERS_API_KEY`, `qonto-token` n'apparaissent **jamais** dans le bundle client. Les appels tiers passent par les routes `/api/*`. Seule exception : la Base Adresse Nationale (`api-adresse.data.gouv.fr`, publique, sans clé) appelée directement par `components/AddressPicker.js`.
+1. **Server-only pour les secrets** : `ANTHROPIC_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `ODOO_API_KEY`, `qonto-token` n'apparaissent **jamais** dans le bundle client. Les appels tiers passent par les routes `/api/*`. Seule exception : la Base Adresse Nationale (`api-adresse.data.gouv.fr`, publique, sans clé) appelée directement par `components/AddressPicker.js`.
 2. **Auth** : toute route `/api/*` non-admin (sauf `/api/metrics`, `/api/auth/google/callback`, `/api/devis/public` et `/api/devis/track` — accès par jeton, `/api/cron/*` — secret `CRON_SECRET`) fait `verifyAuth(request)` en premier. Retour 401 si absent. Les routes qu'un client MOA n'utilise pas (Qonto, CRM/devis, création de signatures ou de PV…) utilisent `verifyStaff(request)` (401/403). Une route ouverte aux clients qui écrit en service role relit d'abord la ressource avec `userClientFromToken` (RLS) pour vérifier que le chantier est bien le sien (cf. `pv-reception/decision`, `upload`).
 3. **Logging** : routes modernes utilisent `createLogger('source')` (`lib/logger.js`). Certaines routes anciennes utilisent encore `console.error` — migration progressive.
 4. **Toasts, jamais `alert()`** : `useToast()` dans les composants. `useFloatingMic` prend `onError` pour les erreurs hors-UI.
