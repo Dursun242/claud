@@ -47,17 +47,17 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
   const conf = useConformite({ enabled: active !== false });
   const [docsFor, setDocsFor] = useState(null);
   const [suiviOpen, setSuiviOpen] = useState(false);
-  // Résumé affiché sur le bandeau « Suivi des documents »
-  const suiviStats = useMemo(() => (conf.ready && !conf.missingMigration ? buildSuivi({
-    contacts: data.contacts || [], byContact: conf.byContact, lastRequest: conf.lastRequest,
-    activeIds, today: conf.today, globalPause: conf.globalPause,
-  }).stats : null), [conf.ready, conf.missingMigration, conf.byContact, conf.lastRequest, conf.today, conf.globalPause, data.contacts, activeIds]);
   const activeIds = useMemo(() => activeCompanyIds(data), [data]);
   // Entreprises sur un chantier en cours dont un document est à revoir
   const docsToReview = useMemo(() => new Set((data.contacts || [])
     .filter(c => isSubject(c) && activeIds.has(c.id)
       && complianceOf(conf.byContact, c.id, conf.today).status !== "ok")
     .map(c => c.id)), [data.contacts, activeIds, conf.byContact, conf.today]);
+  // Résumé affiché sur le bandeau « Suivi des documents »
+  const suiviStats = useMemo(() => (conf.ready && !conf.missingMigration ? buildSuivi({
+    contacts: data.contacts || [], byContact: conf.byContact, lastRequest: conf.lastRequest,
+    activeIds, today: conf.today, globalPause: conf.globalPause,
+  }).stats : null), [conf.ready, conf.missingMigration, conf.byContact, conf.lastRequest, conf.today, conf.globalPause, data.contacts, activeIds]);
   const [q,setQ]=useState("");
   const [formError, setFormError] = useState("");
   // Recherche entreprise (annuaire de l'État : entreprises + dirigeants) — voir hooks/useEntrepriseSearch.js
