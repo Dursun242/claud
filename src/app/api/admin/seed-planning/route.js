@@ -8,6 +8,9 @@
 
 import { createClient } from '@supabase/supabase-js'
 import { verifyAuth } from '@/app/lib/auth'
+import { createLogger } from '@/app/lib/logger'
+
+const log = createLogger('admin/seed-planning')
 
 function admin() {
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -83,7 +86,7 @@ export async function POST(request) {
       .insert(testOS)
 
     if (insertErr) {
-      console.error('[seed-planning insert]', insertErr)
+      log.error('insert', insertErr)
       return Response.json({ error: 'Insertion échouée : ' + insertErr.message }, { status: 500 })
     }
 
@@ -101,7 +104,7 @@ export async function POST(request) {
       count: testOS.length
     })
   } catch (err) {
-    console.error('[seed-planning exception]', err)
+    log.error('exception', err)
     return Response.json({ error: 'Erreur serveur: ' + err.message }, { status: 500 })
   }
 }

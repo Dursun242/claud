@@ -9,6 +9,9 @@
 
 import { createClient } from '@supabase/supabase-js'
 import { verifyAuth } from '@/app/lib/auth'
+import { createLogger } from '@/app/lib/logger'
+
+const log = createLogger('admin/demo-mode')
 
 function admin() {
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -37,7 +40,7 @@ export async function GET(request) {
     const enabled = await readMode(ctx.supa)
     return Response.json({ enabled })
   } catch (err) {
-    console.error('[demo-mode GET]', err)
+    log.error('GET', err)
     return Response.json({ error: 'Erreur serveur' }, { status: 500 })
   }
 }
@@ -52,7 +55,7 @@ export async function POST(request) {
       .from('settings')
       .upsert({ key: 'demo_mode', value }, { onConflict: 'key' })
     if (error) {
-      console.error('[demo-mode POST]', error)
+      log.error('POST', error)
       return Response.json({ error: 'Erreur serveur' }, { status: 500 })
     }
     // Log l'action pour traçabilité (audit)
@@ -66,7 +69,7 @@ export async function POST(request) {
     })
     return Response.json({ ok: true, enabled: !!enabled })
   } catch (err) {
-    console.error('[demo-mode POST exception]', err)
+    log.error('POST exception', err)
     return Response.json({ error: 'Erreur serveur' }, { status: 500 })
   }
 }

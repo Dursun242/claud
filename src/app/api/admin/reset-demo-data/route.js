@@ -8,6 +8,9 @@
 
 import { createClient } from '@supabase/supabase-js'
 import { verifyAuth } from '@/app/lib/auth'
+import { createLogger } from '@/app/lib/logger'
+
+const log = createLogger('admin/reset-demo-data')
 
 function admin() {
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -30,7 +33,7 @@ export async function POST(request) {
     // Appel de la fonction SQL
     const { error: rpcErr } = await supa.rpc('seed_demo_data')
     if (rpcErr) {
-      console.error('[reset-demo-data rpc]', rpcErr)
+      log.error('rpc', rpcErr)
       return Response.json({ error: 'Reset échoué : ' + rpcErr.message }, { status: 500 })
     }
 
@@ -87,7 +90,7 @@ export async function POST(request) {
       .insert(testOS)
 
     if (insertErr) {
-      console.error('[reset-demo-data insert OS]', insertErr)
+      log.error('insert OS', insertErr)
       // Continuer même si l'insertion des OS échoue
     }
 
@@ -101,7 +104,7 @@ export async function POST(request) {
 
     return Response.json({ ok: true, message: 'Données démo réinitialisées + OS Planning créés', count: testOS.length })
   } catch (err) {
-    console.error('[reset-demo-data exception]', err)
+    log.error('exception', err)
     return Response.json({ error: 'Erreur serveur' }, { status: 500 })
   }
 }
