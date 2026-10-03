@@ -3,7 +3,7 @@ import { useCallback, useMemo } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../supabaseClient'
 import { apiPost } from '../lib/crmApi'
-import { complianceByContact } from '../lib/conformite'
+import { complianceByContact, PAUSE_KEY } from '../lib/conformite'
 import { localISO } from '../lib/today'
 
 export const CONFORMITE_KEY = ['conformite', 'all']
@@ -11,16 +11,17 @@ export const CONFORMITE_KEY = ['conformite', 'all']
 const missing = (err) => err && (err.code === '42P01' || /does not exist|schema cache/i.test(err.message || ''))
 
 async function loadConformite() {
-  const [docs, reqs] = await Promise.all([
+  const [docs, reqs, pause] = await Promise.all([
     supabase.from('contact_documents').select('*').order('created_at', { ascending: false }),
     supabase.from('contact_doc_requests')
       .select('id, contact_id, email, auto, envois, dernier_envoi, expire_le, derniere_visite, created_at')
       .order('created_at', { ascending: false }),
+    supabase.from('settings').select('value').eq('key', PAUSE_KEY).maybeSingle(),
   ])
-  if (missing(docs.error) || missing(reqs.error)) return { docs: [], requests: [], missingMigration: true }
+  if (missing(docs.error) || missing(reqs.error)) return { docs: [], requests: [], missingMigration: true, globalPause: false }
   if (docs.error) throw docs.error
   if (reqs.error) throw reqs.error
-  return { docs: docs.data || [], requests: reqs.data || [], missingMigration: false }
+  return { docs: docs.data || [], requests: reqs.data || [], missingMigration: false, globalPause: pause?.data?.value === 'on' }
 }
 
 /** Appel de /api/conformite (équipe) : renvoie `data`. */
@@ -49,6 +50,8 @@ export function useConformite({ enabled = true } = {}) {
     lastRequest,
     today,
     missingMigration: !!data?.missingMigration,
+    // Toutes les relances automatiques suspendues (settings)
+    globalPause: !!data?.globalPause,
     ready: q.status !== 'pending',
     reload,
   }

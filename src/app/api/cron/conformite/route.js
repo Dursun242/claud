@@ -9,14 +9,15 @@
 // Règles (lib/conformite.needsAutoRelance) : un mail par semaine tant qu'un
 // document manque, est erroné (à renvoyer) ou expire bientôt. Ce que
 // l'équipe vérifie elle-même (dates à saisir, IBAN qui change) ne déclenche
-// pas de relance. `?dry=1` : liste sans envoyer.
+// pas de relance. Relances suspendues par entreprise (contacts.relances_*)
+// ou pour toutes (settings conformite_relances_pause). `?dry=1` : liste sans envoyer.
 
 import crypto from 'node:crypto'
 import { createLogger } from '@/app/lib/logger'
 import { adminClient } from '@/app/lib/supabaseClients'
 import { smtpConfig } from '@/app/lib/mailer'
 import { activeCompanyIds, complianceByContact, planRelances, MAX_RELANCES_PAR_PASSAGE } from '@/app/lib/conformite'
-import { sendRequest, todayParis } from '@/app/lib/conformiteServer'
+import { sendRequest, todayParis, getGlobalPause } from '@/app/lib/conformiteServer'
 
 export const maxDuration = 60
 
@@ -41,6 +42,8 @@ export async function GET(request) {
 
   try {
     const admin = adminClient()
+    // Relances suspendues par l'équipe (écran « Suivi des documents »)
+    if (await getGlobalPause(admin)) return Response.json({ ok: true, skipped: 'relances suspendues' })
     const [ch, os, co, cc, docs, reqs] = await Promise.all([
       admin.from('chantiers').select('id, statut'),
       admin.from('ordres_service').select('chantier_id, artisan_nom, statut'),

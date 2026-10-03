@@ -43,6 +43,7 @@ Exécuter dans cet ordre exact sur une base vierge (Supabase Dashboard → SQL E
 | 035 | `035_acces_client_par_compte.sql` | **[P0 sécu]** Fin de l'accès client par prénom : un client ne voit que les chantiers rattachés à son compte (`client_user_id`), notifications client par compte, rattachement automatique par prénom en mot entier (`link_my_chantiers()` à la connexion), liste des comptes clients pour l'équipe (`client_accounts()`). **Lancer le diagnostic de `035_README.md` avant d'appliquer** : les chantiers sans compte rattaché ne sont plus visibles par le client. |
 | 036 | `036_conformite_entreprises.sql` | **Documents des entreprises** : Kbis, décennale, attestation fiscale, attestation URSSAF par contact (`contact_documents`), liens de dépôt envoyés aux entreprises (`contact_doc_requests`). Lecture staff, écriture serveur. Voir `036_README.md`. |
 | 037 | `037_conformite_rib.sql` | **RIB des entreprises** : type de document `rib` + colonnes `iban` / `bic` sur `contact_documents`. IBAN comparé à celui de la fiche (alerte faux RIB). À appliquer après 036. |
+| 038 | `038_conformite_relances_pause.sql` | **Relances des documents** : suspension par entreprise (`contacts.relances_suspendues`, `relances_reprise_le`). À appliquer après 037. |
 
 ## Fichiers NON séquentiels (à ne PAS appliquer en séquence)
 

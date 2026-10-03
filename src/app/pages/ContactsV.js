@@ -787,7 +787,8 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
 
     <ConformiteSuiviModal open={suiviOpen} onClose={() => setSuiviOpen(false)}
       contacts={data.contacts || []} conformite={conf} activeIds={activeIds}
-      onOpenContact={(id) => { setSuiviOpen(false); setDocsFor(id); }} />
+      onOpenContact={(id) => { setSuiviOpen(false); setDocsFor(id); }}
+      onChanged={() => { conf.reload(); reload?.(); }} />
 
     <ConformiteModal open={!!docsFor} onClose={() => setDocsFor(null)}
       contact={(data.contacts || []).find(c => c.id === docsFor) || null}

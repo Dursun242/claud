@@ -204,3 +204,35 @@ describe('suivi et aperçu des relances', () => {
     expect(nextWeekday('2026-10-06')).toBe('2026-10-06')
   })
 })
+
+describe('suspension des relances', () => {
+  const { relancePause, planRelances, buildSuivi, complianceByContact } = require('../conformite')
+  const now = new Date('2026-10-03T08:00:00Z')
+  const base = { type: 'Artisan', email: 'x@x.fr' }
+  const contacts = [
+    { ...base, id: 'a', nom: 'A' },
+    { ...base, id: 'b', nom: 'B', relances_suspendues: true },
+    { ...base, id: 'c', nom: 'C', relances_suspendues: true, relances_reprise_le: '2026-10-20' },
+    { ...base, id: 'd', nom: 'D', relances_suspendues: true, relances_reprise_le: '2026-10-01' },
+  ]
+  const activeIds = new Set(['a', 'b', 'c', 'd'])
+
+  it('pause sans limite, jusqu’à une date, reprise automatique à la date', () => {
+    expect(relancePause(contacts[0], TODAY)).toBeNull()
+    expect(relancePause(contacts[1], TODAY)).toEqual({ jusquau: null })
+    expect(relancePause(contacts[2], TODAY)).toEqual({ jusquau: '2026-10-20' })
+    expect(relancePause(contacts[3], TODAY)).toBeNull()
+  })
+
+  it('entreprises suspendues ou suspension générale : pas de relance', () => {
+    const byContact = complianceByContact([], TODAY)
+    expect(planRelances({ contacts, byContact, activeIds, today: TODAY, now }).map(p => p.contact.id)).toEqual(['a', 'd'])
+    expect(planRelances({ contacts, byContact, activeIds, today: TODAY, now, globalPause: true })).toEqual([])
+    const by = Object.fromEntries(buildSuivi({ contacts, byContact, activeIds, today: TODAY, now }).rows.map(r => [r.contact.id, r.relance]))
+    expect(by.b).toEqual({ kind: 'suspendue', jusquau: null })
+    expect(by.c).toEqual({ kind: 'suspendue', jusquau: '2026-10-20' })
+    const g = Object.fromEntries(buildSuivi({ contacts, byContact, activeIds, today: TODAY, now, globalPause: true }).rows.map(r => [r.contact.id, r.relance]))
+    expect(g.a).toEqual({ kind: 'pause_globale' })
+    expect(g.b.kind).toBe('suspendue')
+  })
+})

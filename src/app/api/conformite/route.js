@@ -6,6 +6,9 @@
 //   delete   { id }
 //   url      { id }                                → lien du fichier (5 min)
 //   request  { contactId, email? }                 → mail à l'entreprise avec le lien de dépôt
+//   relancer { contactIds: [...] }                 → même mail, à plusieurs entreprises (15 max)
+//   pause    { contactId, paused, until? }         → suspend / reprend les relances d'une entreprise
+//   pause_all { paused }                           → suspend / reprend toutes les relances automatiques
 // Logique : lib/conformiteServer.js ; règles : lib/conformite.js.
 
 import { verifyStaff } from '@/app/lib/auth'
@@ -13,7 +16,9 @@ import { createLogger } from '@/app/lib/logger'
 import { adminClient } from '@/app/lib/supabaseClients'
 import {
   prepareUpload, registerDocument, updateDocument, deleteDocument, documentUrl, sendRequest,
+  setContactPause, setGlobalPause,
 } from '@/app/lib/conformiteServer'
+import { MAX_RELANCES_PAR_PASSAGE } from '@/app/lib/conformite'
 
 export const maxDuration = 60
 
@@ -61,6 +66,25 @@ export async function POST(request) {
         const appUrl = new URL(request.url).origin
         return reply(await sendRequest(admin, { contact, email: body.email, appUrl, log }))
       }
+      case 'relancer': {
+        const ids = [...new Set(Array.isArray(body.contactIds) ? body.contactIds : [])].slice(0, MAX_RELANCES_PAR_PASSAGE)
+        if (!ids.length) return Response.json({ error: 'Aucune entreprise' }, { status: 400 })
+        const appUrl = new URL(request.url).origin
+        const sent = []
+        const failed = []
+        for (const id of ids) {
+          const contact = await loadContact(admin, id)
+          if (!contact?.email) { failed.push(contact?.nom || id); continue }
+          const r = await sendRequest(admin, { contact, appUrl, log })
+          if (r.data?.sent) sent.push(contact.nom)
+          else failed.push(contact.nom)
+        }
+        return Response.json({ ok: true, data: { sent, failed } })
+      }
+      case 'pause':
+        return reply(await setContactPause(admin, { contactId: body.contactId, paused: body.paused === true, until: body.until }, log))
+      case 'pause_all':
+        return reply(await setGlobalPause(admin, body.paused === true, log))
       default:
         return Response.json({ error: 'Action inconnue' }, { status: 400 })
     }

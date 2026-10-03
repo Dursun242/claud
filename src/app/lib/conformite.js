@@ -297,6 +297,20 @@ export function requestMailText({ contact = {}, compliance, link, expireLe, comp
 /** Nombre maximal de mails de relance par passage (un passage par jour ouvré). */
 export const MAX_RELANCES_PAR_PASSAGE = 15
 
+/** Clé settings : toutes les relances automatiques suspendues ('on'). */
+export const PAUSE_KEY = 'conformite_relances_pause'
+
+/**
+ * Relances suspendues pour cette entreprise ? null si non, sinon
+ * { jusquau } (null = sans limite). Reprise automatique à la date indiquée.
+ */
+export function relancePause(contact, today) {
+  if (!contact?.relances_suspendues) return null
+  const fin = contact.relances_reprise_le
+  if (isIsoDate(fin) && fin <= today) return null
+  return { jusquau: isIsoDate(fin) ? fin : null }
+}
+
 const lastSent = (r) => (r ? String(r.dernier_envoi || r.created_at || '') : '')
 
 /** Lundi suivant si la date tombe un samedi ou un dimanche (AAAA-MM-JJ). */
@@ -313,9 +327,10 @@ export function nextWeekday(iso) {
  * jamais sollicitées, puis la demande la plus ancienne ; à nom égal, ordre
  * alphabétique. Le cron envoie les MAX_RELANCES_PAR_PASSAGE premières.
  */
-export function planRelances({ contacts = [], byContact, lastRequest = new Map(), activeIds = new Set(), today, now = new Date() } = {}) {
+export function planRelances({ contacts = [], byContact, lastRequest = new Map(), activeIds = new Set(), today, now = new Date(), globalPause = false } = {}) {
+  if (globalPause) return []
   return contacts
-    .filter(c => isSubject(c) && activeIds.has(c.id) && c.email)
+    .filter(c => isSubject(c) && activeIds.has(c.id) && c.email && !relancePause(c, today))
     .map(c => ({ contact: c, compliance: complianceOf(byContact, c.id, today), lastRequest: lastRequest.get(c.id) || null }))
     .filter(x => needsAutoRelance({ compliance: x.compliance, lastRequest: x.lastRequest, now }))
     .sort((a, b) => lastSent(a.lastRequest).localeCompare(lastSent(b.lastRequest))
@@ -328,8 +343,8 @@ export function planRelances({ contacts = [], byContact, lastRequest = new Map()
  * sous-traitant, prestataire), état de chaque document, dernière demande,
  * prochaine relance ; statistiques sur les entreprises actives.
  */
-export function buildSuivi({ contacts = [], byContact, lastRequest = new Map(), activeIds = new Set(), today, now = new Date() } = {}) {
-  const plan = planRelances({ contacts, byContact, lastRequest, activeIds, today, now })
+export function buildSuivi({ contacts = [], byContact, lastRequest = new Map(), activeIds = new Set(), today, now = new Date(), globalPause = false } = {}) {
+  const plan = planRelances({ contacts, byContact, lastRequest, activeIds, today, now, globalPause })
   const planned = new Map(plan.map(p => [p.contact.id, p]))
   const rows = contacts.filter(isSubject).map(c => {
     const compliance = complianceOf(byContact, c.id, today)
@@ -341,10 +356,12 @@ export function buildSuivi({ contacts = [], byContact, lastRequest = new Map(), 
     else if (compliance.status === 'ok') relance = { kind: 'a_jour' }
     else if (!toRequest.length) relance = { kind: 'equipe' }
     else if (!c.email) relance = { kind: 'sans_email' }
+    else if (relancePause(c, today)) relance = { kind: 'suspendue', jusquau: relancePause(c, today).jusquau }
+    else if (globalPause) relance = { kind: 'pause_globale' }
     else if (planned.has(c.id)) relance = { kind: 'prevue', passage: planned.get(c.id).passage }
     else relance = { kind: 'date', date: nextWeekday(addDays(lastSent(req).slice(0, 10) || today, RELANCE_JOURS)) }
     const recus = DOC_KINDS.filter(k => ['ok', 'bientot'].includes(compliance.kinds[k].status)).length
-    return { contact: c, active, compliance, lastRequest: req, relance, recus }
+    return { contact: c, active, compliance, lastRequest: req, relance, recus, pause: relancePause(c, today) }
   }).sort((a, b) => (b.active - a.active) || (a.recus - b.recus) || String(a.contact.nom).localeCompare(String(b.contact.nom), 'fr'))
   const act = rows.filter(r => r.active)
   return {

@@ -3,7 +3,9 @@ import { useEffect, useRef, useState } from 'react'
 import Modal from '../Modal'
 import { useToast } from '../../contexts/ToastContext'
 import { useConfirm } from '../../contexts/ConfirmContext'
-import { DOC_KINDS, DOC_META, STATUS_META } from '../../lib/conformite'
+import { DOC_KINDS, DOC_META, STATUS_META, relancePause } from '../../lib/conformite'
+import { localISO } from '../../lib/today'
+import RelanceControls from './RelanceControls'
 import { uploadConformiteDoc } from '../../lib/conformiteClient'
 import { conformitePost } from '../../hooks/useConformite'
 
@@ -239,6 +241,10 @@ export default function ConformiteModal({ open, onClose, contact, compliance, la
                 {lastRequest.derniere_visite ? ` · lien ouvert le ${fmtDT(lastRequest.derniere_visite)}` : ' · lien pas encore ouvert'}
               </div>
             )}
+            <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <span style={small}>Relances automatiques :</span>
+              <RelanceControls contact={contact} pause={relancePause(contact, localISO())} onChanged={onChanged} />
+            </div>
             {link && (
               <div style={{ display: 'flex', gap: 6, marginTop: 8, alignItems: 'center' }}>
                 <input readOnly value={link} aria-label="Lien de dépôt" style={{ ...input, flex: 1, fontSize: 11 }} onFocus={e => e.target.select()} />
