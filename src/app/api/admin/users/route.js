@@ -1,5 +1,8 @@
 import { createClient } from '@supabase/supabase-js'
 import { verifyAuth } from '@/app/lib/auth'
+import { createLogger } from '@/app/lib/logger'
+
+const log = createLogger('admin/users')
 
 function getAdminClient() {
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -27,7 +30,7 @@ export async function GET(request) {
       .eq('email', email)
       .maybeSingle()
     if (callerErr) {
-      console.error('[admin/users GET] caller lookup:', callerErr)
+      log.error('GET caller lookup', callerErr)
       return Response.json({ error: 'Erreur serveur' }, { status: 500 })
     }
 
@@ -72,7 +75,7 @@ export async function GET(request) {
             // Conflit probable (deux requêtes simultanées au même instant — race
             // condition courante après OAuth Google qui tire plusieurs SIGNED_IN).
             // On relit simplement le compte existant plutôt que de refuser l'accès.
-            console.error('[admin/users GET] demo auto-provisioning:', createErr)
+            log.error('GET demo auto-provisioning', createErr)
             const { data: existing } = await supabaseAdmin
               .from('authorized_users')
               .select('id, email, prenom, nom, role, actif')
@@ -117,12 +120,12 @@ export async function GET(request) {
       .select('id, email, prenom, nom, role, actif')
       .order('prenom')
     if (error) {
-      console.error('[admin/users GET] select:', error)
+      log.error('GET select', error)
       return Response.json({ error: 'Erreur serveur' }, { status: 500 })
     }
     return Response.json({ ok: true, data: data || [] })
   } catch (err) {
-    console.error('[admin/users GET] exception:', err)
+    log.error('GET exception', err)
     return Response.json({ error: 'Erreur serveur' }, { status: 500 })
   }
 }
@@ -175,12 +178,12 @@ export async function POST(request) {
       .single()
 
     if (error) {
-      console.error('[admin/users POST] upsert:', error)
+      log.error('POST upsert', error)
       return Response.json({ error: 'Erreur serveur' }, { status: 500 })
     }
     return Response.json({ ok: true, data })
   } catch (err) {
-    console.error('[admin/users POST] exception:', err)
+    log.error('POST exception', err)
     return Response.json({ error: 'Erreur serveur' }, { status: 500 })
   }
 }
@@ -242,12 +245,12 @@ export async function DELETE(request) {
       .eq('id', id)
 
     if (error) {
-      console.error('[admin/users DELETE] delete:', error)
+      log.error('DELETE delete', error)
       return Response.json({ error: 'Erreur serveur' }, { status: 500 })
     }
     return Response.json({ ok: true })
   } catch (err) {
-    console.error('[admin/users DELETE] exception:', err)
+    log.error('DELETE exception', err)
     return Response.json({ error: 'Erreur serveur' }, { status: 500 })
   }
 }

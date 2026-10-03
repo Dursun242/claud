@@ -1,4 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
+import { createLogger } from '@/app/lib/logger'
+
+const log = createLogger('setup-storage')
 
 async function verifyAdmin(request) {
   const authHeader = request.headers.get('Authorization')
@@ -25,7 +28,7 @@ export async function POST(request) {
   if (!serviceKey) {
     // Message générique côté client : pas d'info sur quelle env var manque
     // (évite le fingerprinting). Détail dans les logs serveur.
-    console.error('[setup-storage] SUPABASE_SERVICE_ROLE_KEY manquant')
+    log.error('SUPABASE_SERVICE_ROLE_KEY manquant')
     return Response.json({ error: 'Configuration serveur invalide' }, { status: 500 })
   }
 
@@ -37,7 +40,7 @@ export async function POST(request) {
 
   const { data: buckets, error: listError } = await supabaseAdmin.storage.listBuckets()
   if (listError) {
-    console.error('[setup-storage] listBuckets:', listError)
+    log.error('listBuckets', listError)
     return Response.json({ error: 'Impossible de lister les buckets' }, { status: 500 })
   }
 
@@ -56,7 +59,7 @@ export async function POST(request) {
       ],
     })
     if (error) {
-      console.error('[setup-storage] createBucket:', error)
+      log.error('createBucket', error)
       return Response.json({ error: 'Création bucket échouée' }, { status: 500 })
     }
   }
