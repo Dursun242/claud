@@ -24,7 +24,7 @@ const crBtn = (color, bg, border) => ({
   fontFamily: "inherit",
 })
 
-export default function ReportsV({ data, save: _save, m, reload, focusId, focusTs, readOnly }) {
+export default function ReportsV({ data, save: _save, m, reload, focusId, focusTs, readOnly, active }) {
   const { addToast } = useToast()
   const confirm = useConfirm()
   // Fenêtre CR : { initial } (nouveau : { chantierId } ; modification : le CR)
@@ -91,6 +91,8 @@ export default function ReportsV({ data, save: _save, m, reload, focusId, focusT
   useEffect(() => { openNewRef.current = openNew })
   useEffect(() => {
     const handler = (e) => {
+      // Onglet caché (resté monté) ou client en lecture seule : on ignore
+      if (readOnly || active === false) return
       if (e.altKey || e.ctrlKey || e.metaKey) return
       const t = e.target
       const tag = (t?.tagName || '').toLowerCase()
@@ -101,7 +103,7 @@ export default function ReportsV({ data, save: _save, m, reload, focusId, focusT
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [modal, sendCr])
+  }, [modal, sendCr, readOnly, active])
 
   // Focus depuis la recherche globale : pré-remplit la recherche locale
   // avec le numéro du CR pour filtrer la liste et afficher la carte
@@ -313,7 +315,13 @@ export default function ReportsV({ data, save: _save, m, reload, focusId, focusT
     <CREditor open={!!modal} initial={modal?.initial} data={data} m={m}
       onClose={closeModal} onSaved={handleSaved} />
     <CRSendModal cr={sendCr} chantier={chantierOf(sendCr)} onClose={() => setSendCr(null)}
-      onSent={async (cr) => { if (cr?.id && cr.statut !== 'Diffusé') { await markDiffused(cr.id); reload() } }} />
+      onSent={async (cr) => {
+        if (cr?.id && cr.statut !== 'Diffusé') {
+          const ok = await markDiffused(cr.id)
+          if (!ok) addToast('CR envoyé, mais son statut n\'a pas pu passer à « Diffusé »', 'warning')
+          reload()
+        }
+      }} />
   </div>)
 }
 

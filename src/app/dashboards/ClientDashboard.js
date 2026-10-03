@@ -373,7 +373,7 @@ export default function ClientDashboard({ user, profile = null }) {
           {visitedTabs.has('projects') && (
             <div style={{ display: tab === 'projects' ? 'block' : 'none' }}>
               <TabErrorBoundary name="projects" resetKey={data}>
-                <ProjectsV data={data} save={save} m={isMobile}
+                <ProjectsV data={data} save={save} m={isMobile} active={tab === 'projects'}
                   reload={reload} user={user} profile={profile} readOnly
                   focusId={tab === 'projects' ? focus?.id : null} focusTs={focus?.ts} />
               </TabErrorBoundary>
@@ -382,14 +382,14 @@ export default function ClientDashboard({ user, profile = null }) {
           {visitedTabs.has('tasks') && (
             <div style={{ display: tab === 'tasks' ? 'block' : 'none' }}>
               <TabErrorBoundary name="tasks" resetKey={data}>
-                <TasksV data={data} save={save} m={isMobile} reload={reload} />
+                <TasksV data={data} save={save} m={isMobile} reload={reload} active={tab === 'tasks'} />
               </TabErrorBoundary>
             </div>
           )}
           {visitedTabs.has('reports') && (
             <div style={{ display: tab === 'reports' ? 'block' : 'none' }}>
               <TabErrorBoundary name="reports" resetKey={data}>
-                <ReportsV data={data} save={save} m={isMobile} reload={reload} readOnly
+                <ReportsV data={data} save={save} m={isMobile} reload={reload} readOnly active={tab === 'reports'}
                   focusId={tab === 'reports' ? focus?.id : null} focusTs={focus?.ts} />
               </TabErrorBoundary>
             </div>
@@ -397,7 +397,7 @@ export default function ClientDashboard({ user, profile = null }) {
           {visitedTabs.has('os') && (
             <div style={{ display: tab === 'os' ? 'block' : 'none' }}>
               <TabErrorBoundary name="os" resetKey={data}>
-                <OrdresServiceV data={data} m={isMobile} reload={reload} readOnly
+                <OrdresServiceV data={data} m={isMobile} reload={reload} readOnly active={tab === 'os'}
                   focusId={tab === 'os' ? focus?.id : null} focusTs={focus?.ts} />
               </TabErrorBoundary>
             </div>
@@ -419,7 +419,7 @@ export default function ClientDashboard({ user, profile = null }) {
           {visitedTabs.has('ai') && (
             <div style={{ display: tab === 'ai' ? 'block' : 'none' }}>
               <TabErrorBoundary name="ai" resetKey={data}>
-                <AIV data={data} save={save} m={isMobile}
+                <AIV data={data} save={save} m={isMobile} active={tab === 'ai'}
                   reload={reload} user={user} profile={profile} clientMode
                   externalTranscript={floatTranscript}
                   clearExternal={()=>setFloatTranscript("")} />

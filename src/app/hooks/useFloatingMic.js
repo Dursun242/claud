@@ -1,5 +1,5 @@
 'use client'
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 
 /**
  * useFloatingMic — encapsule la logique de reconnaissance vocale
@@ -24,6 +24,9 @@ import { useState, useRef, useCallback } from 'react'
 export function useFloatingMic({ onError } = {}) {
   const [listening, setListening] = useState(false)
   const [transcript, setTranscript] = useState("")
+  // Reconnaissance en cours. clear() et le démontage remettent ce ref à null :
+  // les évènements tardifs (onresult / onend après stop()) d'une reconnaissance
+  // qui n'est plus la courante sont ignorés, sinon « Effacer » restaurerait le texte.
   const recognRef = useRef(null)
   // Stocke la dernière callback dans un ref : évite de reconstruire `toggle`
   // (et de casser les useCallback en aval) à chaque render du dashboard.
@@ -58,10 +61,12 @@ export function useFloatingMic({ onError } = {}) {
       let finalText = ""
 
       r.onstart = () => {
+        if (recognRef.current !== r) return
         setListening(true)
         setTranscript("")
       }
       r.onresult = (ev) => {
+        if (recognRef.current !== r) return
         let interim = ""
         for (let i = ev.resultIndex; i < ev.results.length; i++) {
           if (ev.results[i].isFinal) finalText += ev.results[i][0].transcript + " "
@@ -77,6 +82,7 @@ export function useFloatingMic({ onError } = {}) {
         }
       }
       r.onend = () => {
+        if (recognRef.current !== r) return
         setListening(false)
         if (finalText.trim()) setTranscript(finalText.trim())
       }
@@ -90,11 +96,22 @@ export function useFloatingMic({ onError } = {}) {
 
   const clear = useCallback(() => {
     setTranscript("")
-    if (listening && recognRef.current) {
-      recognRef.current.stop()
-      setListening(false)
+    const r = recognRef.current
+    recognRef.current = null
+    if (r) {
+      try { r.stop() } catch { /* déjà arrêtée */ }
     }
-  }, [listening])
+    setListening(false)
+  }, [])
+
+  // Démontage : on coupe le micro et on ignore ses derniers évènements
+  useEffect(() => () => {
+    const r = recognRef.current
+    recognRef.current = null
+    if (r) {
+      try { r.stop() } catch { /* déjà arrêtée */ }
+    }
+  }, [])
 
   return { listening, transcript, setTranscript, toggle, clear }
 }

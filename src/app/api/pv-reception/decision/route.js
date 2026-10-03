@@ -36,7 +36,7 @@ export async function POST(request) {
     // à un client que les PV de ses chantiers. Un PV invisible → 404.
     const { data: pv, error: getErr } = await userClientFromToken(extractBearerToken(request))
       .from('proces_verbaux_reception')
-      .select('id, chantier_id, numero, titre, statut_signature')
+      .select('id, chantier_id, numero, titre, statut_signature, statut_reception')
       .eq('id', pvId)
       .single()
 
@@ -51,6 +51,15 @@ export async function POST(request) {
       }, { status: 400 })
     }
 
+    // Une décision déjà rendue ne se rejoue pas et ne s'inverse pas (aucun
+    // écran ne propose de la modifier) : un PV sans décision vaut
+    // 'En attente' (défaut de la colonne) ou NULL.
+    if (pv.statut_reception && pv.statut_reception !== 'En attente') {
+      return Response.json({
+        error: `Une décision a déjà été enregistrée sur ce PV (${pv.statut_reception}).`
+      }, { status: 409 })
+    }
+
     // Mettre à jour le PV avec la décision
     const updateData = {
       statut_reception: decision,
@@ -63,14 +72,23 @@ export async function POST(request) {
 
     // Écriture en service role : le client (MOA) n'a pas de droit d'écriture
     // RLS sur la table, mais a le droit de rendre sa décision sur son PV.
-    const { error: updateErr } = await adminClient()
+    // Mise à jour conditionnelle : si une autre décision est passée entre la
+    // lecture et l'écriture, aucune ligne n'est modifiée → 409.
+    const { data: updated, error: updateErr } = await adminClient()
       .from('proces_verbaux_reception')
       .update(updateData)
       .eq('id', pvId)
+      .or('statut_reception.is.null,statut_reception.eq."En attente"')
+      .select('id')
 
     if (updateErr) {
       log.error('update erreur', updateErr.message)
       return Response.json({ error: 'Erreur mise à jour PV' }, { status: 500 })
+    }
+    if (!updated?.length) {
+      return Response.json({
+        error: 'Une décision a déjà été enregistrée sur ce PV.'
+      }, { status: 409 })
     }
 
     // Notification

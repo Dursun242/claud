@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { ConfirmProvider, useConfirm } from '../ConfirmContext'
 
@@ -99,6 +99,32 @@ describe('ConfirmContext / useConfirm', () => {
     await userEvent.keyboard('{Enter}')
 
     expect(onResolved).toHaveBeenCalledWith(true)
+  })
+
+  it('Entrée sur « Annuler » (atteint par Tab) annule au lieu de confirmer', async () => {
+    const onResolved = jest.fn()
+    renderWithProvider(<Harness opts={{ title: 'X' }} onResolved={onResolved}/>)
+
+    await userEvent.click(screen.getByRole('button', { name: /Déclencher/ }))
+    await waitFor(() => expect(screen.getByRole('button', { name: /Confirmer/ })).toHaveFocus())
+    // Confirmer est le dernier bouton : Tab boucle sur Annuler (focus trap)
+    await userEvent.tab()
+    expect(screen.getByRole('button', { name: /Annuler/ })).toHaveFocus()
+    await userEvent.keyboard('{Enter}')
+
+    expect(onResolved).toHaveBeenCalledTimes(1)
+    expect(onResolved).toHaveBeenCalledWith(false)
+  })
+
+  it('Entrée hors bouton confirme', async () => {
+    const onResolved = jest.fn()
+    renderWithProvider(<Harness opts={{ title: 'X' }} onResolved={onResolved}/>)
+
+    await userEvent.click(screen.getByRole('button', { name: /Déclencher/ }))
+    await waitFor(() => expect(screen.getByRole('button', { name: /Confirmer/ })).toHaveFocus())
+    fireEvent.keyDown(screen.getByText('X'), { key: 'Enter' })
+
+    await waitFor(() => expect(onResolved).toHaveBeenCalledWith(true))
   })
 
   it('résout avec false au clic sur le backdrop', async () => {

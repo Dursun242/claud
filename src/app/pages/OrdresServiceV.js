@@ -15,7 +15,7 @@ import { usePrestationManager } from '../hooks/usePrestationManager'
 import { useSignaturesSync } from '../hooks/useSignaturesSync'
 import { parseNewIntent } from '../lib/navIntent'
 
-export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly}) {
+export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly,active}) {
   const { addToast } = useToast();
   const confirm = useConfirm();
   const [modal,setModal]=useState(null);
@@ -217,6 +217,8 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly})
   useEffect(() => { openNewRef.current = openNew; });
   useEffect(() => {
     const handler = (e) => {
+      // Onglet caché (resté monté) ou client en lecture seule : on ignore
+      if (readOnly || active === false) return;
       if (e.altKey || e.ctrlKey || e.metaKey) return;
       const t = e.target;
       const tag = (t?.tagName || '').toLowerCase();
@@ -227,7 +229,7 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly})
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [modal, signModal]);
+  }, [modal, signModal, readOnly, active]);
 
   const updateChantier = (chId) => {
     const ch = data.chantiers.find(c=>c.id===chId);

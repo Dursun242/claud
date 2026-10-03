@@ -66,6 +66,7 @@ beforeEach(() => {
     planWorkForDevis,
     closeDevisFollowUps,
     planSummary: jest.requireActual('@/app/lib/devisWon').planSummary,
+    planFailure: jest.requireActual('@/app/lib/devisWon').planFailure,
   }))
   ;({ GET, POST } = require('../route'))
   updates = []; uploads = []; inserts = []
@@ -135,6 +136,12 @@ describe('/api/devis/public', () => {
     // Devis signé : relances de l'affaire soldées
     expect(closeDevisFollowUps).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ id: 'd1' }), expect.objectContaining({ wholeOpp: true }))
     expect(sendMail.mock.calls[0][1].text).toContain('Chantier créé : « Garage Ozkan » · tâche « Lancer les travaux » ajoutée')
+  })
+
+  it('POST : planification échouée → signature acceptée, le mail demande de le faire à la main', async () => {
+    planWorkForDevis.mockResolvedValueOnce({ chantier: null, chantierCreated: false, taskCreated: false, failed: true })
+    expect((await POST(sign())).status).toBe(200)
+    expect(sendMail.mock.calls[0][1].text).toContain('Chantier et tâche non créés automatiquement : à faire à la main.')
   })
 
   it('POST : refus de signature (déjà signé) → rien n’est planifié', async () => {

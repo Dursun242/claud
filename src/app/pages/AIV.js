@@ -67,7 +67,7 @@ function prepareDataForAI(data) {
   }
 }
 
-export default function AIV({ data, save: _save, m, externalTranscript, clearExternal, reload, user, profile, clientMode = false, crm = null, reloadCrm = null }) {
+export default function AIV({ data, save: _save, m, externalTranscript, clearExternal, reload, user, profile, clientMode = false, crm = null, reloadCrm = null, active }) {
   const { addToast } = useToast();
   // Nom à afficher dans le message d'accueil
   const displayName = profile?.prenom
@@ -102,13 +102,16 @@ export default function AIV({ data, save: _save, m, externalTranscript, clearExt
     inputRef.current?.focus();
   };
 
-  // Pick up transcript from floating mic
+  // Pick up transcript from floating mic — seulement si l'onglet IA est
+  // affiché : resté monté en arrière-plan, il capterait la dictée faite
+  // depuis un autre onglet.
   useEffect(() => {
+    if (active === false) return;
     if (externalTranscript && externalTranscript.trim()) {
       setInput(externalTranscript);
       if (clearExternal) clearExternal();
     }
-  }, [externalTranscript, clearExternal]);
+  }, [externalTranscript, clearExternal, active]);
 
   // ─── SPEECH RECOGNITION ───
   const startListening = useCallback(() => {

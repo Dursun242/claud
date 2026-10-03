@@ -56,29 +56,36 @@ export function readOutbox(email) {
   try { return JSON.parse(localStorage.getItem(outboxKey(email)) || '[]') } catch { return [] }
 }
 export const OUTBOX_EVENT = 'idm-outbox-change'
+// Retourne false si la file n'a pas pu être écrite (stockage plein, bloqué…).
 function writeOutbox(email, ops) {
   try {
     if (ops.length) localStorage.setItem(outboxKey(email), JSON.stringify(ops))
     else localStorage.removeItem(outboxKey(email))
-  } catch {}
+  } catch { return false }
   try { window.dispatchEvent(new CustomEvent(OUTBOX_EVENT, { detail: { count: ops.length } })) } catch {}
+  return true
 }
 
 /**
  * Ajoute une modification à envoyer plus tard. `dedupeKey` : une seule
  * opération en attente par clé (ex. « task:<id> ») — la dernière gagne.
+ * Lève si la file n'a pas pu être enregistrée sur l'appareil.
  */
 export function enqueue(email, { type, payload, dedupeKey }) {
   const ops = readOutbox(email).filter(op => !dedupeKey || op.dedupeKey !== dedupeKey)
   ops.push({ id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, type, payload, dedupeKey: dedupeKey || null, ts: Date.now() })
-  writeOutbox(email, ops)
+  if (!writeOutbox(email, ops)) {
+    throw new Error("Hors ligne : modification non enregistrée sur l'appareil (stockage plein ou bloqué)")
+  }
   return ops.length
 }
 
 /**
  * Envoie les opérations en attente, dans l'ordre. `handlers[type](payload)`
  * doit lever en cas d'échec : l'opération reste alors en file (et les
- * suivantes aussi, pour garder l'ordre). Retourne { sent, remaining }.
+ * suivantes aussi, pour garder l'ordre). Une opération sans handler (type
+ * inconnu de cette version) est traitée comme un échec : gardée en file,
+ * jamais jetée sans avoir été envoyée. Retourne { sent, remaining }.
  */
 export async function flushOutbox(email, handlers) {
   let ops = readOutbox(email)
@@ -86,13 +93,12 @@ export async function flushOutbox(email, handlers) {
   while (ops.length) {
     const op = ops[0]
     const handler = handlers[op.type]
-    if (handler) {
-      try { await handler(op.payload) } catch { break }
-      sent++
-    }
+    if (!handler) break
+    try { await handler(op.payload) } catch { break }
+    sent++
     // Relit la file : une opération a pu être ajoutée pendant l'envoi
     ops = readOutbox(email).filter(o => o.id !== op.id)
-    writeOutbox(email, ops)
+    if (!writeOutbox(email, ops)) { ops = readOutbox(email); break }
   }
   return { sent, remaining: ops.length }
 }

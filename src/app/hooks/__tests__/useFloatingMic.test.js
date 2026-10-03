@@ -137,6 +137,52 @@ describe('useFloatingMic', () => {
     errSpy.mockRestore()
   })
 
+  it("clear() pendant l'écoute : le texte final renvoyé par onend n'est pas restauré", () => {
+    const instances = []
+    class FakeSR {
+      constructor() {
+        instances.push(this)
+        this.start = jest.fn()
+        this.stop = jest.fn()
+      }
+    }
+    window.SpeechRecognition = FakeSR
+
+    const { result } = renderHook(() => useFloatingMic())
+    act(() => { result.current.toggle() })
+    act(() => { instances[0].onstart() })
+    const res = [{ transcript: 'Bonjour' }]
+    res.isFinal = true
+    act(() => { instances[0].onresult({ resultIndex: 0, results: [res] }) })
+    expect(result.current.transcript).toMatch(/Bonjour/)
+
+    act(() => { result.current.clear() })
+    expect(instances[0].stop).toHaveBeenCalledTimes(1)
+    // Chrome envoie encore onresult / onend après stop()
+    act(() => { instances[0].onresult({ resultIndex: 0, results: [res] }) })
+    act(() => { instances[0].onend() })
+    expect(result.current.transcript).toBe('')
+    expect(result.current.listening).toBe(false)
+  })
+
+  it('arrête la reconnaissance au démontage', () => {
+    const instances = []
+    class FakeSR {
+      constructor() {
+        instances.push(this)
+        this.start = jest.fn()
+        this.stop = jest.fn()
+      }
+    }
+    window.SpeechRecognition = FakeSR
+
+    const { result, unmount } = renderHook(() => useFloatingMic())
+    act(() => { result.current.toggle() })
+    act(() => { instances[0].onstart() })
+    unmount()
+    expect(instances[0].stop).toHaveBeenCalledTimes(1)
+  })
+
   it('clear() réinitialise le transcript', () => {
     const { result } = renderHook(() => useFloatingMic())
     act(() => { result.current.setTranscript('du texte') })

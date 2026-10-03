@@ -66,7 +66,8 @@ export async function GET(request) {
 
   const { data: osRows, error: selErr } = await query
   if (selErr) {
-    return NextResponse.json({ error: 'Lecture OS impossible: ' + selErr.message }, { status: 500 })
+    log.error('lecture OS', selErr.message)
+    return NextResponse.json({ error: 'Lecture OS impossible' }, { status: 500 })
   }
   if (!osRows?.length) {
     return NextResponse.json({ message: 'Aucun OS à synchroniser', synced: 0, updated: 0 })
@@ -78,7 +79,8 @@ export async function GET(request) {
   try {
     statuses = await getSignRequestsStatusBulk(requestIds)
   } catch (err) {
-    return NextResponse.json({ error: 'Erreur Odoo: ' + err.message }, { status: 502 })
+    log.error('odoo', err?.message || err)
+    return NextResponse.json({ error: 'Erreur Odoo : synchronisation impossible' }, { status: 502 })
   }
   const byRequestId = new Map(statuses.map(s => [s.requestId, s]))
 

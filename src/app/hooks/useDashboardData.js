@@ -17,8 +17,8 @@ export const DASHBOARD_KEYS = {
  *
  * Stratégie :
  *   - Stage 1 (critical) : chantiers + tasks + OS + CR → débloque le rendu.
- *   - Stage 2 (secondary) : contacts + planning + rdv + counts PJ → hydrate
- *     en arrière-plan.
+ *   - Stage 2 (secondary) : contacts + planning + rdv + counts PJ → lancé en
+ *     parallèle, hydrate en arrière-plan.
  *
  * Gains vs l'ancien useEffect :
  *   - Cache staleTime 5 min : revenir sur le dashboard après une navigation
@@ -44,10 +44,9 @@ export function useDashboardData() {
 
   const secondaryQ = useQuery({
     queryKey: DASHBOARD_KEYS.secondary,
+    // Lancé en parallèle de critical : loadSecondary ne dépend pas de ses
+    // résultats (le filtre des chantiers démo est fait dans le merge).
     queryFn: () => SB.loadSecondary(),
-    // Ne lance secondary qu'une fois critical chargé : on connaît alors
-    // les demoIds et on évite un 2e cold-start simultané sur le réseau.
-    enabled: !!criticalQ.data,
   })
 
   // Merge critical + secondary en un seul objet `data` (shape identique à

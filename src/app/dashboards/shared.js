@@ -1,4 +1,5 @@
 'use client'
+import { cloneElement, isValidElement, useId } from 'react'
 import { supabase } from '../supabaseClient'
 import { ProgressBar } from '../components'
 import { writeActivityLog, setLogContext, clearLogContext } from '../lib/activityLog'
@@ -146,7 +147,11 @@ export const SB = {
       supabase.from('ordres_service').select('*')
         .order('created_at', { ascending: false }).limit(200),
     ])
-    if (ch.error) return { error: ch.error.message }
+    // Une table en échec ne doit pas s'afficher comme vide (ni écraser la
+    // copie hors ligne) : erreur → React Query garde les données précédentes.
+    const failed = [['chantiers', ch], ['taches', ta], ['compte_rendus', cr], ['ordres_service', os]]
+      .find(([, r]) => r.error)
+    if (failed) return { error: `Chargement ${failed[0]} impossible : ${failed[1].error.message}` }
 
     // Fallback robustesse : si la migration is_demo n'est pas appliquée en
     // prod, on re-filtre client-side via les UUIDs connus.
@@ -183,6 +188,11 @@ export const SB = {
       supabase.rpc('chantier_attachment_counts'),
       supabase.from('contact_chantiers').select('*'),
     ])
+    // Même règle que loadCritical : une table en échec lève (sauf la RPC des
+    // compteurs ci-dessus, seule à pouvoir manquer : migration 020).
+    const failed = [['contacts', co], ['planning', pl], ['rdv', rv], ['contact_chantiers', cc]]
+      .find(([, r]) => r.error)
+    if (failed) throw new Error(`Chargement ${failed[0]} impossible : ${failed[1].error.message}`)
     const notDemo = (item) => !item?.chantier_id || !demoIds.has(item.chantier_id)
 
     // Construit la Map chantier_id → count en ignorant les chantiers démo.
@@ -765,22 +775,28 @@ export const pct = (a,b) => b ? Math.round(a/b*100) : 0;
 // FF — wrapper label + child + hint + erreur.
 //
 // Accessibilité :
-// - Le <label> englobe le contrôle (association implicite, pas besoin de htmlFor)
+// - Le <label> est relié au contrôle par htmlFor/id quand l'enfant est un
+//   champ natif unique (input, select, textarea) ; id généré par useId()
+//   sauf si le champ en a déjà un
 // - `error` (string) → message rouge sous le champ, annoncé via role="alert"
 // - `hint` → texte d'aide sous le champ
 // - `required` ajoute un * rouge à côté du label (information visuelle ;
 //   pour la sémantique on s'appuie sur l'attribut `required` du contrôle)
+const FF_FIELDS = new Set(['input', 'select', 'textarea'])
 export function FF({label, hint, error, required, children}) {
+  const autoId = useId();
+  const field = isValidElement(children) && FF_FIELDS.has(children.type) ? children : null;
+  const fieldId = field ? (field.props.id || autoId) : undefined;
   return (
     <div style={{marginBottom:12}}>
-      <label style={{
+      <label htmlFor={fieldId} style={{
         display:"block", fontSize:11, fontWeight:600, color:"#64748B",
         marginBottom:3, textTransform:"uppercase", letterSpacing:"0.05em"
       }}>
         {label}
         {required && <span aria-hidden="true" style={{color:"#DC2626", marginLeft:3}}>*</span>}
       </label>
-      {children}
+      {field && !field.props.id ? cloneElement(field, { id: fieldId }) : children}
       {error && (
         <div role="alert" style={{
           fontSize:11, color:"#DC2626", marginTop:4, fontWeight:500,

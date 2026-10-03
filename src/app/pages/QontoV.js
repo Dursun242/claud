@@ -20,6 +20,12 @@ const pdfBtn = {
   color:"#DC2626",fontFamily:"inherit",
 }
 
+// Bouton texte (aspect d'un lien) : styles natifs du bouton remis à zéro
+const linkBtn = {
+  background:"none",border:"none",padding:0,margin:0,
+  cursor:"pointer",fontSize:11,fontFamily:"inherit",
+}
+
 function QontoBadge() {
   return (
     <span style={{
@@ -29,6 +35,33 @@ function QontoBadge() {
     }}>API</span>
   );
 }
+
+// Petit composant de barre de recherche locale (réutilisé dans les 3 onglets).
+// Déclaré hors de QontoV : sinon il serait recréé à chaque rendu et le champ
+// perdrait le focus à chaque frappe.
+const LocalSearch = ({ value, onChange, placeholder, m }) => (
+  <div style={{position:"relative",marginBottom:10}}>
+    <svg style={{
+      position:"absolute",left:9,top:"50%",
+      transform:"translateY(-50%)",opacity:0.5
+    }} width="13" height="13" viewBox="0 0 24 24"
+      fill="none" stroke="#64748B" strokeWidth="2.5">
+      <circle cx="11" cy="11" r="8"/>
+      <path d="M21 21l-4.35-4.35"/>
+    </svg>
+    <input
+      type="search"
+      placeholder={placeholder}
+      value={value}
+      onChange={e => onChange(e.target.value)}
+      style={{
+        padding:"7px 10px 7px 28px",borderRadius:7,
+        border:"1px solid #E2E8F0",fontSize:12,
+        width:m?"100%":320,boxSizing:"border-box",fontFamily:"inherit"
+      }}
+    />
+  </div>
+);
 
 export default function QontoV({m, data, reload, crm = null, reloadCrm = null, setTab = null}) {
   const { addToast } = useToast();
@@ -343,31 +376,6 @@ export default function QontoV({m, data, reload, crm = null, reloadCrm = null, s
     });
   }, [clients, searchClients]);
 
-  // Petit composant de barre de recherche locale (réutilisé dans les 3 onglets)
-  const LocalSearch = ({ value, onChange, placeholder }) => (
-    <div style={{position:"relative",marginBottom:10}}>
-      <svg style={{
-        position:"absolute",left:9,top:"50%",
-        transform:"translateY(-50%)",opacity:0.5
-      }} width="13" height="13" viewBox="0 0 24 24"
-        fill="none" stroke="#64748B" strokeWidth="2.5">
-        <circle cx="11" cy="11" r="8"/>
-        <path d="M21 21l-4.35-4.35"/>
-      </svg>
-      <input
-        type="search"
-        placeholder={placeholder}
-        value={value}
-        onChange={e => onChange(e.target.value)}
-        style={{
-          padding:"7px 10px 7px 28px",borderRadius:7,
-          border:"1px solid #E2E8F0",fontSize:12,
-          width:m?"100%":320,boxSizing:"border-box",fontFamily:"inherit"
-        }}
-      />
-    </div>
-  );
-
   return (<div>
     {/* HEADER */}
     <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:20,flexWrap:"wrap"}}>
@@ -462,11 +470,10 @@ export default function QontoV({m, data, reload, crm = null, reloadCrm = null, s
               {connected?"Connecté":"Échec de connexion"}
             </span>
             {connected && <span style={{color:"#64748B"}}>• {savedToken.split(":")[0]}</span>}
-            <span style={{
-              marginLeft:"auto",color:QT.primary,
-              cursor:"pointer",fontWeight:600,fontSize:11
-            }} onClick={()=>fetchAll()}>Rafraîchir</span>
-            <span style={{color:"#64748B",cursor:"pointer",fontSize:11}} onClick={disconnect}>Changer de compte</span>
+            <button type="button" style={{
+              ...linkBtn,marginLeft:"auto",color:QT.primary,fontWeight:600
+            }} onClick={()=>fetchAll()}>Rafraîchir</button>
+            <button type="button" style={{...linkBtn,color:"#64748B"}} onClick={disconnect}>Changer de compte</button>
           </div>
           {error && (
             <div style={{
@@ -542,7 +549,7 @@ export default function QontoV({m, data, reload, crm = null, reloadCrm = null, s
             {/* FACTURES LIST */}
             {activeTab==="factures" && (
               <>
-                <LocalSearch value={searchFactures} onChange={setSearchFactures}
+                <LocalSearch m={m} value={searchFactures} onChange={setSearchFactures}
                   placeholder="Rechercher n° ou email…"/>
                 <div style={{display:"grid",gap:8}}>
                   {filteredInvoices.length===0 ? (
@@ -629,7 +636,7 @@ export default function QontoV({m, data, reload, crm = null, reloadCrm = null, s
             {/* DEVIS LIST */}
             {activeTab==="devis" && (
               <>
-                <LocalSearch value={searchDevis} onChange={setSearchDevis}
+                <LocalSearch m={m} value={searchDevis} onChange={setSearchDevis}
                   placeholder="Rechercher n° ou email…"/>
                 <div style={{display:"grid",gap:8}}>
                   {filteredQuotes.length===0 ? (
@@ -726,7 +733,7 @@ export default function QontoV({m, data, reload, crm = null, reloadCrm = null, s
             {/* CLIENTS LIST */}
             {activeTab==="clients" && (
               <>
-                <LocalSearch value={searchClients} onChange={setSearchClients}
+                <LocalSearch m={m} value={searchClients} onChange={setSearchClients}
                   placeholder="Rechercher nom, email ou SIRET…"/>
                 <div style={{display:"grid",gridTemplateColumns:m?"1fr":"1fr 1fr",gap:10}}>
                   {filteredClients.length===0 ? (

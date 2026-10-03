@@ -1,5 +1,6 @@
 'use client'
 import { useState, useMemo } from 'react'
+import { supabase } from '../supabaseClient'
 import { useToast } from '../contexts/ToastContext'
 import EmptyState from '../components/EmptyState'
 
@@ -52,9 +53,13 @@ export default function ProcesVerbauxV({ data, m, reload, user: _user }) {
 
   const handleDecision = async (pvId, decision, motif) => {
     try {
+      const { data: { session } } = await supabase.auth.getSession()
       const res = await fetch('/api/pv-reception/decision', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+        },
         body: JSON.stringify({
           pvId,
           decision,
@@ -62,7 +67,10 @@ export default function ProcesVerbauxV({ data, m, reload, user: _user }) {
         })
       })
 
-      if (!res.ok) throw new Error('Erreur enregistrement')
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error(body.error || 'Erreur enregistrement')
+      }
       addToast(`PV ${decision}`, 'success')
       reload?.()
       setSelectedPV(null)
