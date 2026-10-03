@@ -82,7 +82,7 @@ describe('planWorkForDevis', () => {
     expect(log.warn).toHaveBeenCalled()
   })
 
-  it('échec du rattachement chantier/affaire → s’arrête (pas de tâche) et le signale', async () => {
+  it('échec du rattachement chantier/affaire → crée quand même la tâche et le signale', async () => {
     const log = { warn: jest.fn() }
     const admin = fakeAdmin({ crm_opportunites: [{ id: 'o1', titre: 'Cuisine Dupont', chantier_id: null }] })
     const from = admin.from.getMockImplementation()
@@ -92,9 +92,9 @@ describe('planWorkForDevis', () => {
       return q
     })
     const plan = await planWorkForDevis(admin, DEVIS, { log })
-    expect(plan).toMatchObject({ chantierCreated: true, taskCreated: false, failed: true })
-    expect(admin.db.taches).toHaveLength(0)
-    expect(log.warn).toHaveBeenCalledWith('planification des travaux', expect.stringMatching(/rattachement chantier\/affaire : RLS/))
+    expect(plan).toMatchObject({ chantierCreated: true, taskCreated: true, failed: true })
+    expect(admin.db.taches).toHaveLength(1)
+    expect(log.warn).toHaveBeenCalledWith('rattachement chantier/affaire', 'RLS')
   })
 
   it('échec de lecture des tâches existantes → aucune tâche créée (pas de doublon)', async () => {

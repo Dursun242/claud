@@ -78,7 +78,11 @@ export async function planWorkForDevis(admin, devis, { how = 'signé', log } = {
       result.chantierCreated = true
       if (opp) {
         const { error: oppErr } = await admin.from('crm_opportunites').update({ chantier_id: ch.id }).eq('id', opp.id)
-        if (oppErr) throw new Error('rattachement chantier/affaire : ' + oppErr.message)
+        // Signalé sans interrompre : la tâche « Lancer les travaux » doit être créée quand même.
+        if (oppErr) {
+          log?.warn('rattachement chantier/affaire', oppErr.message)
+          result.failed = true
+        }
       }
       if (contact) {
         const { error: linkErr } = await admin.from('contact_chantiers').insert({ contact_id: contact.id, chantier_id: ch.id })
