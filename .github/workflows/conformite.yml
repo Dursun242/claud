@@ -1,8 +1,8 @@
-# Documents des entreprises : relance automatique (Kbis, décennale,
-# attestation fiscale, URSSAF) des entreprises actives dont un document
-# expire ou a expiré. Du lundi au vendredi vers 8 h (heure de Paris).
-# Une première demande n'est jamais envoyée automatiquement (voir
-# src/app/api/cron/conformite/route.js).
+# Documents des entreprises : relance automatique, une fois par semaine et
+# par entreprise, des entreprises sur un chantier en cours dont un document
+# (Kbis, décennale, attestations fiscale et URSSAF, RIB) manque, est erroné
+# ou expire. Vérification du lundi au vendredi vers 8 h (heure de Paris)
+# (voir src/app/api/cron/conformite/route.js).
 # Secrets GitHub requis : APP_URL et CRON_SECRET (comme le mail du matin).
 name: Documents des entreprises — relances
 

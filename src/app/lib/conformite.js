@@ -229,25 +229,34 @@ export function conformiteItems({ contacts = [], docs = [], activeIds = new Set(
   return out
 }
 
-/** Documents à demander à l'entreprise (tout sauf ce qui est à jour). */
-export const kindsToRequest = (compliance) => compliance.problems.map(p => p.kind)
+// Points que seule l'équipe peut traiter : rien à redemander à l'entreprise
+// (un IBAN qui change se vérifie par téléphone, jamais par mail)
+const STAFF_ONLY = [/^IBAN différent/, /^Lecture automatique impossible/]
+const sansPoint = (s) => String(s).replace(/\.\s*$/, '')
 
-const RELANCE_JOURS = 7
-const MAX_ENVOIS_AUTO = 4
+/** Erreurs du document que l'entreprise peut corriger en le renvoyant. */
+export const companyAnomalies = (doc) => (doc?.anomalies || []).filter(a => !STAFF_ONLY.some(re => re.test(a)))
 
 /**
- * Relance automatique (cron) d'une entreprise active : seulement pour
- * renouveler un document déjà fourni (expiré ou qui expire bientôt), ou si
- * une demande a déjà été envoyée et que des documents manquent encore. Une
- * première demande n'est jamais envoyée automatiquement.
+ * Documents à demander à l'entreprise : manquants, expirés, qui expirent
+ * bientôt, ou erronés (à renvoyer). Un document « à vérifier » par l'équipe
+ * seulement (dates à saisir, IBAN à confirmer) n'est pas redemandé.
+ */
+export function kindsToRequest(compliance) {
+  return compliance.problems
+    .filter(p => p.status !== 'a_verifier' || companyAnomalies(compliance.kinds[p.kind]?.doc).length > 0)
+    .map(p => p.kind)
+}
+
+export const RELANCE_JOURS = 7
+
+/**
+ * Relance automatique (cron, entreprises sur un chantier en cours) : chaque
+ * semaine tant qu'un document manque, est erroné ou expire (bientôt).
  */
 export function needsAutoRelance({ compliance, lastRequest = null, now = new Date() } = {}) {
-  if (!compliance || compliance.status === 'ok') return false
-  const renew = compliance.problems.some(p => p.status === 'expire' || p.status === 'bientot')
-  const stillMissing = !!lastRequest && compliance.problems.some(p => p.status === 'manquant')
-  if (!renew && !stillMissing) return false
+  if (!compliance || kindsToRequest(compliance).length === 0) return false
   if (!lastRequest) return true
-  if ((lastRequest.envois || 0) >= MAX_ENVOIS_AUTO && lastRequest.auto) return false
   const last = new Date(lastRequest.dernier_envoi || lastRequest.created_at || 0).getTime()
   return now.getTime() - last >= RELANCE_JOURS * DAY
 }
@@ -261,7 +270,7 @@ export function requestMailText({ contact = {}, compliance, link, expireLe, comp
     const s = compliance.kinds[k]
     const etat = s.status === 'expire' ? ` (expiré le ${fmtD(s.valideAu)})`
       : s.status === 'bientot' ? ` (expire le ${fmtD(s.valideAu)})`
-        : s.status === 'a_verifier' ? ' (à renvoyer, document illisible ou incomplet)' : ''
+        : s.status === 'a_verifier' ? ` (à renvoyer : ${sansPoint(companyAnomalies(s.doc)[0] || 'document illisible ou incomplet')})` : ''
     return `- ${DOC_META[k].aide}${etat}`
   })
   const nom = contact.societe || contact.nom || ''

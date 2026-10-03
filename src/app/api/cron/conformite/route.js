@@ -1,14 +1,15 @@
-// Route /api/cron/conformite — relance automatique des entreprises dont les
-// documents administratifs expirent ou ont expiré (Kbis, décennale,
-// attestation fiscale, URSSAF), du lundi au vendredi.
+// Route /api/cron/conformite — relance automatique, chaque semaine, des
+// entreprises dont les documents administratifs (Kbis, décennale,
+// attestations fiscale et URSSAF, RIB) manquent, sont erronés ou expirent.
+// Vérification du lundi au vendredi.
 //
 // Appelée par GitHub Actions (.github/workflows/conformite.yml) avec
 // l'en-tête Authorization: Bearer <CRON_SECRET>. Ne concerne que les
 // entreprises qui travaillent sur un chantier en cours et ont un email.
-// Règles (lib/conformite.needsAutoRelance) : renouvellement d'un document
-// déjà fourni, ou documents toujours manquants après une demande ; au plus
-// un mail tous les 7 jours, 4 relances automatiques par lien. Une première
-// demande n'est jamais envoyée automatiquement. `?dry=1` : liste sans envoyer.
+// Règles (lib/conformite.needsAutoRelance) : un mail par semaine tant qu'un
+// document manque, est erroné (à renvoyer) ou expire bientôt. Ce que
+// l'équipe vérifie elle-même (dates à saisir, IBAN qui change) ne déclenche
+// pas de relance. `?dry=1` : liste sans envoyer.
 
 import crypto from 'node:crypto'
 import { createLogger } from '@/app/lib/logger'

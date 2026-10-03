@@ -54,6 +54,19 @@ describe('/api/conformite/public (sans compte, par jeton)', () => {
     expect(db.tables.contact_doc_requests[0].derniere_visite).toBeTruthy()
   })
 
+  it('GET : document erroné « à renvoyer » avec son motif ; IBAN à vérifier par l’équipe non montré', async () => {
+    db.tables.contact_documents.push(
+      { id: 'd1', contact_id: 'c1', kind: 'fiscale', file_path: 'p', valide_au: '2099-01-01', anomalies: ['Attestation négative : dettes fiscales.'], created_at: '2026-09-02' },
+      { id: 'd2', contact_id: 'c1', kind: 'rib', file_path: 'p', iban: 'FR14…', anomalies: ['IBAN différent de celui de la fiche (…2606 au lieu de …0189) : confirmez par téléphone.'], created_at: '2026-09-02' },
+    )
+    const { data } = await (await get(TOKEN)).json()
+    expect(data.documents.find(d => d.kind === 'fiscale')).toMatchObject({ status: 'a_renvoyer', motif: 'Attestation négative : dettes fiscales.' })
+    const rib = data.documents.find(d => d.kind === 'rib')
+    expect(rib.status).toBe('a_verifier')
+    expect(rib.motif).toBeUndefined()
+    expect(JSON.stringify(data)).not.toMatch(/IBAN différent|2606/)
+  })
+
   it('POST : dépôt de l’entreprise, l’équipe est prévenue', async () => {
     const prep = await (await post({ token: TOKEN, action: 'prepare', kind: 'urssaf', name: 'vigilance.pdf', type: 'application/pdf', size: 1000 })).json()
     expect(prep.data.path).toMatch(/^conformite\/c1\/urssaf\//)

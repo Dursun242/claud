@@ -50,20 +50,27 @@ describe('/api/cron/conformite', () => {
     expect((await call('', 'Bearer non')).status).toBe(401)
   })
 
-  it('relance seulement les entreprises actives qui doivent renouveler un document', async () => {
+  it('relance chaque semaine les entreprises sur un chantier en cours (manquant, expirant)', async () => {
     const dry = await (await call('?dry=1')).json()
-    // c2 n'a jamais rien fourni (pas de 1re demande automatique), c3 n'est plus sur un chantier en cours
-    expect(dry.entreprises).toEqual(['Costa Plomberie'])
+    // c3 n'est plus sur un chantier en cours
+    expect(dry.entreprises).toEqual(['Costa Plomberie', 'Nouveau Peintre'])
     expect(sendMail).not.toHaveBeenCalled()
 
     const res = await (await call()).json()
-    expect(res).toEqual({ ok: true, sent: 1, failed: 0 })
-    expect(sendMail.mock.calls[0][1].to).toBe('costa@ex.fr')
+    expect(res).toEqual({ ok: true, sent: 2, failed: 0 })
+    expect(sendMail.mock.calls.map(c => c[1].to)).toEqual(['costa@ex.fr', 'peintre@ex.fr'])
+    expect(sendMail.mock.calls[0][1].subject).not.toMatch(/^Rappel/)
     expect(sendMail.mock.calls[0][1].text).toMatch(/https:\/\/app\.test\/deposer\/[a-f0-9]{48}/)
     expect(db.tables.contact_doc_requests[0]).toMatchObject({ contact_id: 'c1', auto: true, envois: 1 })
 
-    // Le lendemain : déjà relancée il y a moins de 7 jours → rien
+    // Le lendemain : déjà relancées il y a moins de 7 jours → rien
     expect((await (await call('?dry=1')).json()).entreprises).toEqual([])
+
+    // Une semaine plus tard : rappel
+    db.tables.contact_doc_requests.forEach(r => { r.dernier_envoi = new Date(Date.now() - 8 * 86_400_000).toISOString() })
+    sendMail.mockClear()
+    expect(await (await call()).json()).toEqual({ ok: true, sent: 2, failed: 0 })
+    expect(sendMail.mock.calls[0][1].subject).toMatch(/^Rappel/)
   })
 
   it('migration absente : ignoré sans erreur', async () => {
