@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { supabase } from '../supabaseClient'
 import { logout } from '../auth'
 import { FloatingMic, NotificationBell } from '../components'
+import { FLOATING_MIC_CLEARANCE } from '../components/FloatingMic'
 import { DashboardSkeleton, PageSkeleton } from '../components/Skeleton'
 import TabErrorBoundary from '../components/TabErrorBoundary'
 import KeyboardHelpModal from '../components/KeyboardHelpModal'
@@ -426,8 +427,8 @@ export default function AdminDashboard({ user, profile = null }) {
       <main id="main-content" aria-label="Contenu principal" style={{
         flex:1,minWidth:0,overflowX:"hidden",overflowY:"auto",
         padding:isMobile?16:24,paddingTop:isMobile?60:24,
-        // Réserve la place de la barre de navigation basse (+ safe-area iOS)
-        paddingBottom:isMobile?`calc(${MOBILE_NAV_HEIGHT + 24}px + env(safe-area-inset-bottom))`:24
+        // Réserve la place de la barre de navigation basse et de la bulle IA (+ safe-area iOS)
+        paddingBottom:isMobile?`calc(${MOBILE_NAV_HEIGHT + 24 + (tab !== "ai" ? FLOATING_MIC_CLEARANCE : 0)}px + env(safe-area-inset-bottom))`:24
       }}>
         {/* MOBILE HEADER */}
         {isMobile && (

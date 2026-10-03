@@ -14,12 +14,17 @@ const data = {
 }
 
 describe('DashboardV', () => {
+  // « Le mot du jour » (IA) : pas d'appel réseau dans ces tests
+  beforeEach(() => { global.fetch = jest.fn(() => Promise.reject(new Error('hors ligne'))) })
+  afterEach(() => { delete global.fetch })
+
   it('admin : « Ma journée » et actions rapides qui ouvrent le formulaire', async () => {
     const setTab = jest.fn()
     render(<DashboardV data={data} setTab={setTab} m={false} user={null} />)
     expect(screen.getByText(/Ma journée/)).toBeInTheDocument()
-    // « Ma journée » + liste des tâches actives
-    expect(screen.getAllByRole('button', { name: /Commander carrelage/ })).toHaveLength(2)
+    expect(screen.getByRole('heading', { name: /Mes priorités du jour/ })).toBeInTheDocument()
+    // « Mes priorités du jour » + « Ma journée » + liste des tâches actives
+    expect(screen.getAllByRole('button', { name: /Commander carrelage/ })).toHaveLength(3)
     await userEvent.click(screen.getByRole('button', { name: /Nouvel OS/ }))
     expect(setTab).toHaveBeenCalledWith('os', 'new')
   })
@@ -43,6 +48,7 @@ describe('DashboardV', () => {
     expect(screen.getByText(/Où en sont les travaux/)).toBeInTheDocument()
     expect(screen.getByText(/en cours de signature/)).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Nouvel OS/ })).toBeNull()
+    expect(screen.queryByText(/Mes priorités du jour/)).toBeNull()
     expect(screen.queryByText(/À faire/)).toBeNull()
     await userEvent.click(screen.getByRole('button', { name: /Lire le compte rendu/ }))
     expect(setTab).toHaveBeenCalledWith('reports', 'cr1')

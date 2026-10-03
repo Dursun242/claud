@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { useNotifications } from '../hooks/useNotifications'
+import { useNotifications, groupNotifications, badgeLabel } from '../hooks/useNotifications'
 
 function relativeTime(iso) {
   if (!iso) return ''
@@ -146,7 +146,9 @@ function Toast({ notif, index, total, onDismiss, onClick, isMobile }) {
  *
  * Comportement 2026 :
  *   - Bouton activity en topbar avec badge (compteur de non-lues)
- *   - Au clic → panneau dropdown avec les 10 dernières (manuel uniquement)
+ *   - Au clic → panneau dropdown avec les 10 dernières lignes (manuel uniquement),
+ *     les notifications d'un même élément regroupées en une ligne « X modifications »
+ *   - Badge : non-lues des 7 derniers jours, hors actions de l'utilisateur, « 9+ » au-delà de 9
  *   - À chaque nouvelle activité reçue en Realtime → toast en bas droite
  *     (slide-in, dismiss auto 4.5s, pause au survol, max 3 empilés)
  *   - Plus d'auto-open du panneau (moins intrusif)
@@ -195,13 +197,16 @@ export default function NotificationBell({ userEmail, onNavigate, isMobile = fal
     }
   }, [open])
 
-  const handleClick = async (n) => {
+  // Ouvrir une ligne marque tout le groupe comme lu
+  const handleClick = async (g) => {
     setOpen(false)
-    if (!n.read_at) markAsRead(n.id)
-    if (onNavigate && n.target_tab) onNavigate(n.target_tab, n)
+    if (g.unreadIds.length) markAsRead(g.unreadIds)
+    if (onNavigate && g.latest.target_tab) onNavigate(g.latest.target_tab, g.latest)
   }
 
-  const badge = unreadCount > 99 ? '99+' : unreadCount
+  const groups = groupNotifications(items)
+  const hasUnread = unreadCount > 0 || items.some((n) => !n.read_at)
+  const badge = badgeLabel(unreadCount)
 
   return (
     <>
@@ -273,7 +278,7 @@ export default function NotificationBell({ userEmail, onNavigate, isMobile = fal
                   }}>{unreadCount} nouveau{unreadCount > 1 ? 'x' : ''}</span>
                 )}
               </div>
-              {unreadCount > 0 && (
+              {hasUnread && (
                 <button
                   onClick={markAllRead}
                   style={{
@@ -281,11 +286,11 @@ export default function NotificationBell({ userEmail, onNavigate, isMobile = fal
                     cursor: 'pointer', fontSize: 10, fontWeight: 600,
                     padding: '4px 6px', borderRadius: 5, fontFamily: 'inherit', whiteSpace: 'nowrap',
                   }}
-                >Tout lu</button>
+                >Tout marquer comme lu</button>
               )}
             </div>
 
-            {items.length === 0 ? (
+            {groups.length === 0 ? (
               <div style={{ padding: '24px 16px 28px', textAlign: 'center', color: '#64748B', fontSize: 12 }}>
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 6, opacity: 0.7 }} aria-hidden="true">
                   <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
@@ -294,13 +299,14 @@ export default function NotificationBell({ userEmail, onNavigate, isMobile = fal
               </div>
             ) : (
               <ul style={{ listStyle: 'none', margin: 0, padding: '2px 6px 8px', maxHeight: 420, overflowY: 'auto' }}>
-                {items.map((n) => {
-                  const unread = !n.read_at
+                {groups.map((g) => {
+                  const n = g.latest
+                  const unread = g.unreadIds.length > 0
                   const accent = ACCENT[n.entity_type] || '#3B82F6'
                   return (
-                    <li key={n.id} style={{ marginBottom: 2 }}>
+                    <li key={g.key} style={{ marginBottom: 2 }}>
                       <button
-                        onClick={() => handleClick(n)}
+                        onClick={() => handleClick(g)}
                         style={{
                           width: '100%', textAlign: 'left',
                           background: unread ? 'rgba(59,130,246,0.08)' : 'transparent',
@@ -330,6 +336,11 @@ export default function NotificationBell({ userEmail, onNavigate, isMobile = fal
                           )}
                           <div style={{ fontSize: 10, color: '#64748B', marginTop: 4, fontWeight: 500, letterSpacing: '0.02em' }}>
                             {relativeTime(n.created_at)}
+                            {g.count > 1 && (
+                              <span style={{ marginLeft: 6, fontWeight: 700, color: accent }}>
+                                · {g.count} modifications
+                              </span>
+                            )}
                           </div>
                         </div>
                         {unread && (

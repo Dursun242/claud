@@ -5,6 +5,8 @@ import { classifyFollowUps } from '../lib/crm'
 import { buildAgenda, buildClientOverview, localISO } from '../lib/today'
 import { newIntent } from '../lib/navIntent'
 import TodayPanel from '../components/dashboard/TodayPanel'
+import PrioritiesPanel from '../components/dashboard/PrioritiesPanel'
+import { buildPriorities } from '../lib/priorities'
 import CrmPanel from '../components/dashboard/CrmPanel'
 import { buildCrmInsights } from '../lib/crmInsights'
 import ClientOverview from '../components/dashboard/ClientOverview'
@@ -98,6 +100,13 @@ export default function DashboardV({data,crm=null,setTab,m,user,clientMode=false
     () => (clientMode ? null : buildAgenda(data, { today, relances })),
     [clientMode, data, today, relances]
   )
+  // « Mes priorités du jour » : chantier + commercial en un seul classement.
+  // Heure à la minute : un rendez-vous passé depuis plus d'1 h en sort.
+  const nowHM = new Date().toTimeString().slice(0, 5)
+  const priorities = useMemo(
+    () => (agenda ? buildPriorities({ agenda, crmItems: crmInsights.items, today, now: nowHM }) : null),
+    [agenda, crmInsights, today, nowHM]
+  )
   const overview = useMemo(
     () => (clientMode ? buildClientOverview(data, { today }) : null),
     [clientMode, data, today]
@@ -128,6 +137,9 @@ export default function DashboardV({data,crm=null,setTab,m,user,clientMode=false
 
     {/* SUIVI MAÎTRE D'OUVRAGE */}
     {clientMode && overview && <ClientOverview overview={overview} onOpen={setTab} m={m}/>}
+
+    {/* MES PRIORITÉS DU JOUR — par quoi commencer, et pourquoi */}
+    {!clientMode && priorities && <PrioritiesPanel priorities={priorities} onOpen={setTab} userId={user?.id} today={today} m={m}/>}
 
     {/* MA JOURNÉE — ce qui demande une action aujourd'hui */}
     {!clientMode && agenda && <TodayPanel agenda={agenda} onOpen={setTab} m={m}/>}
