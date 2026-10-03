@@ -67,7 +67,7 @@ export default function ClientDashboard({ user, profile = null }) {
 
   // Data layer via React Query : cache staleTime 5 min → revenir sur le
   // dashboard après navigation tab browser ne refetch pas.
-  const { data, loading, reload } = useClientDashboardData(profile?.prenom, profile?.nom)
+  const { data, loading, reload } = useClientDashboardData(user?.id)
 
   // Compat legacy : `save` prop ancienne qui setait data directement.
   // Remplacé par un invalidateQueries (refetch).
@@ -354,9 +354,8 @@ export default function ClientDashboard({ user, profile = null }) {
               </div>
               <div style={{ fontSize:13, color:'#B45309', lineHeight:1.7 }}>
                 Votre compte n&apos;est pas encore lié à un chantier.<br/>
-                L&apos;administrateur doit renseigner votre prénom{" "}
-                (<strong>{profile?.prenom}</strong>) dans le champ{" "}
-                &quot;Client&quot; du chantier concerné.
+                L&apos;administrateur doit rattacher le chantier concerné{" "}
+                à votre compte (<strong>{user?.email}</strong>).
               </div>
             </div>
           )}

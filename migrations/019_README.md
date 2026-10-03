@@ -70,6 +70,8 @@ UPDATE chantiers SET client_user_id = '<uuid>' WHERE id = '<chantier_id>';
 
 ### Étape 5 (plus tard) — Durcir la contrainte
 
+> **Fait par la migration 035** (`035_acces_client_par_compte.sql`, voir `035_README.md`) : le fallback prénom est retiré de `client_has_chantier()`, de la policy `chantiers_select` et des notifications. La colonne `client_user_id` reste en revanche **nullable** : des chantiers internes n'ont pas de client. Ne pas appliquer le `SET NOT NULL` ci-dessous.
+
 Une fois que **100 % des chantiers** ont un `client_user_id`, on retire le fallback prénom dans une migration future :
 
 ```sql

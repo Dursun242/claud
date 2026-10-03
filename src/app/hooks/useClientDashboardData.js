@@ -3,10 +3,9 @@ import { useCallback } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { SB } from '../dashboards/shared'
 
-// Query key paramétrée par prénom/nom : deux clients différents partagent
-// leur cache si jamais ils se connectaient au même moment côté DevTools
-// (en prod, chaque MOA a son propre browser / storage).
-export const clientDataKey = (prenom, nom) => ['dashboard', 'client', prenom || '', nom || '']
+// Query key paramétrée par l'id du compte (auth.users) : chaque MOA a son
+// propre cache, y compris le cache hors ligne (préfixe 'dashboard').
+export const clientDataKey = (userId) => ['dashboard', 'client', userId || '']
 
 const EMPTY = Object.freeze({
   chantiers: [], contacts: [], tasks: [],
@@ -15,26 +14,25 @@ const EMPTY = Object.freeze({
 
 /**
  * useClientDashboardData — équivalent de useDashboardData pour les MOA.
- * Un seul appel `SB.loadForClient(prenom, nom)` (pas de split critical/
+ * Un seul appel `SB.loadForClient(userId)` (pas de split critical/
  * secondary vu que la vue client est déjà plus légère).
  *
- * @param {string} prenom - Prénom du client (utilisé dans le matching)
- * @param {string} [nom] - Nom (non utilisé côté code mais passé pour compat)
+ * @param {string} userId - Id du compte connecté (chantiers.client_user_id)
  * @returns {{ data: object, loading: boolean, reload: () => Promise<void> }}
  */
-export function useClientDashboardData(prenom, nom) {
+export function useClientDashboardData(userId) {
   const queryClient = useQueryClient()
 
   const q = useQuery({
-    queryKey: clientDataKey(prenom, nom),
-    queryFn: () => SB.loadForClient(prenom, nom),
-    // Si pas de prénom, pas de fetch (cas d'un profil incomplet).
-    enabled: !!prenom,
+    queryKey: clientDataKey(userId),
+    queryFn: () => SB.loadForClient(userId),
+    // Pas de compte connecté : pas de fetch.
+    enabled: !!userId,
   })
 
   const reload = useCallback(async () => {
-    await queryClient.invalidateQueries({ queryKey: clientDataKey(prenom, nom) })
-  }, [queryClient, prenom, nom])
+    await queryClient.invalidateQueries({ queryKey: clientDataKey(userId) })
+  }, [queryClient, userId])
 
   // Toujours renvoyer un objet non-null : simplifie le consumer (pas besoin
   // de gérer le null explicitement dans ClientDashboard, le skeleton est

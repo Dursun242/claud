@@ -93,4 +93,18 @@ describe('ChantierCard', () => {
     // Pas de crash : le composant s'affiche toujours.
     expect(screen.getByText('Villa Dupont')).toBeInTheDocument()
   })
+  it('signale un client non rattaché à un compte (équipe seulement)', () => {
+    renderCard()
+    expect(screen.getByText('Non rattaché à un compte client')).toBeInTheDocument()
+  })
+
+  it('pas d’indicateur quand le chantier est rattaché à un compte', () => {
+    renderCard({ ch: { ...baseChantier, client_user_id: 'u1' } })
+    expect(screen.queryByText('Non rattaché à un compte client')).toBeNull()
+  })
+
+  it('n’affiche pas l’indicateur de rattachement au client (lecture seule)', () => {
+    renderCard({ readOnly: true })
+    expect(screen.queryByText('Non rattaché à un compte client')).toBeNull()
+  })
 })

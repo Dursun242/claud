@@ -146,23 +146,30 @@ async function resolveActorDisplay(admin, actorEmail) {
  * journal : chacun voit tout ce qui le concerne, y compris ses actions.
  *
  *   - Staff (admin/salarié) : tous les actifs, y compris l'acteur.
- *   - Client (MOA) du chantier : clients actifs dont le prénom correspond
- *     au champ `client` du chantier (règle historique du projet).
+ *   - Client (MOA) du chantier : le compte client actif rattaché au
+ *     chantier (chantiers.client_user_id), comme l'accès aux données.
  */
 async function resolveRecipients(admin, { chantierId }) {
   const [{ data: users }, chResult] = await Promise.all([
     admin.from('authorized_users').select('email, prenom, role, actif').eq('actif', true),
     chantierId
-      ? admin.from('chantiers').select('client').eq('id', chantierId).maybeSingle()
+      ? admin.from('chantiers').select('client_user_id').eq('id', chantierId).maybeSingle()
       : Promise.resolve({ data: null }),
   ])
-  const clientFirstName = norm(chResult?.data?.client)
+  let clientEmail = null
+  const clientUserId = chResult?.data?.client_user_id
+  if (clientUserId) {
+    try {
+      const { data } = await admin.auth.admin.getUserById(clientUserId)
+      clientEmail = norm(data?.user?.email) || null
+    } catch (_) {}
+  }
   const recipients = new Set()
   for (const u of users || []) {
     const e = norm(u.email)
     if (!e) continue
     if (STAFF_ROLES.includes(u.role)) recipients.add(e)
-    else if (u.role === 'client' && clientFirstName && norm(u.prenom) === clientFirstName) recipients.add(e)
+    else if (u.role === 'client' && clientEmail && e === clientEmail) recipients.add(e)
   }
   return Array.from(recipients)
 }

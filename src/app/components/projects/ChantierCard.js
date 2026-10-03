@@ -61,6 +61,9 @@ function ChantierCardImpl({ ch, counts, m, readOnly, onOpen, onEdit, onDelete })
             <Badge text={ch.statut} color={statusColors[ch.statut] || '#64748B'}/>
           </div>
           <div style={{ fontSize: 12, color: '#64748B' }}>{ch.client} — {ch.adresse}</div>
+          {!readOnly && ch.client && !ch.client_user_id && (
+            <div style={{ fontSize: 11, color: '#B45309', marginTop: 2 }}>Non rattaché à un compte client</div>
+          )}
           <div style={{ display: 'flex', gap: 12, marginTop: 4, fontSize: 11, color: '#64748B' }}>
             <span>{counts.os} OS</span>
             <span>{counts.cr} CR</span>
