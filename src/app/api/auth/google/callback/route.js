@@ -5,6 +5,6 @@
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://claude-dusky.vercel.app'
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://claud-dusky.vercel.app'
   return Response.redirect(new URL('/', appUrl).toString())
 }

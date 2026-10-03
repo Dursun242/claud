@@ -56,7 +56,9 @@ export async function POST(request) {
       case 'request': {
         const contact = await loadContact(admin, body.contactId)
         if (!contact) return Response.json({ error: 'Entreprise introuvable' }, { status: 404 })
-        const appUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin
+        // Adresse sur laquelle l'équipe utilise l'application (pas une variable
+        // d'environnement qui peut être fausse) : le lien du mail mène au même site
+        const appUrl = new URL(request.url).origin
         return reply(await sendRequest(admin, { contact, email: body.email, appUrl, log }))
       }
       default:
