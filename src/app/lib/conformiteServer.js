@@ -5,7 +5,8 @@
 
 import crypto from 'node:crypto'
 import { generate, stripJsonFence } from './ai'
-import { DOC_KINDS, DOC_META, computeValidUntil, identityAnomalies, contactCompliance, requestMailText, isIsoDate } from './conformite'
+import { DOC_KINDS, DOC_META, computeValidUntil, identityAnomalies, contactCompliance, requestMailText, isIsoDate, normIban } from './conformite'
+import { validateIban } from './validators'
 import { DOC_READ_SCHEMA, DOC_READ_SYSTEM, docReadPrompt, cleanDocRead } from './conformiteAi'
 import { safeFileName, storageName } from './devisDocuments'
 import { smtpConfig, sendMail } from './mailer'
@@ -48,6 +49,7 @@ export const pathBelongs = (path, contactId, kind) => typeof path === 'string'
 const fail = (error, status = 400) => ({ error, status })
 const missingTable = (err) => err && (err.code === '42P01' || /does not exist|schema cache/i.test(err.message || ''))
 export const MIGRATION_MSG = 'Documents des entreprises non activés : appliquer la migration 036 dans Supabase.'
+export const RIB_MIGRATION_MSG = 'RIB non activé : appliquer la migration 037 dans Supabase.'
 
 /** URL de dépôt signée (le navigateur envoie le fichier directement au stockage). */
 export async function prepareUpload(admin, { contactId, kind, name, type, size }, log) {
@@ -123,12 +125,22 @@ export async function registerDocument(admin, { contact, kind, path, name, by = 
       : [`Lecture automatique impossible (${read.failed}) : saisissez les dates à la main.`],
   }
   row.valide_au = computeValidUntil(kind, { date_document: row.date_document, valide_au: fields.valide_au })
+  // Colonnes du RIB (migration 037) : seulement pour un RIB
+  if (kind === 'rib') { row.iban = fields.iban ?? null; row.bic = fields.bic ?? null }
 
   const { data, error } = await admin.from('contact_documents').insert(row).select().single()
   if (error) {
     if (missingTable(error)) return fail(MIGRATION_MSG, 503)
+    if (kind === 'rib' && (error.code === '23514' || error.code === '42703' || /iban|kind_check/i.test(error.message || ''))) {
+      return fail(RIB_MIGRATION_MSG, 503)
+    }
     log?.error('enregistrement document', error.message)
     return fail('Enregistrement impossible : ' + error.message, 500)
+  }
+  // RIB : l'IBAN rejoint la fiche si elle n'en a pas (jamais remplacé sans vérification)
+  if (kind === 'rib' && data.iban && !contact.iban && validateIban(data.iban).valid) {
+    const { error: upErr } = await admin.from('contacts').update({ iban: data.iban }).eq('id', contact.id)
+    if (upErr) log?.warn('mise à jour IBAN de la fiche', upErr.message)
   }
   if (kind === 'decennale' && data.valide_au) {
     const patch = { assurance_validite: data.valide_au }
@@ -159,6 +171,10 @@ export async function updateDocument(admin, { id, date_document, valide_au, veri
   if (upErr) { log?.error('correction document', upErr.message); return fail('Enregistrement impossible.', 500) }
   if (data.kind === 'decennale' && data.valide_au) {
     await admin.from('contacts').update({ assurance_validite: data.valide_au }).eq('id', data.contact_id)
+  }
+  // RIB vérifié par l'équipe (appel à l'entreprise) : son IBAN devient celui de la fiche
+  if (data.kind === 'rib' && verifie && data.iban && validateIban(data.iban).valid) {
+    await admin.from('contacts').update({ iban: normIban(data.iban) }).eq('id', data.contact_id)
   }
   return { data }
 }

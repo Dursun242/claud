@@ -6,6 +6,7 @@ Ajoute le suivi des documents obligatoires des entreprises (obligation de vigila
 - **Attestation d'assurance décennale** : période de validité indiquée sur l'attestation ;
 - **Attestation de régularité fiscale** : à renouveler tous les 6 mois ;
 - **Attestation de vigilance URSSAF** : à renouveler tous les 6 mois.
+- **RIB** (migration 037) : sans date de validité ; l'IBAN est comparé à celui de la fiche (alerte en cas de changement).
 
 ## Tables
 

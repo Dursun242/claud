@@ -42,6 +42,7 @@ Exécuter dans cet ordre exact sur une base vierge (Supabase Dashboard → SQL E
 | 034 | `034_durcissement_audit.sql` | **[Sécu]** Retire l'exécution RPC de `seed_demo_data()` et `resolve_client_user_id(TEXT)` (service role conservé), plus de notification sur la modification d'un CR en « Brouillon », suppression / écrasement des fichiers du bucket `attachments` réservés à l'équipe. À appliquer après 033. Voir `034_README.md`. |
 | 035 | `035_acces_client_par_compte.sql` | **[P0 sécu]** Fin de l'accès client par prénom : un client ne voit que les chantiers rattachés à son compte (`client_user_id`), notifications client par compte, rattachement automatique par prénom en mot entier (`link_my_chantiers()` à la connexion), liste des comptes clients pour l'équipe (`client_accounts()`). **Lancer le diagnostic de `035_README.md` avant d'appliquer** : les chantiers sans compte rattaché ne sont plus visibles par le client. |
 | 036 | `036_conformite_entreprises.sql` | **Documents des entreprises** : Kbis, décennale, attestation fiscale, attestation URSSAF par contact (`contact_documents`), liens de dépôt envoyés aux entreprises (`contact_doc_requests`). Lecture staff, écriture serveur. Voir `036_README.md`. |
+| 037 | `037_conformite_rib.sql` | **RIB des entreprises** : type de document `rib` + colonnes `iban` / `bic` sur `contact_documents`. IBAN comparé à celui de la fiche (alerte faux RIB). À appliquer après 036. |
 
 ## Fichiers NON séquentiels (à ne PAS appliquer en séquence)
 

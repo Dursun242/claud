@@ -28,7 +28,7 @@ src/app/
 ├─ (src/middleware.js)       → headers sécurité (pas de CSP, voir "dette")
 ├─ auth.js                    → login + AuthProvider Supabase
 ├─ signer/[token]/page.js     → page publique de signature d'un devis (sans compte, jeton)
-├─ deposer/[token]/page.js    → page publique de dépôt des documents d'une entreprise (Kbis, décennale, fiscale, URSSAF ; sans compte, jeton)
+├─ deposer/[token]/page.js    → page publique de dépôt des documents d'une entreprise (Kbis, décennale, fiscale, URSSAF, RIB ; sans compte, jeton)
 │
 ├─ dashboards/
 │   ├─ shared.js              ⚠ 880+ lignes. SB (CRUD), constants, icons, styles, widgets. À splitter un jour.
@@ -124,7 +124,7 @@ Voir `.env.example` à la racine. Minimum requis pour dev :
 
 ## Migrations DB
 
-**Ordre critique** : voir `migrations/APPLY_ORDER.md`. Les migrations numérotées 001→036 s'appliquent dans l'ordre via le SQL Editor Supabase. Chaque migration ayant un impact non-trivial a un `<num>_README.md` dédié.
+**Ordre critique** : voir `migrations/APPLY_ORDER.md`. Les migrations numérotées 001→037 s'appliquent dans l'ordre via le SQL Editor Supabase. Chaque migration ayant un impact non-trivial a un `<num>_README.md` dédié.
 
 ## Dette technique assumée
 

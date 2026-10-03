@@ -11,8 +11,10 @@ describe('lecture IA des documents', () => {
     expect(cleanDocRead(base, 'decennale')).toEqual({
       raison_sociale: 'COSTA PLOMBERIE', siret_lu: '55210055400013', date_document: '2026-01-04',
       valide_du: '2026-01-01', valide_au: '2026-12-31', assureur: 'SMABTP', numero_police: '123',
-      activites: 'Plomberie, chauffage', code_securite: null, anomalies: [],
+      activites: 'Plomberie, chauffage', code_securite: null, iban: null, bic: null, anomalies: [],
     })
+    expect(cleanDocRead({ ...base, type_document: 'rib', iban: 'fr76 3000 6000 0112 3456 7890 189', bic: 'agri frpp xxx' }, 'rib'))
+      .toMatchObject({ iban: 'FR7630006000011234567890189', bic: 'AGRIFRPPXXX', assureur: null, anomalies: [] })
     const u = cleanDocRead({ ...base, type_document: 'urssaf', date_document: '04/01/2026', siret: '12' }, 'urssaf')
     expect(u).toMatchObject({ date_document: null, siret_lu: null, assureur: null, code_securite: 'X' })
   })

@@ -44,8 +44,20 @@ describe('règles de validité', () => {
     expect(c.kinds.urssaf.status).toBe('bientot')
     expect(c.kinds.fiscale.status).toBe('manquant')
     expect(c.status).toBe('manquant')
-    expect(problemSummary(c)).toBe('À fournir : Fiscale · URSSAF expire dans 5 jours')
+    expect(problemSummary(c)).toBe('À fournir : Fiscale et RIB · URSSAF expire dans 5 jours')
     expect(contactCompliance([...docs, doc('fiscale', { valide_au: '2026-09-30' })], TODAY).status).toBe('expire')
+  })
+
+  it('RIB : sans date de validité ; IBAN invalide ou différent de la fiche signalé (faux RIB)', () => {
+    expect(docStatus(doc('rib', { iban: 'FR7630006000011234567890189' }), TODAY)).toEqual({ status: 'ok', jours: null, valideAu: null })
+    expect(docStatus(doc('rib', { anomalies: ['x'] }), TODAY).status).toBe('a_verifier')
+    const ok = 'FR7630006000011234567890189'
+    expect(identityAnomalies({ iban: ok }, { iban: 'fr76 3000 6000 0112 3456 7890 189' })).toEqual([])
+    expect(identityAnomalies({ iban: ok }, {})).toEqual([])
+    expect(identityAnomalies({ iban: 'FR7630006000011234567890188' }, {})[0]).toMatch(/IBAN invalide/)
+    const autre = 'FR1420041010050500013M02606'
+    expect(identityAnomalies({ iban: autre }, { iban: ok })[0])
+      .toBe('IBAN différent de celui de la fiche (…2606 au lieu de …0189) : confirmez par téléphone avec l’entreprise avant tout paiement (risque de faux RIB).')
   })
 
   it('signale un SIREN différent de la fiche', () => {
@@ -79,13 +91,14 @@ describe('entreprises actives et priorités', () => {
   it('éléments de priorités : seulement les entreprises actives soumises, expiré avant manquant', () => {
     const docs = [
       ...['kbis', 'decennale', 'fiscale'].map(k => doc(k, { valide_au: '2027-06-01' })),
+      doc('rib', { iban: 'FR7630006000011234567890189' }),
       doc('urssaf', { valide_au: '2026-09-28' }),
     ]
     const items = conformiteItems({ contacts: data.contacts, docs, activeIds: activeCompanyIds(data), today: TODAY })
     expect(items.map(i => i.id)).toEqual(['conformite:c1', 'conformite:c3'])
     const [c1, c3] = items
     expect(c1).toMatchObject({ kind: 'conformite', tab: 'contacts', focus: 'docs:c1', reason: 'URSSAF expirée depuis 5 jours', score: 63 })
-    expect(c3).toMatchObject({ score: 42, reason: 'À fournir : Kbis, Décennale, URSSAF et Fiscale' })
+    expect(c3).toMatchObject({ score: 42, reason: 'À fournir : Kbis, Décennale, URSSAF, Fiscale et RIB' })
   })
 })
 
@@ -107,7 +120,7 @@ describe('relances automatiques', () => {
     expect(needsAutoRelance({ compliance: comp([]), lastRequest: { dernier_envoi: '2026-09-01T08:00:00Z', envois: 1 }, now })).toBe(true)
   })
   it('tout est à jour : rien', () => {
-    const all = ['kbis', 'decennale', 'urssaf', 'fiscale'].map(k => doc(k, { valide_au: '2027-06-01' }))
+    const all = ['kbis', 'decennale', 'urssaf', 'fiscale', 'rib'].map(k => doc(k, { valide_au: '2027-06-01' }))
     expect(needsAutoRelance({ compliance: comp(all), lastRequest: null, now })).toBe(false)
   })
 })

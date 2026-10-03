@@ -49,8 +49,8 @@ describe('/api/conformite/public (sans compte, par jeton)', () => {
     const res = await get(TOKEN)
     const { data } = await res.json()
     expect(data.entreprise).toBe('Costa Plomberie')
-    expect(data.documents.map(d => [d.kind, d.status])).toEqual([['kbis', 'ok'], ['decennale', 'manquant'], ['urssaf', 'manquant'], ['fiscale', 'manquant']])
-    expect(JSON.stringify(data)).not.toMatch(/conformite\/|file_path|siret/)
+    expect(data.documents.map(d => [d.kind, d.status])).toEqual([['kbis', 'ok'], ['decennale', 'manquant'], ['urssaf', 'manquant'], ['fiscale', 'manquant'], ['rib', 'manquant']])
+    expect(JSON.stringify(data)).not.toMatch(/conformite\/|file_path|siret|"iban"|"bic"/)
     expect(db.tables.contact_doc_requests[0].derniere_visite).toBeTruthy()
   })
 
