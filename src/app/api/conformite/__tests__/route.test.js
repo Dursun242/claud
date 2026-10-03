@@ -115,6 +115,15 @@ describe('/api/conformite', () => {
     expect(db.tables.contact_doc_requests[0]).toMatchObject({ envois: 2, email: 'admin@costa.fr' })
   })
 
+  it('request : le lien suit l’adresse de l’application, pas une variable d’environnement erronée', async () => {
+    process.env.NEXT_PUBLIC_APP_URL = 'https://claude-dusky.vercel.app'
+    process.env.APP_URL = 'https://claude-dusky.vercel.app'
+    const { data } = await (await POST(req({ action: 'request', contactId: 'c1' }))).json()
+    expect(data.link).toMatch(/^https:\/\/app\.test\/deposer\//)
+    delete process.env.NEXT_PUBLIC_APP_URL
+    delete process.env.APP_URL
+  })
+
   it('request sans SMTP : lien créé à copier', async () => {
     smtpConfig.mockReturnValue(null)
     const { data } = await (await POST(req({ action: 'request', contactId: 'c1' }))).json()

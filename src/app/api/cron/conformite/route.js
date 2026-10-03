@@ -70,7 +70,8 @@ export async function GET(request) {
 
     if (dry) return Response.json({ ok: true, dry: true, entreprises: targets.map(c => c.nom) })
 
-    const appUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || url.origin
+    // Le site appelé par GitHub Actions (secret APP_URL) : le lien mène au même site
+    const appUrl = url.origin
     let sent = 0
     const errors = []
     for (const contact of targets) {
