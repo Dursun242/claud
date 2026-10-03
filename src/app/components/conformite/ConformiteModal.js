@@ -16,8 +16,9 @@ const btn = (color, bg, border) => ({
 })
 const input = { padding: '6px 8px', border: '1px solid #CBD5E1', borderRadius: 6, fontSize: 12, fontFamily: 'inherit' }
 
-function validity(k) {
+function validity(k, kind) {
   if (!k.doc) return 'Aucun document'
+  if (DOC_META[kind]?.sansExpiration) return 'Sans date de validité'
   if (!k.valideAu) return 'Date de validité inconnue : à saisir'
   if (k.jours < 0) return `Expiré depuis le ${fmtD(k.valideAu)}`
   if (k.jours === 0) return "Expire aujourd'hui"
@@ -108,6 +109,21 @@ export default function ConformiteModal({ open, onClose, contact, compliance, la
     } catch (err) { addToast(err.message, 'error') }
   }
 
+  // RIB : vérifié auprès de l'entreprise → points effacés, IBAN reporté sur la fiche
+  const confirmRib = async (doc) => {
+    const ok = await confirm({
+      title: 'RIB vérifié ?',
+      message: 'Confirmez que vous avez vérifié ce RIB auprès de l’entreprise (par téléphone, au numéro habituel). Son IBAN deviendra celui de la fiche.',
+      confirmLabel: 'Oui, vérifié',
+    })
+    if (!ok) return
+    try {
+      await conformitePost({ action: 'update', id: doc.id, verifie: true })
+      addToast('RIB vérifié', 'success')
+      onChanged?.()
+    } catch (err) { addToast(err.message, 'error') }
+  }
+
   const remove = async (doc) => {
     const ok = await confirm({
       title: `Supprimer ce document ?`, message: `${DOC_META[doc.kind].long} — ${doc.file_name || ''}`,
@@ -139,7 +155,7 @@ export default function ConformiteModal({ open, onClose, contact, compliance, la
     <Modal open={open} onClose={onClose} title={`Documents — ${contact.societe || contact.nom}`} wide>
       <input ref={fileRef} type="file" accept="application/pdf,image/*" onChange={onFile} style={{ display: 'none' }} />
       <div style={{ ...small, marginBottom: 12, lineHeight: 1.5 }}>
-        Obligation de vigilance : Kbis de moins de 3 mois, décennale en cours de validité, attestations fiscale et URSSAF de moins de 6 mois.
+        Obligation de vigilance : Kbis de moins de 3 mois, décennale en cours de validité, attestations fiscale et URSSAF de moins de 6 mois. RIB : l’IBAN est comparé à celui de la fiche.
         Les dates sont lues automatiquement sur le document déposé ; vérifiez-les.
       </div>
 
@@ -159,7 +175,7 @@ export default function ConformiteModal({ open, onClose, contact, compliance, la
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
                     <div style={{ minWidth: 0 }}>
                       <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A' }}>{DOC_META[kind].long}</div>
-                      <div style={{ fontSize: 11, color: meta.color, fontWeight: 600 }}>{meta.label} · {validity(k)}</div>
+                      <div style={{ fontSize: 11, color: meta.color, fontWeight: 600 }}>{meta.label} · {validity(k, kind)}</div>
                     </div>
                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                       <button type="button" onClick={() => pick(kind)} disabled={!!busy}
@@ -167,7 +183,10 @@ export default function ConformiteModal({ open, onClose, contact, compliance, la
                         {busy === kind ? 'Lecture du document…' : doc ? 'Remplacer' : 'Déposer'}
                       </button>
                       {doc && <button type="button" onClick={() => open_(doc)} style={btn('#334155', '#fff', '#CBD5E1')}>Voir</button>}
-                      {doc && <button type="button" onClick={() => setEditing(editing === kind ? null : kind)} style={btn('#334155', '#fff', '#CBD5E1')}>Dates</button>}
+                      {doc && !DOC_META[kind].sansExpiration && <button type="button" onClick={() => setEditing(editing === kind ? null : kind)} style={btn('#334155', '#fff', '#CBD5E1')}>Dates</button>}
+                      {doc && DOC_META[kind].sansExpiration && doc.anomalies?.length > 0 && (
+                        <button type="button" onClick={() => confirmRib(doc)} style={btn('#047857', '#fff', '#A7F3D0')}>J’ai vérifié</button>
+                      )}
                       {doc && <button type="button" onClick={() => remove(doc)} aria-label={`Supprimer ${DOC_META[kind].long}`} style={btn('#B91C1C', '#fff', '#FECACA')}>✕</button>}
                     </div>
                   </div>
@@ -178,6 +197,13 @@ export default function ConformiteModal({ open, onClose, contact, compliance, la
                       {doc.lecture === 'manuelle' ? ' · dates saisies à la main' : ''}
                       {kind === 'decennale' && (doc.assureur || doc.numero_police) && <div>Assureur : {[doc.assureur, doc.numero_police].filter(Boolean).join(' – ')}</div>}
                       {kind === 'decennale' && doc.activites && <div>Activités couvertes : {doc.activites}</div>}
+                      {kind === 'rib' && (doc.iban || doc.raison_sociale) && (
+                        <div>
+                          {doc.raison_sociale ? `Titulaire : ${doc.raison_sociale}` : ''}
+                          {doc.iban ? `${doc.raison_sociale ? ' · ' : ''}IBAN : ${doc.iban.replace(/(.{4})/g, '$1 ').trim()}` : ''}
+                          {doc.bic ? ` · BIC : ${doc.bic}` : ''}
+                        </div>
+                      )}
                       {kind === 'urssaf' && doc.code_securite && (
                         <div>Code de sécurité : <b>{doc.code_securite}</b> (vérifiable sur urssaf.fr, rubrique « Vérifier une attestation »)</div>
                       )}

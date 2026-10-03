@@ -71,6 +71,37 @@ describe('/api/conformite', () => {
     expect(db.tables.contacts[0]).toMatchObject({ assurance_validite: '2026-12-31', assurance_decennale: 'SMABTP – P-12' })
   })
 
+  it('register RIB : IBAN reporté sur une fiche vide ; IBAN différent signalé, fiche inchangée jusqu’à vérification', async () => {
+    const path = 'conformite/c1/rib/1__rib.pdf'
+    db.putFile(path)
+    generate.mockResolvedValue(aiJson({ type_document: 'rib', raison_sociale: 'COSTA PLOMBERIE', iban: 'FR76 3000 6000 0112 3456 7890 189', bic: 'AGRIFRPP' }))
+    const first = (await (await POST(req({ action: 'register', contactId: 'c1', kind: 'rib', path, name: 'rib.pdf' }))).json()).data
+    expect(first).toMatchObject({ kind: 'rib', iban: 'FR7630006000011234567890189', bic: 'AGRIFRPP', anomalies: [], valide_au: null })
+    expect(db.tables.contacts[0].iban).toBe('FR7630006000011234567890189')
+
+    // Nouveau RIB avec un autre IBAN : alerte, la fiche garde l'ancien
+    generate.mockResolvedValue(aiJson({ type_document: 'rib', iban: 'FR1420041010050500013M02606' }))
+    const second = (await (await POST(req({ action: 'register', contactId: 'c1', kind: 'rib', path, name: 'rib.pdf' }))).json()).data
+    expect(second.anomalies[0]).toMatch(/IBAN différent de celui de la fiche.*faux RIB/)
+    expect(db.tables.contacts[0].iban).toBe('FR7630006000011234567890189')
+
+    // Vérifié par l'équipe : la fiche prend le nouvel IBAN
+    const checked = (await (await POST(req({ action: 'update', id: second.id, verifie: true }))).json()).data
+    expect(checked.anomalies).toEqual([])
+    expect(db.tables.contacts[0].iban).toBe('FR1420041010050500013M02606')
+  })
+
+  it('register RIB sans la migration 037 : message clair', async () => {
+    const path = 'conformite/c1/rib/1__rib.pdf'
+    db = memoryDb({ contacts: [{ ...CONTACT }] }, { errors: { contact_documents: { code: '23514', message: 'violates check constraint "contact_documents_kind_check"' } } })
+    adminClient.mockReturnValue(db.client)
+    db.putFile(path)
+    generate.mockResolvedValue(aiJson({ type_document: 'rib' }))
+    const res = await POST(req({ action: 'register', contactId: 'c1', kind: 'rib', path, name: 'rib.pdf' }))
+    expect(res.status).toBe(503)
+    expect((await res.json()).error).toMatch(/migration 037/)
+  })
+
   it('register : lecture impossible → enregistré, dates à saisir', async () => {
     const path = 'conformite/c1/urssaf/1__photo.jpg'
     db.putFile(path, 'jpeg', 'image/jpeg')

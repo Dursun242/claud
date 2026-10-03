@@ -5,13 +5,13 @@
 
 import { DOC_META, isIsoDate } from './conformite'
 
-const KINDS_AI = ['kbis', 'decennale', 'fiscale', 'urssaf', 'autre']
+const KINDS_AI = ['kbis', 'decennale', 'fiscale', 'urssaf', 'rib', 'autre']
 
 export const DOC_READ_SCHEMA = {
   type: 'object',
   additionalProperties: false,
   required: ['type_document', 'raison_sociale', 'siret', 'date_document', 'valide_du', 'valide_au',
-    'assureur', 'numero_police', 'activites', 'activite_couverte', 'code_securite', 'anomalies'],
+    'assureur', 'numero_police', 'activites', 'activite_couverte', 'code_securite', 'iban', 'bic', 'anomalies'],
   properties: {
     type_document: { type: 'string', enum: KINDS_AI },
     raison_sociale: { type: 'string' },
@@ -24,6 +24,8 @@ export const DOC_READ_SCHEMA = {
     activites: { type: 'string' },
     activite_couverte: { type: 'string', enum: ['oui', 'non', 'inconnu'] },
     code_securite: { type: 'string' },
+    iban: { type: 'string' },
+    bic: { type: 'string' },
     anomalies: { type: 'array', items: { type: 'string' } },
   },
 }
@@ -34,6 +36,7 @@ Types possibles :
 - decennale : attestation d'assurance responsabilité civile décennale. valide_du / valide_au = période de validité de l'attestation. assureur, numero_police, activites = activités ou garanties couvertes (liste courte).
 - fiscale : attestation de régularité fiscale (DGFiP). date_document = date de délivrance.
 - urssaf : attestation de vigilance URSSAF (ou MSA). date_document = date de délivrance ; code_securite = code de sécurité / de vérification s'il est imprimé.
+- rib : relevé d'identité bancaire. raison_sociale = titulaire du compte ; iban (sans espaces) ; bic.
 - autre : tout autre document.
 Règles :
 - Dates au format AAAA-MM-JJ, chaîne vide si absente ou illisible. N'invente rien.
@@ -86,6 +89,8 @@ export function cleanDocRead(raw, expectedKind) {
     numero_police: expectedKind === 'decennale' ? (str(r.numero_police, 80) || null) : null,
     activites: expectedKind === 'decennale' ? (str(r.activites, 600) || null) : null,
     code_securite: expectedKind === 'urssaf' ? (str(r.code_securite, 40) || null) : null,
+    iban: expectedKind === 'rib' ? (String(r.iban || '').replace(/\s/g, '').toUpperCase().slice(0, 34) || null) : null,
+    bic: expectedKind === 'rib' ? (String(r.bic || '').replace(/\s/g, '').toUpperCase().slice(0, 11) || null) : null,
     anomalies,
   }
 }

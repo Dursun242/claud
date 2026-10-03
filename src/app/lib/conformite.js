@@ -9,9 +9,13 @@
 //   Attestation URSSAF (vigilance) : 6 mois à partir de sa date
 //   Attestation fiscale : 6 mois à partir de sa date
 //   Décennale : fin de la période de validité écrite sur l'attestation
+//   RIB : sans date de validité ; IBAN contrôlé (clé) et comparé à celui de
+//         la fiche (un RIB qui change est le signal classique d'une fraude)
 // Une date de fin écrite sur le document, plus proche, est prise en compte.
 
-export const DOC_KINDS = ['kbis', 'decennale', 'urssaf', 'fiscale']
+import { validateIban } from './validators'
+
+export const DOC_KINDS = ['kbis', 'decennale', 'urssaf', 'fiscale', 'rib']
 
 export const DOC_META = {
   kbis: {
@@ -29,6 +33,10 @@ export const DOC_META = {
   fiscale: {
     label: 'Fiscale', long: 'Attestation de régularité fiscale', mois: 6, alerteJours: 15,
     aide: 'Attestation de régularité fiscale de moins de 6 mois (espace professionnel impots.gouv.fr).',
+  },
+  rib: {
+    label: 'RIB', long: 'RIB (relevé d’identité bancaire)', mois: null, alerteJours: 0, sansExpiration: true,
+    aide: 'RIB au nom de l’entreprise (IBAN et BIC).',
   },
 }
 
@@ -73,9 +81,18 @@ export function computeValidUntil(kind, { date_document, valide_au } = {}) {
 
 const sirenOf = (v) => String(v || '').replace(/\D/g, '').slice(0, 9)
 
+export const normIban = (v) => String(v || '').replace(/\s/g, '').toUpperCase()
+const ibanEnd = (v) => `…${normIban(v).slice(-4)}`
+
 /** Incohérences entre le document et la fiche de l'entreprise. */
 export function identityAnomalies(doc = {}, contact = {}) {
   const out = []
+  if (doc.iban) {
+    if (!validateIban(doc.iban).valid) out.push('IBAN invalide (clé de contrôle fausse) : vérifiez le RIB.')
+    else if (contact.iban && normIban(contact.iban) !== normIban(doc.iban)) {
+      out.push(`IBAN différent de celui de la fiche (${ibanEnd(doc.iban)} au lieu de ${ibanEnd(contact.iban)}) : confirmez par téléphone avec l’entreprise avant tout paiement (risque de faux RIB).`)
+    }
+  }
   const lu = sirenOf(doc.siret_lu)
   const fiche = sirenOf(contact.siret)
   if (lu.length === 9 && fiche.length === 9 && lu !== fiche) {
@@ -87,6 +104,9 @@ export function identityAnomalies(doc = {}, contact = {}) {
 /** État d'un document à une date donnée. */
 export function docStatus(doc, today) {
   if (!doc) return { status: 'manquant', jours: null, valideAu: null }
+  if (DOC_META[doc.kind]?.sansExpiration) {
+    return { status: (doc.anomalies || []).length ? 'a_verifier' : 'ok', jours: null, valideAu: null }
+  }
   const valideAu = doc.valide_au || computeValidUntil(doc.kind, doc)
   if (!isIsoDate(valideAu)) return { status: 'a_verifier', jours: null, valideAu: null }
   const jours = daysBetween(today, valideAu)
@@ -170,7 +190,7 @@ export function problemSummary(compliance) {
   const by = (st) => compliance.problems.filter(p => p.status === st)
   const label = (p) => DOC_META[p.kind].label
   const parts = []
-  for (const p of by('expire')) parts.push(`${label(p)} expiré${p.kind === 'kbis' ? '' : 'e'} depuis ${jours(-p.jours)}`)
+  for (const p of by('expire')) parts.push(`${label(p)} expiré${p.kind === 'kbis' || p.kind === 'rib' ? '' : 'e'} depuis ${jours(-p.jours)}`)
   const missing = by('manquant').map(label)
   if (missing.length) parts.push(`À fournir : ${listFr(missing)}`)
   const check = by('a_verifier').map(label)
