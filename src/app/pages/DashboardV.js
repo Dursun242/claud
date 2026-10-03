@@ -1,12 +1,13 @@
 'use client'
 import { useMemo } from 'react'
 import { pct, fmtMoney, phase, PBar, COMPANY } from '../dashboards/shared'
-import { classifyFollowUps } from '../lib/crm'
 import { buildAgenda, buildClientOverview, localISO } from '../lib/today'
 import { newIntent } from '../lib/navIntent'
 import TodayPanel from '../components/dashboard/TodayPanel'
+import PrioritiesPanel from '../components/dashboard/PrioritiesPanel'
+import { buildPriorities } from '../lib/priorities'
 import CrmPanel from '../components/dashboard/CrmPanel'
-import { buildCrmInsights } from '../lib/crmInsights'
+import { buildCrmDaily } from '../lib/dailyPriorities'
 import ClientOverview from '../components/dashboard/ClientOverview'
 
 // Salutation selon l'heure de la journée
@@ -20,7 +21,7 @@ const getGreeting = () => {
 
 // clientMode : vue maître d'ouvrage (lecture seule) — pas d'actions de
 // création, pas de CRM ni de tâches internes, mais le suivi des travaux.
-export default function DashboardV({data,crm=null,setTab,m,user,clientMode=false}) {
+export default function DashboardV({data,crm=null,ready=true,setTab,m,user,clientMode=false}) {
   // Toutes les dérivées memoïsées : recalculées uniquement si data change,
   // pas à chaque re-render dû à un toast ou un resize.
   const {
@@ -69,34 +70,25 @@ export default function DashboardV({data,crm=null,setTab,m,user,clientMode=false
     };
   }, [data.tasks, data.chantiers, data.ordresService]);
 
-  // CRM : relances à traiter (en retard + aujourd'hui) et pipeline actif
-  const { crmInsights, hasCrm, relances, nbOverdue } = useMemo(() => {
-    const opps = crm?.opportunites || []
-    const oppById = new Map(opps.map(o => [o.id, o]))
-    const f = classifyFollowUps(crm?.interactions || [], new Date(), { opportunites: opps, devis: crm?.devis || [] })
-    const toItem = (late) => (it) => {
-      const o = oppById.get(it.opportunite_id)
-      return {
-        id: it.id, title: it.prochaine_action || 'Relance',
-        sub: [o?.titre, it.sujet].filter(Boolean).join(' · '),
-        date: it.prochaine_action_date, late,
-        tab: 'crm', focus: o?.id || 'relances',
-      }
-    }
-    const contactsById = new Map((data.contacts || []).map(c => [c.id, c]))
-    return {
-      crmInsights: buildCrmInsights(crm || {}, { contactsById }),
-      hasCrm: opps.length > 0 || (crm?.devis || []).length > 0,
-      relances: [...f.overdue.map(toItem(true)), ...f.today.map(toItem(false))],
-      nbOverdue: f.overdue.length,
-    }
-  }, [crm, data.contacts])
+  // CRM : relances à traiter (en retard + aujourd'hui) et pipeline actif.
+  // Même assemblage que le mail du matin (lib/dailyPriorities.js).
+  const { crmInsights, hasCrm, relances, nbOverdue } = useMemo(
+    () => buildCrmDaily(crm, { contacts: data.contacts }),
+    [crm, data.contacts]
+  )
 
   // « Ma journée » (admin) / suivi des travaux (client)
   const today = localISO()
   const agenda = useMemo(
     () => (clientMode ? null : buildAgenda(data, { today, relances })),
     [clientMode, data, today, relances]
+  )
+  // « Mes priorités du jour » : chantier + commercial en un seul classement.
+  // Heure à la minute : un rendez-vous passé depuis plus d'1 h en sort.
+  const nowHM = new Date().toTimeString().slice(0, 5)
+  const priorities = useMemo(
+    () => (agenda ? buildPriorities({ agenda, crmItems: crmInsights.items, today, now: nowHM }) : null),
+    [agenda, crmInsights, today, nowHM]
   )
   const overview = useMemo(
     () => (clientMode ? buildClientOverview(data, { today }) : null),
@@ -128,6 +120,9 @@ export default function DashboardV({data,crm=null,setTab,m,user,clientMode=false
 
     {/* SUIVI MAÎTRE D'OUVRAGE */}
     {clientMode && overview && <ClientOverview overview={overview} onOpen={setTab} m={m}/>}
+
+    {/* MES PRIORITÉS DU JOUR — par quoi commencer, et pourquoi */}
+    {!clientMode && priorities && <PrioritiesPanel priorities={priorities} ready={ready} onOpen={setTab} userId={user?.id} today={today} m={m}/>}
 
     {/* MA JOURNÉE — ce qui demande une action aujourd'hui */}
     {!clientMode && agenda && <TodayPanel agenda={agenda} onOpen={setTab} m={m}/>}

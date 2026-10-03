@@ -41,7 +41,7 @@ export function buildAgenda(data = {}, { today = localISO(), relances = [], hori
     .filter(r => day(r.date) === today)
     .sort((a, b) => String(a.heure || '').localeCompare(String(b.heure || '')))
     .map(r => ({
-      id: r.id, kind: 'rdv', title: r.titre || 'Rendez-vous',
+      id: r.id, kind: 'rdv', title: r.titre || 'Rendez-vous', date: today, heure: r.heure || '',
       sub: [r.heure, r.lieu, chantierNom(r.chantierId || r.chantier_id)].filter(Boolean).join(' · '),
       tab: 'planning', focus: null,
     }))
@@ -60,20 +60,20 @@ export function buildAgenda(data = {}, { today = localISO(), relances = [], hori
     .filter(t => day(t.echeance) < today)
     .sort((a, b) => day(a.echeance).localeCompare(day(b.echeance)))
     .map(t => ({
-      id: t.id, kind: 'task', title: t.titre, date: day(t.echeance), late: true,
+      id: t.id, kind: 'task', title: t.titre, date: day(t.echeance), late: true, priorite: t.priorite || '',
       sub: chantierNom(t.chantierId || t.chantier_id), tab: 'tasks', focus: t.id,
     }))
   const tasksToday = openTasks
     .filter(t => day(t.echeance) === today)
     .map(t => ({
-      id: t.id, kind: 'task', title: t.titre, date: today,
+      id: t.id, kind: 'task', title: t.titre, date: today, priorite: t.priorite || '',
       sub: chantierNom(t.chantierId || t.chantier_id), tab: 'tasks', focus: t.id,
     }))
 
   const osToSign = (data.ordresService || [])
     .filter(o => PENDING_SIGNATURE.includes(o.statut_signature))
     .map(o => ({
-      id: o.id, kind: 'os', title: `${o.numero || 'OS'} — ${o.artisan_nom || 'artisan'}`,
+      id: o.id, kind: 'os', title: `${o.numero || 'OS'} — ${o.artisan_nom || 'artisan'}`, statut: o.statut_signature,
       sub: [o.statut_signature, o.chantier || chantierNom(o.chantier_id)].filter(Boolean).join(' · '),
       tab: 'os', focus: o.id,
     }))
@@ -92,7 +92,7 @@ export function buildAgenda(data = {}, { today = localISO(), relances = [], hori
     phases.push({
       id: p.id, kind: 'planning', title: [p.lot, p.tache].filter(Boolean).join(' — ') || 'Phase',
       sub: [note, chantierNom(p.chantierId || p.chantier_id)].filter(Boolean).join(' · '),
-      late: note.startsWith('En retard'), tab: 'planning', focus: null,
+      late: note.startsWith('En retard'), note, fin, avancement, tab: 'planning', focus: null,
     })
   }
 

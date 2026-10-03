@@ -7,6 +7,7 @@ import { I, Icon } from './shared'
 import { DashboardSkeleton, PageSkeleton } from '../components/Skeleton'
 import TabErrorBoundary from '../components/TabErrorBoundary'
 import { FloatingMic, NotificationBell } from '../components'
+import { FLOATING_MIC_CLEARANCE } from '../components/FloatingMic'
 import MobileNav, { MOBILE_NAV_HEIGHT } from '../components/MobileNav'
 import LeaveGuardNotice from '../components/LeaveGuardNotice'
 import { useFloatingMic } from '../hooks/useFloatingMic'
@@ -303,7 +304,7 @@ export default function ClientDashboard({ user, profile = null }) {
       <main id="main-content" aria-label="Contenu principal" style={{
         flex:1, minWidth:0, overflowX:'hidden', overflowY:'auto',
         padding:isMobile?16:24, paddingTop:isMobile?60:24,
-        paddingBottom:isMobile?`calc(${MOBILE_NAV_HEIGHT + 24}px + env(safe-area-inset-bottom))`:24
+        paddingBottom:isMobile?`calc(${MOBILE_NAV_HEIGHT + 24 + (tab !== 'ai' ? FLOATING_MIC_CLEARANCE : 0)}px + env(safe-area-inset-bottom))`:24
       }}>
         {/* Topbar mobile */}
         {isMobile && (

@@ -85,6 +85,8 @@ export function useDashboardData() {
     // Exposé pour la branche "premier login = pas de chantiers → seed".
     // null tant que la query n'a pas résolu.
     hasChantiers: criticalQ.data ? criticalQ.data.chantiers?.length > 0 : null,
+    // Données secondaires arrivées (ou en échec) : le contenu est complet.
+    secondaryReady: secondaryQ.status !== 'pending',
   }
 }
 

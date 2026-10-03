@@ -1,4 +1,49 @@
 'use client'
+import { useEffect, useRef, useState } from 'react'
+
+// Marge basse + bouton (64) + marge haute : place à réserver en bas du
+// contenu défilant (mobile) pour que la dernière ligne passe au-dessus de la bulle
+export const FLOATING_MIC_CLEARANCE = 24 + 64 + 24
+// Délai sans défilement avant que la bulle reprenne sa taille
+export const COMPACT_IDLE_MS = 600
+
+const prefersReducedMotion = () => {
+  try { return !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches } catch { return false }
+}
+
+/**
+ * true pendant un défilement vers le bas (n'importe quel conteneur : on écoute
+ * en capture sur document, le contenu défile dans <main> et non la fenêtre),
+ * false au défilement vers le haut ou après COMPACT_IDLE_MS sans défilement.
+ */
+function useCompactOnScroll(enabled) {
+  const [compact, setCompact] = useState(false)
+  const lastRef = useRef({ el: null, top: 0 })
+  const timerRef = useRef(null)
+
+  useEffect(() => {
+    if (!enabled) { setCompact(false); return }
+    const onScroll = (e) => {
+      const el = e.target === document ? (document.scrollingElement || document.documentElement) : e.target
+      if (!el || typeof el.scrollTop !== 'number') return
+      const top = el.scrollTop
+      const last = lastRef.current
+      lastRef.current = { el, top }
+      if (last.el !== el) return // premier événement de ce conteneur : simple point de départ
+      if (top > last.top + 2) setCompact(true)
+      else if (top < last.top - 2) setCompact(false)
+      clearTimeout(timerRef.current)
+      timerRef.current = setTimeout(() => setCompact(false), COMPACT_IDLE_MS)
+    }
+    document.addEventListener('scroll', onScroll, { passive: true, capture: true })
+    return () => {
+      document.removeEventListener('scroll', onScroll, { capture: true })
+      clearTimeout(timerRef.current)
+    }
+  }, [enabled])
+
+  return compact
+}
 
 /**
  * Composant FloatingMic
@@ -10,6 +55,10 @@
  * - Title pour le tooltip desktop
  * - Transcript en aria-live="polite" pour annoncer aux lecteurs d'écran
  * - Focus visible respecté (pas d'outline:none sur ce bouton)
+ *
+ * Défilement : la bulle se réduit et devient semi-transparente pendant un
+ * défilement vers le bas (hors écoute), et reprend sa taille à l'arrêt ou au
+ * défilement vers le haut. Sans animation si prefers-reduced-motion.
  */
 export default function FloatingMic({
   listening,
@@ -21,19 +70,28 @@ export default function FloatingMic({
   // Décalage vertical (px) pour ne pas recouvrir la barre de navigation mobile
   bottomOffset = 0,
 }) {
+  const compact = useCompactOnScroll(!listening)
+  const reduceMotion = prefersReducedMotion()
   return (
     <>
       {/* FLOATING BUTTON — fixed bottom-right */}
       <div
+        data-testid="floating-mic"
+        data-compact={compact ? 'true' : 'false'}
         style={{
           position: 'fixed',
-          bottom: isMobile ? 24 + bottomOffset : 32,
+          // + safe-area iOS : la barre de navigation basse l'inclut aussi
+          bottom: isMobile ? `calc(${24 + bottomOffset}px + env(safe-area-inset-bottom))` : 32,
           right: isMobile ? 24 : 32,
           zIndex: 1100,
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'flex-end',
           gap: 10,
+          transform: compact ? 'scale(0.7)' : 'none',
+          transformOrigin: 'bottom right',
+          opacity: compact ? 0.45 : 1,
+          transition: reduceMotion ? 'none' : 'transform .2s cubic-bezier(.4,0,.2,1), opacity .2s cubic-bezier(.4,0,.2,1)',
         }}
       >
         {/* Transcript bubble when listening */}

@@ -80,34 +80,34 @@ export function buildCrmInsights(crm = {}, { today = new Date(), contactsById = 
   for (const d of devis) {
     const o = oppById.get(d.opportunite_id)
     if (o && isClosed(o.etape)) continue
-    const base = { devisId: d.id, oppId: o?.id || null, montant: num(d.total_ht), sub: who(o) || d.objet || '' }
+    const base = { devisId: d.id, oppId: o?.id || null, numero: d.numero || '', montant: num(d.total_ht), sub: who(o) || d.objet || '' }
     if (d.statut === 'Envoyé') {
       const ev = lastEvent.get(d.id)
       const evDays = ev ? daysBetween(day(ev.created_at), td) : null
       if (ev && evDays != null && evDays <= HOT_DAYS && d.statut_signature !== 'Signé') {
         const what = ev.kind === 'ouverture' ? 'mail ouvert' : ev.kind === 'pdf' ? 'PDF téléchargé' : 'devis consulté'
-        push({ ...base, kind: 'chaud', title: `Devis ${d.numero} : ${what} ${evDays === 0 ? "aujourd'hui" : evDays === 1 ? 'hier' : `il y a ${evDays} j`}`, hint: 'Le client y pense : appelle-le' })
+        push({ ...base, kind: 'chaud', days: evDays, event: ev.kind, title: `Devis ${d.numero} : ${what} ${evDays === 0 ? "aujourd'hui" : evDays === 1 ? 'hier' : `il y a ${evDays} j`}`, hint: 'Le client y pense : appelle-le' })
         seenDevis.add(d.id); continue
       }
       if (d.statut_signature === 'Envoyé') {
         const n = daysBetween(day(d.date_envoi), td)
-        push({ ...base, kind: 'signature', title: `Devis ${d.numero} : signature en attente${n != null ? ` depuis ${n} j` : ''}`, hint: 'Lien de signature envoyé, pas encore signé' })
+        push({ ...base, kind: 'signature', days: n, title: `Devis ${d.numero} : signature en attente${n != null ? ` depuis ${n} j` : ''}`, hint: 'Lien de signature envoyé, pas encore signé' })
         seenDevis.add(d.id); continue
       }
       const left = d.date_validite ? daysBetween(td, day(d.date_validite)) : null
       if (left != null && left >= 0 && left <= EXPIRY_DAYS) {
-        push({ ...base, kind: 'expire', title: `Devis ${d.numero} expire ${left === 0 ? "aujourd'hui" : left === 1 ? 'demain' : `dans ${left} j`}`, hint: 'Relancer ou prolonger la validité' })
+        push({ ...base, kind: 'expire', days: left, title: `Devis ${d.numero} expire ${left === 0 ? "aujourd'hui" : left === 1 ? 'demain' : `dans ${left} j`}`, hint: 'Relancer ou prolonger la validité' })
         seenDevis.add(d.id); continue
       }
       const since = daysBetween(day(d.date_envoi), td)
       if (since != null && since > NO_ANSWER_DAYS) {
-        push({ ...base, kind: 'sans_reponse', title: `Devis ${d.numero} sans réponse depuis ${since} j`, hint: 'Relancer ou classer l’affaire' })
+        push({ ...base, kind: 'sans_reponse', days: since, title: `Devis ${d.numero} sans réponse depuis ${since} j`, hint: 'Relancer ou classer l’affaire' })
         seenDevis.add(d.id); continue
       }
     } else if (d.statut === 'Brouillon') {
       const age = daysBetween(day(d.updated_at || d.date_emission || d.created_at), td)
       if (age != null && age > DRAFT_DAYS) {
-        push({ ...base, kind: 'brouillon', title: `Devis ${d.numero || ''} pas encore envoyé (${age} j)`.replace('  ', ' '), hint: 'Brouillon en attente' })
+        push({ ...base, kind: 'brouillon', days: age, title: `Devis ${d.numero || ''} pas encore envoyé (${age} j)`.replace('  ', ' '), hint: 'Brouillon en attente' })
         seenDevis.add(d.id)
       }
     }
@@ -120,7 +120,7 @@ export function buildCrmInsights(crm = {}, { today = new Date(), contactsById = 
     let idle = daysSinceLastInteraction(o, interactions, new Date(`${td}T12:00:00Z`))
     if (idle == null && o.created_at) idle = daysBetween(day(o.created_at), td)
     if (idle != null && idle > DORMANT_DAYS) {
-      push({ kind: 'dormante', oppId: o.id, devisId: null, montant: num(o.montant_estime), sub: who(o), title: `${o.titre || 'Affaire'} : aucun échange depuis ${idle} j`, hint: `Étape « ${o.etape} »` })
+      push({ kind: 'dormante', oppId: o.id, devisId: null, days: idle, montant: num(o.montant_estime), sub: who(o), title: `${o.titre || 'Affaire'} : aucun échange depuis ${idle} j`, hint: `Étape « ${o.etape} »` })
     }
   }
 
