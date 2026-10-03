@@ -237,6 +237,10 @@ export const SB = {
       lots: ch.lots||[], photo_couverture: ch.photo_couverture||null,
       notes_internes: ch.notes_internes||null
     };
+    // Compte client (accès au suivi) : écrit seulement si l'appelant le
+    // fournit, pour ne pas effacer le rattachement. null → rattachement
+    // automatique d'après le champ « client » (trigger SQL).
+    if ('client_user_id' in ch) row.client_user_id = ch.client_user_id || null;
     if (ch.id && String(ch.id).length > 10) {
       const { data, error } = await supabase.from('chantiers')
         .update(row).eq('id', ch.id).select().single();
@@ -545,28 +549,36 @@ export const SB = {
     if (error) throw new Error("Erreur ajout utilisateur: " + error.message);
     return data;
   },
-  // Chargement filtré pour un maître d'ouvrage (uniquement ses chantiers).
-  // `nom` est encore accepté pour compat future (matching prénom+nom) mais
-  // la logique actuelle ne filtre que sur le prénom — cf. README migration 019.
-  async loadForClient(prenom, _nom) {
-    // Chercher les chantiers dont le champ "client" contient le prénom du maître d'ouvrage
-    const term = (prenom || '').trim()
-    if (!term) return {
+  // Chargement filtré pour un maître d'ouvrage (uniquement ses chantiers) :
+  // chantiers rattachés à son compte (client_user_id), cf. migration 035.
+  // Le rattachement des chantiers dont le champ « client » lui correspond
+  // de façon unique est fait d'abord par la RPC link_my_chantiers.
+  async loadForClient(userId) {
+    const empty = {
       chantiers:[], contacts:[], tasks:[],
       planning:[], rdv:[], compteRendus:[], ordresService:[]
+    }
+    if (!userId) return empty
+
+    // Ne bloque jamais le chargement. Fonction absente (migration 035 pas
+    // encore appliquée) : ignorée sans bruit.
+    try {
+      const { error: linkErr } = await supabase.rpc('link_my_chantiers')
+      if (linkErr && linkErr.code !== '42883' && linkErr.code !== 'PGRST202') {
+        console.warn('[loadForClient] link_my_chantiers :', linkErr.message)
+      }
+    } catch (err) {
+      console.warn('[loadForClient] link_my_chantiers :', err?.message || err)
     }
 
     const { data: ch, error } = await supabase
       .from('chantiers').select('*')
-      .ilike('client', `%${term}%`)
+      // Chantiers rattachés au compte + chantiers de démo : la RLS (035) ne
+      // laisse passer ces derniers que pour un compte démo « DémoMOA ».
+      .or(`client_user_id.eq.${userId},is_demo.eq.true`)
       .order('created_at', { ascending: false })
 
-    if (error || !ch?.length) {
-      return {
-        chantiers:[], contacts:[], tasks:[],
-        planning:[], rdv:[], compteRendus:[], ordresService:[]
-      }
-    }
+    if (error || !ch?.length) return empty
 
     const ids = ch.map(c => c.id)
     const [cr, os, ta, pl] = await Promise.all([

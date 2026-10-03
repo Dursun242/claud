@@ -16,7 +16,7 @@ Application de gestion de chantiers BTP pour **ID Maîtrise** (SARL, Le Havre). 
 - **Odoo JSON-RPC** : signatures électroniques via module Sign
 - **Qonto API** : import factures/devis (proxy read-only)
 - **Annuaire des entreprises** (`recherche-entreprises.api.gouv.fr`, État, gratuit, sans clé) : recherche par SIRET / nom / dirigeant pour les contacts (`api/entreprises`, `lib/entreprises.js`)
-- **Jest + @testing-library/react** : ~780 tests, ~20 s d'exécution
+- **Jest + @testing-library/react** : ~800 tests, ~20 s d'exécution
 
 ## Topologie
 
@@ -104,7 +104,7 @@ Stage 3 = **CRM** (`crm_opportunites`, `crm_interactions`, `crm_devis`, `crm_dev
 npm install          # deps
 npm run dev          # dev sur :3000
 npm run build        # build prod
-npm test             # Jest (~780 tests, ~20 s)
+npm test             # Jest (~800 tests, ~20 s)
 npm test -- --ci src/app/api/qonto  # tests filtrés
 npm run lint         # next lint
 ```
@@ -118,7 +118,7 @@ Voir `.env.example` à la racine. Minimum requis pour dev :
 
 ## Migrations DB
 
-**Ordre critique** : voir `migrations/APPLY_ORDER.md`. Les migrations numérotées 001→034 s'appliquent dans l'ordre via le SQL Editor Supabase. Chaque migration ayant un impact non-trivial a un `<num>_README.md` dédié.
+**Ordre critique** : voir `migrations/APPLY_ORDER.md`. Les migrations numérotées 001→035 s'appliquent dans l'ordre via le SQL Editor Supabase. Chaque migration ayant un impact non-trivial a un `<num>_README.md` dédié.
 
 ## Dette technique assumée
 

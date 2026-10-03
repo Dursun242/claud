@@ -2,7 +2,8 @@
  * @jest-environment node
  */
 // createNotifications : destinataires résolus côté serveur (service role),
-// staff actif + client MOA du chantier (prénom), jamais les inactifs.
+// staff actif + compte client MOA rattaché au chantier (client_user_id),
+// jamais les inactifs.
 
 jest.mock('../supabaseClients', () => ({ adminClient: jest.fn() }))
 
@@ -18,7 +19,9 @@ const USERS = [
   { email: 'autre@client.fr', prenom: 'Paul', nom: 'Autre', role: 'client', actif: true },
 ]
 
-function makeAdmin({ chantier = { nom: 'Villa Dupont', client: ' jean ' } } = {}) {
+const AUTH_USERS = { 'u-dupont': 'Dupont@Client.fr' }
+
+function makeAdmin({ chantier = { nom: 'Villa Dupont', client: 'Jean', client_user_id: 'u-dupont' } } = {}) {
   const insert = jest.fn().mockResolvedValue({ error: null })
   const from = jest.fn((table) => {
     if (table === 'notifications') return { insert }
@@ -37,7 +40,8 @@ function makeAdmin({ chantier = { nom: 'Villa Dupont', client: ' jean ' } } = {}
     }
     throw new Error('table inattendue ' + table)
   })
-  adminClient.mockReturnValue({ from })
+  const getUserById = jest.fn(async (id) => ({ data: { user: AUTH_USERS[id] ? { email: AUTH_USERS[id] } : null } }))
+  adminClient.mockReturnValue({ from, auth: { admin: { getUserById } } })
   return { insert }
 }
 
@@ -54,6 +58,12 @@ describe('createNotifications', () => {
     expect(rows.map(r => r.recipient_email).sort()).toEqual(['admin@idm.fr', 'dupont@client.fr', 'sal@idm.fr'])
     expect(rows[0].title).toMatch(/sur Villa Dupont — par Alice Martin \(admin\)$/)
     expect(rows[0]).toMatchObject({ actor_email: 'admin@idm.fr', kind: 'update', chantier_id: 'c1', entity_id: 'pv1' })
+  })
+
+  it('chantier non rattaché à un compte : pas de client, même si le prénom correspond', async () => {
+    const { insert } = makeAdmin({ chantier: { nom: 'Villa Dupont', client: 'Jean', client_user_id: null } })
+    await createNotifications({ entityType: 'os', entityId: 'o', chantierId: 'c1', data: {} })
+    expect(insert.mock.calls[0][0].map(r => r.recipient_email).sort()).toEqual(['admin@idm.fr', 'sal@idm.fr'])
   })
 
   it('sans chantier : seulement le staff', async () => {

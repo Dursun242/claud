@@ -27,9 +27,9 @@ beforeEach(() => {
 })
 
 describe('useClientDashboardData', () => {
-  it('renvoie EMPTY data + loading=false si prenom est vide (enabled:false)', () => {
+  it('renvoie EMPTY data si aucun compte connecté (enabled:false)', () => {
     const { wrapper } = makeWrapper()
-    const { result } = renderHook(() => useClientDashboardData('', 'X'), { wrapper })
+    const { result } = renderHook(() => useClientDashboardData(undefined), { wrapper })
 
     // Le fetch ne doit pas partir
     expect(SB.loadForClient).not.toHaveBeenCalled()
@@ -46,13 +46,15 @@ describe('useClientDashboardData', () => {
       contacts: [], tasks: [{ id: 't1' }],
       planning: [], rdv: [], compteRendus: [], ordresService: [],
     })
-    const { wrapper } = makeWrapper()
+    const { wrapper, client } = makeWrapper()
 
-    const { result } = renderHook(() => useClientDashboardData('Dupont'), { wrapper })
+    const { result } = renderHook(() => useClientDashboardData('u-1'), { wrapper })
 
     await waitFor(() => expect(result.current.data.chantiers).toHaveLength(1))
     expect(result.current.data.tasks).toHaveLength(1)
-    expect(SB.loadForClient).toHaveBeenCalledWith('Dupont', undefined)
+    expect(SB.loadForClient).toHaveBeenCalledWith('u-1')
+    // Cache (et cache hors ligne, préfixe 'dashboard') rangé sous l'id du compte
+    expect(client.getQueryData(['dashboard', 'client', 'u-1']).chantiers).toHaveLength(1)
   })
 
   it('reload() déclenche un refetch', async () => {
@@ -61,7 +63,7 @@ describe('useClientDashboardData', () => {
       .mockResolvedValueOnce({ chantiers: [{ id: 'c1' }, { id: 'c2' }], contacts: [], tasks: [], planning: [], rdv: [], compteRendus: [], ordresService: [] })
     const { wrapper } = makeWrapper()
 
-    const { result } = renderHook(() => useClientDashboardData('Dupont'), { wrapper })
+    const { result } = renderHook(() => useClientDashboardData('u-1'), { wrapper })
     await waitFor(() => expect(result.current.data.chantiers).toHaveLength(1))
 
     await act(async () => { await result.current.reload() })
@@ -69,8 +71,8 @@ describe('useClientDashboardData', () => {
     expect(SB.loadForClient).toHaveBeenCalledTimes(2)
   })
 
-  it('clientDataKey() génère une key stable par prénom+nom', () => {
-    expect(clientDataKey('Jean', 'Dupont')).toEqual(['dashboard', 'client', 'Jean', 'Dupont'])
-    expect(clientDataKey(null, null)).toEqual(['dashboard', 'client', '', ''])
+  it('clientDataKey() génère une key stable par compte', () => {
+    expect(clientDataKey('u-1')).toEqual(['dashboard', 'client', 'u-1'])
+    expect(clientDataKey(null)).toEqual(['dashboard', 'client', ''])
   })
 })

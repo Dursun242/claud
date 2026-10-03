@@ -11,6 +11,7 @@ import {
 } from '../components'
 import ChantierCard from '../components/projects/ChantierCard'
 import ProjectsFilterPills from '../components/projects/ProjectsFilterPills'
+import ClientAccountField from '../components/projects/ClientAccountField'
 import { useAttachments } from '../hooks/useAttachments'
 import { useComments } from '../hooks/useComments'
 import { useSignaturesSync } from '../hooks/useSignaturesSync'
@@ -222,10 +223,14 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
   const openNew=()=>{
     setForm({nom:"",client:"",adresse:"",phase:"Hors d'air",
       statut:"Planifié",budget:"",dateDebut:"",dateFin:"",
-      lots:"",photo_couverture:"",notes_internes:""});
+      lots:"",photo_couverture:"",notes_internes:"",client_user_id:null});
     setModal("new");
   };
   const [saving,setSaving]=useState(false);
+  // Liste « Compte client » choisie à la main pendant cette saisie : sinon,
+  // changer le nom du client la remet sur « Automatique ».
+  const accountTouchedRef = useRef(false);
+  useEffect(() => { if (modal) accountTouchedRef.current = false; }, [modal]);
 
   // Raccourci clavier « n » pour créer un chantier (hors saisie, hors modale,
   // hors vue détail qui a ses propres actions)
@@ -841,8 +846,11 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
         </FF>
         <FF label="Client">
           <input style={inp} value={form.client||""}
-            onChange={e=>setForm({...form,client:e.target.value})}/>
+            onChange={e=>setForm({...form,client:e.target.value,
+              ...(accountTouchedRef.current ? {} : {client_user_id:null})})}/>
         </FF>
+        {!readOnly && <ClientAccountField value={form.client_user_id}
+          onChange={v=>{accountTouchedRef.current=true;setForm(f=>({...f,client_user_id:v}));}}/>}
         <FF label="Adresse">
           <AddressPicker value={form.adresse||""}
             onChange={v=>setForm(f=>({...f,adresse:v}))}/>
