@@ -3,6 +3,7 @@ import { cloneElement, isValidElement, useId } from 'react'
 import { supabase } from '../supabaseClient'
 import { ProgressBar } from '../components'
 import { writeActivityLog, setLogContext, clearLogContext } from '../lib/activityLog'
+import { mapCriticalData, mapSecondaryData, NOT_DEMO_FILTER } from '../lib/dashboardData'
 // Note : la création de notifications se fait désormais côté Postgres
 // via des triggers SQL (migration 011). On n'appelle plus createNotifications
 // depuis le JS — c'est plus robuste (marche pour l'IA, les imports, etc.)
@@ -138,7 +139,7 @@ export const SB = {
   async loadCritical() {
     const [ch, ta, cr, os] = await Promise.all([
       supabase.from('chantiers').select('*')
-        .or('is_demo.is.null,is_demo.eq.false')
+        .or(NOT_DEMO_FILTER)
         .order('created_at', { ascending: false }),
       supabase.from('taches').select('*')
         .order('created_at', { ascending: false }),
@@ -153,25 +154,13 @@ export const SB = {
       .find(([, r]) => r.error)
     if (failed) return { error: `Chargement ${failed[0]} impossible : ${failed[1].error.message}` }
 
-    // Fallback robustesse : si la migration is_demo n'est pas appliquée en
-    // prod, on re-filtre client-side via les UUIDs connus.
-    const DEMO_UUIDS = new Set([
-      '11111111-1111-4111-8111-111111111d01',
-      '22222222-2222-4222-8222-222222222d02',
-      '33333333-3333-4333-8333-333333333d03',
-    ])
-    const chantiers = (ch.data || []).filter(c => !DEMO_UUIDS.has(c.id))
-      .map(c => ({ ...c, lots: c.lots || [] }))
-    const demoIds = new Set((ch.data || []).filter(c => DEMO_UUIDS.has(c.id)).map(c => c.id))
-    const notDemo = (item) => !item?.chantier_id || !demoIds.has(item.chantier_id)
-
-    return {
-      chantiers,
-      tasks:        (ta.data || []).filter(notDemo).map(t => ({ ...t, chantierId: t.chantier_id })),
-      compteRendus: (cr.data || []).filter(notDemo).map(c => ({ ...c, chantierId: c.chantier_id })),
-      ordresService: (os.data || []).filter(notDemo),
-      _demoIds: demoIds, // exposé pour que loadSecondary réutilise le même filtre
-    }
+    // Mise en forme commune avec le mail du matin (lib/dashboardData.js) :
+    // champs camelCase, chantiers démo écartés (secours par UUID connus si
+    // la migration is_demo manque) avec leurs tâches, CR et OS.
+    // `_demoIds` est exposé pour que loadSecondary réutilise le même filtre.
+    return mapCriticalData({
+      chantiers: ch.data, taches: ta.data, compteRendus: cr.data, ordresService: os.data,
+    })
   },
 
   async loadSecondary(demoIds = new Set()) {
@@ -193,27 +182,12 @@ export const SB = {
     const failed = [['contacts', co], ['planning', pl], ['rdv', rv], ['contact_chantiers', cc]]
       .find(([, r]) => r.error)
     if (failed) throw new Error(`Chargement ${failed[0]} impossible : ${failed[1].error.message}`)
-    const notDemo = (item) => !item?.chantier_id || !demoIds.has(item.chantier_id)
 
-    // Construit la Map chantier_id → count en ignorant les chantiers démo.
-    const attachmentCountsByChantier = new Map()
-    if (!attCounts.error && Array.isArray(attCounts.data)) {
-      for (const row of attCounts.data) {
-        if (row.chantier_id && !demoIds.has(row.chantier_id)) {
-          attachmentCountsByChantier.set(row.chantier_id, row.n)
-        }
-      }
-    }
-
-    return {
-      contacts:    co.data || [],
-      planning:    (pl.data || []).filter(notDemo).map(p => ({ ...p, chantierId: p.chantier_id })),
-      rdv:         (rv.data || []).filter(notDemo).map(r => ({
-                     ...r, chantierId: r.chantier_id, participants: r.participants || [],
-                   })),
-      attachmentCountsByChantier,
-      contactChantiers: (cc.data || []).filter(notDemo),
-    }
+    // Chantiers démo écartés (UUID connus + demoIds), compteurs de PJ en Map
+    return mapSecondaryData({
+      contacts: co.data, planning: pl.data, rdv: rv.data, contactChantiers: cc.data,
+      attachmentCounts: attCounts.error ? null : attCounts.data,
+    }, demoIds)
   },
 
   async loadAll() {

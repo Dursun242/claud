@@ -1,0 +1,34 @@
+# Mail du matin : priorités du jour envoyées à l'équipe à 7 h (heure de
+# Paris), du lundi au vendredi. Deux déclenchements (05:25 et 06:25 UTC) pour
+# couvrir l'heure d'été et l'heure d'hiver : la route n'envoie que s'il est
+# 7 h à Paris, et une seule fois par jour (anti-doublon en base).
+# Lancement manuel (workflow_dispatch) : envoi immédiat (?force=1), sauf si
+# le mail du jour est déjà parti.
+# Secrets GitHub requis : APP_URL (ex. https://claud-dusky.vercel.app) et
+# CRON_SECRET (même valeur que la variable CRON_SECRET dans Vercel).
+name: Mail du matin — priorités
+
+on:
+  schedule:
+    - cron: '25 5 * * 1-5'
+    - cron: '25 6 * * 1-5'
+  workflow_dispatch:
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Envoyer les priorités du jour
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          FORCE: ${{ github.event_name == 'workflow_dispatch' && '?force=1' || '' }}
+        run: |
+          if [ -z "$APP_URL" ] || [ -z "$CRON_SECRET" ]; then
+            echo "Secrets APP_URL / CRON_SECRET absents : envoi ignoré."
+            exit 0
+          fi
+          curl --fail-with-body -sS --max-time 90 \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            "${APP_URL%/}/api/cron/daily-digest${FORCE}"

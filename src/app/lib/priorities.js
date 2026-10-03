@@ -215,6 +215,12 @@ export const MOT_DU_JOUR_SYSTEM = "Tu es l'assistant d'un maître d'œuvre BTP q
   + 'À partir de ses priorités du jour, écris une ou deux phrases en français pour lui dire par quoi commencer. '
   + 'Ton direct, tutoiement, sans emoji, sans liste, sans titre, sans mise en forme. Ne reprends pas tous les détails.'
 
+// Message envoyé à l'IA (tableau de bord et mail du matin)
+export const motDuJourPrompt = (digest) => `Mes priorités du jour :\n${digest}`
+
+// Réponse de l'IA → une phrase propre (sans Markdown, 320 caractères max)
+export const cleanMotDuJour = (t) => String(t || '').replace(/[*_#`>]/g, '').replace(/\s+/g, ' ').trim().slice(0, 320)
+
 // Résumé compact envoyé à l'IA : titres + raisons, rien d'autre.
 export function prioritiesDigest(top = [], total = top.length) {
   const lines = top.map((p, i) => `${i + 1}. ${p.title} — ${p.reason}`)

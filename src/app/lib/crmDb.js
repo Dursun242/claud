@@ -13,45 +13,21 @@ import { supabase as defaultClient } from '../supabaseClient'
 import { writeActivityLog } from './activityLog'
 import { isClosed, probaForEtape } from './crm'
 import { computeDevisTotals, normalizeLignes } from './devis'
-
-// Code Postgres « relation does not exist » : migration 025 pas appliquée.
-const MISSING_TABLE = '42P01'
-const isMissingTable = (err) =>
-  err && (err.code === MISSING_TABLE || /does not exist/i.test(err.message || ''))
+import { loadCrmWith } from './crmLoad'
 
 const log = (sb, action, entityType, id, label) =>
   writeActivityLog(sb, { action, entity_type: entityType, entity_id: id, entity_label: label })
 
 
 /**
- * Charge tout le CRM en une fois (volume attendu : quelques centaines de
- * lignes max pour une maîtrise d'œuvre).
+ * Charge tout le CRM en une fois (requêtes dans lib/crmLoad.js, partagées
+ * avec le mail du matin côté serveur).
  * `devisMissing` = migration 027 absente (la section Devis est masquée).
  * @returns {{ opportunites: Array, interactions: Array, devis: Array,
  *             missingMigration: boolean, devisMissing: boolean }}
  */
 export async function loadCrm(sb = defaultClient) {
-  const [opp, inter, dev, ev] = await Promise.all([
-    sb.from('crm_opportunites').select('*').order('updated_at', { ascending: false }),
-    sb.from('crm_interactions').select('*').order('date', { ascending: false }).limit(1000),
-    sb.from('crm_devis').select('*').order('created_at', { ascending: false }).limit(1000),
-    // Suivi des ouvertures / consultations (migration 030, facultative)
-    sb.from('crm_devis_events').select('devis_id, kind, created_at').order('created_at', { ascending: false }).limit(3000),
-  ])
-  if (opp.error) {
-    if (isMissingTable(opp.error)) {
-      return { opportunites: [], interactions: [], devis: [], devisEvents: [], missingMigration: true, devisMissing: true }
-    }
-    throw new Error('Erreur chargement CRM : ' + opp.error.message)
-  }
-  return {
-    opportunites: opp.data || [],
-    interactions: inter.error ? [] : (inter.data || []),
-    devis: dev?.error ? [] : (dev?.data || []),
-    devisEvents: ev?.error ? [] : (ev?.data || []),
-    missingMigration: false,
-    devisMissing: !!(dev?.error && isMissingTable(dev.error)),
-  }
+  return loadCrmWith(sb)
 }
 
 /** Crée ou met à jour une opportunité. Retourne la ligne persistée. */

@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../supabaseClient'
-import { MOT_DU_JOUR_SYSTEM, prioritiesDigest, hashText } from '../lib/priorities'
+import { MOT_DU_JOUR_SYSTEM, prioritiesDigest, hashText, motDuJourPrompt, cleanMotDuJour } from '../lib/priorities'
 
 // « Le mot du jour » : une ou deux phrases de l'assistant IA (/api/claude)
 // sur les priorités du jour. Un seul appel par utilisateur, par jour et par
@@ -32,8 +32,6 @@ function writeCache(key, text, userPrefix) {
   } catch { /* stockage indisponible : on garde le texte en mémoire seulement */ }
 }
 
-const clean = (t) => String(t || '').replace(/[*_#`>]/g, '').replace(/\s+/g, ' ').trim().slice(0, 320)
-
 async function fetchMot(digest) {
   const { data: { session } = {} } = await supabase.auth.getSession()
   const res = await fetch('/api/claude', {
@@ -42,12 +40,12 @@ async function fetchMot(digest) {
     body: JSON.stringify({
       max_tokens: 150,
       system: MOT_DU_JOUR_SYSTEM,
-      messages: [{ role: 'user', content: `Mes priorités du jour :\n${digest}` }],
+      messages: [{ role: 'user', content: motDuJourPrompt(digest) }],
     }),
   })
   if (!res.ok) throw new Error(`Erreur ${res.status}`)
   const json = await res.json()
-  return clean((json.content || []).map(c => c?.text || '').join(' '))
+  return cleanMotDuJour((json.content || []).map(c => c?.text || '').join(' '))
 }
 
 /**

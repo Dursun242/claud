@@ -38,6 +38,24 @@ describe('SB.loadCritical', () => {
     expect(r.tasks).toEqual([expect.objectContaining({ id: 't1', chantierId: 'c1' })])
   })
 
+  it('écarte les chantiers de démo et ce qui leur est rattaché', async () => {
+    const DEMO = '11111111-1111-4111-8111-111111111d01'
+    results.chantiers = { data: [{ id: 'c1' }, { id: DEMO, is_demo: true }], error: null }
+    results.taches = { data: [{ id: 't1', chantier_id: 'c1' }, { id: 'td', chantier_id: DEMO }, { id: 't2', chantier_id: null }], error: null }
+    results.ordres_service = { data: [{ id: 'od', chantier_id: DEMO }], error: null }
+    const r = await SB.loadCritical()
+    expect(calls).toContainEqual(['chantiers', 'or', 'is_demo.is.null,is_demo.eq.false'])
+    expect(r.chantiers.map(c => c.id)).toEqual(['c1'])
+    expect(r.tasks.map(t => t.id)).toEqual(['t1', 't2'])
+    expect(r.ordresService).toEqual([])
+    // Même sans l'identifiant reçu de loadCritical (appel en parallèle)
+    results.planning = { data: [{ id: 'pd', chantier_id: DEMO }, { id: 'p1', chantier_id: 'c1' }], error: null }
+    results.rdv = { data: [{ id: 'rd', chantier_id: DEMO }], error: null }
+    const s = await SB.loadSecondary()
+    expect(s.planning).toEqual([expect.objectContaining({ id: 'p1', chantierId: 'c1' })])
+    expect(s.rdv).toEqual([])
+  })
+
   it.each(['chantiers', 'taches', 'compte_rendus', 'ordres_service'])(
     'renvoie une erreur si %s échoue (au lieu d’une liste vide)', async (table) => {
       results[table] = { data: null, error: { message: 'timeout' } }
