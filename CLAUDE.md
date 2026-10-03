@@ -94,6 +94,10 @@ Stage 3 = **CRM** (`crm_opportunites`, `crm_interactions`, `crm_devis`, `crm_dev
 8. **Éviter `<img>`** : utiliser `next/image` sauf pour data-URIs ou signed URLs à TTL court (cf. `components/AttachmentsSection.js` pour exemple avec `eslint-disable`).
 9. **Ne JAMAIS pousser sur `main` sans autorisation explicite**. Branches feature : `claude/…` ou `feat/…`. Merger via PR ou fast-forward local sur demande.
 
+## Outils Claude Code
+
+`.claude/settings.json` active le plugin **ECC** (Everything Claude Code, `ecc@ecc`, marketplace `affaan-m/ECC`) pour toutes les sessions sur ce dépôt : agents, skills, commandes (`/ecc:…`) et hooks. Les « rules » d'ECC ne sont pas installées : en cas de conflit, ce fichier CLAUDE.md fait foi (messages de commit, branches, conventions ci-dessus).
+
 ## Commandes
 
 ```bash
