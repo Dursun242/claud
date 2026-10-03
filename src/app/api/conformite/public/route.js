@@ -10,7 +10,7 @@
 import { createLogger } from '@/app/lib/logger'
 import { createRateLimiter } from '@/app/lib/rateLimit'
 import { adminClient } from '@/app/lib/supabaseClients'
-import { DOC_KINDS, DOC_META, contactCompliance } from '@/app/lib/conformite'
+import { DOC_KINDS, DOC_META, contactCompliance, companyAnomalies } from '@/app/lib/conformite'
 import {
   isRequestToken, prepareUpload, registerDocument, loadContactDocs, notifyDeposit, todayParis, MIGRATION_MSG,
 } from '@/app/lib/conformiteServer'
@@ -33,15 +33,22 @@ async function findRequest(admin, token) {
   return { req, contact }
 }
 
-// État affiché à l'entreprise : type, état, date de fin (aucun fichier, aucune donnée lue)
+// État affiché à l'entreprise : type, état, date de fin, motif d'un document
+// à renvoyer (aucun fichier, aucune donnée lue, rien de ce que l'équipe
+// vérifie elle-même comme un changement d'IBAN)
 function publicState(contact, docs) {
   const comp = contactCompliance(docs, todayParis())
   return {
     entreprise: contact.societe || contact.nom,
-    documents: DOC_KINDS.map(kind => ({
-      kind, label: DOC_META[kind].long, aide: DOC_META[kind].aide,
-      status: comp.kinds[kind].status, valideAu: comp.kinds[kind].valideAu,
-    })),
+    documents: DOC_KINDS.map(kind => {
+      const k = comp.kinds[kind]
+      const motifs = k.status === 'a_verifier' ? companyAnomalies(k.doc) : []
+      return {
+        kind, label: DOC_META[kind].long, aide: DOC_META[kind].aide,
+        status: motifs.length ? 'a_renvoyer' : k.status, valideAu: k.valideAu,
+        ...(motifs.length ? { motif: motifs[0] } : {}),
+      }
+    }),
   }
 }
 

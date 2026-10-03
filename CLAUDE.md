@@ -60,7 +60,7 @@ src/app/
     ├─ cron/qonto-status      → vérification horaire des devis acceptés / annulés dans Qonto (GitHub Actions, secret CRON_SECRET) ; accepté → chantier + tâche (lib/devisWon.js)
     ├─ conformite             → documents des entreprises (staff only) : dépôt par URL signée, lecture IA des dates (PDF → Claude uniquement), correction, demande par mail avec lien de dépôt
     ├─ conformite/public      → page /deposer/<jeton> : état des documents + dépôt par l'entreprise (sans compte, jeton 30 jours), l'équipe est prévenue
-    ├─ cron/conformite        → relance automatique (GitHub Actions, CRON_SECRET) des entreprises actives dont un document expire ; jamais de première demande automatique
+    ├─ cron/conformite        → relance automatique hebdomadaire (GitHub Actions, CRON_SECRET) des entreprises sur un chantier en cours dont un document manque, est erroné ou expire
     ├─ cron/daily-digest      → mail du matin : priorités du jour (lib/dailyPriorities.js, même liste que le tableau de bord) + mot du jour IA, à l'équipe à 7 h (Paris) du lundi au vendredi, un envoi par jour (settings.daily_digest_last_sent) ; GitHub Actions, secret CRON_SECRET, ?force=1 pour un envoi manuel
     ├─ odoo/*                 → signatures
     ├─ pv-reception/*         → flux PV métier

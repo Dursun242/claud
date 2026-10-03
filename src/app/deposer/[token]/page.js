@@ -16,6 +16,7 @@ const STATE = {
   ok: { label: 'Reçu, à jour', color: '#047857', bg: '#ECFDF5' },
   bientot: { label: 'Expire bientôt : merci d’envoyer le nouveau', color: '#B45309', bg: '#FFFBEB' },
   a_verifier: { label: 'Reçu, en cours de vérification', color: '#C2410C', bg: '#FFF7ED' },
+  a_renvoyer: { label: 'À renvoyer', color: '#B91C1C', bg: '#FEF2F2' },
   manquant: { label: 'À fournir', color: '#B91C1C', bg: '#FEF2F2' },
   expire: { label: 'Expiré : merci d’envoyer le nouveau', color: '#B91C1C', bg: '#FEF2F2' },
 }
@@ -72,7 +73,7 @@ export default function DeposerDocumentsPage() {
   if (loadError) return shell(<div style={card} role="alert">{loadError}</div>)
   if (!info) return shell(<div style={card} role="status">Chargement…</div>)
 
-  const remaining = info.documents.filter(d => d.status === 'manquant' || d.status === 'expire' || d.status === 'bientot').length
+  const remaining = info.documents.filter(d => ['manquant', 'expire', 'bientot', 'a_renvoyer'].includes(d.status)).length
   return shell(
     <>
       <input ref={fileRef} type="file" accept="application/pdf,image/*" onChange={onFile} style={{ display: 'none' }} />
@@ -101,6 +102,7 @@ export default function DeposerDocumentsPage() {
             <div style={{ display: 'inline-block', fontSize: 12, fontWeight: 700, color: st.color, background: st.bg, borderRadius: 999, padding: '3px 10px', marginBottom: 10 }}>
               {st.label}{d.valideAu && (d.status === 'ok' || d.status === 'bientot') ? ` (jusqu’au ${fmtD(d.valideAu)})` : ''}
             </div>
+            {d.motif && <div style={{ fontSize: 13, color: '#B91C1C', marginBottom: 10 }}>{d.motif}</div>}
             <button type="button" onClick={() => pick(d.kind)} disabled={!!busy}
               style={{
                 width: '100%', minHeight: 46, borderRadius: 10, border: 'none', fontSize: 15, fontWeight: 700,

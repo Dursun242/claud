@@ -229,25 +229,34 @@ export function conformiteItems({ contacts = [], docs = [], activeIds = new Set(
   return out
 }
 
-/** Documents à demander à l'entreprise (tout sauf ce qui est à jour). */
-export const kindsToRequest = (compliance) => compliance.problems.map(p => p.kind)
+// Points que seule l'équipe peut traiter : rien à redemander à l'entreprise
+// (un IBAN qui change se vérifie par téléphone, jamais par mail)
+const STAFF_ONLY = [/^IBAN différent/, /^Lecture automatique impossible/]
+const sansPoint = (s) => String(s).replace(/\.\s*$/, '')
 
-const RELANCE_JOURS = 7
-const MAX_ENVOIS_AUTO = 4
+/** Erreurs du document que l'entreprise peut corriger en le renvoyant. */
+export const companyAnomalies = (doc) => (doc?.anomalies || []).filter(a => !STAFF_ONLY.some(re => re.test(a)))
 
 /**
- * Relance automatique (cron) d'une entreprise active : seulement pour
- * renouveler un document déjà fourni (expiré ou qui expire bientôt), ou si
- * une demande a déjà été envoyée et que des documents manquent encore. Une
- * première demande n'est jamais envoyée automatiquement.
+ * Documents à demander à l'entreprise : manquants, expirés, qui expirent
+ * bientôt, ou erronés (à renvoyer). Un document « à vérifier » par l'équipe
+ * seulement (dates à saisir, IBAN à confirmer) n'est pas redemandé.
+ */
+export function kindsToRequest(compliance) {
+  return compliance.problems
+    .filter(p => p.status !== 'a_verifier' || companyAnomalies(compliance.kinds[p.kind]?.doc).length > 0)
+    .map(p => p.kind)
+}
+
+export const RELANCE_JOURS = 7
+
+/**
+ * Relance automatique (cron, entreprises sur un chantier en cours) : chaque
+ * semaine tant qu'un document manque, est erroné ou expire (bientôt).
  */
 export function needsAutoRelance({ compliance, lastRequest = null, now = new Date() } = {}) {
-  if (!compliance || compliance.status === 'ok') return false
-  const renew = compliance.problems.some(p => p.status === 'expire' || p.status === 'bientot')
-  const stillMissing = !!lastRequest && compliance.problems.some(p => p.status === 'manquant')
-  if (!renew && !stillMissing) return false
+  if (!compliance || kindsToRequest(compliance).length === 0) return false
   if (!lastRequest) return true
-  if ((lastRequest.envois || 0) >= MAX_ENVOIS_AUTO && lastRequest.auto) return false
   const last = new Date(lastRequest.dernier_envoi || lastRequest.created_at || 0).getTime()
   return now.getTime() - last >= RELANCE_JOURS * DAY
 }
@@ -261,7 +270,7 @@ export function requestMailText({ contact = {}, compliance, link, expireLe, comp
     const s = compliance.kinds[k]
     const etat = s.status === 'expire' ? ` (expiré le ${fmtD(s.valideAu)})`
       : s.status === 'bientot' ? ` (expire le ${fmtD(s.valideAu)})`
-        : s.status === 'a_verifier' ? ' (à renvoyer, document illisible ou incomplet)' : ''
+        : s.status === 'a_verifier' ? ` (à renvoyer : ${sansPoint(companyAnomalies(s.doc)[0] || 'document illisible ou incomplet')})` : ''
     return `- ${DOC_META[k].aide}${etat}`
   })
   const nom = contact.societe || contact.nom || ''
@@ -281,4 +290,80 @@ export function requestMailText({ contact = {}, compliance, link, expireLe, comp
     company.nom || '',
   ].filter((l, i, arr) => !(l === '' && arr[i - 1] === '')).join('\n')
   return { subject, text }
+}
+
+// ─── Planification des relances et suivi (écran « Suivi des documents ») ───
+
+/** Nombre maximal de mails de relance par passage (un passage par jour ouvré). */
+export const MAX_RELANCES_PAR_PASSAGE = 15
+
+const lastSent = (r) => (r ? String(r.dernier_envoi || r.created_at || '') : '')
+
+/** Lundi suivant si la date tombe un samedi ou un dimanche (AAAA-MM-JJ). */
+export function nextWeekday(iso) {
+  const d = new Date(`${iso}T12:00:00Z`)
+  const wd = d.getUTCDay()
+  if (wd === 6) d.setUTCDate(d.getUTCDate() + 2)
+  if (wd === 0) d.setUTCDate(d.getUTCDate() + 1)
+  return d.toISOString().slice(0, 10)
+}
+
+/**
+ * Relances dues maintenant, dans l'ordre d'envoi : d'abord les entreprises
+ * jamais sollicitées, puis la demande la plus ancienne ; à nom égal, ordre
+ * alphabétique. Le cron envoie les MAX_RELANCES_PAR_PASSAGE premières.
+ */
+export function planRelances({ contacts = [], byContact, lastRequest = new Map(), activeIds = new Set(), today, now = new Date() } = {}) {
+  return contacts
+    .filter(c => isSubject(c) && activeIds.has(c.id) && c.email)
+    .map(c => ({ contact: c, compliance: complianceOf(byContact, c.id, today), lastRequest: lastRequest.get(c.id) || null }))
+    .filter(x => needsAutoRelance({ compliance: x.compliance, lastRequest: x.lastRequest, now }))
+    .sort((a, b) => lastSent(a.lastRequest).localeCompare(lastSent(b.lastRequest))
+      || String(a.contact.nom || '').localeCompare(String(b.contact.nom || ''), 'fr'))
+    .map((x, i) => ({ ...x, kinds: kindsToRequest(x.compliance), passage: Math.floor(i / MAX_RELANCES_PAR_PASSAGE) }))
+}
+
+/**
+ * Suivi de l'avancement : une ligne par entreprise soumise (artisan,
+ * sous-traitant, prestataire), état de chaque document, dernière demande,
+ * prochaine relance ; statistiques sur les entreprises actives.
+ */
+export function buildSuivi({ contacts = [], byContact, lastRequest = new Map(), activeIds = new Set(), today, now = new Date() } = {}) {
+  const plan = planRelances({ contacts, byContact, lastRequest, activeIds, today, now })
+  const planned = new Map(plan.map(p => [p.contact.id, p]))
+  const rows = contacts.filter(isSubject).map(c => {
+    const compliance = complianceOf(byContact, c.id, today)
+    const req = lastRequest.get(c.id) || null
+    const active = activeIds.has(c.id)
+    const toRequest = kindsToRequest(compliance)
+    let relance
+    if (!active) relance = { kind: 'inactive' }
+    else if (compliance.status === 'ok') relance = { kind: 'a_jour' }
+    else if (!toRequest.length) relance = { kind: 'equipe' }
+    else if (!c.email) relance = { kind: 'sans_email' }
+    else if (planned.has(c.id)) relance = { kind: 'prevue', passage: planned.get(c.id).passage }
+    else relance = { kind: 'date', date: nextWeekday(addDays(lastSent(req).slice(0, 10) || today, RELANCE_JOURS)) }
+    const recus = DOC_KINDS.filter(k => ['ok', 'bientot'].includes(compliance.kinds[k].status)).length
+    return { contact: c, active, compliance, lastRequest: req, relance, recus }
+  }).sort((a, b) => (b.active - a.active) || (a.recus - b.recus) || String(a.contact.nom).localeCompare(String(b.contact.nom), 'fr'))
+  const act = rows.filter(r => r.active)
+  return {
+    rows,
+    plan,
+    stats: {
+      actives: act.length,
+      aJour: act.filter(r => r.compliance.status === 'ok').length,
+      docsRecus: act.reduce((n, r) => n + r.recus, 0),
+      docsTotal: act.length * DOC_KINDS.length,
+      sansEmail: act.filter(r => r.relance.kind === 'sans_email').length,
+      prochainPassage: plan.filter(p => p.passage === 0).length,
+      enAttente: plan.length,
+    },
+  }
+}
+
+function addDays(iso, n) {
+  const d = new Date(`${iso}T12:00:00Z`)
+  d.setUTCDate(d.getUTCDate() + n)
+  return d.toISOString().slice(0, 10)
 }

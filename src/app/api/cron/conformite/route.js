@@ -1,26 +1,26 @@
-// Route /api/cron/conformite — relance automatique des entreprises dont les
-// documents administratifs expirent ou ont expiré (Kbis, décennale,
-// attestation fiscale, URSSAF), du lundi au vendredi.
+// Route /api/cron/conformite — relance automatique, chaque semaine, des
+// entreprises dont les documents administratifs (Kbis, décennale,
+// attestations fiscale et URSSAF, RIB) manquent, sont erronés ou expirent.
+// Vérification du lundi au vendredi.
 //
 // Appelée par GitHub Actions (.github/workflows/conformite.yml) avec
 // l'en-tête Authorization: Bearer <CRON_SECRET>. Ne concerne que les
 // entreprises qui travaillent sur un chantier en cours et ont un email.
-// Règles (lib/conformite.needsAutoRelance) : renouvellement d'un document
-// déjà fourni, ou documents toujours manquants après une demande ; au plus
-// un mail tous les 7 jours, 4 relances automatiques par lien. Une première
-// demande n'est jamais envoyée automatiquement. `?dry=1` : liste sans envoyer.
+// Règles (lib/conformite.needsAutoRelance) : un mail par semaine tant qu'un
+// document manque, est erroné (à renvoyer) ou expire bientôt. Ce que
+// l'équipe vérifie elle-même (dates à saisir, IBAN qui change) ne déclenche
+// pas de relance. `?dry=1` : liste sans envoyer.
 
 import crypto from 'node:crypto'
 import { createLogger } from '@/app/lib/logger'
 import { adminClient } from '@/app/lib/supabaseClients'
 import { smtpConfig } from '@/app/lib/mailer'
-import { activeCompanyIds, complianceByContact, complianceOf, isSubject, needsAutoRelance } from '@/app/lib/conformite'
+import { activeCompanyIds, complianceByContact, planRelances, MAX_RELANCES_PAR_PASSAGE } from '@/app/lib/conformite'
 import { sendRequest, todayParis } from '@/app/lib/conformiteServer'
 
 export const maxDuration = 60
 
 const log = createLogger('cron-conformite')
-const MAX_PAR_PASSAGE = 15
 
 function authorized(request) {
   const secret = process.env.CRON_SECRET
@@ -62,11 +62,10 @@ export async function GET(request) {
     const lastReq = new Map()
     for (const r of reqs.data || []) if (!lastReq.has(r.contact_id)) lastReq.set(r.contact_id, r)
 
-    const now = new Date()
-    const targets = (co.data || [])
-      .filter(c => active.has(c.id) && isSubject(c) && c.email)
-      .filter(c => needsAutoRelance({ compliance: complianceOf(map, c.id, today), lastRequest: lastReq.get(c.id) || null, now }))
-      .slice(0, MAX_PAR_PASSAGE)
+    // Même ordre que l'aperçu de l'écran « Suivi des documents »
+    const targets = planRelances({ contacts: co.data || [], byContact: map, lastRequest: lastReq, activeIds: active, today, now: new Date() })
+      .slice(0, MAX_RELANCES_PAR_PASSAGE)
+      .map(p => p.contact)
 
     if (dry) return Response.json({ ok: true, dry: true, entreprises: targets.map(c => c.nom) })
 

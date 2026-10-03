@@ -1,6 +1,6 @@
 import {
   addMonths, computeValidUntil, docStatus, contactCompliance, identityAnomalies, activeCompanyIds,
-  conformiteItems, needsAutoRelance, problemSummary, requestMailText, isSubject,
+  conformiteItems, needsAutoRelance, problemSummary, requestMailText, isSubject, kindsToRequest,
 } from '../conformite'
 
 const TODAY = '2026-10-03'
@@ -106,18 +106,29 @@ describe('relances automatiques', () => {
   const now = new Date('2026-10-03T08:00:00Z')
   const comp = (docs) => contactCompliance(docs, TODAY)
 
-  it('jamais de première demande automatique pour des documents jamais fournis', () => {
-    expect(needsAutoRelance({ compliance: comp([]), lastRequest: null, now })).toBe(false)
+  const ok = (k) => doc(k, { valide_au: '2027-06-01', iban: k === 'rib' ? 'FR7630006000011234567890189' : undefined })
+  const allOk = () => ['kbis', 'decennale', 'urssaf', 'fiscale', 'rib'].map(ok)
+
+  it('documents manquants : demande, puis une relance par semaine, sans limite', () => {
+    expect(needsAutoRelance({ compliance: comp([]), lastRequest: null, now })).toBe(true)
+    expect(needsAutoRelance({ compliance: comp([]), lastRequest: { dernier_envoi: '2026-09-30T08:00:00Z', envois: 1 }, now })).toBe(false)
+    expect(needsAutoRelance({ compliance: comp([]), lastRequest: { dernier_envoi: '2026-09-26T08:00:00Z', envois: 9, auto: true }, now })).toBe(true)
   })
-  it('renouvellement d’un document fourni qui expire', () => {
-    const c = comp([doc('urssaf', { valide_au: '2026-10-10' })])
+  it('document qui expire bientôt', () => {
+    const c = comp([...allOk().filter(d => d.kind !== 'urssaf'), doc('urssaf', { valide_au: '2026-10-10' })])
     expect(needsAutoRelance({ compliance: c, lastRequest: null, now })).toBe(true)
-    expect(needsAutoRelance({ compliance: c, lastRequest: { dernier_envoi: '2026-09-30T08:00:00Z', envois: 1 }, now })).toBe(false)
-    expect(needsAutoRelance({ compliance: c, lastRequest: { dernier_envoi: '2026-09-20T08:00:00Z', envois: 1 }, now })).toBe(true)
-    expect(needsAutoRelance({ compliance: c, lastRequest: { dernier_envoi: '2026-09-20T08:00:00Z', envois: 4, auto: true }, now })).toBe(false)
   })
-  it('documents toujours manquants après une demande', () => {
-    expect(needsAutoRelance({ compliance: comp([]), lastRequest: { dernier_envoi: '2026-09-01T08:00:00Z', envois: 1 }, now })).toBe(true)
+  it('document erroné (à renvoyer) : relancé ; à vérifier par l’équipe seulement : non', () => {
+    const others = allOk().filter(d => d.kind !== 'kbis' && d.kind !== 'rib')
+    const wrong = comp([...others, ok('rib'), doc('kbis', { valide_au: '2027-01-01', anomalies: ['Ce document ressemble à : RIB, pas à : Extrait Kbis.'] })])
+    expect(kindsToRequest(wrong)).toEqual(['kbis'])
+    expect(needsAutoRelance({ compliance: wrong, lastRequest: null, now })).toBe(true)
+    const staff = comp([...others, ok('kbis'), doc('rib', { anomalies: ['IBAN différent de celui de la fiche (…2606 au lieu de …0189) : confirmez par téléphone.'] })])
+    expect(staff.status).toBe('a_verifier')
+    expect(kindsToRequest(staff)).toEqual([])
+    expect(needsAutoRelance({ compliance: staff, lastRequest: null, now })).toBe(false)
+    const lecture = comp([...others, ok('rib'), doc('kbis', { anomalies: ['Lecture automatique impossible (x) : saisissez les dates à la main.'] })])
+    expect(needsAutoRelance({ compliance: lecture, lastRequest: null, now })).toBe(false)
   })
   it('tout est à jour : rien', () => {
     const all = ['kbis', 'decennale', 'urssaf', 'fiscale', 'rib'].map(k => doc(k, { valide_au: '2027-06-01' }))
@@ -135,4 +146,61 @@ it('mail de demande : documents à fournir et lien', () => {
   expect(text).toContain('https://app/deposer/abc')
   expect(text).toContain('valable jusqu’au 02/11/2026')
   expect(requestMailText({ compliance: c, link: 'x', relance: true }).subject).toMatch(/^Rappel/)
+  const wrong = contactCompliance([doc('fiscale', { valide_au: '2027-01-01', anomalies: ['Attestation négative : dettes fiscales.'] })], TODAY)
+  expect(requestMailText({ compliance: wrong, link: 'x' }).text).toContain('(à renvoyer : Attestation négative : dettes fiscales)')
+})
+
+describe('suivi et aperçu des relances', () => {
+  // Imports tardifs : mêmes fonctions que l'écran et le cron
+  const { planRelances, buildSuivi, nextWeekday, complianceByContact, MAX_RELANCES_PAR_PASSAGE } = require('../conformite')
+  const now = new Date('2026-10-03T08:00:00Z') // samedi
+  const full = (id) => ['kbis', 'decennale', 'urssaf', 'fiscale', 'rib'].map(k => ({ id: `${id}-${k}`, contact_id: id, kind: k, valide_au: '2027-06-01', anomalies: [], created_at: '2026-09-01' }))
+  const contacts = [
+    { id: 'a', nom: 'Alpha', type: 'Artisan', email: 'a@x.fr' },
+    { id: 'b', nom: 'Bravo', type: 'Artisan', email: 'b@x.fr' },
+    { id: 'c', nom: 'Charlie', type: 'Sous-traitant', email: 'c@x.fr' },
+    { id: 'd', nom: 'Delta', type: 'Artisan' },
+    { id: 'e', nom: 'Echo', type: 'Artisan', email: 'e@x.fr' },
+    { id: 'f', nom: 'Fox', type: 'Artisan', email: 'f@x.fr' },
+    { id: 'z', nom: 'Client', type: 'Client', email: 'z@x.fr' },
+  ]
+  const activeIds = new Set(['a', 'b', 'c', 'd', 'e', 'z'])
+  const byContact = complianceByContact([...full('c')], TODAY)
+  const lastRequest = new Map([
+    ['b', { dernier_envoi: '2026-09-20T08:00:00Z', envois: 1 }],
+    ['e', { dernier_envoi: '2026-10-01T08:00:00Z', envois: 1 }],
+  ])
+
+  it('ordre d’envoi : jamais sollicitées d’abord, puis la demande la plus ancienne ; sans email ni chantier : exclues', () => {
+    const plan = planRelances({ contacts, byContact, lastRequest, activeIds, today: TODAY, now })
+    expect(plan.map(p => p.contact.id)).toEqual(['a', 'b'])
+    expect(plan[0]).toMatchObject({ passage: 0, kinds: ['kbis', 'decennale', 'urssaf', 'fiscale', 'rib'] })
+  })
+
+  it('15 par passage, le reste aux passages suivants', () => {
+    const many = Array.from({ length: 20 }, (_, i) => ({ id: `m${i}`, nom: `M${String(i).padStart(2, '0')}`, type: 'Artisan', email: `m${i}@x.fr` }))
+    const plan = planRelances({ contacts: many, byContact: new Map(), activeIds: new Set(many.map(m => m.id)), today: TODAY, now })
+    expect(MAX_RELANCES_PAR_PASSAGE).toBe(15)
+    expect(plan.filter(p => p.passage === 0)).toHaveLength(15)
+    expect(plan.filter(p => p.passage === 1)).toHaveLength(5)
+  })
+
+  it('suivi : avancement, prochaine relance de chaque entreprise', () => {
+    const { stats, rows } = buildSuivi({ contacts, byContact, lastRequest, activeIds, today: TODAY, now })
+    expect(stats).toMatchObject({ actives: 5, aJour: 1, docsRecus: 5, docsTotal: 25, sansEmail: 1, prochainPassage: 2, enAttente: 2 })
+    const by = Object.fromEntries(rows.map(r => [r.contact.id, r.relance]))
+    expect(by.a).toEqual({ kind: 'prevue', passage: 0 })
+    expect(by.c).toEqual({ kind: 'a_jour' })
+    expect(by.d).toEqual({ kind: 'sans_email' })
+    expect(by.e).toEqual({ kind: 'date', date: '2026-10-08' })
+    expect(by.f).toEqual({ kind: 'inactive' })
+    expect(rows.map(r => r.contact.id)).not.toContain('z')
+    expect(rows[rows.length - 1].contact.id).toBe('f')
+  })
+
+  it('jour ouvré suivant', () => {
+    expect(nextWeekday('2026-10-03')).toBe('2026-10-05')
+    expect(nextWeekday('2026-10-04')).toBe('2026-10-05')
+    expect(nextWeekday('2026-10-06')).toBe('2026-10-06')
+  })
 })
