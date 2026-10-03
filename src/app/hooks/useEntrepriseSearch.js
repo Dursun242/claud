@@ -1,39 +1,40 @@
 'use client'
 
 // ═══════════════════════════════════════════════════════════════
-// usePappersSearch — recherche d'entreprises / dirigeants via Pappers
-// et pré-remplissage d'un formulaire contact.
+// useEntrepriseSearch — recherche d'entreprises / dirigeants dans
+// l'Annuaire des entreprises de l'État (/api/entreprises, gratuit) et
+// pré-remplissage d'un formulaire contact.
 // ═══════════════════════════════════════════════════════════════
 //
 // Le hook encapsule :
 //   - 4 variables d'état (pSearch, pLoading, pResults, pError)
-//   - fetchPappers : appel authentifié à /api/pappers
-//   - fillFromPappers : merge d'une entreprise dans le form parent
-//   - searchPappers : recherche texte OU lookup SIRET direct
+//   - fetchEntreprise : appel authentifié à /api/entreprises
+//   - fillFromEntreprise : merge d'une entreprise dans le form parent
+//   - searchEntreprise : recherche texte OU lookup SIRET direct
 //   - importEntrepriseFromSearch / importDirigeantFromSearch : clics sur
-//     les résultats de la recherche texte
+//     les résultats de la recherche texte (déjà complets : pas de 2e appel)
 //
 // L'appelant fournit :
 //   - setForm : setter du form contact (on fusionne sans jamais écraser
 //               les champs déjà remplis par l'utilisateur, sauf pour
 //               les champs "officiels" comme la dénomination/SIRET).
 //
-// Le hook expose aussi fetchPappers pour les usages externes (enrichissement
+// Le hook expose aussi fetchEntreprise pour les usages externes (enrichissement
 // depuis un SIRET extrait par photo par exemple).
 
 import { useCallback, useState } from 'react'
 import { supabase } from '../supabaseClient'
 import { SB } from '../dashboards/shared'
 
-export function usePappersSearch({ setForm } = {}) {
+export function useEntrepriseSearch({ setForm } = {}) {
   const [pSearch, setPSearch] = useState('')
   const [pLoading, setPLoading] = useState(false)
   const [pResults, setPResults] = useState(null)
   const [pError, setPError] = useState('')
 
-  const fetchPappers = useCallback(async (queryString) => {
+  const fetchEntreprise = useCallback(async (queryString) => {
     const { data: { session } } = await supabase.auth.getSession()
-    return fetch(`/api/pappers?${queryString}`, {
+    return fetch(`/api/entreprises?${queryString}`, {
       headers: { Authorization: `Bearer ${session?.access_token || ''}` },
     })
   }, [])
@@ -46,7 +47,7 @@ export function usePappersSearch({ setForm } = {}) {
   //   4. Si on a un dirigeant (via options.dirigeant ou via les
   //      representants de l'entreprise), on remplit form.fonction avec
   //      sa qualité (Gérant, Président, etc.) si elle est vide.
-  const fillFromPappers = useCallback((entreprise, options = {}) => {
+  const fillFromEntreprise = useCallback((entreprise, options = {}) => {
     if (!entreprise) return
     const siege = entreprise.siege || {}
 
@@ -84,42 +85,15 @@ export function usePappersSearch({ setForm } = {}) {
     setPError('')
   }, [setForm])
 
-  // Fetch complet d'une entreprise par son SIRET : utile quand un résultat
-  // de recherche est léger (pas de representants) et qu'on veut le détail.
-  const fetchFullEntreprise = useCallback(async (siret) => {
-    if (!siret) return null
-    try {
-      const res = await fetchPappers(`siret=${encodeURIComponent(siret)}`)
-      if (!res.ok) return null
-      return await res.json()
-    } catch {
-      return null
-    }
-  }, [fetchPappers])
+  const importEntrepriseFromSearch = useCallback((entreprise) => {
+    fillFromEntreprise(entreprise)
+  }, [fillFromEntreprise])
 
-  const importEntrepriseFromSearch = useCallback(async (entrepriseLight) => {
-    setPLoading(true)
-    try {
-      const siret = entrepriseLight.siret || entrepriseLight.siege?.siret
-      const full = (siret && await fetchFullEntreprise(siret)) || entrepriseLight
-      fillFromPappers(full)
-    } finally {
-      setPLoading(false)
-    }
-  }, [fetchFullEntreprise, fillFromPappers])
+  const importDirigeantFromSearch = useCallback((dirigeantInfo, entreprise) => {
+    fillFromEntreprise(entreprise, { dirigeant: dirigeantInfo })
+  }, [fillFromEntreprise])
 
-  const importDirigeantFromSearch = useCallback(async (dirigeantInfo, entrepriseLight) => {
-    setPLoading(true)
-    try {
-      const siret = entrepriseLight.siret || entrepriseLight.siege?.siret
-      const full = (siret && await fetchFullEntreprise(siret)) || entrepriseLight
-      fillFromPappers(full, { dirigeant: dirigeantInfo })
-    } finally {
-      setPLoading(false)
-    }
-  }, [fetchFullEntreprise, fillFromPappers])
-
-  const searchPappers = useCallback(async () => {
+  const searchEntreprise = useCallback(async () => {
     const v = pSearch.trim()
     if (!v) return
     setPLoading(true)
@@ -130,16 +104,16 @@ export function usePappersSearch({ setForm } = {}) {
       const cleanSiret = v.replace(/\s/g, '')
       const qs = isSiret ? `siret=${cleanSiret}` : `q=${encodeURIComponent(v)}`
       try {
-        SB.log('search_pappers', 'contact', null,
-          `Recherche Pappers — ${v}`,
+        SB.log('search_entreprise', 'contact', null,
+          `Recherche entreprise — ${v}`,
           { query: v, type: isSiret ? 'siret' : 'text' })
       } catch (_) {}
 
-      const res = await fetchPappers(qs)
+      const res = await fetchEntreprise(qs)
       const json = await res.json()
-      if (!res.ok) { setPError(json.error || 'Erreur Pappers'); return }
+      if (!res.ok) { setPError(json.error || 'Erreur de recherche'); return }
       if (isSiret) {
-        fillFromPappers(json)
+        fillFromEntreprise(json)
       } else {
         const companies = json.resultats || []
         const dirigeants = json.dirigeants || []
@@ -154,11 +128,11 @@ export function usePappersSearch({ setForm } = {}) {
     } finally {
       setPLoading(false)
     }
-  }, [pSearch, fetchPappers, fillFromPappers])
+  }, [pSearch, fetchEntreprise, fillFromEntreprise])
 
-  // Réinitialise tout l'état Pappers — pratique quand on ouvre/ferme la
+  // Réinitialise tout l'état de la recherche — pratique quand on ouvre/ferme la
   // modale ou qu'on switche de mode (création / édition / import photo).
-  const resetPappersSearch = useCallback(() => {
+  const resetEntrepriseSearch = useCallback(() => {
     setPSearch('')
     setPResults(null)
     setPError('')
@@ -170,12 +144,12 @@ export function usePappersSearch({ setForm } = {}) {
     pLoading,
     pResults,
     pError,
-    searchPappers,
+    searchEntreprise,
     importEntrepriseFromSearch,
     importDirigeantFromSearch,
-    resetPappersSearch,
+    resetEntrepriseSearch,
     // Exposé pour les usages externes au hook (ex : enrichissement SIRET
-    // après extraction par Claude Vision).
-    fetchPappers,
+    // après extraction par photo).
+    fetchEntreprise,
   }
 }

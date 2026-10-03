@@ -171,7 +171,7 @@ async function sync(admin, token, devisId) {
     const siren = sirenFromContact(contact)
     if (!siren) {
       throw new QontoError(
-        `Qonto exige le SIREN / SIRET du client pour établir le devis : renseigne le champ SIRET de la fiche contact${contact?.nom ? ` « ${contact.nom} »` : ''} (bouton Pappers pour le retrouver), puis réessaie. S’il s’agit d’un particulier, mets le type « Client » sur sa fiche et vide les champs Société / SIRET / TVA.`,
+        `Qonto exige le SIREN / SIRET du client pour établir le devis : renseigne le champ SIRET de la fiche contact${contact?.nom ? ` « ${contact.nom} »` : ''} (« Recherche entreprise » de la fiche pour le retrouver), puis réessaie. S’il s’agit d’un particulier, mets le type « Client » sur sa fiche et vide les champs Société / SIRET / TVA.`,
         422, 'CLIENT_TIN_MISSING',
       )
     }
