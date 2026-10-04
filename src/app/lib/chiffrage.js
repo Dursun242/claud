@@ -304,7 +304,61 @@ export const METRE_AI_SCHEMA = {
   additionalProperties: false,
 }
 
-/** Schéma JSON demandé à l'IA (génération et import). */
+/** Schéma JSON de la trame d'un DPGF (1re étape de la génération). */
+export const TRAME_AI_SCHEMA = {
+  type: 'object',
+  properties: {
+    surface_m2: { type: 'number' },
+    lots: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: { nom: { type: 'string' }, contenu: { type: 'string' } },
+        required: ['nom', 'contenu'],
+        additionalProperties: false,
+      },
+    },
+    metre_cle: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: { element: { type: 'string' }, quantite: { type: 'number' }, unite: { type: 'string' } },
+        required: ['element', 'quantite', 'unite'],
+        additionalProperties: false,
+      },
+    },
+    hypotheses: { type: 'array', items: { type: 'string' } },
+    non_compris: { type: 'array', items: { type: 'string' } },
+    conseils: { type: 'array', items: { type: 'string' } },
+  },
+  required: ['surface_m2', 'lots', 'metre_cle', 'hypotheses', 'non_compris', 'conseils'],
+  additionalProperties: false,
+}
+
+/** Schéma JSON des postes d'un lot (2e étape, un appel par lot). */
+export const LOT_AI_SCHEMA = {
+  type: 'object',
+  properties: {
+    postes: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          designation: { type: 'string' },
+          quantite: { type: 'number' },
+          unite: { type: 'string', enum: UNITES },
+          pu_ht: { type: 'number' },
+        },
+        required: ['designation', 'quantite', 'unite', 'pu_ht'],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ['postes'],
+  additionalProperties: false,
+}
+
+/** Schéma JSON demandé à l'IA (import). */
 export const CHIFFRAGE_AI_SCHEMA = {
   type: 'object',
   properties: {

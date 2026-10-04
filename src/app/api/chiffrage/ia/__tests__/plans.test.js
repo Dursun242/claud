@@ -77,19 +77,19 @@ describe('/api/chiffrage/ia — import JSON, relecture, références', () => {
     expect(sent).toMatch(/bareme_id_maitrise/)
   })
 
-  it('generer : barème ID Maîtrise et prix verrouillés des autres dossiers transmis', async () => {
+  it('lot : barème ID Maîtrise et prix verrouillés des autres dossiers transmis', async () => {
     db.tables.chantier_chiffrages = [
       { chantier_id: 'autre', updated_at: '2026-10-01', lots: [{ nom: 'PLACO', postes: [{ designation: 'Cloisons 72/48', unite: 'm²', quantite: 10, pu_ht: 45, verrou: true }, { designation: 'Libre', unite: 'u', quantite: 1, pu_ht: 9 }] }] },
     ]
-    generate.mockResolvedValue({ ok: true, stopReason: 'end', text: JSON.stringify({
-      lots: [{ nom: 'PLACO', postes: [{ designation: 'Cloisons 72/48', quantite: 100, unite: 'm²', pu_ht: 45 }] }], surface_m2: 120, hypotheses: ['h'], non_compris: ['Piscine'], conseils: [],
-    }) })
-    const { data } = await (await POST(req({ action: 'generer', chantierId: CH, description: 'Maison R+1 de 120 m² habitables' }))).json()
-    expect(data.non_compris).toEqual(['Piscine'])
-    const sent = generate.mock.calls[0][0].messages[0].content
+    generate.mockResolvedValue({ ok: true, stopReason: 'end', provider: 'mistral', text: JSON.stringify({ postes: [{ designation: 'Cloisons 72/48', quantite: 100, unite: 'm²', pu_ht: 45 }] }) })
+    const { data } = await (await POST(req({ action: 'lot', chantierId: CH, description: 'Maison R+1 de 120 m² habitables', lot: { nom: 'PLACO', contenu: 'Cloisons' } }))).json()
+    expect(data).toMatchObject({ postes: [{ designation: 'Cloisons 72/48', pu_ht: 45 }], ia: 'mistral' })
+    const call = generate.mock.calls[0][0]
+    expect(call).toMatchObject({ prefer: 'mistral', mistralModel: 'mistral-large-latest' })
+    const sent = call.messages[0].content
     expect(sent).toMatch(/prix_fixes_dossiers":\[\{"lot":"PLACO","designation":"Cloisons 72\/48","unite":"m²","pu_ht":45\}\]/)
     expect(sent).toMatch(/Implantation de l'ouvrage/)
-    expect(generate.mock.calls[0][0].system).toMatch(/une seule ligne « Implantation de l'ouvrage »/)
+    expect(call.system).toMatch(/une seule ligne « Implantation de l'ouvrage »/)
   })
 })
 
@@ -138,11 +138,11 @@ describe('/api/chiffrage/ia — plans du permis', () => {
     expect(db.files.has(pdf)).toBe(true)
   })
 
-  it('generer : le métré relevé sur les plans est transmis', async () => {
-    generate.mockResolvedValue({ ok: true, stopReason: 'end', text: JSON.stringify({
-      lots: [{ nom: 'Gros œuvre', postes: [{ designation: 'Dallage', quantite: 112, unite: 'm²', pu_ht: 70 }] }], surface_m2: 112, hypotheses: [], conseils: [],
+  it('trame : le métré relevé sur les plans est transmis', async () => {
+    generate.mockResolvedValue({ ok: true, stopReason: 'end', provider: 'mistral', text: JSON.stringify({
+      surface_m2: 112, lots: [{ nom: 'GROS ŒUVRE', contenu: 'Dallage' }], metre_cle: [], hypotheses: [], non_compris: [], conseils: [],
     }) })
-    const res = await POST(req({ action: 'generer', description: 'Maison plain-pied 112 m²', metre: METRE.metre }))
+    const res = await POST(req({ action: 'trame', description: 'Maison plain-pied 112 m²', metre: METRE.metre }))
     expect(res.status).toBe(200)
     expect(generate.mock.calls[0][0].messages[0].content).toMatch(/metre_plans.*Surface de plancher/)
   })

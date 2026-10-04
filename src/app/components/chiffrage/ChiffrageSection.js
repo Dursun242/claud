@@ -192,7 +192,7 @@ export default function ChiffrageSection({ chantier, os = [], allOs = [], user, 
           {verif && verif !== 'busy' && (
             <div style={{ marginTop: 10, fontSize: 12, border: '1px solid #E2E8F0', borderRadius: 8, padding: '10px 12px', background: '#F8FAFC' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, marginBottom: 6 }}>
-                <b style={{ color: '#0F172A' }}>Relecture des prix</b>
+                <b style={{ color: '#0F172A' }}>Relecture des prix{verif.ia ? <span style={{ fontWeight: 400, color: '#64748B' }}> · {verif.ia === 'mistral' ? 'Mistral' : 'Claude'}</span> : null}</b>
                 <button onClick={() => setVerif(null)} aria-label="Fermer la relecture" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8', fontFamily: 'inherit' }}>✕</button>
               </div>
               {verif.synthese && <div style={{ color: '#334155', marginBottom: 8 }}>{verif.synthese}</div>}

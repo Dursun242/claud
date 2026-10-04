@@ -12,6 +12,10 @@
 //   MISTRAL_MODEL   (défaut mistral-small-latest)
 //   MISTRAL_VISION_MODEL (facultatif, pour les images ; défaut MISTRAL_MODEL)
 //
+// Une demande peut choisir son fournisseur (`prefer`) et ses modèles
+// (`anthropicModel`, `mistralModel`) : ex. le chiffrage estimatif utilise un
+// modèle Mistral puissant, le reste de l'application le modèle par défaut.
+//
 // Secours automatique : si le fournisseur principal est indisponible
 // (crédit épuisé, clé refusée, trop de demandes, panne, délai dépassé) et
 // que la clé de l'autre est configurée, la demande part chez l'autre.
@@ -40,9 +44,10 @@ const hasImage = (messages) => hasPart(messages, 'image') || hasPart(messages, '
 /**
  * Ordre d'essai : fournisseur choisi puis l'autre, parmi ceux qui ont une clé.
  * `vision` : la demande contient une image (AI_PROVIDER_VISION, Claude par défaut).
+ * `prefer` : fournisseur choisi pour cette demande (sinon les réglages ci-dessus).
  */
-export function providerOrder({ vision = false } = {}) {
-  const setting = vision ? (process.env.AI_PROVIDER_VISION || 'anthropic') : (process.env.AI_PROVIDER || 'anthropic')
+export function providerOrder({ vision = false, prefer } = {}) {
+  const setting = prefer || (vision ? (process.env.AI_PROVIDER_VISION || 'anthropic') : (process.env.AI_PROVIDER || 'anthropic'))
   const wanted = String(setting).toLowerCase().trim() === 'mistral' ? 'mistral' : 'anthropic'
   const other = wanted === 'mistral' ? 'anthropic' : 'mistral'
   return [wanted, other].filter(p => !!keyOf(p))
@@ -117,9 +122,9 @@ function mistralText(content) {
   return ''
 }
 
-async function callMistral({ system, messages, maxTokens, json, timeoutMs, maxRetries, vision }) {
+async function callMistral({ system, messages, maxTokens, json, timeoutMs, maxRetries, vision, mistralModel }) {
   const body = {
-    model: (vision && process.env.MISTRAL_VISION_MODEL) || process.env.MISTRAL_MODEL || DEFAULT_MISTRAL_MODEL,
+    model: mistralModel || (vision && process.env.MISTRAL_VISION_MODEL) || process.env.MISTRAL_MODEL || DEFAULT_MISTRAL_MODEL,
     max_tokens: maxTokens,
     messages: [
       ...(system ? [{ role: 'system', content: system }] : []),
@@ -164,12 +169,14 @@ function isProviderSide(status, bodyText) {
  * @returns {Promise<{ ok: true, text: string, stopReason: 'end'|'max_tokens'|'refusal', provider: string, fallbackFrom?: string, fallbackReason?: string }
  *                  | { ok: false, status: number, message: string, provider?: string, raw?: string }>}
  */
-// `anthropicModel` : modèle Claude propre à une demande (sinon ANTHROPIC_MODEL).
-export async function generate({ system, messages, maxTokens = 1024, json = false, timeoutMs = 30_000, maxRetries = 1, log, anthropicModel } = {}) {
+// `prefer` : fournisseur de cette demande ('anthropic' | 'mistral', sinon les
+// réglages AI_PROVIDER*) ; `anthropicModel` / `mistralModel` : modèle propre à
+// cette demande (sinon ANTHROPIC_MODEL / MISTRAL_MODEL).
+export async function generate({ system, messages, maxTokens = 1024, json = false, timeoutMs = 30_000, maxRetries = 1, log, prefer, anthropicModel, mistralModel } = {}) {
   const vision = hasImage(messages)
   // Les PDF ne sont lus que par Claude (pas d'envoi de PDF à Mistral)
-  const order = providerOrder({ vision }).filter(p => !hasPart(messages, 'document') || p === 'anthropic')
-  if (!order.length && hasPart(messages, 'document') && providerOrder({ vision }).length) {
+  const order = providerOrder({ vision, prefer }).filter(p => !hasPart(messages, 'document') || p === 'anthropic')
+  if (!order.length && hasPart(messages, 'document') && providerOrder({ vision, prefer }).length) {
     return { ok: false, status: 503, message: 'Lecture des PDF indisponible : elle nécessite la clé Anthropic (ANTHROPIC_API_KEY).' }
   }
   if (!order.length) {
@@ -180,7 +187,7 @@ export async function generate({ system, messages, maxTokens = 1024, json = fals
   for (const provider of order) {
     let r
     try {
-      r = await (provider === 'mistral' ? callMistral : callAnthropic)({ system, messages, maxTokens, json, timeoutMs, maxRetries, vision, anthropicModel })
+      r = await (provider === 'mistral' ? callMistral : callAnthropic)({ system, messages, maxTokens, json, timeoutMs, maxRetries, vision, anthropicModel, mistralModel })
     } catch (e) {
       r = { ok: false, status: 503, message: 'Service IA injoignable : réessayez dans quelques instants.', raw: e?.message, retryable: true }
     }

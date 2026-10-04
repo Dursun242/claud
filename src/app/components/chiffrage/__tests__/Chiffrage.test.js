@@ -101,7 +101,8 @@ describe('ChiffrageCreateModal — depuis les plans', () => {
     apiPost.mockImplementation(async (_url, body) => {
       if (body.action === 'prepare_plan') return { data: { path: `chiffrage-plans/c1/1__${body.name}`, token: 't', type: 'application/pdf' } }
       if (body.action === 'metre') return { data: { projet: 'Maison plain-pied', surface_m2: 110, alertes: ['Coupe absente'], metre: [{ element: 'Surface de toiture', quantite: 150.5, unite: 'm²', source: 'estimé' }] } }
-      return { data: { lots: [{ nom: 'Couverture', postes: [] }], surface_m2: 110, hypotheses: [], conseils: [] } }
+      if (body.action === 'trame') return { data: { lots: [{ nom: 'Couverture', contenu: 'Toiture' }], metre_cle: [], surface_m2: 110, hypotheses: [], non_compris: [], conseils: [], ia: 'mistral' } }
+      return { data: { postes: [{ id: 'p', designation: 'Tuiles', quantite: 160, unite: 'm²', pu_ht: 60 }], ia: 'mistral' } }
     })
     const onResult = jest.fn()
     render(<ChiffrageCreateModal open chantier={{ id: 'c1', nom: 'Villa', lots: [] }} allOs={[]} onClose={jest.fn()} onResult={onResult} />)
@@ -112,9 +113,12 @@ describe('ChiffrageCreateModal — depuis les plans', () => {
     expect(await screen.findByText('Coupe absente')).toBeInTheDocument()
     fireEvent.change(screen.getByLabelText('Quantité'), { target: { value: '160' } })
     await userEvent.click(screen.getByRole('button', { name: 'Chiffrer avec les prix des OS' }))
-    const gen = apiPost.mock.calls.find(c => c[1].action === 'generer')[1]
-    expect(gen).toMatchObject({ description: 'Maison plain-pied', surface_m2: 110, metre: [{ element: 'Surface de toiture', quantite: '160', unite: 'm²', source: 'estimé' }] })
-    expect(onResult).toHaveBeenCalledWith(expect.objectContaining({ source: 'plans', description: 'Maison plain-pied' }))
+    const trame = apiPost.mock.calls.find(c => c[1].action === 'trame')[1]
+    expect(trame).toMatchObject({ description: 'Maison plain-pied', surface_m2: 110, metre: [{ element: 'Surface de toiture', quantite: '160', unite: 'm²', source: 'estimé' }] })
+    const lot = apiPost.mock.calls.find(c => c[1].action === 'lot')[1]
+    expect(lot).toMatchObject({ lot: { nom: 'Couverture', contenu: 'Toiture' }, metre: trame.metre })
+    expect(onResult).toHaveBeenCalledWith(expect.objectContaining({ source: 'plans', description: 'Maison plain-pied', lots: [{ nom: 'Couverture', postes: [expect.objectContaining({ designation: 'Tuiles' })] }] }))
+    expect(addToast).toHaveBeenCalledWith('DPGF chiffré par Mistral : 1 lots, 1 postes', 'success')
   })
 })
 

@@ -1,10 +1,13 @@
 // Route /api/chiffrage/ia — chiffrage estimatif (DPGF) d'un chantier par l'IA.
 //
 // Actions réservées au staff (verifyStaff) :
-//   - "generer"      : à partir d'une description du projet (+ surface, métré
-//                      relevé sur les plans, lots du chantier, prix tirés des OS
-//                      de la société), propose un DPGF complet : lots → postes
-//                      chiffrés, hypothèses, conseils.
+//   - "trame" puis "lot" : génération d'un DPGF en deux temps, à partir d'une
+//                      description du projet (+ surface, métré relevé sur les
+//                      plans, lots du chantier, prix des OS). "trame" : lots et
+//                      contenu de chacun, métré clé commun, hypothèses, non
+//                      compris. "lot" : postes chiffrés d'un lot (le navigateur
+//                      lance les lots en parallèle). Chaque appel reste court :
+//                      un modèle puissant tient dans la limite de 60 s.
 //   - "importer"     : DPGF au format JSON lu directement (sans IA) ; sinon
 //                      texte ou tableau collé (DPGF existant, export tableur,
 //                      échange avec une IA) remis en forme sans inventer de prix.
@@ -16,8 +19,11 @@
 //                      projet + métré (surfaces, linéaires, menuiseries…) à
 //                      vérifier avant le chiffrage. Fichiers effacés une fois lus.
 //
-// Plans lus par Claude uniquement (PDF). Modèle : ANTHROPIC_PLANS_MODEL si
-// défini (lecture plus fine), sinon le modèle par défaut.
+// Fournisseur du chiffrage (trame, lots, relecture) : CHIFFRAGE_AI_PROVIDER
+// (défaut mistral) et CHIFFRAGE_MISTRAL_MODEL (défaut mistral-large-latest),
+// Claude en secours ; sans clé Mistral, Claude directement. L'import d'un
+// texte garde le modèle rapide par défaut. Plans lus par Claude uniquement
+// (PDF) : ANTHROPIC_PLANS_MODEL si défini, sinon le modèle par défaut.
 // Aucune écriture en base : le front décide quoi faire du résultat.
 
 import { verifyStaff } from '@/app/lib/auth'
@@ -27,41 +33,54 @@ import { createRateLimiter } from '@/app/lib/rateLimit'
 import { adminClient } from '@/app/lib/supabaseClients'
 import { safeFileName, storageName } from '@/app/lib/devisDocuments'
 import {
-  CHIFFRAGE_AI_SCHEMA, METRE_AI_SCHEMA, VERIF_AI_SCHEMA, normalizeLots, normalizeMetre, parseDpgfJson,
-  dpgfForAi, chiffrageTotals,
+  CHIFFRAGE_AI_SCHEMA, METRE_AI_SCHEMA, VERIF_AI_SCHEMA, TRAME_AI_SCHEMA, LOT_AI_SCHEMA, normalizeLots, normalizeMetre,
+  parseDpgfJson, dpgfForAi, chiffrageTotals,
 } from '@/app/lib/chiffrage'
 import { BAREME_ID_MAITRISE, REGLES_ID_MAITRISE } from '@/app/lib/chiffrageBareme'
 
 export const maxDuration = 60
 
 const log = createLogger('chiffrage-ia')
-const checkRate = createRateLimiter({ limit: 20, windowMs: 60_000 })
+const checkRate = createRateLimiter({ limit: 60, windowMs: 60_000 })
 
-const GENERER_SYSTEM = `Tu es économiste de la construction chez SARL ID MAÎTRISE, maîtrise d'œuvre
+const ROLE = `Tu es économiste de la construction chez SARL ID MAÎTRISE, maîtrise d'œuvre
 au Havre (Normandie). Tu établis le chiffrage estimatif (DPGF) d'un projet, le plus
-souvent une maison individuelle neuve.
+souvent une maison individuelle neuve.`
 
-Règles :
+const TRAME_SYSTEM = `${ROLE}
+
+Première étape : la trame du DPGF, sans prix.
 - "lots" : les lots de travaux dans l'ordre du chantier. Si "lots_chantier" est fourni,
-  reprends ces noms de lots et n'en ajoute que s'il en manque un indispensable.
-  Pas de lot d'honoraires de maîtrise d'œuvre : il est ajouté à part.
-- Chaque lot : 3 à 12 postes, désignations professionnelles courtes, quantités déduites
-  de la surface et de la description (métrés plausibles), unité adaptée, prix unitaire
-  HT fourniture et pose.
-- Prix, par ordre de priorité :
+  reprends ces noms et n'en ajoute que s'il en manque un indispensable. Pas de lot
+  d'honoraires de maîtrise d'œuvre (ajouté à part). Pour chaque lot, "contenu" : en une
+  ou deux phrases, les ouvrages, matériaux et équipements qu'il comprend, assez précis
+  pour qu'un autre économiste chiffre ce lot seul sans doublon avec les autres.
+- "metre_cle" : 10 à 30 quantités communes à tous les lots (surface habitable, emprise,
+  dallage, murs extérieurs, refends, plancher d'étage, toiture, périmètre, nombre et
+  surface de menuiseries, cloisons, plafonds, sols carrelés / parquet, faïence, murs à
+  peindre, pièces d'eau…), déduites de "metre_plans" s'il est fourni, sinon de la
+  surface et de la description (métrés plausibles).
+- "surface_m2" : la surface habitable retenue (0 si inconnue).
+- "hypotheses" : 2 à 6 hypothèses à confirmer (fondations sous réserve de l'étude de
+  sol, puissances à confirmer par l'étude thermique…). "non_compris" : ce qui n'est pas
+  chiffré. "conseils" : 0 à 4 remarques utiles. Pas de banalités.
+
+${REGLES_ID_MAITRISE}`
+
+const LOT_SYSTEM = `${ROLE}
+
+Deuxième étape : tu chiffres UN lot de la trame ("lot"), poste par poste.
+- 3 à 14 postes, désignations professionnelles courtes, du gros au petit, fourniture et
+  pose. Rien qui relève des "autres_lots" (pas de doublon), ni aléas, honoraires ou TVA.
+- Quantités : tirées de "metre_cle" et "metre_plans" (mêmes valeurs pour tous les lots),
+  unité adaptée ; forfait (Ft, quantité 1) seulement pour un ensemble non mesurable.
+- Prix unitaires HT, par ordre de priorité :
   1. "prix_societe" : prix réellement payés dans les ordres de service (pu_ht = dernier
      prix, nb = nombre d'OS, min / max = fourchette) ;
   2. "prix_fixes_dossiers" : prix fixés par le maître d'œuvre sur ses autres DPGF ;
   3. "bareme_id_maitrise" : barème de référence de la société ;
   4. à défaut, prix du marché normand cohérents avec ces références.
   Pour un poste équivalent, reprends la désignation, l'unité et le prix de la référence.
-- Si "metre_plans" est fourni (relevé sur les plans du permis de construire), les
-  quantités doivent en découler (murs, toiture, menuiseries, plancher, cloisons…).
-- Pas de ligne d'aléas, d'honoraires ni de TVA : ils sont calculés à part.
-- "surface_m2" : la surface habitable retenue (0 si inconnue).
-- "hypotheses" : 2 à 6 hypothèses de chiffrage à confirmer (fondations sous réserve de
-  l'étude de sol, puissances à confirmer par l'étude thermique…). "non_compris" : ce qui
-  n'est pas chiffré. "conseils" : 0 à 4 remarques utiles. Pas de banalités.
 
 ${REGLES_ID_MAITRISE}`
 
@@ -123,17 +142,24 @@ au chiffrage.
   marquée « estimé » : n'en invente pas sans le dire.
 - "alertes" : pièces manquantes ou illisibles, incohérences, points à vérifier.`
 
-async function callAI({ system, user, content, maxTokens, schema = CHIFFRAGE_AI_SCHEMA, maxRetries = 1, anthropicModel }) {
+// Moteur du chiffrage (trame, lots, relecture) : Mistral puissant par défaut
+const chiffrageEngine = () => ({
+  prefer: String(process.env.CHIFFRAGE_AI_PROVIDER || 'mistral').toLowerCase().trim() === 'anthropic' ? 'anthropic' : 'mistral',
+  mistralModel: process.env.CHIFFRAGE_MISTRAL_MODEL || 'mistral-large-latest',
+})
+
+async function callAI({ system, user, content, maxTokens, schema = CHIFFRAGE_AI_SCHEMA, maxRetries = 1, timeoutMs = 55_000, anthropicModel, engine }) {
   const r = await generate({
     system, maxTokens, json: schema, log, anthropicModel,
-    timeoutMs: 55_000, maxRetries,
+    ...(engine || {}),
+    timeoutMs, maxRetries,
     messages: [{ role: 'user', content: content || user }],
   })
   if (!r.ok) return { error: r.message, status: r.status }
   if (r.stopReason === 'refusal') return { error: 'Demande refusée par l’IA', status: 422 }
   if (r.stopReason === 'max_tokens') return { error: 'Réponse IA tronquée — découpe le texte ou simplifie la description', status: 502 }
   try {
-    return { json: JSON.parse(stripJsonFence(r.text)) }
+    return { json: JSON.parse(stripJsonFence(r.text)), provider: r.provider }
   } catch {
     log.error('JSON invalide', String(r.text).slice(0, 500))
     return { error: 'Réponse IA illisible', status: 502 }
@@ -153,8 +179,16 @@ const planType = (name) => PLAN_TYPES[String(name || '').split('.').pop().toLowe
 const UUID = /^[0-9a-f-]{36}$/i
 const planDir = (chantierId) => `${PLAN_PREFIX}${chantierId}/`
 
-// Prix verrouillés par le maître d'œuvre sur ses autres DPGF (référence vivante)
+// Prix verrouillés par le maître d'œuvre sur ses autres DPGF (référence vivante).
+// Gardés 2 minutes : la génération appelle la route une fois par lot.
+let fixesCache = null
 async function prixFixesDossiers(exceptChantierId) {
+  if (fixesCache && fixesCache.key === exceptChantierId && Date.now() - fixesCache.at < 120_000) return fixesCache.data
+  const data = await loadPrixFixes(exceptChantierId)
+  fixesCache = { key: exceptChantierId, at: Date.now(), data }
+  return data
+}
+async function loadPrixFixes(exceptChantierId) {
   try {
     const { data, error } = await adminClient().from('chantier_chiffrages').select('chantier_id, lots, updated_at').order('updated_at', { ascending: false }).limit(30)
     if (error || !data) return []
@@ -270,26 +304,64 @@ export async function POST(request) {
       return Response.json({ ok: true, data: out.data })
     }
 
-    if (action === 'generer') {
+    if (action === 'trame' || action === 'lot') {
       const description = str(body.description, 6000).trim()
       if (description.length < 10) {
         return Response.json({ error: 'Décris le projet en quelques phrases.' }, { status: 400 })
       }
-      const context = {
+      const base = {
+        projet: description,
         chantier: str(body.chantier, 300),
         adresse: str(body.adresse, 300),
         surface_m2: Number(body.surface_m2) || null,
-        lots_chantier: (Array.isArray(body.lots) ? body.lots : []).map(l => str(l, 120)).filter(Boolean).slice(0, 30),
         metre_plans: normalizeMetre(body.metre),
+      }
+      if (action === 'trame') {
+        const t = await callAI({
+          system: TRAME_SYSTEM, schema: TRAME_AI_SCHEMA, maxTokens: 4000, timeoutMs: 50_000, engine: chiffrageEngine(),
+          user: `Contexte (JSON) :\n${JSON.stringify({
+            ...base,
+            lots_chantier: (Array.isArray(body.lots) ? body.lots : []).map(l => str(l, 120)).filter(Boolean).slice(0, 30),
+          })}`,
+        })
+        if (t.error) return Response.json({ error: t.error }, { status: t.status })
+        const lots = (Array.isArray(t.json.lots) ? t.json.lots : [])
+          .map(l => ({ nom: str(l?.nom, 120).trim(), contenu: str(l?.contenu, 600).trim() })).filter(l => l.nom).slice(0, 25)
+        if (!lots.length) return Response.json({ error: 'L’IA n’a proposé aucun lot — précise la description.' }, { status: 422 })
+        return Response.json({
+          ok: true,
+          data: {
+            lots,
+            metre_cle: normalizeMetre(t.json.metre_cle),
+            surface_m2: Number(t.json.surface_m2) > 0 ? Math.round(Number(t.json.surface_m2)) : null,
+            hypotheses: list(t.json.hypotheses, 8),
+            non_compris: list(t.json.non_compris, 15),
+            conseils: list(t.json.conseils, 5),
+            ia: t.provider,
+          },
+        })
+      }
+      const lot = { nom: str(body.lot?.nom, 120).trim(), contenu: str(body.lot?.contenu, 600).trim() }
+      if (!lot.nom) return Response.json({ error: 'Lot manquant.' }, { status: 400 })
+      const context = {
+        ...base,
+        metre_cle: normalizeMetre(body.metre_cle),
+        hypotheses: list(body.hypotheses, 8),
+        lot,
+        autres_lots: (Array.isArray(body.autres_lots) ? body.autres_lots : []).slice(0, 25)
+          .map(l => ({ nom: str(l?.nom, 120), contenu: str(l?.contenu, 300) })),
         prix_societe: (Array.isArray(body.refs) ? body.refs : []).slice(0, 120),
         prix_fixes_dossiers: await prixFixesDossiers(body.chantierId),
         bareme_id_maitrise: BAREME_ID_MAITRISE,
       }
-      r = await callAI({
-        system: GENERER_SYSTEM,
-        user: `Contexte (JSON) :\n${JSON.stringify(context).slice(0, 40_000)}\n\nProjet à chiffrer :\n${description}`,
-        maxTokens: 12000,
+      const l = await callAI({
+        system: LOT_SYSTEM, schema: LOT_AI_SCHEMA, maxTokens: 4000, timeoutMs: 50_000, engine: chiffrageEngine(),
+        user: `Contexte (JSON) :\n${JSON.stringify(context).slice(0, 50_000)}\n\nChiffre le lot « ${lot.nom} ».`,
       })
+      if (l.error) return Response.json({ error: l.error }, { status: l.status })
+      const [norm] = normalizeLots([{ nom: lot.nom, postes: l.json.postes }])
+      if (!norm?.postes.length) return Response.json({ error: `Aucun poste pour le lot « ${lot.nom} ».` }, { status: 422 })
+      return Response.json({ ok: true, data: { postes: norm.postes, ia: l.provider } })
     } else if (action === 'importer') {
       const texte = str(body.texte, 200_000).trim()
       if (texte.length < 10) {
@@ -317,7 +389,7 @@ export async function POST(request) {
         bareme_id_maitrise: BAREME_ID_MAITRISE,
       }
       const v = await callAI({
-        system: VERIFIER_SYSTEM, schema: VERIF_AI_SCHEMA, maxTokens: 5000,
+        system: VERIFIER_SYSTEM, schema: VERIF_AI_SCHEMA, maxTokens: 5000, timeoutMs: 50_000, engine: chiffrageEngine(),
         user: `DPGF à relire (JSON) :\n${JSON.stringify(context).slice(0, 60_000)}`,
       })
       if (v.error) return Response.json({ error: v.error }, { status: v.status })
@@ -332,6 +404,7 @@ export async function POST(request) {
             message: str(x?.message, 600).trim(),
             impact_ht: Math.round(Number(x?.impact_ht) || 0),
           })).filter(x => x.message),
+          ia: v.provider,
         },
       })
     } else {

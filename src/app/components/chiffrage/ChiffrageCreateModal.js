@@ -13,6 +13,7 @@ import { inp, btnP, btnS, FF } from '../../dashboards/shared'
 import { apiPost } from '../../lib/crmApi'
 import { newId, osPriceRefs, observationsText } from '../../lib/chiffrage'
 import { prepareFile } from '../../lib/conformiteClient'
+import { genererDpgf } from '../../lib/chiffrageGen'
 import { supabase } from '../../supabaseClient'
 import { useToast } from '../../contexts/ToastContext'
 
@@ -44,7 +45,12 @@ export default function ChiffrageCreateModal({ open, chantier, allOs = [], hasEx
     setBusy(true)
     setStep(source === 'import' ? 'Lecture en cours…' : 'Chiffrage en cours…')
     try {
-      const data = await post(body)
+      // Génération en deux temps (trame puis lots en parallèle) ; import : un appel
+      const data = body.action === 'generer'
+        ? await genererDpgf(post, body, {
+          onProgress: (p) => setStep(p.etape === 'trame' ? 'Trame du DPGF (lots, métré clé)…' : `Chiffrage des lots ${p.fait}/${p.total}…`),
+        })
+        : await post(body)
       const obs = data.observations || observationsText(data)
       onResult({
         lots: data.lots,
@@ -58,6 +64,8 @@ export default function ChiffrageCreateModal({ open, chantier, allOs = [], hasEx
         hypotheses: data.hypotheses,
         conseils: data.conseils,
       })
+      if (data.echecs?.length) addToast(`Lots à compléter à la main (IA indisponible) : ${data.echecs.join(', ')}`, 'warning')
+      else if (data.ia) addToast(`DPGF chiffré par ${data.ia} : ${data.lots.length} lots, ${data.lots.reduce((n, l) => n + l.postes.length, 0)} postes`, 'success')
       if (data.direct) addToast(`DPGF importé tel quel : ${data.lots.length} lots, ${data.lots.reduce((n, l) => n + l.postes.length, 0)} postes`, 'success')
     } catch (e) {
       addToast(e?.message || 'Erreur IA', 'error')
@@ -211,7 +219,7 @@ export default function ChiffrageCreateModal({ open, chantier, allOs = [], hasEx
           </label>}
         </div>
         <div style={{ fontSize: 11, color: '#64748B', marginBottom: 12 }}>
-          L’IA s’appuie sur les prix de vos ordres de service passés quand un poste équivalent existe. Compter 20 à 50 secondes.
+          L’IA s’appuie sur les prix de vos ordres de service passés quand un poste équivalent existe. Compter 30 secondes à 1 minute 30 : la trame, puis les lots en parallèle.
         </div>
         <button onClick={generer} disabled={busy || description.trim().length < 10} style={{ ...btnP, opacity: busy || description.trim().length < 10 ? 0.6 : 1 }}>
           {busy ? step : 'Générer le DPGF'}</button>
