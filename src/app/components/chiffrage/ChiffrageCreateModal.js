@@ -11,7 +11,7 @@ import { useEffect, useState } from 'react'
 import Modal from '../Modal'
 import { inp, btnP, btnS, FF } from '../../dashboards/shared'
 import { apiPost } from '../../lib/crmApi'
-import { newId, osPriceRefs } from '../../lib/chiffrage'
+import { newId, osPriceRefs, observationsText } from '../../lib/chiffrage'
 import { prepareFile } from '../../lib/conformiteClient'
 import { supabase } from '../../supabaseClient'
 import { useToast } from '../../contexts/ToastContext'
@@ -45,14 +45,20 @@ export default function ChiffrageCreateModal({ open, chantier, allOs = [], hasEx
     setStep(source === 'import' ? 'Lecture en cours…' : 'Chiffrage en cours…')
     try {
       const data = await post(body)
+      const obs = data.observations || observationsText(data)
       onResult({
         lots: data.lots,
         surface_m2: data.surface_m2 || (Number(String(body.surface_m2 ?? surface).replace(',', '.')) || null),
+        ...(data.surface_annexes ? { surface_annexes: data.surface_annexes } : {}),
+        ...(data.reference ? { reference: data.reference } : {}),
+        ...(data.indice ? { indice: data.indice } : {}),
+        ...(obs ? { observations: obs } : {}),
         ...(desc ? { description: desc } : {}),
         source,
         hypotheses: data.hypotheses,
         conseils: data.conseils,
       })
+      if (data.direct) addToast(`DPGF importé tel quel : ${data.lots.length} lots, ${data.lots.reduce((n, l) => n + l.postes.length, 0)} postes`, 'success')
     } catch (e) {
       addToast(e?.message || 'Erreur IA', 'error')
     } finally {
@@ -99,6 +105,7 @@ export default function ChiffrageCreateModal({ open, chantier, allOs = [], hasEx
     const desc = [metre.projet.trim(), notes.trim()].filter(Boolean).join('\n\n')
     run({
       action: 'generer',
+      chantierId: chantier?.id,
       description: desc,
       surface_m2: Number(String(metre.surface).replace(',', '.')) || null,
       metre: metre.metre.map(r => ({ ...r, quantite: String(r.quantite).replace(',', '.') })),
@@ -111,6 +118,7 @@ export default function ChiffrageCreateModal({ open, chantier, allOs = [], hasEx
 
   const generer = () => run({
     action: 'generer',
+    chantierId: chantier?.id,
     description,
     surface_m2: Number(String(surface).replace(',', '.')) || null,
     chantier: chantier?.nom,
@@ -210,6 +218,13 @@ export default function ChiffrageCreateModal({ open, chantier, allOs = [], hasEx
       </>}
 
       {tab === 'import' && <>
+        <div style={{ marginBottom: 10, fontSize: 12, color: '#475569' }}>
+          <label style={{ fontWeight: 600 }}>Fichier (.json, .csv, .txt) :{' '}
+            <input type="file" accept=".json,.csv,.txt,application/json,text/plain,text/csv" disabled={busy}
+              onChange={async e => { const f = e.target.files?.[0]; if (f) setTexte(await f.text()) }} style={{ fontSize: 12 }} />
+          </label>
+          <div style={{ fontSize: 11, color: '#64748B', marginTop: 4 }}>Un DPGF au format JSON (export d’une conversation Claude, par exemple) est repris tel quel, sans IA.</div>
+        </div>
         <FF label="Texte ou tableau à importer" hint="Coller un DPGF (copié d’Excel, d’un PDF, d’une conversation avec une IA…). Les prix sont repris tels quels, rien n’est inventé.">
           <textarea value={texte} onChange={e => setTexte(e.target.value)} rows={12} style={{ ...inp, resize: 'vertical', fontSize: 13, fontFamily: 'ui-monospace, monospace' }} />
         </FF>

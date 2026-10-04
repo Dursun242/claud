@@ -84,8 +84,3 @@ export function formatMoneyFR(n) {
   const num = Number(n) || 0
   return num.toFixed(2).replace('.', ',')
 }
-
-/** CSV à partir d'un tableau de lignes déjà ordonnées (première ligne = entête). */
-export function rowsToCSV(rows) {
-  return '﻿' + rows.map(r => r.map(escapeCell).join(';')).join('\r\n')
-}

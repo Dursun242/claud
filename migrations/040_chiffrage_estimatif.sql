@@ -1,7 +1,9 @@
 -- 040 — Chiffrage estimatif (DPGF) par chantier + lot des ordres de service
 --
 -- Un chiffrage par chantier : lots → postes (désignation, quantité, unité,
--- prix unitaire HT), aléas et TVA. Créé par l'IA depuis une description,
+-- prix unitaire HT, prix verrouillé), lot d'honoraires de maîtrise d'œuvre,
+-- aléas, TVA, surfaces (SHAB + annexes / garage comptés pour moitié dans le
+-- ratio TTC/m²), référence (ex. DPGF-2026-030), indice, observations. Créé par l'IA depuis une description,
 -- importé d'un texte / tableau, ou saisi à la main. La « réalité » est donnée
 -- par les ordres de service, rattachés à un lot (nouvelle colonne
 -- ordres_service.lot) : comparaison estimé / engagé lot par lot.
@@ -22,6 +24,12 @@ CREATE TABLE IF NOT EXISTS public.chantier_chiffrages (
   updated_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_by   TEXT
 );
+
+-- Colonnes ajoutées après la première version (sans effet si déjà là)
+ALTER TABLE public.chantier_chiffrages ADD COLUMN IF NOT EXISTS surface_annexes NUMERIC;
+ALTER TABLE public.chantier_chiffrages ADD COLUMN IF NOT EXISTS reference TEXT;
+ALTER TABLE public.chantier_chiffrages ADD COLUMN IF NOT EXISTS indice TEXT;
+ALTER TABLE public.chantier_chiffrages ADD COLUMN IF NOT EXISTS observations TEXT;
 
 ALTER TABLE public.chantier_chiffrages ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "chantier_chiffrages_staff" ON public.chantier_chiffrages;

@@ -36,6 +36,63 @@ beforeEach(() => {
   verifyStaff.mockResolvedValue({ user: { email: 'a@b.fr' }, status: 200 })
 })
 
+// Même structure que l'export JSON d'une conversation DPGF (etat_final → dossier_actif → dpgf)
+const EXPORT = {
+  titre: 'DPGF MAISON', messages: [{ role: 'user', content: 'x' }],
+  etat_final: { dossier_actif: {
+    surfaces: { shab_total_m2: 167.2, garage_m2: 34.2 },
+    dpgf: {
+      reference: 'DPGF-2026-030 indice A',
+      lots: [
+        { numero: '01', intitule: "HONORAIRES MAÎTRISE D'ŒUVRE", postes: [{ n: '1.2', designation: 'Phase 1', unite: 'mois', quantite: 4, pu_ht: 2300, total_ht: 9200 }] },
+        { numero: '04', intitule: 'GROS ŒUVRE, MAÇONNERIE', postes: [{ n: '4.5', designation: 'Plancher bas', unite: 'm²', quantite: 130, pu_ht: 110, total_ht: 14300 }] },
+      ],
+      observations: ['Sous réserve étude de sol G2.', 'Non compris : piscine.'],
+    },
+  } },
+}
+
+describe('/api/chiffrage/ia — import JSON, relecture, références', () => {
+  it('importer : DPGF JSON repris sans IA (honoraires, surfaces, référence, observations)', async () => {
+    const res = await POST(req({ action: 'importer', texte: JSON.stringify(EXPORT) }))
+    const { data } = await res.json()
+    expect(generate).not.toHaveBeenCalled()
+    expect(data.lots.map(l => [l.nom, !!l.honoraires, l.postes[0].pu_ht])).toEqual([["HONORAIRES MAÎTRISE D'ŒUVRE", true, 2300], ['GROS ŒUVRE, MAÇONNERIE', false, 110]])
+    expect(data).toMatchObject({ surface_m2: 167.2, surface_annexes: 34.2, reference: 'DPGF-2026-030', indice: 'A', observations: 'Sous réserve étude de sol G2.\nNon compris : piscine.', direct: true })
+  })
+
+  it('verifier : DPGF numéroté, verrous et totaux envoyés ; remarques nettoyées', async () => {
+    generate.mockResolvedValue({ ok: true, stopReason: 'end', text: JSON.stringify({
+      synthese: 'Niveau réaliste.', remarques: [{ type: 'oubli', poste: '', message: 'Dalle de toiture absente', impact_ht: 8000.4 }, { type: 'zzz', poste: '4.5', message: 'ok', impact_ht: 0 }],
+    }) })
+    const lots = [{ nom: 'GROS ŒUVRE', postes: [{ designation: 'Plancher bas', quantite: 130, unite: 'm²', pu_ht: 110, verrou: true }] }]
+    const { data } = await (await POST(req({ action: 'verifier', lots, surface_m2: 167.2, surface_annexes: 34.2, tva_pct: 20 }))).json()
+    expect(data).toEqual({ synthese: 'Niveau réaliste.', remarques: [
+      { type: 'oubli', poste: '', message: 'Dalle de toiture absente', impact_ht: 8000 },
+      { type: 'info', poste: '4.5', message: 'ok', impact_ht: 0 },
+    ] })
+    const sent = generate.mock.calls[0][0].messages[0].content
+    expect(sent).toMatch(/"n":"1.1".*"verrou":true/)
+    expect(sent).toMatch(/"surfaceRef":184.3/)
+    expect(sent).toMatch(/bareme_id_maitrise/)
+  })
+
+  it('generer : barème ID Maîtrise et prix verrouillés des autres dossiers transmis', async () => {
+    db.tables.chantier_chiffrages = [
+      { chantier_id: 'autre', updated_at: '2026-10-01', lots: [{ nom: 'PLACO', postes: [{ designation: 'Cloisons 72/48', unite: 'm²', quantite: 10, pu_ht: 45, verrou: true }, { designation: 'Libre', unite: 'u', quantite: 1, pu_ht: 9 }] }] },
+    ]
+    generate.mockResolvedValue({ ok: true, stopReason: 'end', text: JSON.stringify({
+      lots: [{ nom: 'PLACO', postes: [{ designation: 'Cloisons 72/48', quantite: 100, unite: 'm²', pu_ht: 45 }] }], surface_m2: 120, hypotheses: ['h'], non_compris: ['Piscine'], conseils: [],
+    }) })
+    const { data } = await (await POST(req({ action: 'generer', chantierId: CH, description: 'Maison R+1 de 120 m² habitables' }))).json()
+    expect(data.non_compris).toEqual(['Piscine'])
+    const sent = generate.mock.calls[0][0].messages[0].content
+    expect(sent).toMatch(/prix_fixes_dossiers":\[\{"lot":"PLACO","designation":"Cloisons 72\/48","unite":"m²","pu_ht":45\}\]/)
+    expect(sent).toMatch(/Implantation de l'ouvrage/)
+    expect(generate.mock.calls[0][0].system).toMatch(/une seule ligne « Implantation de l'ouvrage »/)
+  })
+})
+
 describe('/api/chiffrage/ia — plans du permis', () => {
   it('prepare_plan : chemin propre au chantier, formats et tailles contrôlés', async () => {
     const { data } = await (await POST(req({ action: 'prepare_plan', chantierId: CH, name: 'PCMI plans.pdf', size: 3e6 }))).json()

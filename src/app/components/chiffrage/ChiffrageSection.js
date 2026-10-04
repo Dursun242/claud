@@ -1,14 +1,15 @@
 'use client'
 // Chiffrage estimatif (DPGF) d'un chantier, dans la fiche chantier (équipe) :
-// résumé (HT, TTC, €/m²), comparaison estimé / engagé lot par lot avec les
-// OS, contrôles de bon sens, exports PDF / tableur. Création par l'IA, par
-// import d'un texte ou tableau, ou à la main (ChiffrageCreateModal) ;
-// modification dans l'éditeur (ChiffrageEditor).
+// résumé (travaux HT, total TTC MOE comprise, ratio TTC/m² sur SHAB + ½
+// garage), comparaison estimé / engagé lot par lot avec les OS, contrôles de
+// bon sens, relecture des prix par l'IA, exports PDF et Excel (charte ID
+// Maîtrise). Création depuis les plans, une description, un import ou à la
+// main (ChiffrageCreateModal) ; modification dans l'éditeur (ChiffrageEditor).
 import { useMemo, useState } from 'react'
 import { fmtMoney } from '../../dashboards/shared'
 import { useChiffrage } from '../../hooks/useChiffrage'
-import { chiffrageTotals, compareWithOs, sanityChecks, chiffrageCsvRows, osPriceRefs } from '../../lib/chiffrage'
-import { rowsToCSV, downloadCSV } from '../../lib/csv'
+import { chiffrageTotals, compareWithOs, sanityChecks, osPriceRefs } from '../../lib/chiffrage'
+import { apiPost } from '../../lib/crmApi'
 import { useToast } from '../../contexts/ToastContext'
 import { useConfirm } from '../../contexts/ConfirmContext'
 import ChiffrageEditor from './ChiffrageEditor'
@@ -21,6 +22,11 @@ const btn = (color, bg, border) => ({
 const kpi = { background: '#F8FAFC', borderRadius: 8, padding: 10 }
 const kpiLabel = { fontSize: 10, color: '#64748B', fontWeight: 600, textTransform: 'uppercase' }
 
+const VERIF_META = {
+  oubli: ['Oubli', '#B91C1C'], prix_bas: ['Prix bas', '#B45309'], prix_haut: ['Prix haut', '#B45309'],
+  quantite: ['Quantité', '#7C3AED'], incoherence: ['Incohérence', '#B91C1C'], info: ['Info', '#475569'],
+}
+
 const barColor = (pct) => pct == null ? '#94A3B8' : pct > 105 ? '#EF4444' : pct >= 90 ? '#F59E0B' : '#10B981'
 
 export default function ChiffrageSection({ chantier, os = [], allOs = [], user, m, onApplyToChantier }) {
@@ -30,6 +36,7 @@ export default function ChiffrageSection({ chantier, os = [], allOs = [], user, 
   const [editing, setEditing] = useState(null) // brouillon ouvert dans l'éditeur
   const [creating, setCreating] = useState(false)
   const [showChecks, setShowChecks] = useState(false)
+  const [verif, setVerif] = useState(null) // { synthese, remarques } | 'busy'
 
   const totals = useMemo(() => chiffrage && chiffrageTotals(chiffrage), [chiffrage])
   const cmp = useMemo(() => chiffrage && compareWithOs({ lots: chiffrage.lots, os, aleas_pct: chiffrage.aleas_pct }), [chiffrage, os])
@@ -42,9 +49,27 @@ export default function ChiffrageSection({ chantier, os = [], allOs = [], user, 
     setEditing(null)
   }
 
-  const exportCsv = () => {
-    const name = `Chiffrage - ${chantier.nom || 'chantier'}`.replace(/[\\/:*?"<>|]/g, '_')
-    downloadCSV(`${name}.csv`, rowsToCSV(chiffrageCsvRows(chiffrage)))
+  const exportXlsx = async () => {
+    try {
+      const { downloadChiffrageXlsx } = await import('../../lib/chiffrageXlsx')
+      await downloadChiffrageXlsx(chiffrage, chantier)
+    } catch (e) {
+      addToast(e?.message || 'Erreur Excel', 'error')
+    }
+  }
+  const verifier = async () => {
+    setVerif('busy')
+    try {
+      const { data } = await apiPost('/api/chiffrage/ia', {
+        action: 'verifier', chantier: chantier.nom, description: chiffrage.description,
+        lots: chiffrage.lots, surface_m2: chiffrage.surface_m2, surface_annexes: chiffrage.surface_annexes,
+        aleas_pct: chiffrage.aleas_pct, tva_pct: chiffrage.tva_pct, refs: osPriceRefs(allOs),
+      })
+      setVerif(data)
+    } catch (e) {
+      setVerif(null)
+      addToast(e?.message || 'Relecture impossible', 'error')
+    }
   }
   const exportPdf = async () => {
     try {
@@ -60,14 +85,14 @@ export default function ChiffrageSection({ chantier, os = [], allOs = [], user, 
     try { await remove(); addToast('Chiffrage supprimé', 'success') } catch (e) { addToast(e.message, 'error') }
   }
   const applyToChantier = async () => {
-    const lots = chiffrage.lots.map(l => l.nom).filter(Boolean)
+    const lots = chiffrage.lots.filter(l => !l.honoraires).map(l => l.nom).filter(Boolean)
     const ok = await confirm({
       title: 'Reporter sur le chantier ?',
-      message: `Budget du chantier : ${fmtMoney(totals.ttc)} TTC (chiffrage avec aléas). Lots du chantier : ${lots.join(', ')}.`,
+      message: `Budget du chantier : ${fmtMoney(totals.travauxTtc)} TTC (travaux${chiffrage.aleas_pct ? ' avec aléas' : ''}, hors honoraires). Lots du chantier : ${lots.join(', ')}.`,
       confirmLabel: 'Reporter',
     })
     if (!ok) return
-    try { await onApplyToChantier({ budget: Math.round(totals.ttc), lots }); addToast('Budget et lots du chantier mis à jour', 'success') } catch (e) { addToast(e?.message || 'Erreur', 'error') }
+    try { await onApplyToChantier({ budget: Math.round(totals.travauxTtc), lots }); addToast('Budget et lots du chantier mis à jour', 'success') } catch (e) { addToast(e?.message || 'Erreur', 'error') }
   }
 
   const header = (
@@ -98,18 +123,20 @@ export default function ChiffrageSection({ chantier, os = [], allOs = [], user, 
       ) : (
         <div style={{ background: '#fff', borderRadius: 12, padding: m ? 12 : 16, boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
           <div style={{ display: 'grid', gridTemplateColumns: m ? 'repeat(2,1fr)' : 'repeat(4,1fr)', gap: 10, marginBottom: 12 }}>
-            <div style={kpi}><div style={kpiLabel}>Estimé HT</div>
+            <div style={kpi}><div style={kpiLabel}>Travaux HT</div>
               <div style={{ fontSize: 17, fontWeight: 700, color: '#0F172A' }}>{fmtMoney(totals.htAleas)}</div>
-              <div style={{ fontSize: 10, color: '#64748B' }}>{chiffrage.aleas_pct ? `dont aléas ${chiffrage.aleas_pct} %` : 'sans aléas'}</div></div>
-            <div style={kpi}><div style={kpiLabel}>Estimé TTC</div>
+              <div style={{ fontSize: 10, color: '#64748B' }}>{chiffrage.aleas_pct ? `dont aléas ${chiffrage.aleas_pct} %` : `${fmtMoney(totals.travauxTtc)} TTC`}</div></div>
+            <div style={kpi}><div style={kpiLabel}>Total TTC</div>
               <div style={{ fontSize: 17, fontWeight: 700, color: '#0F172A' }}>{fmtMoney(totals.ttc)}</div>
-              <div style={{ fontSize: 10, color: '#64748B' }}>TVA {chiffrage.tva_pct} %</div></div>
+              <div style={{ fontSize: 10, color: '#64748B' }}>{totals.honoraires ? `MOE comprise (${fmtMoney(totals.honoraires)} HT)` : `TVA ${chiffrage.tva_pct} %`}</div></div>
+            <div style={kpi}><div style={kpiLabel}>Ratio TTC/m²</div>
+              <div style={{ fontSize: 17, fontWeight: 700, color: '#0F172A' }}>{totals.ratioTtc ? `${fmtMoney(totals.ratioTtc)}` : '—'}</div>
+              <div style={{ fontSize: 10, color: '#64748B' }}>{totals.surfaceRef
+                ? `${totals.honoraires ? 'MOE comprise · ' : ''}${String(totals.surfaceRef).replace('.', ',')} m²${Number(chiffrage.surface_annexes) ? ' (SHAB + ½ garage)' : ''}`
+                : 'surface non renseignée'}</div></div>
             <div style={kpi}><div style={kpiLabel}>Engagé (OS HT)</div>
               <div style={{ fontSize: 17, fontWeight: 700, color: barColor(cmp.totaux.pct) }}>{fmtMoney(cmp.totaux.engage)}</div>
-              <div style={{ fontSize: 10, color: '#64748B' }}>{cmp.totaux.pct != null ? `${cmp.totaux.pct} % de l'estimé` : '—'}</div></div>
-            <div style={kpi}><div style={kpiLabel}>Ratio</div>
-              <div style={{ fontSize: 17, fontWeight: 700, color: '#0F172A' }}>{totals.parM2 ? `${fmtMoney(totals.parM2)}/m²` : '—'}</div>
-              <div style={{ fontSize: 10, color: '#64748B' }}>{chiffrage.surface_m2 ? `${chiffrage.surface_m2} m² HT` : 'surface non renseignée'}</div></div>
+              <div style={{ fontSize: 10, color: '#64748B' }}>{cmp.totaux.pct != null ? `${cmp.totaux.pct} % des travaux` : '—'}</div></div>
           </div>
 
           {/* Estimé / engagé par lot */}
@@ -143,7 +170,7 @@ export default function ChiffrageSection({ chantier, os = [], allOs = [], user, 
                   </tr>
                 )}
                 <tr style={{ borderTop: '2px solid #E2E8F0', fontWeight: 700 }}>
-                  <td style={{ padding: '6px' }}>Total{chiffrage.aleas_pct ? ` (avec aléas : ${fmtMoney(cmp.totaux.budget)})` : ''}</td>
+                  <td style={{ padding: '6px' }}>Total travaux{chiffrage.aleas_pct ? ` (avec aléas : ${fmtMoney(cmp.totaux.budget)})` : ''}</td>
                   <td style={{ padding: '6px', textAlign: 'right' }}>{fmtMoney(cmp.totaux.estime)}</td>
                   <td style={{ padding: '6px', textAlign: 'right' }}>{fmtMoney(cmp.totaux.engage)}</td>
                   <td style={{ padding: '6px', textAlign: 'right', color: cmp.totaux.ecart > 0 ? '#DC2626' : '#059669' }}>
@@ -162,10 +189,32 @@ export default function ChiffrageSection({ chantier, os = [], allOs = [], user, 
             </div>
           )}
 
+          {verif && verif !== 'busy' && (
+            <div style={{ marginTop: 10, fontSize: 12, border: '1px solid #E2E8F0', borderRadius: 8, padding: '10px 12px', background: '#F8FAFC' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, marginBottom: 6 }}>
+                <b style={{ color: '#0F172A' }}>Relecture des prix</b>
+                <button onClick={() => setVerif(null)} aria-label="Fermer la relecture" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8', fontFamily: 'inherit' }}>✕</button>
+              </div>
+              {verif.synthese && <div style={{ color: '#334155', marginBottom: 8 }}>{verif.synthese}</div>}
+              {verif.remarques.map((x, k) => {
+                const [lib, color] = VERIF_META[x.type] || VERIF_META.info
+                return (
+                  <div key={k} style={{ display: 'flex', gap: 8, alignItems: 'baseline', padding: '4px 0', borderTop: k ? '1px solid #E2E8F0' : 'none' }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, color, minWidth: 70 }}>{lib}{x.poste ? ` · ${x.poste}` : ''}</span>
+                    <span style={{ flex: 1, color: '#334155' }}>{x.message}</span>
+                    {x.impact_ht !== 0 && <span style={{ fontWeight: 700, color: x.impact_ht > 0 ? '#B91C1C' : '#047857', whiteSpace: 'nowrap' }}>{x.impact_ht > 0 ? '+' : ''}{fmtMoney(x.impact_ht)}</span>}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 12 }}>
             <button onClick={() => setEditing(chiffrage)} style={btn('#fff', '#0284C7', '#0284C7')}>Modifier le DPGF</button>
+            <button onClick={verifier} disabled={verif === 'busy'} style={{ ...btn('#0F172A', '#fff', '#CBD5E1'), opacity: verif === 'busy' ? 0.6 : 1 }}>
+              {verif === 'busy' ? 'Relecture en cours…' : 'Vérifier les prix (IA)'}</button>
             <button onClick={exportPdf} style={btn('#B91C1C', '#FEF2F2', '#FECACA')}>PDF</button>
-            <button onClick={exportCsv} style={btn('#047857', '#ECFDF5', '#A7F3D0')}>Excel</button>
+            <button onClick={exportXlsx} style={btn('#047857', '#ECFDF5', '#A7F3D0')}>Excel</button>
             {onApplyToChantier && <button onClick={applyToChantier} style={btn('#475569', '#F1F5F9', '#E2E8F0')}>Reporter budget et lots</button>}
             <button onClick={() => setCreating(true)} style={btn('#475569', '#F1F5F9', '#E2E8F0')}>Refaire (IA / import)</button>
             <button onClick={onDelete} style={btn('#B91C1C', '#fff', '#FECACA')}>Supprimer</button>

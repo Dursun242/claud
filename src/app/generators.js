@@ -1,7 +1,7 @@
 'use client'
 import { LOGO_B64 } from './logo'
 import { COMPANY as ENT, SB } from './dashboards/shared'
-import { chiffrageTotals, posteTotal, lotTotal } from './lib/chiffrage'
+import { chiffrageTotals, posteTotal, lotTotal, lotNumero, posteNumero } from './lib/chiffrage'
 import { crTaskStats, daysLate, fmtLongDate, isoWeek, priorityLabel, globalProgress, lotOf, lotKey, GENERAL } from './lib/crSuivi'
 
 // Lazy-load jsPDF + plugin autotable : évite de charger ~180 KB au démarrage
@@ -1190,73 +1190,129 @@ export function generateOSExcel(data) {
 
 // ══════════════════════════════════════
 // GÉNÉRATEUR PDF — CHIFFRAGE ESTIMATIF (DPGF)
+// Charte ID Maîtrise : noir / blanc / gris comme le logo, pas d'aplat de
+// couleur ; lots numérotés 01…, postes <lot>.<n> ; récapitulatif, ratio
+// TTC/m² (MOE comprise, SHAB + ½ garage), observations, signatures.
 // ══════════════════════════════════════
 export async function generateChiffragePdf(chiffrage, chantier) {
   const { jsPDF, autoTable } = await loadJsPdf()
   const doc = new jsPDF('p', 'mm', 'a4')
   const w = doc.internal.pageSize.getWidth()
+  const h = doc.internal.pageSize.getHeight()
   const margin = 15
   const usable = w - margin * 2
+  const N = [26, 26, 26], G = [107, 107, 107], F = [242, 242, 242], T = [208, 208, 208]
   const lots = chiffrage.lots || []
   const t = chiffrageTotals(chiffrage)
+  const ind = chiffrage.indice || 'A'
 
   let y = 12
   try { doc.addImage(LOGO_B64, 'JPEG', margin, y - 5, 48, 14) } catch(e) {}
-  doc.setFontSize(15); doc.setFont("helvetica", "bold"); doc.setTextColor(...BLEU)
-  doc.text("CHIFFRAGE ESTIMATIF", w - margin, y, { align: "right" })
-  doc.setFontSize(9); doc.setFont("helvetica", "normal"); doc.setTextColor(...GRIS)
-  doc.text(`DPGF — ${fmtD(new Date().toISOString())}`, w - margin, y + 6, { align: "right" })
-  y = 26
-  doc.setDrawColor(...BLEU); doc.setLineWidth(0.7); doc.line(margin, y, w - margin, y); y += 7
-  doc.setFontSize(11); doc.setFont("helvetica", "bold"); doc.setTextColor(...NOIR)
-  doc.text(sanitize(chantier?.nom || "Chantier"), margin, y); y += 5
-  doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.setTextColor(...GRIS)
-  const infos = [chantier?.client, chantier?.adresse, chiffrage.surface_m2 ? `Surface : ${chiffrage.surface_m2} m²` : null].filter(Boolean).join(" — ")
-  if (infos) { doc.text(sanitize(infos), margin, y); y += 5 }
-  if (chiffrage.description) {
-    const lines = doc.splitTextToSize(sanitize(chiffrage.description), usable).slice(0, 6)
-    doc.text(lines, margin, y); y += lines.length * 3.5 + 2
-  }
+  doc.setFont("helvetica", "bold"); doc.setFontSize(11.5); doc.setTextColor(...N)
+  doc.text("DÉCOMPOSITION DU PRIX GLOBAL ET FORFAITAIRE", w - margin, y, { align: "right" })
+  doc.setFont("helvetica", "normal"); doc.setFontSize(8.5); doc.setTextColor(...G)
+  doc.text(sanitize(`${chiffrage.reference || 'DPGF'} · Ind. ${ind} · ${fmtD(new Date().toISOString())}`), w - margin, y + 6, { align: "right" })
+  y = 25
+  doc.setFontSize(7); doc.setTextColor(...G)
+  doc.text(sanitize(`${ENT.nom} · ${ENT.adresse}, ${ENT.cpVille} · ${ENT.email} · SIRET ${ENT.siret}`), margin, y)
+  doc.setDrawColor(...N); doc.setLineWidth(0.5); doc.line(margin, y + 1.5, w - margin, y + 1.5)
+  y += 8
+  const half = usable / 2
+  doc.setFontSize(7); doc.setFont("helvetica", "bold"); doc.setTextColor(...G)
+  doc.text("MAÎTRE D'OUVRAGE", margin, y); doc.text("OPÉRATION", margin + half, y)
+  doc.setFontSize(9.5); doc.setTextColor(...N)
+  doc.text(sanitize(chantier?.client || "—"), margin, y + 5)
+  doc.text(sanitize(chantier?.nom || ""), margin + half, y + 5)
+  doc.setFont("helvetica", "normal"); doc.setFontSize(8)
+  const op = doc.splitTextToSize(sanitize([chantier?.adresse, chiffrage.description].filter(Boolean).join("\n")), half).slice(0, 6)
+  doc.text(op, margin + half, y + 9.5)
+  y += 12 + op.length * 3.4
 
   const body = []
   lots.forEach((l, i) => {
-    body.push([{ content: sanitize(`${i + 1}. ${l.nom}`), colSpan: 5, styles: { fontStyle: 'bold', fillColor: [226, 232, 240] } }])
-    l.postes.forEach(p => body.push([sanitize(p.designation), String(p.quantite).replace('.', ','), sanitize(p.unite), fmtM(p.pu_ht), fmtM(posteTotal(p))]))
-    body.push([{ content: sanitize(`Sous-total ${l.nom}`), colSpan: 4, styles: { halign: 'right', fontStyle: 'bold' } }, { content: fmtM(lotTotal(l)), styles: { fontStyle: 'bold', halign: 'right' } }])
+    body.push([{ content: lotNumero(i), styles: { fontStyle: 'bold', fillColor: F } },
+      { content: sanitize(l.nom.toUpperCase()), colSpan: 5, styles: { fontStyle: 'bold', fillColor: F } }])
+    l.postes.forEach((p, j) => body.push([
+      { content: posteNumero(i, j), styles: { textColor: G } }, sanitize(p.designation), sanitize(p.unite),
+      String(p.quantite).replace('.', ','), fmtM(p.pu_ht), fmtM(posteTotal(p)),
+    ]))
+    body.push([{ content: sanitize(`Total lot ${lotNumero(i)}${l.honoraires ? ' (honoraires)' : ''}`), colSpan: 5, styles: { halign: 'right', fontStyle: 'bold' } },
+      { content: fmtM(lotTotal(l)), styles: { fontStyle: 'bold', halign: 'right' } }])
   })
   autoTable(doc, {
-    startY: y, head: [["Désignation", "Qté", "Unité", "PU HT", "Total HT"]], body,
-    margin: { left: margin, right: margin },
-    headStyles: { fillColor: BLEU, textColor: [255,255,255], fontStyle: 'bold', fontSize: 8 },
-    bodyStyles: { fontSize: 7.5, textColor: NOIR },
+    startY: y, head: [["N°", "Désignation", "U", "Qté", "PU HT", "Total HT"]], body,
+    margin: { left: margin, right: margin, bottom: 16 },
+    theme: 'plain',
+    headStyles: { textColor: N, fontStyle: 'bold', fontSize: 7.5, lineWidth: { top: 0.3, bottom: 0.3 }, lineColor: N },
+    bodyStyles: { fontSize: 7.5, textColor: N, lineWidth: { bottom: 0.1 }, lineColor: T, valign: 'top', cellPadding: 1.4 },
+    didParseCell: (d) => { if (d.section === 'head') d.cell.styles.halign = d.column.index === 2 ? 'center' : d.column.index >= 3 ? 'right' : 'left' },
     columnStyles: {
-      0: { cellWidth: usable * 0.5 },
-      1: { cellWidth: usable * 0.09, halign: 'right' },
-      2: { cellWidth: usable * 0.09, halign: 'center' },
-      3: { cellWidth: usable * 0.15, halign: 'right' },
-      4: { cellWidth: usable * 0.17, halign: 'right' },
+      0: { cellWidth: 11 },
+      1: { cellWidth: usable - 11 - 11 - 13 - 22 - 25 },
+      2: { cellWidth: 11, halign: 'center' },
+      3: { cellWidth: 13, halign: 'right' },
+      4: { cellWidth: 22, halign: 'right' },
+      5: { cellWidth: 25, halign: 'right' },
     },
-    styles: { lineWidth: 0.2, lineColor: [226,232,240] },
   })
 
   const recap = [["Total travaux HT", fmtM(t.ht)]]
-  if (t.aleas) recap.push([`Aléas ${chiffrage.aleas_pct} %`, fmtM(t.aleas)], ["Total HT", fmtM(t.htAleas)])
-  recap.push([`TVA ${chiffrage.tva_pct ?? 20} %`, fmtM(t.tva)], ["TOTAL TTC", fmtM(t.ttc)])
-  if (t.parM2) recap.push(["Ratio HT / m²", fmtM(t.parM2)])
+  if (t.aleas) recap.push([`Aléas ${String(chiffrage.aleas_pct).replace('.', ',')} %`, fmtM(t.aleas)])
+  if (t.honoraires) recap.push(["Honoraires de maîtrise d'œuvre HT", fmtM(t.honoraires)])
+  recap.push(["TOTAL HT", fmtM(t.totalHt)], [`TVA ${String(chiffrage.tva_pct ?? 20).replace('.', ',')} %`, fmtM(t.tva)], ["TOTAL TTC", fmtM(t.ttc)])
+  if (t.ratioTtc) recap.push([`Ratio TTC / m²${t.honoraires ? ', MOE comprise' : ''} (${String(t.surfaceRef).replace('.', ',')} m²)`, `${fmtM(t.ratioTtc).replace(',00', '')} / m²`])
   autoTable(doc, {
-    startY: doc.lastAutoTable.finalY + 6, body: recap,
-    margin: { left: margin + usable * 0.5, right: margin },
-    bodyStyles: { fontSize: 8.5, textColor: NOIR },
-    columnStyles: { 0: { fontStyle: 'bold' }, 1: { halign: 'right' } },
-    didParseCell: (d) => { if (d.row.raw[0] === "TOTAL TTC") { d.cell.styles.fillColor = BLEU; d.cell.styles.textColor = [255,255,255] } },
-    styles: { lineWidth: 0.2, lineColor: [226,232,240] },
+    // Libellés nettoyés (Latin-1) ; montants tels quels (€ géré par fmtM).
+    // Récapitulatif d'un seul tenant : nouvelle page s'il ne tient pas.
+    startY: (() => {
+      const yy = doc.lastAutoTable.finalY + 5
+      if (yy + recap.length * 6 > h - 18) { doc.addPage(); return 20 }
+      return yy
+    })(),
+    body: recap.map(([lib, v]) => [sanitize(lib), v]),
+    margin: { left: margin + usable * 0.4, right: margin, bottom: 16 },
+    theme: 'plain',
+    bodyStyles: { fontSize: 8.5, textColor: N, cellPadding: 1.2 },
+    columnStyles: { 0: { halign: 'right' }, 1: { halign: 'right', cellWidth: 32 } },
+    didParseCell: (d) => {
+      const lib = d.row.raw[0]
+      if (lib === "TOTAL HT" || lib === "TOTAL TTC") d.cell.styles.fontStyle = 'bold'
+      if (lib === "TOTAL TTC") { d.cell.styles.lineWidth = { top: 0.3, bottom: 0.3 }; d.cell.styles.lineColor = N; d.cell.styles.fontSize = 9.5 }
+      if (String(lib).startsWith('Ratio')) d.cell.styles.textColor = G
+    },
   })
-  let fy = doc.lastAutoTable.finalY + 8
-  if (fy > doc.internal.pageSize.getHeight() - 20) { doc.addPage(); fy = 20 }
-  doc.setFontSize(7); doc.setFont("helvetica", "italic"); doc.setTextColor(...GRIS)
-  doc.text(doc.splitTextToSize("Estimation établie en phase études, hors honoraires, frais annexes et options. Les montants seront confirmés par les marchés et ordres de service des entreprises.", usable), margin, fy)
 
-  doc.save(`Chiffrage - ${sanitize(chantier?.nom || "chantier").replace(/[\\/:*?"<>|]/g, "_")}.pdf`)
+  let fy = doc.lastAutoTable.finalY + 7
+  const obs = String(chiffrage.observations || '').split('\n').map(s => s.trim()).filter(Boolean)
+  if (obs.length) {
+    const lines = obs.flatMap(o => doc.splitTextToSize(sanitize(`- ${o}`), usable))
+    if (fy + 6 + lines.length * 3.3 > h - 50) { doc.addPage(); fy = 20 }
+    doc.setFont("helvetica", "bold"); doc.setFontSize(7); doc.setTextColor(...G)
+    doc.text("OBSERVATIONS", margin, fy)
+    doc.setFont("helvetica", "normal"); doc.setFontSize(7.5); doc.setTextColor(...N)
+    doc.text(lines, margin, fy + 4.5)
+    fy += 8 + lines.length * 3.3
+  }
+  if (fy > h - 48) { doc.addPage(); fy = 20 }
+  doc.setDrawColor(...T); doc.setLineWidth(0.2)
+  const box = (x, bw, titre, sous) => {
+    doc.rect(x, fy, bw, 30)
+    doc.setFont("helvetica", "bold"); doc.setFontSize(7.5); doc.setTextColor(...N); doc.text(sanitize(titre), x + 3, fy + 5)
+    doc.setFont("helvetica", "normal"); doc.setFontSize(7); doc.setTextColor(...G); doc.text(sanitize(sous), x + 3, fy + 9)
+  }
+  box(margin, half - 3, "LE MAÎTRE D'ŒUVRE", ENT.nom)
+  box(margin + half + 3, half - 3, "LE MAÎTRE D'OUVRAGE", "Bon pour accord, date et signature")
+
+  const pages = doc.internal.getNumberOfPages()
+  for (let p = 1; p <= pages; p++) {
+    doc.setPage(p)
+    doc.setFont("helvetica", "normal"); doc.setFontSize(7); doc.setTextColor(...G)
+    doc.text(sanitize(`ID Maîtrise · DPGF ${chantier?.client || chantier?.nom || ''} · Indice ${ind}`), margin, h - 8)
+    doc.text(`Page ${p} / ${pages}`, w - margin, h - 8, { align: "right" })
+  }
+
+  const name = `${chiffrage.reference || 'DPGF'} ${chantier?.nom || ''} Ind ${ind}`
+  doc.save(`${sanitize(name).replace(/[\\/:*?"<>|]/g, "_").trim()}.pdf`)
   SB.log('generate_pdf', 'chiffrage', chantier?.id || null, chantier?.nom || null, { format: 'pdf' })
 }
 

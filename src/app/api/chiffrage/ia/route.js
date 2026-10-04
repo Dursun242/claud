@@ -5,9 +5,11 @@
 //                      relevé sur les plans, lots du chantier, prix tirés des OS
 //                      de la société), propose un DPGF complet : lots → postes
 //                      chiffrés, hypothèses, conseils.
-//   - "importer"     : remet en forme un texte ou un tableau collé (DPGF
-//                      existant, export tableur, échange avec une IA) sans
-//                      inventer de prix.
+//   - "importer"     : DPGF au format JSON lu directement (sans IA) ; sinon
+//                      texte ou tableau collé (DPGF existant, export tableur,
+//                      échange avec une IA) remis en forme sans inventer de prix.
+//   - "verifier"     : relecture des prix d'un DPGF (oublis, prix bas / hauts,
+//                      quantités, incohérences techniques) avec impact chiffré.
 //   - "prepare_plan" : URL signée pour déposer un plan (PDF ou photo) dans le
 //                      stockage (évite la limite de taille des requêtes).
 //   - "metre"        : lecture des plans du permis (PCMI) déposés → résumé du
@@ -24,7 +26,11 @@ import { generate, stripJsonFence, providerOrder } from '@/app/lib/ai'
 import { createRateLimiter } from '@/app/lib/rateLimit'
 import { adminClient } from '@/app/lib/supabaseClients'
 import { safeFileName, storageName } from '@/app/lib/devisDocuments'
-import { CHIFFRAGE_AI_SCHEMA, METRE_AI_SCHEMA, normalizeLots, normalizeMetre } from '@/app/lib/chiffrage'
+import {
+  CHIFFRAGE_AI_SCHEMA, METRE_AI_SCHEMA, VERIF_AI_SCHEMA, normalizeLots, normalizeMetre, parseDpgfJson,
+  dpgfForAi, chiffrageTotals,
+} from '@/app/lib/chiffrage'
+import { BAREME_ID_MAITRISE, REGLES_ID_MAITRISE } from '@/app/lib/chiffrageBareme'
 
 export const maxDuration = 60
 
@@ -33,28 +39,31 @@ const checkRate = createRateLimiter({ limit: 20, windowMs: 60_000 })
 
 const GENERER_SYSTEM = `Tu es économiste de la construction chez SARL ID MAÎTRISE, maîtrise d'œuvre
 au Havre (Normandie). Tu établis le chiffrage estimatif (DPGF) d'un projet, le plus
-souvent une maison individuelle ou une rénovation.
+souvent une maison individuelle neuve.
 
 Règles :
-- "lots" : les corps d'état dans l'ordre du chantier (ex. Terrassement - VRD, Gros œuvre,
-  Charpente, Couverture - zinguerie, Menuiseries extérieures, Plâtrerie - isolation,
-  Électricité, Plomberie - sanitaires, Chauffage - ventilation, Menuiseries intérieures,
-  Carrelage - faïence, Revêtements de sols, Peinture…). Si "lots_chantier" est fourni,
-  reprends exactement ces noms de lots et n'en ajoute que s'il en manque un indispensable.
-- Chaque lot : 3 à 8 postes, désignations professionnelles courtes, quantités déduites
+- "lots" : les lots de travaux dans l'ordre du chantier. Si "lots_chantier" est fourni,
+  reprends ces noms de lots et n'en ajoute que s'il en manque un indispensable.
+  Pas de lot d'honoraires de maîtrise d'œuvre : il est ajouté à part.
+- Chaque lot : 3 à 12 postes, désignations professionnelles courtes, quantités déduites
   de la surface et de la description (métrés plausibles), unité adaptée, prix unitaire
-  HT réaliste pour la Normandie (prix d'entreprise, fourniture et pose).
-- "prix_societe" : prix réellement payés par la société dans ses ordres de service
-  (pu_ht = dernier prix, nb = nombre d'OS, min / max = fourchette). Pour un poste
-  équivalent, reprends sa désignation, son unité et son dernier prix ; sinon prix du
-  marché normand cohérent avec ces références.
+  HT fourniture et pose.
+- Prix, par ordre de priorité :
+  1. "prix_societe" : prix réellement payés dans les ordres de service (pu_ht = dernier
+     prix, nb = nombre d'OS, min / max = fourchette) ;
+  2. "prix_fixes_dossiers" : prix fixés par le maître d'œuvre sur ses autres DPGF ;
+  3. "bareme_id_maitrise" : barème de référence de la société ;
+  4. à défaut, prix du marché normand cohérents avec ces références.
+  Pour un poste équivalent, reprends la désignation, l'unité et le prix de la référence.
 - Si "metre_plans" est fourni (relevé sur les plans du permis de construire), les
   quantités doivent en découler (murs, toiture, menuiseries, plancher, cloisons…).
 - Pas de ligne d'aléas, d'honoraires ni de TVA : ils sont calculés à part.
-- "surface_m2" : la surface de plancher retenue (0 si inconnue).
-- "hypotheses" : 2 à 6 hypothèses de chiffrage à confirmer (niveau de finition, sol,
-  mode de chauffage…). "conseils" : 0 à 4 remarques utiles (oubli probable, point
-  réglementaire RE2020, étude de sol…). Pas de banalités.`
+- "surface_m2" : la surface habitable retenue (0 si inconnue).
+- "hypotheses" : 2 à 6 hypothèses de chiffrage à confirmer (fondations sous réserve de
+  l'étude de sol, puissances à confirmer par l'étude thermique…). "non_compris" : ce qui
+  n'est pas chiffré. "conseils" : 0 à 4 remarques utiles. Pas de banalités.
+
+${REGLES_ID_MAITRISE}`
 
 const IMPORTER_SYSTEM = `Tu remets en forme un chiffrage estimatif (DPGF) collé par l'utilisateur
 (texte libre, tableau copié d'un tableur, réponse d'une IA). Règles :
@@ -65,8 +74,30 @@ const IMPORTER_SYSTEM = `Tu remets en forme un chiffrage estimatif (DPGF) collé
 - Unités : ramène aux unités autorisées (m2 → m², ml, u, ens, forfait…).
 - Montants TTC seulement : convertis en HT (TVA indiquée, sinon 20 %) et signale-le
   dans "conseils".
-- "surface_m2" : si le texte l'indique, sinon 0. "hypotheses" : celles du texte.
-  "conseils" : 0 à 3 remarques sur ce qui semble manquer ou incohérent.`
+- Un lot d'honoraires de maîtrise d'œuvre est repris comme un lot normal.
+- "surface_m2" : surface habitable si le texte l'indique, sinon 0. "hypotheses" et
+  "non_compris" : ceux du texte. "conseils" : 0 à 3 remarques sur ce qui semble manquer
+  ou incohérent.`
+
+const VERIFIER_SYSTEM = `Tu es économiste de la construction et tu relis, pour le maître d'œuvre de
+SARL ID MAÎTRISE (Le Havre), le DPGF d'une maison individuelle avant envoi au client.
+Dis franchement ce qui ne va pas, comme un confrère :
+- oublis (ouvrage nécessaire non chiffré, ex. dalle de toiture, acrotères, escalier,
+  garde-corps, raccordements, Consuel), avec un ordre de grandeur ;
+- prix trop bas ou trop hauts par rapport aux références ("prix_societe" payés dans les
+  OS, "bareme_id_maitrise") et au marché normand ;
+- quantités incohérentes avec les surfaces (peinture ≈ 2,5 à 3 fois la surface habitable
+  en murs, carrelage + parquet ≈ surface habitable, plancher chauffant ≈ surface
+  chauffée…) ;
+- incohérences techniques (puissances de chauffage / climatisation, doubles comptes
+  entre lots, poste au mauvais lot).
+Les postes "verrou" ont un prix fixé par le maître d'œuvre : ne demande pas de les
+changer, sauf erreur manifeste à signaler comme "info". Les honoraires ne se discutent pas.
+"remarques" : 3 à 12, les plus importantes d'abord ; "poste" = numéro (ex. "4.9") ou ""
+pour un oubli ; "impact_ht" = effet estimé sur le total HT (positif si ça augmente,
+0 si sans effet). "synthese" : 2 à 4 phrases (niveau global, ratio, verdict).
+
+${REGLES_ID_MAITRISE}`
 
 const METRE_SYSTEM = `Tu es métreur dans un bureau de maîtrise d'œuvre. On te fournit les pièces d'un
 permis de construire de maison individuelle (PCMI : plan de situation, plan de masse,
@@ -121,6 +152,31 @@ const PLAN_TYPES = { pdf: 'application/pdf', jpg: 'image/jpeg', jpeg: 'image/jpe
 const planType = (name) => PLAN_TYPES[String(name || '').split('.').pop().toLowerCase()] || null
 const UUID = /^[0-9a-f-]{36}$/i
 const planDir = (chantierId) => `${PLAN_PREFIX}${chantierId}/`
+
+// Prix verrouillés par le maître d'œuvre sur ses autres DPGF (référence vivante)
+async function prixFixesDossiers(exceptChantierId) {
+  try {
+    const { data, error } = await adminClient().from('chantier_chiffrages').select('chantier_id, lots, updated_at').order('updated_at', { ascending: false }).limit(30)
+    if (error || !data) return []
+    const out = []
+    const seen = new Set()
+    for (const c of data) {
+      if (c.chantier_id === exceptChantierId) continue
+      for (const l of normalizeLots(c.lots)) {
+        if (l.honoraires) continue
+        for (const p of l.postes) {
+          const k = `${p.designation.toLowerCase()}|${p.unite}`
+          if (!p.verrou || seen.has(k)) continue
+          seen.add(k)
+          out.push({ lot: l.nom, designation: p.designation, unite: p.unite, pu_ht: p.pu_ht })
+        }
+      }
+    }
+    return out.slice(0, 80)
+  } catch {
+    return []
+  }
+}
 
 async function chantierExists(admin, id) {
   if (!UUID.test(String(id || ''))) return false
@@ -226,18 +282,58 @@ export async function POST(request) {
         lots_chantier: (Array.isArray(body.lots) ? body.lots : []).map(l => str(l, 120)).filter(Boolean).slice(0, 30),
         metre_plans: normalizeMetre(body.metre),
         prix_societe: (Array.isArray(body.refs) ? body.refs : []).slice(0, 120),
+        prix_fixes_dossiers: await prixFixesDossiers(body.chantierId),
+        bareme_id_maitrise: BAREME_ID_MAITRISE,
       }
       r = await callAI({
         system: GENERER_SYSTEM,
-        user: `Contexte (JSON) :\n${JSON.stringify(context).slice(0, 30_000)}\n\nProjet à chiffrer :\n${description}`,
+        user: `Contexte (JSON) :\n${JSON.stringify(context).slice(0, 40_000)}\n\nProjet à chiffrer :\n${description}`,
         maxTokens: 12000,
       })
     } else if (action === 'importer') {
-      const texte = str(body.texte, 40_000).trim()
+      const texte = str(body.texte, 200_000).trim()
       if (texte.length < 10) {
         return Response.json({ error: 'Colle le texte ou le tableau à importer.' }, { status: 400 })
       }
+      // DPGF au format JSON : repris tel quel, sans IA
+      const parsed = parseDpgfJson(texte)
+      if (parsed) return Response.json({ ok: true, data: { ...parsed, hypotheses: [], non_compris: [], conseils: [], direct: true } })
+      if (texte.length > 40_000) {
+        return Response.json({ error: 'Texte trop long pour l’IA (40 000 caractères) : importer lot par lot.' }, { status: 400 })
+      }
       r = await callAI({ system: IMPORTER_SYSTEM, user: `Chiffrage à remettre en forme :\n${texte}`, maxTokens: 16000 })
+    } else if (action === 'verifier') {
+      const lots = normalizeLots(body.lots)
+      if (!lots.some(l => l.postes.length)) return Response.json({ error: 'DPGF vide.' }, { status: 400 })
+      const totals = chiffrageTotals({ lots, aleas_pct: body.aleas_pct, tva_pct: body.tva_pct, surface_m2: body.surface_m2, surface_annexes: body.surface_annexes })
+      const context = {
+        chantier: str(body.chantier, 300),
+        description: str(body.description, 3000),
+        surface_habitable_m2: Number(body.surface_m2) || null,
+        annexes_garage_m2: Number(body.surface_annexes) || null,
+        totaux: totals,
+        dpgf: dpgfForAi(lots),
+        prix_societe: (Array.isArray(body.refs) ? body.refs : []).slice(0, 120),
+        bareme_id_maitrise: BAREME_ID_MAITRISE,
+      }
+      const v = await callAI({
+        system: VERIFIER_SYSTEM, schema: VERIF_AI_SCHEMA, maxTokens: 5000,
+        user: `DPGF à relire (JSON) :\n${JSON.stringify(context).slice(0, 60_000)}`,
+      })
+      if (v.error) return Response.json({ error: v.error }, { status: v.status })
+      const types = new Set(['oubli', 'prix_bas', 'prix_haut', 'quantite', 'incoherence', 'info'])
+      return Response.json({
+        ok: true,
+        data: {
+          synthese: str(v.json.synthese, 1500).trim(),
+          remarques: (Array.isArray(v.json.remarques) ? v.json.remarques : []).slice(0, 15).map(x => ({
+            type: types.has(x?.type) ? x.type : 'info',
+            poste: str(x?.poste, 12).trim(),
+            message: str(x?.message, 600).trim(),
+            impact_ht: Math.round(Number(x?.impact_ht) || 0),
+          })).filter(x => x.message),
+        },
+      })
     } else {
       return Response.json({ error: 'Action inconnue' }, { status: 400 })
     }
@@ -253,6 +349,7 @@ export async function POST(request) {
         lots,
         surface_m2: Number(r.json.surface_m2) > 0 ? Math.round(Number(r.json.surface_m2)) : null,
         hypotheses: list(r.json.hypotheses, 8),
+        non_compris: list(r.json.non_compris, 15),
         conseils: list(r.json.conseils, 5),
       },
     })

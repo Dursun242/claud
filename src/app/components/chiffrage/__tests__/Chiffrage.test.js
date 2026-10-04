@@ -37,7 +37,17 @@ describe('ChiffrageSection', () => {
     expect(within(row).getByText(/1 OS/)).toBeInTheDocument()
     expect(within(row).getByText(/\+2\s000/)).toBeInTheDocument()
     expect(screen.getByText(/OS sans lot \(1\)/)).toBeInTheDocument()
-    expect(screen.getByText(/280\s€\/m²/)).toBeInTheDocument()
+    // Ratio TTC : 28 000 HT × 1,2 / 100 m²
+    expect(screen.getByText('Ratio TTC/m²').parentElement.textContent).toMatch(/336\s€/)
+  })
+
+  it('relecture des prix par l’IA : remarques affichées avec leur impact', async () => {
+    apiPost.mockResolvedValue({ data: { synthese: 'Niveau réaliste.', remarques: [{ type: 'oubli', poste: '', message: 'Dalle de toiture absente', impact_ht: 8000 }] } })
+    render(<ChiffrageSection chantier={{ id: 'c1', nom: 'Villa' }} />)
+    await userEvent.click(screen.getByRole('button', { name: 'Vérifier les prix (IA)' }))
+    expect(await screen.findByText('Dalle de toiture absente')).toBeInTheDocument()
+    expect(screen.getByText(/\+8\s000/)).toBeInTheDocument()
+    expect(apiPost.mock.calls[0][1]).toMatchObject({ action: 'verifier', surface_m2: 100, lots: CHIFFRAGE.lots })
   })
 
   it('sans chiffrage : bouton de création ; migration absente : message', () => {
@@ -57,10 +67,12 @@ describe('ChiffrageEditor', () => {
     const pu = screen.getAllByLabelText('Prix unitaire HT')[1]
     // fireEvent : la modale déplace le focus à l'ouverture (frappe non déterministe)
     fireEvent.change(pu, { target: { value: '9000,5' } })
-    expect(screen.getByText(/Travaux HT/).textContent).toMatch(/29\s001/)
+    expect(screen.getByTestId('chiffrage-totaux').textContent).toMatch(/29\s001/)
     await userEvent.click(screen.getByRole('button', { name: 'Enregistrer' }))
     const saved = onSave.mock.calls[0][0]
-    expect(saved.lots[1].postes[0]).toMatchObject({ designation: 'Installation', pu_ht: 9000.5, quantite: 1 })
+    // Prix saisi à la main : verrouillé
+    expect(saved.lots[1].postes[0]).toMatchObject({ designation: 'Installation', pu_ht: 9000.5, quantite: 1, verrou: true })
+    expect(saved.lots[0].postes[0].verrou).toBeUndefined()
     expect(saved).toMatchObject({ description: 'Maison', tva_pct: '20' })
   })
 
@@ -103,5 +115,23 @@ describe('ChiffrageCreateModal — depuis les plans', () => {
     const gen = apiPost.mock.calls.find(c => c[1].action === 'generer')[1]
     expect(gen).toMatchObject({ description: 'Maison plain-pied', surface_m2: 110, metre: [{ element: 'Surface de toiture', quantite: '160', unite: 'm²', source: 'estimé' }] })
     expect(onResult).toHaveBeenCalledWith(expect.objectContaining({ source: 'plans', description: 'Maison plain-pied' }))
+  })
+})
+
+describe('ChiffrageEditor — honoraires et calage', () => {
+  it('lot honoraires ajouté en tête ; calage des seuls prix libres sur l’objectif TTC', async () => {
+    const onSave = jest.fn().mockResolvedValue()
+    const initial = { ...CHIFFRAGE, lots: [CHIFFRAGE.lots[0], { ...CHIFFRAGE.lots[1], postes: [{ ...CHIFFRAGE.lots[1].postes[0], verrou: true }] }] }
+    render(<ChiffrageEditor open initial={initial} chantier={{}} onClose={jest.fn()} onSave={onSave} />)
+    await userEvent.click(screen.getByRole('button', { name: '+ Lot honoraires MOE' }))
+    expect(screen.getAllByLabelText('Nom du lot')[0].value).toBe("HONORAIRES MAÎTRISE D'ŒUVRE")
+    // Travaux : 20 000 (libre) + 8 000 (verrouillé) ; objectif travaux 30 000 TTC = 25 000 HT → 17 000 libre
+    fireEvent.change(screen.getByPlaceholderText('300 000'), { target: { value: '30 000' } })
+    await userEvent.click(screen.getByRole('button', { name: 'Caler les prix libres' }))
+    expect(addToast).toHaveBeenCalledWith(expect.stringMatching(/^Calé : 30\s000\s€ TTC/), 'success')
+    await userEvent.click(screen.getByRole('button', { name: 'Enregistrer' }))
+    const saved = onSave.mock.calls[0][0]
+    expect(saved.lots[0]).toMatchObject({ honoraires: true })
+    expect(saved.lots.slice(1).map(l => l.postes[0].pu_ht)).toEqual([17000, 8000])
   })
 })
