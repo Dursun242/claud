@@ -2,6 +2,7 @@
 import { useMemo, useState } from 'react'
 import Modal from '../Modal'
 import RelanceControls from './RelanceControls'
+import { LEGAL_META } from '../../lib/legalCheck'
 import { useToast } from '../../contexts/ToastContext'
 import { useConfirm } from '../../contexts/ConfirmContext'
 import { conformitePost } from '../../hooks/useConformite'
@@ -187,6 +188,7 @@ export default function ConformiteSuiviModal({ open, onClose, contacts = [], con
                 <thead>
                   <tr style={{ textAlign: 'left', color: '#64748B' }}>
                     <th style={{ padding: '6px 4px', fontWeight: 600 }}>Entreprise</th>
+                    <th style={{ padding: '6px 4px', fontWeight: 600, textAlign: 'center' }}>Société</th>
                     {DOC_KINDS.map(k => <th key={k} style={{ padding: '6px 4px', fontWeight: 600, textAlign: 'center' }}>{DOC_META[k].label}</th>)}
                     <th style={{ padding: '6px 4px', fontWeight: 600 }}>Dernière demande</th>
                     <th style={{ padding: '6px 4px', fontWeight: 600 }}>Prochaine relance</th>
@@ -206,6 +208,20 @@ export default function ConformiteSuiviModal({ open, onClose, contacts = [], con
                           {r.origine === 'demande' && <span style={{ marginLeft: 6, color: '#7C3AED', fontWeight: 700 }}>· demande manuelle</span>}
                         </div>
                       </td>
+                      {(() => {
+                        const l = conformite.legalByContact?.get(r.contact.id)
+                        const meta = LEGAL_META[l?.statut] || LEGAL_META.inconnu
+                        const sym = !l ? '?' : l.statut === 'ok' ? '✓' : l.statut === 'inconnu' ? '?' : '⚠'
+                        const label = l ? `${meta.label} : ${l.libelle || ''}` : 'Situation de l’entreprise non vérifiée'
+                        return (
+                          <td style={{ padding: '6px 4px', textAlign: 'center' }}>
+                            <span title={label} aria-label={`Société : ${label}`}
+                              style={{ display: 'inline-flex', width: 22, height: 22, alignItems: 'center', justifyContent: 'center', borderRadius: 999, background: meta.bg, color: meta.color, border: `1px solid ${meta.border}`, fontWeight: 800 }}>
+                              {sym}
+                            </span>
+                          </td>
+                        )
+                      })()}
                       {DOC_KINDS.map(k => {
                         const st = r.compliance.kinds[k].status
                         const meta = STATUS_META[st]
@@ -245,7 +261,7 @@ export default function ConformiteSuiviModal({ open, onClose, contacts = [], con
             </div>
           )}
           <div style={{ ...small, marginTop: 8 }}>
-            ✓ à jour · ⏳ expire bientôt · ! à vérifier ou à renvoyer · – manquant · ✕ expiré. Cliquez sur une entreprise pour ouvrir ses documents.
+            Société : ✓ active · ⚠ fermée, en liquidation ou en procédure collective · ? non vérifiée. Documents : ✓ à jour · ⏳ expire bientôt · ! à vérifier ou à renvoyer · – manquant · ✕ expiré. Cliquez sur une entreprise pour ouvrir ses documents.
           </div>
         </>
       )}

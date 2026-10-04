@@ -77,6 +77,21 @@ describe('ConformiteModal', () => {
     expect(addToast).toHaveBeenCalledWith('Demande envoyée à costa@ex.fr', 'success')
   })
 
+  it('situation de l’entreprise : vérifier maintenant, dossier de vigilance', async () => {
+    window.open = jest.fn()
+    mockPost.mockResolvedValueOnce({ statut: 'critique', libelle: 'Liquidation judiciaire (BODACC du 15/09/2026)' })
+    setup({ legal: { statut: 'alerte', libelle: 'Redressement judiciaire (BODACC du 01/09/2026)', checked_at: '2026-10-04T06:00:00Z' } })
+    expect(screen.getByText('Procédure en cours')).toBeInTheDocument()
+    expect(screen.getByText(/Redressement judiciaire \(BODACC du 01\/09\/2026\) · contrôlé le/)).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: /Vérifier maintenant/ }))
+    expect(mockPost).toHaveBeenCalledWith({ action: 'verifier', contactId: 'c1' })
+    expect(addToast).toHaveBeenCalledWith('Liquidation judiciaire (BODACC du 15/09/2026)', 'error')
+    mockPost.mockResolvedValueOnce({ url: 'https://files/dossier.pdf', annexes: 2 })
+    await userEvent.click(screen.getByRole('button', { name: /Dossier de vigilance/ }))
+    expect(mockPost).toHaveBeenLastCalledWith({ action: 'dossier', contactId: 'c1' })
+    expect(window.open).toHaveBeenCalledWith('https://files/dossier.pdf', '_blank', 'noopener')
+  })
+
   it('migration non appliquée : message', () => {
     setup({ missingMigration: true })
     expect(screen.getByText(/appliquer la migration 036/)).toBeInTheDocument()
@@ -95,5 +110,17 @@ describe('ConformiteBadge', () => {
     expect(screen.getByText(/Documents à jour/)).toBeInTheDocument()
     rerender(<ConformiteBadge compliance={contactCompliance([...all.slice(0, 3), { ...all[3], valide_au: inDays(-1) }, all[4]], today)} />)
     expect(screen.getByText(/Fiscale : expiré/)).toBeInTheDocument()
+  })
+})
+
+describe('LegalBadge', () => {
+  const LegalBadge = require('../LegalBadge').default
+  it('n’apparaît que pour une entreprise fermée ou en procédure', () => {
+    const { rerender, container } = render(<LegalBadge check={{ statut: 'ok', libelle: 'Entreprise active' }} />)
+    expect(container).toBeEmptyDOMElement()
+    rerender(<LegalBadge check={{ statut: 'critique', libelle: 'Liquidation judiciaire' }} />)
+    expect(screen.getByTitle('Liquidation judiciaire')).toHaveTextContent('⚠ Fermée / liquidation')
+    rerender(<LegalBadge check={{ statut: 'alerte', libelle: 'Redressement' }} />)
+    expect(screen.getByTitle('Redressement')).toHaveTextContent('⚠ Procédure collective')
   })
 })

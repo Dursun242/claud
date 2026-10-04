@@ -74,6 +74,12 @@ async function loadConformiteDocs(admin) {
   return data || []
 }
 
+// Contrôle légal des entreprises (migration 039) ; [] si absent
+async function loadLegalChecks(admin) {
+  const { data, error } = await admin.from('contact_legal_checks').select('*')
+  return error ? [] : (data || [])
+}
+
 async function staffEmails(admin) {
   const { data, error } = await admin.from('authorized_users').select('email, role, actif')
   if (error) throw new Error('Lecture des comptes impossible : ' + error.message)
@@ -155,9 +161,9 @@ export async function GET(request) {
     if (lastErr) return Response.json({ error: 'Lecture de la date du dernier envoi impossible : ' + lastErr.message }, { status: 500 })
     if (lastRow?.value === clock.today) return Response.json({ ok: true, skipped: 'déjà envoyé aujourd’hui' })
 
-    const [data, crm, conformiteDocs] = await Promise.all([loadDashboard(admin), loadCrmWith(admin), loadConformiteDocs(admin)])
+    const [data, crm, conformiteDocs, legalChecks] = await Promise.all([loadDashboard(admin), loadCrmWith(admin), loadConformiteDocs(admin), loadLegalChecks(admin)])
     const { priorities } = buildDailyPriorities({
-      data, crm, today: clock.today, nowHM: clock.hm, conformiteDocs,
+      data, crm, today: clock.today, nowHM: clock.hm, conformiteDocs, legalChecks,
       // Date de Paris pour le CRM (lib/crm.js lit la date UTC de l'instant)
       now: new Date(`${clock.today}T12:00:00Z`),
     })

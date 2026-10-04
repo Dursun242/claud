@@ -308,3 +308,37 @@ export async function setGlobalPause(admin, paused, log) {
   if (error) { log?.error('suspension générale des relances', error.message); return fail('Enregistrement impossible.', 500) }
   return { data: { paused: !!paused } }
 }
+
+// ─── Dossier de vigilance (PDF) ───
+
+/**
+ * Construit le dossier de vigilance d'une entreprise (synthèse + documents
+ * en annexe), le dépose dans le stockage et renvoie un lien (10 min).
+ */
+export async function makeDossier(admin, contact, log) {
+  const { data: docs, error } = await loadContactDocs(admin, contact.id)
+  if (error) return missingTable(error) ? fail(MIGRATION_MSG, 503) : fail('Lecture des documents impossible.', 500)
+  const { data: requests } = await admin.from('contact_doc_requests').select('*').eq('contact_id', contact.id)
+  const { data: legal, error: legalErr } = await admin.from('contact_legal_checks').select('*').eq('contact_id', contact.id).maybeSingle()
+  if (legalErr && !missingTable(legalErr)) log?.warn('lecture du contrôle légal', legalErr.message)
+  const compliance = contactCompliance(docs, todayParis())
+
+  const annexes = []
+  for (const kind of DOC_KINDS) {
+    const doc = compliance.kinds[kind].doc
+    if (!doc?.file_path) continue
+    const { data: blob, error: dlErr } = await admin.storage.from(BUCKET).download(doc.file_path)
+    if (dlErr || !blob) { log?.warn('annexe introuvable', doc.file_path); continue }
+    annexes.push({ doc, bytes: new Uint8Array(await blob.arrayBuffer()), mediaType: confType(doc.file_name, blob.type) || 'application/pdf' })
+  }
+  const { buildDossierVigilance } = await import('./dossierVigilance')
+  const bytes = await buildDossierVigilance({ contact, compliance, docs, requests: requests || [], legal: legal || null, annexes, company: COMPANY })
+
+  const nom = safeFileName(`Dossier de vigilance - ${contact.societe || contact.nom} - ${todayParis()}.pdf`)
+  const path = `${CONF_PREFIX}${contact.id}/dossier/${Date.now()}__${storageName(nom)}`
+  const { error: upErr } = await admin.storage.from(BUCKET).upload(path, bytes, { contentType: 'application/pdf', upsert: true })
+  if (upErr) { log?.error('dépôt du dossier', upErr.message); return fail('Enregistrement du dossier impossible.', 500) }
+  const { data: signed, error: sErr } = await admin.storage.from(BUCKET).createSignedUrl(path, 600, { download: nom })
+  if (sErr || !signed?.signedUrl) return fail('Lien du dossier indisponible.', 500)
+  return { data: { url: signed.signedUrl, name: nom, annexes: annexes.length } }
+}
