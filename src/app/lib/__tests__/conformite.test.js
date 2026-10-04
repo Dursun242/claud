@@ -283,3 +283,21 @@ describe('entreprises suivies : chantier en cours ou demande manuelle', () => {
     expect(planRelances({ contacts, byContact, lastRequest, activeIds, today: TODAY, now }).map(p => p.contact.id)).toEqual(['a', 'm'])
   })
 })
+
+describe('mail à l’équipe à chaque dépôt', () => {
+  const { depositMailText, contactCompliance } = require('../conformite')
+  const base = { contact_id: 'c1', anomalies: [], created_at: '2026-09-01' }
+  it('document lu, points à vérifier, avancement ; dossier complet', () => {
+    const docs = [{ ...base, kind: 'kbis', valide_au: '2026-12-01' }, { ...base, kind: 'urssaf', valide_au: '2027-01-01', anomalies: ['Document non signé.'], file_name: 'v.pdf' }]
+    const m = depositMailText({ contact: { nom: 'Costa' }, kind: 'urssaf', doc: docs[1], compliance: contactCompliance(docs, TODAY), appUrl: 'https://app' })
+    expect(m.subject).toBe('📄 Costa a déposé : Attestation de vigilance URSSAF (à vérifier)')
+    expect(m.text).toContain('Costa vient de déposer : Attestation de vigilance URSSAF (v.pdf).')
+    expect(m.text).toContain('À vérifier : Document non signé.')
+    expect(m.text).toContain('Avancement : 1/5 documents à jour · encore à fournir ou à revoir : Décennale, URSSAF, Fiscale, RIB.')
+    expect(m.action).toMatchObject({ url: 'https://app', label: 'Ouvrir l’application' })
+    const all = ['kbis', 'decennale', 'urssaf', 'fiscale'].map(k => ({ ...base, kind: k, valide_au: '2027-06-01' })).concat({ ...base, kind: 'rib', iban: 'FR7630006000011234567890189', raison_sociale: 'COSTA' })
+    const full = depositMailText({ contact: { nom: 'Costa' }, kind: 'rib', doc: all[4], compliance: contactCompliance(all, TODAY) })
+    expect(full.text).toContain('Lecture automatique : IBAN lu : FR76 3000 6000 0112 3456 7890 189 · titulaire : COSTA.')
+    expect(full.text).toContain('Avancement : 5/5 documents à jour. Dossier complet.')
+  })
+})

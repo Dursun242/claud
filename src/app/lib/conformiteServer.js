@@ -5,7 +5,7 @@
 
 import crypto from 'node:crypto'
 import { generate, stripJsonFence } from './ai'
-import { DOC_KINDS, DOC_META, computeValidUntil, identityAnomalies, contactCompliance, requestMailText, isIsoDate, normIban, PAUSE_KEY } from './conformite'
+import { DOC_KINDS, DOC_META, computeValidUntil, identityAnomalies, contactCompliance, requestMailText, isIsoDate, normIban, PAUSE_KEY, depositMailText } from './conformite'
 import { validateIban } from './validators'
 import { DOC_READ_SCHEMA, DOC_READ_SYSTEM, docReadPrompt, cleanDocRead } from './conformiteAi'
 import { safeFileName, storageName } from './devisDocuments'
@@ -265,8 +265,14 @@ export async function sendRequest(admin, { contact, email, auto = false, appUrl,
   return { data: { link, sent, email: to || null, expireLe: req.expire_le } }
 }
 
-/** Prévient l'équipe d'un dépôt fait par l'entreprise (cloche + mail). */
-export async function notifyDeposit(admin, { contact, kind, doc }, log) {
+const MAX_PJ_DEPOT = 5 * 1024 * 1024
+
+/**
+ * Prévient l'équipe d'un dépôt fait par l'entreprise : cloche, et mail à
+ * chaque dépôt (boîte DEVIS_NOTIFY_EMAIL, sinon SMTP_USER) avec ce qui a été
+ * lu, l'avancement de l'entreprise et le document en pièce jointe.
+ */
+export async function notifyDeposit(admin, { contact, kind, doc, compliance = null, appUrl = '' }, log) {
   const title = `📄 ${contact.societe || contact.nom} a déposé : ${DOC_META[kind]?.long || kind}`
   const body = doc?.anomalies?.length ? `À vérifier : ${doc.anomalies[0]}` : (doc?.valide_au ? `Valable jusqu’au ${doc.valide_au.split('-').reverse().join('/')}` : '')
   try {
@@ -282,6 +288,25 @@ export async function notifyDeposit(admin, { contact, kind, doc }, log) {
       if (error) log?.warn('notification dépôt', error.message)
     }
   } catch (e) { log?.warn('notification dépôt', e?.message || e) }
+
+  try {
+    const cfg = smtpConfig()
+    if (!cfg) return
+    const m = depositMailText({ contact, kind, doc, compliance, appUrl })
+    const attachments = [{ filename: 'logo-id-maitrise.png', content: Buffer.from(LOGO_PNG_BASE64, 'base64'), contentType: 'image/png', cid: LOGO_CID, contentDisposition: 'inline' }]
+    // Le document lui-même, s'il n'est pas trop lourd pour un mail
+    if (doc?.file_path) {
+      const { data: blob } = await admin.storage.from(BUCKET).download(doc.file_path)
+      if (blob && blob.size <= MAX_PJ_DEPOT) {
+        attachments.push({ filename: doc.file_name || 'document', content: Buffer.from(await blob.arrayBuffer()), contentType: blob.type || undefined })
+      }
+    }
+    await sendMail(cfg, {
+      to: cfg.notify, subject: m.subject, text: m.text,
+      html: devisMailHtml({ body: m.htmlBody, action: m.action, company: COMPANY, title: m.subject, logoSrc: `cid:${LOGO_CID}` }),
+      attachments,
+    })
+  } catch (e) { log?.warn('mail de dépôt', e?.code || e?.message || e) }
 }
 
 // ─── Suspension des relances automatiques ───

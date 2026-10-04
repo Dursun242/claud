@@ -14,6 +14,8 @@ import { adminClient } from '@/app/lib/supabaseClients'
 import { generate } from '@/app/lib/ai'
 // eslint-disable-next-line import/first
 import { memoryDb } from '@/test-utils/memoryDb'
+// eslint-disable-next-line import/first
+import { smtpConfig, sendMail } from '@/app/lib/mailer'
 
 const TOKEN = 'a'.repeat(48)
 const headers = { get: (k) => (k === 'x-forwarded-for' ? '1.2.3.4' : null) }
@@ -80,6 +82,28 @@ describe('/api/conformite/public (sans compte, par jeton)', () => {
     expect(data.documents.find(d => d.kind === 'urssaf')).toMatchObject({ status: 'ok', valideAu: '2027-03-20' })
     expect(db.tables.contact_documents.find(d => d.kind === 'urssaf')).toMatchObject({ depose_par: 'entreprise', code_securite: 'ABC123' })
     expect(db.tables.notifications).toEqual([expect.objectContaining({ recipient_email: 'moe@id.fr', entity_type: 'contact', target_tab: 'contacts' })])
+  })
+
+  it('POST : un mail à l’équipe à chaque dépôt (document joint, avancement)', async () => {
+    smtpConfig.mockReturnValue({ from: 'moe@id.fr', notify: 'moe@id.fr', transport: {} })
+    sendMail.mockResolvedValue({})
+    const prep = await (await post({ token: TOKEN, action: 'prepare', kind: 'fiscale', name: 'fiscale.pdf', type: 'application/pdf', size: 1000 })).json()
+    db.putFile(prep.data.path, '%PDF-1.4 fiscale')
+    generate.mockResolvedValue({ ok: true, text: JSON.stringify({
+      type_document: 'fiscale', raison_sociale: '', siret: '', date_document: '2026-09-20', valide_du: '', valide_au: '',
+      assureur: '', numero_police: '', activites: '', activite_couverte: 'inconnu', code_securite: '', iban: '', bic: '', anomalies: [],
+    }) })
+    await post({ token: TOKEN, action: 'register', kind: 'fiscale', path: prep.data.path, name: 'fiscale.pdf' })
+    expect(sendMail).toHaveBeenCalledTimes(1)
+    const mail = sendMail.mock.calls[0][1]
+    expect(mail.to).toBe('moe@id.fr')
+    expect(mail.subject).toBe('📄 Costa Plomberie a déposé : Attestation de régularité fiscale')
+    expect(mail.text).toContain('Lecture automatique : valable jusqu’au 20/03/2027.')
+    expect(mail.text).toContain('Avancement : 2/5 documents à jour · encore à fournir ou à revoir : Décennale, URSSAF, RIB.')
+    expect(mail.text).toContain('Ouvrir l’application : https://app.test')
+    expect(mail.html).toContain('Ouvrir l’application')
+    expect(mail.attachments.map(a => a.filename)).toEqual(['logo-id-maitrise.png', 'fiscale.pdf'])
+    smtpConfig.mockReturnValue(null)
   })
 
   it('POST : jeton requis, pas d’accès à une autre entreprise', async () => {

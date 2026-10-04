@@ -411,3 +411,37 @@ function addDays(iso, n) {
   d.setUTCDate(d.getUTCDate() + n)
   return d.toISOString().slice(0, 10)
 }
+
+/**
+ * Mail à l'équipe à chaque dépôt d'une entreprise : document reçu, ce qui a
+ * été lu, avancement de l'entreprise (documents à jour / encore à fournir).
+ * @returns {{ subject, text, htmlBody, action }}
+ */
+export function depositMailText({ contact = {}, kind, doc = {}, compliance, appUrl = '' } = {}) {
+  const nom = contact.societe || contact.nom || 'Une entreprise'
+  const meta = DOC_META[kind] || { long: kind }
+  const k = compliance?.kinds?.[kind] || docStatus(doc, '')
+  const lu = DOC_META[kind]?.sansExpiration
+    ? [doc.iban ? `IBAN lu : ${doc.iban.replace(/(.{4})/g, '$1 ').trim()}` : 'IBAN non lu', doc.raison_sociale ? `titulaire : ${doc.raison_sociale}` : null].filter(Boolean).join(' · ')
+    : (k?.valideAu ? `valable jusqu’au ${fmtD(k.valideAu)}` : 'date de validité non lue : à saisir dans la fiche')
+  const total = DOC_KINDS.length
+  const aJour = compliance ? DOC_KINDS.filter(x => ['ok', 'bientot'].includes(compliance.kinds[x].status)).length : null
+  const reste = compliance ? kindsToRequest(compliance).map(x => DOC_META[x].label) : []
+  const anomalies = doc.anomalies || []
+  const lines = [
+    `${nom} vient de déposer : ${meta.long}${doc.file_name ? ` (${doc.file_name})` : ''}.`,
+    '',
+    `Lecture automatique : ${lu}.`,
+    ...anomalies.map(a => `À vérifier : ${a}`),
+    '',
+    aJour === null ? null : (aJour === total
+      ? `Avancement : ${total}/${total} documents à jour. Dossier complet.`
+      : `Avancement : ${aJour}/${total} documents à jour${reste.length ? ` · encore à fournir ou à revoir : ${reste.join(', ')}` : ''}.`),
+  ].filter(l => l !== null)
+  const subject = `📄 ${nom} a déposé : ${meta.long}${anomalies.length ? ' (à vérifier)' : ''}`
+  const text = [...lines, appUrl ? `\nOuvrir l’application : ${appUrl} (Contacts → Documents)` : ''].join('\n').trim()
+  return {
+    subject, text, htmlBody: lines.join('\n'),
+    action: appUrl ? { url: appUrl, label: 'Ouvrir l’application', hint: 'Contacts → Documents de l’entreprise' } : null,
+  }
+}
