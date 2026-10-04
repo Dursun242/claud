@@ -5,7 +5,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import Modal from '../Modal'
 import { inp, sel, btnP, btnS, fmtMoney } from '../../dashboards/shared'
-import { UNITES, newId, normalizeLots, chiffrageTotals, sanityChecks, lotTotal, posteTotal } from '../../lib/chiffrage'
+import { UNITES, newId, normalizeLots, chiffrageTotals, sanityChecks, lotTotal, posteTotal, refsIndex, refFor } from '../../lib/chiffrage'
 import { useToast } from '../../contexts/ToastContext'
 
 const small = { ...inp, minHeight: 38, padding: '7px 9px', fontSize: 14 }
@@ -27,7 +27,7 @@ const toDraft = (c) => ({
 })
 const dec = (v) => String(v ?? '').replace(',', '.')
 
-export default function ChiffrageEditor({ open, initial, chantier, onClose, onSave }) {
+export default function ChiffrageEditor({ open, initial, chantier, refs = [], onClose, onSave }) {
   const { addToast } = useToast()
   const [d, setD] = useState(() => toDraft(initial))
   const [saving, setSaving] = useState(false)
@@ -39,6 +39,8 @@ export default function ChiffrageEditor({ open, initial, chantier, onClose, onSa
   }), [d])
   const totals = useMemo(() => chiffrageTotals(clean), [clean])
   const checks = useMemo(() => sanityChecks(clean), [clean])
+  // Prix payés dans les OS pour un poste identique (désignation + unité)
+  const refIdx = useMemo(() => refsIndex(refs), [refs])
 
   const setLot = (id, fn) => setD(s => ({ ...s, lots: s.lots.map(l => l.id === id ? fn(l) : l) }))
   const setPoste = (lotId, pid, patch) => setLot(lotId, l => ({ ...l, postes: l.postes.map(p => p.id === pid ? { ...p, ...patch } : p) }))
@@ -108,6 +110,20 @@ export default function ChiffrageEditor({ open, initial, chantier, onClose, onSa
               </select>
               <input aria-label="Prix unitaire HT" inputMode="decimal" value={p.pu_ht} onChange={e => setPoste(l.id, p.id, { pu_ht: e.target.value })} placeholder="PU HT" style={{ ...small, width: 96, textAlign: 'right' }} />
               <span style={{ width: 92, textAlign: 'right', fontSize: 13, color: '#334155' }}>{fmtMoney(posteTotal({ quantite: dec(p.quantite), pu_ht: dec(p.pu_ht) }))}</span>
+              {(() => {
+                const r = refFor(refIdx, p)
+                if (!r) return null
+                const same = Math.abs(Number(dec(p.pu_ht)) - r.pu_ht) < 0.01
+                const range = r.nb > 1 && r.min !== r.max ? ` · ${r.min}–${r.max} €` : ''
+                return (
+                  <button type="button" disabled={same} onClick={() => setPoste(l.id, p.id, { pu_ht: String(r.pu_ht).replace('.', ',') })}
+                    title={`Prix payé dans ${r.nb} OS${r.metier ? ` (${r.metier})` : ''}${range}${same ? '' : ' — cliquer pour l’appliquer'}`}
+                    style={{ fontSize: 10, fontWeight: 700, borderRadius: 10, padding: '2px 7px', fontFamily: 'inherit', cursor: same ? 'default' : 'pointer',
+                      border: `1px solid ${same ? '#A7F3D0' : '#FDE68A'}`, background: same ? '#ECFDF5' : '#FFFBEB', color: same ? '#047857' : '#92400E' }}>
+                    OS {String(r.pu_ht).replace('.', ',')} €{r.nb > 1 ? ` ×${r.nb}` : ''}
+                  </button>
+                )
+              })()}
               <button title="Supprimer le poste" aria-label="Supprimer le poste" onClick={() => delPoste(l.id, p.id)} style={iconBtn}>✕</button>
             </div>
           ))}

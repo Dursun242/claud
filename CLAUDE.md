@@ -38,7 +38,7 @@ src/app/
 ├─ pages/                     → 1 page = 1 onglet. DashboardV, ProjectsV, OrdresServiceV, ContactsV, CrmV, AIV, ...
 ├─ components/                → briques UI réutilisables (Modal, Badge, Skeleton, OsCard, ChantierCard, PVRow...)
 │                               components/crm/ : écrans du CRM (pipeline, fiche affaire, formulaires, devis) — CrmV.js ne fait qu'orchestrer
-│                               components/chiffrage/ : chiffrage estimatif (DPGF) dans la fiche chantier (ChiffrageSection : résumé, estimé / engagé par lot avec les OS, exports PDF / Excel ; ChiffrageCreateModal : IA / import / à la main ; ChiffrageEditor : lots et postes)
+│                               components/chiffrage/ : chiffrage estimatif (DPGF) dans la fiche chantier (ChiffrageSection : résumé, estimé / engagé par lot avec les OS, exports PDF / Excel ; ChiffrageCreateModal : plans PCMI → métré → chiffrage / description / import / à la main ; ChiffrageEditor affiche le prix payé dans les OS pour un poste identique ; ChiffrageEditor : lots et postes)
 │                               components/cr/ : éditeur plein écran des comptes rendus (CREditor : mode Réunion pas à pas / mode Rédaction ; sections par lot, points, photos, dictée + IA, présences/convocation) + envoi par mail (CRSendModal), partagé par ReportsV et ProjectsV
 ├─ contexts/                  → ToastContext + ConfirmContext (non-invasive, context split pour éviter re-renders)
 ├─ hooks/                     → useFloatingMic, useAttachments, useComments, useUndoableDelete, useSignaturesSync, useCrmData, useCrmDevis (logique devis du CRM), useCrEditor (état + brouillon local d'un CR), useDictation (dictée vers un champ)...
@@ -55,7 +55,7 @@ src/app/
     ├─ devis/qonto            → CRM : devis créé dans Qonto (numéro + PDF Qonto), import des devis Qonto, suivi des statuts (staff only)
     ├─ devis/documents        → CRM : pièces jointes des mails de devis (documents permanents Kbis/décennale + fichiers ponctuels, dépôt direct dans Storage par URL signée, 10 Mo, staff only)
     ├─ devis/sign             → CRM : demande de signature électronique d'un devis (staff only)
-    ├─ chiffrage/ia           → chiffrage estimatif : DPGF généré depuis une description (prix des OS passés en référence) ou import d'un texte / tableau collé (sans invention de prix), staff only
+    ├─ chiffrage/ia           → chiffrage estimatif (staff only) : plans du permis (PCMI, PDF / photos déposés par URL signée dans `chiffrage-plans/<chantier>/`, effacés une fois lus) → métré à vérifier ; DPGF généré depuis le métré ou une description (prix des OS passés en référence) ; import d'un texte / tableau collé (sans invention de prix). ANTHROPIC_PLANS_MODEL : modèle Claude dédié à la lecture des plans (facultatif)
     ├─ cr/send                → envoi du CR par mail (PDF + convocation + actions de chaque entreprise, un mail par destinataire, staff only)
     ├─ cr/ia                  → dictée de réunion → proposition structurée (observations / avancement par lot, états des points, nouveaux points, décisions), staff only
     ├─ devis/track            → image de suivi (1×1) des mails de devis : enregistre les ouvertures (public, jeton)

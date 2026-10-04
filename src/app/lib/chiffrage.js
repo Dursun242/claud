@@ -175,26 +175,71 @@ export function sanityChecks({ lots = [], surface_m2 = null, aleas_pct = 0 } = {
 }
 
 /**
- * Prix de référence de la société, tirés des OS passés (pour l'IA) :
- * [{ designation, unite, pu_ht, metier }], dédoublonnés, les plus récents d'abord.
+ * Prix de référence de la société, tirés des OS passés (prix du marché
+ * réellement payés) : [{ designation, unite, pu_ht, nb, min, max, metier }].
+ * Un poste par désignation + unité : dernier prix, nombre d'OS, fourchette ;
+ * les plus récents d'abord.
  */
-export function osPriceRefs(os = [], max = 80) {
-  const seen = new Set()
-  const out = []
-  const sorted = [...os].sort((a, b) => String(b.date_emission || b.created_at || '').localeCompare(String(a.date_emission || a.created_at || '')))
+export function osPriceRefs(os = [], max = 120) {
+  const byKey = new Map()
+  const sorted = [...os]
+    .filter(o => o?.statut !== 'Annulé')
+    .sort((a, b) => String(b.date_emission || b.created_at || '').localeCompare(String(a.date_emission || a.created_at || '')))
   for (const o of sorted) {
     for (const p of o.prestations || []) {
       const designation = String(p.description || '').trim()
-      const pu = num(p.prix_unitaire)
+      const pu = round2(num(p.prix_unitaire))
       if (!designation || !pu) continue
       const k = `${fold(designation)}|${fold(p.unite)}`
-      if (seen.has(k)) continue
-      seen.add(k)
-      out.push({ designation: designation.slice(0, 140), unite: p.unite || 'u', pu_ht: round2(pu), metier: o.artisan_specialite || o.lot || '' })
-      if (out.length >= max) return out
+      const r = byKey.get(k)
+      if (r) { r.nb += 1; r.min = Math.min(r.min, pu); r.max = Math.max(r.max, pu); continue }
+      byKey.set(k, { designation: designation.slice(0, 140), unite: p.unite || 'u', pu_ht: pu, nb: 1, min: pu, max: pu, metier: o.artisan_specialite || o.lot || '' })
     }
   }
-  return out
+  return [...byKey.values()].slice(0, max)
+}
+
+/**
+ * Index des prix des OS pour l'éditeur : (désignation, unité) → référence.
+ * `refFor(index, poste)` renvoie la référence d'un poste, ou null.
+ */
+export const refsIndex = (refs = []) => new Map(refs.map(r => [`${fold(r.designation).trim()}|${fold(r.unite)}`, r]))
+export const refFor = (index, p) => index.get(`${fold(p?.designation).trim()}|${fold(p?.unite)}`) || null
+
+/** Métré relevé sur les plans (PCMI) par l'IA : lignes propres. */
+export function normalizeMetre(rows = []) {
+  return (Array.isArray(rows) ? rows : []).map(r => ({
+    element: String(r?.element || '').trim().slice(0, 160),
+    quantite: round2(num(r?.quantite)),
+    unite: String(r?.unite || '').trim().slice(0, 12),
+    source: String(r?.source || '').trim().slice(0, 120),
+  })).filter(r => r.element).slice(0, 60)
+}
+
+/** Schéma JSON demandé à l'IA pour la lecture des plans. */
+export const METRE_AI_SCHEMA = {
+  type: 'object',
+  properties: {
+    projet: { type: 'string' },
+    surface_m2: { type: 'number' },
+    metre: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          element: { type: 'string' },
+          quantite: { type: 'number' },
+          unite: { type: 'string' },
+          source: { type: 'string' },
+        },
+        required: ['element', 'quantite', 'unite', 'source'],
+        additionalProperties: false,
+      },
+    },
+    alertes: { type: 'array', items: { type: 'string' } },
+  },
+  required: ['projet', 'surface_m2', 'metre', 'alertes'],
+  additionalProperties: false,
 }
 
 /** Export tableur (CSV « ; », virgule décimale) : une ligne par poste + sous-totaux. */

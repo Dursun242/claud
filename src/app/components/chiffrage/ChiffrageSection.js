@@ -7,7 +7,7 @@
 import { useMemo, useState } from 'react'
 import { fmtMoney } from '../../dashboards/shared'
 import { useChiffrage } from '../../hooks/useChiffrage'
-import { chiffrageTotals, compareWithOs, sanityChecks, chiffrageCsvRows } from '../../lib/chiffrage'
+import { chiffrageTotals, compareWithOs, sanityChecks, chiffrageCsvRows, osPriceRefs } from '../../lib/chiffrage'
 import { rowsToCSV, downloadCSV } from '../../lib/csv'
 import { useToast } from '../../contexts/ToastContext'
 import { useConfirm } from '../../contexts/ConfirmContext'
@@ -34,6 +34,7 @@ export default function ChiffrageSection({ chantier, os = [], allOs = [], user, 
   const totals = useMemo(() => chiffrage && chiffrageTotals(chiffrage), [chiffrage])
   const cmp = useMemo(() => chiffrage && compareWithOs({ lots: chiffrage.lots, os, aleas_pct: chiffrage.aleas_pct }), [chiffrage, os])
   const checks = useMemo(() => chiffrage ? sanityChecks(chiffrage) : [], [chiffrage])
+  const refs = useMemo(() => (editing ? osPriceRefs(allOs, 500) : []), [editing, allOs])
 
   const onSave = async (c) => {
     await save(c, user?.email)
@@ -187,6 +188,7 @@ export default function ChiffrageSection({ chantier, os = [], allOs = [], user, 
         open={!!editing}
         initial={editing}
         chantier={chantier}
+        refs={refs}
         onClose={() => setEditing(null)}
         onSave={onSave}
       />

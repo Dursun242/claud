@@ -1,4 +1,4 @@
-import { osHT, lotOptions, normalizeLots, lotTotal, chiffrageTotals, suggestLot, compareWithOs, sanityChecks, osPriceRefs, chiffrageCsvRows } from '../chiffrage'
+import { osHT, lotOptions, normalizeMetre, refsIndex, refFor, normalizeLots, lotTotal, chiffrageTotals, suggestLot, compareWithOs, sanityChecks, osPriceRefs, chiffrageCsvRows } from '../chiffrage'
 
 const LOTS = normalizeLots([
   { nom: 'Gros œuvre', postes: [
@@ -66,7 +66,12 @@ describe('chiffrage estimatif', () => {
       { date_emission: '2026-01-01', artisan_specialite: 'Peintre', prestations: [{ description: 'Peinture murs', unite: 'm²', prix_unitaire: 22 }] },
       { date_emission: '2026-06-01', artisan_specialite: 'Peintre', prestations: [{ description: 'Peinture murs', unite: 'm²', prix_unitaire: 25 }, { description: '', prix_unitaire: 5 }] },
     ])
-    expect(refs).toEqual([{ designation: 'Peinture murs', unite: 'm²', pu_ht: 25, metier: 'Peintre' }])
+    expect(refs).toEqual([{ designation: 'Peinture murs', unite: 'm²', pu_ht: 25, nb: 2, min: 22, max: 25, metier: 'Peintre' }])
+    const idx = refsIndex(refs)
+    expect(refFor(idx, { designation: 'peinture murs ', unite: 'm²' })).toMatchObject({ pu_ht: 25, nb: 2 })
+    expect(refFor(idx, { designation: 'Peinture murs', unite: 'ml' })).toBeNull()
+    expect(normalizeMetre([{ element: ' Surface de plancher ', quantite: '110,5', unite: 'm²', source: 'PCMI tableau' }, { element: '' }]))
+      .toEqual([{ element: 'Surface de plancher', quantite: 110.5, unite: 'm²', source: 'PCMI tableau' }])
     const rows = chiffrageCsvRows({ lots: LOTS, aleas_pct: 5, tva_pct: 20 })
     expect(rows[0]).toEqual(['Lot', 'Désignation', 'Quantité', 'Unité', 'PU HT', 'Total HT'])
     expect(rows[2]).toEqual(['Gros œuvre', 'Murs parpaings', '120,5', 'm²', '85', '10242,5'])

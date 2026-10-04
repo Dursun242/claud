@@ -6,12 +6,16 @@ const mockSave = jest.fn()
 let mockState
 jest.mock('../../../contexts/ToastContext', () => ({ useToast: () => ({ addToast }) }))
 jest.mock('../../../contexts/ConfirmContext', () => ({ useConfirm: () => jest.fn().mockResolvedValue(true), useOptionalConfirm: () => null }))
-jest.mock('../../../supabaseClient', () => ({ supabase: {} }))
+const mockUpload = jest.fn().mockResolvedValue({ error: null })
+jest.mock('../../../supabaseClient', () => ({ supabase: { storage: { from: () => ({ uploadToSignedUrl: (...a) => mockUpload(...a) }) } } }))
+jest.mock('../../../lib/conformiteClient', () => ({ prepareFile: async (f) => f }))
 jest.mock('../../../hooks/useChiffrage', () => ({ useChiffrage: () => mockState }))
 jest.mock('../../../lib/crmApi', () => ({ apiPost: jest.fn() }))
 
 import ChiffrageSection from '../ChiffrageSection'
 import ChiffrageEditor from '../ChiffrageEditor'
+import ChiffrageCreateModal from '../ChiffrageCreateModal'
+import { apiPost } from '../../../lib/crmApi'
 
 const CHIFFRAGE = {
   chantier_id: 'c1', surface_m2: 100, aleas_pct: 0, tva_pct: 20, description: 'Maison',
@@ -66,5 +70,38 @@ describe('ChiffrageEditor', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Enregistrer' }))
     expect(onSave).not.toHaveBeenCalled()
     expect(addToast).toHaveBeenCalledWith('Chaque lot doit avoir un nom', 'error')
+  })
+})
+
+describe('ChiffrageEditor — prix des OS', () => {
+  it('affiche le prix payé dans les OS et l’applique au clic', async () => {
+    const onSave = jest.fn().mockResolvedValue()
+    const refs = [{ designation: 'Installation', unite: 'ens', pu_ht: 8500, nb: 3, min: 8000, max: 9000, metier: 'Électricien' }]
+    render(<ChiffrageEditor open initial={CHIFFRAGE} chantier={{}} refs={refs} onClose={jest.fn()} onSave={onSave} />)
+    await userEvent.click(screen.getByRole('button', { name: /OS 8500 € ×3/ }))
+    expect(screen.getAllByLabelText('Prix unitaire HT')[1].value).toBe('8500')
+    expect(screen.getByRole('button', { name: /OS 8500 € ×3/ })).toBeDisabled()
+  })
+})
+
+describe('ChiffrageCreateModal — depuis les plans', () => {
+  it('dépose les plans, montre le métré à corriger puis chiffre avec ce métré', async () => {
+    apiPost.mockImplementation(async (_url, body) => {
+      if (body.action === 'prepare_plan') return { data: { path: `chiffrage-plans/c1/1__${body.name}`, token: 't', type: 'application/pdf' } }
+      if (body.action === 'metre') return { data: { projet: 'Maison plain-pied', surface_m2: 110, alertes: ['Coupe absente'], metre: [{ element: 'Surface de toiture', quantite: 150.5, unite: 'm²', source: 'estimé' }] } }
+      return { data: { lots: [{ nom: 'Couverture', postes: [] }], surface_m2: 110, hypotheses: [], conseils: [] } }
+    })
+    const onResult = jest.fn()
+    render(<ChiffrageCreateModal open chantier={{ id: 'c1', nom: 'Villa', lots: [] }} allOs={[]} onClose={jest.fn()} onResult={onResult} />)
+    const file = new File(['%PDF'], 'PCMI.pdf', { type: 'application/pdf' })
+    fireEvent.change(screen.getByLabelText(/Plans du permis/), { target: { files: [file] } })
+    await userEvent.click(screen.getByRole('button', { name: 'Lire les plans' }))
+    expect(mockUpload).toHaveBeenCalledWith('chiffrage-plans/c1/1__PCMI.pdf', 't', file, { contentType: 'application/pdf' })
+    expect(await screen.findByText('Coupe absente')).toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText('Quantité'), { target: { value: '160' } })
+    await userEvent.click(screen.getByRole('button', { name: 'Chiffrer avec les prix des OS' }))
+    const gen = apiPost.mock.calls.find(c => c[1].action === 'generer')[1]
+    expect(gen).toMatchObject({ description: 'Maison plain-pied', surface_m2: 110, metre: [{ element: 'Surface de toiture', quantite: '160', unite: 'm²', source: 'estimé' }] })
+    expect(onResult).toHaveBeenCalledWith(expect.objectContaining({ source: 'plans', description: 'Maison plain-pied' }))
   })
 })

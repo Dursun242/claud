@@ -58,9 +58,9 @@ function toAnthropicContent(content) {
       : { type: 'text', text: p.text }))
 }
 
-async function callAnthropic({ system, messages, maxTokens, json, timeoutMs, maxRetries }) {
+async function callAnthropic({ system, messages, maxTokens, json, timeoutMs, maxRetries, anthropicModel }) {
   const body = {
-    model: process.env.ANTHROPIC_MODEL || DEFAULT_ANTHROPIC_MODEL,
+    model: anthropicModel || process.env.ANTHROPIC_MODEL || DEFAULT_ANTHROPIC_MODEL,
     max_tokens: maxTokens,
     ...(system ? { system } : {}),
     messages: messages.map(m => ({ role: m.role, content: toAnthropicContent(m.content) })),
@@ -164,7 +164,8 @@ function isProviderSide(status, bodyText) {
  * @returns {Promise<{ ok: true, text: string, stopReason: 'end'|'max_tokens'|'refusal', provider: string, fallbackFrom?: string, fallbackReason?: string }
  *                  | { ok: false, status: number, message: string, provider?: string, raw?: string }>}
  */
-export async function generate({ system, messages, maxTokens = 1024, json = false, timeoutMs = 30_000, maxRetries = 1, log } = {}) {
+// `anthropicModel` : modèle Claude propre à une demande (sinon ANTHROPIC_MODEL).
+export async function generate({ system, messages, maxTokens = 1024, json = false, timeoutMs = 30_000, maxRetries = 1, log, anthropicModel } = {}) {
   const vision = hasImage(messages)
   // Les PDF ne sont lus que par Claude (pas d'envoi de PDF à Mistral)
   const order = providerOrder({ vision }).filter(p => !hasPart(messages, 'document') || p === 'anthropic')
@@ -179,7 +180,7 @@ export async function generate({ system, messages, maxTokens = 1024, json = fals
   for (const provider of order) {
     let r
     try {
-      r = await (provider === 'mistral' ? callMistral : callAnthropic)({ system, messages, maxTokens, json, timeoutMs, maxRetries, vision })
+      r = await (provider === 'mistral' ? callMistral : callAnthropic)({ system, messages, maxTokens, json, timeoutMs, maxRetries, vision, anthropicModel })
     } catch (e) {
       r = { ok: false, status: 503, message: 'Service IA injoignable : réessayez dans quelques instants.', raw: e?.message, retryable: true }
     }
