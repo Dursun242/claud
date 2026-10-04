@@ -57,6 +57,18 @@ describe('ConformiteModal', () => {
     expect(addToast).toHaveBeenCalledWith('Kbis enregistré', 'success')
   })
 
+  it('« Voir » ouvre le document dans l’onglet ouvert pendant le clic', async () => {
+    const tab = { closed: false, location: { href: '' } }
+    window.open = jest.fn(() => tab)
+    mockPost.mockResolvedValue({ url: 'https://files/urssaf.pdf' })
+    setup()
+    const urssaf = screen.getByText('Attestation de vigilance URSSAF').closest('div[style*="border-left"]')
+    await userEvent.click(within(urssaf).getByRole('button', { name: 'Voir' }))
+    expect(mockPost).toHaveBeenCalledWith({ action: 'url', id: 'd2' })
+    expect(window.open).toHaveBeenCalledWith('', '_blank')
+    expect(tab.location.href).toBe('https://files/urssaf.pdf')
+  })
+
   it('correction des dates', async () => {
     mockPost.mockResolvedValue({})
     setup()
@@ -78,7 +90,8 @@ describe('ConformiteModal', () => {
   })
 
   it('situation de l’entreprise : vérifier maintenant, dossier de vigilance', async () => {
-    window.open = jest.fn()
+    const tab = { closed: false, location: { href: '' } }
+    window.open = jest.fn(() => tab)
     mockPost.mockResolvedValueOnce({ statut: 'critique', libelle: 'Liquidation judiciaire (BODACC du 15/09/2026)' })
     setup({ legal: { statut: 'alerte', libelle: 'Redressement judiciaire (BODACC du 01/09/2026)', checked_at: '2026-10-04T06:00:00Z' } })
     expect(screen.getByText('Procédure en cours')).toBeInTheDocument()
@@ -89,7 +102,9 @@ describe('ConformiteModal', () => {
     mockPost.mockResolvedValueOnce({ url: 'https://files/dossier.pdf', annexes: 2 })
     await userEvent.click(screen.getByRole('button', { name: /Dossier de vigilance/ }))
     expect(mockPost).toHaveBeenLastCalledWith({ action: 'dossier', contactId: 'c1' })
-    expect(window.open).toHaveBeenCalledWith('https://files/dossier.pdf', '_blank', 'noopener')
+    // Onglet ouvert pendant le clic (iPhone), puis dirigé vers le PDF
+    expect(window.open).toHaveBeenCalledWith('', '_blank')
+    expect(tab.location.href).toBe('https://files/dossier.pdf')
   })
 
   it('migration non appliquée : message', () => {
