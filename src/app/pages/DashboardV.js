@@ -87,8 +87,8 @@ export default function DashboardV({data,crm=null,ready=true,setTab,m,user,clien
   // Documents des entreprises actives à revoir (Kbis, décennale, fiscale, URSSAF)
   const conformite = useConformite({ enabled: !clientMode });
   const conformiteItems = useMemo(
-    () => (clientMode || conformite.missingMigration ? [] : buildConformiteItems(data, conformite.docs, today)),
-    [clientMode, conformite.missingMigration, conformite.docs, data, today]
+    () => (clientMode || conformite.missingMigration ? [] : buildConformiteItems(data, conformite.docs, today, conformite.legal)),
+    [clientMode, conformite.missingMigration, conformite.docs, conformite.legal, data, today]
   )
   // « Mes priorités du jour » : chantier + commercial en un seul classement.
   // Heure à la minute : un rendez-vous passé depuis plus d'1 h en sort.

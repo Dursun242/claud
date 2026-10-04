@@ -21,6 +21,7 @@ import DuplicatesModal from '../components/contacts/DuplicatesModal'
 import ConformiteBadge from '../components/conformite/ConformiteBadge'
 import ConformiteModal from '../components/conformite/ConformiteModal'
 import ConformiteSuiviModal from '../components/conformite/ConformiteSuiviModal'
+import LegalBadge from '../components/conformite/LegalBadge'
 import { useConformite } from '../hooks/useConformite'
 import { isSubject, complianceOf, activeCompanyIds, buildSuivi, trackedReason } from '../lib/conformite'
 
@@ -749,7 +750,8 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
                 </div>
               )}
               {(isSubject(c) || conf.lastRequest.has(c.id)) && conf.ready && !conf.missingMigration && (
-                <div style={{marginTop:6}}>
+                <div style={{marginTop:6,display:"flex",gap:6,flexWrap:"wrap"}}>
+                  <LegalBadge check={conf.legalByContact?.get(c.id)} onClick={()=>setDocsFor(c.id)}/>
                   <ConformiteBadge compliance={complianceOf(conf.byContact, c.id, conf.today)} onClick={()=>setDocsFor(c.id)}/>
                 </div>
               )}
@@ -811,6 +813,7 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
       compliance={complianceOf(conf.byContact, docsFor, conf.today)}
       lastRequest={conf.lastRequest.get(docsFor) || null}
       missingMigration={conf.missingMigration}
+      legal={conf.legalByContact?.get(docsFor) || null}
       onChanged={() => { conf.reload(); reload?.(); }} />
 
     <DuplicatesModal open={dupOpen} groups={dupGroups} usage={usage} merging={merging}

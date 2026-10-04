@@ -43,7 +43,7 @@ src/app/
 ├─ hooks/                     → useFloatingMic, useAttachments, useComments, useUndoableDelete, useSignaturesSync, useCrmData, useCrmDevis (logique devis du CRM), useCrEditor (état + brouillon local d'un CR), useDictation (dictée vers un champ)...
 ├─ lib/                       → auth, fetchWithRetry, odoo, validators, notifications, activityLog, chantierFinances
 │                               mailer.js (SMTP serveur) · notifications.js (serveur, service role) · crm.js (logique pure pipeline) + devis.js / devisAi.js / qontoDevis.js (calculs, prix habituels, vérifs devis, format Qonto) + crmDb.js (accès Supabase CRM, hors shared.js) + crmApi.js (appels /api/* du CRM avec JWT, PDF base64)
-│                               conformite.js (documents des entreprises : règles de validité, état par entreprise, entreprises actives, priorités, relances, texte du mail) · conformiteAi.js (lecture IA des documents) · conformiteServer.js (dépôt signé, lecture, enregistrement, demandes) · conformiteClient.js (dépôt depuis le navigateur)
+│                               conformite.js (documents des entreprises : règles de validité, état par entreprise, entreprises actives, priorités, relances, texte du mail) · conformiteAi.js (lecture IA des documents) · conformiteServer.js (dépôt signé, lecture, enregistrement, demandes) · conformiteClient.js (dépôt depuis le navigateur) · legalCheck.js / legalCheckServer.js (contrôle légal : annuaire des entreprises + BODACC, entreprise fermée / procédure collective) · dossierVigilance.js (dossier de vigilance PDF, pdf-lib, documents en annexe)
 │                               crSuivi.js (CR : numéro par chantier, points numérotés repris d'un CR à l'autre, relances + montée de priorité, sections par lot / avancement prévu, application de la proposition IA, textes des mails) · crEditor.js (état de l'éditeur, brouillon, aperçu) · crDb.js (enregistrement CR + tâches + rdv, statut Brouillon / Diffusé) · crPhotos.js (photos : réduction, dépôt, lecture pour le PDF) · crAi.js (schéma + nettoyage de la réponse IA)
 │
 └─ api/                       → 35 routes. Pattern unique : verifyAuth() / verifyStaff() + createLogger() + mock-friendly.
@@ -58,9 +58,9 @@ src/app/
     ├─ devis/track            → image de suivi (1×1) des mails de devis : enregistre les ouvertures (public, jeton)
     ├─ devis/public           → page publique /signer/<jeton> : consultation + signature du devis (sans compte, jeton) ; signé → chantier + tâche « Lancer les travaux » (lib/devisWon.js)
     ├─ cron/qonto-status      → vérification horaire des devis acceptés / annulés dans Qonto (GitHub Actions, secret CRON_SECRET) ; accepté → chantier + tâche (lib/devisWon.js)
-    ├─ conformite             → documents des entreprises (staff only) : dépôt par URL signée, lecture IA des dates (PDF → Claude uniquement), correction, demande par mail avec lien de dépôt
+    ├─ conformite             → documents des entreprises (staff only) : dépôt par URL signée, lecture IA des dates (PDF → Claude uniquement), correction, demande par mail avec lien de dépôt, contrôle légal immédiat, dossier de vigilance PDF
     ├─ conformite/public      → page /deposer/<jeton> : état des documents + dépôt par l'entreprise (sans compte, jeton 30 jours), l'équipe est prévenue
-    ├─ cron/conformite        → relance automatique hebdomadaire (GitHub Actions, CRON_SECRET) des entreprises suivies (chantier en cours ou demande envoyée) dont un document manque, est erroné ou expire
+    ├─ cron/conformite        → relance automatique hebdomadaire (GitHub Actions, CRON_SECRET) des entreprises suivies (chantier en cours ou demande envoyée) dont un document manque, est erroné ou expire + contrôle légal quotidien (annuaire + BODACC)
     ├─ cron/daily-digest      → mail du matin : priorités du jour (lib/dailyPriorities.js, même liste que le tableau de bord) + mot du jour IA, à l'équipe à 7 h (Paris) du lundi au vendredi, un envoi par jour (settings.daily_digest_last_sent) ; GitHub Actions, secret CRON_SECRET, ?force=1 pour un envoi manuel
     ├─ odoo/*                 → signatures
     ├─ pv-reception/*         → flux PV métier
@@ -124,7 +124,7 @@ Voir `.env.example` à la racine. Minimum requis pour dev :
 
 ## Migrations DB
 
-**Ordre critique** : voir `migrations/APPLY_ORDER.md`. Les migrations numérotées 001→038 s'appliquent dans l'ordre via le SQL Editor Supabase. Chaque migration ayant un impact non-trivial a un `<num>_README.md` dédié.
+**Ordre critique** : voir `migrations/APPLY_ORDER.md`. Les migrations numérotées 001→039 s'appliquent dans l'ordre via le SQL Editor Supabase. Chaque migration ayant un impact non-trivial a un `<num>_README.md` dédié.
 
 ## Dette technique assumée
 

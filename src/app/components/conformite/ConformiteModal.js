@@ -6,6 +6,7 @@ import { useConfirm } from '../../contexts/ConfirmContext'
 import { DOC_KINDS, DOC_META, STATUS_META, relancePause } from '../../lib/conformite'
 import { localISO } from '../../lib/today'
 import RelanceControls from './RelanceControls'
+import { LEGAL_META } from '../../lib/legalCheck'
 import { uploadConformiteDoc } from '../../lib/conformiteClient'
 import { conformitePost } from '../../hooks/useConformite'
 
@@ -62,7 +63,7 @@ function DatesForm({ doc, onSave, onCancel }) {
  * Documents administratifs d'une entreprise : état de chacun, dépôt,
  * correction des dates, demande envoyée à l'entreprise (lien de dépôt).
  */
-export default function ConformiteModal({ open, onClose, contact, compliance, lastRequest, missingMigration, onChanged }) {
+export default function ConformiteModal({ open, onClose, contact, compliance, lastRequest, missingMigration, onChanged, legal = null }) {
   const { addToast } = useToast()
   const confirm = useConfirm()
   const fileRef = useRef(null)
@@ -72,6 +73,8 @@ export default function ConformiteModal({ open, onClose, contact, compliance, la
   const [email, setEmail] = useState('')
   const [sending, setSending] = useState(false)
   const [link, setLink] = useState(null)
+  const [checking, setChecking] = useState(false)
+  const [building, setBuilding] = useState(false)
 
   useEffect(() => {
     if (open) { setEmail(contact?.email || ''); setLink(null); setEditing(null) }
@@ -149,6 +152,25 @@ export default function ConformiteModal({ open, onClose, contact, compliance, la
     } catch (err) { addToast(err.message, 'error') } finally { setSending(false) }
   }
 
+  // Contrôle légal immédiat (annuaire des entreprises + BODACC)
+  const verifier = async () => {
+    setChecking(true)
+    try {
+      const r = await conformitePost({ action: 'verifier', contactId: contact.id })
+      addToast(r.libelle, r.statut === 'ok' ? 'success' : r.statut === 'inconnu' ? 'info' : 'error')
+      onChanged?.()
+    } catch (err) { addToast(err.message, 'error') } finally { setChecking(false) }
+  }
+  // Dossier de vigilance (PDF : synthèse + documents en annexe)
+  const dossier = async () => {
+    setBuilding(true)
+    try {
+      const r = await conformitePost({ action: 'dossier', contactId: contact.id })
+      window.open(r.url, '_blank', 'noopener')
+      addToast(`Dossier de vigilance prêt (${r.annexes} document${r.annexes > 1 ? 's' : ''} en annexe)`, 'success')
+    } catch (err) { addToast(err.message, 'error') } finally { setBuilding(false) }
+  }
+
   const copyLink = async () => {
     try { await navigator.clipboard.writeText(link); addToast('Lien copié', 'success') } catch { addToast('Copie impossible : sélectionnez le lien', 'warning') }
   }
@@ -167,6 +189,27 @@ export default function ConformiteModal({ open, onClose, contact, compliance, la
         </div>
       ) : (
         <>
+          {/* Situation légale de l'entreprise + dossier de vigilance */}
+          <div style={{ border: `1px solid ${(LEGAL_META[legal?.statut] || LEGAL_META.inconnu).border}`, background: (LEGAL_META[legal?.statut] || LEGAL_META.inconnu).bg, borderRadius: 8, padding: 10, marginBottom: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: (LEGAL_META[legal?.statut] || LEGAL_META.inconnu).color }}>
+                  {legal ? (LEGAL_META[legal.statut] || LEGAL_META.inconnu).label : 'Situation de l’entreprise non vérifiée'}
+                </div>
+                <div style={{ ...small, marginTop: 2 }}>
+                  {legal ? `${legal.libelle || ''} · contrôlé le ${fmtDT(legal.checked_at)}` : 'Contrôle automatique chaque jour ouvré (annuaire des entreprises et BODACC), ou maintenant.'}
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                <button type="button" onClick={verifier} disabled={checking} style={btn('#334155', '#fff', '#CBD5E1')}>
+                  {checking ? 'Vérification…' : '🔎 Vérifier maintenant'}
+                </button>
+                <button type="button" onClick={dossier} disabled={building} style={btn('#fff', '#1E3A5F', '#1E3A5F')}>
+                  {building ? 'Préparation…' : '📄 Dossier de vigilance (PDF)'}
+                </button>
+              </div>
+            </div>
+          </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {DOC_KINDS.map(kind => {
               const k = compliance.kinds[kind]

@@ -88,6 +88,15 @@ describe('entreprises actives et priorités', () => {
     expect(isSubject(data.contacts[3])).toBe(false)
   })
 
+  it('priorités : entreprise active fermée ou en liquidation en tête', () => {
+    const items = conformiteItems({
+      contacts: data.contacts, docs: [], activeIds: activeCompanyIds(data), today: TODAY,
+      legalChecks: [{ contact_id: 'c1', statut: 'critique', libelle: 'Liquidation judiciaire (BODACC du 15/09/2026)' }, { contact_id: 'c2', statut: 'critique', libelle: 'x' }],
+    })
+    expect(items[0]).toMatchObject({ id: 'legal:c1', title: 'Entreprise — Costa Plomberie', reason: 'Liquidation judiciaire (BODACC du 15/09/2026)', score: 95, focus: 'docs:c1' })
+    expect(items.map(i => i.id)).not.toContain('legal:c2') // plus sur un chantier en cours
+  })
+
   it('éléments de priorités : seulement les entreprises actives soumises, expiré avant manquant', () => {
     const docs = [
       ...['kbis', 'decennale', 'fiscale'].map(k => doc(k, { valide_au: '2027-06-01' })),

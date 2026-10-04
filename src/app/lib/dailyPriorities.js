@@ -42,8 +42,8 @@ export function buildCrmDaily(crm, { contacts = [], now = new Date() } = {}) {
 }
 
 /** Documents des entreprises actives à revoir (Kbis, décennale, fiscale, URSSAF). */
-export function buildConformiteItems(data = {}, docs = [], today) {
-  return conformiteItems({ contacts: data.contacts || [], docs, activeIds: activeCompanyIds(data), today })
+export function buildConformiteItems(data = {}, docs = [], today, legalChecks = []) {
+  return conformiteItems({ contacts: data.contacts || [], docs, activeIds: activeCompanyIds(data), today, legalChecks })
 }
 
 /**
@@ -58,10 +58,10 @@ export function buildConformiteItems(data = {}, docs = [], today) {
  * @param {number} [p.limit=3]
  * @param {Array}  [p.conformiteDocs] documents des entreprises (contact_documents) ; null = non suivis
  */
-export function buildDailyPriorities({ data = {}, crm = null, today, nowHM = null, now = new Date(), limit = 3, conformiteDocs = null } = {}) {
+export function buildDailyPriorities({ data = {}, crm = null, today, nowHM = null, now = new Date(), limit = 3, conformiteDocs = null, legalChecks = [] } = {}) {
   const daily = buildCrmDaily(crm, { contacts: data.contacts, now })
   const agenda = buildAgenda(data, { today, relances: daily.relances })
-  const extraItems = conformiteDocs ? buildConformiteItems(data, conformiteDocs, today) : []
+  const extraItems = conformiteDocs ? buildConformiteItems(data, conformiteDocs, today, legalChecks) : []
   const priorities = buildPriorities({ agenda, crmItems: daily.crmInsights.items, today, now: nowHM, limit, extraItems })
   return { ...daily, agenda, priorities }
 }

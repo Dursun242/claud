@@ -9,6 +9,8 @@
 //   relancer { contactIds: [...] }                 → même mail, à plusieurs entreprises (15 max)
 //   pause    { contactId, paused, until? }         → suspend / reprend les relances d'une entreprise
 //   pause_all { paused }                           → suspend / reprend toutes les relances automatiques
+//   verifier { contactId }                         → contrôle légal (annuaire + BODACC) immédiat
+//   dossier  { contactId }                         → dossier de vigilance PDF (lien 10 min)
 // Logique : lib/conformiteServer.js ; règles : lib/conformite.js.
 
 import { verifyStaff } from '@/app/lib/auth'
@@ -16,8 +18,9 @@ import { createLogger } from '@/app/lib/logger'
 import { adminClient } from '@/app/lib/supabaseClients'
 import {
   prepareUpload, registerDocument, updateDocument, deleteDocument, documentUrl, sendRequest,
-  setContactPause, setGlobalPause,
+  setContactPause, setGlobalPause, makeDossier,
 } from '@/app/lib/conformiteServer'
+import { checkCompany } from '@/app/lib/legalCheckServer'
 import { MAX_RELANCES_PAR_PASSAGE } from '@/app/lib/conformite'
 
 export const maxDuration = 60
@@ -85,6 +88,12 @@ export async function POST(request) {
         return reply(await setContactPause(admin, { contactId: body.contactId, paused: body.paused === true, until: body.until }, log))
       case 'pause_all':
         return reply(await setGlobalPause(admin, body.paused === true, log))
+      case 'verifier':
+      case 'dossier': {
+        const contact = await loadContact(admin, body.contactId)
+        if (!contact) return Response.json({ error: 'Entreprise introuvable' }, { status: 404 })
+        return reply(body.action === 'verifier' ? await checkCompany(admin, contact, log) : await makeDossier(admin, contact, log))
+      }
       default:
         return Response.json({ error: 'Action inconnue' }, { status: 400 })
     }

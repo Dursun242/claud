@@ -205,9 +205,21 @@ export function problemSummary(compliance) {
  *   expiré 58 + jours de retard (max 10) · manquant 42 · à vérifier 35 ·
  *   expire bientôt 28 + (15 − jours restants)
  */
-export function conformiteItems({ contacts = [], docs = [], activeIds = new Set(), today } = {}) {
+export function conformiteItems({ contacts = [], docs = [], activeIds = new Set(), today, legalChecks = [] } = {}) {
   const map = complianceByContact(docs, today)
   const out = []
+  // Entreprise fermée, en liquidation ou en procédure collective (contrôle légal)
+  const legal = new Map(legalChecks.map(l => [l.contact_id, l]))
+  for (const c of contacts) {
+    const l = legal.get(c.id)
+    if (!activeIds.has(c.id) || !l || !['alerte', 'critique'].includes(l.statut)) continue
+    out.push({
+      id: `legal:${c.id}`, kind: 'conformite',
+      title: `Entreprise — ${c.nom}`, sub: c.specialite || c.societe || '',
+      reason: l.libelle || 'Procédure collective', score: l.statut === 'critique' ? 95 : 70, date: today,
+      tab: 'contacts', focus: `docs:${c.id}`,
+    })
+  }
   for (const c of contacts) {
     if (!activeIds.has(c.id) || !isSubject(c)) continue
     const comp = complianceOf(map, c.id, today)
