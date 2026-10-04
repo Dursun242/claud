@@ -11,6 +11,8 @@ import { DOC_READ_SCHEMA, DOC_READ_SYSTEM, docReadPrompt, cleanDocRead } from '.
 import { safeFileName, storageName } from './devisDocuments'
 import { smtpConfig, sendMail } from './mailer'
 import { COMPANY } from './company'
+import { devisMailHtml } from './devisMailHtml'
+import { LOGO_CID, LOGO_PNG_BASE64 } from './companyLogo'
 
 export const BUCKET = 'attachments'
 export const CONF_PREFIX = 'conformite/'
@@ -240,11 +242,15 @@ export async function sendRequest(admin, { contact, email, auto = false, appUrl,
   const cfg = smtpConfig()
   let sent = false
   if (cfg && to) {
-    const { subject, text } = requestMailText({
+    const { subject, text, htmlBody, action } = requestMailText({
       contact, compliance, link, expireLe: req.expire_le, company: COMPANY, relance: auto && (req.envois || 0) > 0,
     })
+    // Version HTML (charte, logo, bouton) en plus du texte : mieux reçue par
+    // les filtres anti-spam qu'un texte seul avec une longue adresse
+    const html = devisMailHtml({ body: htmlBody, action, company: COMPANY, title: subject, logoSrc: `cid:${LOGO_CID}` })
+    const logo = { filename: 'logo-id-maitrise.png', content: Buffer.from(LOGO_PNG_BASE64, 'base64'), contentType: 'image/png', cid: LOGO_CID, contentDisposition: 'inline' }
     try {
-      await sendMail(cfg, { to, replyTo: cfg.notify, subject, text })
+      await sendMail(cfg, { to, replyTo: cfg.notify, subject, text, html, attachments: [logo] })
       sent = true
     } catch (e) {
       log?.warn('envoi de la demande de documents', `${e?.code || ''} ${e?.message || e}`)

@@ -286,22 +286,22 @@ export function requestMailText({ contact = {}, compliance, link, expireLe, comp
     return `- ${DOC_META[k].aide}${etat}`
   })
   const nom = contact.societe || contact.nom || ''
-  const subject = `${relance ? 'Rappel : ' : ''}documents administratifs à fournir${company.nom ? ` — ${company.nom}` : ''}`
-  const text = [
+  const subject = `${relance ? 'Rappel : documents' : 'Documents'} administratifs à fournir${company.nom ? ` — ${company.nom}` : ''}`
+  const validite = expireLe ? `Ce lien est valable jusqu’au ${fmtD(String(expireLe).slice(0, 10))}.` : ''
+  const clean = (arr) => arr.filter((l, i, a) => !(l === '' && a[i - 1] === '')).join('\n')
+  const intro = [
     'Bonjour,',
     '',
-    `Dans le cadre de nos chantiers${nom ? ` avec ${nom}` : ''}, nous devons disposer de vos documents administratifs à jour (obligation de vigilance) :`,
+    `Dans le cadre de nos chantiers, nous devons disposer des documents administratifs à jour${nom ? ` de ${nom}` : ''} (obligation de vigilance du donneur d’ordre) :`,
     '',
     ...lignes,
     '',
-    'Vous pouvez les déposer directement, sans créer de compte, sur cette page (PDF ou photo) :',
-    link,
-    expireLe ? `Ce lien est valable jusqu’au ${fmtD(String(expireLe).slice(0, 10))}.` : '',
-    '',
-    'Merci par avance,',
-    company.nom || '',
-  ].filter((l, i, arr) => !(l === '' && arr[i - 1] === '')).join('\n')
-  return { subject, text }
+  ]
+  const fin = ['', 'Merci par avance,', company.nom || '']
+  const text = clean([...intro, 'Vous pouvez les déposer directement, sans créer de compte, sur cette page (PDF ou photo) :', link, validite, ...fin])
+  // Version HTML : le lien devient un bouton (pas d'adresse longue dans le texte)
+  const htmlBody = clean([...intro, 'Déposez-les directement avec le bouton ci-dessous, sans créer de compte (PDF ou photo).', validite, ...fin])
+  return { subject, text, htmlBody, action: { url: link, label: 'Déposer mes documents', hint: 'Dépôt sécurisé, sans création de compte.' } }
 }
 
 // ─── Planification des relances et suivi (écran « Suivi des documents ») ───

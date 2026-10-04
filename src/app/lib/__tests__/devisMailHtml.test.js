@@ -44,3 +44,14 @@ describe('devisMailHtml', () => {
     expect(devisMailHtml({ body: 'x', company: COMPANY })).not.toContain('<img')
   })
 })
+
+describe('bouton générique (action)', () => {
+  const { devisMailHtml } = require('../devisMailHtml')
+  it('affiche le bouton si aucun lien de signature, n’accepte que http(s)', () => {
+    const html = devisMailHtml({ body: 'Bonjour', action: { url: 'https://app/deposer/abc', label: 'Déposer mes documents', hint: 'Sans compte.' } })
+    expect(html).toContain('href="https://app/deposer/abc"')
+    expect(html).toContain('Déposer mes documents')
+    expect(html).toContain('Sans compte.')
+    expect(devisMailHtml({ body: 'x', action: { url: 'javascript:alert(1)', label: 'X' } })).not.toContain('javascript:')
+  })
+})
