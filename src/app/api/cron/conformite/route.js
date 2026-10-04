@@ -17,12 +17,34 @@ import crypto from 'node:crypto'
 import { createLogger } from '@/app/lib/logger'
 import { adminClient } from '@/app/lib/supabaseClients'
 import { smtpConfig } from '@/app/lib/mailer'
-import { activeCompanyIds, complianceByContact, planRelances, MAX_RELANCES_PAR_PASSAGE } from '@/app/lib/conformite'
+import { activeCompanyIds, complianceByContact, planRelances, trackedReason, MAX_RELANCES_PAR_PASSAGE } from '@/app/lib/conformite'
+import { sirenOfSiret } from '@/app/lib/legalCheck'
 import { sendRequest, todayParis, getGlobalPause } from '@/app/lib/conformiteServer'
+import { checkCompany, checkOrder } from '@/app/lib/legalCheckServer'
 
 export const maxDuration = 60
 
 const log = createLogger('cron-conformite')
+const MAX_CONTROLES = 25
+const BUDGET_CONTROLES_MS = 30_000
+
+/**
+ * Contrôle légal (annuaire + BODACC) des entreprises suivies qui ont un
+ * SIRET : jamais contrôlées d'abord, puis le contrôle le plus ancien ; 5 à la
+ * fois, dans un temps limité pour rester sous maxDuration.
+ */
+async function runLegalChecks(admin, tracked) {
+  const { data: checks, error } = await admin.from('contact_legal_checks').select('contact_id, checked_at')
+  if (error) return 0 // migration 039 absente
+  const todo = checkOrder(tracked.filter(c => sirenOfSiret(c.siret)), checks || [], MAX_CONTROLES)
+  const start = Date.now()
+  let done = 0
+  for (let i = 0; i < todo.length && Date.now() - start < BUDGET_CONTROLES_MS; i += 5) {
+    const res = await Promise.all(todo.slice(i, i + 5).map(c => checkCompany(admin, c, log).catch(e => ({ error: e?.message }))))
+    done += res.filter(r => r.data).length
+  }
+  return done
+}
 
 function authorized(request) {
   const secret = process.env.CRON_SECRET
@@ -43,8 +65,7 @@ export async function GET(request) {
 
   try {
     const admin = adminClient()
-    // Relances suspendues par l'équipe (écran « Suivi des documents »)
-    if (await getGlobalPause(admin)) return Response.json({ ok: true, skipped: 'relances suspendues' })
+    const globalPause = await getGlobalPause(admin)
     const [ch, os, co, cc, docs, reqs] = await Promise.all([
       admin.from('chantiers').select('id, statut'),
       admin.from('ordres_service').select('chantier_id, artisan_nom, statut'),
@@ -67,11 +88,17 @@ export async function GET(request) {
     for (const r of reqs.data || []) if (!lastReq.has(r.contact_id)) lastReq.set(r.contact_id, r)
 
     // Même ordre que l'aperçu de l'écran « Suivi des documents »
-    const targets = planRelances({ contacts: co.data || [], byContact: map, lastRequest: lastReq, activeIds: active, today, now: new Date() })
+    const targets = planRelances({ contacts: co.data || [], byContact: map, lastRequest: lastReq, activeIds: active, today, now: new Date(), globalPause })
       .slice(0, MAX_RELANCES_PAR_PASSAGE)
       .map(p => p.contact)
 
     if (dry) return Response.json({ ok: true, dry: true, entreprises: targets.map(c => c.nom) })
+
+    // Contrôle légal quotidien des entreprises suivies (indépendant des relances)
+    const tracked = (co.data || []).filter(c => trackedReason(c, active, lastReq))
+    const controles = await runLegalChecks(admin, tracked)
+    // Relances suspendues par l'équipe (écran « Suivi des documents »)
+    if (globalPause) return Response.json({ ok: true, skipped: 'relances suspendues', controles })
 
     // Le site appelé par GitHub Actions (secret APP_URL) : le lien mène au même site
     const appUrl = url.origin
@@ -82,7 +109,7 @@ export async function GET(request) {
       if (r.data?.sent) sent++
       else errors.push(contact.nom)
     }
-    return Response.json({ ok: true, sent, failed: errors.length })
+    return Response.json({ ok: true, sent, failed: errors.length, controles })
   } catch (err) {
     log.error('exception', err?.message || err)
     return Response.json({ error: 'Erreur serveur' }, { status: 500 })

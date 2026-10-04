@@ -57,7 +57,7 @@ describe('/api/cron/conformite', () => {
     expect(sendMail).not.toHaveBeenCalled()
 
     const res = await (await call()).json()
-    expect(res).toEqual({ ok: true, sent: 2, failed: 0 })
+    expect(res).toEqual({ ok: true, sent: 2, failed: 0, controles: 0 })
     expect(sendMail.mock.calls.map(c => c[1].to)).toEqual(['costa@ex.fr', 'peintre@ex.fr'])
     expect(sendMail.mock.calls[0][1].subject).not.toMatch(/^Rappel/)
     expect(sendMail.mock.calls[0][1].text).toMatch(/https:\/\/app\.test\/deposer\/[a-f0-9]{48}/)
@@ -69,13 +69,13 @@ describe('/api/cron/conformite', () => {
     // Une semaine plus tard : rappel
     db.tables.contact_doc_requests.forEach(r => { r.dernier_envoi = new Date(Date.now() - 8 * 86_400_000).toISOString() })
     sendMail.mockClear()
-    expect(await (await call()).json()).toEqual({ ok: true, sent: 2, failed: 0 })
+    expect(await (await call()).json()).toEqual({ ok: true, sent: 2, failed: 0, controles: 0 })
     expect(sendMail.mock.calls[0][1].subject).toMatch(/^Rappel/)
   })
 
   it('suspension : générale (aucun envoi) ou par entreprise', async () => {
     db.tables.settings = [{ key: 'conformite_relances_pause', value: 'on' }]
-    expect(await (await call()).json()).toEqual({ ok: true, skipped: 'relances suspendues' })
+    expect(await (await call()).json()).toEqual({ ok: true, skipped: 'relances suspendues', controles: 0 })
     expect(sendMail).not.toHaveBeenCalled()
     db.tables.settings = [{ key: 'conformite_relances_pause', value: 'off' }]
     db.tables.contacts[1].relances_suspendues = true

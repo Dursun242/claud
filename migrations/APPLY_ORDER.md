@@ -44,6 +44,7 @@ Exécuter dans cet ordre exact sur une base vierge (Supabase Dashboard → SQL E
 | 036 | `036_conformite_entreprises.sql` | **Documents des entreprises** : Kbis, décennale, attestation fiscale, attestation URSSAF par contact (`contact_documents`), liens de dépôt envoyés aux entreprises (`contact_doc_requests`). Lecture staff, écriture serveur. Voir `036_README.md`. |
 | 037 | `037_conformite_rib.sql` | **RIB des entreprises** : type de document `rib` + colonnes `iban` / `bic` sur `contact_documents`. IBAN comparé à celui de la fiche (alerte faux RIB). À appliquer après 036. |
 | 038 | `038_conformite_relances_pause.sql` | **Relances des documents** : suspension par entreprise (`contacts.relances_suspendues`, `relances_reprise_le`). À appliquer après 037. |
+| 039 | `039_conformite_controle_legal.sql` | **Contrôle légal des entreprises** : table `contact_legal_checks` (entreprise fermée / procédure collective, d'après l'annuaire des entreprises et le BODACC). Lecture staff, écriture serveur. À appliquer après 038. |
 
 ## Fichiers NON séquentiels (à ne PAS appliquer en séquence)
 

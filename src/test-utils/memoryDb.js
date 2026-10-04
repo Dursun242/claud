@@ -72,6 +72,7 @@ export function memoryDb(seed = {}, { errors = {} } = {}) {
     createSignedUploadUrl: async (path) => ({ data: { path, token: 'jeton-depot', signedUrl: `https://storage/${path}` }, error: null }),
     download: async (path) => (files.has(path) ? { data: files.get(path), error: null } : { data: null, error: { message: 'Object not found' } }),
     remove: async (paths) => { paths.forEach(p => files.delete(p)); return { data: null, error: null } },
+    upload: async (path, content, opts = {}) => { files.set(path, new Blob([content], { type: opts.contentType || '' })); return { data: { path }, error: null } },
     createSignedUrl: async (path) => ({ data: { signedUrl: `https://files/${path}` }, error: null }),
   }
 

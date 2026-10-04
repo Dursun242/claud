@@ -6,6 +6,7 @@ jest.mock('@/app/lib/supabaseClients', () => ({ adminClient: jest.fn() }))
 jest.mock('@/app/lib/ai', () => ({ ...jest.requireActual('@/app/lib/ai'), generate: jest.fn() }))
 jest.mock('@/app/lib/mailer', () => ({ smtpConfig: jest.fn(), sendMail: jest.fn() }))
 jest.mock('@/app/lib/logger', () => ({ createLogger: () => ({ debug() {}, info() {}, warn() {}, error() {} }) }))
+jest.mock('@/app/lib/fetchWithRetry', () => ({ fetchWithRetry: jest.fn() }))
 
 // eslint-disable-next-line import/first
 import { POST } from '../route'
@@ -21,6 +22,15 @@ import { smtpConfig, sendMail } from '@/app/lib/mailer'
 import { memoryDb } from '@/test-utils/memoryDb'
 // eslint-disable-next-line import/first
 import { docDisplayName } from '@/app/lib/devisDocuments'
+// eslint-disable-next-line import/first
+import { fetchWithRetry } from '@/app/lib/fetchWithRetry'
+// eslint-disable-next-line import/first
+import { PDFDocument } from 'pdf-lib'
+
+const okJson = (json) => ({ ok: true, status: 200, json: async () => json, text: async () => '' })
+// Réponses des sources officielles selon l'URL appelée
+const sources = ({ annuaire, bodacc }) => fetchWithRetry.mockImplementation(async (url) => (
+  url.includes('recherche-entreprises') ? annuaire : bodacc))
 
 const req = (body) => ({ url: 'https://app.test/api/conformite', headers: { get: () => 'Bearer t' }, json: async () => body })
 const CONTACT = { id: 'c1', nom: 'Costa Plomberie', type: 'Artisan', specialite: 'Plomberie', siret: '55210055400013', email: 'costa@ex.fr' }
@@ -190,6 +200,58 @@ describe('/api/conformite', () => {
     expect(data).toEqual({ sent: ['Costa Plomberie'], failed: ['Sans Mail'] })
     expect(sendMail).toHaveBeenCalledTimes(1)
     expect((await POST(req({ action: 'relancer', contactIds: [] }))).status).toBe(400)
+  })
+
+  it('verifier : entreprise active sans procédure → ok ; liquidation → critique, équipe prévenue une fois', async () => {
+    db.tables.authorized_users = [{ email: 'moe@id.fr', role: 'admin', actif: true }]
+    sources({
+      annuaire: okJson({ results: [{ siren: '552100554', etat_administratif: 'A' }] }),
+      bodacc: okJson({ results: [] }),
+    })
+    const ok = (await (await POST(req({ action: 'verifier', contactId: 'c1' }))).json()).data
+    expect(ok).toMatchObject({ contact_id: 'c1', siren: '552100554', statut: 'ok' })
+    expect(fetchWithRetry.mock.calls.map(c => c[0]).join(' ')).toMatch(/q=552100554.*where=%22552100554%22|where=%22552100554%22.*q=552100554/)
+    expect(db.tables.notifications || []).toHaveLength(0)
+
+    sources({
+      annuaire: okJson({ results: [{ siren: '552100554', etat_administratif: 'A' }] }),
+      bodacc: okJson({ results: [{ familleavis: 'collective', dateparution: '2026-09-15', registre: ['552100554'], jugement: JSON.stringify({ nature: 'Jugement d\'ouverture de liquidation judiciaire' }) }] }),
+    })
+    const liq = (await (await POST(req({ action: 'verifier', contactId: 'c1' }))).json()).data
+    expect(liq).toMatchObject({ statut: 'critique', libelle: 'Jugement d\'ouverture de liquidation judiciaire (BODACC du 15/09/2026)' })
+    expect(db.tables.contact_legal_checks).toHaveLength(1)
+    expect(db.tables.notifications).toEqual([expect.objectContaining({ recipient_email: 'moe@id.fr', entity_type: 'contact' })])
+    expect(sendMail.mock.calls[0][1].subject).toMatch(/entreprise fermée ou en liquidation/)
+    // Même situation au contrôle suivant : pas de nouvelle alerte
+    await POST(req({ action: 'verifier', contactId: 'c1' }))
+    expect(db.tables.notifications).toHaveLength(1)
+  })
+
+  it('verifier : sources injoignables → « non vérifiée », jamais « active »', async () => {
+    fetchWithRetry.mockRejectedValue(new Error('réseau'))
+    const { data } = await (await POST(req({ action: 'verifier', contactId: 'c1' }))).json()
+    expect(data.statut).toBe('inconnu')
+  })
+
+  it('dossier : PDF de synthèse + documents en annexe, déposé dans le stockage', async () => {
+    const annex = await PDFDocument.create()
+    annex.addPage(); annex.addPage()
+    db.putFile('conformite/c1/kbis/1__kbis.pdf', await annex.save(), 'application/pdf')
+    const png = Uint8Array.from(atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='), c => c.charCodeAt(0))
+    db.putFile('conformite/c1/rib/1__rib.png', png, 'image/png')
+    db.tables.contact_documents.push(
+      { id: 'd1', contact_id: 'c1', kind: 'kbis', file_path: 'conformite/c1/kbis/1__kbis.pdf', file_name: 'kbis.pdf', valide_au: '2099-01-01', anomalies: [], created_at: '2026-09-01T10:00:00Z', depose_par: 'entreprise' },
+      { id: 'd2', contact_id: 'c1', kind: 'rib', file_path: 'conformite/c1/rib/1__rib.png', file_name: 'rib.png', iban: 'FR76…', anomalies: ['IBAN différent de celui de la fiche (…1 au lieu de …2) : confirmez par téléphone.'], created_at: '2026-09-02T10:00:00Z', depose_par: 'equipe' },
+    )
+    db.tables.contact_doc_requests.push({ id: 'r1', contact_id: 'c1', email: 'costa@ex.fr', envois: 2, dernier_envoi: '2026-09-20T08:00:00Z', created_at: '2026-09-13T08:00:00Z', expire_le: '2099-01-01' })
+    const { data } = await (await POST(req({ action: 'dossier', contactId: 'c1' }))).json()
+    expect(data).toMatchObject({ annexes: 2 })
+    expect(data.name).toMatch(/^Dossier de vigilance - Costa Plomberie - \d{4}-\d{2}-\d{2}\.pdf$/)
+    const path = [...db.files.keys()].find(k => k.startsWith('conformite/c1/dossier/'))
+    expect(data.url).toBe(`https://files/${path}`)
+    const built = await PDFDocument.load(new Uint8Array(await db.files.get(path).arrayBuffer()))
+    // synthèse (1 page au moins) + 2 pages du Kbis + 1 page pour l'image du RIB
+    expect(built.getPageCount()).toBeGreaterThanOrEqual(4)
   })
 
   it('migration absente : message clair', async () => {
