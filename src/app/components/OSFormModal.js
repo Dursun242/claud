@@ -31,6 +31,8 @@
 //   onImportClick           : () => void — déclenche devisInputRef.current.click()
 //   m                       : boolean (mobile)
 //   FF, inp, sel, btnP, btnS, Icon, I, fmtMoney : helpers partagés
+//   lotOptions              : string[] — lots du chiffrage (sinon du chantier)
+//   suggestedLot            : string|null — lot probable d'après la spécialité
 
 import Modal from './Modal'
 import AddressPicker from './AddressPicker'
@@ -66,8 +68,11 @@ export default function OSFormModal({
   Icon,
   I,
   fmtMoney,
+  lotOptions = [],
+  suggestedLot = null,
 }) {
   const tvaNA = !!form.tva_non_applicable
+  const lots = form.lot && !lotOptions.includes(form.lot) ? [form.lot, ...lotOptions] : lotOptions
   return (
     <Modal open={!!modal} onClose={onClose}
       title={modal === 'edit' ? "Modifier l'Ordre de Service" : "Nouvel Ordre de Service"}
@@ -169,6 +174,23 @@ export default function OSFormModal({
           </select>
         </FF>
       </div>
+      {lots.length > 0 && (
+        <FF label="Lot" hint="Rattache l'OS à un lot du chiffrage estimatif : comparaison estimé / engagé dans la fiche chantier.">
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            <select style={{ ...sel, flex: '1 1 200px' }} value={form.lot || ''}
+              onChange={(e) => setForm(f => ({ ...f, lot: e.target.value }))}>
+              <option value="">— Aucun —</option>
+              {lots.map((l) => <option key={l} value={l}>{l}</option>)}
+            </select>
+            {!form.lot && suggestedLot && (
+              <button type="button" onClick={() => setForm(f => ({ ...f, lot: suggestedLot }))}
+                style={{ ...btnS, padding: '6px 10px', fontSize: 12 }}>
+                Suggestion : {suggestedLot}
+              </button>
+            )}
+          </div>
+        </FF>
+      )}
       <FF label="Adresse du destinataire">
         <AddressPicker value={form.artisan_adresse || ''}
           onChange={(v) => setForm(f => ({ ...f, artisan_adresse: v }))}

@@ -375,14 +375,23 @@ export const SB = {
       odoo_sign_url: os.odoo_sign_url||null,
       statut_signature: os.statut_signature||'Non envoyé'
     };
-    if (os.id && String(os.id).length > 10) {
-      const { data, error } = await supabase.from('ordres_service')
-        .update(row).eq('id', os.id).select().single();
+    // Lot du chiffrage (migration 040) : envoyé seulement s'il est renseigné
+    // ou déjà présent sur l'OS, pour rester compatible avant la migration.
+    if (os.lot || 'lot' in os) row.lot = os.lot || null;
+    const isEdit = os.id && String(os.id).length > 10;
+    const write = (r) => isEdit
+      ? supabase.from('ordres_service').update(r).eq('id', os.id).select().single()
+      : supabase.from('ordres_service').insert(r).select().single();
+    let { data, error } = await write(row);
+    if (error && 'lot' in row && /\blot\b/.test(error.message || '') && /column|schema cache/i.test(error.message || '')) {
+      delete row.lot;
+      ({ data, error } = await write(row));
+    }
+    if (isEdit) {
       if (error) throw new Error("Erreur mise à jour OS : " + error.message);
       this.log('update', 'os', data.id, data.numero);
       return data;
     } else {
-      const { data, error } = await supabase.from('ordres_service').insert(row).select().single();
       if (error) throw new Error("Erreur création OS : " + error.message);
       this.log('create', 'os', data.id, data.numero);
       return data;
