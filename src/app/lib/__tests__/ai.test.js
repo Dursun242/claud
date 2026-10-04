@@ -48,6 +48,17 @@ describe('providerOrder', () => {
   })
 })
 
+describe('generate — fournisseur et modèle propres à une demande', () => {
+  it('prefer=mistral + mistralModel, malgré AI_PROVIDER=anthropic ; Claude en secours', async () => {
+    fetchWithRetry.mockResolvedValueOnce(err(503, 'overloaded')).mockResolvedValueOnce(anthropicReply('ok'))
+    const r = await generate({ prefer: 'mistral', mistralModel: 'mistral-large-latest', messages: [{ role: 'user', content: 'x' }] })
+    expect(sentBody(0).model).toBe('mistral-large-latest')
+    expect(fetchWithRetry.mock.calls[1][0]).toBe('https://api.anthropic.com/v1/messages')
+    expect(r).toMatchObject({ ok: true, provider: 'anthropic', fallbackFrom: 'mistral' })
+    expect(providerOrder({ prefer: 'mistral' })).toEqual(['mistral', 'anthropic'])
+  })
+})
+
 describe('generate — Mistral', () => {
   beforeEach(() => { process.env.AI_PROVIDER = 'mistral'; process.env.AI_PROVIDER_VISION = 'mistral' })
 

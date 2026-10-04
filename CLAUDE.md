@@ -12,7 +12,7 @@ Application de gestion de chantiers BTP pour **ID Maîtrise** (SARL, Le Havre). 
 
 - **Next.js 15** (App Router) + **React 18**
 - **Supabase** : Postgres + Auth OAuth Google + Storage + RLS strictes par rôle
-- **IA** (`lib/ai.js`) : Claude Haiku 4.5 ou Mistral Small selon `AI_PROVIDER` (texte) et `AI_PROVIDER_VISION` (images, Claude par défaut), secours automatique sur l'autre fournisseur — assistant IA, chiffrage de devis, extraction vision (devis photo, contacts photo), analyse Qonto. Appels HTTP directs, pas de SDK.
+- **IA** (`lib/ai.js`) : Claude Haiku 4.5 ou Mistral Small selon `AI_PROVIDER` (texte) et `AI_PROVIDER_VISION` (images, Claude par défaut), secours automatique sur l'autre fournisseur ; une demande peut choisir son fournisseur et son modèle (`prefer`, `mistralModel`, `anthropicModel` : chiffrage estimatif sur Mistral Large) — assistant IA, chiffrage de devis, extraction vision (devis photo, contacts photo), analyse Qonto. Appels HTTP directs, pas de SDK.
 - **Odoo JSON-RPC** : signatures électroniques via module Sign
 - **Qonto API** : import factures/devis (proxy read-only)
 - **Annuaire des entreprises** (`recherche-entreprises.api.gouv.fr`, État, gratuit, sans clé) : recherche par SIRET / nom / dirigeant pour les contacts (`api/entreprises`, `lib/entreprises.js`)
@@ -55,7 +55,7 @@ src/app/
     ├─ devis/qonto            → CRM : devis créé dans Qonto (numéro + PDF Qonto), import des devis Qonto, suivi des statuts (staff only)
     ├─ devis/documents        → CRM : pièces jointes des mails de devis (documents permanents Kbis/décennale + fichiers ponctuels, dépôt direct dans Storage par URL signée, 10 Mo, staff only)
     ├─ devis/sign             → CRM : demande de signature électronique d'un devis (staff only)
-    ├─ chiffrage/ia           → chiffrage estimatif (staff only) : plans du permis (PCMI, PDF / photos déposés par URL signée dans `chiffrage-plans/<chantier>/`, effacés une fois lus) → métré à vérifier ; DPGF généré depuis le métré ou une description (prix des OS, prix verrouillés des autres DPGF, barème ID Maîtrise) ; import (JSON sans IA, texte / tableau sans invention de prix) ; relecture des prix. ANTHROPIC_PLANS_MODEL : modèle Claude dédié à la lecture des plans (facultatif)
+    ├─ chiffrage/ia           → chiffrage estimatif (staff only) : plans du permis (PCMI, PDF / photos déposés par URL signée dans `chiffrage-plans/<chantier>/`, effacés une fois lus) → métré à vérifier ; DPGF généré en deux temps depuis le métré ou une description — « trame » (lots, métré clé, hypothèses) puis « lot » (postes d'un lot, lancés en parallèle par lib/chiffrageGen.js : chaque appel tient sous 60 s) — avec les prix des OS, les prix verrouillés des autres DPGF et le barème ID Maîtrise ; moteur CHIFFRAGE_AI_PROVIDER / CHIFFRAGE_MISTRAL_MODEL (défaut Mistral Large, Claude en secours) ; import (JSON sans IA, texte / tableau sans invention de prix) ; relecture des prix. ANTHROPIC_PLANS_MODEL : modèle Claude dédié à la lecture des plans (facultatif)
     ├─ cr/send                → envoi du CR par mail (PDF + convocation + actions de chaque entreprise, un mail par destinataire, staff only)
     ├─ cr/ia                  → dictée de réunion → proposition structurée (observations / avancement par lot, états des points, nouveaux points, décisions), staff only
     ├─ devis/track            → image de suivi (1×1) des mails de devis : enregistre les ouvertures (public, jeton)
