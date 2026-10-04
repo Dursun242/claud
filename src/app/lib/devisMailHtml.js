@@ -50,7 +50,7 @@ export function isSignUrl(url) {
  * @param {string} [p.logoSrc]    image du logo (ex. « cid:… ») ; sans logo : en-tête texte
  * @param {string} [p.trackUrl]   image de suivi des ouvertures (1×1, invisible)
  */
-export function devisMailHtml({ body, signUrl, attachments = [], company = {}, title = '', logoSrc = '', trackUrl = '' }) {
+export function devisMailHtml({ body, signUrl, attachments = [], company = {}, title = '', logoSrc = '', trackUrl = '', action = null }) {
   const header = logoSrc
     ? `<tr><td style="background:#FFFFFF;padding:22px 32px 16px;">
           <img src="${escapeHtml(logoSrc)}" width="280" height="79" alt="${escapeHtml(company.nom || 'ID Maîtrise')}" style="display:block;width:280px;max-width:100%;height:auto;border:0;">
@@ -69,6 +69,12 @@ export function devisMailHtml({ body, signUrl, attachments = [], company = {}, t
                 <div style="font-size:11px;color:${MUTED};margin-top:10px;">Signature électronique sécurisée, sans création de compte.</div>
               </td></tr>
             </table>
+          </td></tr>` : ''
+  // Bouton générique (ex. lien de dépôt des documents d'une entreprise)
+  const act = !sign && action?.url && /^https?:\/\//.test(action.url) ? `
+          <tr><td style="padding:6px 32px 26px;text-align:center;">
+            <a href="${escapeHtml(action.url)}" style="display:inline-block;background:${NAVY};color:#FFFFFF;text-decoration:none;font-weight:600;font-size:15px;padding:12px 26px;border-radius:8px;">${escapeHtml(action.label || 'Ouvrir')}</a>
+            ${action.hint ? `<div style="font-size:11px;color:${MUTED};margin-top:10px;">${escapeHtml(action.hint)}</div>` : ''}
           </td></tr>` : ''
   const files = attachments.filter(Boolean)
   const pj = files.length ? `
@@ -93,7 +99,7 @@ export function devisMailHtml({ body, signUrl, attachments = [], company = {}, t
         <tr><td style="height:3px;background:${ACCENT};font-size:0;line-height:0;">&nbsp;</td></tr>
         <tr><td style="padding:28px 32px 10px;font-size:15px;line-height:1.6;color:${TEXT};">
 ${textToHtml(body)}
-        </td></tr>${sign}${pj}
+        </td></tr>${sign}${act}${pj}
         <tr><td style="padding:18px 32px;background:#F8FAFC;border-top:1px solid #E2E8F0;font-size:12px;line-height:1.6;color:${MUTED};">
           ${footer}
         </td></tr>

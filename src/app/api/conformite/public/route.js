@@ -85,8 +85,12 @@ export async function POST(request) {
     if (body.action === 'register') {
       const r = await registerDocument(admin, { contact, kind: body.kind, path: body.path, name: body.name, by: 'entreprise', log })
       if (r.error) return fail(r.error, r.status)
-      await notifyDeposit(admin, { contact, kind: body.kind, doc: r.data }, log)
       const { data: docs } = await loadContactDocs(admin, contact.id)
+      // Mail à l'équipe à chaque dépôt (avec l'avancement de l'entreprise)
+      await notifyDeposit(admin, {
+        contact, kind: body.kind, doc: r.data,
+        compliance: contactCompliance(docs || [], todayParis()), appUrl: new URL(request.url).origin,
+      }, log)
       return Response.json({ ok: true, data: publicState(contact, docs || []) })
     }
     return fail('Action inconnue')
