@@ -44,6 +44,7 @@ Règles :
 - valide_au : seulement si une date de fin de validité est écrite sur le document.
 - activite_couverte (décennale uniquement) : « oui » si les activités couvertes incluent le métier indiqué par l'utilisateur, « non » si elles ne l'incluent clairement pas, « inconnu » sinon ou pour les autres documents.
 - anomalies : problèmes visibles, en phrases courtes en français (document illisible, incomplet, non signé, attestation négative ou avec dettes, entreprise radiée ou en liquidation, période échue…). Liste vide si rien.
+- Ne compare pas le SIRET ou le SIREN du document avec celui de la fiche : l'application le fait (deux SIRET différents peuvent désigner deux établissements de la même entreprise).
 Réponds uniquement par l'objet JSON demandé.`
 
 /** Message utilisateur : document attendu + fiche de l'entreprise. */
@@ -69,7 +70,10 @@ const digits = (v) => {
  */
 export function cleanDocRead(raw, expectedKind) {
   const r = raw && typeof raw === 'object' ? raw : {}
-  const anomalies = (Array.isArray(r.anomalies) ? r.anomalies : []).map(a => str(a, 200)).filter(Boolean).slice(0, 6)
+  const anomalies = (Array.isArray(r.anomalies) ? r.anomalies : []).map(a => str(a, 200)).filter(Boolean)
+    // Comparaison SIRET / SIREN faite par l'application (sur le SIREN) : celle de l'IA est ignorée
+    .filter(a => !/\bsir(et|en)\b/i.test(a))
+    .slice(0, 6)
   const lu = KINDS_AI.includes(r.type_document) ? r.type_document : 'autre'
   if (lu !== expectedKind) {
     anomalies.unshift(lu === 'autre'

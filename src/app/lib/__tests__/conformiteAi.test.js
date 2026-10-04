@@ -29,6 +29,11 @@ describe('lecture IA des documents', () => {
     expect(cleanDocRead(null, 'kbis').anomalies[0]).toMatch(/ne ressemble pas/)
   })
 
+  it('ignore les comparaisons de SIRET faites par l’IA (deux établissements d’une même entreprise)', () => {
+    const r = cleanDocRead({ ...base, anomalies: ['SIRET du document (85076843300011) ne correspond pas au SIRET fourni (85076843300029)', 'Document non signé'] }, 'decennale')
+    expect(r.anomalies).toEqual(['Document non signé'])
+  })
+
   it('consigne : document attendu et fiche', () => {
     const p = docReadPrompt('decennale', { nom: 'Costa', siret: '552', specialite: 'Plomberie' })
     expect(p).toContain('Attestation d’assurance décennale')

@@ -6,6 +6,7 @@ import { useConfirm } from '../../contexts/ConfirmContext'
 import { DOC_KINDS, DOC_META, STATUS_META, relancePause } from '../../lib/conformite'
 import { localISO } from '../../lib/today'
 import RelanceControls from './RelanceControls'
+import { openLater } from '../../lib/openLater'
 import { LEGAL_META } from '../../lib/legalCheck'
 import { uploadConformiteDoc } from '../../lib/conformiteClient'
 import { conformitePost } from '../../hooks/useConformite'
@@ -100,8 +101,8 @@ export default function ConformiteModal({ open, onClose, contact, compliance, la
 
   const open_ = async (doc) => {
     try {
-      const { url } = await conformitePost({ action: 'url', id: doc.id })
-      window.open(url, '_blank', 'noopener')
+      // Onglet ouvert pendant le clic (sinon bloqué sur iPhone)
+      await openLater(async () => (await conformitePost({ action: 'url', id: doc.id })).url)
     } catch (err) { addToast(err.message, 'error') }
   }
 
@@ -165,8 +166,8 @@ export default function ConformiteModal({ open, onClose, contact, compliance, la
   const dossier = async () => {
     setBuilding(true)
     try {
-      const r = await conformitePost({ action: 'dossier', contactId: contact.id })
-      window.open(r.url, '_blank', 'noopener')
+      let r
+      await openLater(async () => { r = await conformitePost({ action: 'dossier', contactId: contact.id }); return r.url })
       addToast(`Dossier de vigilance prêt (${r.annexes} document${r.annexes > 1 ? 's' : ''} en annexe)`, 'success')
     } catch (err) { addToast(err.message, 'error') } finally { setBuilding(false) }
   }
