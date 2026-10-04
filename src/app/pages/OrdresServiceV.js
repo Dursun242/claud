@@ -14,6 +14,8 @@ import { useImportDevis } from '../hooks/useImportDevis'
 import { usePrestationManager } from '../hooks/usePrestationManager'
 import { useSignaturesSync } from '../hooks/useSignaturesSync'
 import { parseNewIntent } from '../lib/navIntent'
+import { useChiffrage } from '../hooks/useChiffrage'
+import { lotOptions as getLotOptions, suggestLot } from '../lib/chiffrage'
 
 export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly,active}) {
   const { addToast } = useToast();
@@ -231,6 +233,12 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly,a
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [modal, signModal, readOnly, active]);
 
+  // Lots du chantier de l'OS (chiffrage estimatif, sinon lots du chantier)
+  const { chiffrage: formChiffrage } = useChiffrage(form.chantier_id, { enabled: !!modal && !readOnly });
+  const formChantier = (data.chantiers || []).find(c => c.id === form.chantier_id);
+  const lotOpts = useMemo(() => getLotOptions(formChiffrage, formChantier), [formChiffrage, formChantier]);
+  const suggestedLot = useMemo(() => suggestLot(form.artisan_specialite, lotOpts), [form.artisan_specialite, lotOpts]);
+
   const updateChantier = (chId) => {
     const ch = data.chantiers.find(c=>c.id===chId);
     setForm(f=>({
@@ -246,7 +254,9 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly,a
       artisan_nom:co.nom,
       artisan_specialite:co.specialite||co.type||"",
       artisan_adresse:co.adresse||"",
-      artisan_tel:co.tel||"", artisan_email:co.email||"", artisan_siret:co.siret||""
+      artisan_tel:co.tel||"", artisan_email:co.email||"", artisan_siret:co.siret||"",
+      // Lot proposé d'après le métier de l'artisan (modifiable)
+      ...(!f.lot && suggestLot(co.specialite, lotOpts) ? { lot: suggestLot(co.specialite, lotOpts) } : {}),
     }));
     else setForm(f=>({...f, artisan_nom:name}));
   };
@@ -831,6 +841,8 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly,a
       Icon={Icon}
       I={I}
       fmtMoney={fmtMoney}
+      lotOptions={lotOpts}
+      suggestedLot={suggestedLot}
     />
 
     {/* MODAL SIGNATURE ODOO — 3 SIGNATAIRES OBLIGATOIRES */}

@@ -26,6 +26,9 @@ import { markDiffused } from '../lib/crDb'
 import { loadCrImages } from '../lib/crPhotos'
 import CRSendModal from '../components/cr/CRSendModal'
 import { useConformite } from '../hooks/useConformite'
+import ChiffrageSection from '../components/chiffrage/ChiffrageSection'
+import { useChiffrage } from '../hooks/useChiffrage'
+import { lotOptions, suggestLot } from '../lib/chiffrage'
 
 // Style doux pour les boutons d'action dans la vue détail (PDF/XLS/etc.)
 // Remplace les blocs rouge/vert/bleu saturés par des pastilles pastel.
@@ -79,6 +82,8 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
   const [duplicating,setDuplicating]=useState(false);
   const [crModal,setCrModal]=useState(null);
   const [sendCr,setSendCr]=useState(null);
+  // Chiffrage du chantier ouvert : lots proposés pour un OS
+  const { chiffrage: selChiffrage } = useChiffrage(selected, { enabled: !readOnly && !!selected });
 
   const toggleTask = async (t) => {
     if (taskBusy) return;
@@ -393,6 +398,12 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
         <ChantierBudgetCard finances={finances} m={m} />
       </div>
 
+      {/* Chiffrage estimatif (DPGF) ↔ OS par lot — équipe uniquement */}
+      {!readOnly && <ChiffrageSection
+        chantier={ch} os={chOS} allOs={data.ordresService || []} user={user} m={m}
+        onApplyToChantier={async ({ budget, lots }) => { await SB.upsertChantier({ ...ch, budget, lots }); await reload(); }}
+      />}
+
       {/* ATTACHMENTS - Using Phase 3 Hook */}
       <AttachmentsSection
         attachments={attachments}
@@ -653,13 +664,28 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
           </FF>
           <FF label="Artisan">
             <select style={sel} value={detailForm.artisan_nom||""}
-              onChange={e=>setDetailForm({...detailForm,artisan_nom:e.target.value})}>
+              onChange={e=>{
+                const a=data.contacts.find(c=>c.nom===e.target.value);
+                const lot=!detailForm.lot&&a?suggestLot(a.specialite,lotOptions(selChiffrage,ch)):null;
+                setDetailForm({...detailForm,artisan_nom:e.target.value,
+                  ...(a?{artisan_specialite:a.specialite||detailForm.artisan_specialite||""}:{}),
+                  ...(lot?{lot}:{})});
+              }}>
               <option value="">— Sélectionner —</option>
               {data.contacts.filter(c=>c.type==="Artisan").map(a=>(
                 <option key={a.id} value={a.nom}>{a.nom}</option>
               ))}
             </select>
           </FF>
+          {lotOptions(selChiffrage,ch).length>0 && <FF label="Lot">
+            <select style={sel} value={detailForm.lot||""}
+              onChange={e=>setDetailForm({...detailForm,lot:e.target.value})}>
+              <option value="">— Aucun —</option>
+              {[...new Set([detailForm.lot,...lotOptions(selChiffrage,ch)].filter(Boolean))].map(l=>(
+                <option key={l} value={l}>{l}</option>
+              ))}
+            </select>
+          </FF>}
           <FF label="Date émission">
             <input type="date" style={inp} value={detailForm.date_emission||""}
               onChange={e=>setDetailForm({...detailForm,date_emission:e.target.value})}/>

@@ -38,12 +38,14 @@ src/app/
 ├─ pages/                     → 1 page = 1 onglet. DashboardV, ProjectsV, OrdresServiceV, ContactsV, CrmV, AIV, ...
 ├─ components/                → briques UI réutilisables (Modal, Badge, Skeleton, OsCard, ChantierCard, PVRow...)
 │                               components/crm/ : écrans du CRM (pipeline, fiche affaire, formulaires, devis) — CrmV.js ne fait qu'orchestrer
+│                               components/chiffrage/ : chiffrage estimatif (DPGF) dans la fiche chantier (ChiffrageSection : résumé, estimé / engagé par lot avec les OS, exports PDF / Excel ; ChiffrageCreateModal : IA / import / à la main ; ChiffrageEditor : lots et postes)
 │                               components/cr/ : éditeur plein écran des comptes rendus (CREditor : mode Réunion pas à pas / mode Rédaction ; sections par lot, points, photos, dictée + IA, présences/convocation) + envoi par mail (CRSendModal), partagé par ReportsV et ProjectsV
 ├─ contexts/                  → ToastContext + ConfirmContext (non-invasive, context split pour éviter re-renders)
 ├─ hooks/                     → useFloatingMic, useAttachments, useComments, useUndoableDelete, useSignaturesSync, useCrmData, useCrmDevis (logique devis du CRM), useCrEditor (état + brouillon local d'un CR), useDictation (dictée vers un champ)...
 ├─ lib/                       → auth, fetchWithRetry, odoo, validators, notifications, activityLog, chantierFinances
 │                               mailer.js (SMTP serveur) · notifications.js (serveur, service role) · crm.js (logique pure pipeline) + devis.js / devisAi.js / qontoDevis.js (calculs, prix habituels, vérifs devis, format Qonto) + crmDb.js (accès Supabase CRM, hors shared.js) + crmApi.js (appels /api/* du CRM avec JWT, PDF base64)
 │                               conformite.js (documents des entreprises : règles de validité, état par entreprise, entreprises actives, priorités, relances, texte du mail) · conformiteAi.js (lecture IA des documents) · conformiteServer.js (dépôt signé, lecture, enregistrement, demandes) · conformiteClient.js (dépôt depuis le navigateur) · legalCheck.js / legalCheckServer.js (contrôle légal : annuaire des entreprises + BODACC, entreprise fermée / procédure collective) · dossierVigilance.js (dossier de vigilance PDF, pdf-lib, documents en annexe)
+│                               chiffrage.js (DPGF : totaux, aléas, €/m², comparaison estimé / OS par lot via ordres_service.lot, contrôles de bon sens, lot suggéré d'après la spécialité de l'artisan, prix de référence tirés des OS, export tableur) · hooks/useChiffrage.js (table chantier_chiffrages, migration 040)
 │                               crSuivi.js (CR : numéro par chantier, points numérotés repris d'un CR à l'autre, relances + montée de priorité, sections par lot / avancement prévu, application de la proposition IA, textes des mails) · crEditor.js (état de l'éditeur, brouillon, aperçu) · crDb.js (enregistrement CR + tâches + rdv, statut Brouillon / Diffusé) · crPhotos.js (photos : réduction, dépôt, lecture pour le PDF) · crAi.js (schéma + nettoyage de la réponse IA)
 │
 └─ api/                       → 35 routes. Pattern unique : verifyAuth() / verifyStaff() + createLogger() + mock-friendly.
@@ -53,6 +55,7 @@ src/app/
     ├─ devis/qonto            → CRM : devis créé dans Qonto (numéro + PDF Qonto), import des devis Qonto, suivi des statuts (staff only)
     ├─ devis/documents        → CRM : pièces jointes des mails de devis (documents permanents Kbis/décennale + fichiers ponctuels, dépôt direct dans Storage par URL signée, 10 Mo, staff only)
     ├─ devis/sign             → CRM : demande de signature électronique d'un devis (staff only)
+    ├─ chiffrage/ia           → chiffrage estimatif : DPGF généré depuis une description (prix des OS passés en référence) ou import d'un texte / tableau collé (sans invention de prix), staff only
     ├─ cr/send                → envoi du CR par mail (PDF + convocation + actions de chaque entreprise, un mail par destinataire, staff only)
     ├─ cr/ia                  → dictée de réunion → proposition structurée (observations / avancement par lot, états des points, nouveaux points, décisions), staff only
     ├─ devis/track            → image de suivi (1×1) des mails de devis : enregistre les ouvertures (public, jeton)
@@ -124,7 +127,7 @@ Voir `.env.example` à la racine. Minimum requis pour dev :
 
 ## Migrations DB
 
-**Ordre critique** : voir `migrations/APPLY_ORDER.md`. Les migrations numérotées 001→039 s'appliquent dans l'ordre via le SQL Editor Supabase. Chaque migration ayant un impact non-trivial a un `<num>_README.md` dédié.
+**Ordre critique** : voir `migrations/APPLY_ORDER.md`. Les migrations numérotées 001→040 s'appliquent dans l'ordre via le SQL Editor Supabase. Chaque migration ayant un impact non-trivial a un `<num>_README.md` dédié.
 
 ## Dette technique assumée
 
