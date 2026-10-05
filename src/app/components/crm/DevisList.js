@@ -30,11 +30,14 @@ const EVENT_LABEL = {
 
 /** Suivi du devis envoyé : ouvertures du mail, consultations en ligne, relances. */
 function SuiviLine({ suivi }) {
-  const detail = suivi.events.slice(0, 15).map(e => `${fmtDT(e.created_at)} — ${EVENT_LABEL[e.kind] || e.kind}`).join('\n')
+  const detail = suivi.events.slice(0, 15).map(e => `${fmtDT(e.created_at)} — ${e.relance ? 'relance ouverte' : (EVENT_LABEL[e.kind] || e.kind)}`).join('\n')
   const parts = [
     suivi.ouvertures > 0 && `👁 ouvert ${suivi.ouvertures}× · dernier le ${fmtDT(suivi.derniereOuverture)}`,
     suivi.consultations > 0 && `🔗 consulté en ligne ${suivi.consultations}× · dernier le ${fmtDT(suivi.derniereConsultation)}`,
     suivi.relances > 0 && `✉ relancé ${suivi.relances}× · dernière le ${fmtDT(suivi.derniereRelance)}`,
+    suivi.relanceOuvertures > 0 && `📬 relance ouverte ${suivi.relanceOuvertures}× · dernière le ${fmtDT(suivi.derniereRelanceOuverture)}`,
+    // Relances envoyées avant le marquage : une ouverture après la relance peut être la sienne
+    suivi.relances > 0 && !suivi.relanceOuvertures && !(suivi.derniereOuverture > suivi.derniereRelance) && '📭 relance pas encore ouverte',
   ].filter(Boolean)
   if (!parts.length) return null
   return (

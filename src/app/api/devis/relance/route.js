@@ -78,7 +78,7 @@ export async function POST(request) {
       body: intro, bodyAfter: outro, company: COMPANY, title: subject, logoSrc: `cid:${LOGO_CID}`,
       choicesTitle: 'Cliquez simplement sur la réponse qui correspond à votre situation :',
       choices: relanceChoices(origin, token),
-      trackUrl: track ? `${origin}/api/devis/track?t=${token}` : '',
+      trackUrl: track ? `${origin}/api/devis/track?t=${token}&r=1` : '',
     })
     const logo = { filename: 'logo-id-maitrise.png', content: Buffer.from(LOGO_PNG_BASE64, 'base64'), contentType: 'image/png', cid: LOGO_CID, contentDisposition: 'inline' }
 

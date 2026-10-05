@@ -54,3 +54,16 @@ describe('relances et réponses du client (migration 041)', () => {
     ])
   })
 })
+
+describe('ouverture du mail de relance', () => {
+  const { summarizeDevisEvents } = require('../devisTracking')
+  it('comptée à part des ouvertures du premier mail', () => {
+    const s = summarizeDevisEvents([
+      { devis_id: 'd1', kind: 'ouverture', created_at: '2026-10-01T08:00:00Z' },
+      { devis_id: 'd1', kind: 'relance', created_at: '2026-10-05T19:50:00Z' },
+      { devis_id: 'd1', kind: 'ouverture', created_at: '2026-10-06T06:12:00Z', detail: { relance: true } },
+    ]).d1
+    expect(s).toMatchObject({ ouvertures: 1, derniereOuverture: '2026-10-01T08:00:00Z', relanceOuvertures: 1, derniereRelanceOuverture: '2026-10-06T06:12:00Z' })
+    expect(s.events[0]).toEqual({ kind: 'ouverture', created_at: '2026-10-06T06:12:00Z', relance: true })
+  })
+})
