@@ -62,6 +62,26 @@ describe('ConformiteSuiviModal', () => {
     expect(mockPost).toHaveBeenLastCalledWith({ action: 'pause_all', paused: true })
   })
 
+  it('filtres rapides : compteurs, liste filtrée, lien « les voir » des entreprises sans email', async () => {
+    setup({ lastRequest: new Map([['a', { dernier_envoi: '2026-10-04T08:00:00Z', envois: 2, derniere_visite: null }]]) })
+    const names = () => screen.getAllByRole('row').slice(1).map(r => within(r).getAllByRole('button')[0].textContent)
+    expect(screen.getByRole('button', { name: 'Toutes 3' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.queryByRole('button', { name: /^À vérifier/ })).toBeNull() // aucun : filtre masqué
+    expect(screen.getByText('04/10/2026')).toBeInTheDocument()
+    expect(screen.getByText('· 2 envois', { exact: false })).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: 'À compléter 2' }))
+    expect(names()).toEqual(['Alpha Maçonnerie', 'Delta Peinture'])
+    await userEvent.click(screen.getByRole('button', { name: 'Lien pas ouvert 1' }))
+    expect(names()).toEqual(['Alpha Maçonnerie'])
+    await userEvent.click(screen.getByRole('button', { name: 'À jour 1' }))
+    expect(names()).toEqual(['Charlie Élec'])
+    await userEvent.click(screen.getByRole('button', { name: 'les voir' }))
+    expect(names()).toEqual(['Delta Peinture'])
+    expect(screen.getByText('Liens de dépôt ouverts')).toBeInTheDocument()
+    expect(screen.getByText('0 / 1')).toBeInTheDocument()
+  })
+
   it('relances suspendues : affichage et reprise', async () => {
     mockPost.mockResolvedValue({})
     setup({ globalPause: true })

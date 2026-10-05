@@ -60,7 +60,7 @@ describe('ContactsV', () => {
     await userEvent.click(screen.getByRole('button', { name: /Documents à revoir/ }))
     expect(screen.queryByText('M. Dupont')).toBeNull()
     await userEvent.click(banner)
-    expect(screen.getByText('Aperçu des relances automatiques')).toBeInTheDocument()
+    expect(screen.getByText('Relances automatiques')).toBeInTheDocument()
   })
 
   it('une fiche à laquelle une demande a été envoyée est suivie, même sans chantier ni type artisan', () => {
