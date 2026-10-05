@@ -412,6 +412,9 @@ function addDays(iso, n) {
   return d.toISOString().slice(0, 10)
 }
 
+/** Code en tête de l'objet des mails de dépôt : sert de filtre Gmail (subject:IDMDOC). */
+export const DEPOSIT_MAIL_TAG = '[IDMDOC]'
+
 /**
  * Mail à l'équipe à chaque dépôt d'une entreprise : document reçu, ce qui a
  * été lu, avancement de l'entreprise (documents à jour / encore à fournir).
@@ -438,7 +441,7 @@ export function depositMailText({ contact = {}, kind, doc = {}, compliance, appU
       ? `Avancement : ${total}/${total} documents à jour. Dossier complet.`
       : `Avancement : ${aJour}/${total} documents à jour${reste.length ? ` · encore à fournir ou à revoir : ${reste.join(', ')}` : ''}.`),
   ].filter(l => l !== null)
-  const subject = `📄 ${nom} a déposé : ${meta.long}${anomalies.length ? ' (à vérifier)' : ''}`
+  const subject = `${DEPOSIT_MAIL_TAG} 📄 ${nom} a déposé : ${meta.long}${anomalies.length ? ' (à vérifier)' : ''}`
   const text = [...lines, appUrl ? `\nOuvrir l’application : ${appUrl} (Contacts → Documents)` : ''].join('\n').trim()
   return {
     subject, text, htmlBody: lines.join('\n'),

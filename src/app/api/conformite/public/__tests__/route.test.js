@@ -97,7 +97,7 @@ describe('/api/conformite/public (sans compte, par jeton)', () => {
     expect(sendMail).toHaveBeenCalledTimes(1)
     const mail = sendMail.mock.calls[0][1]
     expect(mail.to).toBe('moe@id.fr')
-    expect(mail.subject).toBe('📄 Costa Plomberie a déposé : Attestation de régularité fiscale')
+    expect(mail.subject).toBe('[IDMDOC] 📄 Costa Plomberie a déposé : Attestation de régularité fiscale')
     expect(mail.text).toContain('Lecture automatique : valable jusqu’au 20/03/2027.')
     expect(mail.text).toContain('Avancement : 2/5 documents à jour · encore à fournir ou à revoir : Décennale, URSSAF, RIB.')
     expect(mail.text).toContain('Ouvrir l’application : https://app.test')
