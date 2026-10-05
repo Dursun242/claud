@@ -2,6 +2,7 @@
 import { DEVIS_STATUT_COLORS, isDevisExpired, isDevisStale, numeroAffiche } from '../../lib/devis'
 import { fmtEur } from './DevisEditor'
 import { qontoFingerprint } from '../../lib/qontoDevis'
+import { raisonOf, TON_COLORS } from '../../lib/devisRelance'
 
 const act = {
   background: '#fff', border: '1px solid #E2E8F0', borderRadius: 6, cursor: 'pointer',
@@ -18,25 +19,45 @@ export function qontoState(d = {}) {
 /**
  * Liste des devis d'une affaire (fiche opportunité).
  * Les actions proposées dépendent du statut : Brouillon → Envoyer,
- * Envoyé → Renvoyer (tant que non signé) / Accepté / Refusé,
+ * Envoyé → Relancer / Renvoyer (tant que non signé) / Accepté / Refusé,
  * toujours : PDF, Qonto, Dupliquer, Supprimer.
  */
 const fmtDT = (iso) => new Date(iso).toLocaleString('fr-FR', { timeZone: 'Europe/Paris', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
-const EVENT_LABEL = { ouverture: 'mail ouvert', consultation: 'devis consulté en ligne', pdf: 'PDF consulté en ligne' }
+const EVENT_LABEL = {
+  ouverture: 'mail ouvert', consultation: 'devis consulté en ligne', pdf: 'PDF consulté en ligne',
+  relance: 'relance envoyée', reponse: 'réponse du client',
+}
 
-/** Suivi du devis envoyé : ouvertures du mail et consultations en ligne. */
+/** Suivi du devis envoyé : ouvertures du mail, consultations en ligne, relances. */
 function SuiviLine({ suivi }) {
   const detail = suivi.events.slice(0, 15).map(e => `${fmtDT(e.created_at)} — ${EVENT_LABEL[e.kind] || e.kind}`).join('\n')
+  const parts = [
+    suivi.ouvertures > 0 && `👁 ouvert ${suivi.ouvertures}× · dernier le ${fmtDT(suivi.derniereOuverture)}`,
+    suivi.consultations > 0 && `🔗 consulté en ligne ${suivi.consultations}× · dernier le ${fmtDT(suivi.derniereConsultation)}`,
+    suivi.relances > 0 && `✉ relancé ${suivi.relances}× · dernière le ${fmtDT(suivi.derniereRelance)}`,
+  ].filter(Boolean)
+  if (!parts.length) return null
   return (
     <div title={detail} style={{ fontSize: 11, color: '#0369A1', marginTop: 3, fontWeight: 600 }}>
-      {suivi.ouvertures > 0 && <span>👁 ouvert {suivi.ouvertures}× · dernier le {fmtDT(suivi.derniereOuverture)}</span>}
-      {suivi.ouvertures > 0 && suivi.consultations > 0 && <span style={{ color: '#64748B' }}> · </span>}
-      {suivi.consultations > 0 && <span>🔗 consulté en ligne {suivi.consultations}× · dernier le {fmtDT(suivi.derniereConsultation)}</span>}
+      {parts.map((p, i) => <span key={i}>{i > 0 && <span style={{ color: '#64748B' }}> · </span>}{p}</span>)}
     </div>
   )
 }
 
-export default function DevisList({ devis = [], missing, saving, onNew, onOpen, onPdf, onSend, onAccept, onRefuse, onDuplicate, onDelete, onQonto, onSignedPdf }) {
+/** Dernière réponse du client à une relance (raison choisie + précision). */
+function ReponseLine({ reponse }) {
+  const r = raisonOf(reponse.raison)
+  if (!r) return null
+  const t = TON_COLORS[r.ton] || TON_COLORS.chaud
+  return (
+    <div style={{ fontSize: 11, marginTop: 4, padding: '4px 8px', borderRadius: 6, background: t.bg, border: `1px solid ${t.border}`, color: t.color }}>
+      <strong>💬 Réponse du client le {fmtDT(reponse.created_at)} : {r.court}</strong>
+      {reponse.commentaire && <span style={{ color: '#334155' }}> — « {reponse.commentaire} »</span>}
+    </div>
+  )
+}
+
+export default function DevisList({ devis = [], missing, saving, onNew, onOpen, onPdf, onSend, onRelance, onAccept, onRefuse, onDuplicate, onDelete, onQonto, onSignedPdf }) {
   return (
     <div style={{ marginBottom: 14 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
@@ -90,6 +111,7 @@ export default function DevisList({ devis = [], missing, saving, onNew, onOpen, 
                     {d.date_envoi ? ` · envoyé le ${fmtD(d.date_envoi)}` : ` · du ${fmtD(d.date_emission)}`}
                   </div>
                   {d._suivi && <SuiviLine suivi={d._suivi} />}
+                  {d._suivi?.reponses?.[0] && <ReponseLine reponse={d._suivi.reponses[0]} />}
                 </button>
                 <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                   <button onClick={() => onPdf(d)} style={act} aria-label={`Télécharger le PDF ${d.numero}`}>PDF</button>
@@ -97,6 +119,10 @@ export default function DevisList({ devis = [], missing, saving, onNew, onOpen, 
                     <button onClick={() => onSend(d)} disabled={saving} style={{ ...act, background: '#1E3A5F', color: '#fff', borderColor: '#1E3A5F' }}>📤 Envoyer</button>
                   )}
                   {d.statut === 'Envoyé' && (<>
+                    {d.statut_signature !== 'Signé' && onRelance && (
+                      <button onClick={() => onRelance(d)} disabled={saving} style={{ ...act, background: '#F0F9FF', color: '#0369A1', borderColor: '#BAE6FD' }}
+                        title="Mail de relance : le client indique en un clic pourquoi il n’a pas donné suite">✉ Relancer</button>
+                    )}
                     {d.statut_signature !== 'Signé' && (
                       // Mauvaise adresse, mail perdu… : même fenêtre d'envoi. Une nouvelle
                       // demande de signature remplace le lien précédent (ancien lien invalide).

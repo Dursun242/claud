@@ -49,8 +49,11 @@ export function isSignUrl(url) {
  * @param {string} [p.title]      titre (objet du mail) pour l'aperçu
  * @param {string} [p.logoSrc]    image du logo (ex. « cid:… ») ; sans logo : en-tête texte
  * @param {string} [p.trackUrl]   image de suivi des ouvertures (1×1, invisible)
+ * @param {Array<{label, url}>} [p.choices] choix de réponse en boutons (relance d'un devis)
+ * @param {string} [p.choicesTitle] phrase au-dessus des choix
+ * @param {string} [p.bodyAfter]  texte après les choix
  */
-export function devisMailHtml({ body, signUrl, attachments = [], company = {}, title = '', logoSrc = '', trackUrl = '', action = null }) {
+export function devisMailHtml({ body, signUrl, attachments = [], company = {}, title = '', logoSrc = '', trackUrl = '', action = null, choices = [], choicesTitle = '', bodyAfter = '' }) {
   const header = logoSrc
     ? `<tr><td style="background:#FFFFFF;padding:22px 32px 16px;">
           <img src="${escapeHtml(logoSrc)}" width="280" height="79" alt="${escapeHtml(company.nom || 'ID Maîtrise')}" style="display:block;width:280px;max-width:100%;height:auto;border:0;">
@@ -76,6 +79,18 @@ export function devisMailHtml({ body, signUrl, attachments = [], company = {}, t
             <a href="${escapeHtml(action.url)}" style="display:inline-block;background:${NAVY};color:#FFFFFF;text-decoration:none;font-weight:600;font-size:15px;padding:12px 26px;border-radius:8px;">${escapeHtml(action.label || 'Ouvrir')}</a>
             ${action.hint ? `<div style="font-size:11px;color:${MUTED};margin-top:10px;">${escapeHtml(action.hint)}</div>` : ''}
           </td></tr>` : ''
+  // Choix de réponse : un bouton par ligne (lien vers la page de réponse)
+  const opts = (choices || []).filter(c => c?.url && /^https?:\/\//.test(c.url))
+  const choix = opts.length ? `
+          <tr><td style="padding:0 32px 18px;">
+            ${choicesTitle ? `<div style="font-size:15px;line-height:1.6;color:${TEXT};margin-bottom:10px;font-weight:600;">${escapeHtml(choicesTitle)}</div>` : ''}
+            ${opts.map(c => `<a href="${escapeHtml(c.url)}" style="display:block;background:#F8FAFC;border:1px solid #CBD5E1;border-radius:8px;color:${NAVY};text-decoration:none;font-size:14px;font-weight:600;padding:11px 14px;margin:0 0 8px;">☐&nbsp; ${escapeHtml(c.label)}</a>`).join('\n            ')}
+            <div style="font-size:12px;color:${MUTED};margin-top:4px;">Vous pouvez aussi répondre à ce mail avec le numéro de votre réponse.</div>
+          </td></tr>` : ''
+  const after = String(bodyAfter || '').trim() ? `
+        <tr><td style="padding:8px 32px 10px;font-size:15px;line-height:1.6;color:${TEXT};">
+${textToHtml(bodyAfter)}
+        </td></tr>` : ''
   const files = attachments.filter(Boolean)
   const pj = files.length ? `
           <tr><td style="padding:0 32px 24px;">
@@ -99,7 +114,7 @@ export function devisMailHtml({ body, signUrl, attachments = [], company = {}, t
         <tr><td style="height:3px;background:${ACCENT};font-size:0;line-height:0;">&nbsp;</td></tr>
         <tr><td style="padding:28px 32px 10px;font-size:15px;line-height:1.6;color:${TEXT};">
 ${textToHtml(body)}
-        </td></tr>${sign}${act}${pj}
+        </td></tr>${choix}${after}${sign}${act}${pj}
         <tr><td style="padding:18px 32px;background:#F8FAFC;border-top:1px solid #E2E8F0;font-size:12px;line-height:1.6;color:${MUTED};">
           ${footer}
         </td></tr>

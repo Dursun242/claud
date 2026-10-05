@@ -46,6 +46,7 @@ Exécuter dans cet ordre exact sur une base vierge (Supabase Dashboard → SQL E
 | 038 | `038_conformite_relances_pause.sql` | **Relances des documents** : suspension par entreprise (`contacts.relances_suspendues`, `relances_reprise_le`). À appliquer après 037. |
 | 039 | `039_conformite_controle_legal.sql` | **Contrôle légal des entreprises** : table `contact_legal_checks` (entreprise fermée / procédure collective, d'après l'annuaire des entreprises et le BODACC). Lecture staff, écriture serveur. À appliquer après 038. |
 | 040 | `040_chiffrage_estimatif.sql` | **Chiffrage estimatif (DPGF)** : table `chantier_chiffrages` (lots, postes, aléas, TVA ; staff uniquement) et colonne `ordres_service.lot` pour comparer estimé / engagé par lot. À appliquer après 039. |
+| 041 | `041_crm_devis_reponses.sql` | **Relance des devis avec choix de réponse** : colonne `crm_devis_events.detail` et types `relance` / `reponse` (le client indique pourquoi il n'a pas donné suite, page `/reponse/<jeton>`). À appliquer après 040. |
 
 ## Fichiers NON séquentiels (à ne PAS appliquer en séquence)
 

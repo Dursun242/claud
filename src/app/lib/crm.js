@@ -118,7 +118,7 @@ const DEVIS_REPONDU = ['Accepté', 'Refusé']
 
 /** Numéro de devis cité par une interaction (« Devis 26-050 envoyé »…). */
 export function devisNumeroOf(sujet) {
-  const m = /^Devis\s+(\S+)\s+(envoy|renvoy)/i.exec(String(sujet || '').trim())
+  const m = /^Devis\s+(\S+)\s+(envoy|renvoy|relanc)/i.exec(String(sujet || '').trim())
   return m ? m[1] : null
 }
 

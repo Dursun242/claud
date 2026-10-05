@@ -37,3 +37,20 @@ describe('devisTracking', () => {
     expect(isTrackToken('xyz')).toBe(false)
   })
 })
+
+describe('relances et réponses du client (migration 041)', () => {
+  const { summarizeDevisEvents } = require('../devisTracking')
+  it('compte les relances et garde les réponses, sans les compter comme consultations', () => {
+    const s = summarizeDevisEvents([
+      { devis_id: 'd1', kind: 'relance', created_at: '2026-10-01T08:00:00Z', detail: { to: ['a@x.fr'] } },
+      { devis_id: 'd1', kind: 'reponse', created_at: '2026-10-02T08:00:00Z', detail: { raison: 'budget', commentaire: '' } },
+      { devis_id: 'd1', kind: 'reponse', created_at: '2026-10-03T08:00:00Z', detail: { raison: 'rdv', commentaire: 'mardi ?' } },
+      { devis_id: 'd1', kind: 'relance', created_at: '2026-10-04T08:00:00Z' },
+    ]).d1
+    expect(s).toMatchObject({ relances: 2, derniereRelance: '2026-10-04T08:00:00Z', consultations: 0, ouvertures: 0 })
+    expect(s.reponses).toEqual([
+      { raison: 'rdv', commentaire: 'mardi ?', created_at: '2026-10-03T08:00:00Z' },
+      { raison: 'budget', commentaire: '', created_at: '2026-10-02T08:00:00Z' },
+    ])
+  })
+})
