@@ -41,3 +41,27 @@ describe('DevisList — renvoi', () => {
     expect(screen.getByRole('button', { name: '📤 Envoyer' })).toBeInTheDocument()
   })
 })
+
+describe('DevisList — relance avec choix de réponse', () => {
+  it('bouton « Relancer » sur un devis envoyé non signé', () => {
+    const onRelance = jest.fn()
+    const { rerender } = render(<DevisList devis={[base]} {...props} onRelance={onRelance} />)
+    screen.getByRole('button', { name: '✉ Relancer' }).click()
+    expect(onRelance).toHaveBeenCalledWith(expect.objectContaining({ id: 'd1' }))
+    rerender(<DevisList devis={[{ ...base, statut_signature: 'Signé' }]} {...props} onRelance={onRelance} />)
+    expect(screen.queryByRole('button', { name: '✉ Relancer' })).not.toBeInTheDocument()
+    rerender(<DevisList devis={[{ ...base, statut: 'Accepté' }]} {...props} onRelance={onRelance} />)
+    expect(screen.queryByRole('button', { name: '✉ Relancer' })).not.toBeInTheDocument()
+  })
+
+  it('relances et dernière réponse du client affichées', () => {
+    const _suivi = {
+      ouvertures: 0, consultations: 0, relances: 2, derniereRelance: '2026-10-01T08:00:00Z',
+      reponses: [{ raison: 'reporte', commentaire: 'au printemps', created_at: '2026-10-02T09:30:00Z' }],
+      events: [],
+    }
+    render(<DevisList devis={[{ ...base, _suivi }]} {...props} />)
+    expect(screen.getByText(/relancé 2×/)).toHaveTextContent('✉ relancé 2× · dernière le 01/10 10:00')
+    expect(screen.getByText(/Réponse du client/).parentElement).toHaveTextContent('💬 Réponse du client le 02/10 11:30 : Projet reporté — « au printemps »')
+  })
+})

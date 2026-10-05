@@ -28,6 +28,7 @@ src/app/
 ├─ (src/middleware.js)       → headers sécurité (pas de CSP, voir "dette")
 ├─ auth.js                    → login + AuthProvider Supabase
 ├─ signer/[token]/page.js     → page publique de signature d'un devis (sans compte, jeton)
+├─ reponse/[token]/page.js    → page publique de réponse à la relance d'un devis (raison choisie dans le mail : budget, autre proposition, projet reporté…, autre ; sans compte, jeton)
 ├─ deposer/[token]/page.js    → page publique de dépôt des documents d'une entreprise (Kbis, décennale, fiscale, URSSAF, RIB ; sans compte, jeton)
 │
 ├─ dashboards/
@@ -58,6 +59,8 @@ src/app/
     ├─ chiffrage/ia           → chiffrage estimatif (staff only) : plans du permis (PCMI, PDF / photos déposés par URL signée dans `chiffrage-plans/<chantier>/`, effacés une fois lus) → métré à vérifier ; DPGF généré en deux temps depuis le métré ou une description — « trame » (lots, métré clé, hypothèses) puis « lot » (postes d'un lot, lancés en parallèle par lib/chiffrageGen.js : chaque appel tient sous 60 s) — avec les prix des OS, les prix verrouillés des autres DPGF et le barème ID Maîtrise ; moteur CHIFFRAGE_AI_PROVIDER / CHIFFRAGE_MISTRAL_MODEL (défaut Mistral Large, Claude en secours) ; import (JSON sans IA, texte / tableau sans invention de prix) ; relecture des prix. ANTHROPIC_PLANS_MODEL : modèle Claude dédié à la lecture des plans (facultatif)
     ├─ cr/send                → envoi du CR par mail (PDF + convocation + actions de chaque entreprise, un mail par destinataire, staff only)
     ├─ cr/ia                  → dictée de réunion → proposition structurée (observations / avancement par lot, états des points, nouveaux points, décisions), staff only
+    ├─ devis/relance          → CRM : relance d'un devis sans réponse, avec choix de réponse pour le client (lib/devisRelance.js, boutons vers /reponse/<jeton>), relance suivante à J+7 (staff only)
+    ├─ devis/reponse          → page publique /reponse/<jeton> : réponse du client à la relance (événement « reponse », prochaine action dans le CRM selon la raison, équipe prévenue) ; jeton = crm_devis.track_token
     ├─ devis/track            → image de suivi (1×1) des mails de devis : enregistre les ouvertures (public, jeton)
     ├─ devis/public           → page publique /signer/<jeton> : consultation + signature du devis (sans compte, jeton) ; signé → chantier + tâche « Lancer les travaux » (lib/devisWon.js)
     ├─ cron/qonto-status      → vérification horaire des devis acceptés / annulés dans Qonto (GitHub Actions, secret CRON_SECRET) ; accepté → chantier + tâche (lib/devisWon.js)
@@ -80,7 +83,7 @@ Stage 2 = **secondaires** (contacts, planning, rdv, counts PJ via RPC `chantier_
 
 Cf. `SB.loadCritical()` / `SB.loadSecondary()` dans `dashboards/shared.js`.
 
-Stage 3 = **CRM** (`crm_opportunites`, `crm_interactions`, `crm_devis`, `crm_devis_events`, migrations 025→030) via `useCrmData({ enabled })` dans `AdminDashboard` : lancé seulement après le stage 1, partagé (React Query) par CrmV, DashboardV (widget relances), ContactsV (badge affaires), QontoV (→ CRM), AIV (actions IA) et la recherche globale.
+Stage 3 = **CRM** (`crm_opportunites`, `crm_interactions`, `crm_devis`, `crm_devis_events`, migrations 025→030, 041) via `useCrmData({ enabled })` dans `AdminDashboard` : lancé seulement après le stage 1, partagé (React Query) par CrmV, DashboardV (widget relances), ContactsV (badge affaires), QontoV (→ CRM), AIV (actions IA) et la recherche globale.
 
 ## Hors ligne (usage sur chantier)
 
@@ -93,7 +96,7 @@ Stage 3 = **CRM** (`crm_opportunites`, `crm_interactions`, `crm_devis`, `crm_dev
 ## Conventions & règles du projet
 
 1. **Server-only pour les secrets** : `ANTHROPIC_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `ODOO_API_KEY`, `qonto-token` n'apparaissent **jamais** dans le bundle client. Les appels tiers passent par les routes `/api/*`. Seule exception : la Base Adresse Nationale (`api-adresse.data.gouv.fr`, publique, sans clé) appelée directement par `components/AddressPicker.js`.
-2. **Auth** : toute route `/api/*` non-admin (sauf `/api/metrics`, `/api/auth/google/callback`, `/api/devis/public`, `/api/devis/track` et `/api/conformite/public` — accès par jeton, `/api/cron/*` — secret `CRON_SECRET`) fait `verifyAuth(request)` en premier. Retour 401 si absent. Les routes qu'un client MOA n'utilise pas (Qonto, CRM/devis, création de signatures ou de PV…) utilisent `verifyStaff(request)` (401/403). Une route ouverte aux clients qui écrit en service role relit d'abord la ressource avec `userClientFromToken` (RLS) pour vérifier que le chantier est bien le sien (cf. `pv-reception/decision`, `upload`).
+2. **Auth** : toute route `/api/*` non-admin (sauf `/api/metrics`, `/api/auth/google/callback`, `/api/devis/public`, `/api/devis/track`, `/api/devis/reponse` et `/api/conformite/public` — accès par jeton, `/api/cron/*` — secret `CRON_SECRET`) fait `verifyAuth(request)` en premier. Retour 401 si absent. Les routes qu'un client MOA n'utilise pas (Qonto, CRM/devis, création de signatures ou de PV…) utilisent `verifyStaff(request)` (401/403). Une route ouverte aux clients qui écrit en service role relit d'abord la ressource avec `userClientFromToken` (RLS) pour vérifier que le chantier est bien le sien (cf. `pv-reception/decision`, `upload`).
 3. **Logging** : toutes les routes utilisent `createLogger('source')` (`lib/logger.js`), jamais `console.error` directement.
 4. **Toasts, jamais `alert()`** : `useToast()` dans les composants. `useFloatingMic` prend `onError` pour les erreurs hors-UI.
 4 bis. **Fenêtres de saisie** : passer par `components/Modal` (ne se ferme que par ✕ ou les boutons ; ✕ après saisie demande confirmation). Toute autre fenêtre ou écran plein page de saisie appelle `useLeaveGuard(open)` (`hooks/useLeaveGuard.js`) : retour du téléphone bloqué, fermeture / rechargement de la page confirmés. Pas de fermeture au clic sur le fond.
@@ -127,7 +130,7 @@ Voir `.env.example` à la racine. Minimum requis pour dev :
 
 ## Migrations DB
 
-**Ordre critique** : voir `migrations/APPLY_ORDER.md`. Les migrations numérotées 001→040 s'appliquent dans l'ordre via le SQL Editor Supabase. Chaque migration ayant un impact non-trivial a un `<num>_README.md` dédié.
+**Ordre critique** : voir `migrations/APPLY_ORDER.md`. Les migrations numérotées 001→041 s'appliquent dans l'ordre via le SQL Editor Supabase. Chaque migration ayant un impact non-trivial a un `<num>_README.md` dédié.
 
 ## Dette technique assumée
 

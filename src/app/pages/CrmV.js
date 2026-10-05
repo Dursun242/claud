@@ -19,6 +19,7 @@ import { isNumeroProvisoire } from '../lib/devis'
 import { upsertById, removeById, patchById } from '../lib/cacheList'
 import DevisEditor from '../components/crm/DevisEditor'
 import DevisSendModal from '../components/crm/DevisSendModal'
+import DevisRelanceModal from '../components/crm/DevisRelanceModal'
 import Kpi from '../components/crm/Kpi'
 import CrmFirstUseGuide from '../components/crm/CrmFirstUseGuide'
 import CrmPipeline from '../components/crm/CrmPipeline'
@@ -442,7 +443,7 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
             devisActions={{
               onNew: () => dv.openNewDevis(selected, { resume: false }),
               onOpen: dv.openDevis, onPdf: (d) => dv.downloadDevisPdf(d).catch(e => addToast(e?.message || 'PDF impossible', 'error')),
-              onSend: dv.sendDevis, onAccept: dv.acceptDevis, onRefuse: dv.refuseDevis,
+              onSend: dv.sendDevis, onRelance: dv.relanceDevis, onAccept: dv.acceptDevis, onRefuse: dv.refuseDevis,
               onDuplicate: dv.duplicateDevisAction, onDelete: dv.removeDevis, onQonto: dv.qontoDevis, onSignedPdf: dv.downloadSignedPdf,
             }}
           />
@@ -464,6 +465,9 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
       <DevisSendModal sendState={dv.sendState} saving={saving} docsApi={dv.devisDocsApi}
         onRetry={() => dv.prepareSend(dv.sendState.devis)} onPreviewPdf={dv.previewQontoPdf}
         onDraftAi={dv.draftEmailAi} onSubmit={dv.submitSend} onClose={dv.closeSend} />
+
+      {/* ─── RELANCE D'UN DEVIS (choix de réponse pour le client) ─── */}
+      <DevisRelanceModal state={dv.relanceState} sending={saving} onSubmit={dv.submitRelance} onClose={dv.closeRelance} />
 
       {/* ─── FORMULAIRE AFFAIRE ─── */}
       <OpportuniteFormModal mode={oppModal} form={oppForm} setForm={setOppForm} error={oppError} saving={saving}

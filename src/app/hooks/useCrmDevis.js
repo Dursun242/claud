@@ -22,6 +22,7 @@ import { fmtEur } from '../components/crm/DevisEditor'
 import { qontoState } from '../components/crm/DevisList'
 import { addDays } from '../components/crm/crmUi'
 import { summarizeDevisEvents } from '../lib/devisTracking'
+import { relanceMailContent } from '../lib/devisRelance'
 import { buildPriceHistory, checkDevis, buildAiContext } from '../lib/devisAi'
 import { apiPost, saveBase64Pdf, openBase64Pdf } from '../lib/crmApi'
 import { supabase } from '../supabaseClient'
@@ -38,6 +39,7 @@ export function useCrmDevis({ crm, opportunites, interactions, contactsById, rel
   const [devisForm, setDevisForm] = useState(null)   // null | devis en édition
   const [devisError, setDevisError] = useState('')
   const [sendState, setSendState] = useState(null)  // null | { devis, initial, error }
+  const [relanceState, setRelanceState] = useState(null) // null | { devis, initial, error }
   const [importing, setImporting] = useState(false)
 
   // Devis liés à Qonto mais absents de la liste Qonto : supprimés dans Qonto.
@@ -362,6 +364,32 @@ export function useCrmDevis({ crm, opportunites, interactions, contactsById, rel
     } finally { setSaving(false) }
   }
 
+  // ─── Relance avec choix de réponse (migration 041) ───
+  const relanceDevis = (d) => {
+    const contact = contactsById.get(oppOf(d)?.contact_id) || null
+    setRelanceState({ devis: d, initial: relanceMailContent(d, contact, COMPANY), error: '' })
+  }
+  const closeRelance = () => setRelanceState(null)
+  const submitRelance = async (form) => {
+    const d = relanceState?.devis
+    if (!d) return
+    setSaving(true)
+    setRelanceState(st => (st ? { ...st, error: '' } : st))
+    try {
+      const { data: r } = await apiPost('/api/devis/relance', {
+        devisId: d.id, to: form.to, cc: form.cc, subject: form.subject, intro: form.intro, outro: form.outro, copyMe: form.copyMe,
+      })
+      setRelanceState(null)
+      addToast(r?.suivi === false
+        ? `Relance envoyée à ${form.to}, mais le CRM n’a pas été mis à jour (prochaine relance à noter à la main)`
+        : `Relance du devis ${d.numero} envoyée à ${form.to} · prochaine relance dans 7 jours`, r?.suivi === false ? 'warning' : 'success')
+      try { await reload() } catch { /* affichage rafraîchi au prochain chargement */ }
+    } catch (e) {
+      const msg = e?.code === 'EMAIL_NOT_CONFIGURED' ? 'Envoi par mail non configuré (SMTP) : relance impossible depuis l’application.' : (e?.message || 'Envoi impossible')
+      setRelanceState(st => (st ? { ...st, error: msg } : st))
+    } finally { setSaving(false) }
+  }
+
   const saveDevis = async ({ send = false } = {}) => {
     const err = validateDevis(devisForm)
     if (err) { setDevisError(err); return }
@@ -461,10 +489,11 @@ export function useCrmDevis({ crm, opportunites, interactions, contactsById, rel
 
   return {
     devisMissing, devisAffiches, unites, priceHistory, devisChecks, importing,
-    devisForm, setDevisForm, devisError, sendState,
+    devisForm, setDevisForm, devisError, sendState, relanceState,
     oppOf, openNewDevis, openDevis, closeDevis, previewDevis, aiGenerate, saveDevis,
     downloadDevisPdf, downloadSignedPdf, qontoDevis, importQonto,
     sendDevis, prepareSend, closeSend, previewQontoPdf, devisDocsApi, draftEmailAi, submitSend,
+    relanceDevis, closeRelance, submitRelance,
     acceptDevis, refuseDevis, duplicateDevisAction, removeDevis,
   }
 }

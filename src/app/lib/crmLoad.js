@@ -11,6 +11,14 @@ const MISSING_TABLE = '42P01'
 export const isMissingTable = (err) =>
   !!err && (err.code === MISSING_TABLE || /does not exist/i.test(err.message || ''))
 
+const EVENTS_COLS = 'devis_id, kind, created_at'
+async function loadDevisEvents(sb) {
+  const q = (cols) => sb.from('crm_devis_events').select(cols).order('created_at', { ascending: false }).limit(3000)
+  const ev = await q(`${EVENTS_COLS}, detail`)
+  // Migration 041 absente : colonne detail inconnue → suivi sans les réponses
+  return ev?.error && /detail/i.test(ev.error.message || '') ? q(EVENTS_COLS) : ev
+}
+
 /**
  * Volume attendu : quelques centaines de lignes max pour une maîtrise d'œuvre.
  * `devisMissing` = migration 027 absente (la section Devis est masquée).
@@ -22,8 +30,9 @@ export async function loadCrmWith(sb) {
     sb.from('crm_opportunites').select('*').order('updated_at', { ascending: false }),
     sb.from('crm_interactions').select('*').order('date', { ascending: false }).limit(1000),
     sb.from('crm_devis').select('*').order('created_at', { ascending: false }).limit(1000),
-    // Suivi des ouvertures / consultations (migration 030, facultative)
-    sb.from('crm_devis_events').select('devis_id, kind, created_at').order('created_at', { ascending: false }).limit(3000),
+    // Suivi des ouvertures / consultations (migration 030, facultative) et
+    // relances / réponses du client (detail : migration 041)
+    loadDevisEvents(sb),
   ])
   if (opp.error) {
     if (isMissingTable(opp.error)) {
