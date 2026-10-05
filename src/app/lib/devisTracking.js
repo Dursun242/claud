@@ -21,8 +21,11 @@ export async function recordDevisEvent(admin, devisId, kind, { ip = null, userAg
   try {
     if (dedup) {
       const since = new Date(Date.now() - DEDUP_MS).toISOString()
-      const { data: recent } = await admin.from('crm_devis_events')
-        .select('id').eq('devis_id', devisId).eq('kind', kind).gte('created_at', since).limit(1)
+      let q = admin.from('crm_devis_events')
+        .select('id').eq('devis_id', devisId).eq('kind', kind).gte('created_at', since)
+      // Ouverture de la relance : comptée à part de celle du premier mail
+      if (detail?.relance) q = q.eq('detail->>relance', 'true')
+      const { data: recent } = await q.limit(1)
       if (recent?.length) return false
     }
     const { error } = await admin.from('crm_devis_events').insert({
@@ -40,8 +43,11 @@ export async function recordDevisEvent(admin, devisId, kind, { ip = null, userAg
 
 /**
  * Résumé par devis : { [devisId]: { ouvertures, consultations, derniereOuverture,
- * derniereConsultation, relances, derniereRelance, reponses: [{ raison,
- * commentaire, created_at }], events: [{ kind, created_at }] } } (plus récents d'abord)
+ * derniereConsultation, relances, derniereRelance, relanceOuvertures,
+ * derniereRelanceOuverture, reponses: [{ raison, commentaire, created_at }],
+ * events: [{ kind, created_at, relance? }] } } (plus récents d'abord).
+ * Une ouverture marquée detail.relance (image du mail de relance) est comptée
+ * dans relanceOuvertures, pas dans ouvertures (premier mail).
  */
 export function summarizeDevisEvents(events = []) {
   const out = {}
@@ -50,10 +56,14 @@ export function summarizeDevisEvents(events = []) {
     if (!e?.devis_id) continue
     const s = out[e.devis_id] || (out[e.devis_id] = {
       ouvertures: 0, consultations: 0, derniereOuverture: null, derniereConsultation: null,
-      relances: 0, derniereRelance: null, reponses: [], events: [],
+      relances: 0, derniereRelance: null, relanceOuvertures: 0, derniereRelanceOuverture: null, reponses: [], events: [],
     })
-    s.events.push({ kind: e.kind, created_at: e.created_at })
-    if (e.kind === 'relance') {
+    const ouvRelance = e.kind === 'ouverture' && !!e.detail?.relance
+    s.events.push({ kind: e.kind, created_at: e.created_at, ...(ouvRelance ? { relance: true } : {}) })
+    if (ouvRelance) {
+      s.relanceOuvertures++
+      s.derniereRelanceOuverture = s.derniereRelanceOuverture || e.created_at
+    } else if (e.kind === 'relance') {
       s.relances++
       s.derniereRelance = s.derniereRelance || e.created_at
     } else if (e.kind === 'reponse') {

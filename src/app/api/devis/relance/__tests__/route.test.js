@@ -61,7 +61,7 @@ describe('/api/devis/relance', () => {
     expect(mail.text).toContain(`https://app.test/reponse/${'c'.repeat(64)}`)
     expect(mail.text).toContain('1. Le montant dépasse le budget que j’avais prévu')
     expect(mail.html).toContain(`/reponse/${'c'.repeat(64)}?r=concurrent`)
-    expect(mail.html).toContain(`/api/devis/track?t=${'c'.repeat(64)}`)
+    expect(mail.html).toContain(`/api/devis/track?t=${'c'.repeat(64)}&amp;r=1`)
     expect(inserts.find(i => i.table === 'crm_devis_events').row).toMatchObject({ devis_id: ID, kind: 'relance', detail: { to: ['client@exemple.fr'] } })
     expect(closeDevisFollowUps).toHaveBeenCalled()
     const it = inserts.find(i => i.table === 'crm_interactions').row

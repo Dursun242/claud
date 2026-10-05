@@ -25,8 +25,8 @@ beforeEach(() => {
   ;({ GET } = require('../route'))
 })
 
-const req = (t) => ({
-  url: `https://app.test/api/devis/track?t=${t}`,
+const req = (t, extra = '') => ({
+  url: `https://app.test/api/devis/track?t=${t}${extra}`,
   headers: { get: (h) => ({ 'x-forwarded-for': '66.249.1.1', 'user-agent': 'GoogleImageProxy' })[h] || null },
 })
 
@@ -38,6 +38,11 @@ describe('/api/devis/track', () => {
     expect(res.headers.get('Cache-Control')).toMatch(/no-store/)
     expect(Buffer.from(await res.arrayBuffer()).subarray(0, 3).toString()).toBe('GIF')
     expect(inserts).toEqual([{ table: 'crm_devis_events', row: { devis_id: 'd1', kind: 'ouverture', ip: '66.249.1.1', user_agent: 'GoogleImageProxy' } }])
+  })
+
+  it('image du mail de relance (&r=1) : ouverture marquée relance', async () => {
+    await GET(req(TOKEN, '&r=1'))
+    expect(inserts[0].row).toMatchObject({ devis_id: 'd1', kind: 'ouverture', detail: { relance: true } })
   })
 
   it('jeton inconnu ou invalide : image quand même, rien enregistré', async () => {
