@@ -9,9 +9,9 @@ import { useOptionalConfirm } from '../contexts/ConfirmContext'
  * Modale avec backdrop, close button et focus trap.
  *
  * Protection du travail en cours :
- * - la modale ne se ferme QUE par ✕ ou par les boutons de la fenêtre
+ * - la modale ne se ferme QUE par ← (retour), ✕ ou par les boutons de la fenêtre
  *   (Annuler, Enregistrer…) : ni clic à côté, ni touche Échap ;
- * - ✕ après une saisie demande confirmation ;
+ * - ← ou ✕ après une saisie demande confirmation ;
  * - tant qu'elle est ouverte, le retour du téléphone, la fermeture ou le
  *   rechargement de la page ne font pas perdre la saisie (useLeaveGuard).
  *
@@ -154,6 +154,25 @@ export default function Modal({ open, onClose, title, children, wide = false }) 
             gap: 12,
           }}
         >
+          {onClose && (
+            <button
+              type="button"
+              onClick={closeFromX}
+              aria-label="Retour"
+              title="Retour"
+              className="u-icon-btn u-icon-btn--soft"
+              style={{
+                borderRadius: 8,
+                width: 32,
+                height: 32,
+                fontSize: 18,
+                color: '#475569',
+                flexShrink: 0,
+              }}
+            >
+              ←
+            </button>
+          )}
           <h3
             id={titleId.current}
             style={{
