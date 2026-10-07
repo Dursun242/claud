@@ -170,3 +170,21 @@ describe('FF', () => {
     expect(screen.getByTestId('picker')).not.toHaveAttribute('id')
   })
 })
+
+describe('SB.upsertContact — email travaux (migration 042)', () => {
+  const sent = () => calls.find(c => c[0] === 'contacts' && c[1] === 'insert')[2]
+  it('envoyé quand il est saisi', async () => {
+    results.contacts = { data: { id: 'c1', nom: 'Martin' }, error: null }
+    await SB.upsertContact({ nom: 'Martin', email: 'admin@m.fr', email_travaux: 'chantier@m.fr' })
+    expect(sent()).toMatchObject({ email: 'admin@m.fr', email_travaux: 'chantier@m.fr' })
+  })
+  it('absent du formulaire : non envoyé (fonctionne sans la migration)', async () => {
+    results.contacts = { data: { id: 'c1', nom: 'Martin' }, error: null }
+    await SB.upsertContact({ nom: 'Martin', email: 'admin@m.fr' })
+    expect(sent()).not.toHaveProperty('email_travaux')
+  })
+  it('migration absente : message clair', async () => {
+    results.contacts = { data: null, error: { message: 'column "email_travaux" of relation "contacts" does not exist' } }
+    await expect(SB.upsertContact({ nom: 'Martin', email_travaux: 'chantier@m.fr' })).rejects.toThrow(/migration 042/)
+  })
+})

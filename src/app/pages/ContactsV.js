@@ -121,7 +121,8 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
       { label: 'Fonction',       key: 'fonction' },
       { label: 'Tél. mobile',    key: 'tel' },
       { label: 'Tél. fixe',      key: 'tel_fixe' },
-      { label: 'Email',          key: 'email' },
+      { label: 'Email administratif', key: 'email' },
+      { label: 'Email travaux',  key: 'email_travaux' },
       { label: 'Adresse',        key: 'adresse' },
       { label: 'Code postal',    key: 'code_postal' },
       { label: 'Ville',          key: 'ville' },
@@ -201,6 +202,7 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
         (c.societe||"").toLowerCase().includes(search) ||
         (c.ville||"").toLowerCase().includes(search) ||
         (c.email||"").toLowerCase().includes(search) ||
+        (c.email_travaux||"").toLowerCase().includes(search) ||
         (c.siret||"").includes(search)
       );
     });
@@ -264,7 +266,8 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
     // Validation STRICTE : bloque la sauvegarde si le format est clairement
     // cassé (email, téléphone, code postal — des formats simples à corriger).
     const blockingChecks = [
-      ['Email', validateEmail(form.email)],
+      ['Email administratif', validateEmail(form.email)],
+      ['Email travaux', validateEmail(form.email_travaux)],
       ['Téléphone mobile', validatePhoneFR(form.tel)],
       ['Téléphone fixe', validatePhoneFR(form.tel_fixe)],
       ['Code postal', validateCodePostalFR(form.code_postal)],
@@ -728,6 +731,14 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
                     } catch(_) {} }}
                     onCopy={() => copyToClipboard(c.email, "Email", c)}
                     label={`✉ ${c.email}`} maxWidth={220}/>
+                )}
+                {c.email_travaux && c.email_travaux !== c.email && (
+                  <ContactInfoLink href={`mailto:${c.email_travaux}`}
+                    onTap={()=>{ try {
+                      SB.log('contact_tap', 'contact', c.id, `Email travaux → ${c.nom}`, { field: 'email_travaux', value: c.email_travaux })
+                    } catch(_) {} }}
+                    onCopy={() => copyToClipboard(c.email_travaux, "Email travaux", c)}
+                    label={`🦺 ${c.email_travaux}`} maxWidth={220}/>
                 )}
               </div>
               {(c.ville||c.adresse) && (
