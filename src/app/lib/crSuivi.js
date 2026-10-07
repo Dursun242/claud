@@ -409,7 +409,8 @@ export function chantierIntervenants(data = {}, chantierId) {
     if (!c || seen.has(c.id)) return
     seen.add(c.id)
     out.push({
-      id: c.id, nom: c.nom || '', societe: c.societe || '', email: c.email || '',
+      // Comptes rendus : email travaux s'il existe, sinon l'administratif
+      id: c.id, nom: c.nom || '', societe: c.societe || '', email: c.email_travaux || c.email || '',
       tel: c.tel || c.tel_fixe || '', siret: c.siret || '', role: role || c.specialite || c.type || '',
     })
   }
@@ -427,7 +428,7 @@ export const entrepriseOf = (it) => String(it?.societe || it?.nom || '').trim()
 
 /** Entrée « intervenant » enregistrée dans le CR (présence + convocation). */
 export const toCrIntervenant = (c, prev = {}) => ({
-  nom: c.nom || '', email: c.email || '', societe: c.societe || c.nom || '',
+  nom: c.nom || '', email: c.email_travaux || c.email || '', societe: c.societe || c.nom || '',
   tel: c.tel || '', siret: c.siret || '', role: c.role || prev.role || '',
   presence: prev.presence || 'Présent', convoque: prev.convoque !== false,
 })

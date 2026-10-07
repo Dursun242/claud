@@ -47,6 +47,7 @@ Exécuter dans cet ordre exact sur une base vierge (Supabase Dashboard → SQL E
 | 039 | `039_conformite_controle_legal.sql` | **Contrôle légal des entreprises** : table `contact_legal_checks` (entreprise fermée / procédure collective, d'après l'annuaire des entreprises et le BODACC). Lecture staff, écriture serveur. À appliquer après 038. |
 | 040 | `040_chiffrage_estimatif.sql` | **Chiffrage estimatif (DPGF)** : table `chantier_chiffrages` (lots, postes, aléas, TVA ; staff uniquement) et colonne `ordres_service.lot` pour comparer estimé / engagé par lot. À appliquer après 039. |
 | 041 | `041_crm_devis_reponses.sql` | **Relance des devis avec choix de réponse** : colonne `crm_devis_events.detail` et types `relance` / `reponse` (le client indique pourquoi il n'a pas donné suite, page `/reponse/<jeton>`). À appliquer après 040. |
+| 042 | `042_contacts_email_travaux.sql` | **Second email des contacts** : colonne `contacts.email_travaux` (comptes rendus et convocations ; `email` reste l'email administratif : devis, documents). À appliquer après 041. |
 
 ## Fichiers NON séquentiels (à ne PAS appliquer en séquence)
 

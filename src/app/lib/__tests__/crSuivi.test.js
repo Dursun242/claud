@@ -181,6 +181,11 @@ describe('intervenants', () => {
       ['M. Client', 'Maître d\'ouvrage'], ['Martin', 'Électricien'], ['Durand', 'Artisan'],
     ])
   })
+  it('email travaux utilisé pour les comptes rendus, sinon l’email administratif', () => {
+    const d = { ...data, contacts: [{ ...data.contacts[0] }, { ...data.contacts[1], email: 'admin@martin.fr', email_travaux: 'chantier@martin.fr' }, data.contacts[2]] }
+    const list = chantierIntervenants(d, CH)
+    expect(list.map(i => i.email)).toEqual(['client@ex.fr', 'chantier@martin.fr', ''])
+  })
   it('reprend les convoqués du CR précédent, présents par défaut', () => {
     expect(carryIntervenants(crs[1])).toEqual([expect.objectContaining({ nom: 'Martin', presence: 'Présent', convoque: true })])
   })

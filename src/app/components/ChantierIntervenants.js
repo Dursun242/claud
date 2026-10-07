@@ -140,7 +140,7 @@ export default function ChantierIntervenants({
                 {c.specialite || c.societe || ''}
               </div>
               <div style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>
-                {c.tel} • {c.email}
+                {c.tel} • {c.email_travaux || c.email}
               </div>
             </div>
             {!readOnly && c._source === 'manuel' && (

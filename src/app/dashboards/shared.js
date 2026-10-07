@@ -250,14 +250,20 @@ export const SB = {
       iban: c.iban||null, qualifications: c.qualifications||null,
       note: Number(c.note)||0, actif: c.actif !== false,
     };
+    // Email travaux (migration 042) : envoyé seulement s'il est connu, pour
+    // que l'enregistrement fonctionne encore sans la migration
+    if (c.email_travaux !== undefined) row.email_travaux = c.email_travaux||null;
+    const colMissing = (error) => /email_travaux/.test(error?.message || '');
     if (c.id && String(c.id).length > 10) {
       const { data, error } = await supabase.from('contacts')
         .update(row).eq('id', c.id).select().single();
+      if (colMissing(error)) throw new Error("Email travaux non enregistré : appliquer la migration 042 dans Supabase.");
       if (error) throw new Error("Erreur mise à jour contact : " + error.message);
       this.log('update', 'contact', data.id, data.nom);
       return data;
     } else {
       const { data, error } = await supabase.from('contacts').insert(row).select().single();
+      if (colMissing(error)) throw new Error("Email travaux non enregistré : appliquer la migration 042 dans Supabase.");
       if (error) throw new Error("Erreur création contact : " + error.message);
       this.log('create', 'contact', data.id, data.nom);
       return data;

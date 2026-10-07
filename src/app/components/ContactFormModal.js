@@ -301,9 +301,16 @@ export default function ContactFormModal({
             onChange={(e) => setForm({ ...form, tel_fixe: e.target.value })}
             placeholder="02 35 ..."/>
         </FF>
-        <FF label="Email">
-          <input {...inpEmail} value={form.email || ''}
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: m ? '1fr' : '1fr 1fr', gap: '0 12px' }}>
+        <FF label="Email administratif" hint="Devis, factures, documents de l’entreprise">
+          <input {...inpEmail} aria-label="Email administratif" value={form.email || ''}
             onChange={(e) => setForm({ ...form, email: e.target.value })}/>
+        </FF>
+        <FF label="Email travaux" hint="Comptes rendus, convocations (si vide : email administratif)">
+          <input {...inpEmail} aria-label="Email travaux" value={form.email_travaux || ''}
+            placeholder="conducteur de travaux, chef de chantier…"
+            onChange={(e) => setForm({ ...form, email_travaux: e.target.value })}/>
         </FF>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: m ? '1fr' : '2fr 1fr 1fr', gap: '0 12px' }}>
