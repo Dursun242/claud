@@ -49,6 +49,13 @@ describe('Modal', () => {
     expect(onClose).toHaveBeenCalledTimes(1)
   })
 
+  it('flèche retour à gauche du titre : même effet que ✕', async () => {
+    const onClose = jest.fn()
+    render(<Modal open={true} onClose={onClose} title="X"><p/></Modal>)
+    await userEvent.click(screen.getByRole('button', { name: 'Retour' }))
+    expect(onClose).toHaveBeenCalledTimes(1)
+  })
+
   it('NE ferme PAS au clic à côté (backdrop) : évite de perdre une saisie', async () => {
     const onClose = jest.fn()
     render(<Modal open={true} onClose={onClose} title="X"><p/></Modal>)
