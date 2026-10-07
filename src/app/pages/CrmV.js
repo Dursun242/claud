@@ -7,6 +7,7 @@ import { useToast } from '../contexts/ToastContext'
 import { useConfirm } from '../contexts/ConfirmContext'
 import { useCrmData } from '../hooks/useCrmData'
 import { useCrmDevis } from '../hooks/useCrmDevis'
+import { useNavReturn } from '../hooks/useNavReturn'
 import {
   ETAPES_ACTIVES, ETAPE_PROBA, isClosed, groupByEtape,
   pipelineStats, classifyFollowUps, validateOpportunite, validateInteraction, opportuniteToChantier,
@@ -36,7 +37,7 @@ import { defaultSujet } from '../components/crm/crmUi'
 //
 // La page orchestre l'état (affaires, échanges, fenêtres ouvertes). Les
 // devis vivent dans hooks/useCrmDevis.js ; l'affichage dans components/crm/.
-export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId, focusTs }) {
+export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId, focusTs, back = null }) {
   const { addToast } = useToast()
   const confirm = useConfirm()
   const { crm, loading, error, reload, patch } = useCrmData()
@@ -79,6 +80,8 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
     changeEtape: (o, etape) => changeEtape(o, etape),
   })
 
+  // Affaire ouverte depuis une autre page : la fermer y ramène
+  const { markFromNav, returnIfFromNav } = useNavReturn(selectedId, back)
   const selected = useMemo(
     () => opportunites.find(o => o.id === selectedId) || null,
     [opportunites, selectedId],
@@ -158,6 +161,7 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
       setView('relances')
     } else if (opportunites.some(o => o.id === f)) {
       setSelectedId(f)
+      markFromNav(f)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusId, focusTs, loading])
@@ -421,7 +425,7 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
       )}
 
       {/* ─── FICHE AFFAIRE ─── */}
-      <Modal open={!!selected} onClose={() => setSelectedId(null)} title={selected?.titre || ''} wide>
+      <Modal open={!!selected} onClose={() => { setSelectedId(null); returnIfFromNav() }} title={selected?.titre || ''} wide>
         {selected && (
           <OpportuniteDetail o={selected} m={m}
             contact={contactsById.get(selected.contact_id)}

@@ -144,12 +144,44 @@ export default function AdminDashboard({ user, profile = null }) {
     {key:"ai",       label:"Assistant IA",      icon:I.ai,        sc:"a"},
   ], [profile?.role]);
 
-  // switchTab : utilisé par la recherche globale, les boutons et les raccourcis
-  const switchTab = useCallback((k, id = null) => {
+  const openTab = useCallback((k, id = null) => {
     setTab(k);
     setFocus(id ? { id, ts: Date.now() } : null);
     setSidebarOpen(false); // ferme toujours sur mobile, no-op sur desktop
   }, []);
+
+  // Pages d'origine des liens suivis (tableau de bord → fiche CRM…) :
+  // la flèche retour y ramène au lieu de laisser sur la page d'arrivée.
+  const [backStack, setBackStack] = useState([]);
+  const tabRef = useRef(tab);
+  useEffect(() => { tabRef.current = tab; }, [tab]);
+
+  // switchTab : menu, barre mobile, raccourcis → on repart de zéro
+  const switchTab = useCallback((k, id = null) => {
+    setBackStack([]);
+    openTab(k, id);
+  }, [openTab]);
+
+  // jumpTo : lien depuis une page ou la recherche → mémorise la page d'origine
+  const jumpTo = useCallback((k, id = null) => {
+    const from = tabRef.current;
+    if (from !== k) setBackStack(s => [...s, from].slice(-10));
+    openTab(k, id);
+  }, [openTab]);
+
+  const goBack = useCallback(() => {
+    if (!backStack.length) return;
+    setBackStack(backStack.slice(0, -1));
+    openTab(backStack[backStack.length - 1]);
+  }, [backStack, openTab]);
+
+  // Transmis aux pages qui ouvrent une fiche à l'arrivée : la fermer ramène
+  // à la page d'origine
+  const back = useMemo(() => {
+    if (!backStack.length) return null;
+    const key = backStack[backStack.length - 1];
+    return { label: tabs.find(t => t.key === key)?.label || 'Retour', go: goBack };
+  }, [backStack, tabs, goBack]);
 
   // Actions du menu « Créer » : chacune ouvre directement le formulaire
   // de création de l'onglet cible (intention 'new', cf. lib/navIntent).
@@ -315,7 +347,7 @@ export default function AdminDashboard({ user, profile = null }) {
             fontSize:10,color:"#64748B",marginTop:2,letterSpacing:"0.05em"
           }}>MAÎTRISE D'ŒUVRE • LE HAVRE</div>
         </div>
-        <GlobalSearch data={data} crm={crm} onNavigate={switchTab} />
+        <GlobalSearch data={data} crm={crm} onNavigate={jumpTo} />
         <div style={{padding:"0 12px 6px"}}>
           <button onClick={()=>setCreateOpen(true)} title="Créer (raccourci : c)" style={{
             width:"100%",display:"flex",alignItems:"center",justifyContent:"center",gap:6,
@@ -455,15 +487,24 @@ export default function AdminDashboard({ user, profile = null }) {
                 {tabs.find(t=>t.key===tab)?.label}
               </span>
             </div>
-            <NotificationBell userEmail={user?.email} onNavigate={(nextTab)=>switchTab(nextTab)} isMobile />
+            <NotificationBell userEmail={user?.email} onNavigate={(nextTab)=>jumpTo(nextTab)} isMobile />
           </div>
         )}
         {!isMobile && (
           <div style={{position:"fixed",top:12,right:24,zIndex:998}}>
-            <NotificationBell userEmail={user?.email} onNavigate={(nextTab)=>switchTab(nextTab)} />
+            <NotificationBell userEmail={user?.email} onNavigate={(nextTab)=>jumpTo(nextTab)} />
           </div>
         )}
         <div style={{animation:"fadeInUp .3s cubic-bezier(.4, 0, .2, 1)",maxWidth:1200}}>
+          {back && (
+            <button type="button" onClick={back.go} style={{
+              background:"none",border:"none",cursor:"pointer",padding:0,marginBottom:12,
+              display:"flex",alignItems:"center",gap:6,fontFamily:"inherit",
+              color:"#3B82F6",fontSize:13,fontWeight:600,
+            }}>
+              ← Retour : {back.label}
+            </button>
+          )}
           {/* Chaque onglet n'est RENDU que s'il a déjà été visité (visitedTabs),
               et reste MONTÉ avec display:none quand il n'est pas actif.
               Avant, {tab==="x" && <XV/>} démontait la page précédente à chaque
@@ -472,14 +513,14 @@ export default function AdminDashboard({ user, profile = null }) {
           {visitedTabs.has('dashboard') && (
             <div style={{ display: tab === 'dashboard' ? 'block' : 'none' }}>
               <TabErrorBoundary name="dashboard" resetKey={data}>
-                <DashboardV data={data} crm={crm} ready={secondaryReady && crmReady} setTab={switchTab} m={isMobile} user={user}/>
+                <DashboardV data={data} crm={crm} ready={secondaryReady && crmReady} setTab={jumpTo} m={isMobile} user={user}/>
               </TabErrorBoundary>
             </div>
           )}
           {visitedTabs.has('qonto') && (
             <div style={{ display: tab === 'qonto' ? 'block' : 'none' }}>
               <TabErrorBoundary name="qonto" resetKey={data}>
-                <QontoV m={isMobile} data={data} reload={reload} crm={crm} reloadCrm={reloadCrm} setTab={switchTab}/>
+                <QontoV m={isMobile} data={data} reload={reload} crm={crm} reloadCrm={reloadCrm} setTab={jumpTo}/>
               </TabErrorBoundary>
             </div>
           )}
@@ -503,7 +544,7 @@ export default function AdminDashboard({ user, profile = null }) {
             <div style={{ display: tab === 'tasks' ? 'block' : 'none' }}>
               <TabErrorBoundary name="tasks" resetKey={data}>
                 <TasksV data={data} save={save} m={isMobile} active={tab === 'tasks'}
-                  reload={reload} focusId={tab === 'tasks' ? focus?.id : null} focusTs={focus?.ts}/>
+                  reload={reload} focusId={tab === 'tasks' ? focus?.id : null} focusTs={focus?.ts} back={back}/>
               </TabErrorBoundary>
             </div>
           )}
@@ -512,15 +553,15 @@ export default function AdminDashboard({ user, profile = null }) {
               <TabErrorBoundary name="contacts" resetKey={data}>
                 <ContactsV data={data} save={save} m={isMobile} active={tab === 'contacts'}
                   reload={reload} focusId={tab === 'contacts' ? focus?.id : null} focusTs={focus?.ts}
-                  crm={crm} reloadCrm={reloadCrm} setTab={switchTab}/>
+                  crm={crm} reloadCrm={reloadCrm} setTab={jumpTo}/>
               </TabErrorBoundary>
             </div>
           )}
           {visitedTabs.has('crm') && (
             <div style={{ display: tab === 'crm' ? 'block' : 'none' }}>
               <TabErrorBoundary name="crm" resetKey={data}>
-                <CrmV data={data} m={isMobile} reload={reload} setTab={switchTab}
-                  focusId={tab === 'crm' ? focus?.id : null} focusTs={focus?.ts}/>
+                <CrmV data={data} m={isMobile} reload={reload} setTab={jumpTo}
+                  focusId={tab === 'crm' ? focus?.id : null} focusTs={focus?.ts} back={back}/>
               </TabErrorBoundary>
             </div>
           )}
