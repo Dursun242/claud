@@ -7,12 +7,13 @@ import { useConfirm } from '../contexts/ConfirmContext'
 import { useUndoableDelete } from '../hooks/useUndoableDelete'
 import { parseNewIntent } from '../lib/navIntent'
 import { useSaveTask } from '../hooks/useSaveTask'
+import { useNavReturn } from '../hooks/useNavReturn'
 
 // Ordre de priorité canonique (pour le tri)
 const PRIORITY_ORDER = { Urgent: 0, "En cours": 1, "En attente": 2 }
 const TASK_STATUSES = ["Planifié", "En cours", "Terminé"]
 
-export default function TasksV({ data, save: _save, m, reload, focusId, focusTs, active }) {
+export default function TasksV({ data, save: _save, m, reload, focusId, focusTs, active, back = null }) {
   const { addToast } = useToast()
   const confirm = useConfirm()
   const saveTask = useSaveTask()
@@ -21,6 +22,8 @@ export default function TasksV({ data, save: _save, m, reload, focusId, focusTs,
   const [filter, setFilter] = useState("all")
   const [q, setQ] = useState("")
   const [formError, setFormError] = useState("")
+  // Tâche ouverte depuis une autre page : la fermer y ramène
+  const { markFromNav, returnIfFromNav } = useNavReturn(modal === "edit" ? form.id : null, back)
   const searchInputRef = useRef(null)
 
   // Delete avec undo : cache l'item pendant 5s puis commit si pas d'annulation
@@ -79,7 +82,7 @@ export default function TasksV({ data, save: _save, m, reload, focusId, focusTs,
     setModal("new")
   }
   const openEdit = (t) => { setForm(t); setFormError(""); setModal("edit") }
-  const closeModal = () => { setModal(null); setFormError("") }
+  const closeModal = () => { setModal(null); setFormError(""); returnIfFromNav() }
 
   // Raccourci clavier « n » pour créer une tâche
   const openNewRef = useRef(null)
@@ -107,6 +110,7 @@ export default function TasksV({ data, save: _save, m, reload, focusId, focusTs,
     try {
       await SB.upsertTask(form)
       setModal(null)
+      returnIfFromNav()
       reload()
       addToast(modal === "edit" ? "Tâche mise à jour" : "Tâche créée", "success")
     } catch (err) {
@@ -122,7 +126,7 @@ export default function TasksV({ data, save: _save, m, reload, focusId, focusTs,
     const intent = parseNewIntent(focusId)
     if (intent) { openNew(intent.chantierId); return }
     const task = (data.tasks || []).find(t => t.id === focusId)
-    if (task) { setFilter("all"); setForm(task); setFormError(""); setModal("edit") }
+    if (task) { setFilter("all"); setForm(task); setFormError(""); setModal("edit"); markFromNav(task.id) }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusId, focusTs])
 
