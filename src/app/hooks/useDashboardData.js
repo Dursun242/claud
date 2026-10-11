@@ -28,7 +28,8 @@ export const DASHBOARD_KEYS = {
  *     revient après une coupure.
  *
  * @returns {{ data: object|null, loading: boolean, error: Error|null,
- *             reload: () => Promise<void>, hasChantiers: boolean|null }}
+ *             paused: boolean, reload: () => Promise<void>,
+ *             hasChantiers: boolean|null }}
  */
 export function useDashboardData() {
   const queryClient = useQueryClient()
@@ -81,6 +82,8 @@ export function useDashboardData() {
     data,
     loading: criticalQ.isLoading,
     error: criticalQ.error || null,
+    // Chargement en attente du réseau (hors ligne, rien en cache)
+    paused: criticalQ.fetchStatus === 'paused',
     reload,
     // Exposé pour la branche "premier login = pas de chantiers → seed".
     // null tant que la query n'a pas résolu.

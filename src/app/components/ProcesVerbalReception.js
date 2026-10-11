@@ -1,12 +1,12 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../supabaseClient'
-import { useToast } from '../contexts/ToastContext'
 import Section from './Section'
 import EmptyState from './EmptyState'
 import PVRow from './pv/PVRow'
 import PVDetail from './pv/PVDetail'
 import PVNewForm from './pv/PVNewForm'
+import { isNetworkError } from '../lib/offlineStore'
 
 // Container : charge la liste des PV d'un chantier et orchestre les modales
 // (détail + création). La logique de rendu est déléguée aux 3 sous-composants
@@ -16,10 +16,12 @@ export default function ProcesVerbalReception({ chantierId, chantier, ordresServ
   const [loading, setLoading] = useState(true)
   const [selectedPv, setSelectedPv] = useState(null)
   const [showNewForm, setShowNewForm] = useState(false)
-  const { addToast } = useToast()
+  // Échec du chargement : message dans la section (pas de toast technique)
+  const [loadError, setLoadError] = useState(null)
 
   const loadPVs = useCallback(async () => {
     setLoading(true)
+    setLoadError(null)
     try {
       // /api/pv-reception/list est protégé par verifyAuth → on doit envoyer
       // le JWT Supabase en header, sinon la route répond 401 et on affiche
@@ -37,12 +39,13 @@ export default function ProcesVerbalReception({ chantierId, chantier, ordresServ
       const data = await res.json()
       setPvs(data.data || [])
     } catch (err) {
-      console.error('Erreur chargement PV:', err)
-      addToast('Erreur chargement PV: ' + err.message, 'error')
+      setLoadError(isNetworkError(err)
+        ? 'Pas de réseau : les PV n\'ont pas pu être chargés.'
+        : 'Les PV n\'ont pas pu être chargés.')
     } finally {
       setLoading(false)
     }
-  }, [chantierId, addToast])
+  }, [chantierId])
 
   useEffect(() => {
     loadPVs()
@@ -68,6 +71,19 @@ export default function ProcesVerbalReception({ chantierId, chantier, ordresServ
 
         {loading ? (
           <p style={{ color: '#64748B', fontSize: 12 }}>Chargement…</p>
+        ) : loadError ? (
+          <div role="alert" style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+            flexWrap: 'wrap', background: '#FEF2F2', border: '1px solid #FECACA',
+            borderRadius: 10, padding: '10px 12px', fontSize: 13, color: '#DC2626',
+          }}>
+            <span>{loadError}</span>
+            <button type="button" onClick={loadPVs} style={{
+              background: '#fff', border: '1px solid #FECACA', borderRadius: 8,
+              padding: '8px 14px', minHeight: 36, fontSize: 13, fontWeight: 600,
+              color: '#DC2626', cursor: 'pointer', fontFamily: 'inherit',
+            }}>Réessayer</button>
+          </div>
         ) : pvs.length === 0 ? (
           <EmptyState
             compact
