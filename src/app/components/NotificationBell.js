@@ -88,8 +88,6 @@ function Toast({ notif, index, total, onDismiss, onClick, isMobile }) {
         padding: '11px 14px',
         // Fond quasi opaque : lisible quel que soit le contenu dessous
         background: 'rgba(255,255,255,0.97)',
-        backdropFilter: 'blur(20px) saturate(180%)',
-        WebkitBackdropFilter: 'blur(36px) saturate(200%)',
         border: '1px solid #E5E5EA',
         borderRadius: 12,
         boxShadow: '0 14px 36px rgba(0,0,0,0.16)',
