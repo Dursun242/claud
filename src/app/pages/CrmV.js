@@ -31,6 +31,8 @@ import OpportuniteFormModal from '../components/crm/OpportuniteFormModal'
 import InteractionFormModal from '../components/crm/InteractionFormModal'
 import { defaultSujet } from '../components/crm/crmUi'
 import SearchField from '../components/SearchField'
+import { buildOppPreviews } from '../lib/oppPreview'
+import { localISO } from '../lib/today'
 
 // ═══════════════════════════════════════════════════════════════
 // Page CRM — suivi commercial
@@ -110,6 +112,12 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
     [interactions, opportunites, crm.devis],
   )
   const nbRelances = followUps.overdue.length + followUps.today.length
+  // Aperçu des cartes : dernier mail de devis et prochain rappel
+  const previews = useMemo(() => buildOppPreviews({
+    devis: crm.devis || [], devisEvents: crm.devisEvents || [], interactions,
+    pendingIds: new Set([...followUps.overdue, ...followUps.today, ...followUps.upcoming].map(i => i.id)),
+    today: localISO(),
+  }), [crm.devis, crm.devisEvents, interactions, followUps])
   const nbActifsFiltres = filtered.filter(o => !isClosed(o.etape)).length
   const isFirstUse = opportunites.length === 0 && !q
 
@@ -404,7 +412,7 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
             action={q ? { label: 'Effacer la recherche', onClick: () => setQ('') } : { label: '+ Nouvelle affaire', onClick: () => openNew() }} />
         ) : (
           <CrmPipeline m={m} grouped={grouped} stage={stage} onSelectStage={setMobileStage}
-            contactsById={contactsById} interactions={interactions}
+            contactsById={contactsById} interactions={interactions} previews={previews}
             onOpen={(o) => setSelectedId(o.id)}
             onCall={(o) => openNewInteraction(o, { type: 'Appel' })}
             onMove={changeEtape}

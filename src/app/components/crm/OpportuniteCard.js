@@ -3,7 +3,24 @@ import { nextEtape } from '../../lib/crm'
 import { todayISO, iconBtn } from './crmUi'
 
 // Carte d'une affaire dans le pipeline (Kanban desktop / liste mobile)
-export default function OpportuniteCard({ o, contact, dormant, draggable, onDragStart, onDragEnd, onOpen, onCall, onAdvance }) {
+// Couleur du texte d'aperçu selon ce qu'il signale (lib/oppPreview.js)
+const TONE = {
+  chaud: 'var(--green-text)', retard: 'var(--red-text)', aujourdhui: 'var(--orange-text)',
+  attente: 'var(--label-secondary)', neutre: 'var(--label-secondary)',
+}
+
+function PreviewLine({ emoji, line }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6, marginTop: 4, fontSize: 12, lineHeight: 1.35, color: TONE[line.tone] || TONE.neutre }}>
+      <span aria-hidden="true" style={{ flexShrink: 0 }}>{emoji}</span>
+      <span style={{ minWidth: 0, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{line.text}</span>
+    </div>
+  )
+}
+
+// `preview` : { mail, rappel } — dernier mail de devis (ouvert, consulté,
+// relancé, réponse) et prochain rappel (buildOppPreviews)
+export default function OpportuniteCard({ o, contact, dormant, preview, draggable, onDragStart, onDragEnd, onOpen, onCall, onAdvance }) {
   const late = o.date_cloture_prevue && o.date_cloture_prevue < todayISO()
   const isDormant = dormant != null && dormant >= 14
   const stop = (fn) => (e) => { e.stopPropagation(); fn?.() }
@@ -21,6 +38,8 @@ export default function OpportuniteCard({ o, contact, dormant, draggable, onDrag
         {contact ? (contact.societe || contact.nom) : <span style={{ color: 'var(--label-secondary)', fontStyle: 'italic' }}>Sans contact</span>}
         {o.type_projet ? ` · ${o.type_projet}` : ''}
       </div>
+      {preview?.mail && <PreviewLine emoji="📨" line={preview.mail} />}
+      {preview?.rappel && <PreviewLine emoji="🔔" line={preview.rappel} />}
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
         {Number(o.montant_estime) > 0
           ? <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--label)' }}>{fmtMoney(o.montant_estime)}</span>

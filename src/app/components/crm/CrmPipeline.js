@@ -8,7 +8,7 @@ import OpportuniteCard from './OpportuniteCard'
 // Pipeline des affaires actives : une étape à la fois sur mobile, Kanban
 // avec glisser-déposer sur desktop. onMove(o, etape) change l'étape.
 export default function CrmPipeline({
-  m, grouped, stage, onSelectStage, contactsById, interactions,
+  m, grouped, stage, onSelectStage, contactsById, interactions, previews,
   onOpen, onCall, onMove, onNew,
 }) {
   const [dragged, setDragged] = useState(null)
@@ -40,7 +40,7 @@ export default function CrmPipeline({
             <EmptyState compact icon="—" title={`Rien en « ${stage} » pour l’instant.`} />
           )}
           {grouped[stage].map(o => (
-            <OpportuniteCard key={o.id} o={o} contact={contactsById.get(o.contact_id)}
+            <OpportuniteCard key={o.id} o={o} contact={contactsById.get(o.contact_id)} preview={previews?.get(o.id)}
               dormant={daysSinceLastInteraction(o, interactions)}
               onOpen={() => onOpen(o)}
               onCall={() => onCall(o)}
@@ -79,7 +79,7 @@ export default function CrmPipeline({
               </div>
               <div style={{ display: 'grid', gap: 8, gridTemplateColumns: 'minmax(0,1fr)' }}>
                 {list.map(o => (
-                  <OpportuniteCard key={o.id} o={o} contact={contactsById.get(o.contact_id)}
+                  <OpportuniteCard key={o.id} o={o} contact={contactsById.get(o.contact_id)} preview={previews?.get(o.id)}
                     dormant={daysSinceLastInteraction(o, interactions)}
                     draggable
                     onDragStart={() => setDragged(o)}
