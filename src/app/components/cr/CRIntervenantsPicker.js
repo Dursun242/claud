@@ -92,7 +92,7 @@ export default function CRIntervenantsPicker({ available = [], value = [], onCha
                           style={{
                             minWidth: 30, height: 30, borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer',
                             fontFamily: 'inherit', border: `1.5px solid ${on ? p.color : '#E5E5EA'}`,
-                            background: on ? p.bg : '#fff', color: on ? p.color : '#8E8E93',
+                            background: on ? p.bg : '#fff', color: on ? p.color : '#6E6E73',
                           }}>{m ? p.short : p.v}</button>
                       )
                     })}

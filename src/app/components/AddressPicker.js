@@ -149,3 +149,6 @@ export default function AddressPicker({
     </div>
   )
 }
+
+// FF (dashboards/shared) relie son étiquette au champ via inputProps.id
+AddressPicker.acceptsInputProps = true

@@ -454,7 +454,7 @@ RÈGLES :
       {/* INPUT + MIC — textarea pour autoriser les retours à la ligne avec Shift+Enter */}
       <div style={{display:"flex",gap:8,alignItems:"flex-end"}}>
         <MicButtonInline listening={listening} onClick={startListening} />
-        <textarea
+        <textarea aria-label="Message pour l’assistant"
           ref={inputRef}
           value={input}
           onChange={e=>setInput(e.target.value)}
@@ -475,7 +475,7 @@ RÈGLES :
             fontFamily:"inherit",lineHeight:1.4,
           }}
         />
-        <button onClick={sendMessage} disabled={loading||!input.trim()} style={{
+        <button aria-label="Envoyer" onClick={sendMessage} disabled={loading||!input.trim()} style={{
           ...btnP,padding:"12px 16px",borderRadius:12,
           opacity:(loading||!input.trim())?.6:1,
           display:"flex",alignItems:"center",gap:5

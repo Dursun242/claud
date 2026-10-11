@@ -281,7 +281,7 @@ export default function TasksV({ data, save: _save, m, reload, focusId, focusTs,
             </button>
             <button onClick={()=>handleDelete(t)} title="Supprimer"
               aria-label="Supprimer la tâche" className="u-icon-btn u-icon-btn--danger"
-              style={{width:36,height:36,borderRadius:8,color:"#8E8E93",flexShrink:0}}>
+              style={{width:36,height:36,borderRadius:8,color:"#6E6E73",flexShrink:0}}>
               <Icon d={I.trash} size={16}/>
             </button>
           </div>

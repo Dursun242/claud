@@ -44,7 +44,6 @@ body {
 :focus-visible {
   outline: 2px solid #007AFF;
   outline-offset: 2px;
-  border-radius: inherit;
 }
 
 /* Inputs : feedback bleu doux au focus (souris ou clavier). On reste
@@ -54,7 +53,8 @@ input:focus,
 select:focus,
 textarea:focus {
   border-color: #007AFF !important;
-  box-shadow: 0 0 0 3px rgba(0,122,255, 0.15) !important;
+  /* Anneau assez marqué pour se voir aussi sur les champs sans bordure */
+  box-shadow: 0 0 0 3px rgba(0,122,255, 0.35) !important;
 }
 input[aria-invalid="true"],
 textarea[aria-invalid="true"] {

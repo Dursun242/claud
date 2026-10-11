@@ -301,26 +301,26 @@ export default function LogsV({ m, profile, embedded = false }) {
         boxShadow: "0 1px 3px rgba(0,0,0,0.04)", marginBottom: 12
       }}>
         <div style={{ display: "grid", gridTemplateColumns: m ? "1fr" : "1.5fr 1fr 1fr 1fr", gap: 10 }}>
-          <input
+          <input aria-label="Rechercher dans le journal"
             type="search"
             placeholder="Rechercher libellé, utilisateur, email…"
             value={search}
             onChange={e => setSearch(e.target.value)}
             style={{ ...inp, fontSize: 13 }}
           />
-          <select value={userFilter} onChange={e => setUserFilter(e.target.value)} style={{ ...sel, fontSize: 12 }}>
+          <select aria-label="Filtrer par utilisateur" value={userFilter} onChange={e => setUserFilter(e.target.value)} style={{ ...sel, fontSize: 12 }}>
             <option value="">Tous les utilisateurs</option>
             {userOptions.map(u => (
               <option key={u.email} value={u.email}>{u.prenom || u.email} ({u.email})</option>
             ))}
           </select>
-          <select value={actionFilter} onChange={e => setActionFilter(e.target.value)} style={{ ...sel, fontSize: 12 }}>
+          <select aria-label="Filtrer par action" value={actionFilter} onChange={e => setActionFilter(e.target.value)} style={{ ...sel, fontSize: 12 }}>
             <option value="">Toutes les actions</option>
             {Object.entries(ACTION_STYLES).map(([k, v]) => (
               <option key={k} value={k}>{v.label}</option>
             ))}
           </select>
-          <select value={entityFilter} onChange={e => setEntityFilter(e.target.value)} style={{ ...sel, fontSize: 12 }}>
+          <select aria-label="Filtrer par type" value={entityFilter} onChange={e => setEntityFilter(e.target.value)} style={{ ...sel, fontSize: 12 }}>
             <option value="">Tous les types</option>
             {Object.entries(ENTITY_LABELS).map(([k, v]) => (
               <option key={k} value={k}>{v}</option>
@@ -473,7 +473,11 @@ export default function LogsV({ m, profile, embedded = false }) {
                     <React.Fragment key={l.id}>
                       <tr style={{ borderTop: i === 0 ? 'none' : '1px solid #F2F2F7',
                         cursor: hasMeta ? 'pointer' : 'default' }}
-                          onClick={() => hasMeta && toggleExpanded(l.id)}>
+                          onClick={() => hasMeta && toggleExpanded(l.id)}
+                          // Détails dépliables au clavier aussi (Entrée / Espace)
+                          tabIndex={hasMeta ? 0 : undefined}
+                          aria-expanded={hasMeta ? isOpen : undefined}
+                          onKeyDown={e => { if (hasMeta && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); toggleExpanded(l.id) } }}>
                         <td style={{ ...tdStyle, whiteSpace: 'nowrap',
                           color: '#6E6E73', fontSize: 12 }}>{formatWhen(l.created_at)}</td>
                         <td style={tdStyle}>

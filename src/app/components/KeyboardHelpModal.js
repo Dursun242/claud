@@ -24,7 +24,9 @@ export default function KeyboardHelpModal({ open, onClose, tabs = [] }) {
       padding: 16,
       animation: "fadeIn .15s ease",
     }}>
-      <div onClick={e => e.stopPropagation()} style={{
+      <div onClick={e => e.stopPropagation()}
+        role="dialog" aria-modal="true" aria-labelledby="aide-clavier-titre"
+        style={{
         background: "#fff", borderRadius: 14,
         boxShadow: "0 20px 60px rgba(0,0,0,0.3)",
         width: "100%", maxWidth: 460,
@@ -33,10 +35,11 @@ export default function KeyboardHelpModal({ open, onClose, tabs = [] }) {
       }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
           <div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: "#1C1C1E" }}>Raccourcis clavier</div>
+            <div id="aide-clavier-titre" style={{ fontSize: 16, fontWeight: 700, color: "#1C1C1E" }}>Raccourcis clavier</div>
             <div style={{ fontSize: 11, color: "#6E6E73", marginTop: 2 }}>Naviguer plus vite dans l&apos;app</div>
           </div>
           <button
+            autoFocus
             onClick={onClose}
             aria-label="Fermer"
             style={{
