@@ -82,14 +82,22 @@ export function groupByEtape(opps = []) {
  * @returns {{
  *   actives: number, montantPipeline: number, montantPondere: number,
  *   gagneesMois: number, montantGagneMois: number,
+ *   trimestre: number (1-4), annee: number,
+ *   gagneesTrimestre: number, montantGagneTrimestre: number,
  *   tauxConversion: number|null
  * }}
  */
 export function pipelineStats(opps = [], today = new Date()) {
   const t = today instanceof Date ? today : new Date(today)
   const ym = `${t.getUTCFullYear()}-${String(t.getUTCMonth() + 1).padStart(2, '0')}`
+  // Trimestre civil en cours (T1 = janvier-mars…)
+  const annee = t.getUTCFullYear()
+  const trimestre = Math.floor(t.getUTCMonth() / 3) + 1
+  const debutT = `${annee}-${String((trimestre - 1) * 3 + 1).padStart(2, '0')}-01`
+  const finT = trimestre === 4 ? `${annee + 1}-01-01` : `${annee}-${String(trimestre * 3 + 1).padStart(2, '0')}-01`
   let actives = 0, montantPipeline = 0, montantPondere = 0
   let gagneesMois = 0, montantGagneMois = 0, gagnees = 0, perdues = 0
+  let gagneesTrimestre = 0, montantGagneTrimestre = 0
   for (const o of opps) {
     const m = num(o.montant_estime)
     if (!isClosed(o.etape)) {
@@ -100,6 +108,8 @@ export function pipelineStats(opps = [], today = new Date()) {
       gagnees++
       const d = o.date_cloture || (o.updated_at ? isoDay(o.updated_at) : null)
       if (d && String(d).startsWith(ym)) { gagneesMois++; montantGagneMois += m }
+      const jour = d ? String(d).slice(0, 10) : ''
+      if (jour >= debutT && jour < finT) { gagneesTrimestre++; montantGagneTrimestre += m }
     } else {
       perdues++
     }
@@ -109,6 +119,7 @@ export function pipelineStats(opps = [], today = new Date()) {
     actives, montantPipeline,
     montantPondere: Math.round(montantPondere),
     gagneesMois, montantGagneMois,
+    trimestre, annee, gagneesTrimestre, montantGagneTrimestre,
     tauxConversion: closed ? Math.round((gagnees / closed) * 100) : null,
   }
 }

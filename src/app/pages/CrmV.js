@@ -377,7 +377,9 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
         <div style={{ display: 'grid', gridTemplateColumns: m ? '1fr 1fr' : 'repeat(4, 1fr)', gap: 10, marginBottom: 14 }}>
           <Kpi label="En cours" value={fmtMoney(stats.montantPipeline)} sub={`${stats.actives} affaire${stats.actives > 1 ? 's' : ''}`} color="#007AFF" onClick={() => setView('pipeline')} />
           <Kpi label="Prévision" value={fmtMoney(stats.montantPondere)} sub="selon les chances de chaque affaire" color="#AF52DE" />
-          <Kpi label="Gagné ce mois" value={fmtMoney(stats.montantGagneMois)} sub={`${stats.gagneesMois} affaire${stats.gagneesMois > 1 ? 's' : ''}`} color="#34C759" onClick={() => setView('won')} />
+          <Kpi label={`Signé au T${stats.trimestre} ${stats.annee}`} value={fmtMoney(stats.montantGagneTrimestre)}
+            sub={`${stats.gagneesTrimestre} affaire${stats.gagneesTrimestre > 1 ? 's' : ''} · dont ${fmtMoney(stats.montantGagneMois)} ce mois`}
+            color="#34C759" onClick={() => setView('won')} />
           <Kpi label="À relancer" value={String(nbRelances)} sub={followUps.overdue.length ? `${followUps.overdue.length} en retard` : nbRelances ? "aujourd'hui" : 'rien en attente'}
             color={followUps.overdue.length ? '#FF3B30' : '#FF9500'} onClick={() => setView('relances')} />
         </div>

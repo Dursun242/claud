@@ -61,6 +61,16 @@ describe('crm — pipelineStats', () => {
     expect(s.tauxConversion).toBe(67)
   })
 
+  it('signé au trimestre civil en cours (T3 : juillet-septembre)', () => {
+    const s = pipelineStats([
+      ...opps,
+      { etape: 'Gagné', montant_estime: 5000, date_cloture: '2026-06-30' },
+      { etape: 'Gagné', montant_estime: 7000, date_cloture: '2026-07-01' },
+    ], today)
+    expect(s).toMatchObject({ trimestre: 3, annee: 2026, gagneesTrimestre: 3, montantGagneTrimestre: 107000 })
+    expect(pipelineStats(opps, new Date('2026-12-31T10:00:00Z'))).toMatchObject({ trimestre: 4, gagneesTrimestre: 0 })
+  })
+
   it('taux de conversion null sans clôture, tolère les montants absents', () => {
     const s = pipelineStats([{ etape: 'Prospect' }], today)
     expect(s.tauxConversion).toBeNull()
