@@ -18,6 +18,7 @@ const MONTHS_FR = ['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct'
 const ROW_H   = 34
 const HDR_H   = 28
 const LABEL_W = 210
+const LABEL_W_M = 128  // colonne des noms au téléphone : plus de place pour le Gantt
 
 // ─── Couleur par statut OS ─────────────────────────────────
 const OS_COLOR = {
@@ -83,10 +84,15 @@ function ListeView({ filteredChantiers, osByChantier, m: _m }) {
 }
 
 // ─── Composant principal ───────────────────────────────────
-export default function PlanningV({ data, m, reload }) {
+export default function PlanningV({ data, m, reload, readOnly = false }) {
   const { addToast } = useToast()
   const [filter,   setFilter]   = useState('all')
-  const [view,     setView]     = useState('gantt')
+  // Au téléphone, la liste est plus lisible que le Gantt : vue par défaut,
+  // tant que l'utilisateur n'a pas choisi lui-même
+  const [view,     setViewState] = useState(m ? 'list' : 'gantt')
+  const viewChosenRef = useRef(false)
+  const setView = useCallback((v) => { viewChosenRef.current = true; setViewState(v) }, [])
+  useEffect(() => { if (!viewChosenRef.current) setViewState(m ? 'list' : 'gantt') }, [m])
   const [pxDay,    setPxDay]    = useState(18)
   const [localOS,  setLocalOS]  = useState(null)  // optimistic updates
   const [dragId,   setDragId]   = useState(null)
@@ -114,7 +120,10 @@ export default function PlanningV({ data, m, reload }) {
     ), [ordresService]
   )
 
-  // Données courantes (avec mises à jour optimistes pendant le drag)
+  // Données courantes (avec mises à jour optimistes pendant le drag). Dès que
+  // les données rechargées arrivent, on les reprend : sinon le Gantt resterait
+  // figé sur l'état du dernier glissement.
+  useEffect(() => { if (!dragRef.current) setLocalOS(null) }, [osPlanned])
   const currentOS = localOS ?? osPlanned
   useEffect(() => { osRef.current = currentOS }, [currentOS])
 
@@ -169,8 +178,8 @@ export default function PlanningV({ data, m, reload }) {
 
   // ─── Drag & Drop (sauvegarde sur ordres_service) ───────────
   const onBarDown = useCallback((e, os, type) => {
-    // Verrouiller les OS signés
-    if (os.statut === 'Signé') {
+    // Lecture seule (espace client) ou OS signé : pas de déplacement
+    if (readOnly || os.statut === 'Signé') {
       e.preventDefault()
       e.stopPropagation()
       return
@@ -180,11 +189,14 @@ export default function PlanningV({ data, m, reload }) {
     const x = e.touches ? e.touches[0].clientX : e.clientX
     dragRef.current = { id: os.id, type, startX: x, origDebut: os.date_intervention, origFin: os.date_fin_prevue }
     setDragId(os.id)
-  }, [])
+    listenRef.current.attach()
+  }, [readOnly])
 
   const onMove = useCallback((e) => {
     const drag = dragRef.current
     if (!drag) return
+    // Pendant un glissement au doigt, la page ne défile pas
+    if (e.cancelable && e.touches) e.preventDefault()
     const x = e.touches ? e.touches[0].clientX : e.clientX
     const delta = Math.round((x - drag.startX) / pxDayRef.current)
     setLocalOS(() => {
@@ -206,6 +218,7 @@ export default function PlanningV({ data, m, reload }) {
   }, [])
 
   const onUp = useCallback(async () => {
+    listenRef.current.detach()
     const drag = dragRef.current
     if (!drag) return
     dragRef.current = null
@@ -231,19 +244,45 @@ export default function PlanningV({ data, m, reload }) {
     } finally { setSaving(null) }
   }, [addToast, reload])
 
-  // Abonnement global unique aux events de drag
-  useEffect(() => {
-    window.addEventListener('mousemove',  onMove)
-    window.addEventListener('mouseup',    onUp)
-    window.addEventListener('touchmove',  onMove, { passive: false })
-    window.addEventListener('touchend',   onUp)
-    return () => {
-      window.removeEventListener('mousemove',  onMove)
-      window.removeEventListener('mouseup',    onUp)
-      window.removeEventListener('touchmove',  onMove)
-      window.removeEventListener('touchend',   onUp)
+  // Glissement interrompu (appel, notification…) : la barre revient à sa place
+  const onCancel = useCallback(() => {
+    listenRef.current.detach()
+    if (!dragRef.current) return
+    dragRef.current = null
+    setDragId(null)
+    setLocalOS(null)
+  }, [])
+
+  // Écouteurs posés seulement pendant un glissement (et retirés à la fin) :
+  // un écouteur tactile permanent ralentirait le défilement de toute
+  // l'application, l'onglet restant monté une fois visité.
+  const handlersRef = useRef({ onMove, onUp, onCancel })
+  useEffect(() => { handlersRef.current = { onMove, onUp, onCancel } }, [onMove, onUp, onCancel])
+  const listenRef = useRef(null)
+  if (!listenRef.current) {
+    const move = (e) => handlersRef.current.onMove(e)
+    const up = (e) => handlersRef.current.onUp(e)
+    const cancel = (e) => handlersRef.current.onCancel(e)
+    listenRef.current = {
+      attach() {
+        window.addEventListener('mousemove', move)
+        window.addEventListener('mouseup', up)
+        window.addEventListener('touchmove', move, { passive: false })
+        window.addEventListener('touchend', up)
+        window.addEventListener('touchcancel', cancel)
+        window.addEventListener('blur', cancel)
+      },
+      detach() {
+        window.removeEventListener('mousemove', move)
+        window.removeEventListener('mouseup', up)
+        window.removeEventListener('touchmove', move)
+        window.removeEventListener('touchend', up)
+        window.removeEventListener('touchcancel', cancel)
+        window.removeEventListener('blur', cancel)
+      },
     }
-  }, [onMove, onUp])
+  }
+  useEffect(() => () => listenRef.current.detach(), [])
 
   const totalW    = totalDays * pxDay
   const showToday = todayPct >= 0 && todayPct <= 100
@@ -254,6 +293,7 @@ export default function PlanningV({ data, m, reload }) {
     const todayX = (todayPct / 100) * totalW - 200
     scrollRef.current.scrollLeft = Math.max(0, todayX)
   }, [showToday, todayPct, totalW])
+  const labelW = m ? LABEL_W_M : LABEL_W
   // Y a-t-il au moins un OS planifié dans les chantiers filtrés ?
   const hasData = filteredChantiers.some(c => (osByChantier.get(c.id) || []).length > 0)
 
@@ -324,8 +364,10 @@ export default function PlanningV({ data, m, reload }) {
 
           {/* Aide */}
           <div style={{ padding: '5px 14px', borderBottom: '1px solid var(--grouped-bg)', fontSize: 11, color: 'var(--label-secondary)', display: 'flex', gap: 14, flexWrap: 'wrap' }}>
-            <span>↔ Glisser la barre pour déplacer</span>
-            <span>⊣⊢ Bord droit pour redimensionner</span>
+            {readOnly ? <span>Planning des interventions (consultation)</span> : <>
+              <span>↔ Glisser la barre pour déplacer</span>
+              <span>⊣⊢ Bord droit pour redimensionner</span>
+            </>}
             {saving && <span style={{ color: 'var(--accent-text)', fontWeight: 600 }}>💾 Sauvegarde…</span>}
           </div>
 
@@ -334,7 +376,7 @@ export default function PlanningV({ data, m, reload }) {
 
               {/* ── En-tête mois (sticky) ── */}
               <div style={{ display: 'flex', position: 'sticky', top: 0, zIndex: 10, background: 'var(--row-fill)', borderBottom: '2px solid var(--separator)' }}>
-                <div style={{ width: LABEL_W, flexShrink: 0, borderRight: '2px solid var(--separator)', padding: '0 12px', display: 'flex', alignItems: 'center', fontSize: 11, fontWeight: 700, color: 'var(--label-secondary)', letterSpacing: '0.05em', height: 34 }}>
+                <div style={{ width: labelW, flexShrink: 0, borderRight: '2px solid var(--separator)', padding: '0 12px', display: 'flex', alignItems: 'center', fontSize: 11, fontWeight: 700, color: 'var(--label-secondary)', letterSpacing: '0.05em', height: 34 }}>
                   CHANTIER / OS
                 </div>
                 <div style={{ width: totalW, flexShrink: 0, position: 'relative', height: 34 }}>
@@ -371,7 +413,7 @@ export default function PlanningV({ data, m, reload }) {
                   <div key={c.id}>
                     {/* ── Ligne en-tête chantier ── */}
                     <div style={{ display: 'flex', height: HDR_H, background: color + '18', borderBottom: `1px solid ${color}30` }}>
-                      <div style={{ width: LABEL_W, flexShrink: 0, borderRight: `2px solid ${color}40`, padding: '0 12px', display: 'flex', alignItems: 'center', position: 'sticky', left: 0, background: color + '18', zIndex: 4 }}>
+                      <div style={{ width: labelW, flexShrink: 0, borderRight: `2px solid ${color}40`, padding: '0 12px', display: 'flex', alignItems: 'center', position: 'sticky', left: 0, background: color + '18', zIndex: 4 }}>
                         <div style={{ fontWeight: 700, fontSize: 11, color: color, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {c.nom}
                         </div>
@@ -402,7 +444,7 @@ export default function PlanningV({ data, m, reload }) {
                         <div key={os.id} style={{ display: 'flex', height: ROW_H, borderBottom: '1px solid var(--grouped-bg)', background: rowBg }}>
 
                           {/* Colonne label */}
-                          <div style={{ width: LABEL_W, flexShrink: 0, borderRight: '1px solid var(--separator)', padding: '0 12px 0 20px', display: 'flex', flexDirection: 'column', justifyContent: 'center', position: 'sticky', left: 0, background: rowBg, zIndex: 3 }}>
+                          <div style={{ width: labelW, flexShrink: 0, borderRight: '1px solid var(--separator)', padding: '0 12px 0 20px', display: 'flex', flexDirection: 'column', justifyContent: 'center', position: 'sticky', left: 0, background: rowBg, zIndex: 3 }}>
                             <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--label)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                               {os.artisan_specialite || os.artisan_nom || os.numero}
                             </div>
@@ -433,12 +475,13 @@ export default function PlanningV({ data, m, reload }) {
                                 borderRadius: 5,
                                 background: isActive ? osColor + 'cc' : osColor + '2e',
                                 border: `1.5px solid ${osColor}`,
-                                cursor: os.statut === 'Signé' ? 'not-allowed' : isActive ? 'grabbing' : 'grab',
+                                cursor: readOnly ? 'default' : os.statut === 'Signé' ? 'not-allowed' : isActive ? 'grabbing' : 'grab',
                                 zIndex: isActive ? 5 : 2,
                                 opacity: isSaving ? 0.6 : os.statut === 'Signé' ? 0.5 : 1,
                                 transition: isSaving ? 'opacity .3s' : isActive ? 'none' : 'box-shadow .15s',
                                 boxShadow: isActive ? `0 3px 14px ${osColor}55` : 'none',
-                                userSelect: 'none', touchAction: 'none',
+                                // Défilement vertical libre au doigt ; le glissement horizontal déplace la barre
+                                userSelect: 'none', touchAction: readOnly ? 'auto' : 'pan-y',
                                 overflow: 'visible',
                                 filter: os.statut === 'Signé' ? 'grayscale(30%)' : 'none',
                               }}
@@ -451,11 +494,12 @@ export default function PlanningV({ data, m, reload }) {
                               )}
 
                               {/* Poignée de redimensionnement (bord droit) - cachée si signé */}
-                              {os.statut !== 'Signé' && (
+                              {os.statut !== 'Signé' && !readOnly && (
                                 <div
+                                  aria-hidden="true"
                                   onMouseDown={e => { e.stopPropagation(); onBarDown(e, os, 'resize') }}
                                   onTouchStart={e => { e.stopPropagation(); onBarDown(e, os, 'resize') }}
-                                  style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 8, cursor: 'ew-resize', borderRadius: '0 4px 4px 0', background: osColor + '33', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                  style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: m ? 18 : 10, cursor: 'ew-resize', borderRadius: '0 4px 4px 0', background: osColor + '33', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                                 >
                                   <div style={{ width: 2, height: 10, background: osColor, borderRadius: 1, opacity: 0.7 }} />
                                 </div>

@@ -491,7 +491,7 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
             <>
               <span style={{
                 display:"inline-block",width:12,height:12,
-                border:"2px solid var(--purple-line)",borderTopColor:"#8944AB",
+                border:"2px solid var(--purple-line)",borderTopColor:"var(--purple-text)",
                 borderRadius:"50%",animation:"spin 0.8s linear infinite"
               }}/>
               Extraction…

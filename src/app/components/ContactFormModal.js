@@ -72,7 +72,7 @@ export default function ContactFormModal({
             style={{
               width: '100%', padding: '10px 14px', borderRadius: 8,
               border: '1.5px dashed var(--purple-line)', background: '#fff',
-              color: '#8944AB', fontSize: 13, fontWeight: 600,
+              color: 'var(--purple-text)', fontSize: 13, fontWeight: 600,
               cursor: importing ? 'wait' : 'pointer', fontFamily: 'inherit',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               gap: 8, opacity: importing ? 0.7 : 1,
@@ -82,7 +82,7 @@ export default function ContactFormModal({
               <>
                 <span style={{
                   display: 'inline-block', width: 12, height: 12,
-                  border: '2px solid var(--purple-line)', borderTopColor: '#8944AB',
+                  border: '2px solid var(--purple-line)', borderTopColor: 'var(--purple-text)',
                   borderRadius: '50%', animation: 'spin 0.8s linear infinite',
                 }}/>
                 Extraction en cours…
@@ -221,7 +221,7 @@ export default function ContactFormModal({
                               {fullName}
                               {dirigeantInfo.qualite && (
                                 <span style={{
-                                  fontSize: 11, color: '#8944AB',
+                                  fontSize: 11, color: 'var(--purple-text)',
                                   fontWeight: 600, marginLeft: 6,
                                 }}>({dirigeantInfo.qualite})</span>
                               )}
@@ -237,7 +237,7 @@ export default function ContactFormModal({
                               {ent.siret && <> — SIRET {ent.siret}</>}
                             </div>
                           </div>
-                          <span style={{ fontSize: 11, color: '#8944AB', fontWeight: 600, flexShrink: 0 }}>
+                          <span style={{ fontSize: 11, color: 'var(--purple-text)', fontWeight: 600, flexShrink: 0 }}>
                             Importer →
                           </span>
                         </button>
@@ -384,7 +384,7 @@ export default function ContactFormModal({
         <FF label="Note (étoiles)">
           <div style={{ display: 'flex', gap: 4 }}>
             {[1, 2, 3, 4, 5].map((n) => (
-              <button key={n}
+              <button type="button" aria-label={`${n} étoile${n > 1 ? 's' : ''}`} aria-pressed={n <= (form.note || 0)} key={n}
                 onClick={() => setForm({ ...form, note: form.note === n ? 0 : n })}
                 style={{
                   background: 'none', border: 'none', cursor: 'pointer',

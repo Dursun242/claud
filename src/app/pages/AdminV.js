@@ -421,18 +421,18 @@ export default function AdminV({ m, reload, profile }) {
       }}>
         <h2 style={{ margin: "0 0 12px", fontSize: 15, fontWeight: 700 }}>Ajouter un utilisateur</h2>
         <div style={{ display: "grid", gridTemplateColumns: m ? "1fr" : "repeat(3,1fr)", gap: 10, marginBottom: 10 }}>
-          <input type="email" placeholder="email@exemple.com"
+          <input aria-label="Email" type="email" placeholder="email@exemple.com"
             value={newEmail} onChange={e => setNewEmail(e.target.value)}
             style={{
             padding: "10px 12px", border: "1.5px solid var(--separator)",
             borderRadius: 8, fontSize: 13, fontFamily: "inherit", outline: "none"
           }}/>
-          <input type="text" placeholder="Prénom *" value={newPrenom} onChange={e => setNewPrenom(e.target.value)}
+          <input aria-label="Prénom" type="text" placeholder="Prénom *" value={newPrenom} onChange={e => setNewPrenom(e.target.value)}
             style={{
             padding: "10px 12px", border: "1.5px solid var(--separator)",
             borderRadius: 8, fontSize: 13, fontFamily: "inherit", outline: "none"
           }}/>
-          <input type="text" placeholder="Nom (optionnel)" value={newNom} onChange={e => setNewNom(e.target.value)}
+          <input aria-label="Nom" type="text" placeholder="Nom (optionnel)" value={newNom} onChange={e => setNewNom(e.target.value)}
             style={{
             padding: "10px 12px", border: "1.5px solid var(--separator)",
             borderRadius: 8, fontSize: 13, fontFamily: "inherit", outline: "none"

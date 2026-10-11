@@ -76,7 +76,7 @@ export default function AIQontoV({ m }) {
               <button type="button" onClick={() => setExpanded(!expanded)} aria-expanded={expanded}
                 style={{ ...title, margin: expanded ? '0 0 10px' : 0, background: 'none', border: 'none', padding: 0, minHeight: 32, cursor: 'pointer', fontFamily: 'inherit', width: '100%', textAlign: 'left' }}>
                 <Emoji e="💡" size={24} />Recommandations
-                <span aria-hidden="true" style={{ marginLeft: 'auto', color: 'var(--label-tertiary)', fontWeight: 400 }}>{expanded ? '⌃' : '⌄'}</span>
+                <span aria-hidden="true" style={{ marginLeft: 'auto', color: 'var(--label-secondary)', fontWeight: 400 }}>{expanded ? '⌃' : '⌄'}</span>
               </button>
               {expanded && <ul style={list}>{asList(a.recommendations).map((r, i) => <li key={i}>{r}</li>)}</ul>}
             </div>

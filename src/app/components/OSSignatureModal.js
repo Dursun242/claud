@@ -89,7 +89,7 @@ export default function OSSignatureModal({
                   )}
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
-                  <input
+                  <input aria-label="Nom du signataire"
                     placeholder="Nom"
                     style={{ ...inp, fontSize: 12 }}
                     value={signers[key].name}
@@ -97,7 +97,7 @@ export default function OSSignatureModal({
                       setSigners((s) => ({ ...s, [key]: { ...s[key], name: e.target.value } }))
                     }
                   />
-                  <input
+                  <input aria-label="Email du signataire"
                     placeholder="Email *"
                     style={{
                       ...inp,

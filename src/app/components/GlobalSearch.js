@@ -171,7 +171,7 @@ export default function GlobalSearch({ data, crm = null, onNavigate }) {
             background: '#EEEEF0',
             border: 'none',
             borderRadius: 10, color: 'var(--label)', fontSize: 14,
-            fontFamily: 'inherit', outline: 'none',
+            fontFamily: 'inherit',
           }}
         />
         {query && (

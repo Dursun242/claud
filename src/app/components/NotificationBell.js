@@ -67,6 +67,12 @@ function Toast({ notif, index, total, onDismiss, onClick, isMobile }) {
     return () => clearTimeout(timerRef.current)
   }, [hover, notif.id, onDismiss])
 
+  const open = () => {
+    setClosing(true)
+    clearTimeout(closeTimerRef.current)
+    closeTimerRef.current = setTimeout(() => { onDismiss(notif.id); onClick?.(notif) }, 180)
+  }
+
   // Empilement : la plus récente en bas, les plus anciennes au-dessus avec
   // un léger décalage et une opacité réduite (effet "stack")
   const offsetY = (total - 1 - index) * (isMobile ? 6 : 8)
@@ -76,11 +82,13 @@ function Toast({ notif, index, total, onDismiss, onClick, isMobile }) {
     <div
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
-      onClick={() => {
-        setClosing(true)
-        clearTimeout(closeTimerRef.current)
-        closeTimerRef.current = setTimeout(() => { onDismiss(notif.id); onClick?.(notif) }, 180)
-      }}
+      // Clavier : focus = pause (comme le survol), Entrée ouvre l'élément
+      onFocus={() => setHover(true)}
+      onBlur={() => setHover(false)}
+      role="button" tabIndex={0}
+      aria-label={`Ouvrir : ${notif.title || 'notification'}`}
+      onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); open() } }}
+      onClick={open}
       style={{
         width: isMobile ? '92vw' : 340,
         maxWidth: 360,
@@ -88,8 +96,6 @@ function Toast({ notif, index, total, onDismiss, onClick, isMobile }) {
         padding: '11px 14px',
         // Fond quasi opaque : lisible quel que soit le contenu dessous
         background: 'rgba(255,255,255,0.97)',
-        backdropFilter: 'blur(20px) saturate(180%)',
-        WebkitBackdropFilter: 'blur(36px) saturate(200%)',
         border: '1px solid var(--separator)',
         borderRadius: 12,
         boxShadow: '0 14px 36px rgba(0,0,0,0.16)',
@@ -336,7 +342,7 @@ export default function NotificationBell({ userEmail, onNavigate, isMobile = fal
                               display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden',
                             }}>{n.body}</div>
                           )}
-                          <div style={{ fontSize: 12, color: 'var(--label-tertiary)', marginTop: 4 }}>
+                          <div style={{ fontSize: 12, color: 'var(--label-secondary)', marginTop: 4 }}>
                             {relativeTime(n.created_at)}
                             {g.count > 1 && (
                               <span style={{ marginLeft: 6, fontWeight: 700, color: accent }}>

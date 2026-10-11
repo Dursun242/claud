@@ -40,7 +40,7 @@ export default function ClientOverview({ overview, onOpen, m }) {
             Voir le détail et l&apos;état des signatures
           </span>
         </span>
-        <span aria-hidden style={{ color: 'var(--label-tertiary)', fontSize: 16 }}>›</span>
+        <span aria-hidden style={{ color: 'var(--label-secondary)', fontSize: 16 }}>›</span>
       </button>
     )}
 

@@ -277,7 +277,7 @@ export default function PhotoReportsV({ data, m }) {
         }}>
           1. Chantier
         </div>
-        <select
+        <select aria-label="Chantier"
           value={chantierId}
           onChange={e => setChantierId(e.target.value)}
           style={{ ...sel, width: '100%', maxWidth: 400, fontSize: 14 }}
@@ -411,7 +411,7 @@ export default function PhotoReportsV({ data, m }) {
                       width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center',
                       fontSize: 11, fontWeight: 700, flexShrink: 0,
                     }}>{idx + 1}</span>
-                    <input
+                    <input aria-label={`Légende de la photo ${idx + 1}`}
                       value={photo.description}
                       onChange={e => updateDesc(photo.id, e.target.value)}
                       placeholder="Légende de la photo…"

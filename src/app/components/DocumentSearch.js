@@ -71,7 +71,7 @@ export default function DocumentSearch({ chantierId = null }) {
   return (
     <div style={{ position: 'relative', width: '100%' }} ref={searchRef}>
       <div style={{ display: 'flex', gap: 8 }}>
-        <input
+        <input aria-label="Chercher dans les documents"
           type="text"
           placeholder="🔍 Chercher dans les documents..."
           value={searchQuery}
@@ -155,7 +155,7 @@ export default function DocumentSearch({ chantierId = null }) {
                       {doc.chantier_nom} • {formatSize(doc.file_size)}
                     </div>
                   </div>
-                  <span style={{ fontSize: 11, color: 'var(--separator-opaque)', whiteSpace: 'nowrap' }}>
+                  <span style={{ fontSize: 11, color: 'var(--label-secondary)', whiteSpace: 'nowrap' }}>
                     {doc.type}
                   </span>
                 </button>

@@ -196,7 +196,7 @@ export default function ChiffrageSection({ chantier, os = [], allOs = [], user, 
             <div style={{ marginTop: 10, fontSize: 12, border: '1px solid var(--separator)', borderRadius: 8, padding: '10px 12px', background: 'var(--row-fill)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, marginBottom: 6 }}>
                 <b style={{ color: 'var(--label)' }}>Relecture des prix{verif.ia ? <span style={{ fontWeight: 400, color: 'var(--label-secondary)' }}> · {verif.ia === 'mistral' ? 'Mistral' : 'Claude'}</span> : null}</b>
-                <button onClick={() => setVerif(null)} aria-label="Fermer la relecture" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--label-tertiary)', fontFamily: 'inherit' }}>✕</button>
+                <button onClick={() => setVerif(null)} aria-label="Fermer la relecture" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--label-secondary)', fontFamily: 'inherit' }}>✕</button>
               </div>
               {verif.synthese && <div style={{ color: 'var(--label-2)', marginBottom: 8 }}>{verif.synthese}</div>}
               {verif.remarques.map((x, k) => {

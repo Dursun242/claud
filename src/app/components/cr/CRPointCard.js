@@ -40,7 +40,7 @@ export default function CRPointCard({ row, crId, crDate, lots = [], entreprisesL
                     padding: m ? '8px 10px' : '6px 10px', minHeight: m ? 40 : 32, borderRadius: 8, fontSize: 12, fontWeight: 700,
                     fontFamily: 'inherit', cursor: disabled ? 'default' : 'pointer',
                     border: `1.5px solid ${on ? s.color : 'var(--separator)'}`,
-                    background: on ? '#fff' : 'rgba(255,255,255,0.6)', color: on ? s.color : 'var(--label-tertiary)',
+                    background: on ? '#fff' : 'rgba(255,255,255,0.6)', color: on ? s.color : 'var(--label-secondary)',
                   }}>{k === 'fait' ? '✓ ' : k === 'relance' ? '🔔 ' : ''}{SUIVI[k]}</button>
               )
             })}
@@ -51,7 +51,7 @@ export default function CRPointCard({ row, crId, crDate, lots = [], entreprisesL
           {late > 0 && row.suivi !== 'fait' && <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--red-text)' }}>retard {late} j</span>}
           {nbRappels > 0 && row.suivi !== 'fait' && <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--red-text)' }}>rappel n°{nbRappels}</span>}
           {disabled && <span style={{ fontSize: 11, color: 'var(--label-secondary)' }}>tâche supprimée</span>}
-          <button type="button" onClick={() => setShowPhotos(v => !v)} aria-expanded={showPhotos}
+          <button aria-label={showPhotos ? 'Masquer les photos' : `Photos du point${photos.length ? ` (${photos.length})` : ''}`} type="button" onClick={() => setShowPhotos(v => !v)} aria-expanded={showPhotos}
             style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700, color: 'var(--accent-text)', fontFamily: 'inherit', padding: '2px 4px' }}>
             📷 {photos.length || ''}
           </button>

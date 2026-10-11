@@ -100,7 +100,7 @@ export default function OSFormModal({
               borderRadius: 8,
               border: '1.5px dashed var(--purple-line)',
               background: '#fff',
-              color: '#8944AB',
+              color: 'var(--purple-text)',
               fontSize: 13,
               fontWeight: 600,
               cursor: importing ? 'wait' : 'pointer',
@@ -116,7 +116,7 @@ export default function OSFormModal({
               <>
                 <span style={{
                   display: 'inline-block', width: 12, height: 12,
-                  border: '2px solid var(--purple-line)', borderTopColor: '#8944AB',
+                  border: '2px solid var(--purple-line)', borderTopColor: 'var(--purple-text)',
                   borderRadius: '50%', animation: 'spin 0.8s linear infinite'
                 }}/>
                 Extraction en cours…
@@ -251,21 +251,21 @@ export default function OSFormModal({
             gridTemplateColumns: m ? '1fr' : '3fr 1fr 1fr 1fr 1fr auto',
             gap: 6, marginBottom: 6, alignItems: 'end'
           }}>
-            <input placeholder="Description" style={{ ...inp, fontSize: 12 }}
+            <input aria-label={`Prestation ${i + 1} : description`} placeholder="Description" style={{ ...inp, fontSize: 12 }}
               value={p.description}
               onChange={(e) => updatePrestation(i, 'description', e.target.value)}/>
-            <select style={{ ...sel, fontSize: 12 }} value={p.unite}
+            <select aria-label={`Prestation ${i + 1} : unité`} style={{ ...sel, fontSize: 12 }} value={p.unite}
               onChange={(e) => updatePrestation(i, 'unite', e.target.value)}>
               <option>u</option><option>m²</option><option>ml</option><option>m³</option>
               <option>kg</option><option>h</option><option>forfait</option><option>ens</option>
             </select>
-            <input placeholder="Qté" type="number" style={{ ...inp, fontSize: 12 }}
+            <input aria-label={`Prestation ${i + 1} : quantité`} placeholder="Qté" type="number" style={{ ...inp, fontSize: 12 }}
               value={p.quantite}
               onChange={(e) => updatePrestation(i, 'quantite', e.target.value)}/>
-            <input placeholder="PU HT €" type="number" step="0.01"
+            <input aria-label={`Prestation ${i + 1} : prix unitaire HT`} placeholder="PU HT €" type="number" step="0.01"
               style={{ ...inp, fontSize: 12 }} value={p.prix_unitaire}
               onChange={(e) => updatePrestation(i, 'prix_unitaire', e.target.value)}/>
-            <select
+            <select aria-label={`Prestation ${i + 1} : taux de TVA`}
               style={{ ...sel, fontSize: 12, opacity: tvaNA ? 0.5 : 1, cursor: tvaNA ? 'not-allowed' : 'pointer' }}
               value={tvaNA ? '0' : p.tva_taux}
               disabled={tvaNA}
@@ -274,7 +274,7 @@ export default function OSFormModal({
               <option value="20">20%</option><option value="10">10%</option>
               <option value="5.5">5.5%</option><option value="0">0%</option>
             </select>
-            <button onClick={() => removePrestation(i)}
+            <button type="button" aria-label={`Supprimer la prestation ${i + 1}`} onClick={() => removePrestation(i)}
               style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
               <Icon d={I.trash} size={14} color="#FF3B30"/>
             </button>

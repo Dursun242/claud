@@ -3,7 +3,8 @@ import { INTERACTION_ICONS } from '../../lib/crm'
 import { todayISO } from './crmUi'
 
 // Un échange (appel, email…) avec sa relance éventuelle à cocher
-export default function InteractionRow({ it, onToggle, onDelete, context }) {
+// `onOpen` : le sujet devient un bouton (clavier, lecteur d'écran) qui ouvre l'affaire
+export default function InteractionRow({ it, onToggle, onDelete, context, onOpen }) {
   const td = todayISO()
   const pending = it.prochaine_action_date && !it.action_faite
   const overdue = pending && it.prochaine_action_date < td
@@ -17,14 +18,20 @@ export default function InteractionRow({ it, onToggle, onDelete, context }) {
       <span style={{ fontSize: 16, lineHeight: 1.2 }} aria-hidden="true">{INTERACTION_ICONS[it.type] || '📝'}</span>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--label)' }}>
-          {it.sujet}
+          {onOpen ? (
+            <button type="button" onClick={(e) => { e.stopPropagation(); onOpen() }}
+              aria-label={`Ouvrir l’affaire${context ? ` ${context}` : ''} : ${it.sujet || ''}`}
+              style={{ background: 'none', border: 'none', padding: 0, font: 'inherit', color: 'inherit', cursor: 'pointer', textAlign: 'left' }}>
+              {it.sujet}
+            </button>
+          ) : it.sujet}
           <span style={{ fontSize: 11, color: 'var(--label-secondary)', fontWeight: 400, marginLeft: 6 }}>{dateStr}</span>
         </div>
         {context && <div style={{ fontSize: 11, color: 'var(--label-secondary)' }}>{context}</div>}
         {it.contenu && <div style={{ fontSize: 12, color: '#48484A', whiteSpace: 'pre-wrap', marginTop: 2 }}>{it.contenu}</div>}
         {it.prochaine_action && (
           <label style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6, fontSize: 11, cursor: 'pointer',
-            color: it.action_faite ? 'var(--label-tertiary)' : overdue ? 'var(--red-text)' : 'var(--orange-deep)', textDecoration: it.action_faite ? 'line-through' : 'none' }}>
+            color: it.action_faite ? 'var(--label-secondary)' : overdue ? 'var(--red-text)' : 'var(--orange-deep)', textDecoration: it.action_faite ? 'line-through' : 'none' }}>
             <input type="checkbox" checked={!!it.action_faite} onChange={onToggle} aria-label="Marquer la relance comme faite" />
             {it.prochaine_action}{it.prochaine_action_date ? ` — ${fmtDate(it.prochaine_action_date)}` : ''}{overdue ? ' (en retard)' : ''}
           </label>

@@ -9,6 +9,7 @@ import { parseNewIntent } from '../lib/navIntent'
 import { useSaveTask } from '../hooks/useSaveTask'
 import { useNavReturn } from '../hooks/useNavReturn'
 import SearchField from '../components/SearchField'
+import { localISO } from '../lib/today'
 import FilterPill, { pillRow } from '../components/FilterPill'
 import { EMOJI } from '../lib/emoji'
 
@@ -40,14 +41,17 @@ export default function TasksV({ data, save: _save, m, reload, focusId, focusTs,
 
   // Liste filtrée + triée par priorité puis échéance, mémoïsée.
   // Exclut les tâches en cours de suppression (undo window ouverte).
-  const todayISO = new Date().toISOString().split("T")[0]
+  // Date locale (pas toISOString : le soir, l'UTC donne déjà le lendemain)
+  const todayISO = localISO()
+  // Chantier par id : une recherche directe au lieu d'un parcours par tâche
+  const chantierById = useMemo(() => new Map((data.chantiers || []).map(c => [c.id, c])), [data.chantiers])
   const filteredTasks = useMemo(() => {
     const search = q.toLowerCase().trim()
     let list = (data.tasks || []).filter(t => !pendingDeleteIds.has(t.id))
     if (filter !== "all") list = list.filter(t => t.statut === filter)
     if (search) {
       list = list.filter(t => {
-        const ch = data.chantiers.find(c => c.id === t.chantierId)
+        const ch = chantierById.get(t.chantierId)
         return (
           (t.titre || "").toLowerCase().includes(search) ||
           (t.lot || "").toLowerCase().includes(search) ||
@@ -65,7 +69,7 @@ export default function TasksV({ data, save: _save, m, reload, focusId, focusTs,
       if (pa !== pb) return pa - pb
       return new Date(a.echeance || "9999") - new Date(b.echeance || "9999")
     })
-  }, [data.tasks, data.chantiers, filter, q, pendingDeleteIds])
+  }, [data.tasks, chantierById, filter, q, pendingDeleteIds])
 
   // Compteurs par statut (pour les pills)
   const countByStatus = useMemo(() => {
@@ -220,7 +224,7 @@ export default function TasksV({ data, save: _save, m, reload, focusId, focusTs,
     // la largeur du container (fix overflow horizontal sur mobile)
     <div style={{display:"grid",gap:6,gridTemplateColumns:"minmax(0,1fr)"}}>
       {filteredTasks.map(t => {
-        const ch = data.chantiers.find(c => c.id === t.chantierId)
+        const ch = chantierById.get(t.chantierId)
         const overdue = isOverdue(t)
         return (
           <div key={t.id} style={{
@@ -281,7 +285,7 @@ export default function TasksV({ data, save: _save, m, reload, focusId, focusTs,
             </button>
             <button onClick={()=>handleDelete(t)} title="Supprimer"
               aria-label="Supprimer la tâche" className="u-icon-btn u-icon-btn--danger"
-              style={{width:36,height:36,borderRadius:8,color:"var(--label-tertiary)",flexShrink:0}}>
+              style={{width:36,height:36,borderRadius:8,color:"var(--label-secondary)",flexShrink:0}}>
               <Icon d={I.trash} size={16}/>
             </button>
           </div>

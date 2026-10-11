@@ -15,7 +15,7 @@ import {
 import { useToast } from '../../contexts/ToastContext'
 
 const small = { ...inp, minHeight: 38, padding: '7px 9px', fontSize: 14 }
-const iconBtn = { background: 'none', border: 'none', cursor: 'pointer', color: '#8E8E93', fontSize: 14, padding: '4px 6px', fontFamily: 'inherit' }
+const iconBtn = { background: 'none', border: 'none', cursor: 'pointer', color: '#6E6E73', fontSize: 14, padding: '4px 6px', fontFamily: 'inherit' }
 const label = { display: 'block', fontSize: 11, fontWeight: 600, color: '#6E6E73', textTransform: 'uppercase', marginBottom: 3 }
 const box = { border: '1px solid #E5E5EA', borderRadius: 10, padding: 10, marginBottom: 10 }
 
@@ -119,17 +119,17 @@ export default function ChiffrageEditor({ open, initial, chantier, refs = [], on
 
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 10 }}>
         <div style={{ width: 150 }}><span style={label}>Référence</span>
-          <input value={d.reference} onChange={e => setD(s => ({ ...s, reference: e.target.value }))} placeholder="DPGF-2026-030" style={small} /></div>
+          <input aria-label="Référence" value={d.reference} onChange={e => setD(s => ({ ...s, reference: e.target.value }))} placeholder="DPGF-2026-030" style={small} /></div>
         <div style={{ width: 60 }}><span style={label}>Indice</span>
-          <input value={d.indice} onChange={e => setD(s => ({ ...s, indice: e.target.value }))} style={small} /></div>
+          <input aria-label="Indice" value={d.indice} onChange={e => setD(s => ({ ...s, indice: e.target.value }))} style={small} /></div>
         <div style={{ width: 96 }}><span style={label}>SHAB m²</span>
-          <input inputMode="decimal" value={d.surface_m2} onChange={e => setD(s => ({ ...s, surface_m2: e.target.value }))} style={small} /></div>
+          <input aria-label="SHAB m²" inputMode="decimal" value={d.surface_m2} onChange={e => setD(s => ({ ...s, surface_m2: e.target.value }))} style={small} /></div>
         <div style={{ width: 118 }}><span style={label} title="Comptés pour moitié dans le ratio">Garage / annexes m²</span>
-          <input inputMode="decimal" value={d.surface_annexes} onChange={e => setD(s => ({ ...s, surface_annexes: e.target.value }))} style={small} /></div>
+          <input aria-label="Garage / annexes m²" inputMode="decimal" value={d.surface_annexes} onChange={e => setD(s => ({ ...s, surface_annexes: e.target.value }))} style={small} /></div>
         <div style={{ width: 76 }}><span style={label}>Aléas %</span>
-          <input inputMode="decimal" value={d.aleas_pct} onChange={e => setD(s => ({ ...s, aleas_pct: e.target.value }))} style={small} /></div>
+          <input aria-label="Aléas %" inputMode="decimal" value={d.aleas_pct} onChange={e => setD(s => ({ ...s, aleas_pct: e.target.value }))} style={small} /></div>
         <div style={{ width: 92 }}><span style={label}>TVA %</span>
-          <select value={d.tva_pct} onChange={e => setD(s => ({ ...s, tva_pct: e.target.value }))} style={{ ...sel, ...small }}>
+          <select aria-label="TVA %" value={d.tva_pct} onChange={e => setD(s => ({ ...s, tva_pct: e.target.value }))} style={{ ...sel, ...small }}>
             {['20', '10', '5.5', '0'].map(v => <option key={v} value={v}>{v.replace('.', ',')} %</option>)}
           </select></div>
       </div>
@@ -198,9 +198,9 @@ export default function ChiffrageEditor({ open, initial, chantier, refs = [], on
       {/* Calage sur un objectif de prix (prix verrouillés et honoraires inchangés) */}
       <div style={{ ...box, display: 'flex', gap: 8, alignItems: 'flex-end', flexWrap: 'wrap' }}>
         <div style={{ width: 150 }}><span style={label}>Objectif TTC</span>
-          <input inputMode="decimal" value={cible} onChange={e => setCible(e.target.value)} placeholder="300 000" style={small} /></div>
+          <input aria-label="Objectif TTC" inputMode="decimal" value={cible} onChange={e => setCible(e.target.value)} placeholder="300 000" style={small} /></div>
         <div style={{ width: 190 }}><span style={label}>Portant sur</span>
-          <select value={cibleMoe} onChange={e => setCibleMoe(e.target.value)} style={{ ...sel, ...small }}>
+          <select aria-label="Objectif portant sur" value={cibleMoe} onChange={e => setCibleMoe(e.target.value)} style={{ ...sel, ...small }}>
             <option value="travaux">les travaux seuls</option>
             <option value="moe">travaux + honoraires</option>
           </select></div>
@@ -209,7 +209,7 @@ export default function ChiffrageEditor({ open, initial, chantier, refs = [], on
 
       <div style={{ marginBottom: 12 }}>
         <span style={label}>Observations / non compris (une par ligne)</span>
-        <textarea value={d.observations} onChange={e => setD(s => ({ ...s, observations: e.target.value }))} rows={4} style={{ ...small, resize: 'vertical' }}
+        <textarea aria-label="Observations / non compris" value={d.observations} onChange={e => setD(s => ({ ...s, observations: e.target.value }))} rows={4} style={{ ...small, resize: 'vertical' }}
           placeholder={"Fondations sous réserve de l'étude de sol G2.\nNon compris : piscine, clôtures, espaces verts…"} />
       </div>
 

@@ -272,7 +272,7 @@ const th = { padding: '8px 6px', fontWeight: 600, fontSize: 11, position: 'stick
 const td = { padding: '8px 6px', borderBottom: '1px solid #F2F2F7', verticalAlign: 'middle' }
 const dot = { display: 'inline-flex', width: 24, height: 24, alignItems: 'center', justifyContent: 'center', borderRadius: 999, fontWeight: 800, fontSize: 12 }
 // Document manquant : pastille neutre, pour que les vrais problèmes (expiré, à vérifier) ressortent
-const MANQUANT = { color: '#8E8E93', bg: '#F5F5F7', border: '#D1D1D6', dashed: true }
+const MANQUANT = { color: '#6E6E73', bg: '#F5F5F7', border: '#D1D1D6', dashed: true }
 
 const srOnly = { position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' }
 
@@ -369,9 +369,9 @@ function RowCard({ r, legalByContact, onOpenContact, ...rest }) {
     <div style={{ border: '1px solid var(--separator)', borderRadius: 10, padding: 10, opacity: r.active ? 1 : 0.6 }}>
       <NameCell r={r} onOpenContact={onOpenContact} />
       <div style={{ display: 'flex', gap: 6, margin: '8px 0', flexWrap: 'wrap' }}>
-        <div style={{ textAlign: 'center' }}><LegalDot l={legalByContact?.get(r.contact.id)} /><div style={{ fontSize: 11, color: 'var(--label-tertiary)' }}>Société</div></div>
+        <div style={{ textAlign: 'center' }}><LegalDot l={legalByContact?.get(r.contact.id)} /><div style={{ fontSize: 11, color: 'var(--label-secondary)' }}>Société</div></div>
         {DOC_KINDS.map(k => (
-          <div key={k} style={{ textAlign: 'center' }}><DocDot kind={k} status={r.compliance.kinds[k].status} /><div style={{ fontSize: 11, color: 'var(--label-tertiary)' }}>{DOC_META[k].label}</div></div>
+          <div key={k} style={{ textAlign: 'center' }}><DocDot kind={k} status={r.compliance.kinds[k].status} /><div style={{ fontSize: 11, color: 'var(--label-secondary)' }}>{DOC_META[k].label}</div></div>
         ))}
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'flex-start', flexWrap: 'wrap' }}>

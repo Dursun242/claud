@@ -45,7 +45,7 @@ export default function GlobalError({ error, reset }) {
             </p>
             {error?.message && (
               <details style={{ textAlign: 'left', marginBottom: 20 }}>
-                <summary style={{ cursor: 'pointer', fontSize: 12, color: 'var(--label-tertiary)' }}>
+                <summary style={{ cursor: 'pointer', fontSize: 12, color: 'var(--label-secondary)' }}>
                   Détails techniques
                 </summary>
                 <pre style={{

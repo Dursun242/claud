@@ -56,6 +56,9 @@ export default function ToastContainer() {
     <div
       role="region"
       aria-label="Notifications"
+      // Zone toujours présente : les messages qui y arrivent sont lus par
+      // les lecteurs d'écran (les erreurs, elles, sont des alertes)
+      aria-live="polite"
       style={{
         position: 'fixed',
         top: 20,
@@ -72,8 +75,7 @@ export default function ToastContainer() {
         return (
           <div
             key={toast.id}
-            role="status"
-            aria-live="polite"
+            role={toast.type === 'error' ? 'alert' : undefined}
             style={{
               background: style.background,
               border: `1px solid ${style.borderColor}`,
@@ -107,18 +109,19 @@ export default function ToastContainer() {
                   toast.action.onClick()
                   removeToast(toast.id)
                 }}
+                className="u-btn"
                 style={{
-                  background: style.iconColor,
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: 6,
-                  padding: '5px 12px',
-                  fontSize: 11,
-                  fontWeight: 700,
+                  // Texte sombre sur blanc : lisible quelle que soit la couleur du message
+                  background: '#fff',
+                  color: 'var(--accent-text)',
+                  border: '1px solid var(--separator-opaque)',
+                  borderRadius: 8,
+                  padding: '0 12px',
+                  minHeight: 32,
+                  fontSize: 13,
+                  fontWeight: 600,
                   cursor: 'pointer',
                   fontFamily: 'inherit',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.03em',
                   flexShrink: 0,
                 }}
               >
@@ -134,8 +137,9 @@ export default function ToastContainer() {
                 opacity: 0.6,
                 fontSize: 14,
                 padding: 0,
-                width: 18,
-                height: 18,
+                width: 28,
+                height: 28,
+                borderRadius: 8,
                 flexShrink: 0,
               }}
             >
