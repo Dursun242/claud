@@ -309,7 +309,7 @@ Choix de l'équipe (octobre 2026) : quelques emoji pour repérer d'un coup d'œi
 
 ### Navigation
 - **Barre latérale (ordinateur) :** fond `sidebar`, trait à droite ; marque « ID Maîtrise » en titre 20 px ; recherche ; bouton « Créer… » plein ; onglets 15 px avec icône bleue 18 px ; onglet actif en pastille `accent` texte et icône blancs ; Qonto en violet ; compte et « Déconnexion » (bouton gris, texte rouge) en bas.
-- **Téléphone :** en-tête translucide (bouton menu bleu, nom de la page en headline), barre d'onglets translucide : Accueil · Chantiers · + · CR · Tâches · Plus (icône active bleue, inactives grises), bouton + rond bleu.
+- **Téléphone :** en-tête translucide (bouton menu bleu, nom de la page en headline), barre d'onglets translucide : Accueil · Chantiers · + · Tâches · Plus (deux de chaque côté du bouton +) (icône active bleue, inactives grises), bouton + rond bleu.
 - **Retour :** lien bleu « ‹ Page » en haut à gauche.
 
 ### Pages de liste (toutes)

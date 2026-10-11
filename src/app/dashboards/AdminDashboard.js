@@ -198,7 +198,6 @@ export default function AdminDashboard({ user, profile = null }) {
   const mobileNavItems = useMemo(() => [
     { key:'dashboard', label:'Accueil',   icon:I.dashboard },
     { key:'projects',  label:'Chantiers', icon:I.projects },
-    { key:'reports',   label:'CR',        icon:I.reports },
     { key:'tasks',     label:'Tâches',    icon:I.tasks },
   ], []);
 
