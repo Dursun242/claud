@@ -1,7 +1,6 @@
 'use client'
 import { useMemo } from 'react'
 import { pct, fmtMoney, PBar, COMPANY, Icon, I } from '../dashboards/shared'
-import Badge from '../components/Badge'
 import { buildAgenda, buildClientOverview, localISO } from '../lib/today'
 import { newIntent } from '../lib/navIntent'
 import TodayPanel from '../components/dashboard/TodayPanel'
@@ -30,33 +29,11 @@ export default function DashboardV({data,crm=null,ready=true,setTab,m,user,clien
   // Toutes les dérivées memoïsées : recalculées uniquement si data change,
   // pas à chaque re-render dû à un toast ou un resize.
   const {
-    urgentTasks, allActiveTasks, chantiersEnCours,
-    totalB, totalD, enCours, chantierById,
-    osEnCours, osCount, overdueTasks
+    chantiersEnCours, totalB, totalD, enCours, osEnCours, osCount,
   } = useMemo(() => {
-    const tasks = data.tasks || [];
     const chantiers = data.chantiers || [];
     const os = data.ordresService || [];
-    const today = new Date().toISOString().split("T")[0];
-    const priorityOrder = { Urgent: 0, "En cours": 1, "En attente": 2 };
-
     return {
-      urgentTasks: tasks.filter(
-        t => t.priorite === "Urgent" && t.statut !== "Terminé"
-      ),
-      overdueTasks: tasks.filter(
-        t => t.statut !== "Terminé" && t.echeance && t.echeance < today
-      ),
-      allActiveTasks: tasks
-        .filter(t => t.statut !== "Terminé")
-        .sort((a, b) => {
-          const pa = priorityOrder[a.priorite] ?? 9;
-          const pb = priorityOrder[b.priorite] ?? 9;
-          if (pa !== pb) return pa - pb;
-          return (
-            new Date(a.echeance || "9999") - new Date(b.echeance || "9999")
-          );
-        }),
       chantiersEnCours: chantiers
         .filter(c => c.statut === "En cours")
         .sort((a, b) =>
@@ -70,10 +47,8 @@ export default function DashboardV({data,crm=null,ready=true,setTab,m,user,clien
       osEnCours: os.filter(
         o => !["Terminé","Annulé","Brouillon"].includes(o.statut)
       ).length,
-      // Map id → chantier pour éviter les .find() répétés dans le rendu des tâches
-      chantierById: new Map(chantiers.map(c => [c.id, c])),
     };
-  }, [data.tasks, data.chantiers, data.ordresService]);
+  }, [data.chantiers, data.ordresService]);
 
   // CRM : relances à traiter (en retard + aujourd'hui) et pipeline actif.
   // Même assemblage que le mail du matin (lib/dailyPriorities.js).
@@ -166,10 +141,10 @@ export default function DashboardV({data,crm=null,ready=true,setTab,m,user,clien
       ))}
     </div>}
 
-    {/* KPIs RAPIDES — 4 chiffres clés */}
+    {/* CHIFFRES CLÉS — les tâches urgentes et en retard sont dans « Ma journée » */}
     <div style={{
       display:"grid",
-      gridTemplateColumns:m?"repeat(2,1fr)":"repeat(4,1fr)",
+      gridTemplateColumns:m||!clientMode?"repeat(2,1fr)":"repeat(4,1fr)",
       gap:10, marginBottom:20
     }}>
       {(clientMode ? [
@@ -186,10 +161,6 @@ export default function DashboardV({data,crm=null,ready=true,setTab,m,user,clien
           total:data.chantiers.length, tab:"projects"},
         {label:"OS actifs",        value:osEnCours,
           total:osCount, tab:"os"},
-        {label:"Tâches urgentes",  value:urgentTasks.length,
-          total:allActiveTasks.length, alert:"#D70015", tab:"tasks"},
-        {label:"En retard",        value:overdueTasks.length,
-          total:allActiveTasks.length, alert:"#C93400", tab:"tasks"},
       ]).map((k,i)=>(
         <button key={i} onClick={()=>setTab(k.tab)} className="u-press" style={{
           background:"#fff", border:"1px solid #E5E5EA", borderRadius:10,
@@ -308,92 +279,8 @@ export default function DashboardV({data,crm=null,ready=true,setTab,m,user,clien
       </div>
     )}
 
-    {/* À FAIRE — tâches actives triées par priorité/échéance (interne MOE) */}
-    {!clientMode && <div style={{
-      background:"#fff",
-      borderRadius:12, padding:m?14:18,
-      border:"1px solid #E5E5EA",
-      boxShadow:"0 1px 3px rgba(0,0,0,0.06)",
-      marginBottom:18
-    }}>
-      <div style={{
-        display:"flex", alignItems:"center",
-        justifyContent:"space-between", gap:6, marginBottom:12
-      }}>
-        <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
-          <Emoji e={EMOJI.aFaire} />
-          <h2 style={{margin:0,fontWeight:600,fontSize:17,color:"#1C1C1E"}}>À faire</h2>
-          {urgentTasks.length>0&&(
-            <Badge text={`${urgentTasks.length} urgente${urgentTasks.length>1?"s":""}`} color="#FF3B30"/>
-          )}
-          {overdueTasks.length>0&&(
-            <Badge text={`${overdueTasks.length} en retard`} color="#FF9500"/>
-          )}
-        </div>
-        {allActiveTasks.length>0 && (
-          <button
-            onClick={()=>setTab("tasks")}
-            style={{
-              fontSize:13, color:"#0066CC", background:"none", minHeight:36,
-              border:"none", cursor:"pointer",
-              fontWeight:600, fontFamily:"inherit"
-            }}
-          >Voir toutes →</button>
-        )}
-      </div>
-      {allActiveTasks.length===0
-        ? <div style={{
-            textAlign:"center", padding:"14px 0",
-            fontSize:13, color:"#6E6E73"
-          }}>Aucune tâche en attente</div>
-        : <div style={{display:"flex",flexDirection:"column",gap:0}}>
-            {allActiveTasks.slice(0,5).map((t,i)=>{
-              const ch=chantierById.get(t.chantierId||t.chantier_id);
-              const isUrgent=t.priorite==="Urgent";
-              const isOverdue=!isUrgent&&t.echeance&&t.echeance<today;
-              const isLast = i === Math.min(4, allActiveTasks.length - 1);
-              const dotColor = isUrgent?"#D70015":isOverdue?"#FF9500":"#D1D1D6";
-              const titleColor = isUrgent?"#D70015":"#1C1C1E";
-              return(
-                <div key={t.id} onClick={()=>setTab("tasks",t.id)}
-                  role="button" tabIndex={0} className="u-press u-press--row"
-                  onKeyDown={e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); setTab("tasks",t.id); } }}
-                  style={{
-                  cursor:"pointer", padding:"10px 4px", minHeight:44, boxSizing:"border-box",
-                  borderBottom:isLast?"none":"1px solid #F2F2F7",
-                  display:"flex", alignItems:"center", gap:10,
-                }}>
-                  <span style={{
-                    width:6, height:6, borderRadius:"50%",
-                    background:dotColor, flexShrink:0
-                  }}/>
-                  <div style={{flex:1,minWidth:0}}>
-                    <div style={{
-                      fontSize:13, fontWeight:600,
-                      color:titleColor,
-                      overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"
-                    }}>{t.titre}</div>
-                    <div style={{
-                      fontSize:12, color:"#6E6E73", marginTop:2,
-                      overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"
-                    }}>
-                      {ch?.nom || "—"}
-                      {isOverdue&&(
-                        <span style={{
-                          color:"#C93400",fontWeight:600,marginLeft:6
-                        }}>· Échéance dépassée</span>
-                      )}
-                    </div>
-                  </div>
-                  <span style={{fontSize:14,color:"#D1D1D6",flexShrink:0}}>›</span>
-                </div>
-              );
-            })}
-          </div>
-      }
-    </div>}
-
-    {/* BUDGET GLOBAL — vue d'ensemble financière */}
+    {/* BUDGET — espace client seulement (côté équipe : pages Chantiers et CRM) */}
+    {clientMode && (
     <div style={{
       background:"#fff", borderRadius:12, padding:m?14:18,
       border:"1px solid #E5E5EA",
@@ -448,5 +335,6 @@ export default function DashboardV({data,crm=null,ready=true,setTab,m,user,clien
         </div>
       </div>
     </div>
+    )}
   </div>);
 }

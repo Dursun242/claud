@@ -299,6 +299,10 @@ Choix de l'équipe (octobre 2026) : quelques emoji pour repérer d'un coup d'œi
 - **Téléphone :** en-tête translucide (bouton menu bleu, nom de la page en headline), barre d'onglets translucide (icône active bleue, inactives grises), bouton + rond bleu.
 - **Retour :** lien bleu « ‹ Page » en haut à gauche.
 
+### Fiche chantier : bandeau et onglets
+- **Bandeau « en un coup d'œil » :** quatre tuiles blanches (coins de 12 px, emoji en tuile grise) sous l'en-tête : 📅 prochaine réunion (annoncée au dernier CR), 📝 points de CR ouverts, ✅ tâches en retard, 💶 budget engagé. Valeur en 16 px semi-gras, couleur seulement pour signaler (retard en rouge, budget ≥ 95 % en orange, dépassement en rouge). Une tuile ouvre l'onglet qui détaille. Deux colonnes au téléphone, quatre à l'ordinateur (`components/projects/ChantierGlance.js`, logique dans `lib/chantierGlance.js`).
+- **Onglets :** contrôle segmenté iOS (fond `#E9E9EB`, segment actif blanc avec ombre légère, 36 px) : Suivi (CR, tâches, PV, planning, notes) · Entreprises (intervenants, OS) · Documents (pièces jointes, commentaires) · Finances (budget, chiffrage). La fiche s'ouvre sur Suivi ; flèches ← → au clavier (`components/projects/ChantierTabs.js`).
+
 ### Modal
 - Feuille blanche à coins de 14 px sur voile `rgba(0,0,0,0.4)` ; au téléphone, feuille qui monte du bas avec poignée grise.
 - Ne se ferme que par ✕ ou les boutons, avec confirmation si des données ont été saisies (`components/Modal.js`).
