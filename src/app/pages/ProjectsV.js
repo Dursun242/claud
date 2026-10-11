@@ -29,6 +29,9 @@ import { useConformite } from '../hooks/useConformite'
 import ChiffrageSection from '../components/chiffrage/ChiffrageSection'
 import { useChiffrage } from '../hooks/useChiffrage'
 import { lotOptions, suggestLot } from '../lib/chiffrage'
+import { nextOsNumero } from '../lib/osNumero'
+import { localISO } from '../lib/today'
+import { isNetworkError } from '../lib/offlineStore'
 
 // Style doux pour les boutons d'action dans la vue détail (PDF/XLS/etc.)
 // Remplace les blocs rouge/vert/bleu saturés par des pastilles pastel.
@@ -74,6 +77,12 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
   const [selected,setSelected]=useState(null);
   const [detailModal,setDetailModal]=useState(null);
   const [detailForm,setDetailForm]=useState({});
+  const [detailSaving,setDetailSaving]=useState(false);
+  // Notes internes en cours de saisie : état propre (null = rien de modifié),
+  // pour qu'ouvrir une fenêtre OS ou tâche ne les efface pas.
+  const [notesDraft,setNotesDraft]=useState(null);
+  const [notesSaving,setNotesSaving]=useState(false);
+  useEffect(() => { setNotesDraft(null); }, [selected]);
   const [q,setQ]=useState("");
   const [filterStatut,setFilterStatut]=useState("");
   const [filterPhase,setFilterPhase]=useState("");
@@ -323,7 +332,18 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
 
     return (<div>
       {/* Back button + Header */}
-      <button onClick={()=>setSelected(null)} style={{
+      <button onClick={async()=>{
+        if (notesDraft !== null && notesDraft !== (ch.notes_internes || "")) {
+          const ok = await confirm({
+            title: "Notes internes non enregistrées",
+            message: "Les modifications des notes internes seront perdues.",
+            confirmLabel: "Quitter sans enregistrer",
+            danger: true,
+          });
+          if (!ok) return;
+        }
+        setSelected(null);
+      }} style={{
         background:"none",border:"none",cursor:"pointer",
         display:"flex",alignItems:"center",gap:6,
         color:"#3B82F6",fontSize:13,fontWeight:600,
@@ -388,10 +408,6 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
                 dateFin:ch.date_fin||ch.dateFin||""
               });setModal("edit");
             }} style={{...btnS,fontSize:12,padding:"8px 14px"}}>Modifier</button>
-            <button onClick={()=>setDetailModal("share")}
-              style={{...btnS,fontSize:12,padding:"8px 14px"}}>
-              👥 Partager
-            </button>
           </div>}
         </div>
         {/* Budget + gauge — composant dédié, consomme `finances` calculé via lib/chantierFinances */}
@@ -415,10 +431,9 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
       <Section title="Ordres de Service" count={chOS.length} color="#8B5CF6">
         {!readOnly && <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap"}}>
           <button onClick={()=>{
-            const nextNum=`OS-2026-${String(chOS.length+1).padStart(3,"0")}`;
             setDetailForm({
-              numero:nextNum,chantier_id:ch.id,
-              date_emission:new Date().toISOString().split("T")[0],
+              numero:nextOsNumero(data.ordresService),chantier_id:ch.id,
+              date_emission:localISO(),
               statut:"Brouillon",montant_ttc:0
             });setDetailModal("newOS");
           }} style={{background:"#8B5CF6",color:"#fff",border:"none",
@@ -556,7 +571,7 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
           <button onClick={()=>{
             setDetailForm({chantierId:ch.id,titre:"",lot:"",
               statut:"En attente",priorite:"En attente",
-              echeance:new Date().toISOString().split("T")[0]
+              echeance:localISO()
             });setDetailModal("newTask");
           }} style={{background:"#F59E0B",color:"#fff",border:"none",
             borderRadius:6,padding:"6px 12px",
@@ -620,8 +635,9 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
       {!readOnly && <Section title="Notes internes" color="#64748B">
         <div style={{background:"#FFFBEB",border:"1px solid #FDE68A",borderRadius:10,padding:14}}>
           <textarea
-            value={detailForm.notes_internes ?? ch.notes_internes ?? ""}
-            onChange={e=>setDetailForm({...ch,...detailForm,notes_internes:e.target.value})}
+            value={notesDraft ?? ch.notes_internes ?? ""}
+            onChange={e=>setNotesDraft(e.target.value)}
+            aria-label="Notes internes"
             placeholder="Notes internes (non visibles par le client)..."
             style={{
               width:"100%",minHeight:80,border:"none",
@@ -631,13 +647,24 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
             }}
           />
           <div style={{display:"flex",justifyContent:"flex-end",marginTop:6}}>
-            <button onClick={async()=>{
-              await SB.upsertChantier({...ch,
-                notes_internes:detailForm.notes_internes??ch.notes_internes??""
-              });setDetailForm({});reload();addToast("Notes enregistrées","success");
+            <button disabled={notesDraft===null||notesSaving} onClick={async()=>{
+              if (notesDraft===null||notesSaving) return;
+              setNotesSaving(true);
+              try {
+                await SB.upsertChantier({...ch,notes_internes:notesDraft});
+                setNotesDraft(null);
+                reload();
+                addToast("Notes enregistrées","success");
+              } catch (err) {
+                addToast(isNetworkError(err)
+                  ? "Pas de réseau : notes non enregistrées. Elles restent dans le champ, réessayez au retour de la connexion."
+                  : "Notes non enregistrées : "+(err?.message||"erreur inconnue"),"error");
+              } finally { setNotesSaving(false); }
             }} style={{background:"#F59E0B",color:"#fff",border:"none",
               borderRadius:6,padding:"5px 14px",
-              fontSize:11,fontWeight:700,cursor:"pointer"}}>Enregistrer</button>
+              fontSize:11,fontWeight:700,
+              cursor:notesDraft===null||notesSaving?"default":"pointer",
+              opacity:notesDraft===null||notesSaving?0.5:1}}>{notesSaving?"Enregistrement…":"Enregistrer"}</button>
           </div>
         </div>
       </Section>}
@@ -704,10 +731,19 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
         </div>
         <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginTop:12}}>
           <button onClick={()=>setDetailModal(null)} style={btnS}>Annuler</button>
-          <button onClick={async()=>{
-            await SB.upsertOS({...detailForm,chantier_id:ch.id});
-            setDetailModal(null);reload();
-          }} style={btnP}>Enregistrer</button>
+          <button disabled={detailSaving} onClick={async()=>{
+            if (detailSaving) return;
+            setDetailSaving(true);
+            try {
+              await SB.upsertOS({...detailForm,chantier_id:ch.id});
+              setDetailModal(null);reload();
+              addToast(detailModal==="newOS"?"OS créé":"OS enregistré","success");
+            } catch (err) {
+              addToast(isNetworkError(err)
+                ? "Pas de réseau : l'OS n'a pas été enregistré. Réessayez au retour de la connexion."
+                : "OS non enregistré : "+(err?.message||"erreur inconnue"),"error");
+            } finally { setDetailSaving(false); }
+          }} style={{...btnP,opacity:detailSaving?0.6:1}}>{detailSaving?"Enregistrement…":"Enregistrer"}</button>
         </div>
       </Modal>
 
@@ -756,10 +792,21 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
         </div>
         <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginTop:12}}>
           <button onClick={()=>setDetailModal(null)} style={btnS}>Annuler</button>
-          <button onClick={async()=>{
-            await SB.upsertTask({...detailForm,chantierId:ch.id});
-            setDetailModal(null);reload();
-          }} style={btnP}>Enregistrer</button>
+          <button disabled={detailSaving} onClick={async()=>{
+            if (detailSaving) return;
+            setDetailSaving(true);
+            try {
+              const r = await saveTask({...detailForm,chantierId:ch.id}, reload);
+              setDetailModal(null);
+              addToast(r==="queued"
+                ? "Hors ligne : enregistré sur l'appareil, envoi au retour du réseau"
+                : detailModal==="newTask"?"Tâche créée":"Tâche enregistrée", r==="queued"?"info":"success");
+            } catch (err) {
+              addToast(isNetworkError(err)
+                ? "Pas de réseau : la tâche n'a pas été enregistrée. Réessayez au retour de la connexion."
+                : "Tâche non enregistrée : "+(err?.message||"erreur inconnue"),"error");
+            } finally { setDetailSaving(false); }
+          }} style={{...btnP,opacity:detailSaving?0.6:1}}>{detailSaving?"Enregistrement…":"Enregistrer"}</button>
         </div>
       </Modal>
 

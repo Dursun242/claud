@@ -6,7 +6,8 @@ import { supabase } from '../supabaseClient'
 import { logout } from '../auth'
 import { FloatingMic, NotificationBell } from '../components'
 import { FLOATING_MIC_CLEARANCE } from '../components/FloatingMic'
-import { DashboardSkeleton, PageSkeleton } from '../components/Skeleton'
+import { PageSkeleton } from '../components/Skeleton'
+import DashboardLoadState from '../components/DashboardLoadState'
 import TabErrorBoundary from '../components/TabErrorBoundary'
 import KeyboardHelpModal from '../components/KeyboardHelpModal'
 import MobileNav, { QuickCreateSheet, MOBILE_NAV_HEIGHT } from '../components/MobileNav'
@@ -83,7 +84,7 @@ export default function AdminDashboard({ user, profile = null }) {
   // (secondary) avec cache staleTime 5 min. Avant on avait un useEffect
   // qui refetch à chaque mount ; maintenant la nav entre onglets est
   // instantanée tant que la cache est fresh.
-  const { data: loadedData, loading, reload, hasChantiers, secondaryReady } = useDashboardData();
+  const { data: loadedData, loading, error: loadError, paused: loadPaused, reload, hasChantiers, secondaryReady } = useDashboardData();
   // Stage 3 : CRM (pipeline + interactions), lancé seulement après le
   // stage 1. Partagé via React Query par CrmV, DashboardV, ContactsV,
   // QontoV, AIV et la recherche globale.
@@ -298,7 +299,9 @@ export default function AdminDashboard({ user, profile = null }) {
     return () => clearTimeout(t);
   }, []);
 
-  if (loading || !data) return <DashboardSkeleton role="admin" />;
+  // Pas encore de données : squelette, avec un avis si le réseau manque ou
+  // si c'est long, et un écran d'erreur avec « Réessayer » si ça échoue.
+  if (!data) return <DashboardLoadState role="admin" error={loading ? null : loadError} paused={loadPaused} onRetry={reload} />;
 
   return (
     <div style={{

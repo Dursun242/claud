@@ -16,6 +16,7 @@ import { useSignaturesSync } from '../hooks/useSignaturesSync'
 import { parseNewIntent } from '../lib/navIntent'
 import { useChiffrage } from '../hooks/useChiffrage'
 import { lotOptions as getLotOptions, suggestLot } from '../lib/chiffrage'
+import { nextOsNumero } from '../lib/osNumero'
 
 export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly,active}) {
   const { addToast } = useToast();
@@ -140,14 +141,7 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly,a
     addToast(`${filteredSortedOS.length} OS exporté${filteredSortedOS.length > 1 ? 's' : ''}`, "success");
   };
 
-  const nextNum = useCallback(() => {
-    const nums = (data.ordresService||[]).map(os => {
-      const m = String(os.numero||"").match(/(\d+)$/);
-      return m ? parseInt(m[1], 10) : 0;
-    });
-    const next = nums.length > 0 ? Math.max(...nums) + 1 : 1;
-    return `OS-${new Date().getFullYear()}-${String(next).padStart(3,"0")}`;
-  }, [data.ordresService]);
+  const nextNum = useCallback(() => nextOsNumero(data.ordresService), [data.ordresService]);
 
   // chId optionnel (string) : pré-sélectionne le chantier. Ignoré si
   // openNew est branché directement sur un onClick (reçoit l'event).
