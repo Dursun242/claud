@@ -193,6 +193,8 @@ Une palette ardoise froide, ponctuée du marine ID Maîtrise et de couleurs de s
 ### Named Rules
 **The Meaning-Only Rule.** Une couleur vive porte toujours un sens (statut, alerte, action). Hors de ces cas, l'interface reste en marine et ardoise.
 
+**The Neutral Section Rule.** Les sections d'un écran (OS, CR, tâches, PV, entreprises, planning, chiffrage…) n'ont pas de couleur propre : titres, compteurs et boutons de création restent en marine et ardoise (décision d'octobre 2026, l'équipe ne se repère pas à la couleur des sections).
+
 **The Tinted Badge Rule.** Un statut s'affiche en texte de sa couleur sur un fond de la même couleur très diluée (couleur + `18` en hexadécimal, environ 9 % d'opacité), jamais en aplat plein.
 
 **Open decision — l'or.** L'or des mails de devis (`#C8A45C`) n'est pas encore tranché comme couleur de marque. Ne pas l'introduire dans l'application tant que la décision n'est pas prise.
@@ -310,5 +312,6 @@ Doux et nets : un seul bouton marine par zone, le reste en gris.
 - **Don't** introduire l'or `#C8A45C` dans l'application tant que la décision de marque n'est pas prise.
 - **Don't** créer de nouveau texte sous 10 px, ni de texte courant sous 12 px.
 - **Don't** ajouter une couleur vive qui ne porte pas de sens (statut, alerte, action).
+- **Don't** donner une couleur propre à une section d'écran (titres, compteurs, boutons « + Nouveau »).
 - **Don't** gérer le survol avec `onMouseEnter` / `onMouseLeave` en ligne : les classes `u-*` couvrent aussi le clavier et le tactile.
 - **Don't** fermer une fenêtre de saisie au clic sur le fond.

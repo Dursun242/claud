@@ -567,6 +567,11 @@
         "section": "colors"
       },
       {
+        "name": "The Neutral Section Rule",
+        "body": "Les sections d'un écran (OS, CR, tâches, PV, entreprises, planning, chiffrage…) n'ont pas de couleur propre : titres, compteurs et boutons de création restent en marine et ardoise (décision d'octobre 2026, l'équipe ne se repère pas à la couleur des sections).",
+        "section": "colors"
+      },
+      {
         "name": "The 16px Field Rule",
         "body": "Un champ de saisie n'est jamais en dessous de 16 px sur téléphone (règle déjà imposée par inp et par layout.js sous 640 px).",
         "section": "typography"
@@ -604,6 +609,7 @@
       "Don't introduire l'or `#C8A45C` dans l'application tant que la décision de marque n'est pas prise.",
       "Don't créer de nouveau texte sous 10 px, ni de texte courant sous 12 px.",
       "Don't ajouter une couleur vive qui ne porte pas de sens (statut, alerte, action).",
+      "Don't donner une couleur propre à une section d'écran (titres, compteurs, boutons « + Nouveau »).",
       "Don't gérer le survol avec `onMouseEnter` / `onMouseLeave` en ligne : les classes `u-*` couvrent aussi le clavier et le tactile.",
       "Don't fermer une fenêtre de saisie au clic sur le fond."
     ]
