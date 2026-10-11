@@ -3,6 +3,8 @@ import { useRef, useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
 import { useConfirm } from '../contexts/ConfirmContext'
 import { SB, Icon, I, btnAdd } from '../dashboards/shared'
+import Emoji from './Emoji'
+import { EMOJI } from '../lib/emoji'
 
 // Formatage humain d'une taille en octets (123 Ko, 4.2 Mo…)
 function formatSize(bytes) {
@@ -171,8 +173,8 @@ export default function AttachmentsSection({ attachments = [], onUpload, onDelet
   return (
     <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #E5E5EA', marginBottom: 24 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-        <span style={{ fontSize: 17, fontWeight: 600, color: '#1C1C1E' }}>
-          Pièces jointes <span style={{ color: '#6E6E73', fontWeight: 500 }}>({attachments.length})</span>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 17, fontWeight: 600, color: '#1C1C1E' }}>
+          <Emoji e={EMOJI.piecesJointes} tile="#fff" />Pièces jointes <span style={{ color: '#6E6E73', fontWeight: 500 }}>({attachments.length})</span>
         </span>
         <button
           onClick={() => fileInputRef.current?.click()}

@@ -1,5 +1,7 @@
 'use client'
 import { fmtDate, Icon, I } from '../../dashboards/shared'
+import Emoji from '../Emoji'
+import { EMOJI } from '../../lib/emoji'
 
 const card = (m) => ({
   background: '#fff', borderRadius: 12, padding: m ? 14 : 18,
@@ -43,7 +45,7 @@ export default function ClientOverview({ overview, onOpen, m }) {
     )}
 
     <section style={card(m)} aria-labelledby="client-progress">
-      <h2 id="client-progress" style={h2}>Où en sont les travaux ?</h2>
+      <h2 id="client-progress" style={{ ...h2, display: 'flex', alignItems: 'center', gap: 8 }}><Emoji e={EMOJI.travaux} />Où en sont les travaux ?</h2>
       {enCours.length === 0 && aVenir.length === 0 ? (
         <div style={{ fontSize: 13, color: '#6E6E73', padding: '6px 0' }}>
           Le planning détaillé n&apos;est pas encore disponible. Votre maître d&apos;œuvre le complétera prochainement.
@@ -89,7 +91,7 @@ export default function ClientOverview({ overview, onOpen, m }) {
     {dernierCR && (
       <section style={card(m)} aria-labelledby="client-last-cr">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-          <h2 id="client-last-cr" style={{ ...h2, margin: 0 }}>Dernier compte rendu</h2>
+          <h2 id="client-last-cr" style={{ ...h2, margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}><Emoji e={EMOJI.cr} />Dernier compte rendu</h2>
           <span style={{ fontSize: 12, color: '#6E6E73', whiteSpace: 'nowrap' }}>n°{dernierCR.numero} · {fmtDate(dernierCR.date)}</span>
         </div>
         {dernierCR.chantier && <div style={{ fontSize: 12, color: '#6E6E73', marginBottom: 6 }}>{dernierCR.chantier}</div>}

@@ -1,13 +1,15 @@
 'use client'
+import Emoji from './Emoji'
 
 /**
  * Composant Section
  * Titre de section neutre (DESIGN.md, « Neutral Section Rule ») : titre en
  * nuit ardoise, compteur gris discret ; une section n'a pas de couleur
  * propre. `color` est encore accepté pour compatibilité mais ignoré.
+ * `emoji` : repère facultatif devant le titre (lib/emoji.js).
  */
 // eslint-disable-next-line no-unused-vars
-export default function Section({ title, count, color, action, children }) {
+export default function Section({ title, count, color, emoji, action, children }) {
   return (
     <section style={{ marginBottom: 24 }}>
       <div
@@ -19,6 +21,7 @@ export default function Section({ title, count, color, action, children }) {
           minHeight: 32,
         }}
       >
+        <Emoji e={emoji} tile="#fff" />
         <h3 style={{ margin: 0, fontSize: 17, fontWeight: 600, color: '#1C1C1E', letterSpacing: '-0.01em' }}>
           {title}
         </h3>

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-11T11:43:24Z",
+  "generatedAt": "2026-10-11T12:00:00Z",
   "title": "Design System: ID Maîtrise — Dashboard",
   "extensions": {
     "colorMeta": {
@@ -589,7 +589,8 @@
       "Police du système, grands titres en gras serré (`-0.02em`), titres de section en semi-gras 17 px.",
       "Barre latérale claire façon iPad : icônes bleues, onglet actif en pastille bleue.",
       "Barres du haut et du bas translucides (flou) sur téléphone.",
-      "Couleurs système iOS pour les statuts (vert, orange, rouge, violet), toujours en teinte lisible sur fond dilué."
+      "Couleurs système iOS pour les statuts (vert, orange, rouge, violet), toujours en teinte lisible sur fond dilué.",
+      "Repères emoji dans des tuiles grises devant les titres de section et les lignes typées, pour reconnaître d'un coup d'œil (liste fixe, lib/emoji.js)."
     ],
     "rules": [
       {
@@ -626,6 +627,11 @@
         "name": "The Flat-At-Rest Rule",
         "body": "Au repos, une carte est blanche sur gris, avec au plus un trait fin. Une ombre marquée signale toujours un élément au-dessus de la page.",
         "section": "typography"
+      },
+      {
+        "name": "The Emoji Marker Rule",
+        "body": "Un emoji = un type de chose, toujours le même, pris dans lib/emoji.js, posé dans sa tuile. Jamais dans un bouton, un badge, la navigation ni un état vide ; jamais deux repères sur la même ligne.",
+        "section": "components"
       }
     ],
     "dos": [
@@ -639,7 +645,7 @@
     "donts": [
       "Don't remettre de fond sombre (barre latérale, en-têtes, cartes) : le style est clair.",
       "Don't donner une couleur propre à une section, une catégorie ou une phase.",
-      "Don't utiliser d'emoji comme icône ou dans un titre.",
+      "Don't utiliser un emoji hors de la liste `lib/emoji.js`, ni dans un bouton, un badge ou la navigation.",
       "Don't utiliser `label-tertiary` (`#8E8E93`) pour du texte à lire.",
       "Don't introduire l'or `#C8A45C` dans l'interface tant que la décision de marque n'est pas prise.",
       "Don't fermer une fenêtre de saisie au clic sur le fond."

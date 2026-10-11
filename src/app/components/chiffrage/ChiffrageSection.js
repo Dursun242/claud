@@ -13,6 +13,8 @@ import { apiPost } from '../../lib/crmApi'
 import { useToast } from '../../contexts/ToastContext'
 import { useConfirm } from '../../contexts/ConfirmContext'
 import ChiffrageEditor from './ChiffrageEditor'
+import Emoji from '../Emoji'
+import { EMOJI } from '../../lib/emoji'
 import ChiffrageCreateModal from './ChiffrageCreateModal'
 
 const kpi = { background: '#F5F5F7', borderRadius: 8, padding: 10 }
@@ -95,6 +97,7 @@ export default function ChiffrageSection({ chantier, os = [], allOs = [], user, 
 
   const header = (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
+      <Emoji e={EMOJI.chiffrage} tile="#fff" />
       <h3 style={{ margin: 0, fontSize: 17, fontWeight: 600, color: '#1C1C1E', letterSpacing: '-0.01em' }}>Chiffrage estimatif</h3>
       {chiffrage && <span style={{ background: '#E5E5EA', color: '#48484A', fontSize: 12, fontWeight: 600, borderRadius: 999, padding: '1px 8px', lineHeight: 1.5 }}>{chiffrage.lots.length} lots</span>}
     </div>
@@ -181,7 +184,7 @@ export default function ChiffrageSection({ chantier, os = [], allOs = [], user, 
           {checks.length > 0 && (
             <div style={{ marginTop: 10, fontSize: 13, background: '#FFF7E8', border: '1px solid #E5E5EA', borderRadius: 8, padding: '8px 10px', color: '#3A3A3C' }}>
               <button onClick={() => setShowChecks(v => !v)} aria-expanded={showChecks} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, minHeight: 32, background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: '#C93400', fontWeight: 600, fontSize: 13, fontFamily: 'inherit' }}>
-                <Icon d={I.alert} size={15}/>{checks.length} point{checks.length > 1 ? 's' : ''} à vérifier {showChecks ? '▴' : '▾'}
+                <span aria-hidden="true">{EMOJI.alerte}</span>{checks.length} point{checks.length > 1 ? 's' : ''} à vérifier {showChecks ? '▴' : '▾'}
               </button>
               {showChecks && <ul style={{ margin: '6px 0 0', paddingLeft: 18 }}>{checks.map(c => <li key={c}>{c}</li>)}</ul>}
             </div>

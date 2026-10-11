@@ -10,6 +10,7 @@
 import { useMemo, useState } from 'react'
 import Badge from './Badge'
 import Section from './Section'
+import { EMOJI } from '../lib/emoji'
 import EmptyState from './EmptyState'
 import Modal from './Modal'
 import { SB, Icon, I, btnAdd } from '../dashboards/shared'
@@ -96,7 +97,7 @@ export default function ChantierIntervenants({
   }
 
   return (
-    <Section title="Intervenants" count={total}>
+    <Section title="Intervenants" count={total} emoji={EMOJI.intervenants}>
       {!readOnly && (
         <button
           onClick={() => setShowPicker(true)}

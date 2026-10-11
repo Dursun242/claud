@@ -10,6 +10,7 @@
 // lignes optionnelles (brouillons, alerte dépassement).
 
 import { PBar, fmtMoney } from '../dashboards/shared'
+import { EMOJI } from '../lib/emoji'
 
 export default function ChantierBudgetCard({ finances, m }) {
   if (!finances) return null
@@ -89,7 +90,7 @@ export default function ChantierBudgetCard({ finances, m }) {
           background: '#FFF0EF', border: '1px solid #FFC9C6',
           borderRadius: 6, padding: '8px 10px', fontWeight: 600,
         }}>
-          Budget dépassé de {fmtMoney(finances.depassement)} — revoir le budget ou les OS
+          {EMOJI.alerte} Budget dépassé de {fmtMoney(finances.depassement)} — revoir le budget ou les OS
         </div>
       )}
     </div>

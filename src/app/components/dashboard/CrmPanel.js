@@ -2,16 +2,18 @@
 import { useState } from 'react'
 import { fmtMoney } from '../../dashboards/shared'
 import Badge from '../Badge'
+import Emoji from '../Emoji'
+import { EMOJI } from '../../lib/emoji'
 
 // Signal → étiquette ; couleur seulement quand elle a un sens (à saisir
 // vite : bleu ; échéance proche : ambre ; le reste : neutre)
 const KIND = {
-  chaud:        { color: '#0066CC', label: 'Client intéressé' },
-  signature:    { color: '#AF52DE', label: 'Signature' },
-  expire:       { color: '#FF9500', label: 'Expiration' },
-  sans_reponse: { color: '#6E6E73', label: 'Sans réponse' },
-  brouillon:    { color: '#6E6E73', label: 'Brouillon' },
-  dormante:     { color: '#6E6E73', label: 'Affaire dormante' },
+  chaud:        { emoji: EMOJI.chaud,       color: '#007AFF', label: 'Client intéressé' },
+  signature:    { emoji: EMOJI.signature,   color: '#AF52DE', label: 'Signature' },
+  expire:       { emoji: EMOJI.expire,      color: '#FF9500', label: 'Expiration' },
+  sans_reponse: { emoji: EMOJI.sansReponse, color: '#6E6E73', label: 'Sans réponse' },
+  brouillon:    { emoji: EMOJI.brouillon,   color: '#6E6E73', label: 'Brouillon' },
+  dormante:     { emoji: EMOJI.dormante,    color: '#6E6E73', label: 'Affaire dormante' },
 }
 const COLLAPSED = 5
 
@@ -38,6 +40,7 @@ export default function CrmPanel({ insights, nbOverdue = 0, onOpen, m }) {
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <Emoji e={EMOJI.commercial} />
           <h2 id="crm-panel-title" style={{ margin: 0, fontSize: 17, fontWeight: 600, color: '#1C1C1E' }}>Commercial</h2>
           {nbOverdue > 0 && (
             <button type="button" onClick={() => onOpen('crm', 'relances')}
@@ -78,6 +81,7 @@ export default function CrmPanel({ insights, nbOverdue = 0, onOpen, m }) {
                       background: '#fff', border: '1px solid #E5E5EA', borderRadius: 10,
                       padding: '8px 10px', cursor: 'pointer', fontFamily: 'inherit',
                     }}>
+                    <Emoji e={k.emoji} size={26} />
                     <span style={{ flex: 1, minWidth: 0 }}>
                       <span style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', fontSize: 13, fontWeight: 600, color: '#1C1C1E' }}>
                         {it.title}<Badge text={k.label} color={k.color}/>

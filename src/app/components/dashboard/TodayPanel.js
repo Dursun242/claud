@@ -1,14 +1,16 @@
 'use client'
 import { useState } from 'react'
-import { fmtDate, Icon, I } from '../../dashboards/shared'
+import { fmtDate } from '../../dashboards/shared'
+import Emoji from '../Emoji'
+import { EMOJI } from '../../lib/emoji'
 
-// Icône (dessinée, ardoise) par type d'entrée de l'agenda
+// Repère emoji par type d'entrée de l'agenda (lib/emoji.js)
 const KIND = {
-  rdv:      { icon: I.planning },
-  task:     { icon: I.tasks },
-  os:       { icon: I.os },
-  planning: { icon: I.projects },
-  relance:  { icon: I.crm },
+  rdv:      { emoji: EMOJI.rdv },
+  task:     { emoji: EMOJI.tache },
+  os:       { emoji: EMOJI.signature },
+  planning: { emoji: EMOJI.phase },
+  relance:  { emoji: EMOJI.relance },
 }
 const LATE = '#D70015'
 const COLLAPSED = 6
@@ -41,6 +43,7 @@ export default function TodayPanel({ agenda, onOpen, m }) {
       boxShadow: '0 1px 3px rgba(0,0,0,0.06)', marginBottom: 18,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: total ? 12 : 4 }}>
+        <Emoji e={EMOJI.journee} />
         <h2 id="today-title" style={{ margin: 0, fontSize: 17, fontWeight: 600, color: '#1C1C1E' }}>Ma journée</h2>
         {total > 0 && (
           <span style={{ fontSize: 12, color: '#6E6E73' }}>
@@ -74,7 +77,7 @@ export default function TodayPanel({ agenda, onOpen, m }) {
                       borderRadius: 10,
                       cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
                     }}>
-                      <span aria-hidden style={{ display: 'inline-flex', color: it.late ? LATE : '#6E6E73', flexShrink: 0 }}><Icon d={k.icon} size={16}/></span>
+                      <Emoji e={k.emoji} size={26} tile="#fff" />
                       <span style={{ flex: 1, minWidth: 0 }}>
                         <span style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#1C1C1E', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{it.title}</span>
                         {it.sub && <span style={{ display: 'block', fontSize: 12, color: '#6E6E73', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{it.sub}</span>}
