@@ -6,12 +6,11 @@ import { logout } from '../auth'
 import { I, Icon } from './shared'
 import { DashboardSkeleton, PageSkeleton } from '../components/Skeleton'
 import TabErrorBoundary from '../components/TabErrorBoundary'
-import { FloatingMic, NotificationBell } from '../components'
+import { NotificationBell } from '../components'
 import { FLOATING_MIC_CLEARANCE } from '../components/FloatingMic'
 import MobileNav, { MOBILE_NAV_HEIGHT } from '../components/MobileNav'
 import LeaveGuardNotice from '../components/LeaveGuardNotice'
-import { useFloatingMic } from '../hooks/useFloatingMic'
-import { useToast } from '../contexts/ToastContext'
+import DashboardMic from '../components/DashboardMic'
 import { useClientDashboardData } from '../hooks/useClientDashboardData'
 // L'accueil est le premier écran : importé directement (pas de second chargement).
 import DashboardV from '../pages/DashboardV'
@@ -94,13 +93,10 @@ export default function ClientDashboard({ user, profile = null }) {
     try { if (typeof window !== 'undefined') sessionStorage.setItem(LAST_TAB_KEY, tab) } catch { /* ignore */ }
   }, [tab])
 
-  const { addToast } = useToast()
-  // Floating mic (reconnaissance vocale → assistant IA)
-  const {
-    listening: floatListening, transcript: floatTranscript,
-    setTranscript: setFloatTranscript, toggle: toggleFloatMic,
-    clear: clearFloatMic
-  } = useFloatingMic({ onError: (msg) => addToast(msg, 'warning') })
+  // Texte dicté au micro flottant, transmis à l'assistant IA à l'envoi
+  const [micText, setMicText] = useState("");
+  const clearMicText = useCallback(() => setMicText(""), []);
+  const sendMicText = useCallback((t) => { setMicText(t || ""); setTab("ai"); }, []);
 
   // Focus = élément à ouvrir dans la page cible (chantier, CR, OS) quand
   // on arrive depuis le tableau de bord. ts → re-clic = re-déclenchement.
@@ -413,8 +409,8 @@ export default function ClientDashboard({ user, profile = null }) {
               <TabErrorBoundary name="ai" resetKey={data}>
                 <AIV data={data} save={save} m={isMobile} active={tab === 'ai'}
                   reload={reload} user={user} profile={profile} clientMode
-                  externalTranscript={floatTranscript}
-                  clearExternal={()=>setFloatTranscript("")} />
+                  externalTranscript={micText}
+                  clearExternal={clearMicText} />
               </TabErrorBoundary>
             </div>
           )}
@@ -423,15 +419,7 @@ export default function ClientDashboard({ user, profile = null }) {
 
       {/* FLOATING NEON MIC — visible sur tous les onglets sauf "ai" (qui a son propre micro inline) */}
       {tab !== 'ai' && (
-        <FloatingMic
-          listening={floatListening}
-          onClick={toggleFloatMic}
-          transcript={floatTranscript}
-          isMobile={isMobile}
-          bottomOffset={isMobile ? MOBILE_NAV_HEIGHT : 0}
-          onSend={() => { setTab('ai') }}
-          onClear={clearFloatMic}
-        />
+        <DashboardMic isMobile={isMobile} bottomOffset={isMobile ? MOBILE_NAV_HEIGHT : 0} onSend={sendMicText} />
       )}
 
       {/* Barre de navigation basse (mobile) */}

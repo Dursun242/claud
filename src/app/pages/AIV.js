@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, memo } from 'react'
 import dynamic from 'next/dynamic'
 import { SB, Icon, I, ApiBadge, inp, btnP, COMPANY } from '../dashboards/shared'
 import { MicButtonInline } from '../components'
@@ -12,6 +12,33 @@ import { prepareCrmForAI } from '../lib/crm'
 // react-markdown (~25 kB gz) n'est utilisé que pour afficher les réponses IA :
 // on le charge à la demande pour alléger le bundle initial de la page.
 const ReactMarkdown = dynamic(() => import('react-markdown'), { ssr: false })
+
+// Rendu Markdown des réponses de l'assistant. Les overrides reçoivent un prop
+// `node` (AST hast) qu'on ne propage pas sur le DOM. Défini une fois (hors du
+// composant) et mémoïsé : taper un message ou dicter ne ré-analyse plus toute
+// la conversation.
+const MD_COMPONENTS = {
+  p:      ({ node: _n, ...props }) => <p style={{ margin: "0 0 6px 0" }} {...props}/>,
+  strong: ({ node: _n, ...props }) => <strong style={{ fontWeight: 700 }} {...props}/>,
+  em:     ({ node: _n, ...props }) => <em style={{ fontStyle: "italic" }} {...props}/>,
+  ul:     ({ node: _n, ...props }) => <ul style={{ marginLeft: "20px", marginTop: 0, marginBottom: "6px" }} {...props}/>,
+  ol:     ({ node: _n, ...props }) => <ol style={{ marginLeft: "20px", marginTop: 0, marginBottom: "6px" }} {...props}/>,
+  code:   ({ node: _n, inline, ...props }) => inline
+    ? <code style={{
+        background: "#F2F2F7", padding: "2px 6px",
+        borderRadius: 4, fontSize: "0.9em", fontFamily: "monospace",
+      }} {...props}/>
+    : <pre style={{
+        background: "#F2F2F7", padding: "10px", borderRadius: 6,
+        overflow: "auto", marginTop: "6px", marginBottom: "6px",
+      }}><code {...props}/></pre>,
+  a:      ({ node: _n, ...props }) => <a
+    style={{ color: "#0066CC", textDecoration: "underline", cursor: "pointer" }}
+    target="_blank" rel="noopener noreferrer" {...props}/>,
+}
+const Markdown = memo(function Markdown({ text }) {
+  return <ReactMarkdown components={MD_COMPONENTS}>{text}</ReactMarkdown>
+})
 
 // Fournisseur IA ayant répondu (cf. lib/ai.js, variable AI_PROVIDER)
 const PROVIDER_LABELS = { anthropic: 'Claude (Anthropic)', mistral: 'Mistral' }
@@ -351,35 +378,13 @@ RÈGLES :
     setLoading(false); inputRef.current?.focus();
   };
 
-  // Les overrides react-markdown reçoivent un prop `node` (AST hast) qu'on
-  // ne veut pas propager sur le DOM — on le destructure et on le jette
-  // (préfixe `_` = "intentionnellement inutilisé" côté ESLint).
-  const renderMd = text => (
-    <ReactMarkdown components={{
-      p:      ({ node: _n, ...props }) => <p style={{ margin: "0 0 6px 0" }} {...props}/>,
-      strong: ({ node: _n, ...props }) => <strong style={{ fontWeight: 700 }} {...props}/>,
-      em:     ({ node: _n, ...props }) => <em style={{ fontStyle: "italic" }} {...props}/>,
-      ul:     ({ node: _n, ...props }) => <ul style={{ marginLeft: "20px", marginTop: 0, marginBottom: "6px" }} {...props}/>,
-      ol:     ({ node: _n, ...props }) => <ol style={{ marginLeft: "20px", marginTop: 0, marginBottom: "6px" }} {...props}/>,
-      code:   ({ node: _n, inline, ...props }) => inline
-        ? <code style={{
-            background: "#F2F2F7", padding: "2px 6px",
-            borderRadius: 4, fontSize: "0.9em", fontFamily: "monospace",
-          }} {...props}/>
-        : <pre style={{
-            background: "#F2F2F7", padding: "10px", borderRadius: 6,
-            overflow: "auto", marginTop: "6px", marginBottom: "6px",
-          }}><code {...props}/></pre>,
-      a:      ({ node: _n, ...props }) => <a
-        style={{ color: "#0066CC", textDecoration: "underline", cursor: "pointer" }}
-        target="_blank" rel="noopener noreferrer" {...props}/>,
-    }}>
-      {text}
-    </ReactMarkdown>
-  );
+  const renderMd = text => <Markdown text={text} />;
 
   return (
-    <div style={{display:"flex",flexDirection:"column",height:m?"calc(100vh - 76px)":"calc(100vh - 48px)"}}>
+    <div style={{display:"flex",flexDirection:"column",
+      // Hauteur visible réelle (dvh) moins l'en-tête, la barre du bas et la
+      // zone sûre de l'iPhone : la saisie reste au-dessus de la barre d'onglets
+      height:m?"calc(100dvh - 146px - env(safe-area-inset-bottom))":"calc(100dvh - 48px)"}}>
       <div style={{marginBottom:12,display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8}}>
         <div>
           <div style={{display:"flex",alignItems:"center",gap:8}}>

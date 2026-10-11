@@ -4,7 +4,7 @@ import dynamic from 'next/dynamic'
 import Image from 'next/image'
 import { supabase } from '../supabaseClient'
 import { logout } from '../auth'
-import { FloatingMic, NotificationBell } from '../components'
+import { NotificationBell } from '../components'
 import { FLOATING_MIC_CLEARANCE } from '../components/FloatingMic'
 import { PageSkeleton } from '../components/Skeleton'
 import DashboardLoadState from '../components/DashboardLoadState'
@@ -13,8 +13,7 @@ import KeyboardHelpModal from '../components/KeyboardHelpModal'
 import MobileNav, { QuickCreateSheet, MOBILE_NAV_HEIGHT } from '../components/MobileNav'
 import LeaveGuardNotice from '../components/LeaveGuardNotice'
 import { newIntent } from '../lib/navIntent'
-import { useFloatingMic } from '../hooks/useFloatingMic'
-import { useToast } from '../contexts/ToastContext'
+import DashboardMic from '../components/DashboardMic'
 import { useDashboardData } from '../hooks/useDashboardData'
 import { useCrmData } from '../hooks/useCrmData'
 import { seedDemoData } from '../lib/seedDemoData'
@@ -73,13 +72,10 @@ export default function AdminDashboard({ user, profile = null }) {
   const [createOpen, setCreateOpen] = useState(false);
   // Préfixe « g » en attente (style GitHub : g puis lettre = go to tab)
   const pendingGRef = useRef(null);
-  const { addToast } = useToast();
-  // Floating mic — logique extraite dans useFloatingMic hook
-  const {
-    listening: floatListening, transcript: floatTranscript,
-    setTranscript: setFloatTranscript, toggle: toggleFloatMic,
-    clear: clearFloatMic
-  } = useFloatingMic({ onError: (msg) => addToast(msg, 'warning') });
+  // Texte dicté au micro flottant, transmis à l'assistant IA à l'envoi
+  const [micText, setMicText] = useState("");
+  const clearMicText = useCallback(() => setMicText(""), []);
+  const sendMicText = useCallback((t) => { setMicText(t || ""); setTab("ai"); }, []);
 
   // ─── Data layer via React Query ───
   // useDashboardData encapsule le stage-1 (critical) et le stage-2
@@ -597,8 +593,8 @@ export default function AdminDashboard({ user, profile = null }) {
             <div style={{ display: tab === 'ai' ? 'block' : 'none' }}>
               <TabErrorBoundary name="ai" resetKey={data}>
                 <AIV data={data} save={save} m={isMobile} active={tab === 'ai'}
-                  externalTranscript={floatTranscript}
-                  clearExternal={()=>setFloatTranscript("")} reload={reload}
+                  externalTranscript={micText}
+                  clearExternal={clearMicText} reload={reload}
                   crm={crm} reloadCrm={reloadCrm}/>
               </TabErrorBoundary>
             </div>
@@ -608,15 +604,7 @@ export default function AdminDashboard({ user, profile = null }) {
 
       {/* FLOATING NEON MIC — visible on ALL tabs */}
       {tab !== "ai" && (
-        <FloatingMic
-          listening={floatListening}
-          onClick={toggleFloatMic}
-          transcript={floatTranscript}
-          isMobile={isMobile}
-          bottomOffset={isMobile ? MOBILE_NAV_HEIGHT : 0}
-          onSend={() => { setTab("ai"); }}
-          onClear={clearFloatMic}
-        />
+        <DashboardMic isMobile={isMobile} bottomOffset={isMobile ? MOBILE_NAV_HEIGHT : 0} onSend={sendMicText} />
       )}
 
       {/* BARRE DE NAVIGATION BASSE (mobile) */}
