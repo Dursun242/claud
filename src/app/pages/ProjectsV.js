@@ -1,6 +1,7 @@
 'use client'
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import Image from 'next/image'
+import dynamic from 'next/dynamic'
 import {
   SB, Icon, I, status, fmtDate, fmtMoney,
   FF, inp, sel, btnP, btnS, btnAdd, btnChip
@@ -17,16 +18,13 @@ import ClientAccountField from '../components/projects/ClientAccountField'
 import { useAttachments } from '../hooks/useAttachments'
 import { useComments } from '../hooks/useComments'
 import { useSignaturesSync } from '../hooks/useSignaturesSync'
-import { generateOSPdf, generateCRPdf, generateOSExcel, generateCRExcel } from '../generators'
 import { useToast } from '../contexts/ToastContext'
 import { useConfirm } from '../contexts/ConfirmContext'
 import { computeChantierFinances } from '../lib/chantierFinances'
 import { parseNewIntent } from '../lib/navIntent'
 import { useSaveTask } from '../hooks/useSaveTask'
-import CREditor from '../components/cr/CREditor'
 import { markDiffused } from '../lib/crDb'
 import { loadCrImages } from '../lib/crPhotos'
-import CRSendModal from '../components/cr/CRSendModal'
 import { useConformite } from '../hooks/useConformite'
 import ChiffrageSection from '../components/chiffrage/ChiffrageSection'
 import { useChiffrage } from '../hooks/useChiffrage'
@@ -34,6 +32,12 @@ import { lotOptions, suggestLot } from '../lib/chiffrage'
 import { nextOsNumero } from '../lib/osNumero'
 import { localISO } from '../lib/today'
 import { isNetworkError } from '../lib/offlineStore'
+// Éditeur de CR et envoi : chargés à l'ouverture seulement
+const CREditor = dynamic(() => import('../components/cr/CREditor'), { ssr: false })
+const CRSendModal = dynamic(() => import('../components/cr/CRSendModal'), { ssr: false })
+// PDF / Excel : générateurs chargés au premier clic (préchargés en arrière-
+// plan par la coque, cf. AdminDashboard) — hors du paquet de la page.
+const generators = () => import('../generators')
 
 // Libellé d'une action de ligne : icône + texte
 const ChipLabel = ({ icon, children }) => (<><Icon d={icon} size={14}/>{children}</>)
@@ -443,9 +447,9 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
               </div>
               <div style={{display:"flex",gap:4,flexShrink:0,flexWrap:"wrap",justifyContent:m?"flex-start":"flex-end"}}>
                 <button title="Télécharger le PDF" className="u-btn" style={btnChip}
-                  onClick={()=>generateOSPdf({...os,chantier:ch.nom,adresse_chantier:ch.adresse})}><ChipLabel icon={I.download}>PDF</ChipLabel></button>
+                  onClick={async()=>(await generators()).generateOSPdf({...os,chantier:ch.nom,adresse_chantier:ch.adresse})}><ChipLabel icon={I.download}>PDF</ChipLabel></button>
                 <button title="Télécharger le fichier Excel" className="u-btn" style={btnChip}
-                  onClick={()=>generateOSExcel({...os,chantier:ch.nom,adresse_chantier:ch.adresse})}><ChipLabel icon={I.sheet}>Excel</ChipLabel></button>
+                  onClick={async()=>(await generators()).generateOSExcel({...os,chantier:ch.nom,adresse_chantier:ch.adresse})}><ChipLabel icon={I.sheet}>Excel</ChipLabel></button>
                 {!readOnly && <>
                   <button onClick={async()=>{
                     try{
@@ -495,9 +499,9 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
                 </div>
               </div>
               <div style={{display:"flex",gap:4,flexShrink:0,flexWrap:"wrap",justifyContent:m?"flex-start":"flex-end"}}>
-                <button onClick={async()=>generateCRPdf(cr,ch,{ images: await loadCrImages(cr) })} title="Télécharger le PDF"
+                <button onClick={async()=>(await generators()).generateCRPdf(cr,ch,{ images: await loadCrImages(cr) })} title="Télécharger le PDF"
                   className="u-btn" style={btnChip}><ChipLabel icon={I.download}>PDF</ChipLabel></button>
-                <button onClick={()=>generateCRExcel(cr,ch)} title="Télécharger le fichier Excel"
+                <button onClick={async()=>(await generators()).generateCRExcel(cr,ch)} title="Télécharger le fichier Excel"
                   className="u-btn" style={btnChip}><ChipLabel icon={I.sheet}>Excel</ChipLabel></button>
                 {!readOnly && (
                   <button onClick={()=>setSendCr(cr)} title="Envoyer le CR et la convocation par mail"
@@ -706,17 +710,17 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
         </div>
       </Modal>
 
-      <CREditor open={!!crModal} initial={crModal?.initial} data={data} m={m} lockChantier
+      {crModal && <CREditor open={!!crModal} initial={crModal?.initial} data={data} m={m} lockChantier
         onClose={()=>setCrModal(null)}
-        onSaved={async (cr, { send }) => { setCrModal(null); await reload(); if (send) setSendCr(cr); }} />
-      <CRSendModal cr={sendCr} chantier={ch} onClose={()=>setSendCr(null)}
+        onSaved={async (cr, { send }) => { setCrModal(null); await reload(); if (send) setSendCr(cr); }} />}
+      {sendCr && <CRSendModal cr={sendCr} chantier={ch} onClose={()=>setSendCr(null)}
         onSent={async (cr) => {
           if (cr?.id && cr.statut !== 'Diffusé') {
             const ok = await markDiffused(cr.id);
             if (!ok) addToast("CR envoyé, mais son statut n'a pas pu passer à « Diffusé »", "warning");
             reload();
           }
-        }} />
+        }} />}
 
       <Modal
         open={detailModal==="newTask"||detailModal==="editTask"}

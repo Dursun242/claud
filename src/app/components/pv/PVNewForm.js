@@ -3,7 +3,8 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../../supabaseClient'
 import { useToast } from '../../contexts/ToastContext'
 import { useLeaveGuard } from '../../hooks/useLeaveGuard'
-import { generatePVPdf } from '../../generators'
+// Générateur PDF chargé au moment de créer le PV (hors du paquet de la fiche)
+const generatePVPdf = async (...args) => (await import('../../generators')).generatePVPdf(...args)
 
 // Modale de création d'un PV de réception : saisie titre + signataires,
 // sélection de l'intervenant (→ pré-remplit les coordonnées entreprise),

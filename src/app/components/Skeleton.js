@@ -20,7 +20,7 @@ import { ANIMATION } from '../lib/motion'
  */
 
 const shimmerBase = {
-  background: 'linear-gradient(90deg, #F2F2F7 25%, #E5E5EA 50%, #F2F2F7 75%)',
+  background: 'linear-gradient(90deg, #E5E5EA 25%, #D8D8DC 50%, #E5E5EA 75%)',
   backgroundSize: '200% 100%',
   animation: ANIMATION.shimmer,
 }
@@ -46,6 +46,29 @@ export function Skeleton({ width = '100%', height = 12, radius = 6, style = {} }
 // Sur mobile (< 768px), la sidebar est cachée via CSS media query
 // (cohérent avec le vrai layout où elle est un overlay déclenché
 // par le hamburger). On affiche un header mobile à la place.
+/**
+ * Lignes de liste en attente (priorités, agenda) : même hauteur que les
+ * vraies lignes (44 px) pour que rien ne bouge à l'arrivée des données.
+ */
+export function SkeletonRows({ count = 3 }) {
+  return (
+    <div aria-hidden="true" style={{ display: 'grid', gap: 8 }}>
+      {Array.from({ length: count }).map((_, i) => (
+        <div key={i} style={{
+          display: 'flex', alignItems: 'center', gap: 12, minHeight: 50,
+          padding: '9px 12px', background: '#F5F5F7', borderRadius: 10, boxSizing: 'border-box',
+        }}>
+          <Skeleton width={26} height={26} radius={13} />
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <Skeleton width={`${70 - i * 8}%`} height={12} />
+            <Skeleton width={`${45 - i * 5}%`} height={10} />
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export function DashboardSkeleton({ role = 'admin' }) {
   const isClient = role === 'client'
   const tabCount = isClient ? 5 : 10
@@ -137,111 +160,55 @@ export function DashboardSkeleton({ role = 'admin' }) {
 
       {/* ── Main content ── */}
       <main data-skel-main style={{ flex: 1, padding: 24, overflow: 'hidden' }}>
-        {/* Header / greeting */}
+        {/* Même ordre que l'accueil réel : titre, priorités, journée,
+            tuiles d'action, chiffres clés (pas de saut à l'arrivée). */}
         <div style={{ marginBottom: 22 }}>
-          <Skeleton width={240} height={28} />
-          <div style={{ height: 8 }} />
-          <Skeleton width={160} height={12} />
+          <Skeleton width={260} height={32} />
+          <div style={{ height: 10 }} />
+          <Skeleton width={150} height={12} />
         </div>
 
-        {/* Quick actions (4 tiles → 2 on mobile) */}
-        <div
-          data-skel-grid4
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(4, 1fr)',
-            gap: 10,
-            marginBottom: 22,
-          }}
-        >
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div
-              key={i}
-              style={{
-                background: '#fff',
-                border: '1.5px solid #E5E5EA',
-                borderRadius: 10,
-                padding: '14px 12px',
-                height: 96,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 10,
-              }}
-            >
-              <Skeleton width={40} height={40} radius={10} />
-              <Skeleton width={80} height={10} />
+        {[3, 4].map((rows, c) => (
+          <div key={c} style={{
+            background: '#fff', border: '1px solid #E5E5EA', borderRadius: 12,
+            padding: 18, marginBottom: 18,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+              <Skeleton width={c === 0 ? 32 : 28} height={c === 0 ? 32 : 28} radius={8} />
+              <Skeleton width={c === 0 ? 210 : 140} height={c === 0 ? 20 : 17} />
             </div>
-          ))}
-        </div>
-
-        {/* KPIs (4 chiffres clés → 2 on mobile) */}
-        <div
-          data-skel-grid4
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(4, 1fr)',
-            gap: 10,
-            marginBottom: 20,
-          }}
-        >
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div
-              key={i}
-              style={{
-                background: '#fff',
-                border: '1px solid #E5E5EA',
-                borderRadius: 10,
-                padding: '12px 14px',
-                height: 68,
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 8,
-              }}
-            >
-              <Skeleton width="65%" height={10} />
-              <Skeleton width="45%" height={22} />
-            </div>
-          ))}
-        </div>
-
-        {/* Grande card (chantiers en cours) */}
-        <div
-          style={{
-            background: '#fff',
-            borderRadius: 14,
-            padding: 18,
-            boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
-            marginBottom: 18,
-          }}
-        >
-          <Skeleton width={180} height={18} />
-          <div style={{ height: 14 }} />
-          <div data-skel-grid3 style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
-            {Array.from({ length: 3 }).map((_, i) => (
-              <div
-                key={i}
-                style={{
-                  border: '1.5px solid #E5E5EA',
-                  borderRadius: 10,
-                  padding: 12,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 8,
-                }}
-              >
-                <Skeleton width="75%" height={14} />
-                <Skeleton width="55%" height={10} />
-                <div style={{ height: 4 }} />
-                <Skeleton width="100%" height={6} radius={3} />
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Skeleton width={60} height={9} />
-                  <Skeleton width={80} height={9} />
-                </div>
-              </div>
-            ))}
+            <SkeletonRows count={rows} />
           </div>
+        ))}
+
+        <div data-skel-grid4 style={{
+          display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 22,
+        }}>
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} style={{
+              background: '#fff', border: '1px solid #E5E5EA', borderRadius: 10,
+              padding: 12, height: 56, boxSizing: 'border-box',
+              display: 'flex', alignItems: 'center', gap: 10,
+            }}>
+              <Skeleton width={32} height={32} radius={8} />
+              <Skeleton width="55%" height={12} />
+            </div>
+          ))}
+        </div>
+
+        <div data-skel-grid4 style={{
+          display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 20,
+        }}>
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} style={{
+              background: '#fff', border: '1px solid #E5E5EA', borderRadius: 10,
+              padding: '12px 14px', height: 68, boxSizing: 'border-box',
+              display: 'flex', flexDirection: 'column', gap: 8,
+            }}>
+              <Skeleton width="65%" height={10} />
+              <Skeleton width="40%" height={22} />
+            </div>
+          ))}
         </div>
       </main>
     </div>

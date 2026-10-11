@@ -13,6 +13,8 @@ import LeaveGuardNotice from '../components/LeaveGuardNotice'
 import { useFloatingMic } from '../hooks/useFloatingMic'
 import { useToast } from '../contexts/ToastContext'
 import { useClientDashboardData } from '../hooks/useClientDashboardData'
+// L'accueil est le premier écran : importé directement (pas de second chargement).
+import DashboardV from '../pages/DashboardV'
 
 // Lazy-load des pages — chunks séparés par onglet, mais on garde les
 // loaders référencés pour pouvoir preload() au hover/focus des boutons.
@@ -28,7 +30,6 @@ const PAGE_LOADERS = {
   ai:        () => import('../pages/AIV'),
   pv:        () => import('../pages/ProcesVerbauxV'),
 }
-const DashboardV      = dyn(PAGE_LOADERS.dashboard)
 const ProjectsV       = dyn(PAGE_LOADERS.projects)
 const ReportsV        = dyn(PAGE_LOADERS.reports)
 const OrdresServiceV  = dyn(PAGE_LOADERS.os)
