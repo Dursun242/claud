@@ -105,10 +105,10 @@ export default function FloatingMic({
               borderRadius: 12,
               padding: '12px 14px',
               maxWidth: isMobile ? 260 : 340,
-              color: '#1C1C1E',
+              color: 'var(--label)',
               fontSize: 13,
               lineHeight: 1.5,
-              border: '1px solid #E5E5EA',
+              border: '1px solid var(--separator)',
               boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
               animation: 'fadeIn .2s ease',
             }}
@@ -117,7 +117,7 @@ export default function FloatingMic({
               style={{
                 fontSize: 11,
                 fontWeight: 600,
-                color: '#D70015',
+                color: 'var(--red-text)',
                 textTransform: 'uppercase',
                 letterSpacing: '0.05em',
                 marginBottom: 4,
@@ -128,11 +128,11 @@ export default function FloatingMic({
             >
               <span
                 aria-hidden="true"
-                style={{ width: 6, height: 6, borderRadius: '50%', background: '#D70015' }}
+                style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--red-text)' }}
               />
               Transcription en direct
             </div>
-            <div style={{ color: '#3A3A3C' }}>{transcript}</div>
+            <div style={{ color: 'var(--label-2)' }}>{transcript}</div>
             <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
               <button onClick={onSend} style={{ ...btnP, fontSize: 13, minHeight: 36, padding: '8px 14px' }}>
                 Envoyer à l&apos;IA
@@ -161,7 +161,7 @@ export default function FloatingMic({
             height: 56,
             margin: 4,
             borderRadius: '50%',
-            background: listening ? '#D70015' : '#0071E3',
+            background: listening ? 'var(--red-text)' : 'var(--accent)',
             color: '#fff',
             border: 'none',
             cursor: 'pointer',

@@ -41,29 +41,29 @@ export default function Error({ error, reset }) {
           maxWidth: 440,
           textAlign: 'center',
           boxShadow: '0 4px 24px rgba(0,0,0,0.08)',
-          border: '1px solid #E5E5EA',
+          border: '1px solid var(--separator)',
         }}
       >
         <div style={{ fontSize: 36, marginBottom: 12 }} aria-hidden="true">
           ⚠️
         </div>
-        <h2 style={{ margin: '0 0 8px', color: '#1C1C1E', fontSize: 18, fontWeight: 700 }}>
+        <h2 style={{ margin: '0 0 8px', color: 'var(--label)', fontSize: 18, fontWeight: 700 }}>
           Cette section a rencontré un problème
         </h2>
-        <p style={{ margin: '0 0 20px', color: '#6E6E73', fontSize: 14, lineHeight: 1.6 }}>
+        <p style={{ margin: '0 0 20px', color: 'var(--label-secondary)', fontSize: 14, lineHeight: 1.6 }}>
           Tu peux réessayer sans perdre ta session — les autres parties
           de l&apos;application restent accessibles.
         </p>
         {error?.message && (
           <details style={{ textAlign: 'left', marginBottom: 16 }}>
-            <summary style={{ cursor: 'pointer', fontSize: 12, color: '#6E6E73' }}>
+            <summary style={{ cursor: 'pointer', fontSize: 12, color: 'var(--label-secondary)' }}>
               Détails techniques
             </summary>
             <pre
               style={{
                 marginTop: 8,
                 padding: 10,
-                background: '#F2F2F7',
+                background: 'var(--grouped-bg)',
                 borderRadius: 8,
                 fontSize: 11,
                 overflowX: 'auto',
@@ -80,7 +80,7 @@ export default function Error({ error, reset }) {
           onClick={() => reset()}
           style={{
             padding: '10px 20px',
-            background: '#0071E3',
+            background: 'var(--accent)',
             color: '#fff',
             border: 'none',
             borderRadius: 8,

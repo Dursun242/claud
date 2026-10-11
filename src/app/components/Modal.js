@@ -179,7 +179,7 @@ export default function Modal({ open, onClose, title, children, wide = false }) 
               margin: 0,
               fontSize: 17,
               fontWeight: 700,
-              color: '#1C1C1E',
+              color: 'var(--label)',
               flex: 1,
               minWidth: 0,
               overflow: 'hidden',

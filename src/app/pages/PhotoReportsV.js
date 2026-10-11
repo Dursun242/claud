@@ -259,8 +259,8 @@ export default function PhotoReportsV({ data, m }) {
         marginBottom: 16, flexWrap: 'wrap', gap: 8
       }}>
         <div>
-          <h1 style={{margin:0,fontSize:m?28:32,fontWeight:700,letterSpacing:"-0.02em",color:"#1C1C1E"}}>Reportage Photo</h1>
-          <div style={{ fontSize: 13, color: '#6E6E73', marginTop: 2 }}>
+          <h1 style={{margin:0,fontSize:m?28:32,fontWeight:700,letterSpacing:"-0.02em",color:"var(--label)"}}>Reportage Photo</h1>
+          <div style={{ fontSize: 13, color: 'var(--label-secondary)', marginTop: 2 }}>
             Sélectionne jusqu'à {MAX_PHOTOS} photos puis génère le reportage PDF
           </div>
         </div>
@@ -272,7 +272,7 @@ export default function PhotoReportsV({ data, m }) {
         boxShadow: '0 1px 3px rgba(0,0,0,0.06)', marginBottom: 14,
       }}>
         <div style={{
-          fontSize: 11, fontWeight: 700, color: '#6E6E73',
+          fontSize: 11, fontWeight: 700, color: 'var(--label-secondary)',
           textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8
         }}>
           1. Chantier
@@ -287,20 +287,20 @@ export default function PhotoReportsV({ data, m }) {
           ))}
         </select>
         {chantier && (
-          <div style={{ fontSize: 11, color: '#6E6E73', marginTop: 6 }}>
+          <div style={{ fontSize: 11, color: 'var(--label-secondary)', marginTop: 6 }}>
             {chantier.adresse} · Phase : {chantier.phase} · Statut : {chantier.statut}
           </div>
         )}
         <div style={{ marginTop: 14 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#6E6E73', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--label-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
             Météo (optionnel)
           </div>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             {['', '☀️ Ensoleillé', '🌤 Nuageux', '🌧 Pluvieux', '🌩 Orageux', '❄️ Neigeux', '💨 Venteux'].map(opt => (
               <button key={opt} onClick={() => setMeteo(opt)} style={{
-                background: meteo === opt ? '#0071E3' : '#F5F5F7',
-                color: meteo === opt ? '#fff' : '#3A3A3C',
-                border: `1.5px solid ${meteo === opt ? '#0071E3' : '#E5E5EA'}`,
+                background: meteo === opt ? 'var(--accent)' : 'var(--row-fill)',
+                color: meteo === opt ? '#fff' : 'var(--label-2)',
+                border: `1.5px solid ${meteo === opt ? 'var(--accent)' : 'var(--separator)'}`,
                 borderRadius: 20, padding: '5px 12px', fontSize: 12,
                 cursor: 'pointer', fontFamily: 'inherit', transition: 'all .12s',
               }}>{opt || '— Aucune'}</button>
@@ -319,7 +319,7 @@ export default function PhotoReportsV({ data, m }) {
           marginBottom: 10, flexWrap: 'wrap', gap: 8
         }}>
           <div style={{
-            fontSize: 11, fontWeight: 700, color: '#6E6E73',
+            fontSize: 11, fontWeight: 700, color: 'var(--label-secondary)',
             textTransform: 'uppercase', letterSpacing: '0.05em'
           }}>
             2. Photos ({photos.length}/{MAX_PHOTOS})
@@ -362,7 +362,7 @@ export default function PhotoReportsV({ data, m }) {
           <div
             onClick={() => fileInputRef.current?.click()}
             style={{
-              border: '2px dashed #E5E5EA', borderRadius: 10,
+              border: '2px dashed var(--separator)', borderRadius: 10,
               padding: '40px 20px', textAlign: 'center', cursor: 'pointer',
               transition: 'border-color .15s, background .15s',
             }}
@@ -376,10 +376,10 @@ export default function PhotoReportsV({ data, m }) {
             }}
           >
             <div style={{ fontSize: 36, marginBottom: 8, opacity: 0.5 }}>📸</div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: '#3A3A3C', marginBottom: 4 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--label-2)', marginBottom: 4 }}>
               Sélectionne des photos de ton chantier
             </div>
-            <div style={{ fontSize: 12, color: '#6E6E73' }}>
+            <div style={{ fontSize: 12, color: 'var(--label-secondary)' }}>
               Depuis la galerie, l'appareil photo, ou tes fichiers · Max {MAX_PHOTOS} photos
             </div>
           </div>
@@ -388,8 +388,8 @@ export default function PhotoReportsV({ data, m }) {
             {photos.map((photo, idx) => (
               <div key={photo.id} style={{
                 display: 'flex', gap: 12, alignItems: 'flex-start',
-                background: '#F5F5F7', borderRadius: 10, padding: 10,
-                border: '1px solid #E5E5EA',
+                background: 'var(--row-fill)', borderRadius: 10, padding: 10,
+                border: '1px solid var(--separator)',
               }}>
                 {/* Miniature — base64 data URI (photo tout juste capturée,
                     pas encore uploadée). next/image n'optimise pas les
@@ -407,7 +407,7 @@ export default function PhotoReportsV({ data, m }) {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
                     <span style={{
-                      background: '#0071E3', color: '#fff', borderRadius: 999,
+                      background: 'var(--accent)', color: '#fff', borderRadius: 999,
                       width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center',
                       fontSize: 11, fontWeight: 700, flexShrink: 0,
                     }}>{idx + 1}</span>
@@ -416,7 +416,7 @@ export default function PhotoReportsV({ data, m }) {
                       onChange={e => updateDesc(photo.id, e.target.value)}
                       placeholder="Légende de la photo…"
                       style={{
-                        flex: 1, padding: '5px 8px', border: '1px solid #E5E5EA',
+                        flex: 1, padding: '5px 8px', border: '1px solid var(--separator)',
                         borderRadius: 6, fontSize: 12, fontFamily: 'inherit', outline: 'none',
                       }}
                     />
@@ -427,7 +427,7 @@ export default function PhotoReportsV({ data, m }) {
                       disabled={idx === 0}
                       title="Monter"
                       style={{
-                        background: '#F2F2F7', border: '1px solid #E5E5EA',
+                        background: 'var(--grouped-bg)', border: '1px solid var(--separator)',
                         borderRadius: 5, padding: '3px 8px', fontFamily: 'inherit',
                         cursor: idx === 0 ? 'not-allowed' : 'pointer',
                         fontSize: 11, opacity: idx === 0 ? 0.3 : 1
@@ -438,7 +438,7 @@ export default function PhotoReportsV({ data, m }) {
                       disabled={idx === photos.length - 1}
                       title="Descendre"
                       style={{
-                        background: '#F2F2F7', border: '1px solid #E5E5EA',
+                        background: 'var(--grouped-bg)', border: '1px solid var(--separator)',
                         borderRadius: 5, padding: '3px 8px', fontFamily: 'inherit',
                         cursor: idx === photos.length - 1 ? 'not-allowed' : 'pointer',
                         fontSize: 11, opacity: idx === photos.length - 1 ? 0.3 : 1
@@ -448,9 +448,9 @@ export default function PhotoReportsV({ data, m }) {
                       onClick={() => removePhoto(photo.id)}
                       title="Retirer"
                       style={{
-                        background: '#fff', border: '1px solid #FFC9C6',
+                        background: '#fff', border: '1px solid var(--red-line)',
                         borderRadius: 5, padding: '3px 8px', cursor: 'pointer',
-                        fontSize: 11, color: '#D70015', fontFamily: 'inherit',
+                        fontSize: 11, color: 'var(--red-text)', fontFamily: 'inherit',
                         marginLeft: 'auto'
                       }}
                     >Retirer</button>
@@ -472,12 +472,12 @@ export default function PhotoReportsV({ data, m }) {
         }}>
           <div>
             <div style={{
-            fontSize: 11, fontWeight: 700, color: '#6E6E73',
+            fontSize: 11, fontWeight: 700, color: 'var(--label-secondary)',
             textTransform: 'uppercase', letterSpacing: '0.05em'
           }}>
               3. Générer le reportage
             </div>
-            <div style={{ fontSize: 12, color: '#3A3A3C', marginTop: 4 }}>
+            <div style={{ fontSize: 12, color: 'var(--label-2)', marginTop: 4 }}>
               <strong>{chantier?.nom}</strong>{' '}
               · {photos.length} photo{photos.length > 1 ? 's' : ''}{' '}
               · {fmtDate(new Date())}{meteo ? ` · ${meteo}` : ''}
@@ -489,7 +489,7 @@ export default function PhotoReportsV({ data, m }) {
               disabled={generatingPdf || sharingPdf || !chantier}
               style={{
                 ...btnP, fontSize: 14, padding: '12px 20px',
-                background: '#D70015',
+                background: 'var(--red-text)',
                 opacity: (generatingPdf || !chantier) ? 0.6 : 1,
                 cursor: (generatingPdf || !chantier) ? 'wait' : 'pointer',
                 display: 'flex', alignItems: 'center', gap: 8,
@@ -512,7 +512,7 @@ export default function PhotoReportsV({ data, m }) {
               title="Partager via WhatsApp, Mail, AirDrop… (sans lien parasite)"
               style={{
                 ...btnP, fontSize: 14, padding: '12px 20px',
-                background: '#1E7B34',
+                background: 'var(--green-text)',
                 opacity: (sharingPdf || !chantier) ? 0.6 : 1,
                 cursor: (sharingPdf || !chantier) ? 'wait' : 'pointer',
                 display: 'flex', alignItems: 'center', gap: 8,

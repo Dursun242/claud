@@ -241,11 +241,11 @@ export default function LogsV({ m, profile, embedded = false }) {
   if (!isAdmin) {
     return (
       <div style={{
-        background: "#FFF0EF", borderRadius: 14, padding: 40,
-        textAlign: "center", border: "1.5px solid #FFC9C6"
+        background: "var(--red-tint)", borderRadius: 14, padding: 40,
+        textAlign: "center", border: "1.5px solid var(--red-line)"
       }}>
-        <h1 style={{ margin: "0 0 10px", fontSize: 20, fontWeight: 700, color: "#D70015" }}>🔒 Accès refusé</h1>
-        <p style={{ margin: 0, color: "#6E6E73", fontSize: 14 }}>
+        <h1 style={{ margin: "0 0 10px", fontSize: 20, fontWeight: 700, color: "var(--red-text)" }}>🔒 Accès refusé</h1>
+        <p style={{ margin: 0, color: "var(--label-secondary)", fontSize: 14 }}>
           Seuls les administrateurs peuvent consulter le journal d&apos;activité.
         </p>
       </div>
@@ -263,9 +263,9 @@ export default function LogsV({ m, profile, embedded = false }) {
       }}>
         <div>
           {!embedded && (
-            <h1 style={{margin:0,fontSize:m?28:32,fontWeight:700,letterSpacing:"-0.02em",color:"#1C1C1E"}}>Journal d&apos;activité</h1>
+            <h1 style={{margin:0,fontSize:m?28:32,fontWeight:700,letterSpacing:"-0.02em",color:"var(--label)"}}>Journal d&apos;activité</h1>
           )}
-          <div style={{ fontSize: 11, color: "#6E6E73", marginTop: embedded ? 0 : 2 }}>
+          <div style={{ fontSize: 11, color: "var(--label-secondary)", marginTop: embedded ? 0 : 2 }}>
             {embedded
               ? <>Connexions, créations, modifications et suppressions.</>
               : <>Connexions, créations, modifications et suppressions — admin uniquement.</>
@@ -289,7 +289,7 @@ export default function LogsV({ m, profile, embedded = false }) {
           </button>
           <button onClick={handlePurge} disabled={purging}
             title="Supprimer les entrées de plus de 90 jours"
-            style={{ ...btnS, fontSize: 12, color: '#D70015' }}>
+            style={{ ...btnS, fontSize: 12, color: 'var(--red-text)' }}>
             {purging ? '⏳ Purge…' : 'Purger > 90j'}
           </button>
         </div>
@@ -330,7 +330,7 @@ export default function LogsV({ m, profile, embedded = false }) {
         {hasFilters && (
           <div style={{ marginTop: 8, textAlign: 'right' }}>
             <button onClick={resetFilters} style={{
-              background: 'none', border: 'none', color: '#6E6E73',
+              background: 'none', border: 'none', color: 'var(--label-secondary)',
               fontSize: 11, cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'underline'
             }}>
               Réinitialiser les filtres
@@ -342,11 +342,11 @@ export default function LogsV({ m, profile, embedded = false }) {
       {/* Erreur */}
       {error && (
         <div style={{
-          background: "#FFF0EF", border: "1px solid #FFC9C6", borderRadius: 8,
-          padding: "10px 14px", marginBottom: 12, fontSize: 13, color: "#D70015"
+          background: "var(--red-tint)", border: "1px solid var(--red-line)", borderRadius: 8,
+          padding: "10px 14px", marginBottom: 12, fontSize: 13, color: "var(--red-text)"
         }}>
           ⚠ {error}
-          <div style={{ fontSize: 11, marginTop: 4, color: '#6E6E73' }}>
+          <div style={{ fontSize: 11, marginTop: 4, color: 'var(--label-secondary)' }}>
             {errorCode === 'MIGRATION_MISSING'
               ? <>La table <code>activity_logs</code> n&apos;existe pas.{' '}
                 Exécute la migration <code>007_activity_logs_consolidated.sql</code>{' '}
@@ -362,11 +362,11 @@ export default function LogsV({ m, profile, embedded = false }) {
       {loading ? (
         <div style={{
           background: "#fff", borderRadius: 12, padding: "40px 24px",
-          textAlign: "center", color: "#6E6E73", fontSize: 13
+          textAlign: "center", color: "var(--label-secondary)", fontSize: 13
         }}>
           <div style={{
-            width: 32, height: 32, border: "3px solid #E5E5EA",
-            borderTopColor: "#0071E3", borderRadius: "50%",
+            width: 32, height: 32, border: "3px solid var(--separator)",
+            borderTopColor: "var(--accent)", borderRadius: "50%",
             animation: "spin .9s linear infinite", margin: "0 auto 10px"
           }} />
           Chargement du journal…
@@ -377,10 +377,10 @@ export default function LogsV({ m, profile, embedded = false }) {
           textAlign: "center", boxShadow: "0 1px 3px rgba(0,0,0,0.04)"
         }}>
           <div style={{ fontSize: 36, marginBottom: 8, opacity: 0.5 }}>📋</div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: "#3A3A3C", marginBottom: 4 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: "var(--label-2)", marginBottom: 4 }}>
             {hasFilters ? 'Aucun résultat' : 'Journal vide'}
           </div>
-          <div style={{ fontSize: 12, color: "#6E6E73", marginBottom: 14 }}>
+          <div style={{ fontSize: 12, color: "var(--label-secondary)", marginBottom: 14 }}>
             {hasFilters
               ? "Essaie d'élargir les filtres."
               : "Les actions des utilisateurs apparaîtront ici dès qu'ils se connecteront" +
@@ -398,7 +398,7 @@ export default function LogsV({ m, profile, embedded = false }) {
             return (
               <div key={l.id} style={{
                 background: '#fff', borderRadius: 10, padding: 12,
-                border: '1px solid #E5E5EA'
+                border: '1px solid var(--separator)'
               }}>
                 <div style={{
                   display: 'flex', justifyContent: 'space-between',
@@ -411,11 +411,11 @@ export default function LogsV({ m, profile, embedded = false }) {
                   }}>
                     {a.label}
                   </span>
-                  <span style={{ fontSize: 11, color: '#6E6E73' }}>{formatWhen(l.created_at)}</span>
+                  <span style={{ fontSize: 11, color: 'var(--label-secondary)' }}>{formatWhen(l.created_at)}</span>
                 </div>
-                <div style={{ fontSize: 13, fontWeight: 600, color: '#1C1C1E', marginBottom: 2 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--label)', marginBottom: 2 }}>
                   {l.user_prenom || '—'}{' '}
-                  <span style={{ fontSize: 11, fontWeight: 400, color: '#6E6E73' }}>· {l.user_email}</span>
+                  <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--label-secondary)' }}>· {l.user_email}</span>
                 </div>
                 <div style={{ fontSize: 12, color: '#48484A' }}>
                   <span style={{ fontWeight: 600 }}>{ENTITY_LABELS[l.entity_type] || l.entity_type || '—'}</span>
@@ -428,7 +428,7 @@ export default function LogsV({ m, profile, embedded = false }) {
                     <button onClick={() => toggleExpanded(l.id)}
                       style={{
                         marginTop: 6, background: 'none', border: 'none',
-                        color: '#6E6E73', fontSize: 11, cursor: 'pointer',
+                        color: 'var(--label-secondary)', fontSize: 11, cursor: 'pointer',
                         padding: 0, fontFamily: 'inherit', textDecoration: 'underline'
                       }}>
                       {isOpen ? '▾ Masquer les détails' : '▸ Afficher les détails'}
@@ -452,8 +452,8 @@ export default function LogsV({ m, profile, embedded = false }) {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead>
                 <tr style={{
-                  background: '#F5F5F7', textAlign: 'left', fontSize: 11,
-                  color: '#6E6E73', textTransform: 'uppercase', letterSpacing: '0.05em'
+                  background: 'var(--row-fill)', textAlign: 'left', fontSize: 11,
+                  color: 'var(--label-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em'
                 }}>
                   <th style={thStyle}>Date</th>
                   <th style={thStyle}>Utilisateur</th>
@@ -471,7 +471,7 @@ export default function LogsV({ m, profile, embedded = false }) {
                   const src = l.metadata?.source
                   return (
                     <React.Fragment key={l.id}>
-                      <tr style={{ borderTop: i === 0 ? 'none' : '1px solid #F2F2F7',
+                      <tr style={{ borderTop: i === 0 ? 'none' : '1px solid var(--grouped-bg)',
                         cursor: hasMeta ? 'pointer' : 'default' }}
                           onClick={() => hasMeta && toggleExpanded(l.id)}
                           // Détails dépliables au clavier aussi (Entrée / Espace)
@@ -479,10 +479,10 @@ export default function LogsV({ m, profile, embedded = false }) {
                           aria-expanded={hasMeta ? isOpen : undefined}
                           onKeyDown={e => { if (hasMeta && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); toggleExpanded(l.id) } }}>
                         <td style={{ ...tdStyle, whiteSpace: 'nowrap',
-                          color: '#6E6E73', fontSize: 12 }}>{formatWhen(l.created_at)}</td>
+                          color: 'var(--label-secondary)', fontSize: 12 }}>{formatWhen(l.created_at)}</td>
                         <td style={tdStyle}>
-                          <div style={{ fontWeight: 600, color: '#1C1C1E' }}>{l.user_prenom || '—'}</div>
-                          <div style={{ fontSize: 11, color: '#6E6E73' }}>{l.user_email}</div>
+                          <div style={{ fontWeight: 600, color: 'var(--label)' }}>{l.user_prenom || '—'}</div>
+                          <div style={{ fontSize: 11, color: 'var(--label-secondary)' }}>{l.user_email}</div>
                         </td>
                         <td style={tdStyle}>
                           <span style={{
@@ -496,7 +496,7 @@ export default function LogsV({ m, profile, embedded = false }) {
                         <td style={{ ...tdStyle, color: '#48484A' }}>
                           {ENTITY_LABELS[l.entity_type] || l.entity_type || '—'}
                         </td>
-                        <td style={{ ...tdStyle, color: '#3A3A3C' }}>
+                        <td style={{ ...tdStyle, color: 'var(--label-2)' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                             <span style={{
                               overflow: 'hidden', textOverflow: 'ellipsis',
@@ -507,7 +507,7 @@ export default function LogsV({ m, profile, embedded = false }) {
                             {src === 'ai' && <span style={sourceBadge}>🤖 IA</span>}
                             {src === 'duplicate' && <span style={sourceBadge}>📋 Copie</span>}
                             {hasMeta && (
-                              <span style={{ fontSize: 11, color: '#6E6E73' }}>
+                              <span style={{ fontSize: 11, color: 'var(--label-secondary)' }}>
                                 {isOpen ? '▾' : '▸'}
                               </span>
                             )}
@@ -515,11 +515,11 @@ export default function LogsV({ m, profile, embedded = false }) {
                         </td>
                       </tr>
                       {hasMeta && isOpen && (
-                        <tr style={{ background: '#F5F5F7', borderTop: '1px solid #E5E5EA' }}>
+                        <tr style={{ background: 'var(--row-fill)', borderTop: '1px solid var(--separator)' }}>
                           <td colSpan={5} style={{ padding: '10px 14px' }}>
                             <pre style={metaStyle}>{JSON.stringify(l.metadata, null, 2)}</pre>
                             {l.user_agent && (
-                              <div style={{ fontSize: 11, color: '#6E6E73', marginTop: 4 }}>
+                              <div style={{ fontSize: 11, color: 'var(--label-secondary)', marginTop: 4 }}>
                                 Appareil : {l.user_agent}
                               </div>
                             )}

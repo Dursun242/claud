@@ -170,7 +170,7 @@ export default function GlobalSearch({ data, crm = null, onNavigate }) {
             padding: '8px 28px 8px 30px', minHeight: 36,
             background: '#EEEEF0',
             border: 'none',
-            borderRadius: 10, color: '#1C1C1E', fontSize: 14,
+            borderRadius: 10, color: 'var(--label)', fontSize: 14,
             fontFamily: 'inherit',
           }}
         />
@@ -178,7 +178,7 @@ export default function GlobalSearch({ data, crm = null, onNavigate }) {
           <button onClick={() => { setQuery(''); setOpen(false) }} aria-label="Effacer la recherche" style={{
             position: 'absolute', right: 8, top: '50%',
             transform: 'translateY(-50%)', background: 'none', border: 'none',
-            color: '#6E6E73', cursor: 'pointer', fontSize: 14, padding: 0, lineHeight: 1
+            color: 'var(--label-secondary)', cursor: 'pointer', fontSize: 14, padding: 0, lineHeight: 1
           }}>✕</button>
         )}
       </div>
@@ -187,7 +187,7 @@ export default function GlobalSearch({ data, crm = null, onNavigate }) {
       {open && (query.length >= 2 || showRecents) && (
         <div style={{
           position: 'absolute', left: 8, right: 8, top: '100%', zIndex: 2000,
-          background: '#fff', border: '1px solid #E5E5EA',
+          background: '#fff', border: '1px solid var(--separator)',
           borderRadius: 12, boxShadow: '0 12px 32px rgba(0,0,0,0.12)',
           maxHeight: 400, overflowY: 'auto', marginTop: 4,
         }}>
@@ -195,13 +195,13 @@ export default function GlobalSearch({ data, crm = null, onNavigate }) {
           {showRecents && (
             <div>
               <div style={{
-                padding: '8px 14px 4px', fontSize: 11, fontWeight: 600, color: '#6E6E73',
+                padding: '8px 14px 4px', fontSize: 11, fontWeight: 600, color: 'var(--label-secondary)',
                 letterSpacing: '0.05em', textTransform: 'uppercase',
                 display:'flex', alignItems:'center', justifyContent:'space-between'
               }}>
                 <span>Récents</span>
                 <span style={{
-                  fontSize: 11, color:'#6E6E73', fontWeight:400,
+                  fontSize: 11, color:'var(--label-secondary)', fontWeight:400,
                   textTransform:'none', letterSpacing:0
                 }}>Tape 2 lettres pour chercher</span>
               </div>
@@ -216,12 +216,12 @@ export default function GlobalSearch({ data, crm = null, onNavigate }) {
                       border:'none', fontFamily:'inherit',
                     }}
                   >
-                    <div style={{ fontSize: 14, fontWeight: 500, color: '#1C1C1E' }}>
+                    <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--label)' }}>
                       {r.primary}
-                      <span style={{ fontSize: 12, fontWeight: 400, color: '#6E6E73', marginLeft: 6 }}>{cat.label}</span>
+                      <span style={{ fontSize: 12, fontWeight: 400, color: 'var(--label-secondary)', marginLeft: 6 }}>{cat.label}</span>
                     </div>
                     <div style={{
-                      fontSize: 12, color: '#6E6E73', marginTop: 1,
+                      fontSize: 12, color: 'var(--label-secondary)', marginTop: 1,
                       overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
                     }}>{r.secondary}</div>
                   </button>
@@ -233,7 +233,7 @@ export default function GlobalSearch({ data, crm = null, onNavigate }) {
           {/* ── Mode résultats ── */}
           {query.length >= 2 && (
             totalCount === 0 ? (
-              <div style={{ padding: '16px 14px', fontSize: 13, color: '#6E6E73', textAlign: 'center' }}>
+              <div style={{ padding: '16px 14px', fontSize: 13, color: 'var(--label-secondary)', textAlign: 'center' }}>
                 Aucun résultat pour « {query} »
               </div>
             ) : (
@@ -244,7 +244,7 @@ export default function GlobalSearch({ data, crm = null, onNavigate }) {
                   <div key={cat.key}>
                     <div style={{
                       padding: '8px 14px 4px', fontSize: 11, fontWeight: 600,
-                      color: '#6E6E73', letterSpacing: '0.05em', textTransform: 'uppercase'
+                      color: 'var(--label-secondary)', letterSpacing: '0.05em', textTransform: 'uppercase'
                     }}>
                       {cat.label}
                     </div>
@@ -258,12 +258,12 @@ export default function GlobalSearch({ data, crm = null, onNavigate }) {
                           onMouseEnter={() => setActive(globalIdx)}
                           style={{
                             display: 'block', width: '100%', textAlign: 'left',
-                            padding: '8px 14px', background: isActive ? '#EAF3FF' : 'transparent',
+                            padding: '8px 14px', background: isActive ? 'var(--accent-tint)' : 'transparent',
                             border: 'none', cursor: 'pointer', fontFamily: 'inherit',
                           }}>
-                          <div style={{ fontSize: 14, fontWeight: 500, color: '#1C1C1E' }}>{item.primary}</div>
+                          <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--label)' }}>{item.primary}</div>
                           <div style={{
-                            fontSize: 12, color: '#6E6E73', marginTop: 1,
+                            fontSize: 12, color: 'var(--label-secondary)', marginTop: 1,
                             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
                           }}>{item.secondary}</div>
                         </button>
@@ -276,8 +276,8 @@ export default function GlobalSearch({ data, crm = null, onNavigate }) {
           )}
           {query.length >= 2 && totalCount > 0 && (
             <div style={{
-              padding: '6px 14px 8px', fontSize: 11, color: '#6E6E73',
-              borderTop: '1px solid #E5E5EA', marginTop: 4
+              padding: '6px 14px 8px', fontSize: 11, color: 'var(--label-secondary)',
+              borderTop: '1px solid var(--separator)', marginTop: 4
             }}>
               {totalCount} résultat{totalCount > 1 ? 's' : ''} — ↑↓ naviguer · Entrée sélectionner
             </div>

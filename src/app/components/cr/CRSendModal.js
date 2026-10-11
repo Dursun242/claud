@@ -83,7 +83,7 @@ export default function CRSendModal({ cr, chantier, onClose, onSent }) {
       {cr && <>
         <FF label="Destinataires">
           {people.length === 0 ? (
-            <div style={{ fontSize: 12, color: '#6E6E73', background: '#F5F5F7', border: '1px dashed #D1D1D6', borderRadius: 8, padding: '10px 12px' }}>
+            <div style={{ fontSize: 12, color: 'var(--label-secondary)', background: 'var(--row-fill)', border: '1px dashed var(--separator-opaque)', borderRadius: 8, padding: '10px 12px' }}>
               Aucun intervenant du CR n&apos;a d&apos;adresse email. Ajoute-les dans leur fiche contact, ou saisis les adresses ci-dessous.
             </div>
           ) : (
@@ -92,22 +92,22 @@ export default function CRSendModal({ cr, chantier, onClose, onSent }) {
                 const acts = actionsFor(cr.taches_suivi, it)
                 const late = acts.filter(a => a.suivi === 'relance').length
                 return (
-                  <div key={it.email} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 6, background: checked[it.email] ? '#EAF3FF' : '#fff', border: '1px solid #E5E5EA', flexWrap: 'wrap' }}>
+                  <div key={it.email} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 6, background: checked[it.email] ? 'var(--accent-tint)' : '#fff', border: '1px solid var(--separator)', flexWrap: 'wrap' }}>
                     <label style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0, cursor: 'pointer' }}>
                       <input type="checkbox" checked={!!checked[it.email]}
                         onChange={e => setChecked(c => ({ ...c, [it.email]: e.target.checked }))}
-                        style={{ width: 17, height: 17, accentColor: '#007AFF' }} />
+                        style={{ width: 17, height: 17, accentColor: 'var(--system-blue)' }} />
                       <span style={{ fontSize: 13, fontWeight: 600 }}>{it.nom}</span>
-                      <span style={{ fontSize: 11, color: '#6E6E73', overflow: 'hidden', textOverflow: 'ellipsis' }}>{it.email}</span>
+                      <span style={{ fontSize: 11, color: 'var(--label-secondary)', overflow: 'hidden', textOverflow: 'ellipsis' }}>{it.email}</span>
                     </label>
-                    {it.convoque !== false && cr.prochaine_reunion?.date && <span style={{ fontSize: 11, fontWeight: 700, color: '#0066CC' }}>convoqué</span>}
-                    {acts.length > 0 && <span style={{ fontSize: 11, fontWeight: 700, color: late ? '#D70015' : '#8944AB' }}>{acts.length} action{acts.length > 1 ? 's' : ''}{late ? ` · ${late} relance${late > 1 ? 's' : ''}` : ''}</span>}
+                    {it.convoque !== false && cr.prochaine_reunion?.date && <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent-text)' }}>convoqué</span>}
+                    {acts.length > 0 && <span style={{ fontSize: 11, fontWeight: 700, color: late ? 'var(--red-text)' : 'var(--purple-text)' }}>{acts.length} action{acts.length > 1 ? 's' : ''}{late ? ` · ${late} relance${late > 1 ? 's' : ''}` : ''}</span>}
                     <button type="button" onClick={() => setPreview(preview === it.email ? null : it.email)}
-                      style={{ background: 'none', border: 'none', color: '#0066CC', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                      style={{ background: 'none', border: 'none', color: 'var(--accent-text)', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
                       {preview === it.email ? 'Masquer' : 'Aperçu'}
                     </button>
                     {preview === it.email && (
-                      <pre style={{ width: '100%', whiteSpace: 'pre-wrap', fontFamily: 'inherit', fontSize: 12, color: '#3A3A3C', background: '#fff', border: '1px solid #E5E5EA', borderRadius: 6, padding: 10, margin: '4px 0 0' }}>
+                      <pre style={{ width: '100%', whiteSpace: 'pre-wrap', fontFamily: 'inherit', fontSize: 12, color: 'var(--label-2)', background: '#fff', border: '1px solid var(--separator)', borderRadius: 6, padding: 10, margin: '4px 0 0' }}>
                         {crMailText({ intro, cr, it, company: COMPANY })}
                       </pre>
                     )}
@@ -117,7 +117,7 @@ export default function CRSendModal({ cr, chantier, onClose, onSent }) {
             </div>
           )}
           {noEmail.length > 0 && (
-            <div style={{ fontSize: 11, color: '#C93400', marginTop: 6 }}>
+            <div style={{ fontSize: 11, color: 'var(--orange-text)', marginTop: 6 }}>
               Sans email : {noEmail.map(it => it.nom).join(', ')}
             </div>
           )}

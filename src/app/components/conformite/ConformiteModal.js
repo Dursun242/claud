@@ -39,7 +39,7 @@ function DatesForm({ doc, onSave, onCancel }) {
     try { await onSave({ date_document: dd || null, valide_au: fin || undefined, verifie }) } finally { setSaving(false) }
   }
   return (
-    <div style={{ background: '#F5F5F7', border: '1px solid #E5E5EA', borderRadius: 8, padding: 10, marginTop: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
+    <div style={{ background: 'var(--row-fill)', border: '1px solid var(--separator)', borderRadius: 8, padding: 10, marginTop: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
       <label style={{ ...small, display: 'flex', flexDirection: 'column', gap: 3 }}>
         Date du document
         <input type="date" value={dd} onChange={e => setDd(e.target.value)} style={input} />
@@ -185,7 +185,7 @@ export default function ConformiteModal({ open, onClose, contact, compliance, la
       </div>
 
       {missingMigration ? (
-        <div style={{ background: '#FFF7E8', border: '1px solid #FFDDA6', borderRadius: 8, padding: 12, fontSize: 12, color: '#9A3412' }}>
+        <div style={{ background: 'var(--orange-tint)', border: '1px solid var(--orange-line)', borderRadius: 8, padding: 12, fontSize: 12, color: '#9A3412' }}>
           Fonction non activée : appliquer la migration 036 dans Supabase (voir migrations/036_README.md).
         </div>
       ) : (
@@ -220,7 +220,7 @@ export default function ConformiteModal({ open, onClose, contact, compliance, la
                 <div key={kind} role="group" aria-label={DOC_META[kind].long} style={{ border: `1px solid ${meta.border}`, borderRadius: 10, padding: 10, background: '#fff' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
                     <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: '#1C1C1E' }}>{DOC_META[kind].long}</div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--label)' }}>{DOC_META[kind].long}</div>
                       <div style={{ fontSize: 11, color: meta.color, fontWeight: 600 }}>{meta.label} · {validity(k, kind)}</div>
                     </div>
                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -256,7 +256,7 @@ export default function ConformiteModal({ open, onClose, contact, compliance, la
                     </div>
                   )}
                   {doc?.anomalies?.length > 0 && (
-                    <ul style={{ margin: '6px 0 0', paddingLeft: 18, fontSize: 11, color: '#C93400' }}>
+                    <ul style={{ margin: '6px 0 0', paddingLeft: 18, fontSize: 11, color: 'var(--orange-text)' }}>
                       {doc.anomalies.map((a, i) => <li key={i}>{a}</li>)}
                     </ul>
                   )}
@@ -266,8 +266,8 @@ export default function ConformiteModal({ open, onClose, contact, compliance, la
             })}
           </div>
 
-          <div style={{ marginTop: 14, background: '#F0F8FC', border: '1px solid #C6DDF7', borderRadius: 8, padding: 12 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#0066CC', marginBottom: 4 }}>Demander les documents à l’entreprise</div>
+          <div style={{ marginTop: 14, background: '#F0F8FC', border: '1px solid var(--blue-line)', borderRadius: 8, padding: 12 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--accent-text)', marginBottom: 4 }}>Demander les documents à l’entreprise</div>
             <div style={{ ...small, marginBottom: 8 }}>
               Un mail lui envoie un lien (valable 30 jours) pour déposer elle-même ses documents, sans compte. Ensuite, elle est relancée automatiquement chaque semaine tant qu’un document manque, est erroné ou expire (sauf si vous suspendez ses relances).
             </div>

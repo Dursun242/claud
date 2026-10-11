@@ -23,7 +23,7 @@ export default function SearchField({ inputRef, value, onChange, placeholder, la
         style={{
           width: '100%', boxSizing: 'border-box', height: m ? 44 : 36,
           padding: '0 10px 0 32px', borderRadius: 10, border: 'none',
-          background: '#EFEFF0', color: '#1C1C1E',
+          background: 'var(--fill-gray)', color: 'var(--label)',
           fontSize: m ? 16 : 14, fontFamily: 'inherit',
         }}
       />

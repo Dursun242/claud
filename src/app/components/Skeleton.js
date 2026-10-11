@@ -56,7 +56,7 @@ export function SkeletonRows({ count = 3 }) {
       {Array.from({ length: count }).map((_, i) => (
         <div key={i} style={{
           display: 'flex', alignItems: 'center', gap: 12, minHeight: 50,
-          padding: '9px 12px', background: '#F5F5F7', borderRadius: 10, boxSizing: 'border-box',
+          padding: '9px 12px', background: 'var(--row-fill)', borderRadius: 10, boxSizing: 'border-box',
         }}>
           <Skeleton width={26} height={26} radius={13} />
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -81,7 +81,7 @@ export function DashboardSkeleton({ role = 'admin' }) {
         display: 'flex',
         height: '100vh',
         fontFamily: "var(--font-dm-sans), sans-serif",
-        background: '#F2F2F7',
+        background: 'var(--grouped-bg)',
         overflow: 'hidden',
       }}
     >
@@ -101,7 +101,7 @@ export function DashboardSkeleton({ role = 'admin' }) {
         style={{
           display: 'none', /* visible via media query */
           position: 'fixed', top: 0, left: 0, right: 0, height: 52,
-          background: '#fff', borderBottom: '1px solid #E5E5EA',
+          background: '#fff', borderBottom: '1px solid var(--separator)',
           alignItems: 'center', padding: '0 16px', zIndex: 997, gap: 10,
         }}
       >
@@ -118,7 +118,7 @@ export function DashboardSkeleton({ role = 'admin' }) {
         aria-hidden="true"
         style={{
           width: 280,
-          background: '#F9F9FB', borderRight: '1px solid #E5E5EA',
+          background: 'var(--sidebar)', borderRight: '1px solid var(--separator)',
           display: 'flex',
           flexDirection: 'column',
           flexShrink: 0,
@@ -127,7 +127,7 @@ export function DashboardSkeleton({ role = 'admin' }) {
       >
         {/* Logo */}
         <div style={{ marginBottom: 18 }}>
-          <div style={{ width: 110, height: 14, background: '#E5E5EA', borderRadius: 4, marginBottom: 6 }} />
+          <div style={{ width: 110, height: 14, background: 'var(--separator)', borderRadius: 4, marginBottom: 6 }} />
           <div style={{ width: 150, height: 8, background: '#EEEEF0', borderRadius: 3 }} />
         </div>
         {/* Search bar */}
@@ -139,18 +139,18 @@ export function DashboardSkeleton({ role = 'admin' }) {
               key={i}
               style={{
                 height: 32,
-                background: '#F2F2F7',
+                background: 'var(--grouped-bg)',
                 borderRadius: 10,
               }}
             />
           ))}
         </div>
         {/* User footer */}
-        <div style={{ borderTop: '1px solid #E5E5EA', paddingTop: 12, marginTop: 10 }}>
+        <div style={{ borderTop: '1px solid var(--separator)', paddingTop: 12, marginTop: 10 }}>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
-            <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#E5E5EA' }} />
+            <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--separator)' }} />
             <div style={{ flex: 1 }}>
-              <div style={{ height: 10, background: '#E5E5EA', borderRadius: 3, marginBottom: 4, width: '80%' }} />
+              <div style={{ height: 10, background: 'var(--separator)', borderRadius: 3, marginBottom: 4, width: '80%' }} />
               <div style={{ height: 8, background: '#EEEEF0', borderRadius: 3, width: '60%' }} />
             </div>
           </div>
@@ -170,7 +170,7 @@ export function DashboardSkeleton({ role = 'admin' }) {
 
         {[3, 4].map((rows, c) => (
           <div key={c} style={{
-            background: '#fff', border: '1px solid #E5E5EA', borderRadius: 12,
+            background: '#fff', border: '1px solid var(--separator)', borderRadius: 12,
             padding: 18, marginBottom: 18,
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
@@ -186,7 +186,7 @@ export function DashboardSkeleton({ role = 'admin' }) {
         }}>
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} style={{
-              background: '#fff', border: '1px solid #E5E5EA', borderRadius: 10,
+              background: '#fff', border: '1px solid var(--separator)', borderRadius: 10,
               padding: 12, height: 56, boxSizing: 'border-box',
               display: 'flex', alignItems: 'center', gap: 10,
             }}>
@@ -201,7 +201,7 @@ export function DashboardSkeleton({ role = 'admin' }) {
         }}>
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} style={{
-              background: '#fff', border: '1px solid #E5E5EA', borderRadius: 10,
+              background: '#fff', border: '1px solid var(--separator)', borderRadius: 10,
               padding: '12px 14px', height: 68, boxSizing: 'border-box',
               display: 'flex', flexDirection: 'column', gap: 8,
             }}>

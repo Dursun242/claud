@@ -18,7 +18,8 @@ export const viewport = {
   initialScale: 1,
   maximumScale: 5,
   userScalable: true,
-  themeColor: '#0071E3',
+  // Barre du navigateur (Android) assortie à l'en-tête clair de l'app
+  themeColor: '#F9F9FB',
 }
 
 export default function RootLayout({ children }) {
@@ -27,9 +28,10 @@ export default function RootLayout({ children }) {
       <head>
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        {/* Barre d'état iOS (app installée) : texte sombre sur l'en-tête clair */}
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="ID Maîtrise" />
-        <link rel="apple-touch-icon" href="/icon-192.png" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
       </head>
       <body style={{ margin: 0, padding: 0 }}>
         {/* Filet de sécurité global :

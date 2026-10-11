@@ -35,7 +35,7 @@ const readIgnored = () => {
 const TYPE_COLORS = {
   Artisan:"#FF9500",Client:"#007AFF",Fournisseur:"#34C759",
   "Sous-traitant":"#AF52DE",Prestataire:"#FF2D55",
-  MOA:"#32ADE6",Architecte:"#5856D6",BET:"#30B0C7"
+  MOA:"#32ADE6",Architecte:"#8944AB",BET:"#30B0C7"
 }
 const TYPES = ["Artisan","Sous-traitant","Prestataire","Client","Fournisseur","MOA","Architecte","BET"]
 
@@ -463,8 +463,8 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
       marginBottom:14,flexWrap:"wrap",gap:8
     }}>
       <div>
-        <h1 style={{margin:0,fontSize:m?28:32,fontWeight:700,letterSpacing:"-0.02em",color:"#1C1C1E"}}>Contacts</h1>
-        <p style={{margin:"2px 0 0",fontSize:12,color:"#6E6E73"}}>
+        <h1 style={{margin:0,fontSize:m?28:32,fontWeight:700,letterSpacing:"-0.02em",color:"var(--label)"}}>Contacts</h1>
+        <p style={{margin:"2px 0 0",fontSize:12,color:"var(--label-secondary)"}}>
           {data.contacts.length} contact{data.contacts.length>1?"s":""}
           {(q || tf !== "all") && <> · <strong>{list.length}</strong> affiché{list.length>1?"s":""}</>}
         </p>
@@ -491,7 +491,7 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
             <>
               <span style={{
                 display:"inline-block",width:12,height:12,
-                border:"2px solid #E7D4F5",borderTopColor:"#5856D6",
+                border:"2px solid var(--purple-line)",borderTopColor:"var(--purple-text)",
                 borderRadius:"50%",animation:"spin 0.8s linear infinite"
               }}/>
               Extraction…
@@ -505,8 +505,8 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
             onClick={() => setDupOpen(true)}
             title="Contacts qui semblent en double : vérifier et fusionner"
             style={{
-              ...btnS, fontSize: 12, background: "#FFF7E8", color: "#A0390C",
-              border: "1.5px solid #FFDDA6", display: "flex", alignItems: "center", gap: 6,
+              ...btnS, fontSize: 12, background: "var(--orange-tint)", color: "var(--orange-deep)",
+              border: "1.5px solid var(--orange-line)", display: "flex", alignItems: "center", gap: 6,
             }}
           >
             Doublons ({dupGroups.length})
@@ -531,13 +531,13 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
 
     {importError && (
       <div style={{
-        background:"#FFF0EF",
-        border:"1px solid #FFC9C6",
+        background:"var(--red-tint)",
+        border:"1px solid var(--red-line)",
         borderRadius:8,
         padding:"8px 12px",
         marginBottom:12,
         fontSize:12,
-        color:"#D70015",
+        color:"var(--red-text)",
         display:"flex",
         justifyContent:"space-between",
         alignItems:"center",
@@ -546,7 +546,7 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
         <span>{importError}</span>
         <button onClick={()=>setImportError("")} aria-label="Fermer le message" style={{
           background:"none",border:"none",cursor:"pointer",
-          color:"#D70015",fontSize:16,padding:0
+          color:"var(--red-text)",fontSize:16,padding:0
         }}>✕</button>
       </div>
     )}
@@ -564,12 +564,12 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
         title="Avancement des documents des entreprises et aperçu des relances automatiques"
         style={{
           display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,width:"100%",
-          background:"#F0F8FC",border:"1.5px solid #C6DDF7",borderRadius:12,padding:m?"10px 12px":"12px 14px",
+          background:"#F0F8FC",border:"1.5px solid var(--blue-line)",borderRadius:12,padding:m?"10px 12px":"12px 14px",
           marginBottom:12,cursor:"pointer",fontFamily:"inherit",textAlign:"left",
         }}>
         <span style={{minWidth:0}}>
-          <span style={{display:"block",fontSize:14,fontWeight:700,color:"#0066CC"}}>Suivi des documents des entreprises</span>
-          <span style={{display:"block",fontSize:11,color:"#0066CC",marginTop:2}}>
+          <span style={{display:"block",fontSize:14,fontWeight:700,color:"var(--accent-text)"}}>Suivi des documents des entreprises</span>
+          <span style={{display:"block",fontSize:11,color:"var(--accent-text)",marginTop:2}}>
             {conf.missingMigration ? "À activer : migrations 036 à 038 dans Supabase"
               : suiviStats ? [
                 `${suiviStats.aJour}/${suiviStats.actives} entreprise${suiviStats.actives>1?"s":""} suivie${suiviStats.actives>1?"s":""} à jour`,
@@ -578,7 +578,7 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
               ].join(" · ") : ""}
           </span>
         </span>
-        <span style={{fontSize:12,fontWeight:700,color:"#0066CC",flexShrink:0}}>Ouvrir →</span>
+        <span style={{fontSize:12,fontWeight:700,color:"var(--accent-text)",flexShrink:0}}>Ouvrir →</span>
       </button>
     )}
     <div style={{
@@ -588,14 +588,14 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
       <button onClick={()=>setTf("all")} style={{
         display:"inline-flex",alignItems:"center",gap:6,
         padding:"5px 11px",borderRadius:999,fontSize:11,fontWeight:600,
-        border:`1px solid ${tf==="all"?"#0071E3":"#E5E5EA"}`,
-        background:tf==="all"?"#0071E3":"#fff",
-        color:tf==="all"?"#fff":"#3A3A3C",cursor:"pointer",fontFamily:"inherit",
+        border:`1px solid ${tf==="all"?"var(--accent)":"var(--separator)"}`,
+        background:tf==="all"?"var(--accent)":"#fff",
+        color:tf==="all"?"#fff":"var(--label-2)",cursor:"pointer",fontFamily:"inherit",
         transition:"background .15s, color .15s, border-color .15s",whiteSpace:"nowrap",
       }}>
         <span style={{
           width:7,height:7,borderRadius:"50%",
-          background:tf==="all"?"#fff":"#6E6E73",opacity:tf==="all"?0.8:1
+          background:tf==="all"?"#fff":"var(--label-secondary)",opacity:tf==="all"?0.8:1
         }}/>
         Tous <span style={{fontSize:11,opacity:0.75,fontWeight:500}}>{data.contacts.length}</span>
       </button>
@@ -606,9 +606,9 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
           <button key={type} onClick={()=>setTf(type)} style={{
             display:"inline-flex",alignItems:"center",gap:6,
             padding:"5px 11px",borderRadius:999,fontSize:11,fontWeight:600,
-            border:`1px solid ${active?color:"#E5E5EA"}`,
+            border:`1px solid ${active?color:"var(--separator)"}`,
             background:active?color:"#fff",
-            color:active?"#fff":"#3A3A3C",cursor:"pointer",fontFamily:"inherit",
+            color:active?"#fff":"var(--label-2)",cursor:"pointer",fontFamily:"inherit",
             transition:"background .15s, color .15s, border-color .15s",whiteSpace:"nowrap",
           }}>
             <span style={{width:7,height:7,borderRadius:"50%",background:active?"#fff":color,opacity:active?0.8:1}}/>
@@ -622,9 +622,9 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
           style={{
             display:"inline-flex",alignItems:"center",gap:6,
             padding:"5px 11px",borderRadius:999,fontSize:11,fontWeight:700,
-            border:`1px solid ${tf==="__docs"?"#D70015":"#FFC9C6"}`,
-            background:tf==="__docs"?"#D70015":"#FFF0EF",
-            color:tf==="__docs"?"#fff":"#D70015",cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap",
+            border:`1px solid ${tf==="__docs"?"var(--red-text)":"var(--red-line)"}`,
+            background:tf==="__docs"?"var(--red-text)":"var(--red-tint)",
+            color:tf==="__docs"?"#fff":"var(--red-text)",cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap",
           }}>
           Documents à revoir <span style={{fontSize:11,opacity:0.85,fontWeight:600}}>{docsToReview.size}</span>
         </button>
@@ -640,8 +640,8 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
         <div style={{fontSize:36,marginBottom:8,opacity:0.5}}>👤</div>
         {data.contacts.length === 0 ? (
           <>
-            <div style={{fontSize:14,fontWeight:700,color:"#3A3A3C",marginBottom:4}}>Aucun contact pour l'instant</div>
-            <div style={{fontSize:12,color:"#6E6E73",marginBottom:14}}>
+            <div style={{fontSize:14,fontWeight:700,color:"var(--label-2)",marginBottom:4}}>Aucun contact pour l'instant</div>
+            <div style={{fontSize:12,color:"var(--label-secondary)",marginBottom:14}}>
               Crée ton premier contact ou importe-en un depuis une photo/capture.
             </div>
             <div style={{display:"flex",gap:8,justifyContent:"center",flexWrap:"wrap"}}>
@@ -652,8 +652,8 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
           </>
         ) : (
           <>
-            <div style={{fontSize:14,fontWeight:700,color:"#3A3A3C",marginBottom:4}}>Aucun résultat</div>
-            <div style={{fontSize:12,color:"#6E6E73",marginBottom:14}}>
+            <div style={{fontSize:14,fontWeight:700,color:"var(--label-2)",marginBottom:4}}>Aucun résultat</div>
+            <div style={{fontSize:12,color:"var(--label-secondary)",marginBottom:14}}>
               Essaie d&apos;élargir ta recherche ou de changer de filtre.
             </div>
             <button onClick={()=>{setQ("");setTf("all");}}
@@ -666,24 +666,24 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
       {list.map(c=>(
         <div key={c.id} style={{
           background:"#fff",borderRadius:12,padding:m?14:16,
-          border:"1px solid #E5E5EA",
+          border:"1px solid var(--separator)",
           opacity:c.actif===false?0.55:1
         }}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8}}>
             <div style={{flex:1,minWidth:0}}>
               <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:3,flexWrap:"wrap"}}>
-                <span style={{fontSize:15,fontWeight:700,color:"#1C1C1E"}}>{c.nom}</span>
+                <span style={{fontSize:15,fontWeight:700,color:"var(--label)"}}>{c.nom}</span>
                 <Badge text={c.type} color={tc[c.type]||"#8E8E93"}/>
                 {c.actif===false && <Badge text="Inactif" color="#8E8E93"/>}
                 {c.note>0 && (
-                  <span title={`${c.note}/5`} style={{fontSize:11,color:"#FF9500"}}>
+                  <span title={`${c.note}/5`} style={{fontSize:11,color:"var(--orange)"}}>
                     {"★".repeat(c.note)}{"☆".repeat(5-c.note)}
                   </span>
                 )}
               </div>
-              {c.societe && <div style={{fontSize:12,fontWeight:600,color:"#3A3A3C",marginBottom:2}}>{c.societe}</div>}
+              {c.societe && <div style={{fontSize:12,fontWeight:600,color:"var(--label-2)",marginBottom:2}}>{c.societe}</div>}
               {c.specialite && (
-                <div style={{fontSize:11,color:"#6E6E73",marginBottom:4}}>
+                <div style={{fontSize:11,color:"var(--label-secondary)",marginBottom:4}}>
                   {c.specialite}{c.fonction?` — ${c.fonction}`:""}
                 </div>
               )}
@@ -726,7 +726,7 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
                 )}
               </div>
               {(c.ville||c.adresse) && (
-                <div style={{fontSize:11,color:"#6E6E73",marginTop:3,display:"inline-flex",alignItems:"center",gap:5}}>
+                <div style={{fontSize:11,color:"var(--label-secondary)",marginTop:3,display:"inline-flex",alignItems:"center",gap:5}}>
                   📍 {[c.adresse,c.code_postal,c.ville].filter(Boolean).join(", ")}
                   <CopyIconBtn onClick={() =>
                     copyToClipboard([c.adresse,c.code_postal,c.ville].filter(Boolean).join(", "), "Adresse")
@@ -734,13 +734,13 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
                 </div>
               )}
               {c.siret && (
-                <div style={{fontSize:11,color:"#6E6E73",marginTop:2,display:"inline-flex",alignItems:"center",gap:5}}>
+                <div style={{fontSize:11,color:"var(--label-secondary)",marginTop:2,display:"inline-flex",alignItems:"center",gap:5}}>
                   SIRET : {c.siret}
                   <CopyIconBtn onClick={() => copyToClipboard(c.siret, "SIRET", c)}/>
                 </div>
               )}
               {c.qualifications && (
-                <div style={{fontSize:11,color:"#0066CC",marginTop:2,fontWeight:600}}>
+                <div style={{fontSize:11,color:"var(--accent-text)",marginTop:2,fontWeight:600}}>
                   🏅 {c.qualifications}
                 </div>
               )}
@@ -758,8 +758,8 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
                       <button onClick={()=>setTab("crm", `contact:${c.id}`)}
                         title="Voir les affaires de ce contact dans le CRM"
                         style={{
-                          background:"#F0F8FC",border:"1px solid #C6DDF7",borderRadius:999,
-                          padding:"2px 9px",fontSize:11,fontWeight:700,color:"#0066CC",
+                          background:"#F0F8FC",border:"1px solid var(--blue-line)",borderRadius:999,
+                          padding:"2px 9px",fontSize:11,fontWeight:700,color:"var(--accent-text)",
                           cursor:"pointer",fontFamily:"inherit",
                         }}>
                         🎯 {k.actives} affaire{k.actives>1?"s":""} en cours{k.gagnees?` · ${k.gagnees} gagnée${k.gagnees>1?"s":""}`:""}
@@ -768,8 +768,8 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
                     <button onClick={()=>setTab("crm", `new:${c.id}`)}
                       title="Créer une opportunité CRM pour ce contact"
                       style={{
-                        background:"#fff",border:"1px dashed #D1D1D6",borderRadius:999,
-                        padding:"2px 9px",fontSize:11,fontWeight:600,color:"#6E6E73",
+                        background:"#fff",border:"1px dashed var(--separator-opaque)",borderRadius:999,
+                        padding:"2px 9px",fontSize:11,fontWeight:600,color:"var(--label-secondary)",
                         cursor:"pointer",fontFamily:"inherit",
                       }}>+ Affaire</button>
                   </div>
@@ -778,14 +778,14 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
             </div>
             <div style={{display:"flex",flexDirection:"column",gap:4,flexShrink:0}}>
               <button onClick={()=>openEdit(c)} title="Modifier" style={{
-                background:"#F2F2F7",border:"1px solid #E5E5EA",borderRadius:6,
+                background:"var(--grouped-bg)",border:"1px solid var(--separator)",borderRadius:6,
                 cursor:"pointer",padding:"5px 7px",
                 display:"flex",alignItems:"center",justifyContent:"center"
               }}>
                 <Icon d={I.edit} size={13} color="#48484A"/>
               </button>
               <button onClick={()=>handleDelete(c)} title="Supprimer" style={{
-                background:"#fff",border:"1px solid #FFC9C6",borderRadius:6,
+                background:"#fff",border:"1px solid var(--red-line)",borderRadius:6,
                 cursor:"pointer",padding:"5px 7px",
                 display:"flex",alignItems:"center",justifyContent:"center"
               }}>

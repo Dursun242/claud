@@ -8,7 +8,7 @@ import { osStatusColor } from './osConstants'
 const Spinner = () => (
   <span aria-hidden="true" style={{
     display: 'inline-block', width: 12, height: 12, borderRadius: '50%',
-    border: '2px solid #D1D1D6', borderTopColor: '#0066CC', animation: 'spin .8s linear infinite',
+    border: '2px solid var(--separator-opaque)', borderTopColor: 'var(--accent-text)', animation: 'spin .8s linear infinite',
   }}/>
 )
 
@@ -29,35 +29,35 @@ function OsCardImpl({
   return (
     <div style={{
       background: '#fff', borderRadius: 12, padding: m ? 14 : 16,
-      border: '1px solid #E5E5EA',
+      border: '1px solid var(--separator)',
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 8 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 4, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 15, fontWeight: 700, color: '#1C1C1E' }}>{os.numero}</span>
+            <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--label)' }}>{os.numero}</span>
             <Badge text={os.statut} color={osStatusColor[os.statut] || '#8E8E93'}/>
             {overdue && (
               <span title={`Échéance dépassée : ${fmtDate(os.date_fin_prevue)}`} style={{
                 display: 'inline-flex', alignItems: 'center', gap: 4,
-                background: '#FFF0EF', color: '#D70015',
+                background: 'var(--red-tint)', color: 'var(--red-text)',
                 borderRadius: 999,
                 padding: '2px 8px', fontSize: 12, fontWeight: 600,
               }}>⚠ En retard</span>
             )}
-            <span style={{ fontSize: 15, fontWeight: 600, color: '#1C1C1E' }}>{ch?.nom || '—'}</span>
+            <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--label)' }}>{ch?.nom || '—'}</span>
           </div>
-          <div style={{ fontSize: 13, color: '#6E6E73' }}>
+          <div style={{ fontSize: 13, color: 'var(--label-secondary)' }}>
             {os.artisan_nom}{os.artisan_specialite ? ` · ${os.artisan_specialite}` : ''}{' '}
             — Client : {os.client_nom}
           </div>
-          <div style={{ fontSize: 12, color: '#6E6E73', marginTop: 2 }}>
+          <div style={{ fontSize: 12, color: 'var(--label-secondary)', marginTop: 2 }}>
             Émis {fmtDate(os.date_emission)} • Intervention {fmtDate(os.date_intervention)}{' '}
             • {(os.prestations || []).length} prestation(s)
           </div>
         </div>
         <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: 18, fontWeight: 700, color: '#1C1C1E' }}>{fmtMoney(os.montant_ttc || 0)}</div>
-          <div style={{ fontSize: 12, color: '#6E6E73' }}>HT : {fmtMoney(os.montant_ht || 0)}</div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--label)' }}>{fmtMoney(os.montant_ttc || 0)}</div>
+          <div style={{ fontSize: 12, color: 'var(--label-secondary)' }}>HT : {fmtMoney(os.montant_ht || 0)}</div>
         </div>
       </div>
       <div style={{ display: 'flex', gap: 6, marginTop: 12, flexWrap: 'wrap' }}>
@@ -109,7 +109,7 @@ function OsCardImpl({
             <button onClick={() => onEdit(os)} title="Modifier"
               className="u-btn" style={btnChip}><Icon d={I.edit} size={14}/>Modifier</button>
             <button onClick={() => onDelete(os)} title="Supprimer"
-              className="u-btn" style={{ ...btnChip, color: '#D70015', marginLeft: m ? 0 : 'auto' }}>
+              className="u-btn" style={{ ...btnChip, color: 'var(--red-text)', marginLeft: m ? 0 : 'auto' }}>
               <Icon d={I.trash} size={14}/>Supprimer</button>
           </>
         )}

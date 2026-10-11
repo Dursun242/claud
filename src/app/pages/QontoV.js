@@ -373,8 +373,8 @@ export default function QontoV({m, data, reload, crm = null, reloadCrm = null, s
         </svg>
       </div>
       <div style={{flex:1}}>
-        <h1 style={{margin:0,fontSize:m?28:32,fontWeight:700,letterSpacing:"-0.02em",color:"#1C1C1E"}}>Qonto <QontoBadge/></h1>
-        <p style={{margin:0,fontSize:12,color:"#6E6E73"}}>Factures, Devis & Clients — API Qonto v2</p>
+        <h1 style={{margin:0,fontSize:m?28:32,fontWeight:700,letterSpacing:"-0.02em",color:"var(--label)"}}>Qonto <QontoBadge/></h1>
+        <p style={{margin:0,fontSize:12,color:"var(--label-secondary)"}}>Factures, Devis & Clients — API Qonto v2</p>
       </div>
       {connected && (
         <a href="https://app.qonto.com" target="_blank" rel="noopener noreferrer"
@@ -406,12 +406,12 @@ export default function QontoV({m, data, reload, crm = null, reloadCrm = null, s
           </svg>
         </div>
         <h2 style={{margin:"0 0 6px",fontSize:17,fontWeight:700}}>Connecter Qonto</h2>
-        <p style={{margin:"0 0 4px",fontSize:13,color:"#6E6E73"}}>Entrez votre clé API Qonto au format :</p>
+        <p style={{margin:"0 0 4px",fontSize:13,color:"var(--label-secondary)"}}>Entrez votre clé API Qonto au format :</p>
         <p style={{
           margin:"0 0 12px",fontSize:13,fontWeight:700,
-          color:"#8944AB",fontFamily:"monospace"
+          color:"var(--purple-text)",fontFamily:"monospace"
         }}>login:secret-key</p>
-        <p style={{margin:"0 0 16px",fontSize:11,color:"#6E6E73"}}>
+        <p style={{margin:"0 0 16px",fontSize:11,color:"var(--label-secondary)"}}>
           Trouvez-la dans Qonto → Paramètres → Intégrations → API
         </p>
         <input aria-label="Clé API Qonto" value={token} onChange={e=>setToken(e.target.value)}
@@ -428,8 +428,8 @@ export default function QontoV({m, data, reload, crm = null, reloadCrm = null, s
           cursor:"pointer",fontFamily:"inherit",
           boxShadow:"0 2px 8px rgba(137,68,171,0.3)"
         }}>Connecter</button>
-        {error && <p role="alert" style={{margin:"12px 0 0",fontSize:12,color:"#D70015",fontWeight:600}}>❌ {error}</p>}
-        <p style={{margin:"12px 0 0",fontSize:11,color:"#6E6E73"}}>
+        {error && <p role="alert" style={{margin:"12px 0 0",fontSize:12,color:"var(--red-text)",fontWeight:600}}>❌ {error}</p>}
+        <p style={{margin:"12px 0 0",fontSize:11,color:"var(--label-secondary)"}}>
           Le token est stocké de façon sécurisée dans votre base Supabase (lisible seulement par le serveur).
         </p>
       </div>
@@ -437,38 +437,38 @@ export default function QontoV({m, data, reload, crm = null, reloadCrm = null, s
       <>
         {/* CONNECTION STATUS */}
         <div style={{
-          background:connected?"#EAF8EE":"#FFF0EF",
-          border:`1.5px solid ${connected?"#BFE9CA":"#FFC9C6"}`,
+          background:connected?"var(--green-tint)":"var(--red-tint)",
+          border:`1.5px solid ${connected?"var(--green-line)":"var(--red-line)"}`,
           borderRadius:10,padding:"10px 14px",marginBottom:16,fontSize:12
         }}>
           <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
             <div style={{
               width:8,height:8,borderRadius:"50%",
-              background:connected?"#34C759":"#FF3B30",
+              background:connected?"var(--green)":"var(--red)",
               animation:connected?"pulseGlow 2s infinite":"none",flexShrink:0
             }}/>
-            <span style={{fontWeight:600,color:connected?"#1E7B34":"#D70015"}}>
+            <span style={{fontWeight:600,color:connected?"var(--green-text)":"var(--red-text)"}}>
               {connected?"Connecté":"Échec de connexion"}
             </span>
-            {connected && <span style={{color:"#6E6E73"}}>• {savedToken.split(":")[0]}</span>}
+            {connected && <span style={{color:"var(--label-secondary)"}}>• {savedToken.split(":")[0]}</span>}
             <button type="button" style={{
               ...linkBtn,marginLeft:"auto",color:QT.primary,fontWeight:600
             }} onClick={()=>fetchAll()}>Rafraîchir</button>
-            <button type="button" style={{...linkBtn,color:"#6E6E73"}} onClick={disconnect}>Changer de compte</button>
+            <button type="button" style={{...linkBtn,color:"var(--label-secondary)"}} onClick={disconnect}>Changer de compte</button>
           </div>
           {error && (
             <div style={{
-              marginTop:8,background:"#FFF0EF",
-              border:"1px solid #FFC9C6",borderRadius:6,padding:"8px 10px"
+              marginTop:8,background:"var(--red-tint)",
+              border:"1px solid var(--red-line)",borderRadius:6,padding:"8px 10px"
             }}>
-              <div style={{color:"#D70015",fontWeight:600,marginBottom:4}}>❌ {error}</div>
+              <div style={{color:"var(--red-text)",fontWeight:600,marginBottom:4}}>❌ {error}</div>
               {error.includes("401") && (
-                <div style={{color:"#6E6E73",fontSize:11,lineHeight:1.6}}>
+                <div style={{color:"var(--label-secondary)",fontSize:11,lineHeight:1.6}}>
                   <b>Vérifiez vos identifiants Qonto :</b><br/>
                   1. Allez dans <b>Qonto → Paramètres → Intégrations → API</b><br/>
                   2. Copiez le <b>Login</b> et la <b>Secret key</b><br/>
                   3. Cliquez <b>"Changer de compte"</b> et entrez :{" "}
-                  <code style={{background:"#F2F2F7",padding:"1px 4px",borderRadius:3}}>
+                  <code style={{background:"var(--grouped-bg)",padding:"1px 4px",borderRadius:3}}>
                     votre-login:votre-secret-key
                   </code>
                 </div>
@@ -480,11 +480,11 @@ export default function QontoV({m, data, reload, crm = null, reloadCrm = null, s
         {qLoading ? (
           <div style={{textAlign:"center",padding:40}}>
             <div style={{
-              width:40,height:40,border:"4px solid #E5E5EA",
+              width:40,height:40,border:"4px solid var(--separator)",
               borderTopColor:QT.primary,borderRadius:"50%",
               animation:"spin 1s linear infinite",margin:"0 auto 12px"
             }}/>
-            <p style={{color:"#6E6E73",fontSize:13}}>Chargement depuis Qonto...</p>
+            <p style={{color:"var(--label-secondary)",fontSize:13}}>Chargement depuis Qonto...</p>
           </div>
         ) : connected && (
           <>
@@ -501,7 +501,7 @@ export default function QontoV({m, data, reload, crm = null, reloadCrm = null, s
                   boxShadow:"0 1px 3px rgba(0,0,0,0.06)",borderTop:`3px solid ${k.c}`
                 }}>
                   <div style={{
-                    fontSize:11,fontWeight:600,color:"#6E6E73",
+                    fontSize:11,fontWeight:600,color:"var(--label-secondary)",
                     textTransform:"uppercase",marginBottom:4
                   }}>{k.l}</div>
                   <div style={{fontSize:m?18:24,fontWeight:700,color:k.c}}>{k.v}</div>
@@ -519,9 +519,9 @@ export default function QontoV({m, data, reload, crm = null, reloadCrm = null, s
               ].map(t=>(
                 <button key={t.k} onClick={()=>setActiveTab(t.k)} style={{
                   padding:"8px 16px",borderRadius:20,border:"1.5px solid",
-                  borderColor:activeTab===t.k?QT.primary:"#E5E5EA",
+                  borderColor:activeTab===t.k?QT.primary:"var(--separator)",
                   background:activeTab===t.k?QT.primary:"#fff",
-                  color:activeTab===t.k?"#fff":"#6E6E73",
+                  color:activeTab===t.k?"#fff":"var(--label-secondary)",
                   fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"
                 }}>{t.l}</button>
               ))}
@@ -539,25 +539,25 @@ export default function QontoV({m, data, reload, crm = null, reloadCrm = null, s
                       textAlign:"center",boxShadow:"0 1px 2px rgba(0,0,0,0.04)"
                     }}>
                       <div style={{fontSize:30,opacity:0.5,marginBottom:6}}>🧾</div>
-                      <div style={{fontSize:13,color:"#6E6E73",fontWeight:600}}>
+                      <div style={{fontSize:13,color:"var(--label-secondary)",fontWeight:600}}>
                         {searchFactures ? "Aucun résultat" : "Aucune facture"}
                       </div>
                     </div>
                   ) : filteredInvoices.map(inv=>(
                     <div key={inv.id} style={{
                       background:"#fff",borderRadius:10,padding:m?12:16,
-                      border:"1px solid #E5E5EA",
+                      border:"1px solid var(--separator)",
                       display:"flex",justifyContent:"space-between",
                       alignItems:"center",flexWrap:"wrap",gap:8
                     }}>
                       <div style={{flex:1,minWidth:180}}>
                         <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:3,flexWrap:"wrap"}}>
-                          <span style={{fontSize:14,fontWeight:700,color:"#1C1C1E"}}>{inv.number||"—"}</span>
+                          <span style={{fontSize:14,fontWeight:700,color:"var(--label)"}}>{inv.number||"—"}</span>
                           <Badge text={invStatusFr[inv.status]||inv.status}
                             color={invStatusColor[inv.status]||"#8E8E93"}/>
                           <QontoBadge/>
                         </div>
-                        <div style={{fontSize:11,color:"#6E6E73"}}>
+                        <div style={{fontSize:11,color:"var(--label-secondary)"}}>
                           {inv.contact_email||"—"}
                           {inv.issue_date ? ` • ${fmtDate(inv.issue_date)}` : ""}
                           {inv.due_date ? ` • Éch. ${fmtDate(inv.due_date)}` : ""}
@@ -569,10 +569,10 @@ export default function QontoV({m, data, reload, crm = null, reloadCrm = null, s
                       }}>
                         <div style={{
                           fontSize:16,fontWeight:700,
-                          color:inv.status==="paid"?"#34C759":"#1C1C1E"
+                          color:inv.status==="paid"?"var(--green)":"var(--label)"
                         }}>{fmtMoney(getAmt(inv))}</div>
                         {(inv.vat_amount?.value||inv.vat_amount_cents) && (
-                          <div style={{fontSize:11,color:"#6E6E73"}}>
+                          <div style={{fontSize:11,color:"var(--label-secondary)"}}>
                             TVA: {fmtMoney(parseFloat(inv.vat_amount?.value??(inv.vat_amount_cents||0)/100))}
                           </div>
                         )}
@@ -596,7 +596,7 @@ export default function QontoV({m, data, reload, crm = null, reloadCrm = null, s
                             {pdfLoadingId===inv.id ? (
                               <><span style={{
                                 display:"inline-block",width:9,height:9,
-                                border:"2px solid #D1D1D6",borderTopColor:"#0066CC",
+                                border:"2px solid var(--separator-opaque)",borderTopColor:"var(--accent-text)",
                                 borderRadius:"50%",
                                 animation:"spin .8s linear infinite",
                                 marginRight:4,verticalAlign:"middle"
@@ -623,24 +623,24 @@ export default function QontoV({m, data, reload, crm = null, reloadCrm = null, s
                       textAlign:"center",boxShadow:"0 1px 2px rgba(0,0,0,0.04)"
                     }}>
                       <div style={{fontSize:30,opacity:0.5,marginBottom:6}}>📑</div>
-                      <div style={{fontSize:13,color:"#6E6E73",fontWeight:600}}>
+                      <div style={{fontSize:13,color:"var(--label-secondary)",fontWeight:600}}>
                         {searchDevis ? "Aucun résultat" : "Aucun devis"}
                       </div>
                     </div>
                   ) : filteredQuotes.map(q=>(
                     <div key={q.id} style={{
                       background:"#fff",borderRadius:10,padding:m?12:16,
-                      border:"1px solid #E5E5EA",
+                      border:"1px solid var(--separator)",
                       display:"flex",justifyContent:"space-between",
                       alignItems:"center",flexWrap:"wrap",gap:8
                     }}>
                       <div style={{flex:1,minWidth:180}}>
                         <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:3,flexWrap:"wrap"}}>
-                          <span style={{fontSize:14,fontWeight:700,color:"#1C1C1E"}}>{q.number||"—"}</span>
+                          <span style={{fontSize:14,fontWeight:700,color:"var(--label)"}}>{q.number||"—"}</span>
                           <Badge text={quoStatusFr[q.status]||q.status} color={quoStatusColor[q.status]||"#8E8E93"}/>
                           <QontoBadge/>
                         </div>
-                        <div style={{fontSize:11,color:"#6E6E73"}}>
+                        <div style={{fontSize:11,color:"var(--label-secondary)"}}>
                           {q.contact_email||"—"}
                           {q.issue_date ? ` • Émis ${fmtDate(q.issue_date)}` : ""}
                           {q.expiry_date ? ` • Expire ${fmtDate(q.expiry_date)}` : ""}
@@ -650,7 +650,7 @@ export default function QontoV({m, data, reload, crm = null, reloadCrm = null, s
                         textAlign:"right",display:"flex",
                         flexDirection:"column",alignItems:"flex-end",gap:4
                       }}>
-                        <div style={{fontSize:16,fontWeight:700,color:"#1C1C1E"}}>
+                        <div style={{fontSize:16,fontWeight:700,color:"var(--label)"}}>
                           {fmtMoney(parseFloat(q.total_amount?.value??(q.total_amount_cents||0)/100)||0)}
                         </div>
                         {(() => {
@@ -689,7 +689,7 @@ export default function QontoV({m, data, reload, crm = null, reloadCrm = null, s
                             {pdfLoadingId===q.id ? (
                               <><span style={{
                                 display:"inline-block",width:9,height:9,
-                                border:"2px solid #D1D1D6",borderTopColor:"#0066CC",
+                                border:"2px solid var(--separator-opaque)",borderTopColor:"var(--accent-text)",
                                 borderRadius:"50%",
                                 animation:"spin .8s linear infinite",
                                 marginRight:4,verticalAlign:"middle"
@@ -717,7 +717,7 @@ export default function QontoV({m, data, reload, crm = null, reloadCrm = null, s
                       gridColumn:"1/-1"
                     }}>
                       <div style={{fontSize:30,opacity:0.5,marginBottom:6}}>👥</div>
-                      <div style={{fontSize:13,color:"#6E6E73",fontWeight:600}}>
+                      <div style={{fontSize:13,color:"var(--label-secondary)",fontWeight:600}}>
                         {searchClients ? "Aucun résultat" : "Aucun client"}
                       </div>
                     </div>
@@ -730,28 +730,28 @@ export default function QontoV({m, data, reload, crm = null, reloadCrm = null, s
                   return (
                   <div key={c.id} style={{
                     background:"#fff",borderRadius:10,padding:14,
-                    border:`1px solid ${existing?"#BFE9CA":"#E5E5EA"}`
+                    border:`1px solid ${existing?"var(--green-line)":"var(--separator)"}`
                   }}>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8}}>
                       <div style={{flex:1}}>
                         <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:4,flexWrap:"wrap"}}>
-                          <span style={{fontSize:14,fontWeight:700,color:"#1C1C1E"}}>{nom}</span>
+                          <span style={{fontSize:14,fontWeight:700,color:"var(--label)"}}>{nom}</span>
                           <Badge text={c.kind==="company"?"Entreprise":"Particulier"}
                             color={c.kind==="company"?"#8944AB":"#007AFF"}/>
                           {existing && <Badge text="Dans l'annuaire" color="#34C759"/>}
                         </div>
-                        {c.email && <div style={{fontSize:11,color:"#6E6E73"}}>{c.email}</div>}
-                        {c.phone_number && <div style={{fontSize:11,color:"#6E6E73"}}>{c.phone_number}</div>}
+                        {c.email && <div style={{fontSize:11,color:"var(--label-secondary)"}}>{c.email}</div>}
+                        {c.phone_number && <div style={{fontSize:11,color:"var(--label-secondary)"}}>{c.phone_number}</div>}
                         {c.billing_address?.street_address && (
-                          <div style={{fontSize:11,color:"#6E6E73",marginTop:2}}>
+                          <div style={{fontSize:11,color:"var(--label-secondary)",marginTop:2}}>
                             {c.billing_address.street_address}{" "}
                             {c.billing_address.zip_code}{" "}
                             {c.billing_address.city}
                           </div>
                         )}
-                        {siret && <div style={{fontSize:11,color:"#6E6E73",marginTop:2}}>SIRET : {siret}</div>}
+                        {siret && <div style={{fontSize:11,color:"var(--label-secondary)",marginTop:2}}>SIRET : {siret}</div>}
                         {existBySiret && (
-                          <div style={{fontSize:11,color:"#34C759",marginTop:2}}>
+                          <div style={{fontSize:11,color:"var(--green)",marginTop:2}}>
                             ✓ SIRET identique à : {existBySiret.nom}
                           </div>
                         )}
@@ -761,7 +761,7 @@ export default function QontoV({m, data, reload, crm = null, reloadCrm = null, s
                           onClick={()=>importClient(c)}
                           disabled={!!importing[c.id]}
                           style={{
-                            background:existing?"#34C759":"#8944AB",
+                            background:existing?"var(--green)":"var(--purple-text)",
                             border:"none",borderRadius:6,padding:"5px 12px",
                             cursor:"pointer",fontSize:11,fontWeight:700,
                             color:"#fff",whiteSpace:"nowrap",
@@ -769,7 +769,7 @@ export default function QontoV({m, data, reload, crm = null, reloadCrm = null, s
                           }}
                         >{importing[c.id]?"...":(existing?"Mettre à jour":"Importer →")}</button>
                         {importMsg[c.id] && (
-                          <span style={{fontSize:11,color:importMsg[c.id].startsWith("✅")?"#34C759":"#FF3B30"}}>
+                          <span style={{fontSize:11,color:importMsg[c.id].startsWith("✅")?"var(--green)":"var(--red)"}}>
                             {importMsg[c.id]}
                           </span>
                         )}
@@ -792,9 +792,9 @@ export default function QontoV({m, data, reload, crm = null, reloadCrm = null, s
 
     {/* FOOTER */}
     <div style={{
-      marginTop:16,padding:"10px 14px",background:"#F5F5F7",
+      marginTop:16,padding:"10px 14px",background:"var(--row-fill)",
       borderRadius:8,display:"flex",alignItems:"center",
-      gap:8,fontSize:11,color:"#6E6E73",flexWrap:"wrap"
+      gap:8,fontSize:11,color:"var(--label-secondary)",flexWrap:"wrap"
     }}>
       <span style={{
         color:QT.primary,fontWeight:700

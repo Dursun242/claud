@@ -144,7 +144,8 @@ describe('ConfirmContext / useConfirm', () => {
 
     await userEvent.click(screen.getByRole('button', { name: /Déclencher/ }))
     const btn = screen.getByRole('button', { name: 'Supprimer' })
-    expect(btn).toHaveStyle({ background: '#D70015' })
+    // Couleur en variable CSS (var(--red-text)), que jsdom ne calcule pas : on vérifie le ton
+    expect(btn).toHaveAttribute('data-tone', 'danger')
   })
 
   it("utilise les libellés par défaut quand l'appelant n'en fournit pas", async () => {

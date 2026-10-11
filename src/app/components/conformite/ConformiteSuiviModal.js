@@ -59,7 +59,7 @@ function useIsMobile() {
 function Bar({ value, total, color }) {
   const pct = total ? Math.round((value / total) * 100) : 0
   return (
-    <div aria-hidden="true" style={{ height: 8, background: '#E5E5EA', borderRadius: 999, overflow: 'hidden' }}>
+    <div aria-hidden="true" style={{ height: 8, background: 'var(--separator)', borderRadius: 999, overflow: 'hidden' }}>
       <div style={{ width: `${pct}%`, height: '100%', background: color }} />
     </div>
   )
@@ -130,7 +130,7 @@ export default function ConformiteSuiviModal({ open, onClose, contacts = [], con
   return (
     <Modal open={open} onClose={onClose} title="Suivi des documents des entreprises" wide="xl">
       {conformite.missingMigration ? (
-        <div style={{ background: '#FFF7E8', border: '1px solid #FFDDA6', borderRadius: 8, padding: 12, fontSize: 12, color: '#9A3412' }}>
+        <div style={{ background: 'var(--orange-tint)', border: '1px solid var(--orange-line)', borderRadius: 8, padding: 12, fontSize: 12, color: '#9A3412' }}>
           Fonction non activée : appliquer les migrations 036 et 037 dans Supabase.
         </div>
       ) : (
@@ -143,18 +143,18 @@ export default function ConformiteSuiviModal({ open, onClose, contacts = [], con
           </div>
 
           {/* ── Aperçu des relances ── */}
-          <div style={{ background: '#F0F8FC', border: '1px solid #C6DDF7', borderRadius: 10, padding: '10px 12px', marginBottom: 14 }}>
+          <div style={{ background: '#F0F8FC', border: '1px solid var(--blue-line)', borderRadius: 10, padding: '10px 12px', marginBottom: 14 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: '#0066CC' }}>Relances automatiques</span>
-                <span style={{ fontSize: 11, fontWeight: 700, color: conformite.globalPause ? '#C93400' : '#1E7B34' }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--accent-text)' }}>Relances automatiques</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: conformite.globalPause ? 'var(--orange-text)' : 'var(--green-text)' }}>
                   {conformite.globalPause ? '⏸ Suspendues' : '● Actives'}
                 </span>
               </div>
               <button type="button" onClick={toggleAll} disabled={!!busy}
                 style={{ fontSize: 11, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', borderRadius: 6, padding: '4px 10px',
-                  background: conformite.globalPause ? '#EAF8EE' : '#fff', color: conformite.globalPause ? '#1E7B34' : '#C93400',
-                  border: `1px solid ${conformite.globalPause ? '#BFE9CA' : '#FFDDA6'}` }}>
+                  background: conformite.globalPause ? 'var(--green-tint)' : '#fff', color: conformite.globalPause ? 'var(--green-text)' : 'var(--orange-text)',
+                  border: `1px solid ${conformite.globalPause ? 'var(--green-line)' : 'var(--orange-line)'}` }}>
                 {conformite.globalPause ? '▶ Reprendre les relances' : '⏸ Tout suspendre'}
               </button>
             </div>
@@ -162,19 +162,19 @@ export default function ConformiteSuiviModal({ open, onClose, contacts = [], con
               Chaque jour ouvré le matin, au plus {MAX_RELANCES_PAR_PASSAGE} mails ; chaque entreprise est relancée une fois par semaine tant qu’un document manque, est erroné ou expire.
             </div>
             {conformite.globalPause ? (
-              <div style={{ fontSize: 12, color: '#C93400', fontWeight: 600 }}>Toutes les relances automatiques sont suspendues : aucun mail ne part tant que vous ne les reprenez pas.</div>
+              <div style={{ fontSize: 12, color: 'var(--orange-text)', fontWeight: 600 }}>Toutes les relances automatiques sont suspendues : aucun mail ne part tant que vous ne les reprenez pas.</div>
             ) : next.length === 0 ? (
-              <div style={{ fontSize: 12, color: '#1E7B34', fontWeight: 600 }}>Aucune relance au prochain passage.</div>
+              <div style={{ fontSize: 12, color: 'var(--green-text)', fontWeight: 600 }}>Aucune relance au prochain passage.</div>
             ) : (
               <>
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#1C1C1E', marginBottom: 4 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--label)', marginBottom: 4 }}>
                   Prochain passage : {next.length} mail{next.length > 1 ? 's' : ''}
                 </div>
-                <ol style={{ margin: 0, paddingLeft: 18, fontSize: 12, color: '#3A3A3C' }}>
+                <ol style={{ margin: 0, paddingLeft: 18, fontSize: 12, color: 'var(--label-2)' }}>
                   {next.map(p => (
                     <li key={p.contact.id} style={{ marginBottom: 2 }}>
                       <button type="button" onClick={() => onOpenContact(p.contact.id)}
-                        style={{ background: 'none', border: 'none', padding: 0, color: '#0066CC', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12 }}>
+                        style={{ background: 'none', border: 'none', padding: 0, color: 'var(--accent-text)', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12 }}>
                         {p.contact.nom}
                       </button>
                       {' '}({p.contact.email}) : {p.kinds.map(k => DOC_META[k].label).join(', ')}
@@ -184,17 +184,17 @@ export default function ConformiteSuiviModal({ open, onClose, contacts = [], con
                 </ol>
                 {later > 0 && <div style={{ ...small, marginTop: 6 }}>Puis {later} autre{later > 1 ? 's' : ''} aux passages suivants (limite de {MAX_RELANCES_PAR_PASSAGE} par jour).</div>}
                 <button type="button" disabled={!!busy} onClick={() => relancer(next.map(p => p.contact), `Envoyer maintenant ${next.length} mail${next.length > 1 ? 's' : ''} ?`)}
-                  style={{ marginTop: 8, fontSize: 12, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', borderRadius: 6, padding: '6px 12px', background: '#0066CC', color: '#fff', border: 'none' }}>
+                  style={{ marginTop: 8, fontSize: 12, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', borderRadius: 6, padding: '6px 12px', background: 'var(--accent-text)', color: '#fff', border: 'none' }}>
                   {busy === 'relancer' ? 'Envoi…' : `Envoyer maintenant (${next.length})`}
                 </button>
               </>
             )}
             {stats.sansEmail > 0 && (
-              <div style={{ fontSize: 12, color: '#C93400', marginTop: 8 }}>
+              <div style={{ fontSize: 12, color: 'var(--orange-text)', marginTop: 8 }}>
                 ⚠ {stats.sansEmail} entreprise{stats.sansEmail > 1 ? 's' : ''} sans email ne {stats.sansEmail > 1 ? 'peuvent' : 'peut'} pas être relancée{stats.sansEmail > 1 ? 's' : ''} : complétez leur fiche
                 {counts.sans_email > 0 && filter !== 'sans_email' && (
                   <> · <button type="button" onClick={() => setFilter('sans_email')}
-                    style={{ background: 'none', border: 'none', padding: 0, color: '#C93400', fontWeight: 700, textDecoration: 'underline', cursor: 'pointer', fontFamily: 'inherit', fontSize: 12 }}>
+                    style={{ background: 'none', border: 'none', padding: 0, color: 'var(--orange-text)', fontWeight: 700, textDecoration: 'underline', cursor: 'pointer', fontFamily: 'inherit', fontSize: 12 }}>
                     les voir
                   </button></>
                 )}
@@ -205,7 +205,7 @@ export default function ConformiteSuiviModal({ open, onClose, contacts = [], con
 
           {/* ── Détail par entreprise ── */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#1C1C1E' }}>Détail par entreprise</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--label)' }}>Détail par entreprise</div>
             <label style={{ ...small, display: 'flex', alignItems: 'center', gap: 6 }}>
               <input type="checkbox" checked={all} onChange={e => setAll(e.target.checked)} />
               Inclure les entreprises non suivies
@@ -218,7 +218,7 @@ export default function ConformiteSuiviModal({ open, onClose, contacts = [], con
                 return (
                   <button key={f.key} type="button" aria-pressed={on} onClick={() => setFilter(f.key)}
                     style={{ fontSize: 11, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', borderRadius: 999, padding: '4px 10px',
-                      background: on ? '#1C1C1E' : '#fff', color: on ? '#fff' : '#3A3A3C', border: `1px solid ${on ? '#1C1C1E' : '#D1D1D6'}` }}>
+                      background: on ? 'var(--label)' : '#fff', color: on ? '#fff' : 'var(--label-2)', border: `1px solid ${on ? 'var(--label)' : 'var(--separator-opaque)'}` }}>
                     {f.label} <span style={{ opacity: 0.7 }}>{counts[f.key]}</span>
                   </button>
                 )
@@ -234,7 +234,7 @@ export default function ConformiteSuiviModal({ open, onClose, contacts = [], con
           ) : (
             <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, fontSize: 12 }}>
               <thead>
-                <tr style={{ textAlign: 'left', color: '#6E6E73' }}>
+                <tr style={{ textAlign: 'left', color: 'var(--label-secondary)' }}>
                   <th style={th}>Entreprise</th>
                   <th style={{ ...th, textAlign: 'center' }}>Société</th>
                   {DOC_KINDS.map(k => <th key={k} style={{ ...th, textAlign: 'center' }}>{DOC_META[k].label}</th>)}
@@ -280,11 +280,11 @@ const relanceColor = (r) => (['sans_email', 'suspendue', 'pause_globale'].includ
 
 function Stat({ label, hint, value, total, color }) {
   return (
-    <div style={{ border: '1px solid #E5E5EA', borderRadius: 10, padding: '10px 12px' }}>
-      <div style={{ fontSize: 12, fontWeight: 600, color: '#3A3A3C' }}>{label}</div>
+    <div style={{ border: '1px solid var(--separator)', borderRadius: 10, padding: '10px 12px' }}>
+      <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--label-2)' }}>{label}</div>
       {hint && <div style={small}>{hint}</div>}
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, margin: '4px 0 6px' }}>
-        <span style={{ fontSize: 22, fontWeight: 800, color: '#1C1C1E' }}>{value} / {total}</span>
+        <span style={{ fontSize: 22, fontWeight: 800, color: 'var(--label)' }}>{value} / {total}</span>
         {total > 0 && <span style={small}>{Math.round((value / total) * 100)} %</span>}
       </div>
       <Bar value={value} total={total} color={color} />
@@ -319,17 +319,17 @@ function NameCell({ r, onOpenContact }) {
   return (
     <>
       <button type="button" onClick={() => onOpenContact(r.contact.id)}
-        style={{ background: 'none', border: 'none', padding: 0, color: '#1C1C1E', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, textAlign: 'left' }}>
+        style={{ background: 'none', border: 'none', padding: 0, color: 'var(--label)', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, textAlign: 'left' }}>
         {r.contact.nom}
       </button>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3 }}>
         <span aria-hidden="true" style={{ display: 'inline-flex', gap: 2 }}>
           {DOC_KINDS.map((k, i) => (
-            <span key={k} style={{ width: 10, height: 4, borderRadius: 2, background: i < r.recus ? '#1E7B34' : '#E5E5EA' }} />
+            <span key={k} style={{ width: 10, height: 4, borderRadius: 2, background: i < r.recus ? 'var(--green-text)' : 'var(--separator)' }} />
           ))}
         </span>
         <span style={small}>{r.recus}/{DOC_KINDS.length} reçus</span>
-        {r.origine === 'demande' && <span style={{ ...small, color: '#8944AB', fontWeight: 700 }}>· demande manuelle</span>}
+        {r.origine === 'demande' && <span style={{ ...small, color: 'var(--purple-text)', fontWeight: 700 }}>· demande manuelle</span>}
       </div>
     </>
   )
@@ -339,9 +339,9 @@ function DemandeCell({ req }) {
   if (!req) return <span style={small}>Jamais</span>
   return (
     <div style={small}>
-      <span style={{ color: '#3A3A3C', fontWeight: 600 }}>{fmtD(req.dernier_envoi)}</span>
+      <span style={{ color: 'var(--label-2)', fontWeight: 600 }}>{fmtD(req.dernier_envoi)}</span>
       {req.envois > 1 ? ` · ${req.envois} envois` : ''}
-      <div style={{ color: req.derniere_visite ? '#1E7B34' : '#8E8E93' }}>
+      <div style={{ color: req.derniere_visite ? 'var(--green-text)' : 'var(--label-tertiary)' }}>
         {req.derniere_visite ? `✓ lien ouvert le ${fmtD(req.derniere_visite)}` : 'lien pas ouvert'}
       </div>
     </div>
@@ -354,7 +354,7 @@ function Actions({ r, busy, relancer, onChanged }) {
     <div style={{ display: 'inline-flex', gap: 6, alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
       {r.contact.email && (
         <button type="button" disabled={!!busy} onClick={() => relancer([r.contact], `Relancer ${r.contact.nom} ?`)}
-          style={{ fontSize: 11, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', borderRadius: 6, padding: '4px 8px', background: '#F0F8FC', color: '#0066CC', border: '1px solid #C6DDF7', whiteSpace: 'nowrap' }}>
+          style={{ fontSize: 11, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', borderRadius: 6, padding: '4px 8px', background: '#F0F8FC', color: 'var(--accent-text)', border: '1px solid var(--blue-line)', whiteSpace: 'nowrap' }}>
           Relancer
         </button>
       )}
@@ -366,12 +366,12 @@ function Actions({ r, busy, relancer, onChanged }) {
 // Téléphone : une carte par entreprise
 function RowCard({ r, legalByContact, onOpenContact, ...rest }) {
   return (
-    <div style={{ border: '1px solid #E5E5EA', borderRadius: 10, padding: 10, opacity: r.active ? 1 : 0.6 }}>
+    <div style={{ border: '1px solid var(--separator)', borderRadius: 10, padding: 10, opacity: r.active ? 1 : 0.6 }}>
       <NameCell r={r} onOpenContact={onOpenContact} />
       <div style={{ display: 'flex', gap: 6, margin: '8px 0', flexWrap: 'wrap' }}>
-        <div style={{ textAlign: 'center' }}><LegalDot l={legalByContact?.get(r.contact.id)} /><div style={{ fontSize: 11, color: '#6E6E73' }}>Société</div></div>
+        <div style={{ textAlign: 'center' }}><LegalDot l={legalByContact?.get(r.contact.id)} /><div style={{ fontSize: 11, color: 'var(--label-secondary)' }}>Société</div></div>
         {DOC_KINDS.map(k => (
-          <div key={k} style={{ textAlign: 'center' }}><DocDot kind={k} status={r.compliance.kinds[k].status} /><div style={{ fontSize: 11, color: '#6E6E73' }}>{DOC_META[k].label}</div></div>
+          <div key={k} style={{ textAlign: 'center' }}><DocDot kind={k} status={r.compliance.kinds[k].status} /><div style={{ fontSize: 11, color: 'var(--label-secondary)' }}>{DOC_META[k].label}</div></div>
         ))}
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'flex-start', flexWrap: 'wrap' }}>

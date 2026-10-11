@@ -200,6 +200,9 @@ Une palette iOS claire : gris système pour la structure, bleu pour l'action, co
 - **Violet** (`purple`, texte `purple-text`) : planifié ; Qonto (données de la banque).
 - **Encadrés d'alerte** : fond `green-tint` / `orange-tint` / `red-tint`, trait `green-line` / `orange-line` / `red-line` (`blue-line` pour l'information), texte de la teinte lisible (`orange-deep` pour un texte long sur fond orange).
 
+### Variables CSS
+Les couleurs de la charte sont déclarées une seule fois dans `styles/global.css` (`:root`, `--accent`, `--label`, `--separator`, `--red-text`…, mêmes noms que les jetons ci-dessus) et les styles des composants les utilisent via `var(--…)`. Exceptions voulues, restées en hexadécimal : couleurs passées à du code qui les transforme (Badge / `lib/tone.js`, ajout d'une transparence `couleur + '22'`), couleurs de catégories (types de contacts, notifications), PDF, Excel et mails.
+
 ### Named Rules
 **The One Accent Rule.** Le bleu est la seule couleur d'interaction. Tout ce qui est bleu se touche ; ce qui ne se touche pas n'est pas bleu.
 

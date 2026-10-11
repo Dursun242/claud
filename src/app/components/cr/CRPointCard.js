@@ -25,7 +25,7 @@ export default function CRPointCard({ row, crId, crDate, lots = [], entreprisesL
   return (
     <div data-testid="cr-point" style={{ border: `1.5px solid ${st.border}`, background: st.bg, borderRadius: 10, padding: 10, opacity: disabled ? 0.6 : 1 }}>
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-        {row.num ? <span style={{ fontSize: 12, fontWeight: 700, color: '#6E6E73', minWidth: 28 }}>n°{row.num}</span> : null}
+        {row.num ? <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--label-secondary)', minWidth: 28 }}>n°{row.num}</span> : null}
         {row.isNew ? (
           <span style={{ fontSize: 11, fontWeight: 800, color: st.color, background: '#fff', border: `1px solid ${st.border}`, borderRadius: 5, padding: '3px 7px' }}>NOUVEAU</span>
         ) : (
@@ -39,25 +39,25 @@ export default function CRPointCard({ row, crId, crDate, lots = [], entreprisesL
                   style={{
                     padding: m ? '8px 10px' : '6px 10px', minHeight: m ? 40 : 32, borderRadius: 8, fontSize: 12, fontWeight: 700,
                     fontFamily: 'inherit', cursor: disabled ? 'default' : 'pointer',
-                    border: `1.5px solid ${on ? s.color : '#E5E5EA'}`,
-                    background: on ? '#fff' : 'rgba(255,255,255,0.6)', color: on ? s.color : '#6E6E73',
+                    border: `1.5px solid ${on ? s.color : 'var(--separator)'}`,
+                    background: on ? '#fff' : 'rgba(255,255,255,0.6)', color: on ? s.color : 'var(--label-secondary)',
                   }}>{k === 'fait' ? '✓ ' : k === 'relance' ? '🔔 ' : ''}{SUIVI[k]}</button>
               )
             })}
           </div>
         )}
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-          {row.origineNumero ? <span style={{ fontSize: 11, color: '#6E6E73' }}>depuis CR n°{row.origineNumero}</span> : null}
-          {late > 0 && row.suivi !== 'fait' && <span style={{ fontSize: 11, fontWeight: 700, color: '#D70015' }}>retard {late} j</span>}
-          {nbRappels > 0 && row.suivi !== 'fait' && <span style={{ fontSize: 11, fontWeight: 700, color: '#D70015' }}>rappel n°{nbRappels}</span>}
-          {disabled && <span style={{ fontSize: 11, color: '#6E6E73' }}>tâche supprimée</span>}
+          {row.origineNumero ? <span style={{ fontSize: 11, color: 'var(--label-secondary)' }}>depuis CR n°{row.origineNumero}</span> : null}
+          {late > 0 && row.suivi !== 'fait' && <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--red-text)' }}>retard {late} j</span>}
+          {nbRappels > 0 && row.suivi !== 'fait' && <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--red-text)' }}>rappel n°{nbRappels}</span>}
+          {disabled && <span style={{ fontSize: 11, color: 'var(--label-secondary)' }}>tâche supprimée</span>}
           <button aria-label={showPhotos ? 'Masquer les photos' : `Photos du point${photos.length ? ` (${photos.length})` : ''}`} type="button" onClick={() => setShowPhotos(v => !v)} aria-expanded={showPhotos}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700, color: '#0066CC', fontFamily: 'inherit', padding: '2px 4px' }}>
+            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700, color: 'var(--accent-text)', fontFamily: 'inherit', padding: '2px 4px' }}>
             📷 {photos.length || ''}
           </button>
           {row.isNew && (
             <button type="button" onClick={onRemove} aria-label="Retirer ce point"
-              style={{ background: 'none', border: 'none', color: '#D70015', cursor: 'pointer', fontSize: 16, padding: '0 4px' }}>✕</button>
+              style={{ background: 'none', border: 'none', color: 'var(--red-text)', cursor: 'pointer', fontSize: 16, padding: '0 4px' }}>✕</button>
           )}
         </div>
       </div>
@@ -72,7 +72,7 @@ export default function CRPointCard({ row, crId, crDate, lots = [], entreprisesL
           onChange={e => onChange({ echeance: e.target.value })} style={small} />
         <select aria-label="Priorité" value={PRIORITY_LADDER.includes(row.priorite) ? row.priorite : 'En cours'} disabled={disabled}
           onChange={e => onChange({ priorite: e.target.value })}
-          style={{ ...small, color: PRIO_COLOR[row.priorite] || '#1C1C1E', fontWeight: 600 }}>
+          style={{ ...small, color: PRIO_COLOR[row.priorite] || 'var(--label)', fontWeight: 600 }}>
           {PRIORITY_LADDER.map(p => <option key={p} value={p}>{PRIO_LABEL[p]}</option>)}
         </select>
         <select aria-label="Lot" value={lotKey(row.lot)} disabled={disabled}
@@ -82,7 +82,7 @@ export default function CRPointCard({ row, crId, crDate, lots = [], entreprisesL
         </select>
       </div>
       {willRemind && nextPrio !== row.priorite && (
-        <div style={{ fontSize: 11, color: '#D70015', marginTop: 6 }}>
+        <div style={{ fontSize: 11, color: 'var(--red-text)', marginTop: 6 }}>
           Relance : priorité relevée à « {PRIO_LABEL[nextPrio]} » à l&apos;enregistrement.
         </div>
       )}

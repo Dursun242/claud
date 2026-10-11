@@ -330,7 +330,7 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
       }} aria-label="Retour aux chantiers" style={{
         background:"none",border:"none",cursor:"pointer",
         display:"flex",alignItems:"center",gap:4,minHeight:44,
-        color:"#0066CC",fontSize:17,fontWeight:400,
+        color:"var(--accent-text)",fontSize:17,fontWeight:400,
         marginBottom:4,fontFamily:"inherit",padding:0
       }}>
         <span aria-hidden="true" style={{fontSize:24,lineHeight:1,marginTop:-2}}>‹</span>Chantiers
@@ -357,24 +357,24 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
       {/* Chantier Header Card */}
       <div style={{
         background:"#fff",borderRadius:12,padding:m?16:24,
-        border:"1px solid #E5E5EA",
+        border:"1px solid var(--separator)",
         boxShadow:"0 1px 3px rgba(0,0,0,0.06)",
         marginBottom:16
       }}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:12}}>
           <div>
             <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:6,flexWrap:"wrap"}}>
-              <h1 style={{margin:0,fontSize:m?20:26,fontWeight:700,color:"#1C1C1E"}}>{ch.nom}</h1>
+              <h1 style={{margin:0,fontSize:m?20:26,fontWeight:700,color:"var(--label)"}}>{ch.nom}</h1>
               <Badge text={ch.phase} color="#6E6E73"/>
               <Badge text={ch.statut} color={status[ch.statut]||"#6E6E73"}/>
             </div>
-            <div style={{fontSize:14,color:"#6E6E73",marginBottom:2}}>{ch.client}</div>
-            <div style={{fontSize:13,color:"#6E6E73"}}>{ch.adresse}</div>
-            <div style={{fontSize:12,color:"#6E6E73",marginTop:4}}>
+            <div style={{fontSize:14,color:"var(--label-secondary)",marginBottom:2}}>{ch.client}</div>
+            <div style={{fontSize:13,color:"var(--label-secondary)"}}>{ch.adresse}</div>
+            <div style={{fontSize:12,color:"var(--label-secondary)",marginTop:4}}>
               Du {fmtDate(ch.date_debut||ch.dateDebut)} au {fmtDate(ch.date_fin||ch.dateFin)}
             </div>
             {ch.lots?.length>0 && (
-              <div style={{fontSize:12,color:"#6E6E73",marginTop:4}}>
+              <div style={{fontSize:12,color:"var(--label-secondary)",marginTop:4}}>
                 Lots : {ch.lots.join(", ")}
               </div>
             )}
@@ -407,11 +407,11 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
             <button onClick={()=>setCrModal({ initial: { chantierId: ch.id } })} className="u-btn" style={btnAdd}>
               <Icon d={I.plus} size={16}/>Nouveau CR</button>
           </div>}
-          {chCR.length===0 ? <p style={{color:"#6E6E73",fontSize:12}}>Aucun CR pour ce chantier</p> :
+          {chCR.length===0 ? <p style={{color:"var(--label-secondary)",fontSize:12}}>Aucun CR pour ce chantier</p> :
             chCR.sort((a,b)=>new Date(b.date)-new Date(a.date)).map(cr=>(
               <div key={cr.id} style={{
                 background:"#fff",borderRadius:10,padding:12,marginBottom:8,
-                border:"1px solid #E5E5EA",
+                border:"1px solid var(--separator)",
                 display:"flex",flexDirection:m?"column":"row",
                 justifyContent:"space-between",
                 alignItems:m?"stretch":"flex-start",
@@ -419,11 +419,11 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
               }}>
                 <div style={{flex:"1 1 0",minWidth:0}}>
                   <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2,flexWrap:"wrap"}}>
-                    <span style={{fontWeight:700,fontSize:13,color:"#1C1C1E",whiteSpace:"nowrap"}}>CR n°{cr.numero}</span>
-                    <span style={{fontSize:12,color:"#6E6E73"}}>{fmtDate(cr.date)}</span>
+                    <span style={{fontWeight:700,fontSize:13,color:"var(--label)",whiteSpace:"nowrap"}}>CR n°{cr.numero}</span>
+                    <span style={{fontSize:12,color:"var(--label-secondary)"}}>{fmtDate(cr.date)}</span>
                     {cr.statut === 'Brouillon' && <Badge text="Brouillon" color="#FF9500"/>}
                   </div>
-                  <div style={{fontSize:12,color:"#3A3A3C",lineHeight:1.5}}>
+                  <div style={{fontSize:12,color:"var(--label-2)",lineHeight:1.5}}>
                     {(cr.resume||"").substring(0,100)}{(cr.resume||"").length>100?"...":""}
                   </div>
                 </div>
@@ -458,12 +458,12 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
               });setDetailModal("newTask");
             }} className="u-btn" style={btnAdd}><Icon d={I.plus} size={16}/>Nouvelle tâche</button>
           </div>
-          {chTasks.length===0 ? <p style={{color:"#6E6E73",fontSize:12}}>Aucune tâche pour ce chantier</p> :
+          {chTasks.length===0 ? <p style={{color:"var(--label-secondary)",fontSize:12}}>Aucune tâche pour ce chantier</p> :
             chTasks.map(t=>(
               <div key={t.id} style={{
                 display:"flex",alignItems:"center",gap:10,
                 background:"#fff",borderRadius:10,padding:"10px 12px",
-                marginBottom:6,border:"1px solid #E5E5EA"
+                marginBottom:6,border:"1px solid var(--separator)"
               }}>
                 <button
                   onClick={()=>toggleTask(t)} disabled={taskBusy===t.id}
@@ -473,8 +473,8 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
                   style={{
                     width:20,height:20,minWidth:20,minHeight:20,
                     borderRadius:"50%",
-                    border:`2px solid ${t.statut==="Terminé"?"#34C759":"#8E8E93"}`,
-                    background:t.statut==="Terminé"?"#34C759":"transparent",
+                    border:`2px solid ${t.statut==="Terminé"?"var(--green)":"var(--label-tertiary)"}`,
+                    background:t.statut==="Terminé"?"var(--green)":"transparent",
                     display:"flex",alignItems:"center",justifyContent:"center",
                     flexShrink:0,cursor:"pointer",padding:0,
                     boxSizing:"border-box",appearance:"none",WebkitAppearance:"none"
@@ -482,11 +482,11 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
                   {t.statut==="Terminé" && <Icon d={I.check} size={10} color="#fff"/>}
                 </button>
                 <div style={{flex:1,opacity:t.statut==="Terminé"?0.5:1}}>
-                  <div style={{fontSize:13,fontWeight:600,color:"#1C1C1E"}}>{t.titre}</div>
-                  <div style={{fontSize:12,color:"#6E6E73"}}>
+                  <div style={{fontSize:13,fontWeight:600,color:"var(--label)"}}>{t.titre}</div>
+                  <div style={{fontSize:12,color:"var(--label-secondary)"}}>
                     {[t.entreprise, t.lot, fmtDate(t.echeance)].filter(Boolean).join(" • ")}
                     {t.nb_rappels > 0 && t.statut !== "Terminé" && (
-                      <span style={{color:"#D70015",fontWeight:600}}> • {EMOJI.rappel} {t.nb_rappels} rappel{t.nb_rappels>1?"s":""}</span>
+                      <span style={{color:"var(--red-text)",fontWeight:600}}> • {EMOJI.rappel} {t.nb_rappels} rappel{t.nb_rappels>1?"s":""}</span>
                     )}
                   </div>
                 </div>
@@ -519,7 +519,7 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
 
         {/* NOTES INTERNES — cachées pour les clients (comme le placeholder l'indique) */}
         {!readOnly && <Section title="Notes internes" emoji={EMOJI.notes}>
-          <div style={{background:"#fff",border:"1px solid #E5E5EA",borderRadius:10,padding:14}}>
+          <div style={{background:"#fff",border:"1px solid var(--separator)",borderRadius:10,padding:14}}>
             <textarea
               value={notesDraft ?? ch.notes_internes ?? ""}
               onChange={e=>setNotesDraft(e.target.value)}
@@ -529,7 +529,7 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
                 width:"100%",minHeight:80,border:"none",
                 background:"transparent",fontSize:13,fontFamily:"inherit",
                 resize:"vertical",outline:"none",
-                color:"#3A3A3C",boxSizing:"border-box"
+                color:"var(--label-2)",boxSizing:"border-box"
               }}
             />
             <div style={{display:"flex",justifyContent:"flex-end",marginTop:6}}>
@@ -579,13 +579,13 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
             <button onClick={()=>setDetailModal("useTemplate")} className="u-btn" style={btnAdd}>
               <Icon d={I.copy} size={16}/>Depuis un modèle</button>
           </div>}
-          {chOS.length===0 ? <p style={{color:"#6E6E73",fontSize:12}}>Aucun OS pour ce chantier</p> :
+          {chOS.length===0 ? <p style={{color:"var(--label-secondary)",fontSize:12}}>Aucun OS pour ce chantier</p> :
             chOS.map(os=>(
               // Sur mobile : colonne (titre au-dessus, boutons en dessous)
               // Sur desktop : ligne (titre à gauche, boutons à droite)
               <div key={os.id} style={{
                 background:"#fff",borderRadius:10,padding:12,marginBottom:8,
-                border:"1px solid #E5E5EA",
+                border:"1px solid var(--separator)",
                 display:"flex",flexDirection:m?"column":"row",
                 justifyContent:"space-between",
                 alignItems:m?"stretch":"flex-start",
@@ -593,20 +593,20 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
               }}>
                 <div style={{flex:"1 1 0",minWidth:0}}>
                   <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2,flexWrap:"wrap"}}>
-                    <span style={{fontWeight:700,fontSize:13,color:"#1C1C1E",whiteSpace:"nowrap"}}>{os.numero}</span>
+                    <span style={{fontWeight:700,fontSize:13,color:"var(--label)",whiteSpace:"nowrap"}}>{os.numero}</span>
                     <Badge text={os.statut||"Brouillon"} color={{
                       "Brouillon":"#8E8E93","Émis":"#007AFF","Signé":"#AF52DE",
                       "En cours":"#FF9500","Terminé":"#34C759","Annulé":"#FF3B30"
                     }[os.statut]||"#8E8E93"}/>
                   </div>
                   <div style={{
-                    fontSize:12,color:"#6E6E73",overflow:"hidden",
+                    fontSize:12,color:"var(--label-secondary)",overflow:"hidden",
                     textOverflow:"ellipsis",whiteSpace:"nowrap"
                   }}>
                     {os.artisan_nom} • {(os.prestations||[]).length} prestation(s) • {fmtDate(os.date_emission)}
                   </div>
                   <div style={{
-                    fontSize:16,fontWeight:700,color:"#1C1C1E",marginTop:4
+                    fontSize:16,fontWeight:700,color:"var(--label)",marginTop:4
                   }}>{fmtMoney(os.montant_ttc||0)}</div>
                 </div>
                 <div style={{display:"flex",gap:4,flexShrink:0,flexWrap:"wrap",justifyContent:m?"flex-start":"flex-end"}}>
@@ -658,7 +658,7 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
       {tab==="finances" && <div role="tabpanel" id="chantier-panel-finances" aria-labelledby="chantier-tab-finances">
         {/* BUDGET + jauge — composant dédié, consomme `finances` calculé via lib/chantierFinances */}
         <Section title="Budget" emoji={EMOJI.budget}>
-          <div style={{background:"#fff",border:"1px solid #E5E5EA",borderRadius:12,padding:m?"0 14px 14px":"0 20px 20px"}}>
+          <div style={{background:"#fff",border:"1px solid var(--separator)",borderRadius:12,padding:m?"0 14px 14px":"0 20px 20px"}}>
             <ChantierBudgetCard finances={finances} m={m} />
           </div>
         </Section>
@@ -818,8 +818,8 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
       alignItems:"center",marginBottom:12,flexWrap:"wrap",gap:10
     }}>
       <div>
-        <h1 style={{margin:0,fontSize:m?28:32,fontWeight:700,letterSpacing:"-0.02em",color:"#1C1C1E"}}>Chantiers</h1>
-        <div style={{fontSize:13,color:"#6E6E73",marginTop:2}}>
+        <h1 style={{margin:0,fontSize:m?28:32,fontWeight:700,letterSpacing:"-0.02em",color:"var(--label)"}}>Chantiers</h1>
+        <div style={{fontSize:13,color:"var(--label-secondary)",marginTop:2}}>
           {data.chantiers.length} au total
           {hasFilters && <>
             {" "}· <strong>{chantiersFiltered.length}</strong>{" "}
@@ -855,8 +855,8 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
         <div style={{fontSize:36,marginBottom:8,opacity:0.5}}>🏗️</div>
         {hasFilters ? (
           <>
-            <div style={{fontSize:14,fontWeight:700,color:"#3A3A3C",marginBottom:4}}>Aucun résultat</div>
-            <div style={{fontSize:12,color:"#6E6E73",marginBottom:14}}>
+            <div style={{fontSize:14,fontWeight:700,color:"var(--label-2)",marginBottom:4}}>Aucun résultat</div>
+            <div style={{fontSize:12,color:"var(--label-secondary)",marginBottom:14}}>
               Essaie d'élargir ta recherche ou de changer les filtres.
             </div>
             <button
@@ -865,8 +865,8 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
           </>
         ) : (
           <>
-            <div style={{fontSize:14,fontWeight:700,color:"#3A3A3C",marginBottom:4}}>Aucun chantier</div>
-            <div style={{fontSize:12,color:"#6E6E73",marginBottom:14}}>Démarre en créant ton premier chantier.</div>
+            <div style={{fontSize:14,fontWeight:700,color:"var(--label-2)",marginBottom:4}}>Aucun chantier</div>
+            <div style={{fontSize:12,color:"var(--label-secondary)",marginBottom:14}}>Démarre en créant ton premier chantier.</div>
             <button onClick={openNew} style={btnP}>+ Nouveau chantier</button>
           </>
         )}

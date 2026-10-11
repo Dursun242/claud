@@ -44,7 +44,7 @@ export default function ChantierTabs({ value, onChange, tabs = CHANTIER_TABS }) 
               flex: '1 1 0', minWidth: 'max-content', minHeight: 36, padding: '6px 8px', border: 'none', borderRadius: 8,
               background: active ? '#fff' : 'transparent',
               boxShadow: active ? '0 1px 3px rgba(0,0,0,0.12), 0 1px 1px rgba(0,0,0,0.04)' : 'none',
-              color: '#1C1C1E', fontSize: 'clamp(13px, 3.6vw, 14px)', fontWeight: active ? 600 : 500,
+              color: 'var(--label)', fontSize: 'clamp(13px, 3.6vw, 14px)', fontWeight: active ? 600 : 500,
               fontFamily: 'inherit', cursor: 'pointer',
               whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
             }}>

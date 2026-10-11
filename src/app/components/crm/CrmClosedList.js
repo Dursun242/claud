@@ -47,7 +47,7 @@ export default function CrmClosedList({ kind = 'won', list, contactsById, chanti
           dont {year} : {thisYear.length} · {fmtMoney(totalYear)}
         </span>
         {motifs.length > 0 && (
-          <span style={{ fontSize: 11, color: '#6E6E73', width: '100%' }}>
+          <span style={{ fontSize: 11, color: 'var(--label-secondary)', width: '100%' }}>
             Motifs : {motifs.map(([mo, n]) => `${mo} (${n})`).join(' · ')}
           </span>
         )}
@@ -59,11 +59,11 @@ export default function CrmClosedList({ kind = 'won', list, contactsById, chanti
           <button type="button" key={o.id} onClick={() => onOpen(o.id)} style={{
             display: 'flex', alignItems: 'center', gap: 10, background: '#fff', borderRadius: 10, textAlign: 'left',
             padding: '10px 14px', minHeight: 56, cursor: 'pointer', fontFamily: 'inherit',
-            border: '1px solid #E5E5EA', minWidth: 0, width: '100%',
+            border: '1px solid var(--separator)', minWidth: 0, width: '100%',
           }}>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: '#1C1C1E', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.titre}</div>
-              <div style={{ fontSize: 11, color: '#6E6E73', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--label)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.titre}</div>
+              <div style={{ fontSize: 11, color: 'var(--label-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {c?.nom || '—'}{o.date_cloture ? ` · le ${fmtDate(o.date_cloture)}` : ''}
                 {kind === 'lost' && o.motif_perte ? ` · ${o.motif_perte}` : ''}
                 {kind === 'won' && ch ? ` · chantier ${ch.nom}` : ''}

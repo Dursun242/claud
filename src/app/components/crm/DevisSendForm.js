@@ -112,10 +112,10 @@ export default function DevisSendForm({ initial = {}, filename, sending, error, 
         <textarea style={{ ...inp, minHeight: 180, resize: 'vertical', fontSize: 14 }} value={form.body}
           onChange={e => set('body', e.target.value)} />
       </FF>
-      <div style={{ fontSize: 11, fontWeight: 700, color: '#6E6E73', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 6 }}>
+      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--label-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 6 }}>
         Pièces jointes
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 12, fontSize: 12, color: '#3A3A3C' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 12, fontSize: 12, color: 'var(--label-2)' }}>
         <span style={chip}>📎 {filename} · Qonto</span>
         {onPreviewPdf && (
           <button type="button" onClick={onPreviewPdf} style={smallBtn}>Vérifier le PDF Qonto</button>
@@ -123,7 +123,7 @@ export default function DevisSendForm({ initial = {}, filename, sending, error, 
         {docs.map(d => {
           const on = !unchecked.has(d.path)
           return (
-            <span key={d.path} style={{ ...chip, background: on ? '#EAF3FF' : '#F5F5F7', borderColor: on ? '#C6DDF7' : '#E5E5EA', color: on ? '#0071E3' : '#8E8E93' }}>
+            <span key={d.path} style={{ ...chip, background: on ? 'var(--accent-tint)' : 'var(--row-fill)', borderColor: on ? 'var(--blue-line)' : 'var(--separator)', color: on ? 'var(--accent)' : 'var(--label-tertiary)' }}>
               <label style={{ display: 'inline-flex', alignItems: 'center', gap: 5, cursor: 'pointer' }}>
                 <input type="checkbox" checked={on} onChange={() => toggleDoc(d.path)} aria-label={`Joindre ${d.name}`} />
                 {d.name}
@@ -134,7 +134,7 @@ export default function DevisSendForm({ initial = {}, filename, sending, error, 
           )
         })}
         {extras.map(d => (
-          <span key={d.path} style={{ ...chip, background: '#EAF3FF', borderColor: '#C6DDF7', color: '#0066CC' }}>
+          <span key={d.path} style={{ ...chip, background: 'var(--accent-tint)', borderColor: 'var(--blue-line)', color: 'var(--accent-text)' }}>
             📎 {d.name}
             <button type="button" onClick={() => setExtras(x => x.filter(e => e.path !== d.path))}
               aria-label={`Enlever ${d.name}`} style={chipX}>×</button>
@@ -157,14 +157,14 @@ export default function DevisSendForm({ initial = {}, filename, sending, error, 
           </>
         )}
       </div>
-      {docsError && <div role="alert" style={{ color: '#C93400', fontSize: 12, margin: '-6px 0 10px' }}>⚠ {docsError}</div>}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 12, fontSize: 12, color: '#3A3A3C' }}>
+      {docsError && <div role="alert" style={{ color: 'var(--orange-text)', fontSize: 12, margin: '-6px 0 10px' }}>⚠ {docsError}</div>}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 12, fontSize: 12, color: 'var(--label-2)' }}>
         <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
           <input type="checkbox" checked={form.copyMe} onChange={e => set('copyMe', e.target.checked)} />
           M’envoyer une copie
         </label>
         {canSign && (
-          <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontWeight: 600, color: '#0066CC' }}>
+          <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontWeight: 600, color: 'var(--accent-text)' }}>
             <input type="checkbox" checked={form.sign} onChange={e => set('sign', e.target.checked)} />
             ✍️ Signature électronique
           </label>
@@ -177,11 +177,11 @@ export default function DevisSendForm({ initial = {}, filename, sending, error, 
         )}
       </div>
       {canSign && form.sign && (
-        <div style={{ fontSize: 11, color: '#6E6E73', marginBottom: 10 }}>
+        <div style={{ fontSize: 11, color: 'var(--label-secondary)', marginBottom: 10 }}>
           Un lien sécurisé est ajouté au mail : le client consulte le devis et le signe en ligne.
         </div>
       )}
-      {shownError && <div role="alert" style={{ color: '#D70015', fontSize: 12, marginBottom: 10, fontWeight: 500 }}>⚠ {shownError}</div>}
+      {shownError && <div role="alert" style={{ color: 'var(--red-text)', fontSize: 12, marginBottom: 10, fontWeight: 500 }}>⚠ {shownError}</div>}
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
         <button onClick={onCancel} style={btnS}>Annuler</button>
         <button onClick={submit} disabled={sending} style={{ ...btnP, opacity: sending ? 0.6 : 1 }}>

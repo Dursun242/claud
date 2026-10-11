@@ -16,7 +16,7 @@ import SearchField, { toolbarSelect } from '../components/SearchField'
 const Spinner = () => (
   <span aria-hidden="true" style={{
     display:"inline-block",width:12,height:12,borderRadius:"50%",
-    border:"2px solid #D1D1D6",borderTopColor:"#0066CC",animation:"spin .8s linear infinite",
+    border:"2px solid var(--separator-opaque)",borderTopColor:"var(--accent-text)",animation:"spin .8s linear infinite",
   }}/>
 )
 
@@ -146,8 +146,8 @@ export default function ReportsV({ data, save: _save, m, reload, focusId, focusT
       alignItems:"center",marginBottom:14,flexWrap:"wrap",gap:8
     }}>
       <div>
-        <h1 style={{margin:0,fontSize:m?28:32,fontWeight:700,letterSpacing:"-0.02em",color:"#1C1C1E"}}>Comptes rendus</h1>
-        <div style={{fontSize:13,color:"#6E6E73",marginTop:2}}>
+        <h1 style={{margin:0,fontSize:m?28:32,fontWeight:700,letterSpacing:"-0.02em",color:"var(--label)"}}>Comptes rendus</h1>
+        <div style={{fontSize:13,color:"var(--label-secondary)",marginTop:2}}>
           {total} au total
           {hasFilters && <>
             {" "}· <strong>{filteredSortedCRs.length}</strong>{" "}
@@ -197,18 +197,18 @@ export default function ReportsV({ data, save: _save, m, reload, focusId, focusT
         return (
           <div key={cr.id} style={{
             background:"#fff",borderRadius:12,padding:m?14:18,
-            border:"1px solid #E5E5EA",marginBottom:10
+            border:"1px solid var(--separator)",marginBottom:10
           }}>
             <div style={{
               display:"flex",justifyContent:"space-between",
               alignItems:"center",marginBottom:10,flexWrap:"wrap",gap:6
             }}>
               <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
-                <span style={{fontWeight:700,fontSize:15,color:"#1C1C1E"}}>CR n°{cr.numero}</span>
-                <span style={{fontWeight:600,fontSize:15,color:"#1C1C1E"}}>{ch?.nom || "—"}</span>
-                <span style={{fontSize:13,color:"#6E6E73"}}>{fmtDate(cr.date)}</span>
+                <span style={{fontWeight:700,fontSize:15,color:"var(--label)"}}>CR n°{cr.numero}</span>
+                <span style={{fontWeight:600,fontSize:15,color:"var(--label)"}}>{ch?.nom || "—"}</span>
+                <span style={{fontSize:13,color:"var(--label-secondary)"}}>{fmtDate(cr.date)}</span>
                 {cr.statut === 'Brouillon' && (
-                  <span style={{fontSize:12,fontWeight:600,color:"#A0390C",background:"#FFF7E8",borderRadius:999,padding:"2px 8px"}}>Brouillon — non diffusé</span>
+                  <span style={{fontSize:12,fontWeight:600,color:"var(--orange-deep)",background:"var(--orange-tint)",borderRadius:999,padding:"2px 8px"}}>Brouillon — non diffusé</span>
                 )}
               </div>
               <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
@@ -230,23 +230,23 @@ export default function ReportsV({ data, save: _save, m, reload, focusId, focusT
                 )}
                 {!readOnly && (
                   <button onClick={()=>handleDelete(cr)} title="Supprimer"
-                    className="u-btn" style={{...btnChip,color:"#D70015"}}><Icon d={I.trash} size={14}/>Supprimer</button>
+                    className="u-btn" style={{...btnChip,color:"var(--red-text)"}}><Icon d={I.trash} size={14}/>Supprimer</button>
                 )}
               </div>
             </div>
-            {cr.resume && <div style={{fontSize:13,color:"#3A3A3C",lineHeight:1.6,marginBottom:8}}>{cr.resume}</div>}
+            {cr.resume && <div style={{fontSize:13,color:"var(--label-2)",lineHeight:1.6,marginBottom:8}}>{cr.resume}</div>}
             <CRCardSummary cr={cr} />
             {cr.participants && (
               <div style={{fontSize:12}}>
-                <span style={{fontWeight:600,color:"#6E6E73"}}>Présents :</span>{" "}
-                <span style={{color:"#6E6E73"}}>{cr.participants}</span>
+                <span style={{fontWeight:600,color:"var(--label-secondary)"}}>Présents :</span>{" "}
+                <span style={{color:"var(--label-secondary)"}}>{cr.participants}</span>
               </div>
             )}
             {cr.decisions && (
               <div style={{
-                marginTop:8,background:"#FFF7E8",
-                border:"1px solid #FFDDA6",borderRadius:10,
-                padding:"8px 12px",fontSize:13,color:"#A0390C"
+                marginTop:8,background:"var(--orange-tint)",
+                border:"1px solid var(--orange-line)",borderRadius:10,
+                padding:"8px 12px",fontSize:13,color:"var(--orange-deep)"
               }}><b>Décisions :</b> {cr.decisions}</div>
             )}
           </div>

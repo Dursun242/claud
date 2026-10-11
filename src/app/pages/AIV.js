@@ -25,15 +25,15 @@ const MD_COMPONENTS = {
   ol:     ({ node: _n, ...props }) => <ol style={{ marginLeft: "20px", marginTop: 0, marginBottom: "6px" }} {...props}/>,
   code:   ({ node: _n, inline, ...props }) => inline
     ? <code style={{
-        background: "#F2F2F7", padding: "2px 6px",
+        background: "var(--grouped-bg)", padding: "2px 6px",
         borderRadius: 4, fontSize: "0.9em", fontFamily: "monospace",
       }} {...props}/>
     : <pre style={{
-        background: "#F2F2F7", padding: "10px", borderRadius: 6,
+        background: "var(--grouped-bg)", padding: "10px", borderRadius: 6,
         overflow: "auto", marginTop: "6px", marginBottom: "6px",
       }}><code {...props}/></pre>,
   a:      ({ node: _n, ...props }) => <a
-    style={{ color: "#0066CC", textDecoration: "underline", cursor: "pointer" }}
+    style={{ color: "var(--accent-text)", textDecoration: "underline", cursor: "pointer" }}
     target="_blank" rel="noopener noreferrer" {...props}/>,
 }
 const Markdown = memo(function Markdown({ text }) {
@@ -388,16 +388,16 @@ RÈGLES :
       <div style={{marginBottom:12,display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8}}>
         <div>
           <div style={{display:"flex",alignItems:"center",gap:8}}>
-            <h1 style={{margin:0,fontSize:m?28:32,fontWeight:700,letterSpacing:"-0.02em",color:"#1C1C1E"}}>Assistant IA</h1>
+            <h1 style={{margin:0,fontSize:m?28:32,fontWeight:700,letterSpacing:"-0.02em",color:"var(--label)"}}>Assistant IA</h1>
             <ApiBadge/>
           </div>
-          <p style={{margin:"2px 0 0",fontSize:12,color:"#6E6E73"}}>
+          <p style={{margin:"2px 0 0",fontSize:12,color:"var(--label-secondary)"}}>
             Parlez ou tapez — {messages.length - 1} message{messages.length-1>1?"s":""} dans cette conversation
           </p>
         </div>
         {messages.length > 1 && (
           <button onClick={resetConversation} title="Effacer la conversation et recommencer" style={{
-            background:"#F2F2F7",border:"1px solid #E5E5EA",borderRadius:8,
+            background:"var(--grouped-bg)",border:"1px solid var(--separator)",borderRadius:8,
             padding:"6px 12px",fontSize:11,fontWeight:600,color:"#48484A",
             cursor:"pointer",fontFamily:"inherit",display:"inline-flex",alignItems:"center",gap:4,
           }}>
@@ -420,17 +420,17 @@ RÈGLES :
             <div style={{
               maxWidth:m?"88%":"75%",padding:"10px 14px",
               borderRadius:msg.role==="user"?"12px 12px 3px 12px":"12px 12px 12px 3px",
-              background:msg.role==="user"?"linear-gradient(135deg,#0071E3,#0071E3)":"#F5F5F7",
-              color:msg.role==="user"?"#fff":"#3A3A3C",
+              background:msg.role==="user"?"linear-gradient(135deg,var(--accent),var(--accent))":"var(--row-fill)",
+              color:msg.role==="user"?"#fff":"var(--label-2)",
               fontSize:13,lineHeight:1.6,
-              border:msg.role==="user"?"none":"1px solid #E5E5EA"
+              border:msg.role==="user"?"none":"1px solid var(--separator)"
             }}>
               {msg.role==="assistant"?renderMd(msg.content):msg.content}
               {msg.role==="assistant" && msg.provider && (
-                <div style={{marginTop:6,fontSize:11,color:"#6E6E73",textAlign:"right"}}>
+                <div style={{marginTop:6,fontSize:11,color:"var(--label-secondary)",textAlign:"right"}}>
                   via {PROVIDER_LABELS[msg.provider] || msg.provider}
                   {msg.fallbackFrom && (
-                    <div style={{color:"#C93400"}}>
+                    <div style={{color:"var(--orange-text)"}}>
                       secours : {PROVIDER_LABELS[msg.fallbackFrom] || msg.fallbackFrom} indisponible
                       {msg.fallbackReason ? ` — ${msg.fallbackReason}` : ""}
                     </div>
@@ -445,12 +445,12 @@ RÈGLES :
             <div style={{display:"flex",gap:5}}>
               {[0,1,2].map(i=>(
                 <div key={i} style={{
-                  width:7,height:7,borderRadius:"50%",background:"#8E8E93",
+                  width:7,height:7,borderRadius:"50%",background:"var(--label-tertiary)",
                   animation:`pulse 1.4s ease-in-out ${i*.2}s infinite`
                 }}/>
               ))}
             </div>
-            <span style={{fontSize:11,color:"#6E6E73",fontStyle:"italic"}}>L’IA réfléchit…</span>
+            <span style={{fontSize:11,color:"var(--label-secondary)",fontStyle:"italic"}}>L’IA réfléchit…</span>
           </div>
         )}
         <div ref={endRef}/>
@@ -473,8 +473,8 @@ RÈGLES :
           }
           style={{
             ...inp,flex:1,padding:"12px 16px",fontSize:14,borderRadius:12,
-            background:listening?"#FFF0EF":"#fff",
-            borderColor:listening?"#FFC9C6":"#E5E5EA",
+            background:listening?"var(--red-tint)":"#fff",
+            borderColor:listening?"var(--red-line)":"var(--separator)",
             boxShadow:"0 1px 3px rgba(0,0,0,0.06)",
             resize:"none",minHeight:46,maxHeight:140,
             fontFamily:"inherit",lineHeight:1.4,
@@ -498,7 +498,7 @@ RÈGLES :
           {t:"Tâches urgentes",             c:"#FF3B30"},
           {t:"Relances CRM du jour",         c:"#32ADE6"},
           {t:"J'ai appelé … relance vendredi", c:"#FF9500"},
-          {t:"Liste artisans actifs",       c:"#5856D6"},
+          {t:"Liste artisans actifs",       c:"#8944AB"},
         ].map(q=>(
           <button
             key={q.t}

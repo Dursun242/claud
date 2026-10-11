@@ -91,13 +91,13 @@ export default function DashboardV({data,crm=null,ready=true,setTab,m,user,clien
     {/* HEADER */}
     <div style={{marginBottom:22}}>
       <h1 style={{
-        margin:0, fontSize:m?28:32, fontWeight:700, color:"#1C1C1E", letterSpacing:"-0.02em",
+        margin:0, fontSize:m?28:32, fontWeight:700, color:"var(--label)", letterSpacing:"-0.02em",
         // Force le wrapping pour les prénoms longs (ex: noms composés, adresse
         // email utilisée en fallback) — évite tout débordement horizontal.
         wordBreak:"break-word", overflowWrap:"anywhere"
       }}>{getGreeting()} {firstName}</h1>
       <p style={{
-        margin:"6px 0 0", color:"#6E6E73",
+        margin:"6px 0 0", color:"var(--label-secondary)",
         fontSize:13, textTransform:"capitalize"
       }}>{new Date().toLocaleDateString("fr-FR", {
         weekday:"long", day:"numeric", month:"long"
@@ -126,14 +126,14 @@ export default function DashboardV({data,crm=null,ready=true,setTab,m,user,clien
         {label:"Nouveau chantier", icon:I.projects, tab:"projects"},
       ].map((a,i)=>(
         <button key={i} onClick={()=>setTab(a.tab, newIntent())} className="u-press" style={{
-          background:"#fff", border:"1px solid #E5E5EA", borderRadius:10,
+          background:"#fff", border:"1px solid var(--separator)", borderRadius:10,
           padding:"12px", minHeight:48, cursor:"pointer",
-          textAlign:"left", fontWeight:600, fontSize:13, color:"#1C1C1E",
+          textAlign:"left", fontWeight:600, fontSize:13, color:"var(--label)",
           display:"flex", alignItems:"center", gap:10, fontFamily:"inherit",
         }}>
           <span style={{
             width:32, height:32, borderRadius:8, flexShrink:0,
-            background:"#F2F2F7", color:"#0071E3", display:"inline-flex",
+            background:"var(--grouped-bg)", color:"var(--accent)", display:"inline-flex",
             alignItems:"center", justifyContent:"center"
           }}><Icon d={a.icon} size={18}/></span>
           {a.label}
@@ -163,21 +163,21 @@ export default function DashboardV({data,crm=null,ready=true,setTab,m,user,clien
           total:osCount, tab:"os"},
       ]).map((k,i)=>(
         <button key={i} onClick={()=>setTab(k.tab)} className="u-press" style={{
-          background:"#fff", border:"1px solid #E5E5EA", borderRadius:10,
+          background:"#fff", border:"1px solid var(--separator)", borderRadius:10,
           padding:"12px 14px", cursor:"pointer", textAlign:"left",
           fontFamily:"inherit",
         }}>
           <div style={{
-            fontSize:11, fontWeight:600, color:"#6E6E73",
+            fontSize:11, fontWeight:600, color:"var(--label-secondary)",
             textTransform:"uppercase", letterSpacing:"0.05em", marginBottom:4
           }}>{k.label}</div>
           <div style={{display:"flex",alignItems:"baseline",gap:6}}>
             <span style={{
               fontSize:m?22:24, fontWeight:700, lineHeight:1,
               // Couleur seulement si le chiffre signale un problème
-              color:k.alert && k.value>0 ? k.alert : "#1C1C1E",
+              color:k.alert && k.value>0 ? k.alert : "var(--label)",
             }}>{k.value}</span>
-            {k.total!=null && <span style={{fontSize:12,color:"#6E6E73",fontWeight:500}}>
+            {k.total!=null && <span style={{fontSize:12,color:"var(--label-secondary)",fontWeight:500}}>
               / {k.total}
             </span>}
           </div>
@@ -189,20 +189,20 @@ export default function DashboardV({data,crm=null,ready=true,setTab,m,user,clien
     {chantiersEnCours.length>0&&(
       <div style={{
         background:"#fff", borderRadius:12, padding:m?14:18,
-        border:"1px solid #E5E5EA",
+        border:"1px solid var(--separator)",
         boxShadow:"0 1px 3px rgba(0,0,0,0.06)", marginBottom:18
       }}>
         <div style={{
           display:"flex", justifyContent:"space-between",
           alignItems:"center", marginBottom:14
         }}>
-          <h2 style={{margin:0,fontSize:17,fontWeight:600,color:"#1C1C1E",display:"flex",alignItems:"center",gap:8}}>
+          <h2 style={{margin:0,fontSize:17,fontWeight:600,color:"var(--label)",display:"flex",alignItems:"center",gap:8}}>
             <Emoji e={EMOJI.chantiers} />Chantiers en cours
           </h2>
           <button
             onClick={()=>setTab("projects")} className="u-hit"
             style={{
-              fontSize:15, color:"#0066CC", background:"none", minHeight:36,
+              fontSize:15, color:"var(--accent-text)", background:"none", minHeight:36,
               border:"none", cursor:"pointer", fontWeight:600, fontFamily:"inherit"
             }}
           >Voir tout</button>
@@ -223,27 +223,27 @@ export default function DashboardV({data,crm=null,ready=true,setTab,m,user,clien
                 onKeyDown={e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); setTab("projects",ch.id); } }}
                 className="u-press"
                 style={{
-                  border:"1px solid #E5E5EA",
+                  border:"1px solid var(--separator)",
                   borderRadius:10, padding:12,
                   cursor:"pointer", background:"#fff",
                 }}>
                 <div style={{marginBottom:8}}>
                   <div style={{
-                    fontWeight:700, fontSize:13, color:"#1C1C1E", marginBottom:2,
+                    fontWeight:700, fontSize:13, color:"var(--label)", marginBottom:2,
                     overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"
                   }}>{ch.nom}</div>
                   <div style={{
-                    fontSize:12, color:"#6E6E73",
+                    fontSize:12, color:"var(--label-secondary)",
                     overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"
                   }}>{ch.client}</div>
                 </div>
                 <PBar value={ch.depenses} max={ch.budget} color={budgetColor}/>
                 <div style={{
                   display:"flex", justifyContent:"space-between",
-                  marginTop:8, fontSize:12, color:"#6E6E73"
+                  marginTop:8, fontSize:12, color:"var(--label-secondary)"
                 }}>
                   <span>
-                    <span style={{fontWeight:600,color:over?"#D70015":"#3A3A3C"}}>
+                    <span style={{fontWeight:600,color:over?"var(--red-text)":"var(--label-2)"}}>
                       {ratio}%
                     </span>
                     {" dépensé"}
@@ -267,7 +267,7 @@ export default function DashboardV({data,crm=null,ready=true,setTab,m,user,clien
     {!clientMode && !hasCrm && !ready && (
       <div aria-hidden="true" style={{
         background:"#fff", borderRadius:12, padding:m?14:18, marginBottom:18,
-        border:"1px solid #E5E5EA", minHeight:200, boxSizing:"border-box",
+        border:"1px solid var(--separator)", minHeight:200, boxSizing:"border-box",
       }}>
         <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14}}>
           <Skeleton width={28} height={28} radius={8}/>
@@ -283,10 +283,10 @@ export default function DashboardV({data,crm=null,ready=true,setTab,m,user,clien
     {clientMode && (
     <div style={{
       background:"#fff", borderRadius:12, padding:m?14:18,
-      border:"1px solid #E5E5EA",
+      border:"1px solid var(--separator)",
       boxShadow:"0 1px 3px rgba(0,0,0,0.06)"
     }}>
-      <h3 style={{margin:"0 0 14px",fontSize:17,fontWeight:600,color:"#1C1C1E",display:"flex",alignItems:"center",gap:8}}>
+      <h3 style={{margin:"0 0 14px",fontSize:17,fontWeight:600,color:"var(--label)",display:"flex",alignItems:"center",gap:8}}>
         <Emoji e={EMOJI.budget} />Budget global
       </h3>
       <div style={{
@@ -296,29 +296,29 @@ export default function DashboardV({data,crm=null,ready=true,setTab,m,user,clien
       }}>
         <div>
           <div style={{
-            fontSize:11, color:"#6E6E73", fontWeight:600, marginBottom:4,
+            fontSize:11, color:"var(--label-secondary)", fontWeight:600, marginBottom:4,
             textTransform:"uppercase", letterSpacing:"0.05em"
           }}>Alloué</div>
-          <div style={{fontSize:m?20:22,fontWeight:700,color:"#1C1C1E"}}>
+          <div style={{fontSize:m?20:22,fontWeight:700,color:"var(--label)"}}>
             {fmtMoney(totalB)}
           </div>
         </div>
         <div>
           <div style={{
-            fontSize:11, color:"#6E6E73", fontWeight:600, marginBottom:4,
+            fontSize:11, color:"var(--label-secondary)", fontWeight:600, marginBottom:4,
             textTransform:"uppercase", letterSpacing:"0.05em"
           }}>Dépensé</div>
           <div style={{
             fontSize:m?20:22, fontWeight:700,
-            color: pct(totalD,totalB)>100 ? "#D70015" : "#1C1C1E"
+            color: pct(totalD,totalB)>100 ? "var(--red-text)" : "var(--label)"
           }}>{fmtMoney(totalD)}</div>
         </div>
         <div>
           <div style={{
-            fontSize:11, color:"#6E6E73", fontWeight:600, marginBottom:4,
+            fontSize:11, color:"var(--label-secondary)", fontWeight:600, marginBottom:4,
             textTransform:"uppercase", letterSpacing:"0.05em"
           }}>Reste</div>
-          <div style={{fontSize:m?20:22,fontWeight:700,color:"#1C1C1E"}}>
+          <div style={{fontSize:m?20:22,fontWeight:700,color:"var(--label)"}}>
             {fmtMoney(Math.max(0,totalB-totalD))}
           </div>
         </div>
@@ -330,7 +330,7 @@ export default function DashboardV({data,crm=null,ready=true,setTab,m,user,clien
           color={pct(totalD,totalB)>100 ? "#D70015" : "#0071E3"}
           h={8}
         />
-        <div style={{fontSize:12,color:"#6E6E73",marginTop:6,textAlign:"right"}}>
+        <div style={{fontSize:12,color:"var(--label-secondary)",marginTop:6,textAlign:"right"}}>
           {pct(totalD,totalB)}% du budget consommé
         </div>
       </div>

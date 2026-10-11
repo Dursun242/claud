@@ -807,23 +807,23 @@ export function FF({label, hint, error, required, children}) {
   return (
     <div style={{marginBottom:12}}>
       <label htmlFor={fieldId} style={{
-        display:"block", fontSize:11, fontWeight:600, color:"#6E6E73",
+        display:"block", fontSize:11, fontWeight:600, color:"var(--label-secondary)",
         marginBottom:3, textTransform:"uppercase", letterSpacing:"0.05em"
       }}>
         {label}
-        {required && <span aria-hidden="true" style={{color:"#D70015", marginLeft:3}}>*</span>}
+        {required && <span aria-hidden="true" style={{color:"var(--red-text)", marginLeft:3}}>*</span>}
       </label>
       {control}
       {error && (
         <div role="alert" id={errorId} style={{
-          fontSize:11, color:"#D70015", marginTop:4, fontWeight:500,
+          fontSize:11, color:"var(--red-text)", marginTop:4, fontWeight:500,
           display:"flex", alignItems:"center", gap:4,
         }}>
           <span aria-hidden="true">⚠</span>{error}
         </div>
       )}
       {hint && !error && (
-        <div style={{fontSize:11,color:"#6E6E73",marginTop:4,fontStyle:"italic"}}>
+        <div style={{fontSize:11,color:"var(--label-secondary)",marginTop:4,fontStyle:"italic"}}>
           {hint}
         </div>
       )}
@@ -839,7 +839,7 @@ export function FF({label, hint, error, required, children}) {
 // (la page reste zoomée même après le blur, avec un scroll horizontal cassé).
 export const inp = {
   width:"100%", padding:"10px 12px", minHeight:44,
-  border:"1px solid #D1D1D6", background:"#fff",
+  border:"1px solid var(--separator-opaque)", background:"#fff",
   borderRadius:10, fontSize:16, outline:"none",
   fontFamily:"inherit", boxSizing:"border-box",
   transition:"border-color 120ms cubic-bezier(.4, 0, .2, 1), box-shadow 120ms cubic-bezier(.4, 0, .2, 1)",
@@ -879,26 +879,26 @@ export const inpError = {
 }
 
 export const btnP = {
-  padding:"10px 18px", minHeight:44, background:"#0071E3", color:"#fff",
+  padding:"10px 18px", minHeight:44, background:"var(--accent)", color:"#fff",
   border:"none", borderRadius:10, fontSize:14,
   fontWeight:600, cursor:"pointer", fontFamily:"inherit",
   transition:"transform 120ms cubic-bezier(.4, 0, .2, 1), box-shadow 180ms cubic-bezier(.4, 0, .2, 1)",
 };
 // Bouton gris iOS : fond gris léger, texte bleu.
-export const btnS = {...btnP,background:"#EFEFF0",color:"#0066CC"};
+export const btnS = {...btnP,background:"var(--fill-gray)",color:"var(--accent-text)"};
 // Action secondaire d'une section (« + Nouvel OS », « + Nouvelle tâche »…) :
 // bouton « teinté » iOS (fond bleu très léger, texte bleu). Le bleu plein
 // reste réservé à l'action principale (btnP). À combiner avec className="u-press".
 export const btnAdd = {
   display:"inline-flex", alignItems:"center", gap:6,
-  padding:"8px 14px", minHeight:40, background:"#EAF3FF", color:"#0066CC",
+  padding:"8px 14px", minHeight:40, background:"var(--accent-tint)", color:"var(--accent-text)",
   border:"none", borderRadius:10, fontSize:14, fontWeight:600,
   cursor:"pointer", fontFamily:"inherit",
 };
 // Petite action sur une ligne (PDF, Excel, modèle…) : gris iOS, texte bleu.
 export const btnChip = {
   display:"inline-flex", alignItems:"center", gap:5,
-  padding:"6px 10px", minHeight:32, background:"#F2F2F7", color:"#0066CC",
+  padding:"6px 10px", minHeight:32, background:"var(--grouped-bg)", color:"var(--accent-text)",
   border:"none", borderRadius:8, fontSize:13, fontWeight:500,
   cursor:"pointer", fontFamily:"inherit", whiteSpace:"nowrap",
 };
@@ -912,7 +912,7 @@ export function ApiBadge() {
     <span style={{
       display:"inline-flex", alignItems:"center", gap:3,
       padding:"2px 7px", borderRadius:5,
-      background:"linear-gradient(135deg,#0071E3,#007AFF)",
+      background:"linear-gradient(135deg,var(--accent),var(--system-blue))",
       color:"#fff", fontSize:8, fontWeight:800, letterSpacing:"0.1em"
     }}>API</span>
   );

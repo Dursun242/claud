@@ -113,8 +113,8 @@ export default function ToastContainer() {
                 style={{
                   // Texte sombre sur blanc : lisible quelle que soit la couleur du message
                   background: '#fff',
-                  color: '#0066CC',
-                  border: '1px solid #D1D1D6',
+                  color: 'var(--accent-text)',
+                  border: '1px solid var(--separator-opaque)',
                   borderRadius: 8,
                   padding: '0 12px',
                   minHeight: 32,

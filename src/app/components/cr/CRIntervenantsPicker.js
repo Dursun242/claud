@@ -26,7 +26,7 @@ export default function CRIntervenantsPicker({ available = [], value = [], onCha
 
   if (!list.length) {
     return (
-      <div style={{ background: '#F5F5F7', border: '1px dashed #D1D1D6', borderRadius: 8, padding: '12px 14px', fontSize: 12, color: '#6E6E73' }}>
+      <div style={{ background: 'var(--row-fill)', border: '1px dashed var(--separator-opaque)', borderRadius: 8, padding: '12px 14px', fontSize: 12, color: 'var(--label-secondary)' }}>
         Aucun intervenant sur ce chantier — ajoutez-en depuis sa fiche (onglet Chantiers), puis revenez ici.
       </div>
     )
@@ -47,9 +47,9 @@ export default function CRIntervenantsPicker({ available = [], value = [], onCha
   const convoques = value.filter(v => v.convoque !== false).length
 
   return (
-    <div style={{ background: '#F5F5F7', border: '1px solid #E5E5EA', borderRadius: 8, padding: 10 }}>
+    <div style={{ background: 'var(--row-fill)', border: '1px solid var(--separator)', borderRadius: 8, padding: 10 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, gap: 8, flexWrap: 'wrap' }}>
-        <span style={{ fontSize: 12, fontWeight: 700, color: '#1C1C1E' }}>
+        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--label)' }}>
           {value.length === 0 ? 'Aucun sélectionné' : `${value.length} intervenant${value.length > 1 ? 's' : ''} · ${convoques} convoqué${convoques > 1 ? 's' : ''}`}
         </span>
         <div style={{ display: 'flex', gap: 12 }}>
@@ -65,20 +65,20 @@ export default function CRIntervenantsPicker({ available = [], value = [], onCha
           return (
             <div key={it.id || it.nom} style={{
               display: 'flex', alignItems: m ? 'stretch' : 'center', flexDirection: m ? 'column' : 'row', gap: 8,
-              padding: '8px 10px', borderRadius: 6, background: isSel ? '#EAF3FF' : '#fff',
-              border: isSel ? '1.5px solid #007AFF' : '1px solid #E5E5EA',
+              padding: '8px 10px', borderRadius: 6, background: isSel ? 'var(--accent-tint)' : '#fff',
+              border: isSel ? '1.5px solid var(--system-blue)' : '1px solid var(--separator)',
             }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0, cursor: 'pointer' }}>
                 <input type="checkbox" checked={isSel} onChange={() => toggle(it)}
-                  style={{ width: 18, height: 18, accentColor: '#007AFF', flexShrink: 0 }} />
+                  style={{ width: 18, height: 18, accentColor: 'var(--system-blue)', flexShrink: 0 }} />
                 <span style={{ minWidth: 0 }}>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: '#1C1C1E' }}>{it.nom}</span>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--label)' }}>{it.nom}</span>
                   {(it.societe && it.societe !== it.nom) || it.role ? (
-                    <span style={{ fontSize: 11, color: '#6E6E73' }}>
+                    <span style={{ fontSize: 11, color: 'var(--label-secondary)' }}>
                       {' '}· {[it.societe && it.societe !== it.nom ? it.societe : '', it.role].filter(Boolean).join(' · ')}
                     </span>
                   ) : null}
-                  {!it.email && <span style={{ fontSize: 11, color: '#C93400' }}> · sans email</span>}
+                  {!it.email && <span style={{ fontSize: 11, color: 'var(--orange-text)' }}> · sans email</span>}
                 </span>
               </label>
               {isSel && (
@@ -91,16 +91,16 @@ export default function CRIntervenantsPicker({ available = [], value = [], onCha
                           onClick={() => patch(it, { presence: p.v })}
                           style={{
                             minWidth: 30, height: 30, borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer',
-                            fontFamily: 'inherit', border: `1.5px solid ${on ? p.color : '#E5E5EA'}`,
-                            background: on ? p.bg : '#fff', color: on ? p.color : '#6E6E73',
+                            fontFamily: 'inherit', border: `1.5px solid ${on ? p.color : 'var(--separator)'}`,
+                            background: on ? p.bg : '#fff', color: on ? p.color : 'var(--label-secondary)',
                           }}>{m ? p.short : p.v}</button>
                       )
                     })}
                   </div>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 600, color: '#0066CC', cursor: 'pointer' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 600, color: 'var(--accent-text)', cursor: 'pointer' }}>
                     <input type="checkbox" checked={cur.convoque !== false}
                       onChange={e => patch(it, { convoque: e.target.checked })}
-                      style={{ width: 16, height: 16, accentColor: '#0071E3' }} />
+                      style={{ width: 16, height: 16, accentColor: 'var(--accent)' }} />
                     Convoqué
                   </label>
                 </div>

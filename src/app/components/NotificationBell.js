@@ -96,7 +96,7 @@ function Toast({ notif, index, total, onDismiss, onClick, isMobile }) {
         padding: '11px 14px',
         // Fond quasi opaque : lisible quel que soit le contenu dessous
         background: 'rgba(255,255,255,0.97)',
-        border: '1px solid #E5E5EA',
+        border: '1px solid var(--separator)',
         borderRadius: 12,
         boxShadow: '0 14px 36px rgba(0,0,0,0.16)',
         cursor: 'pointer',
@@ -119,13 +119,13 @@ function Toast({ notif, index, total, onDismiss, onClick, isMobile }) {
       }}>{icon}</span>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{
-          fontSize: 12, fontWeight: 600, color: '#1C1C1E',
+          fontSize: 12, fontWeight: 600, color: 'var(--label)',
           lineHeight: 1.35,
           display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
         }}>{notif.title}</div>
         {notif.body && (
           <div style={{
-            fontSize: 11, color: '#6E6E73', marginTop: 3, lineHeight: 1.4,
+            fontSize: 11, color: 'var(--label-secondary)', marginTop: 3, lineHeight: 1.4,
             display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden',
           }}>{notif.body}</div>
         )}
@@ -134,7 +134,7 @@ function Toast({ notif, index, total, onDismiss, onClick, isMobile }) {
         onClick={(e) => { e.stopPropagation(); setClosing(true); setTimeout(() => onDismiss(notif.id), 180) }}
         aria-label="Fermer"
         style={{
-          background: 'transparent', border: 'none', color: '#6E6E73',
+          background: 'transparent', border: 'none', color: 'var(--label-secondary)',
           cursor: 'pointer', padding: 2, fontSize: 14, lineHeight: 1, fontFamily: 'inherit',
           flexShrink: 0,
         }}
@@ -229,11 +229,11 @@ export default function NotificationBell({ userEmail, onNavigate, isMobile = fal
           style={{
             position: 'relative',
             background: open ? 'rgba(242,242,247,0.9)' : '#fff',
-            border: '1px solid #E5E5EA',
+            border: '1px solid var(--separator)',
             cursor: 'pointer',
             width: 40, height: 40,
             borderRadius: 10,
-            color: unreadCount > 0 ? '#0066CC' : '#3A3A3C',
+            color: unreadCount > 0 ? 'var(--accent-text)' : 'var(--label-2)',
             fontFamily: 'inherit',
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
             boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
@@ -247,7 +247,7 @@ export default function NotificationBell({ userEmail, onNavigate, isMobile = fal
             <span style={{
               position: 'absolute',
               top: -6, right: -6,
-              background: '#FF3B30', color: '#fff',
+              background: 'var(--red)', color: '#fff',
               borderRadius: 999,
               minWidth: 16, height: 16,
               padding: '0 4px', fontSize: 11, fontWeight: 700,
@@ -265,7 +265,7 @@ export default function NotificationBell({ userEmail, onNavigate, isMobile = fal
             // Fond opaque : la page ne doit pas transparaître sous la liste
             background: '#fff',
             borderRadius: 14,
-            border: '1px solid #E5E5EA',
+            border: '1px solid var(--separator)',
             boxShadow: '0 24px 60px rgba(0,0,0,0.20)',
             zIndex: 5000, overflow: 'hidden',
             animation: 'fadeInDown .22s cubic-bezier(.22,1,.36,1)',
@@ -275,12 +275,12 @@ export default function NotificationBell({ userEmail, onNavigate, isMobile = fal
               display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
             }}>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, minWidth: 0 }}>
-                <span style={{ fontSize: 17, fontWeight: 600, color: '#1C1C1E', letterSpacing: '-0.01em' }}>
+                <span style={{ fontSize: 17, fontWeight: 600, color: 'var(--label)', letterSpacing: '-0.01em' }}>
                   Activité
                 </span>
                 {unreadCount > 0 && (
                   <span style={{
-                    fontSize: 11, fontWeight: 700, color: '#0066CC',
+                    fontSize: 11, fontWeight: 700, color: 'var(--accent-text)',
                     background: 'rgba(0,122,255,0.12)',
                     padding: '2px 7px', borderRadius: 999, lineHeight: 1.4, whiteSpace: 'nowrap',
                   }}>{unreadCount} nouveau{unreadCount > 1 ? 'x' : ''}</span>
@@ -290,7 +290,7 @@ export default function NotificationBell({ userEmail, onNavigate, isMobile = fal
                 <button
                   onClick={markAllRead}
                   style={{
-                    background: 'transparent', border: 'none', color: '#0066CC',
+                    background: 'transparent', border: 'none', color: 'var(--accent-text)',
                     cursor: 'pointer', fontSize: 14, fontWeight: 500, minHeight: 36,
                     padding: '4px 6px', borderRadius: 8, fontFamily: 'inherit', whiteSpace: 'nowrap',
                   }}
@@ -299,11 +299,11 @@ export default function NotificationBell({ userEmail, onNavigate, isMobile = fal
             </div>
 
             {groups.length === 0 ? (
-              <div style={{ padding: '24px 16px 28px', textAlign: 'center', color: '#6E6E73', fontSize: 12 }}>
+              <div style={{ padding: '24px 16px 28px', textAlign: 'center', color: 'var(--label-secondary)', fontSize: 12 }}>
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#D1D1D6" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 6, opacity: 0.7 }} aria-hidden="true">
                   <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
                 </svg>
-                <div style={{ fontWeight: 600, color: '#6E6E73', fontSize: 12 }}>Tout est calme</div>
+                <div style={{ fontWeight: 600, color: 'var(--label-secondary)', fontSize: 12 }}>Tout est calme</div>
               </div>
             ) : (
               <ul style={{ listStyle: 'none', margin: 0, padding: '2px 6px 8px', maxHeight: 'min(70vh, 520px)', overflowY: 'auto', overscrollBehavior: 'contain' }}>
@@ -317,7 +317,7 @@ export default function NotificationBell({ userEmail, onNavigate, isMobile = fal
                         onClick={() => handleClick(g)}
                         style={{
                           width: '100%', textAlign: 'left',
-                          background: unread ? '#EAF3FF' : 'transparent',
+                          background: unread ? 'var(--accent-tint)' : 'transparent',
                           border: 'none', borderRadius: 10, padding: '10px 12px',
                           cursor: 'pointer',
                           display: 'flex', alignItems: 'flex-start', gap: 10,
@@ -333,16 +333,16 @@ export default function NotificationBell({ userEmail, onNavigate, isMobile = fal
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{
                             fontSize: 15, fontWeight: unread ? 600 : 400,
-                            color: '#1C1C1E', lineHeight: 1.3,
+                            color: 'var(--label)', lineHeight: 1.3,
                             display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
                           }}>{n.title}</div>
                           {n.body && (
                             <div style={{
-                              fontSize: 13, color: '#6E6E73', marginTop: 2, lineHeight: 1.4,
+                              fontSize: 13, color: 'var(--label-secondary)', marginTop: 2, lineHeight: 1.4,
                               display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden',
                             }}>{n.body}</div>
                           )}
-                          <div style={{ fontSize: 12, color: '#6E6E73', marginTop: 4 }}>
+                          <div style={{ fontSize: 12, color: 'var(--label-secondary)', marginTop: 4 }}>
                             {relativeTime(n.created_at)}
                             {g.count > 1 && (
                               <span style={{ marginLeft: 6, fontWeight: 700, color: accent }}>

@@ -43,32 +43,32 @@ function ListeView({ filteredChantiers, osByChantier, m: _m }) {
         if (!osList.length) return null
         const color = PHASE_COLORS[c.phase] || '#007AFF'
         return (
-          <div key={c.id} style={{ background: '#fff', borderRadius: 12, border: '1px solid #E5E5EA', overflow: 'hidden' }}>
+          <div key={c.id} style={{ background: '#fff', borderRadius: 12, border: '1px solid var(--separator)', overflow: 'hidden' }}>
             {/* En-tête chantier */}
-            <div style={{ background: '#F5F5F7', borderBottom: '1px solid #E5E5EA', padding: '10px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ background: 'var(--row-fill)', borderBottom: '1px solid var(--separator)', padding: '10px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <div style={{ fontWeight: 700, fontSize: 13, color: '#1C1C1E', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--label)', display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span aria-hidden="true" title={c.phase} style={{ width: 8, height: 8, borderRadius: '50%', background: color, flexShrink: 0 }} />{c.nom}
                 </div>
-                <div style={{ fontSize: 11, color: '#6E6E73', marginTop: 1 }}>
+                <div style={{ fontSize: 11, color: 'var(--label-secondary)', marginTop: 1 }}>
                   {c.date_debut ? fmtDate(c.date_debut) : '—'} → {c.date_fin ? fmtDate(c.date_fin) : '—'}
                 </div>
               </div>
-              <div style={{ fontSize: 11, color: '#6E6E73' }}>{osList.length} OS</div>
+              <div style={{ fontSize: 11, color: 'var(--label-secondary)' }}>{osList.length} OS</div>
             </div>
             {/* Lignes OS */}
             <div>
               {osList.map((os, i) => (
-                <div key={os.id} style={{ display: 'flex', alignItems: 'center', padding: '8px 16px', borderTop: i > 0 ? '1px solid #F5F5F7' : 'none', gap: 12, flexWrap: 'wrap' }}>
+                <div key={os.id} style={{ display: 'flex', alignItems: 'center', padding: '8px 16px', borderTop: i > 0 ? '1px solid var(--row-fill)' : 'none', gap: 12, flexWrap: 'wrap' }}>
                   <div style={{ minWidth: 70 }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: '#3A3A3C' }}>{os.numero}</div>
-                    <div style={{ fontSize: 11, color: OS_COLOR[os.statut] || '#8E8E93', fontWeight: 600 }}>{os.statut}</div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--label-2)' }}>{os.numero}</div>
+                    <div style={{ fontSize: 11, color: OS_COLOR[os.statut] || 'var(--label-tertiary)', fontWeight: 600 }}>{os.statut}</div>
                   </div>
                   <div style={{ flex: 1, minWidth: 120 }}>
-                    <div style={{ fontSize: 12, color: '#1C1C1E', fontWeight: 600 }}>{os.artisan_specialite || os.artisan_nom || '—'}</div>
-                    <div style={{ fontSize: 11, color: '#6E6E73' }}>{os.artisan_nom}</div>
+                    <div style={{ fontSize: 12, color: 'var(--label)', fontWeight: 600 }}>{os.artisan_specialite || os.artisan_nom || '—'}</div>
+                    <div style={{ fontSize: 11, color: 'var(--label-secondary)' }}>{os.artisan_nom}</div>
                   </div>
-                  <div style={{ fontSize: 11, color: '#6E6E73', whiteSpace: 'nowrap' }}>
+                  <div style={{ fontSize: 11, color: 'var(--label-secondary)', whiteSpace: 'nowrap' }}>
                     {os.date_intervention ? fmtDate(os.date_intervention) : '—'}
                     {' → '}
                     {os.date_fin_prevue ? fmtDate(os.date_fin_prevue) : '—'}
@@ -302,8 +302,8 @@ export default function PlanningV({ data, m, reload, readOnly = false }) {
       {/* ── En-tête ───────────────────────────────────────── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 10 }}>
         <div>
-          <h1 style={{margin:0,fontSize:m?28:32,fontWeight:700,letterSpacing:"-0.02em",color:"#1C1C1E"}}>Planning</h1>
-          <div style={{ fontSize: 13, color: '#6E6E73', marginTop: 2 }}>
+          <h1 style={{margin:0,fontSize:m?28:32,fontWeight:700,letterSpacing:"-0.02em",color:"var(--label)"}}>Planning</h1>
+          <div style={{ fontSize: 13, color: 'var(--label-secondary)', marginTop: 2 }}>
             {osPlanned.length} OS planifié{osPlanned.length !== 1 ? 's' : ''}
             {filter !== 'all' && <> · filtre actif</>}
           </div>
@@ -313,7 +313,7 @@ export default function PlanningV({ data, m, reload, readOnly = false }) {
           {view === 'gantt' && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
               <button onClick={() => setPxDay(d => Math.max(8, d - 4))} aria-label="Dézoomer" className="u-hit" style={zBtnS}>−</button>
-              <span style={{ fontSize: 11, color: '#6E6E73', minWidth: 34, textAlign: 'center' }}>{pxDay}px/j</span>
+              <span style={{ fontSize: 11, color: 'var(--label-secondary)', minWidth: 34, textAlign: 'center' }}>{pxDay}px/j</span>
               <button onClick={() => setPxDay(d => Math.min(80, d + 4))} aria-label="Zoomer" className="u-hit" style={zBtnS}>+</button>
             </div>
           )}
@@ -324,7 +324,7 @@ export default function PlanningV({ data, m, reload, readOnly = false }) {
                 minHeight: 32, padding: '0 14px', border: 'none', borderRadius: 8, cursor: 'pointer',
                 fontSize: 13, fontWeight: view === v ? 600 : 500, fontFamily: 'inherit',
                 background: view === v ? '#fff' : 'transparent',
-                color: '#1C1C1E',
+                color: 'var(--label)',
                 boxShadow: view === v ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
                 transition: 'all .15s',
               }}>{lbl}</button>
@@ -363,33 +363,33 @@ export default function PlanningV({ data, m, reload, readOnly = false }) {
         <div style={{ background: '#fff', borderRadius: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
 
           {/* Aide */}
-          <div style={{ padding: '5px 14px', borderBottom: '1px solid #F2F2F7', fontSize: 11, color: '#6E6E73', display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+          <div style={{ padding: '5px 14px', borderBottom: '1px solid var(--grouped-bg)', fontSize: 11, color: 'var(--label-secondary)', display: 'flex', gap: 14, flexWrap: 'wrap' }}>
             {readOnly ? <span>Planning des interventions (consultation)</span> : <>
               <span>↔ Glisser la barre pour déplacer</span>
               <span>⊣⊢ Bord droit pour redimensionner</span>
             </>}
-            {saving && <span style={{ color: '#0066CC', fontWeight: 600 }}>💾 Sauvegarde…</span>}
+            {saving && <span style={{ color: 'var(--accent-text)', fontWeight: 600 }}>💾 Sauvegarde…</span>}
           </div>
 
           <div ref={scrollRef} style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: m ? '65vh' : '72vh' }}>
             <div style={{ display: 'inline-block', minWidth: '100%', position: 'relative' }}>
 
               {/* ── En-tête mois (sticky) ── */}
-              <div style={{ display: 'flex', position: 'sticky', top: 0, zIndex: 10, background: '#F5F5F7', borderBottom: '2px solid #E5E5EA' }}>
-                <div style={{ width: labelW, flexShrink: 0, borderRight: '2px solid #E5E5EA', padding: '0 12px', display: 'flex', alignItems: 'center', fontSize: 11, fontWeight: 700, color: '#6E6E73', letterSpacing: '0.05em', height: 34 }}>
+              <div style={{ display: 'flex', position: 'sticky', top: 0, zIndex: 10, background: 'var(--row-fill)', borderBottom: '2px solid var(--separator)' }}>
+                <div style={{ width: labelW, flexShrink: 0, borderRight: '2px solid var(--separator)', padding: '0 12px', display: 'flex', alignItems: 'center', fontSize: 11, fontWeight: 700, color: 'var(--label-secondary)', letterSpacing: '0.05em', height: 34 }}>
                   CHANTIER / OS
                 </div>
                 <div style={{ width: totalW, flexShrink: 0, position: 'relative', height: 34 }}>
                   {months.map((mo, i) => (
-                    <div key={i} style={{ position: 'absolute', left: mo.off * pxDay, top: 0, bottom: 0, borderLeft: '1px solid #E5E5EA' }}>
-                      <span style={{ position: 'absolute', left: 5, top: '50%', transform: 'translateY(-50%)', fontSize: 11, fontWeight: 700, color: '#6E6E73', whiteSpace: 'nowrap' }}>
+                    <div key={i} style={{ position: 'absolute', left: mo.off * pxDay, top: 0, bottom: 0, borderLeft: '1px solid var(--separator)' }}>
+                      <span style={{ position: 'absolute', left: 5, top: '50%', transform: 'translateY(-50%)', fontSize: 11, fontWeight: 700, color: 'var(--label-secondary)', whiteSpace: 'nowrap' }}>
                         {mo.label}
                       </span>
                     </div>
                   ))}
                   {showToday && (
-                    <div style={{ position: 'absolute', left: (todayPct / 100) * totalW, top: 0, bottom: -2, borderLeft: '2px solid #FF3B30', zIndex: 2 }}>
-                      <span style={{ position: 'absolute', top: 4, left: 4, fontSize: 8, fontWeight: 700, color: '#FF3B30', whiteSpace: 'nowrap', background: '#FFF0EF', padding: '1px 4px', borderRadius: 3 }}>
+                    <div style={{ position: 'absolute', left: (todayPct / 100) * totalW, top: 0, bottom: -2, borderLeft: '2px solid var(--red)', zIndex: 2 }}>
+                      <span style={{ position: 'absolute', top: 4, left: 4, fontSize: 8, fontWeight: 700, color: 'var(--red)', whiteSpace: 'nowrap', background: 'var(--red-tint)', padding: '1px 4px', borderRadius: 3 }}>
                         Auj.
                       </span>
                     </div>
@@ -441,11 +441,11 @@ export default function PlanningV({ data, m, reload, readOnly = false }) {
                       const rowBg    = isActive ? '#EAF3FF' : idx % 2 === 0 ? '#F9F9FB' : '#fff'
 
                       return (
-                        <div key={os.id} style={{ display: 'flex', height: ROW_H, borderBottom: '1px solid #F2F2F7', background: rowBg }}>
+                        <div key={os.id} style={{ display: 'flex', height: ROW_H, borderBottom: '1px solid var(--grouped-bg)', background: rowBg }}>
 
                           {/* Colonne label */}
-                          <div style={{ width: labelW, flexShrink: 0, borderRight: '1px solid #E5E5EA', padding: '0 12px 0 20px', display: 'flex', flexDirection: 'column', justifyContent: 'center', position: 'sticky', left: 0, background: rowBg, zIndex: 3 }}>
-                            <div style={{ fontSize: 11, fontWeight: 600, color: '#1C1C1E', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          <div style={{ width: labelW, flexShrink: 0, borderRight: '1px solid var(--separator)', padding: '0 12px 0 20px', display: 'flex', flexDirection: 'column', justifyContent: 'center', position: 'sticky', left: 0, background: rowBg, zIndex: 3 }}>
+                            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--label)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                               {os.artisan_specialite || os.artisan_nom || os.numero}
                             </div>
                             <div style={{ fontSize: 11, color: osColor, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -457,7 +457,7 @@ export default function PlanningV({ data, m, reload, readOnly = false }) {
                           <div style={{ width: totalW, flexShrink: 0, position: 'relative' }}>
                             {/* Lignes de mois en fond */}
                             {months.map((mo, i) => (
-                              <div key={i} style={{ position: 'absolute', left: mo.off * pxDay, top: 0, bottom: 0, borderLeft: '1px solid #F2F2F7' }} />
+                              <div key={i} style={{ position: 'absolute', left: mo.off * pxDay, top: 0, bottom: 0, borderLeft: '1px solid var(--grouped-bg)' }} />
                             ))}
                             {showToday && (
                               <div style={{ position: 'absolute', left: (todayPct / 100) * totalW, top: 0, bottom: 0, borderLeft: '2px solid rgba(255,59,48,0.15)', zIndex: 1, pointerEvents: 'none' }} />
@@ -507,7 +507,7 @@ export default function PlanningV({ data, m, reload, readOnly = false }) {
 
                               {/* Tooltip dates pendant le drag */}
                               {isActive && (
-                                <div style={{ position: 'absolute', bottom: '110%', left: '50%', transform: 'translateX(-50%)', background: '#1C1C1E', color: '#fff', fontSize: 11, fontWeight: 600, padding: '3px 7px', borderRadius: 5, whiteSpace: 'nowrap', pointerEvents: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.2)' }}>
+                                <div style={{ position: 'absolute', bottom: '110%', left: '50%', transform: 'translateX(-50%)', background: 'var(--label)', color: '#fff', fontSize: 11, fontWeight: 600, padding: '3px 7px', borderRadius: 5, whiteSpace: 'nowrap', pointerEvents: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.2)' }}>
                                   {fmtDate(os.date_intervention)} → {fmtDate(os.date_fin_prevue)}
                                 </div>
                               )}

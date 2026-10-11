@@ -33,38 +33,38 @@ export default function ChantierBudgetCard({ finances, m }) {
         gridTemplateColumns: m ? 'repeat(2,1fr)' : 'repeat(4,1fr)',
         gap: 12, marginBottom: 12,
       }}>
-        <div style={{ background: '#F5F5F7', borderRadius: 8, padding: 10 }}>
+        <div style={{ background: 'var(--row-fill)', borderRadius: 8, padding: 10 }}>
           <div style={label}>Budget</div>
-          <div style={{ fontSize: 18, fontWeight: 700, color: '#1C1C1E' }}>
+          <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--label)' }}>
             {fmtMoney(finances.budget)}
           </div>
         </div>
         <div
-          style={{ background: '#F5F5F7', borderRadius: 8, padding: 10 }}
+          style={{ background: 'var(--row-fill)', borderRadius: 8, padding: 10 }}
           title={`${finances.engageCount} OS engagés (hors brouillon/annulé)`}
         >
           <div style={label}>Engagé (OS)</div>
           <div style={{ fontSize: 18, fontWeight: 700, color: budgetColor }}>
             {fmtMoney(finances.engageMontant)}
           </div>
-          <div style={{ fontSize: 12, color: '#6E6E73', marginTop: 2 }}>
+          <div style={{ fontSize: 12, color: 'var(--label-secondary)', marginTop: 2 }}>
             {finances.engageCount} OS · dont {finances.realiseCount} terminé{finances.realiseCount > 1 ? 's' : ''}
           </div>
         </div>
-        <div style={{ background: '#F5F5F7', borderRadius: 8, padding: 10 }}>
+        <div style={{ background: 'var(--row-fill)', borderRadius: 8, padding: 10 }}>
           <div style={label}>
             {finances.depassement > 0 ? 'Dépassement' : 'Reste à engager'}
           </div>
           <div style={{
             fontSize: 18, fontWeight: 700,
-            color: finances.depassement > 0 ? '#D70015' : '#1C1C1E',
+            color: finances.depassement > 0 ? 'var(--red-text)' : 'var(--label)',
           }}>
             {finances.depassement > 0
               ? '+' + fmtMoney(finances.depassement)
               : fmtMoney(finances.resteEngager)}
           </div>
         </div>
-        <div style={{ background: '#F5F5F7', borderRadius: 8, padding: 10 }}>
+        <div style={{ background: 'var(--row-fill)', borderRadius: 8, padding: 10 }}>
           <div style={label} title="Part du budget engagée dans les OS">Budget engagé</div>
           <div style={{ fontSize: 18, fontWeight: 700, color: budgetColor }}>{ratio}%</div>
         </div>
@@ -77,17 +77,17 @@ export default function ChantierBudgetCard({ finances, m }) {
       />
       {finances.brouillonMontant > 0 && (
         <div style={{
-          marginTop: 8, fontSize: 12, color: '#6E6E73',
+          marginTop: 8, fontSize: 12, color: 'var(--label-secondary)',
           display: 'flex', alignItems: 'center', gap: 6,
         }}>
-          <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#8E8E93' }} />
+          <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--label-tertiary)' }} />
           {finances.brouillonCount} OS en brouillon : {fmtMoney(finances.brouillonMontant)} (non engagés)
         </div>
       )}
       {finances.depassement > 0 && (
         <div style={{
-          marginTop: 8, fontSize: 12, color: '#D70015',
-          background: '#FFF0EF', border: '1px solid #FFC9C6',
+          marginTop: 8, fontSize: 12, color: 'var(--red-text)',
+          background: 'var(--red-tint)', border: '1px solid var(--red-line)',
           borderRadius: 6, padding: '8px 10px', fontWeight: 600,
         }}>
           {EMOJI.alerte} Budget dépassé de {fmtMoney(finances.depassement)} — revoir le budget ou les OS

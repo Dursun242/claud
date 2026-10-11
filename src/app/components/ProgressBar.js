@@ -15,7 +15,7 @@ export default function ProgressBar({
   return (
     <div
       style={{
-        background: '#F2F2F7',
+        background: 'var(--grouped-bg)',
         borderRadius: height,
         height,
         overflow: 'hidden',
