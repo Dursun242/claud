@@ -3,6 +3,8 @@ import { useState } from 'react'
 import { useToast } from '../contexts/ToastContext'
 import { useConfirm } from '../contexts/ConfirmContext'
 import EmptyState from './EmptyState'
+import Emoji from './Emoji'
+import { EMOJI } from '../lib/emoji'
 
 // Temps relatif en français (sans lib externe)
 function formatRelative(dateStr) {
@@ -86,8 +88,8 @@ export default function CommentsSection({
 
   return (
     <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid #E5E5EA' }}>
-      <h4 style={{ margin: '0 0 12px 0', fontSize: 17, fontWeight: 600, color: '#1C1C1E' }}>
-        Commentaires <span style={{ color: '#6E6E73', fontWeight: 500 }}>({comments.length})</span>
+      <h4 style={{ margin: '0 0 12px 0', display: 'flex', alignItems: 'center', gap: 8, fontSize: 17, fontWeight: 600, color: '#1C1C1E' }}>
+        <Emoji e={EMOJI.commentaires} tile="#fff" />Commentaires <span style={{ color: '#6E6E73', fontWeight: 500 }}>({comments.length})</span>
       </h4>
 
       {/* Liste commentaires */}

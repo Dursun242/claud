@@ -169,6 +169,7 @@ Les documents produits (PDF, Excel, mails) gardent leur propre charte ID Maîtri
 - Barre latérale claire façon iPad : icônes bleues, onglet actif en pastille bleue.
 - Barres du haut et du bas translucides (flou) sur téléphone.
 - Couleurs système iOS pour les statuts (vert, orange, rouge, violet), toujours en teinte lisible sur fond dilué.
+- Repères emoji dans des tuiles grises devant les titres de section et les lignes typées, pour reconnaître d'un coup d'œil (liste fixe, `lib/emoji.js`).
 
 ## Colors
 
@@ -268,7 +269,16 @@ Les quatre styles de bouton d'iOS.
 - **Teinté** (`btnAdd`) : fond `accent-tint`, texte `accent-text`, icône + — « Nouvel OS », « Nouveau CR »…
 - **De ligne** (`btnChip`) : fond `grouped-background`, texte `accent-text`, icône dessinée, 32 px — PDF, Excel, Envoyer, Modifier.
 - **Survol / appui :** classe `.u-btn` (léger assombrissement, enfoncement à l'appui) ; anneau de focus `system-blue` au clavier.
-- **Icônes :** toujours dessinées (`I.*` de `shared.js`), jamais d'emoji.
+- **Icônes :** toujours dessinées (`I.*` de `shared.js`) dans les boutons et la navigation ; pas d'emoji dans un bouton.
+
+### Repères emoji
+Choix de l'équipe (octobre 2026) : quelques emoji pour repérer d'un coup d'œil ce qui compte.
+- **Composant :** `components/Emoji.js`, emoji dans une tuile arrondie gris iOS (28 px ; 26 px dans une ligne ; tuile grise dans une carte blanche, blanche sur le fond gris de la page ; 32 px pour « Mes priorités du jour »), caché aux lecteurs d'écran.
+- **Liste fixe** (`lib/emoji.js`) : 🎯 priorités, ☀️ ma journée, 💼 commercial, ⚡ à faire, 🏗️ chantiers, 💶 budget, 🧮 chiffrage, 📎 pièces jointes, 📋 OS, 📝 CR, 🤝 PV, ✅ tâches, 👷 intervenants, 📅 planning / rendez-vous, 🔒 notes internes, 💬 commentaires, 🚧 travaux ; agenda : ✍️ signature, 📞 relance ; signaux : 🔥 client intéressé, ⏳ expiration, 📭 sans réponse, 📄 brouillon, 💤 dormante ; alertes : ⚠️ alerte, 🔔 rappel.
+- **Où :** devant un titre de section, devant une ligne dont le type compte (agenda, signaux commerciaux), dans une alerte.
+
+### Named Rules
+**The Emoji Marker Rule.** Un emoji = un type de chose, toujours le même, pris dans `lib/emoji.js`, posé dans sa tuile. Jamais dans un bouton, un badge, la navigation ni un état vide ; jamais deux repères sur la même ligne.
 
 ### Chips / Badges
 - **Style :** pastille, 11 px semi-gras, texte en teinte lisible sur fond dilué (`components/Badge.js`, `lib/tone.js`).
@@ -309,7 +319,7 @@ Les quatre styles de bouton d'iOS.
 ### Don't:
 - **Don't** remettre de fond sombre (barre latérale, en-têtes, cartes) : le style est clair.
 - **Don't** donner une couleur propre à une section, une catégorie ou une phase.
-- **Don't** utiliser d'emoji comme icône ou dans un titre.
+- **Don't** utiliser un emoji hors de la liste `lib/emoji.js`, ni dans un bouton, un badge ou la navigation.
 - **Don't** utiliser `label-tertiary` (`#8E8E93`) pour du texte à lire.
 - **Don't** introduire l'or `#C8A45C` dans l'interface tant que la décision de marque n'est pas prise.
 - **Don't** fermer une fenêtre de saisie au clic sur le fond.

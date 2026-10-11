@@ -1,5 +1,7 @@
 'use client'
 import { useMotDuJour } from '../../hooks/useMotDuJour'
+import Emoji from '../Emoji'
+import { EMOJI } from '../../lib/emoji'
 
 
 /**
@@ -26,6 +28,7 @@ export default function PrioritiesPanel({ priorities, onOpen, userId, today, rea
       boxShadow: '0 1px 3px rgba(0,0,0,0.06)', marginBottom: 18,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: top.length ? 12 : 4 }}>
+        <Emoji e={EMOJI.priorites} size={32} />
         <h2 id="priorities-title" style={{ margin: 0, fontSize: 20, fontWeight: 700, color: '#1C1C1E', letterSpacing: '-0.01em' }}>Mes priorités du jour</h2>
         {more > 0 && (
           <span style={{ fontSize: 12, color: '#6E6E73' }}>

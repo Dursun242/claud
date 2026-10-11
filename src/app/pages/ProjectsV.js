@@ -11,6 +11,7 @@ import {
 } from '../components'
 import ChantierCard from '../components/projects/ChantierCard'
 import Section from '../components/Section'
+import { EMOJI } from '../lib/emoji'
 import ProjectsFilterPills from '../components/projects/ProjectsFilterPills'
 import ClientAccountField from '../components/projects/ClientAccountField'
 import { useAttachments } from '../hooks/useAttachments'
@@ -398,7 +399,7 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
       />
 
       {/* ORDRES DE SERVICE */}
-      <Section title="Ordres de service" count={chOS.length}>
+      <Section title="Ordres de service" count={chOS.length} emoji={EMOJI.os}>
         {!readOnly && <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap"}}>
           <button onClick={()=>{
             setDetailForm({
@@ -468,7 +469,7 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
       </Section>
 
       {/* COMPTES RENDUS */}
-      <Section title="Comptes rendus" count={chCR.length}>
+      <Section title="Comptes rendus" count={chCR.length} emoji={EMOJI.cr}>
         {!readOnly && <div style={{display:"flex",gap:8,marginBottom:12}}>
           <button onClick={()=>setCrModal({ initial: { chantierId: ch.id } })} className="u-btn" style={btnAdd}>
             <Icon d={I.plus} size={16}/>Nouveau CR</button>
@@ -528,7 +529,7 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
       )}
 
       {/* TÂCHES — clients autorisés à créer/modifier leurs tâches */}
-      <Section title="Tâches" count={chTasks.length}>
+      <Section title="Tâches" count={chTasks.length} emoji={EMOJI.taches}>
         <div style={{display:"flex",gap:8,marginBottom:12}}>
           <button onClick={()=>{
             setDetailForm({chantierId:ch.id,titre:"",lot:"",
@@ -564,7 +565,7 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
                 <div style={{fontSize:12,color:"#6E6E73"}}>
                   {[t.entreprise, t.lot, fmtDate(t.echeance)].filter(Boolean).join(" • ")}
                   {t.nb_rappels > 0 && t.statut !== "Terminé" && (
-                    <span style={{color:"#D70015",fontWeight:600}}> • {t.nb_rappels} rappel{t.nb_rappels>1?"s":""}</span>
+                    <span style={{color:"#D70015",fontWeight:600}}> • {EMOJI.rappel} {t.nb_rappels} rappel{t.nb_rappels>1?"s":""}</span>
                   )}
                 </div>
               </div>
@@ -592,7 +593,7 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
       <ChantierPlanning items={chPlanning} />
 
       {/* NOTES INTERNES — cachées pour les clients (comme le placeholder l'indique) */}
-      {!readOnly && <Section title="Notes internes">
+      {!readOnly && <Section title="Notes internes" emoji={EMOJI.notes}>
         <div style={{background:"#fff",border:"1px solid #E5E5EA",borderRadius:10,padding:14}}>
           <textarea
             value={notesDraft ?? ch.notes_internes ?? ""}

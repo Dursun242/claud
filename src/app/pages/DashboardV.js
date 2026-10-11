@@ -11,6 +11,8 @@ import CrmPanel from '../components/dashboard/CrmPanel'
 import { buildCrmDaily, buildConformiteItems } from '../lib/dailyPriorities'
 import { useConformite } from '../hooks/useConformite'
 import ClientOverview from '../components/dashboard/ClientOverview'
+import Emoji from '../components/Emoji'
+import { EMOJI } from '../lib/emoji'
 
 // Salutation selon l'heure de la journée
 const getGreeting = () => {
@@ -222,8 +224,8 @@ export default function DashboardV({data,crm=null,ready=true,setTab,m,user,clien
           display:"flex", justifyContent:"space-between",
           alignItems:"center", marginBottom:14
         }}>
-          <h2 style={{margin:0,fontSize:17,fontWeight:600,color:"#1C1C1E"}}>
-            Chantiers en cours
+          <h2 style={{margin:0,fontSize:17,fontWeight:600,color:"#1C1C1E",display:"flex",alignItems:"center",gap:8}}>
+            <Emoji e={EMOJI.chantiers} />Chantiers en cours
           </h2>
           <button
             onClick={()=>setTab("projects")}
@@ -302,7 +304,8 @@ export default function DashboardV({data,crm=null,ready=true,setTab,m,user,clien
         display:"flex", alignItems:"center",
         justifyContent:"space-between", gap:6, marginBottom:12
       }}>
-        <div style={{display:"flex",alignItems:"center",gap:6}}>
+        <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+          <Emoji e={EMOJI.aFaire} />
           <h2 style={{margin:0,fontWeight:600,fontSize:17,color:"#1C1C1E"}}>À faire</h2>
           {urgentTasks.length>0&&(
             <Badge text={`${urgentTasks.length} urgente${urgentTasks.length>1?"s":""}`} color="#FF3B30"/>
@@ -380,8 +383,8 @@ export default function DashboardV({data,crm=null,ready=true,setTab,m,user,clien
       border:"1px solid #E5E5EA",
       boxShadow:"0 1px 3px rgba(0,0,0,0.06)"
     }}>
-      <h3 style={{margin:"0 0 14px",fontSize:17,fontWeight:600,color:"#1C1C1E"}}>
-        Budget global
+      <h3 style={{margin:"0 0 14px",fontSize:17,fontWeight:600,color:"#1C1C1E",display:"flex",alignItems:"center",gap:8}}>
+        <Emoji e={EMOJI.budget} />Budget global
       </h3>
       <div style={{
         display:"grid",

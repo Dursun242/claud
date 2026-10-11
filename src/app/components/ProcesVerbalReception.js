@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../supabaseClient'
 import Section from './Section'
+import { EMOJI } from '../lib/emoji'
 import EmptyState from './EmptyState'
 import PVRow from './pv/PVRow'
 import PVDetail from './pv/PVDetail'
@@ -54,7 +55,7 @@ export default function ProcesVerbalReception({ chantierId, chantier, ordresServ
 
   return (
     <>
-      <Section title="Procès-verbaux de réception" count={pvs.length}>
+      <Section title="Procès-verbaux de réception" count={pvs.length} emoji={EMOJI.pv}>
         {!readOnly && <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
           <button
             onClick={() => setShowNewForm(true)}

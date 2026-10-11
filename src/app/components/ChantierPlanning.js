@@ -6,13 +6,14 @@
 // ═══════════════════════════════════════════════════════════════
 
 import Section from './Section'
+import { EMOJI } from '../lib/emoji'
 import { PBar, fmtDate } from '../dashboards/shared'
 
 export default function ChantierPlanning({ items = [] }) {
   if (items.length === 0) return null
 
   return (
-    <Section title="Planning" count={items.length}>
+    <Section title="Planning" count={items.length} emoji={EMOJI.planning}>
       {items.map((p) => (
         <div key={p.id} style={{
           display: 'flex', alignItems: 'center', gap: 12,
