@@ -2,12 +2,12 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 
 const CATEGORIES = [
-  { key: 'chantiers', label: 'Chantiers',  tab: 'projects',  color: '#3B82F6', icon: '🏗️' },
-  { key: 'os',        label: 'OS',          tab: 'os',        color: '#8B5CF6', icon: '📋' },
-  { key: 'contacts',  label: 'Contacts',    tab: 'contacts',  color: '#10B981', icon: '👤' },
-  { key: 'tasks',     label: 'Tâches',      tab: 'tasks',     color: '#F59E0B', icon: '✓'  },
-  { key: 'crs',       label: 'Comptes Rendus', tab: 'reports', color: '#EC4899', icon: '📝' },
-  { key: 'crm',       label: 'CRM',         tab: 'crm',       color: '#0EA5E9', icon: '🎯' },
+  { key: 'chantiers', label: 'Chantiers',  tab: 'projects',  color: '#0066CC', icon: '🏗️' },
+  { key: 'os',        label: 'OS',          tab: 'os',        color: '#AF52DE', icon: '📋' },
+  { key: 'contacts',  label: 'Contacts',    tab: 'contacts',  color: '#34C759', icon: '👤' },
+  { key: 'tasks',     label: 'Tâches',      tab: 'tasks',     color: '#FF9500', icon: '✓'  },
+  { key: 'crs',       label: 'Comptes Rendus', tab: 'reports', color: '#FF2D55', icon: '📝' },
+  { key: 'crm',       label: 'CRM',         tab: 'crm',       color: '#32ADE6', icon: '🎯' },
 ]
 
 // Historique des derniers éléments ouverts via la recherche (localStorage)
@@ -150,9 +150,9 @@ export default function GlobalSearch({ data, crm = null, onNavigate }) {
       {/* Barre de recherche */}
       <div style={{ position: 'relative' }}>
         <svg style={{ position: 'absolute', left: 10, top: '50%',
-          transform: 'translateY(-50%)', opacity: 0.4 }}
+          transform: 'translateY(-50%)' }}
           width="14" height="14" viewBox="0 0 24 24"
-          fill="none" stroke="#fff" strokeWidth="2.5">
+          fill="none" stroke="#8E8E93" strokeWidth="2.5">
           <circle cx="11" cy="11" r="8"/>
           <path d="M21 21l-4.35-4.35"/>
         </svg>
@@ -167,10 +167,10 @@ export default function GlobalSearch({ data, crm = null, onNavigate }) {
           aria-label="Recherche globale"
           style={{
             width: '100%', boxSizing: 'border-box',
-            padding: '7px 10px 7px 30px',
-            background: 'rgba(255,255,255,0.08)',
-            border: '1px solid rgba(255,255,255,0.12)',
-            borderRadius: 8, color: '#fff', fontSize: 12,
+            padding: '8px 28px 8px 30px', minHeight: 36,
+            background: '#EEEEF0',
+            border: 'none',
+            borderRadius: 10, color: '#1C1C1E', fontSize: 14,
             fontFamily: 'inherit', outline: 'none',
           }}
         />
@@ -178,7 +178,7 @@ export default function GlobalSearch({ data, crm = null, onNavigate }) {
           <button onClick={() => { setQuery(''); setOpen(false) }} aria-label="Effacer la recherche" style={{
             position: 'absolute', right: 8, top: '50%',
             transform: 'translateY(-50%)', background: 'none', border: 'none',
-            color: '#64748B', cursor: 'pointer', fontSize: 14, padding: 0, lineHeight: 1
+            color: '#6E6E73', cursor: 'pointer', fontSize: 14, padding: 0, lineHeight: 1
           }}>✕</button>
         )}
       </div>
@@ -187,21 +187,21 @@ export default function GlobalSearch({ data, crm = null, onNavigate }) {
       {open && (query.length >= 2 || showRecents) && (
         <div style={{
           position: 'absolute', left: 8, right: 8, top: '100%', zIndex: 2000,
-          background: '#1E293B', border: '1px solid rgba(255,255,255,0.12)',
-          borderRadius: 10, boxShadow: '0 16px 40px rgba(0,0,0,0.5)',
+          background: '#fff', border: '1px solid #E5E5EA',
+          borderRadius: 12, boxShadow: '0 12px 32px rgba(0,0,0,0.12)',
           maxHeight: 400, overflowY: 'auto', marginTop: 4,
         }}>
           {/* ── Mode récents (query vide) ── */}
           {showRecents && (
             <div>
               <div style={{
-                padding: '8px 14px 4px', fontSize: 10, fontWeight: 700, color: '#64748B',
-                letterSpacing: '0.08em', textTransform: 'uppercase',
+                padding: '8px 14px 4px', fontSize: 11, fontWeight: 600, color: '#6E6E73',
+                letterSpacing: '0.05em', textTransform: 'uppercase',
                 display:'flex', alignItems:'center', justifyContent:'space-between'
               }}>
-                <span>⏱ Récents</span>
+                <span>Récents</span>
                 <span style={{
-                  fontSize: 10, color:'#475569', fontWeight:500,
+                  fontSize: 11, color:'#6E6E73', fontWeight:400,
                   textTransform:'none', letterSpacing:0
                 }}>Tape 2 lettres pour chercher</span>
               </div>
@@ -212,17 +212,16 @@ export default function GlobalSearch({ data, crm = null, onNavigate }) {
                     className="u-menu-item"
                     style={{
                       display:'block', width:'100%', textAlign:'left',
-                      padding:'7px 14px 7px 22px', background:'transparent',
+                      padding:'8px 14px', background:'transparent',
                       border:'none', fontFamily:'inherit',
-                      borderLeft:`3px solid transparent`,
                     }}
                   >
-                    <div style={{ fontSize: 12, fontWeight: 600, color: '#E2E8F0' }}>
-                      <span style={{ color: cat.color, marginRight: 6 }}>{cat.icon}</span>
+                    <div style={{ fontSize: 14, fontWeight: 500, color: '#1C1C1E' }}>
                       {r.primary}
+                      <span style={{ fontSize: 12, fontWeight: 400, color: '#6E6E73', marginLeft: 6 }}>{cat.label}</span>
                     </div>
                     <div style={{
-                      fontSize: 10, color: '#64748B', marginTop: 1,
+                      fontSize: 12, color: '#6E6E73', marginTop: 1,
                       overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
                     }}>{r.secondary}</div>
                   </button>
@@ -234,7 +233,7 @@ export default function GlobalSearch({ data, crm = null, onNavigate }) {
           {/* ── Mode résultats ── */}
           {query.length >= 2 && (
             totalCount === 0 ? (
-              <div style={{ padding: '16px 14px', fontSize: 12, color: '#64748B', textAlign: 'center' }}>
+              <div style={{ padding: '16px 14px', fontSize: 13, color: '#6E6E73', textAlign: 'center' }}>
                 Aucun résultat pour « {query} »
               </div>
             ) : (
@@ -244,10 +243,10 @@ export default function GlobalSearch({ data, crm = null, onNavigate }) {
                 return (
                   <div key={cat.key}>
                     <div style={{
-                      padding: '8px 14px 4px', fontSize: 10, fontWeight: 700,
-                      color: cat.color, letterSpacing: '0.08em', textTransform: 'uppercase'
+                      padding: '8px 14px 4px', fontSize: 11, fontWeight: 600,
+                      color: '#6E6E73', letterSpacing: '0.05em', textTransform: 'uppercase'
                     }}>
-                      {cat.icon} {cat.label}
+                      {cat.label}
                     </div>
                     {items.map((item) => {
                       const globalIdx = flat.findIndex(f => f.id === item.id && f.tab === cat.tab)
@@ -259,13 +258,12 @@ export default function GlobalSearch({ data, crm = null, onNavigate }) {
                           onMouseEnter={() => setActive(globalIdx)}
                           style={{
                             display: 'block', width: '100%', textAlign: 'left',
-                            padding: '7px 14px 7px 22px', background: isActive ? 'rgba(59,130,246,0.2)' : 'transparent',
+                            padding: '8px 14px', background: isActive ? '#EAF3FF' : 'transparent',
                             border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                            borderLeft: isActive ? `3px solid ${cat.color}` : '3px solid transparent',
                           }}>
-                          <div style={{ fontSize: 12, fontWeight: 600, color: '#E2E8F0' }}>{item.primary}</div>
+                          <div style={{ fontSize: 14, fontWeight: 500, color: '#1C1C1E' }}>{item.primary}</div>
                           <div style={{
-                            fontSize: 10, color: '#64748B', marginTop: 1,
+                            fontSize: 12, color: '#6E6E73', marginTop: 1,
                             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
                           }}>{item.secondary}</div>
                         </button>
@@ -278,8 +276,8 @@ export default function GlobalSearch({ data, crm = null, onNavigate }) {
           )}
           {query.length >= 2 && totalCount > 0 && (
             <div style={{
-              padding: '6px 14px 8px', fontSize: 10, color: '#475569',
-              borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: 4
+              padding: '6px 14px 8px', fontSize: 11, color: '#6E6E73',
+              borderTop: '1px solid #E5E5EA', marginTop: 4
             }}>
               {totalCount} résultat{totalCount > 1 ? 's' : ''} — ↑↓ naviguer · Entrée sélectionner
             </div>

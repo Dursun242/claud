@@ -141,7 +141,7 @@ export default function AdminDashboard({ user, profile = null }) {
     {key:"crm",      label:"CRM",               icon:I.crm,       sc:"v"},
     {key:"photos",   label:"Reportage Photo",   icon:I.camera,    sc:"h"},
     {key:"qonto",    label:"Qonto",             icon:null,        sc:"q", isQonto:true},
-    ...(profile?.role === 'admin' ? [{key:"admin",label:"🔒 Admin", icon:I.settings, sc:"s"}] : []),
+    ...(profile?.role === 'admin' ? [{key:"admin",label:"Admin", icon:I.settings, sc:"s"}] : []),
     {key:"ai",       label:"Assistant IA",      icon:I.ai,        sc:"a"},
   ], [profile?.role]);
 
@@ -187,13 +187,13 @@ export default function AdminDashboard({ user, profile = null }) {
   // Actions du menu « Créer » : chacune ouvre directement le formulaire
   // de création de l'onglet cible (intention 'new', cf. lib/navIntent).
   const createActions = useMemo(() => [
-    { key:'os',       emoji:'📋', label:'Ordre de service', hint:'Commande artisan',    onPick:()=>switchTab('os', newIntent()) },
-    { key:'reports',  emoji:'📝', label:'Compte rendu',     hint:'Réunion de chantier', onPick:()=>switchTab('reports', newIntent()) },
-    { key:'tasks',    emoji:'✅', label:'Tâche',            hint:'À faire / relance',   onPick:()=>switchTab('tasks', newIntent()) },
-    { key:'photos',   emoji:'📷', label:'Reportage photo',  hint:'Photos du jour',      onPick:()=>switchTab('photos') },
-    { key:'contacts', emoji:'👤', label:'Contact',          hint:'Artisan, client…',    onPick:()=>switchTab('contacts', newIntent()) },
-    { key:'crm',      emoji:'🎯', label:'Affaire',          hint:'Prospect CRM',        onPick:()=>switchTab('crm', newIntent()) },
-    { key:'projects', emoji:'🏗️', label:'Chantier',         hint:'Nouveau projet',      onPick:()=>switchTab('projects', newIntent()) },
+    { key:'os',       icon:I.os, label:'Ordre de service', hint:'Commande artisan',    onPick:()=>switchTab('os', newIntent()) },
+    { key:'reports',  icon:I.reports, label:'Compte rendu',     hint:'Réunion de chantier', onPick:()=>switchTab('reports', newIntent()) },
+    { key:'tasks',    icon:I.tasks, label:'Tâche',            hint:'À faire / relance',   onPick:()=>switchTab('tasks', newIntent()) },
+    { key:'photos',   icon:I.camera, label:'Reportage photo',  hint:'Photos du jour',      onPick:()=>switchTab('photos') },
+    { key:'contacts', icon:I.contacts, label:'Contact',          hint:'Artisan, client…',    onPick:()=>switchTab('contacts', newIntent()) },
+    { key:'crm',      icon:I.crm, label:'Affaire',          hint:'Prospect CRM',        onPick:()=>switchTab('crm', newIntent()) },
+    { key:'projects', icon:I.projects, label:'Chantier',         hint:'Nouveau projet',      onPick:()=>switchTab('projects', newIntent()) },
   ], [switchTab]);
 
   // Onglets de la barre mobile (le reste est dans le menu « Plus »)
@@ -307,12 +307,12 @@ export default function AdminDashboard({ user, profile = null }) {
     <div style={{
       display:"flex",height:"100vh",
       fontFamily:"var(--font-dm-sans), sans-serif",
-      background:"#F1F5F9",overflow:"hidden"
+      background:"#F2F2F7",overflow:"hidden"
     }}>
       {/* Skip link a11y : caché visuellement mais accessible au focus clavier */}
       <a href="#main-content" style={{
         position:"absolute",left:-9999,top:0,
-        background:"#1E3A5F",color:"#fff",padding:"10px 16px",
+        background:"#0071E3",color:"#fff",padding:"10px 16px",
         borderRadius:"0 0 8px 0",fontSize:13,fontWeight:600,
         textDecoration:"none",zIndex:10001,
       }}
@@ -321,7 +321,7 @@ export default function AdminDashboard({ user, profile = null }) {
       >Passer au contenu principal</a>
       <style>{`
         *{box-sizing:border-box}
-        ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-thumb{background:#CBD5E1;border-radius:3px}
+        ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-thumb{background:#D1D1D6;border-radius:3px}
         @media (max-width: 768px){
           input:not([type="checkbox"]):not([type="radio"]),select,textarea{font-size:16px !important}
           button:not([aria-label="Copier"]):not([aria-label="Fermer"]):not([aria-label="Fermer la notification"]):not([data-nav]){min-height:36px}
@@ -331,40 +331,40 @@ export default function AdminDashboard({ user, profile = null }) {
       {/* MOBILE OVERLAY */}
       {isMobile && sidebarOpen && (
         <div style={{
-          position:"fixed",inset:0,background:"rgba(0,0,0,0.4)",zIndex:998
+          position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:998
         }} onClick={()=>setSidebarOpen(false)} />
       )}
 
-      {/* SIDEBAR */}
+      {/* SIDEBAR — claire, façon barre latérale iPad : icônes bleues,
+          onglet actif en pastille bleue */}
       <nav aria-label="Navigation principale" style={{
         width:280,position:isMobile?"fixed":"relative",
         left:isMobile?(sidebarOpen?0:-300):0,top:0,bottom:0,
-        background:"linear-gradient(195deg,#0F172A,#1E3A5F)",
-        color:"#fff",display:"flex",flexDirection:"column",flexShrink:0,
+        background:"#F9F9FB",borderRight:"1px solid #E5E5EA",
+        color:"#1C1C1E",display:"flex",flexDirection:"column",flexShrink:0,
         zIndex:999,transition:"left .25s ease",
-        boxShadow:isMobile&&sidebarOpen?"4px 0 24px rgba(0,0,0,0.35)":"none"
+        boxShadow:isMobile&&sidebarOpen?"4px 0 24px rgba(0,0,0,0.15)":"none"
       }}>
-        <div style={{padding:"16px 16px 12px",borderBottom:"1px solid rgba(255,255,255,0.08)"}}>
-          <div style={{fontSize:17,fontWeight:700}}>ID MAÎTRISE</div>
-          <div style={{
-            fontSize:10,color:"#64748B",marginTop:2,letterSpacing:"0.05em"
-          }}>MAÎTRISE D'ŒUVRE • LE HAVRE</div>
+        <div style={{padding:"18px 16px 10px"}}>
+          <div style={{fontSize:20,fontWeight:700,letterSpacing:"-0.01em"}}>ID Maîtrise</div>
+          <div style={{fontSize:12,color:"#6E6E73",marginTop:2}}>Maîtrise d&apos;œuvre · Le Havre</div>
         </div>
         <GlobalSearch data={data} crm={crm} onNavigate={jumpTo} />
-        <div style={{padding:"0 12px 6px"}}>
-          <button onClick={()=>setCreateOpen(true)} title="Créer (raccourci : c)" style={{
+        <div style={{padding:"4px 8px 8px"}}>
+          <button onClick={()=>setCreateOpen(true)} title="Créer (raccourci : c)" className="u-btn" style={{
             width:"100%",display:"flex",alignItems:"center",justifyContent:"center",gap:6,
-            padding:"8px 10px",borderRadius:8,border:"none",cursor:"pointer",
-            background:"#2563EB",color:"#fff",fontFamily:"inherit",fontSize:12.5,fontWeight:600,
+            padding:"9px 10px",minHeight:38,borderRadius:10,border:"none",cursor:"pointer",
+            background:"#0071E3",color:"#fff",fontFamily:"inherit",fontSize:14,fontWeight:600,
           }}>
-            <Icon d={I.plus} size={15} color="#fff"/> Créer…
+            <Icon d={I.plus} size={16} color="#fff"/> Créer…
           </button>
         </div>
-        <div style={{flex:1,padding:"6px 8px",display:"flex",flexDirection:"column",gap:1,overflow:"auto"}}>
+        <div style={{flex:1,padding:"4px 8px",display:"flex",flexDirection:"column",gap:2,overflow:"auto"}}>
           {tabs.map(t=>{
             const active = tab===t.key;
-            // Couleur d'accent : bleu pour tout, violet pour Qonto (distinction API)
-            const accent = t.isQonto ? "#A78BFA" : "#60A5FA";
+            // Icônes bleues ; Qonto en violet (données venues de l'API bancaire)
+            const tint = t.isQonto ? "#AF52DE" : "#0071E3";
+            const iconColor = active ? "#fff" : tint;
             return (
               <button
                 key={t.key}
@@ -378,78 +378,68 @@ export default function AdminDashboard({ user, profile = null }) {
                 aria-label={`${t.label}, raccourci g puis ${t.sc}`}
                 className="sidebar-tab"
                 style={{
-                position:"relative",
-                display:"flex",alignItems:"center",gap:9,
-                padding:"7px 11px 7px 14px",border:"none",
-                borderRadius:7,cursor:"pointer",
-                fontFamily:"inherit",fontSize:12.5,
+                display:"flex",alignItems:"center",gap:10,
+                padding:"8px 10px",minHeight:38,border:"none",
+                borderRadius:10,cursor:"pointer",
+                fontFamily:"inherit",fontSize:15,
                 fontWeight:active?600:400,
-                color:active?"#fff":"#94A3B8",
-                background:active?"rgba(255,255,255,0.10)":"transparent",
+                color:active?"#fff":"#1C1C1E",
+                background:active?"#0071E3":"transparent",
                 textAlign:"left",width:"100%",
               }}>
-                {/* Barre d'accent verticale, uniforme sur tous les onglets actifs */}
-                <span aria-hidden style={{
-                  position:"absolute",left:4,top:8,bottom:8,width:3,borderRadius:2,
-                  background:active?accent:"transparent",transition:"background .15s"
-                }}/>
                 {t.isQonto ? (
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                    <circle cx="12" cy="12" r="9" stroke={accent} strokeWidth="2"/>
-                    <path d="M15 15l3 3" stroke={accent} strokeWidth="2" strokeLinecap="round"/>
-                    <path d="M9 12l2 2 4-4" stroke={accent} strokeWidth="2"
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <circle cx="12" cy="12" r="9" stroke={iconColor} strokeWidth="2"/>
+                    <path d="M15 15l3 3" stroke={iconColor} strokeWidth="2" strokeLinecap="round"/>
+                    <path d="M9 12l2 2 4-4" stroke={iconColor} strokeWidth="2"
                       strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                 ) : (
-                  <Icon d={t.icon} size={16} color={active?accent:"#64748B"}/>
+                  <Icon d={t.icon} size={18} color={iconColor}/>
                 )}
                 <span style={{flex:1}}>{t.label}</span>
                 {t.isQonto && (
                   <span style={{
-                    display:"inline-flex",alignItems:"center",gap:3,
-                    padding:"2px 7px",borderRadius:5,
-                    background:"linear-gradient(135deg,#7C3AED,#A855F7)",
-                    color:"#fff",fontSize:8,fontWeight:800,letterSpacing:"0.1em"
+                    display:"inline-flex",alignItems:"center",
+                    padding:"1px 6px",borderRadius:999,
+                    background:active?"rgba(255,255,255,0.2)":"#AF52DE18",
+                    color:active?"#fff":"#8944AB",fontSize:11,fontWeight:600,
                   }}>API</span>
                 )}
               </button>
             );
           })}
         </div>
-        {/* User info + Logout */}
-        <div style={{padding:"12px 16px",borderTop:"1px solid rgba(255,255,255,0.08)"}}>
+        {/* Compte + déconnexion */}
+        <div style={{padding:"12px 16px",borderTop:"1px solid #E5E5EA"}}>
           {user && (
-            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+            <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
               {user.user_metadata?.avatar_url && (
                 <Image src={user.user_metadata.avatar_url}
-                  width={28} height={28} unoptimized alt=""
-                  style={{
-                    borderRadius:"50%",
-                    border:"2px solid rgba(255,255,255,0.15)"
-                  }}/>
+                  width={32} height={32} unoptimized alt=""
+                  style={{ borderRadius:"50%" }}/>
               )}
               <div style={{flex:1,minWidth:0}}>
                 <div style={{
-                  fontSize:11,fontWeight:600,color:"#fff",
+                  fontSize:14,fontWeight:600,color:"#1C1C1E",
                   overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"
                 }}>{user.user_metadata?.full_name || user.email}</div>
                 <div style={{
-                  fontSize:10,color:"#64748B",
+                  fontSize:12,color:"#6E6E73",
                   overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"
                 }}>{user.email}</div>
               </div>
             </div>
           )}
-          <button onClick={logout} style={{
-            width:"100%",padding:"6px 10px",borderRadius:6,
-            border:"1px solid rgba(255,255,255,0.1)",
-            background:"rgba(255,255,255,0.05)",
-            color:"#64748B",fontSize:10,cursor:"pointer",
+          <button onClick={logout} className="u-btn" style={{
+            width:"100%",padding:"8px 10px",minHeight:36,borderRadius:10,
+            border:"none",background:"#EFEFF0",
+            color:"#D70015",fontSize:14,cursor:"pointer",
             fontFamily:"inherit",fontWeight:500
           }}>
             Déconnexion
           </button>
-          <div style={{fontSize:10,color:"#475569",marginTop:6}}>
+          <div style={{fontSize:11,color:"#6E6E73",marginTop:10,lineHeight:1.4}}>
             SARL ID MAITRISE<br/>9 Rue Henry Genestal, 76600 Le Havre
           </div>
         </div>
@@ -469,22 +459,24 @@ export default function AdminDashboard({ user, profile = null }) {
         {isMobile && (
           <div style={{
             position:"fixed",top:0,left:0,right:0,height:52,
-            background:"#fff",borderBottom:"1px solid #E2E8F0",
-            display:"flex",alignItems:"center",padding:"0 12px",
-            zIndex:997,gap:10,boxShadow:"0 1px 3px rgba(15,23,42,0.04)"
+            // Barre translucide façon iOS
+            background:"rgba(249,249,251,0.88)",
+            backdropFilter:"saturate(180%) blur(20px)",WebkitBackdropFilter:"saturate(180%) blur(20px)",
+            borderBottom:"1px solid rgba(0,0,0,0.1)",
+            display:"flex",alignItems:"center",padding:"0 8px",
+            zIndex:997,gap:6
           }}>
             <button onClick={()=>setSidebarOpen(s=>!s)} aria-label="Ouvrir le menu"
-              style={{
-                background:"none",border:"none",cursor:"pointer",fontSize:22,
-                color:"#334155",padding:"6px 8px",borderRadius:6,lineHeight:1,
-              }}>☰</button>
+              className="u-icon-btn"
+              style={{ width:40,height:40,borderRadius:10,color:"#0071E3" }}>
+              <Icon d={I.menu} size={22} color="#0071E3"/>
+            </button>
             <div style={{flex:1,minWidth:0,display:"flex",flexDirection:"column",lineHeight:1.15}}>
               <span style={{
-                fontSize:10,fontWeight:600,color:"#64748B",
-                letterSpacing:"0.06em",textTransform:"uppercase"
+                fontSize:11,fontWeight:500,color:"#6E6E73",
               }}>ID Maîtrise</span>
               <span style={{
-                fontSize:15,fontWeight:700,color:"#0F172A",
+                fontSize:17,fontWeight:600,color:"#1C1C1E",
                 overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"
               }}>
                 {tabs.find(t=>t.key===tab)?.label}
@@ -503,9 +495,9 @@ export default function AdminDashboard({ user, profile = null }) {
             <button type="button" onClick={back.go} style={{
               background:"none",border:"none",cursor:"pointer",padding:0,marginBottom:12,
               display:"flex",alignItems:"center",gap:6,fontFamily:"inherit",
-              color:"#3B82F6",fontSize:13,fontWeight:600,
+              color:"#0066CC",fontSize:15,fontWeight:500,minHeight:36,
             }}>
-              ← Retour : {back.label}
+              ‹ {back.label}
             </button>
           )}
           {/* Chaque onglet n'est RENDU que s'il a déjà été visité (visitedTabs),

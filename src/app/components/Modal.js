@@ -117,7 +117,7 @@ export default function Modal({ open, onClose, title, children, wide = false }) 
         display: 'flex',
         alignItems: isMobile ? 'flex-end' : 'center',
         justifyContent: 'center',
-        background: 'rgba(15,23,42,0.6)',
+        background: 'rgba(0,0,0,0.4)',
         backdropFilter: 'blur(4px)',
         padding: isMobile ? 0 : 16,
         animation: ANIMATION.fadeInFast,
@@ -139,7 +139,7 @@ export default function Modal({ open, onClose, title, children, wide = false }) 
           maxWidth: '100%',
           maxHeight: isMobile ? '92vh' : wide === 'xl' ? '92vh' : '85vh',
           overflow: 'auto',
-          boxShadow: '0 25px 50px rgba(15,23,42,0.25)',
+          boxShadow: '0 25px 50px rgba(0,0,0,0.25)',
           animation: ANIMATION.popIn,
           WebkitOverflowScrolling: 'touch',
           overscrollBehavior: 'contain',
@@ -166,7 +166,7 @@ export default function Modal({ open, onClose, title, children, wide = false }) 
                 width: 32,
                 height: 32,
                 fontSize: 18,
-                color: '#475569',
+                color: '#48484A',
                 flexShrink: 0,
               }}
             >
@@ -179,7 +179,7 @@ export default function Modal({ open, onClose, title, children, wide = false }) 
               margin: 0,
               fontSize: 17,
               fontWeight: 700,
-              color: '#0F172A',
+              color: '#1C1C1E',
               flex: 1,
               minWidth: 0,
               overflow: 'hidden',
@@ -199,7 +199,7 @@ export default function Modal({ open, onClose, title, children, wide = false }) 
               width: 32,
               height: 32,
               fontSize: 16,
-              color: '#475569',
+              color: '#48484A',
               flexShrink: 0,
             }}
           >

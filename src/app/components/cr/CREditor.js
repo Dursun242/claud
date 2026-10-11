@@ -169,7 +169,7 @@ export default function CREditor({ open, initial, data, onClose, onSaved, lockCh
             </div>
             <textarea aria-label={title} value={form[k] || ''} onChange={e => ed.setForm({ [k]: e.target.value })}
               rows={4} placeholder={ph} style={{ ...field, resize: 'vertical' }} />
-            {dictation.target === k && dictation.interim && <div style={{ fontSize: 12, color: '#64748B', fontStyle: 'italic' }}>{dictation.interim}…</div>}
+            {dictation.target === k && dictation.interim && <div style={{ fontSize: 12, color: '#6E6E73', fontStyle: 'italic' }}>{dictation.interim}…</div>}
           </div>
         ))}
         <span style={{ ...label, color: NAVY, marginTop: 6 }}>Prochaine réunion — convocation</span>
@@ -190,7 +190,7 @@ export default function CREditor({ open, initial, data, onClose, onSaved, lockCh
               onChange={e => ed.setForm({ prochaine_reunion: { ...next, lieu: e.target.value } })} />
           </div>
         </div>
-        <p style={{ fontSize: 12, color: '#64748B', margin: '6px 0 0' }}>
+        <p style={{ fontSize: 12, color: '#6E6E73', margin: '6px 0 0' }}>
           Imprimée en page de garde, ajoutée à l&apos;agenda et envoyée aux intervenants convoqués. Laisse la date vide s&apos;il n&apos;y a pas de réunion suivante.
         </p>
       </section>
@@ -207,35 +207,35 @@ export default function CREditor({ open, initial, data, onClose, onSaved, lockCh
   )
 
   const statusBadge = form.statut === 'Diffusé'
-    ? { text: 'Diffusé', color: '#047857', bg: '#ECFDF5' }
-    : { text: 'Brouillon', color: '#92400E', bg: '#FEF3C7' }
+    ? { text: 'Diffusé', color: '#1E7B34', bg: '#EAF8EE' }
+    : { text: 'Brouillon', color: '#A0390C', bg: '#FFF0D6' }
 
   return (
     <div role="dialog" aria-modal="true" aria-label={ed.isEdit ? `Compte rendu n°${form.numero}` : 'Nouveau compte rendu'}
-      style={{ position: 'fixed', inset: 0, zIndex: 1200, background: '#F1F5F9', overflowY: 'auto', overscrollBehavior: 'contain' }}>
+      style={{ position: 'fixed', inset: 0, zIndex: 1200, background: '#F2F2F7', overflowY: 'auto', overscrollBehavior: 'contain' }}>
       <datalist id={ENTREPRISES_LIST}>{entreprises.map(e => <option key={e} value={e} />)}</datalist>
 
       {/* En-tête */}
-      <header style={{ position: 'sticky', top: 0, zIndex: 2, background: '#fff', borderBottom: '1px solid #E2E8F0', padding: m ? '8px 12px' : '10px 20px' }}>
+      <header style={{ position: 'sticky', top: 0, zIndex: 2, background: '#fff', borderBottom: '1px solid #E5E5EA', padding: m ? '8px 12px' : '10px 20px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           <button type="button" onClick={close} aria-label="Fermer" disabled={saving}
-            style={{ border: 'none', background: '#F1F5F9', borderRadius: 8, width: 38, height: 38, cursor: 'pointer', fontSize: 16 }}>✕</button>
+            style={{ border: 'none', background: '#F2F2F7', borderRadius: 8, width: 38, height: 38, cursor: 'pointer', fontSize: 16 }}>✕</button>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ fontSize: m ? 15 : 17, fontWeight: 800, color: '#0F172A', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <div style={{ fontSize: m ? 15 : 17, fontWeight: 800, color: '#1C1C1E', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               CR n°{form.numero || '—'} · {chantier?.nom || 'Choisis un chantier'}
             </div>
-            <div style={{ fontSize: 11, color: '#64748B', display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+            <div style={{ fontSize: 11, color: '#6E6E73', display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
               <span style={{ fontWeight: 700, color: statusBadge.color, background: statusBadge.bg, borderRadius: 4, padding: '0 6px' }}>{statusBadge.text}</span>
               {stats.total > 0 && <span>{stats.total} points · {stats.relance} à relancer · {stats.fait} faits</span>}
               {progress != null && <span>avancement global {progress} %</span>}
               {ed.localSavedAt && <span title="Brouillon enregistré sur cet appareil (utilisable hors ligne)">✓ sur l&apos;appareil à {fmtTime(ed.localSavedAt)}</span>}
             </div>
           </div>
-          <div role="radiogroup" aria-label="Mode de saisie" style={{ display: 'flex', background: '#F1F5F9', borderRadius: 8, padding: 3 }}>
+          <div role="radiogroup" aria-label="Mode de saisie" style={{ display: 'flex', background: '#F2F2F7', borderRadius: 8, padding: 3 }}>
             {[['reunion', 'Réunion'], ['redaction', 'Rédaction']].map(([k, l]) => (
               <button key={k} type="button" role="radio" aria-checked={mode === k} onClick={() => setMode(k)}
                 style={{ border: 'none', borderRadius: 6, padding: '6px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
-                  background: mode === k ? '#fff' : 'transparent', color: mode === k ? NAVY : '#64748B', boxShadow: mode === k ? '0 1px 2px rgba(0,0,0,.08)' : 'none' }}>{l}</button>
+                  background: mode === k ? '#fff' : 'transparent', color: mode === k ? NAVY : '#6E6E73', boxShadow: mode === k ? '0 1px 2px rgba(0,0,0,.08)' : 'none' }}>{l}</button>
             ))}
           </div>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', width: m ? '100%' : 'auto' }}>
@@ -252,18 +252,18 @@ export default function CREditor({ open, initial, data, onClose, onSaved, lockCh
           </div>
         </div>
         {error && (
-          <div role="alert" style={{ marginTop: 8, background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, padding: '6px 10px', fontSize: 12, color: '#B91C1C' }}>⚠ {error}</div>
+          <div role="alert" style={{ marginTop: 8, background: '#FFF0EF', border: '1px solid #FFC9C6', borderRadius: 8, padding: '6px 10px', fontSize: 12, color: '#D70015' }}>⚠ {error}</div>
         )}
       </header>
 
       <div style={{ maxWidth: 1180, margin: '0 auto', padding: m ? 12 : 20 }}>
         {ed.draft && (
-          <div role="status" style={{ ...card, background: '#FFFBEB', borderColor: '#FDE68A', marginBottom: 12, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-            <span style={{ flex: 1, fontSize: 13, color: '#92400E' }}>
+          <div role="status" style={{ ...card, background: '#FFF7E8', borderColor: '#FFDDA6', marginBottom: 12, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+            <span style={{ flex: 1, fontSize: 13, color: '#A0390C' }}>
               Un brouillon non enregistré de ce compte rendu existe sur cet appareil ({new Date(ed.draft.savedAt).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })}).
             </span>
-            <button type="button" onClick={ed.restoreDraft} style={{ ...ghostBtn('#fff'), background: '#B45309', border: 'none', color: '#fff' }}>Reprendre</button>
-            <button type="button" onClick={ed.discardDraft} style={ghostBtn('#92400E')}>Ignorer</button>
+            <button type="button" onClick={ed.restoreDraft} style={{ ...ghostBtn('#fff'), background: '#C93400', border: 'none', color: '#fff' }}>Reprendre</button>
+            <button type="button" onClick={ed.discardDraft} style={ghostBtn('#A0390C')}>Ignorer</button>
           </div>
         )}
 
@@ -287,19 +287,19 @@ export default function CREditor({ open, initial, data, onClose, onSaved, lockCh
             <input type="number" min="1" aria-label="Numéro du CR" value={form.numero || ''} onChange={e => ed.setForm({ numero: e.target.value })} style={field} />
           </div>
           {(lockChantier || ed.isEdit) && !m && (
-            <div style={{ fontSize: 12, color: '#64748B', alignSelf: 'end', paddingBottom: 10 }}>
+            <div style={{ fontSize: 12, color: '#6E6E73', alignSelf: 'end', paddingBottom: 10 }}>
               {st.previous ? `Fait suite au CR n°${st.previous.numero} du ${fmtDate(st.previous.date)}` : 'Premier compte rendu du chantier'}
             </div>
           )}
           {!lockChantier && !ed.isEdit && st.previous && (
-            <div style={{ gridColumn: '1 / -1', fontSize: 12, color: '#64748B' }}>
+            <div style={{ gridColumn: '1 / -1', fontSize: 12, color: '#6E6E73' }}>
               Fait suite au CR n°{st.previous.numero} du {fmtDate(st.previous.date)} — points ouverts, lots et convoqués repris.
             </div>
           )}
         </div>
 
         {!form.chantierId ? (
-          <div style={{ ...card, textAlign: 'center', color: '#64748B', fontSize: 14 }}>Choisis le chantier pour commencer.</div>
+          <div style={{ ...card, textAlign: 'center', color: '#6E6E73', fontSize: 14 }}>Choisis le chantier pour commencer.</div>
         ) : mode === 'redaction' ? (
           <div style={{ display: 'grid', gridTemplateColumns: m ? '1fr' : '220px 1fr', gap: 16, alignItems: 'start' }}>
             {!m && (
@@ -308,9 +308,9 @@ export default function CREditor({ open, initial, data, onClose, onSaved, lockCh
                   const c = s.section ? counts[s.section.key] : null
                   return (
                     <button key={s.id} type="button" onClick={() => goTo(i)}
-                      style={{ display: 'flex', width: '100%', justifyContent: 'space-between', gap: 6, border: 'none', background: 'none', padding: '7px 8px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontFamily: 'inherit', color: '#0F172A', textAlign: 'left' }}>
+                      style={{ display: 'flex', width: '100%', justifyContent: 'space-between', gap: 6, border: 'none', background: 'none', padding: '7px 8px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontFamily: 'inherit', color: '#1C1C1E', textAlign: 'left' }}>
                       <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.label}</span>
-                      {c?.total ? <span style={{ fontSize: 11, fontWeight: 700, color: c.relance ? '#B91C1C' : '#64748B' }}>{c.total}</span> : null}
+                      {c?.total ? <span style={{ fontSize: 11, fontWeight: 700, color: c.relance ? '#D70015' : '#6E6E73' }}>{c.total}</span> : null}
                     </button>
                   )
                 })}
@@ -331,7 +331,7 @@ export default function CREditor({ open, initial, data, onClose, onSaved, lockCh
                 return (
                   <button key={s.id} type="button" role="tab" aria-selected={on} onClick={() => goTo(i)}
                     style={{ flexShrink: 0, borderRadius: 999, padding: '7px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
-                      border: on ? `1.5px solid ${NAVY}` : '1px solid #CBD5E1', background: on ? NAVY : '#fff', color: on ? '#fff' : '#334155' }}>
+                      border: on ? `1.5px solid ${NAVY}` : '1px solid #D1D1D6', background: on ? NAVY : '#fff', color: on ? '#fff' : '#3A3A3C' }}>
                     {s.label}{c?.relance ? ` · ${c.relance}🔔` : c?.total ? ` · ${c.total}` : ''}
                   </button>
                 )
@@ -339,7 +339,7 @@ export default function CREditor({ open, initial, data, onClose, onSaved, lockCh
             </div>
             {renderStep(current)}
             {current.id === 'cloture' && <div style={{ ...card, marginTop: 12 }}>{addLotForm}</div>}
-            <div style={{ display: 'flex', gap: 8, marginTop: 14, position: 'sticky', bottom: 0, background: '#F1F5F9', padding: '10px 0' }}>
+            <div style={{ display: 'flex', gap: 8, marginTop: 14, position: 'sticky', bottom: 0, background: '#F2F2F7', padding: '10px 0' }}>
               <button type="button" disabled={step === 0} onClick={() => goTo(step - 1)}
                 style={{ ...ghostBtn(), flex: 1, minHeight: 48, opacity: step === 0 ? 0.5 : 1 }}>← Précédent</button>
               {step < steps.length - 1 ? (
@@ -349,7 +349,7 @@ export default function CREditor({ open, initial, data, onClose, onSaved, lockCh
                 </button>
               ) : (
                 <button type="button" onClick={() => submit(true)} disabled={saving}
-                  style={{ ...ghostBtn('#fff'), flex: 2, minHeight: 48, background: '#047857', border: 'none', color: '#fff' }}>
+                  style={{ ...ghostBtn('#fff'), flex: 2, minHeight: 48, background: '#1E7B34', border: 'none', color: '#fff' }}>
                   Enregistrer et diffuser
                 </button>
               )}

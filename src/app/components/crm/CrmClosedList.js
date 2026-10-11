@@ -5,11 +5,11 @@ import { ETAPE_COLORS } from '../../lib/crm'
 const KIND = {
   won: {
     title: 'Affaires gagnées', empty: 'Aucune affaire gagnée', emptyDesc: 'Les affaires signées apparaîtront ici.',
-    icon: '🏆', color: ETAPE_COLORS['Gagné'], bg: '#ECFDF5', text: '#047857',
+    icon: '🏆', color: ETAPE_COLORS['Gagné'], bg: '#EAF8EE', text: '#1E7B34',
   },
   lost: {
     title: 'Affaires perdues', empty: 'Aucune affaire perdue', emptyDesc: 'Les affaires perdues apparaîtront ici, avec leur motif.',
-    icon: '✖', color: ETAPE_COLORS['Perdu'], bg: '#FEF2F2', text: '#B91C1C',
+    icon: '✖', color: ETAPE_COLORS['Perdu'], bg: '#FFF0EF', text: '#D70015',
   },
 }
 
@@ -47,7 +47,7 @@ export default function CrmClosedList({ kind = 'won', list, contactsById, chanti
           dont {year} : {thisYear.length} · {fmtMoney(totalYear)}
         </span>
         {motifs.length > 0 && (
-          <span style={{ fontSize: 11, color: '#64748B', width: '100%' }}>
+          <span style={{ fontSize: 11, color: '#6E6E73', width: '100%' }}>
             Motifs : {motifs.map(([mo, n]) => `${mo} (${n})`).join(' · ')}
           </span>
         )}
@@ -58,12 +58,12 @@ export default function CrmClosedList({ kind = 'won', list, contactsById, chanti
         return (
           <button type="button" key={o.id} onClick={() => onOpen(o.id)} style={{
             display: 'flex', alignItems: 'center', gap: 10, background: '#fff', borderRadius: 10, textAlign: 'left',
-            padding: '10px 14px', boxShadow: '0 1px 2px rgba(15,23,42,0.05)', cursor: 'pointer', fontFamily: 'inherit',
+            padding: '10px 14px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', cursor: 'pointer', fontFamily: 'inherit',
             border: 'none', borderLeft: `3px solid ${k.color}`, minWidth: 0, width: '100%',
           }}>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.titre}</div>
-              <div style={{ fontSize: 11, color: '#64748B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#1C1C1E', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.titre}</div>
+              <div style={{ fontSize: 11, color: '#6E6E73', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {c?.nom || '—'}{o.date_cloture ? ` · le ${fmtDate(o.date_cloture)}` : ''}
                 {kind === 'lost' && o.motif_perte ? ` · ${o.motif_perte}` : ''}
                 {kind === 'won' && ch ? ` · chantier ${ch.nom}` : ''}

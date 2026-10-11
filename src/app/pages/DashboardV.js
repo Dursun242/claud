@@ -1,6 +1,7 @@
 'use client'
 import { useMemo } from 'react'
-import { pct, fmtMoney, phase, PBar, COMPANY } from '../dashboards/shared'
+import { pct, fmtMoney, PBar, COMPANY, Icon, I } from '../dashboards/shared'
+import Badge from '../components/Badge'
 import { buildAgenda, buildClientOverview, localISO } from '../lib/today'
 import { newIntent } from '../lib/navIntent'
 import TodayPanel from '../components/dashboard/TodayPanel'
@@ -112,14 +113,14 @@ export default function DashboardV({data,crm=null,ready=true,setTab,m,user,clien
     {/* HEADER */}
     <div style={{marginBottom:22}}>
       <h1 style={{
-        margin:0, fontSize:m?22:28, fontWeight:700, color:"#0F172A",
+        margin:0, fontSize:m?28:32, fontWeight:700, color:"#1C1C1E", letterSpacing:"-0.02em",
         // Force le wrapping pour les prénoms longs (ex: noms composés, adresse
         // email utilisée en fallback) — évite tout débordement horizontal.
         wordBreak:"break-word", overflowWrap:"anywhere"
       }}>{getGreeting()} {firstName}</h1>
       <p style={{
-        margin:"6px 0 0", color:"#64748B",
-        fontSize:m?12:13, textTransform:"capitalize"
+        margin:"6px 0 0", color:"#6E6E73",
+        fontSize:13, textTransform:"capitalize"
       }}>{new Date().toLocaleDateString("fr-FR", {
         weekday:"long", day:"numeric", month:"long"
       })}</p>
@@ -141,34 +142,22 @@ export default function DashboardV({data,crm=null,ready=true,setTab,m,user,clien
       gap:10, marginBottom:22
     }}>
       {[
-        {label:"Nouvel OS",       icon:"📋", tab:"os",       color:"#8B5CF6", bg:"#F5F3FF"},
-        {label:"Nouveau CR",      icon:"📝", tab:"reports",  color:"#3B82F6", bg:"#EFF6FF"},
-        {label:"Nouvelle tâche",  icon:"✓",  tab:"tasks",    color:"#F59E0B", bg:"#FFFBEB"},
-        {label:"Nouveau chantier",icon:"🏗️", tab:"projects", color:"#10B981", bg:"#ECFDF5"},
+        {label:"Nouvel OS",        icon:I.os,       tab:"os"},
+        {label:"Nouveau CR",       icon:I.reports,  tab:"reports"},
+        {label:"Nouvelle tâche",   icon:I.tasks,    tab:"tasks"},
+        {label:"Nouveau chantier", icon:I.projects, tab:"projects"},
       ].map((a,i)=>(
-        <button key={i} onClick={()=>setTab(a.tab, newIntent())} style={{
-          background:"#fff", border:"1.5px solid #E2E8F0", borderRadius:10,
-          padding:"14px 12px", cursor:"pointer",
-          transition:"transform .15s, box-shadow .15s, border-color .15s",
-          textAlign:"center", fontWeight:600, fontSize:12, color:"#0F172A",
-          display:"flex", flexDirection:"column",
-          alignItems:"center", gap:8, fontFamily:"inherit",
-        }}
-        onMouseEnter={e=>{
-          e.currentTarget.style.borderColor=a.color;
-          e.currentTarget.style.transform="translateY(-2px)";
-          e.currentTarget.style.boxShadow=`0 4px 12px ${a.color}22`;
-        }}
-        onMouseLeave={e=>{
-          e.currentTarget.style.borderColor="#E2E8F0";
-          e.currentTarget.style.transform="";
-          e.currentTarget.style.boxShadow="none";
+        <button key={i} onClick={()=>setTab(a.tab, newIntent())} className="u-press" style={{
+          background:"#fff", border:"1px solid #E5E5EA", borderRadius:10,
+          padding:"12px", minHeight:48, cursor:"pointer",
+          textAlign:"left", fontWeight:600, fontSize:13, color:"#1C1C1E",
+          display:"flex", alignItems:"center", gap:10, fontFamily:"inherit",
         }}>
           <span style={{
-            fontSize:22, width:40, height:40, borderRadius:10,
-            background:a.bg, display:"inline-flex",
+            width:32, height:32, borderRadius:8, flexShrink:0,
+            background:"#F2F2F7", color:"#0071E3", display:"inline-flex",
             alignItems:"center", justifyContent:"center"
-          }}>{a.icon}</span>
+          }}><Icon d={a.icon} size={18}/></span>
           {a.label}
         </button>
       ))}
@@ -182,46 +171,39 @@ export default function DashboardV({data,crm=null,ready=true,setTab,m,user,clien
     }}>
       {(clientMode ? [
         {label:"Chantiers actifs", value:enCours,
-          total:data.chantiers.length, color:"#3B82F6", tab:"projects"},
+          total:data.chantiers.length, tab:"projects"},
         {label:"Phases en cours", value:overview.enCours.length,
-          total:(data.planning||[]).length, color:"#10B981", tab:"planning"},
+          total:(data.planning||[]).length, tab:"planning"},
         {label:"Comptes rendus", value:(data.compteRendus||[]).length,
-          total:null, color:"#8B5CF6", tab:"reports"},
+          total:null, tab:"reports"},
         {label:"OS actifs", value:osEnCours,
-          total:osCount, color:"#F59E0B", tab:"os"},
+          total:osCount, tab:"os"},
       ] : [
         {label:"Chantiers actifs", value:enCours,
-          total:data.chantiers.length, color:"#3B82F6", tab:"projects"},
+          total:data.chantiers.length, tab:"projects"},
         {label:"OS actifs",        value:osEnCours,
-          total:osCount, color:"#8B5CF6", tab:"os"},
+          total:osCount, tab:"os"},
         {label:"Tâches urgentes",  value:urgentTasks.length,
-          total:allActiveTasks.length, color:"#EF4444", tab:"tasks"},
+          total:allActiveTasks.length, alert:"#D70015", tab:"tasks"},
         {label:"En retard",        value:overdueTasks.length,
-          total:allActiveTasks.length, color:"#F59E0B", tab:"tasks"},
+          total:allActiveTasks.length, alert:"#C93400", tab:"tasks"},
       ]).map((k,i)=>(
-        <button key={i} onClick={()=>setTab(k.tab)} style={{
-          background:"#fff", border:"1px solid #E2E8F0", borderRadius:10,
+        <button key={i} onClick={()=>setTab(k.tab)} className="u-press" style={{
+          background:"#fff", border:"1px solid #E5E5EA", borderRadius:10,
           padding:"12px 14px", cursor:"pointer", textAlign:"left",
           fontFamily:"inherit",
-          transition:"border-color .15s, transform .15s",
-        }}
-        onMouseEnter={e=>{
-          e.currentTarget.style.borderColor=k.color;
-          e.currentTarget.style.transform="translateY(-1px)";
-        }}
-        onMouseLeave={e=>{
-          e.currentTarget.style.borderColor="#E2E8F0";
-          e.currentTarget.style.transform="";
         }}>
           <div style={{
-            fontSize:10, fontWeight:700, color:"#64748B",
+            fontSize:11, fontWeight:600, color:"#6E6E73",
             textTransform:"uppercase", letterSpacing:"0.05em", marginBottom:4
           }}>{k.label}</div>
           <div style={{display:"flex",alignItems:"baseline",gap:6}}>
             <span style={{
-              fontSize:m?22:26, fontWeight:700, color:k.color, lineHeight:1
+              fontSize:m?22:24, fontWeight:700, lineHeight:1,
+              // Couleur seulement si le chiffre signale un problème
+              color:k.alert && k.value>0 ? k.alert : "#1C1C1E",
             }}>{k.value}</span>
-            {k.total!=null && <span style={{fontSize:11,color:"#64748B",fontWeight:500}}>
+            {k.total!=null && <span style={{fontSize:12,color:"#6E6E73",fontWeight:500}}>
               / {k.total}
             </span>}
           </div>
@@ -232,20 +214,21 @@ export default function DashboardV({data,crm=null,ready=true,setTab,m,user,clien
     {/* CHANTIERS EN COURS — click = ouverture directe du détail du chantier */}
     {chantiersEnCours.length>0&&(
       <div style={{
-        background:"#fff", borderRadius:14, padding:m?14:18,
+        background:"#fff", borderRadius:12, padding:m?14:18,
+        border:"1px solid #E5E5EA",
         boxShadow:"0 1px 3px rgba(0,0,0,0.06)", marginBottom:18
       }}>
         <div style={{
           display:"flex", justifyContent:"space-between",
           alignItems:"center", marginBottom:14
         }}>
-          <h2 style={{margin:0,fontSize:16,fontWeight:700,color:"#0F172A"}}>
+          <h2 style={{margin:0,fontSize:17,fontWeight:600,color:"#1C1C1E"}}>
             Chantiers en cours
           </h2>
           <button
             onClick={()=>setTab("projects")}
             style={{
-              fontSize:11, color:"#3B82F6", background:"none",
+              fontSize:13, color:"#0066CC", background:"none", minHeight:36,
               border:"none", cursor:"pointer", fontWeight:600, fontFamily:"inherit"
             }}
           >Voir tous →</button>
@@ -257,48 +240,36 @@ export default function DashboardV({data,crm=null,ready=true,setTab,m,user,clien
         }}>
           {chantiersEnCours.map(ch=>{
             const ratio=pct(ch.depenses,ch.budget);
-            const budgetColor=ratio>85?"#EF4444":ratio>60?"#F59E0B":"#10B981";
-            const phaseColor = phase[ch.phase]||"#94A3B8";
+            // Rouge seulement si le budget est dépassé, sinon marine
+            const over = ratio>100;
+            const budgetColor = over ? "#D70015" : "#0071E3";
             return(
               <div key={ch.id} onClick={()=>setTab("projects",ch.id)}
                 role="button" tabIndex={0} aria-label={`Ouvrir le chantier ${ch.nom}`}
                 onKeyDown={e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); setTab("projects",ch.id); } }}
+                className="u-press"
                 style={{
-                  border:`1.5px solid #E2E8F0`,
-                  borderLeft:`4px solid ${phaseColor}`,
+                  border:"1px solid #E5E5EA",
                   borderRadius:10, padding:12,
                   cursor:"pointer", background:"#fff",
-                  transition:"box-shadow .15s, transform .15s, border-color .15s"
-                }}
-                onMouseEnter={e=>{
-                  e.currentTarget.style.boxShadow="0 4px 12px rgba(15,23,42,0.1)";
-                  e.currentTarget.style.transform="translateY(-2px)";
-                  e.currentTarget.style.borderColor=phaseColor;
-                  e.currentTarget.style.borderLeftColor=phaseColor;
-                }}
-                onMouseLeave={e=>{
-                  e.currentTarget.style.boxShadow="none";
-                  e.currentTarget.style.transform="";
-                  e.currentTarget.style.borderColor="#E2E8F0";
-                  e.currentTarget.style.borderLeftColor=phaseColor;
                 }}>
                 <div style={{marginBottom:8}}>
                   <div style={{
-                    fontWeight:700, fontSize:13, color:"#0F172A", marginBottom:2,
+                    fontWeight:700, fontSize:13, color:"#1C1C1E", marginBottom:2,
                     overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"
                   }}>{ch.nom}</div>
                   <div style={{
-                    fontSize:11, color:"#64748B",
+                    fontSize:12, color:"#6E6E73",
                     overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"
                   }}>{ch.client}</div>
                 </div>
                 <PBar value={ch.depenses} max={ch.budget} color={budgetColor}/>
                 <div style={{
                   display:"flex", justifyContent:"space-between",
-                  marginTop:8, fontSize:10, color:"#64748B"
+                  marginTop:8, fontSize:12, color:"#6E6E73"
                 }}>
                   <span>
-                    <span style={{fontWeight:600,color:budgetColor}}>
+                    <span style={{fontWeight:600,color:over?"#D70015":"#3A3A3C"}}>
                       {ratio}%
                     </span>
                     {" dépensé"}
@@ -321,9 +292,10 @@ export default function DashboardV({data,crm=null,ready=true,setTab,m,user,clien
 
     {/* À FAIRE — tâches actives triées par priorité/échéance (interne MOE) */}
     {!clientMode && <div style={{
-      background:urgentTasks.length>0?"#FEF2F2":"#fff",
-      borderRadius:14, padding:m?14:18,
-      border:`1.5px solid ${urgentTasks.length>0?"#FECACA":"#E2E8F0"}`,
+      background:"#fff",
+      borderRadius:12, padding:m?14:18,
+      border:"1px solid #E5E5EA",
+      boxShadow:"0 1px 3px rgba(0,0,0,0.06)",
       marginBottom:18
     }}>
       <div style={{
@@ -331,31 +303,19 @@ export default function DashboardV({data,crm=null,ready=true,setTab,m,user,clien
         justifyContent:"space-between", gap:6, marginBottom:12
       }}>
         <div style={{display:"flex",alignItems:"center",gap:6}}>
-          <span style={{fontWeight:700,fontSize:15,color:"#0F172A"}}>⚡ À faire</span>
+          <h2 style={{margin:0,fontWeight:600,fontSize:17,color:"#1C1C1E"}}>À faire</h2>
           {urgentTasks.length>0&&(
-            <span style={{
-              background:"#EF4444", color:"#fff",
-              borderRadius:6, padding:"2px 8px",
-              fontSize:11, fontWeight:700
-            }}>
-              {urgentTasks.length} urgente{urgentTasks.length>1?"s":""}
-            </span>
+            <Badge text={`${urgentTasks.length} urgente${urgentTasks.length>1?"s":""}`} color="#FF3B30"/>
           )}
           {overdueTasks.length>0&&(
-            <span style={{
-              background:"#F59E0B", color:"#fff",
-              borderRadius:6, padding:"2px 8px",
-              fontSize:11, fontWeight:700
-            }}>
-              {overdueTasks.length} en retard
-            </span>
+            <Badge text={`${overdueTasks.length} en retard`} color="#FF9500"/>
           )}
         </div>
         {allActiveTasks.length>0 && (
           <button
             onClick={()=>setTab("tasks")}
             style={{
-              fontSize:11, color:"#3B82F6", background:"none",
+              fontSize:13, color:"#0066CC", background:"none", minHeight:36,
               border:"none", cursor:"pointer",
               fontWeight:600, fontFamily:"inherit"
             }}
@@ -365,24 +325,23 @@ export default function DashboardV({data,crm=null,ready=true,setTab,m,user,clien
       {allActiveTasks.length===0
         ? <div style={{
             textAlign:"center", padding:"14px 0",
-            fontSize:13, color:"#64748B"
-          }}>🎉 Aucune tâche en attente</div>
+            fontSize:13, color:"#6E6E73"
+          }}>Aucune tâche en attente</div>
         : <div style={{display:"flex",flexDirection:"column",gap:0}}>
             {allActiveTasks.slice(0,5).map((t,i)=>{
               const ch=chantierById.get(t.chantierId||t.chantier_id);
               const isUrgent=t.priorite==="Urgent";
-              const today=new Date().toISOString().split("T")[0];
               const isOverdue=!isUrgent&&t.echeance&&t.echeance<today;
               const isLast = i === Math.min(4, allActiveTasks.length - 1);
-              const dotColor = isUrgent?"#EF4444":isOverdue?"#F59E0B":"#CBD5E1";
-              const titleColor = isUrgent?"#EF4444":isOverdue?"#B45309":"#0F172A";
+              const dotColor = isUrgent?"#D70015":isOverdue?"#FF9500":"#D1D1D6";
+              const titleColor = isUrgent?"#D70015":"#1C1C1E";
               return(
                 <div key={t.id} onClick={()=>setTab("tasks",t.id)}
-                  role="button" tabIndex={0}
+                  role="button" tabIndex={0} className="u-press u-press--row"
                   onKeyDown={e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); setTab("tasks",t.id); } }}
                   style={{
-                  cursor:"pointer", padding:"8px 0",
-                  borderBottom:isLast?"none":"1px solid #F1F5F9",
+                  cursor:"pointer", padding:"10px 4px", minHeight:44, boxSizing:"border-box",
+                  borderBottom:isLast?"none":"1px solid #F2F2F7",
                   display:"flex", alignItems:"center", gap:10,
                 }}>
                   <span style={{
@@ -391,23 +350,23 @@ export default function DashboardV({data,crm=null,ready=true,setTab,m,user,clien
                   }}/>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{
-                      fontSize:12, fontWeight:(isUrgent||isOverdue)?700:600,
+                      fontSize:13, fontWeight:600,
                       color:titleColor,
                       overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"
                     }}>{t.titre}</div>
                     <div style={{
-                      fontSize:10, color:"#64748B", marginTop:2,
+                      fontSize:12, color:"#6E6E73", marginTop:2,
                       overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"
                     }}>
                       {ch?.nom || "—"}
                       {isOverdue&&(
                         <span style={{
-                          color:"#F59E0B",fontWeight:700,marginLeft:6
-                        }}>⚠ Éch. dépassée</span>
+                          color:"#C93400",fontWeight:600,marginLeft:6
+                        }}>· Échéance dépassée</span>
                       )}
                     </div>
                   </div>
-                  <span style={{fontSize:14,color:"#CBD5E1",flexShrink:0}}>›</span>
+                  <span style={{fontSize:14,color:"#D1D1D6",flexShrink:0}}>›</span>
                 </div>
               );
             })}
@@ -417,10 +376,11 @@ export default function DashboardV({data,crm=null,ready=true,setTab,m,user,clien
 
     {/* BUDGET GLOBAL — vue d'ensemble financière */}
     <div style={{
-      background:"#fff", borderRadius:14, padding:m?14:18,
+      background:"#fff", borderRadius:12, padding:m?14:18,
+      border:"1px solid #E5E5EA",
       boxShadow:"0 1px 3px rgba(0,0,0,0.06)"
     }}>
-      <h3 style={{margin:"0 0 14px",fontSize:15,fontWeight:700,color:"#0F172A"}}>
+      <h3 style={{margin:"0 0 14px",fontSize:17,fontWeight:600,color:"#1C1C1E"}}>
         Budget global
       </h3>
       <div style={{
@@ -430,31 +390,29 @@ export default function DashboardV({data,crm=null,ready=true,setTab,m,user,clien
       }}>
         <div>
           <div style={{
-            fontSize:10, color:"#64748B", fontWeight:700, marginBottom:4,
+            fontSize:11, color:"#6E6E73", fontWeight:600, marginBottom:4,
             textTransform:"uppercase", letterSpacing:"0.05em"
           }}>Alloué</div>
-          <div style={{fontSize:m?22:26,fontWeight:700,color:"#0F172A"}}>
+          <div style={{fontSize:m?20:22,fontWeight:700,color:"#1C1C1E"}}>
             {fmtMoney(totalB)}
           </div>
         </div>
         <div>
           <div style={{
-            fontSize:10, color:"#64748B", fontWeight:700, marginBottom:4,
+            fontSize:11, color:"#6E6E73", fontWeight:600, marginBottom:4,
             textTransform:"uppercase", letterSpacing:"0.05em"
           }}>Dépensé</div>
           <div style={{
-            fontSize:m?22:26, fontWeight:700,
-            color: pct(totalD,totalB)>85
-              ? "#EF4444"
-              : pct(totalD,totalB)>60 ? "#F59E0B" : "#10B981"
+            fontSize:m?20:22, fontWeight:700,
+            color: pct(totalD,totalB)>100 ? "#D70015" : "#1C1C1E"
           }}>{fmtMoney(totalD)}</div>
         </div>
         <div>
           <div style={{
-            fontSize:10, color:"#64748B", fontWeight:700, marginBottom:4,
+            fontSize:11, color:"#6E6E73", fontWeight:600, marginBottom:4,
             textTransform:"uppercase", letterSpacing:"0.05em"
           }}>Reste</div>
-          <div style={{fontSize:m?22:26,fontWeight:700,color:"#0F172A"}}>
+          <div style={{fontSize:m?20:22,fontWeight:700,color:"#1C1C1E"}}>
             {fmtMoney(Math.max(0,totalB-totalD))}
           </div>
         </div>
@@ -463,14 +421,10 @@ export default function DashboardV({data,crm=null,ready=true,setTab,m,user,clien
         <PBar
           value={totalD}
           max={totalB||1}
-          color={
-            pct(totalD,totalB)>85
-              ? "#EF4444"
-              : pct(totalD,totalB)>60 ? "#F59E0B" : "#10B981"
-          }
+          color={pct(totalD,totalB)>100 ? "#D70015" : "#0071E3"}
           h={8}
         />
-        <div style={{fontSize:11,color:"#64748B",marginTop:6,textAlign:"right"}}>
+        <div style={{fontSize:12,color:"#6E6E73",marginTop:6,textAlign:"right"}}>
           {pct(totalD,totalB)}% du budget consommé
         </div>
       </div>

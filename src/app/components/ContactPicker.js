@@ -77,15 +77,15 @@ export default function ContactPicker({ contacts = [], value, onChange, onCreate
 
   if (selected) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, ...inp, padding: '6px 8px 6px 12px', background: '#F8FAFC' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, ...inp, padding: '6px 8px 6px 12px', background: '#F5F5F7' }}>
         <div style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 14 }}>
-          <strong style={{ color: '#0F172A' }}>{selected.nom}</strong>
-          {selected.societe && <span style={{ color: '#64748B' }}> · {selected.societe}</span>}
-          {selected.type && <span style={{ color: '#64748B', fontSize: 11 }}> · {selected.type}</span>}
+          <strong style={{ color: '#1C1C1E' }}>{selected.nom}</strong>
+          {selected.societe && <span style={{ color: '#6E6E73' }}> · {selected.societe}</span>}
+          {selected.type && <span style={{ color: '#6E6E73', fontSize: 11 }}> · {selected.type}</span>}
         </div>
         <button type="button" onClick={() => { onChange(''); setTimeout(() => inputRef.current?.focus(), 0) }}
           aria-label="Retirer le contact" title="Changer de contact"
-          style={{ background: '#E2E8F0', border: 'none', borderRadius: 6, width: 28, height: 28, cursor: 'pointer', fontSize: 14, color: '#475569', flexShrink: 0 }}>✕</button>
+          style={{ background: '#E5E5EA', border: 'none', borderRadius: 6, width: 28, height: 28, cursor: 'pointer', fontSize: 14, color: '#48484A', flexShrink: 0 }}>✕</button>
       </div>
     )
   }
@@ -101,27 +101,27 @@ export default function ContactPicker({ contacts = [], value, onChange, onCreate
       {open && (
         <div role="listbox" id={listId.current} style={{
           position: 'absolute', zIndex: 20, top: '100%', left: 0, right: 0, marginTop: 4,
-          background: '#fff', border: '1px solid #E2E8F0', borderRadius: 10, boxShadow: '0 8px 24px rgba(15,23,42,0.12)',
+          background: '#fff', border: '1px solid #E5E5EA', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
           maxHeight: 260, overflowY: 'auto',
         }}>
           {items.length === 0 && (
-            <div style={{ padding: '10px 12px', fontSize: 12, color: '#64748B' }}>
+            <div style={{ padding: '10px 12px', fontSize: 12, color: '#6E6E73' }}>
               {contacts.length === 0 ? 'Aucun contact dans l’annuaire.' : 'Aucun contact ne correspond.'}
             </div>
           )}
           {items.map((c, i) => c._create ? (
             <button key="__create" type="button" role="option" aria-selected={active === i}
               onMouseEnter={() => setActive(i)} onClick={() => pick(c)} disabled={creating}
-              style={{ ...row, background: active === i ? '#EFF6FF' : '#fff', color: '#1D4ED8', fontWeight: 600, borderTop: '1px solid #F1F5F9' }}>
+              style={{ ...row, background: active === i ? '#EAF3FF' : '#fff', color: '#0066CC', fontWeight: 600, borderTop: '1px solid #F2F2F7' }}>
               {creating ? 'Création…' : `+ Créer le contact « ${q.trim()} »`}
             </button>
           ) : (
             <button key={c.id} type="button" role="option" aria-selected={active === i}
               onMouseEnter={() => setActive(i)} onClick={() => pick(c)}
-              style={{ ...row, background: active === i ? '#F1F5F9' : '#fff' }}>
-              <span style={{ fontWeight: 600, color: '#0F172A' }}>{c.nom}</span>
-              {c.societe && <span style={{ color: '#64748B' }}> · {c.societe}</span>}
-              <span style={{ float: 'right', fontSize: 10, color: '#64748B' }}>{c.type}{c.ville ? ` · ${c.ville}` : ''}</span>
+              style={{ ...row, background: active === i ? '#F2F2F7' : '#fff' }}>
+              <span style={{ fontWeight: 600, color: '#1C1C1E' }}>{c.nom}</span>
+              {c.societe && <span style={{ color: '#6E6E73' }}> · {c.societe}</span>}
+              <span style={{ float: 'right', fontSize: 10, color: '#6E6E73' }}>{c.type}{c.ville ? ` · ${c.ville}` : ''}</span>
             </button>
           ))}
         </div>

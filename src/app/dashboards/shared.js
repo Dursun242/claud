@@ -633,13 +633,20 @@ export const I = {
   // Cible (CRM / pipeline commercial)
   crm: "M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z M12 6a6 6 0 1 0 0 12 6 6 0 0 0 0-12z M12 10a2 2 0 1 0 0 4 2 2 0 0 0 0-4z",
   camera: "M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z M12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8z",
+  // Fichiers : PDF (document + flèche), tableur, modèle (copie)
+  download: "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6 M12 18v-6 M9 15l3 3 3-3",
+  sheet: "M4 3h16a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z M3 9h18 M3 15h18 M9 9v12",
+  copy: "M9 9h11a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V10a1 1 0 0 1 1-1z M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1",
+  bell: "M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9 M13.73 21a2 2 0 0 1-3.46 0",
+  alert: "M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z M12 9v4 M12 17h.01",
+  clock: "M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z M12 6v6l4 2",
 };
 
 // ─── COLORS ───
-export const phase = { "Hors d'air": "#F59E0B", "Technique": "#3B82F6", "Finitions": "#10B981" };
+export const phase = { "Hors d'air": "#FF9500", "Technique": "#007AFF", "Finitions": "#34C759" };
 export const status = {
-  "En cours": "#3B82F6", "Planifié": "#8B5CF6",
-  "Terminé": "#10B981", "En attente": "#F59E0B", "Urgent": "#EF4444"
+  "En cours": "#007AFF", "Planifié": "#AF52DE",
+  "Terminé": "#34C759", "En attente": "#FF9500", "Urgent": "#FF3B30"
 };
 
 // ─── DEFAULT DATA ───
@@ -791,23 +798,23 @@ export function FF({label, hint, error, required, children}) {
   return (
     <div style={{marginBottom:12}}>
       <label htmlFor={fieldId} style={{
-        display:"block", fontSize:11, fontWeight:600, color:"#64748B",
+        display:"block", fontSize:11, fontWeight:600, color:"#6E6E73",
         marginBottom:3, textTransform:"uppercase", letterSpacing:"0.05em"
       }}>
         {label}
-        {required && <span aria-hidden="true" style={{color:"#DC2626", marginLeft:3}}>*</span>}
+        {required && <span aria-hidden="true" style={{color:"#D70015", marginLeft:3}}>*</span>}
       </label>
       {field && !field.props.id ? cloneElement(field, { id: fieldId }) : children}
       {error && (
         <div role="alert" style={{
-          fontSize:11, color:"#DC2626", marginTop:4, fontWeight:500,
+          fontSize:11, color:"#D70015", marginTop:4, fontWeight:500,
           display:"flex", alignItems:"center", gap:4,
         }}>
           <span aria-hidden="true">⚠</span>{error}
         </div>
       )}
       {hint && !error && (
-        <div style={{fontSize:10,color:"#64748B",marginTop:4,fontStyle:"italic"}}>
+        <div style={{fontSize:10,color:"#6E6E73",marginTop:4,fontStyle:"italic"}}>
           {hint}
         </div>
       )}
@@ -823,8 +830,8 @@ export function FF({label, hint, error, required, children}) {
 // (la page reste zoomée même après le blur, avec un scroll horizontal cassé).
 export const inp = {
   width:"100%", padding:"10px 12px", minHeight:44,
-  border:"1.5px solid #E2E8F0",
-  borderRadius:8, fontSize:16, outline:"none",
+  border:"1px solid #D1D1D6", background:"#fff",
+  borderRadius:10, fontSize:16, outline:"none",
   fontFamily:"inherit", boxSizing:"border-box",
   transition:"border-color 120ms cubic-bezier(.4, 0, .2, 1), box-shadow 120ms cubic-bezier(.4, 0, .2, 1)",
 };
@@ -858,19 +865,36 @@ export const inpNumeric = {
 }
 // Style border rouge à passer en erreur : <input style={{...inp, ...inpError}} />
 export const inpError = {
-  borderColor: '#FCA5A5',
-  background: '#FEF2F2',
+  borderColor: '#FF9F99',
+  background: '#FFF0EF',
 }
 
 export const btnP = {
-  padding:"10px 18px", minHeight:40, background:"#1E3A5F", color:"#fff",
-  border:"none", borderRadius:8, fontSize:13,
+  padding:"10px 18px", minHeight:40, background:"#0071E3", color:"#fff",
+  border:"none", borderRadius:10, fontSize:14,
   fontWeight:600, cursor:"pointer", fontFamily:"inherit",
   transition:"transform 120ms cubic-bezier(.4, 0, .2, 1), box-shadow 180ms cubic-bezier(.4, 0, .2, 1)",
 };
-export const btnS = {...btnP,background:"#F1F5F9",color:"#475569"};
+// Bouton gris iOS : fond gris léger, texte bleu.
+export const btnS = {...btnP,background:"#EFEFF0",color:"#0066CC"};
+// Action secondaire d'une section (« + Nouvel OS », « + Nouvelle tâche »…) :
+// bouton « teinté » iOS (fond bleu très léger, texte bleu). Le bleu plein
+// reste réservé à l'action principale (btnP). À combiner avec className="u-press".
+export const btnAdd = {
+  display:"inline-flex", alignItems:"center", gap:6,
+  padding:"8px 14px", minHeight:36, background:"#EAF3FF", color:"#0066CC",
+  border:"none", borderRadius:10, fontSize:14, fontWeight:600,
+  cursor:"pointer", fontFamily:"inherit",
+};
+// Petite action sur une ligne (PDF, Excel, modèle…) : gris iOS, texte bleu.
+export const btnChip = {
+  display:"inline-flex", alignItems:"center", gap:5,
+  padding:"6px 10px", minHeight:32, background:"#F2F2F7", color:"#0066CC",
+  border:"none", borderRadius:8, fontSize:13, fontWeight:500,
+  cursor:"pointer", fontFamily:"inherit", whiteSpace:"nowrap",
+};
 
-export const PBar = ({value, max=100, color="#3B82F6", h=8}) => (
+export const PBar = ({value, max=100, color="#007AFF", h=8}) => (
   <ProgressBar value={value} max={max} color={color} height={h} />
 );
 
@@ -879,7 +903,7 @@ export function ApiBadge() {
     <span style={{
       display:"inline-flex", alignItems:"center", gap:3,
       padding:"2px 7px", borderRadius:5,
-      background:"linear-gradient(135deg,#1E3A5F,#3B82F6)",
+      background:"linear-gradient(135deg,#0071E3,#007AFF)",
       color:"#fff", fontSize:8, fontWeight:800, letterSpacing:"0.1em"
     }}>API</span>
   );

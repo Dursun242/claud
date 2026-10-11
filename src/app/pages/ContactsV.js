@@ -32,9 +32,9 @@ const readIgnored = () => {
 }
 
 const TYPE_COLORS = {
-  Artisan:"#F59E0B",Client:"#3B82F6",Fournisseur:"#10B981",
-  "Sous-traitant":"#8B5CF6",Prestataire:"#EC4899",
-  MOA:"#0EA5E9",Architecte:"#6366F1",BET:"#14B8A6"
+  Artisan:"#FF9500",Client:"#007AFF",Fournisseur:"#34C759",
+  "Sous-traitant":"#AF52DE",Prestataire:"#FF2D55",
+  MOA:"#32ADE6",Architecte:"#5856D6",BET:"#30B0C7"
 }
 const TYPES = ["Artisan","Sous-traitant","Prestataire","Client","Fournisseur","MOA","Architecte","BET"]
 
@@ -463,7 +463,7 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
     }}>
       <div>
         <h1 style={{margin:0,fontSize:m?18:24,fontWeight:700}}>Contacts</h1>
-        <p style={{margin:"2px 0 0",fontSize:12,color:"#64748B"}}>
+        <p style={{margin:"2px 0 0",fontSize:12,color:"#6E6E73"}}>
           {data.contacts.length} contact{data.contacts.length>1?"s":""}
           {(q || tf !== "all") && <> · <strong>{list.length}</strong> affiché{list.length>1?"s":""}</>}
         </p>
@@ -475,9 +475,9 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
           style={{
             ...btnS,
             fontSize:12,
-            background:"#EEF2FF",
-            color:"#4F46E5",
-            border:"1.5px solid #C7D2FE",
+            background:"#EFEFFC",
+            color:"#5856D6",
+            border:"1.5px solid #D3D2F7",
             cursor:importing?"wait":"pointer",
             opacity:importing?0.7:1,
             display:"flex",
@@ -493,7 +493,7 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
             <>
               <span style={{
                 display:"inline-block",width:12,height:12,
-                border:"2px solid #C7D2FE",borderTopColor:"#4F46E5",
+                border:"2px solid #D3D2F7",borderTopColor:"#5856D6",
                 borderRadius:"50%",animation:"spin 0.8s linear infinite"
               }}/>
               Extraction…
@@ -507,8 +507,8 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
             onClick={() => setDupOpen(true)}
             title="Contacts qui semblent en double : vérifier et fusionner"
             style={{
-              ...btnS, fontSize: 12, background: "#FFF7ED", color: "#9A3412",
-              border: "1.5px solid #FED7AA", display: "flex", alignItems: "center", gap: 6,
+              ...btnS, fontSize: 12, background: "#FFF4E8", color: "#9A3412",
+              border: "1.5px solid #FFD8B0", display: "flex", alignItems: "center", gap: 6,
             }}
           >
             👥 Doublons ({dupGroups.length})
@@ -521,9 +521,9 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
           style={{
             ...btnS,
             fontSize: 12,
-            background: "#F0FDF4",
-            color: "#047857",
-            border: "1.5px solid #A7F3D0",
+            background: "#EEF9F1",
+            color: "#1E7B34",
+            border: "1.5px solid #BFE9CA",
             cursor: list.length === 0 ? "not-allowed" : "pointer",
             opacity: list.length === 0 ? 0.5 : 1,
           }}
@@ -536,13 +536,13 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
 
     {importError && (
       <div style={{
-        background:"#FEF2F2",
-        border:"1px solid #FECACA",
+        background:"#FFF0EF",
+        border:"1px solid #FFC9C6",
         borderRadius:8,
         padding:"8px 12px",
         marginBottom:12,
         fontSize:12,
-        color:"#DC2626",
+        color:"#D70015",
         display:"flex",
         justifyContent:"space-between",
         alignItems:"center",
@@ -551,7 +551,7 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
         <span>{importError}</span>
         <button onClick={()=>setImportError("")} aria-label="Fermer le message" style={{
           background:"none",border:"none",cursor:"pointer",
-          color:"#DC2626",fontSize:16,padding:0
+          color:"#D70015",fontSize:16,padding:0
         }}>✕</button>
       </div>
     )}
@@ -562,7 +562,7 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
         <span style={{
           position:"absolute",left:10,top:"50%",
           transform:"translateY(-50%)",pointerEvents:"none"
-        }}><Icon d={I.search} size={14} color="#94A3B8"/></span>
+        }}><Icon d={I.search} size={14} color="#8E8E93"/></span>
         <input
           ref={searchInputRef}
           type="search"
@@ -579,12 +579,12 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
         title="Avancement des documents des entreprises et aperçu des relances automatiques"
         style={{
           display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,width:"100%",
-          background:"#F0F9FF",border:"1.5px solid #BAE6FD",borderRadius:12,padding:m?"10px 12px":"12px 14px",
+          background:"#F0F8FC",border:"1.5px solid #BDE6F7",borderRadius:12,padding:m?"10px 12px":"12px 14px",
           marginBottom:12,cursor:"pointer",fontFamily:"inherit",textAlign:"left",
         }}>
         <span style={{minWidth:0}}>
           <span style={{display:"block",fontSize:14,fontWeight:700,color:"#0C4A6E"}}>📊 Suivi des documents des entreprises</span>
-          <span style={{display:"block",fontSize:11,color:"#0369A1",marginTop:2}}>
+          <span style={{display:"block",fontSize:11,color:"#0071A4",marginTop:2}}>
             {conf.missingMigration ? "À activer : migrations 036 à 038 dans Supabase"
               : suiviStats ? [
                 `${suiviStats.aJour}/${suiviStats.actives} entreprise${suiviStats.actives>1?"s":""} suivie${suiviStats.actives>1?"s":""} à jour`,
@@ -593,7 +593,7 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
               ].join(" · ") : ""}
           </span>
         </span>
-        <span style={{fontSize:12,fontWeight:700,color:"#0369A1",flexShrink:0}}>Ouvrir →</span>
+        <span style={{fontSize:12,fontWeight:700,color:"#0071A4",flexShrink:0}}>Ouvrir →</span>
       </button>
     )}
     <div style={{
@@ -603,27 +603,27 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
       <button onClick={()=>setTf("all")} style={{
         display:"inline-flex",alignItems:"center",gap:6,
         padding:"5px 11px",borderRadius:999,fontSize:11,fontWeight:600,
-        border:`1px solid ${tf==="all"?"#1E3A5F":"#E2E8F0"}`,
-        background:tf==="all"?"#1E3A5F":"#fff",
-        color:tf==="all"?"#fff":"#334155",cursor:"pointer",fontFamily:"inherit",
+        border:`1px solid ${tf==="all"?"#0071E3":"#E5E5EA"}`,
+        background:tf==="all"?"#0071E3":"#fff",
+        color:tf==="all"?"#fff":"#3A3A3C",cursor:"pointer",fontFamily:"inherit",
         transition:"background .15s, color .15s, border-color .15s",whiteSpace:"nowrap",
       }}>
         <span style={{
           width:7,height:7,borderRadius:"50%",
-          background:tf==="all"?"#fff":"#64748B",opacity:tf==="all"?0.8:1
+          background:tf==="all"?"#fff":"#6E6E73",opacity:tf==="all"?0.8:1
         }}/>
         Tous <span style={{fontSize:10,opacity:0.75,fontWeight:500}}>{data.contacts.length}</span>
       </button>
       {Object.entries(stats).map(([type,count])=>{
         const active = tf === type;
-        const color = tc[type] || "#1E3A5F";
+        const color = tc[type] || "#0071E3";
         return (
           <button key={type} onClick={()=>setTf(type)} style={{
             display:"inline-flex",alignItems:"center",gap:6,
             padding:"5px 11px",borderRadius:999,fontSize:11,fontWeight:600,
-            border:`1px solid ${active?color:"#E2E8F0"}`,
+            border:`1px solid ${active?color:"#E5E5EA"}`,
             background:active?color:"#fff",
-            color:active?"#fff":"#334155",cursor:"pointer",fontFamily:"inherit",
+            color:active?"#fff":"#3A3A3C",cursor:"pointer",fontFamily:"inherit",
             transition:"background .15s, color .15s, border-color .15s",whiteSpace:"nowrap",
           }}>
             <span style={{width:7,height:7,borderRadius:"50%",background:active?"#fff":color,opacity:active?0.8:1}}/>
@@ -637,9 +637,9 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
           style={{
             display:"inline-flex",alignItems:"center",gap:6,
             padding:"5px 11px",borderRadius:999,fontSize:11,fontWeight:700,
-            border:`1px solid ${tf==="__docs"?"#B91C1C":"#FECACA"}`,
-            background:tf==="__docs"?"#B91C1C":"#FEF2F2",
-            color:tf==="__docs"?"#fff":"#B91C1C",cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap",
+            border:`1px solid ${tf==="__docs"?"#D70015":"#FFC9C6"}`,
+            background:tf==="__docs"?"#D70015":"#FFF0EF",
+            color:tf==="__docs"?"#fff":"#D70015",cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap",
           }}>
           📄 Documents à revoir <span style={{fontSize:10,opacity:0.85,fontWeight:600}}>{docsToReview.size}</span>
         </button>
@@ -655,8 +655,8 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
         <div style={{fontSize:36,marginBottom:8,opacity:0.5}}>👤</div>
         {data.contacts.length === 0 ? (
           <>
-            <div style={{fontSize:14,fontWeight:700,color:"#334155",marginBottom:4}}>Aucun contact pour l'instant</div>
-            <div style={{fontSize:12,color:"#64748B",marginBottom:14}}>
+            <div style={{fontSize:14,fontWeight:700,color:"#3A3A3C",marginBottom:4}}>Aucun contact pour l'instant</div>
+            <div style={{fontSize:12,color:"#6E6E73",marginBottom:14}}>
               Crée ton premier contact ou importe-en un depuis une photo/capture.
             </div>
             <div style={{display:"flex",gap:8,justifyContent:"center",flexWrap:"wrap"}}>
@@ -667,8 +667,8 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
           </>
         ) : (
           <>
-            <div style={{fontSize:14,fontWeight:700,color:"#334155",marginBottom:4}}>Aucun résultat</div>
-            <div style={{fontSize:12,color:"#64748B",marginBottom:14}}>
+            <div style={{fontSize:14,fontWeight:700,color:"#3A3A3C",marginBottom:4}}>Aucun résultat</div>
+            <div style={{fontSize:12,color:"#6E6E73",marginBottom:14}}>
               Essaie d&apos;élargir ta recherche ou de changer de filtre.
             </div>
             <button onClick={()=>{setQ("");setTf("all");}}
@@ -681,25 +681,25 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
       {list.map(c=>(
         <div key={c.id} style={{
           background:"#fff",borderRadius:12,padding:m?14:16,
-          boxShadow:"0 1px 3px rgba(15,23,42,0.05)",
-          borderLeft:`4px solid ${tc[c.type]||"#94A3B8"}`,
+          boxShadow:"0 1px 3px rgba(0,0,0,0.05)",
+          borderLeft:`4px solid ${tc[c.type]||"#8E8E93"}`,
           opacity:c.actif===false?0.55:1
         }}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8}}>
             <div style={{flex:1,minWidth:0}}>
               <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:3,flexWrap:"wrap"}}>
-                <span style={{fontSize:15,fontWeight:700,color:"#0F172A"}}>{c.nom}</span>
-                <Badge text={c.type} color={tc[c.type]||"#94A3B8"}/>
-                {c.actif===false && <Badge text="Inactif" color="#94A3B8"/>}
+                <span style={{fontSize:15,fontWeight:700,color:"#1C1C1E"}}>{c.nom}</span>
+                <Badge text={c.type} color={tc[c.type]||"#8E8E93"}/>
+                {c.actif===false && <Badge text="Inactif" color="#8E8E93"/>}
                 {c.note>0 && (
-                  <span title={`${c.note}/5`} style={{fontSize:11,color:"#F59E0B"}}>
+                  <span title={`${c.note}/5`} style={{fontSize:11,color:"#FF9500"}}>
                     {"★".repeat(c.note)}{"☆".repeat(5-c.note)}
                   </span>
                 )}
               </div>
-              {c.societe && <div style={{fontSize:12,fontWeight:600,color:"#334155",marginBottom:2}}>{c.societe}</div>}
+              {c.societe && <div style={{fontSize:12,fontWeight:600,color:"#3A3A3C",marginBottom:2}}>{c.societe}</div>}
               {c.specialite && (
-                <div style={{fontSize:11,color:"#64748B",marginBottom:4}}>
+                <div style={{fontSize:11,color:"#6E6E73",marginBottom:4}}>
                   {c.specialite}{c.fonction?` — ${c.fonction}`:""}
                 </div>
               )}
@@ -742,7 +742,7 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
                 )}
               </div>
               {(c.ville||c.adresse) && (
-                <div style={{fontSize:10,color:"#64748B",marginTop:3,display:"inline-flex",alignItems:"center",gap:5}}>
+                <div style={{fontSize:10,color:"#6E6E73",marginTop:3,display:"inline-flex",alignItems:"center",gap:5}}>
                   📍 {[c.adresse,c.code_postal,c.ville].filter(Boolean).join(", ")}
                   <CopyIconBtn onClick={() =>
                     copyToClipboard([c.adresse,c.code_postal,c.ville].filter(Boolean).join(", "), "Adresse")
@@ -750,13 +750,13 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
                 </div>
               )}
               {c.siret && (
-                <div style={{fontSize:10,color:"#64748B",marginTop:2,display:"inline-flex",alignItems:"center",gap:5}}>
+                <div style={{fontSize:10,color:"#6E6E73",marginTop:2,display:"inline-flex",alignItems:"center",gap:5}}>
                   SIRET : {c.siret}
                   <CopyIconBtn onClick={() => copyToClipboard(c.siret, "SIRET", c)}/>
                 </div>
               )}
               {c.qualifications && (
-                <div style={{fontSize:10,color:"#3B82F6",marginTop:2,fontWeight:600}}>
+                <div style={{fontSize:10,color:"#0066CC",marginTop:2,fontWeight:600}}>
                   🏅 {c.qualifications}
                 </div>
               )}
@@ -774,8 +774,8 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
                       <button onClick={()=>setTab("crm", `contact:${c.id}`)}
                         title="Voir les affaires de ce contact dans le CRM"
                         style={{
-                          background:"#F0F9FF",border:"1px solid #BAE6FD",borderRadius:999,
-                          padding:"2px 9px",fontSize:10,fontWeight:700,color:"#0369A1",
+                          background:"#F0F8FC",border:"1px solid #BDE6F7",borderRadius:999,
+                          padding:"2px 9px",fontSize:10,fontWeight:700,color:"#0071A4",
                           cursor:"pointer",fontFamily:"inherit",
                         }}>
                         🎯 {k.actives} affaire{k.actives>1?"s":""} en cours{k.gagnees?` · ${k.gagnees} gagnée${k.gagnees>1?"s":""}`:""}
@@ -784,8 +784,8 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
                     <button onClick={()=>setTab("crm", `new:${c.id}`)}
                       title="Créer une opportunité CRM pour ce contact"
                       style={{
-                        background:"#fff",border:"1px dashed #CBD5E1",borderRadius:999,
-                        padding:"2px 9px",fontSize:10,fontWeight:600,color:"#64748B",
+                        background:"#fff",border:"1px dashed #D1D1D6",borderRadius:999,
+                        padding:"2px 9px",fontSize:10,fontWeight:600,color:"#6E6E73",
                         cursor:"pointer",fontFamily:"inherit",
                       }}>+ Affaire</button>
                   </div>
@@ -794,18 +794,18 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
             </div>
             <div style={{display:"flex",flexDirection:"column",gap:4,flexShrink:0}}>
               <button onClick={()=>openEdit(c)} title="Modifier" style={{
-                background:"#F1F5F9",border:"1px solid #E2E8F0",borderRadius:6,
+                background:"#F2F2F7",border:"1px solid #E5E5EA",borderRadius:6,
                 cursor:"pointer",padding:"5px 7px",
                 display:"flex",alignItems:"center",justifyContent:"center"
               }}>
-                <Icon d={I.edit} size={13} color="#475569"/>
+                <Icon d={I.edit} size={13} color="#48484A"/>
               </button>
               <button onClick={()=>handleDelete(c)} title="Supprimer" style={{
-                background:"#fff",border:"1px solid #FECACA",borderRadius:6,
+                background:"#fff",border:"1px solid #FFC9C6",borderRadius:6,
                 cursor:"pointer",padding:"5px 7px",
                 display:"flex",alignItems:"center",justifyContent:"center"
               }}>
-                <Icon d={I.trash} size={13} color="#DC2626"/>
+                <Icon d={I.trash} size={13} color="#D70015"/>
               </button>
             </div>
           </div>

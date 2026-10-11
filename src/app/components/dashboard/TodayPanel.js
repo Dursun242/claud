@@ -1,16 +1,16 @@
 'use client'
 import { useState } from 'react'
-import { fmtDate } from '../../dashboards/shared'
+import { fmtDate, Icon, I } from '../../dashboards/shared'
 
-// Style par type d'entrée de l'agenda
+// Icône (dessinée, ardoise) par type d'entrée de l'agenda
 const KIND = {
-  rdv:      { emoji: '📅', color: '#2563EB' },
-  task:     { emoji: '✅', color: '#F59E0B' },
-  os:       { emoji: '✍️', color: '#8B5CF6' },
-  planning: { emoji: '🏗️', color: '#10B981' },
-  relance:  { emoji: '🎯', color: '#EC4899' },
+  rdv:      { icon: I.planning },
+  task:     { icon: I.tasks },
+  os:       { icon: I.os },
+  planning: { icon: I.projects },
+  relance:  { icon: I.crm },
 }
-const LATE = '#EF4444'
+const LATE = '#D70015'
 const COLLAPSED = 6
 
 /**
@@ -36,22 +36,22 @@ export default function TodayPanel({ agenda, onOpen, m }) {
 
   return (
     <section aria-labelledby="today-title" style={{
-      background: '#fff', borderRadius: 14, padding: m ? 14 : 18,
+      background: '#fff', borderRadius: 12, padding: m ? 14 : 18,
+      border: '1px solid #E5E5EA',
       boxShadow: '0 1px 3px rgba(0,0,0,0.06)', marginBottom: 18,
-      border: agenda.tasksOverdue.length ? '1.5px solid #FECACA' : '1px solid transparent',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: total ? 12 : 4 }}>
-        <h2 id="today-title" style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#0F172A' }}>☀️ Ma journée</h2>
+        <h2 id="today-title" style={{ margin: 0, fontSize: 17, fontWeight: 600, color: '#1C1C1E' }}>Ma journée</h2>
         {total > 0 && (
-          <span style={{ fontSize: 11, color: '#64748B' }}>
+          <span style={{ fontSize: 12, color: '#6E6E73' }}>
             {total} point{total > 1 ? 's' : ''} à traiter
           </span>
         )}
       </div>
 
       {total === 0 ? (
-        <div style={{ textAlign: 'center', padding: '10px 0', fontSize: 13, color: '#64748B' }}>
-          ✅ Rien d&apos;urgent aujourd&apos;hui — bonne journée !
+        <div style={{ textAlign: 'center', padding: '10px 0', fontSize: 13, color: '#6E6E73' }}>
+          Rien d&apos;urgent aujourd&apos;hui.
         </div>
       ) : sections.map(sec => {
         if (budget <= 0) return null
@@ -60,29 +60,29 @@ export default function TodayPanel({ agenda, onOpen, m }) {
         return (
           <div key={sec.key} style={{ marginBottom: 10 }}>
             <div style={{
-              fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
-              color: sec.key === 'late' ? LATE : '#94A3B8', marginBottom: 6,
+              fontSize: 11, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase',
+              color: sec.key === 'late' ? LATE : '#6E6E73', marginBottom: 6,
             }}>{sec.title} · {sec.items.length}</div>
             <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 6, gridTemplateColumns: 'minmax(0,1fr)' }}>
               {shown.map(it => {
                 const k = KIND[it.kind] || KIND.task
                 return (
                   <li key={`${it.kind}-${it.id}`}>
-                    <button onClick={() => onOpen(it.tab, it.focus)} style={{
-                      width: '100%', display: 'flex', alignItems: 'center', gap: 10, minWidth: 0,
-                      padding: m ? '10px 12px' : '8px 12px', background: '#F8FAFC', border: 'none',
-                      borderLeft: `3px solid ${it.late ? LATE : k.color}`, borderRadius: 10,
+                    <button onClick={() => onOpen(it.tab, it.focus)} className="u-press u-press--row" style={{
+                      width: '100%', minHeight: 44, display: 'flex', alignItems: 'center', gap: 10, minWidth: 0,
+                      padding: m ? '10px 12px' : '8px 12px', background: '#F5F5F7', border: 'none',
+                      borderRadius: 10,
                       cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
                     }}>
-                      <span aria-hidden style={{ fontSize: 16 }}>{k.emoji}</span>
+                      <span aria-hidden style={{ display: 'inline-flex', color: it.late ? LATE : '#6E6E73', flexShrink: 0 }}><Icon d={k.icon} size={16}/></span>
                       <span style={{ flex: 1, minWidth: 0 }}>
-                        <span style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{it.title}</span>
-                        {it.sub && <span style={{ display: 'block', fontSize: 11, color: '#64748B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{it.sub}</span>}
+                        <span style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#1C1C1E', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{it.title}</span>
+                        {it.sub && <span style={{ display: 'block', fontSize: 12, color: '#6E6E73', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{it.sub}</span>}
                       </span>
                       {it.late && it.date && (
-                        <span style={{ fontSize: 11, fontWeight: 700, color: '#DC2626', whiteSpace: 'nowrap' }}>{fmtDate(it.date)}</span>
+                        <span style={{ fontSize: 12, fontWeight: 600, color: LATE, whiteSpace: 'nowrap' }}>{fmtDate(it.date)}</span>
                       )}
-                      <span aria-hidden style={{ fontSize: 14, color: '#CBD5E1' }}>›</span>
+                      <span aria-hidden style={{ fontSize: 14, color: '#D1D1D6' }}>›</span>
                     </button>
                   </li>
                 )
@@ -94,19 +94,19 @@ export default function TodayPanel({ agenda, onOpen, m }) {
 
       {total > COLLAPSED && (
         <button onClick={() => setExpanded(e => !e)} style={{
-          fontSize: 12, color: '#3B82F6', background: 'none', border: 'none',
+          fontSize: 13, color: '#0066CC', background: 'none', border: 'none', minHeight: 36,
           cursor: 'pointer', fontWeight: 600, fontFamily: 'inherit', padding: '4px 0',
         }}>{expanded ? 'Réduire' : `Tout afficher (${total})`}</button>
       )}
 
       {agenda.rdvUpcoming.length > 0 && (
-        <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid #F1F5F9' }}>
-          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#64748B', marginBottom: 6 }}>
+        <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid #F2F2F7' }}>
+          <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', color: '#6E6E73', marginBottom: 6 }}>
             Rendez-vous à venir
           </div>
           {agenda.rdvUpcoming.slice(0, 3).map(r => (
-            <div key={r.id} style={{ display: 'flex', gap: 10, fontSize: 12, color: '#334155', padding: '3px 0', minWidth: 0 }}>
-              <span style={{ fontWeight: 700, color: '#2563EB', whiteSpace: 'nowrap', textTransform: 'capitalize' }}>
+            <div key={r.id} style={{ display: 'flex', gap: 10, fontSize: 13, color: '#3A3A3C', padding: '3px 0', minWidth: 0 }}>
+              <span style={{ fontWeight: 600, color: '#1C1C1E', whiteSpace: 'nowrap', textTransform: 'capitalize' }}>
                 {new Date(r.date + 'T00:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric' })}
               </span>
               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>

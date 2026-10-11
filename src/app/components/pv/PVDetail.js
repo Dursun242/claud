@@ -109,10 +109,10 @@ export default function PVDetail({ pv, onClose, onDecision }) {
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: 20 }}>
           <div>
-            <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#0F172A' }}>
+            <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#1C1C1E' }}>
               {pv.numero}
             </h2>
-            <p style={{ margin: '4px 0 0 0', fontSize: 12, color: '#64748B' }}>
+            <p style={{ margin: '4px 0 0 0', fontSize: 12, color: '#6E6E73' }}>
               {pv.titre}
             </p>
           </div>
@@ -121,22 +121,22 @@ export default function PVDetail({ pv, onClose, onDecision }) {
             border: 'none',
             fontSize: 20,
             cursor: 'pointer',
-            color: '#64748B'
+            color: '#6E6E73'
           }}>×</button>
         </div>
 
         {/* Infos */}
-        <div style={{ background: '#F8FAFC', borderRadius: 8, padding: 12, marginBottom: 12, fontSize: 12 }}>
+        <div style={{ background: '#F5F5F7', borderRadius: 8, padding: 12, marginBottom: 12, fontSize: 12 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
-              <div style={{ color: '#64748B', fontSize: 10, fontWeight: 600 }}>DATE RÉCEPTION</div>
-              <div style={{ color: '#0F172A', fontWeight: 600, marginTop: 2 }}>
+              <div style={{ color: '#6E6E73', fontSize: 10, fontWeight: 600 }}>DATE RÉCEPTION</div>
+              <div style={{ color: '#1C1C1E', fontWeight: 600, marginTop: 2 }}>
                 {formatDate(pv.date_reception)}
               </div>
             </div>
             <div>
-              <div style={{ color: '#64748B', fontSize: 10, fontWeight: 600 }}>STATUT SIGNATURE</div>
-              <div style={{ color: '#0F172A', fontWeight: 600, marginTop: 2 }}>
+              <div style={{ color: '#6E6E73', fontSize: 10, fontWeight: 600 }}>STATUT SIGNATURE</div>
+              <div style={{ color: '#1C1C1E', fontWeight: 600, marginTop: 2 }}>
                 {pv.statut_signature}
               </div>
             </div>
@@ -153,9 +153,9 @@ export default function PVDetail({ pv, onClose, onDecision }) {
                 rel="noreferrer"
                 style={{
                   padding: '8px 12px',
-                  background: '#EEF2FF',
-                  color: '#4338CA',
-                  border: '1px solid #C7D2FE',
+                  background: '#EFEFFC',
+                  color: '#4744B8',
+                  border: '1px solid #D3D2F7',
                   borderRadius: 6,
                   fontSize: 12,
                   fontWeight: 600,
@@ -171,9 +171,9 @@ export default function PVDetail({ pv, onClose, onDecision }) {
                 disabled={downloadingSigned}
                 style={{
                   padding: '8px 12px',
-                  background: '#ECFDF5',
-                  color: '#059669',
-                  border: '1px solid #A7F3D0',
+                  background: '#EAF8EE',
+                  color: '#248A3D',
+                  border: '1px solid #BFE9CA',
                   borderRadius: 6,
                   fontSize: 12,
                   fontWeight: 600,
@@ -189,38 +189,38 @@ export default function PVDetail({ pv, onClose, onDecision }) {
 
         {/* Description */}
         {pv.description && (
-          <div style={{ marginBottom: 16, fontSize: 12, color: '#64748B', lineHeight: 1.5 }}>
+          <div style={{ marginBottom: 16, fontSize: 12, color: '#6E6E73', lineHeight: 1.5 }}>
             {pv.description}
           </div>
         )}
 
         {/* Signataires */}
-        <div style={{ background: '#F8FAFC', borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 11 }}>
-          <div style={{ fontWeight: 600, color: '#64748B', marginBottom: 8 }}>SIGNATAIRES</div>
+        <div style={{ background: '#F5F5F7', borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 11 }}>
+          <div style={{ fontWeight: 600, color: '#6E6E73', marginBottom: 8 }}>SIGNATAIRES</div>
           {pv.signataire_moe_email && (
-            <div style={{ color: '#0F172A', marginBottom: 4 }}>
+            <div style={{ color: '#1C1C1E', marginBottom: 4 }}>
               <strong>MOE:</strong> {pv.signataire_moe_email}
-              {pv.date_signature_moe && <span style={{ color: '#64748B', marginLeft: 8 }}>✓ {formatDate(pv.date_signature_moe)}</span>}
+              {pv.date_signature_moe && <span style={{ color: '#6E6E73', marginLeft: 8 }}>✓ {formatDate(pv.date_signature_moe)}</span>}
             </div>
           )}
           {(pv.signataire_moa_emails?.length ? pv.signataire_moa_emails : (pv.signataire_moa_email ? [pv.signataire_moa_email] : [])).map((email, idx) => (
-            <div key={`moa-${idx}`} style={{ color: '#0F172A', marginBottom: 4 }}>
+            <div key={`moa-${idx}`} style={{ color: '#1C1C1E', marginBottom: 4 }}>
               <strong>MOA{idx > 0 ? ` ${idx + 1}` : ''}:</strong> {email}
-              {idx === 0 && pv.date_signature_moa && <span style={{ color: '#64748B', marginLeft: 8 }}>✓ {formatDate(pv.date_signature_moa)}</span>}
+              {idx === 0 && pv.date_signature_moa && <span style={{ color: '#6E6E73', marginLeft: 8 }}>✓ {formatDate(pv.date_signature_moa)}</span>}
             </div>
           ))}
           {(pv.signataire_entreprise_emails?.length ? pv.signataire_entreprise_emails : (pv.signataire_entreprise_email ? [pv.signataire_entreprise_email] : [])).map((email, idx) => (
-            <div key={`ent-${idx}`} style={{ color: '#0F172A', marginBottom: 4 }}>
+            <div key={`ent-${idx}`} style={{ color: '#1C1C1E', marginBottom: 4 }}>
               <strong>Entreprise{idx > 0 ? ` ${idx + 1}` : ''}:</strong> {email}
-              {idx === 0 && pv.date_signature_entreprise && <span style={{ color: '#64748B', marginLeft: 8 }}>✓ {formatDate(pv.date_signature_entreprise)}</span>}
+              {idx === 0 && pv.date_signature_entreprise && <span style={{ color: '#6E6E73', marginLeft: 8 }}>✓ {formatDate(pv.date_signature_entreprise)}</span>}
             </div>
           ))}
         </div>
 
         {/* Décision - seulement si signé */}
         {pv.statut_signature === 'Signé' && pv.statut_reception === 'En attente' && (
-          <div style={{ borderTop: '1px solid #E2E8F0', paddingTop: 16 }}>
-            <div style={{ fontSize: 12, fontWeight: 600, color: '#0F172A', marginBottom: 12 }}>
+          <div style={{ borderTop: '1px solid #E5E5EA', paddingTop: 16 }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: '#1C1C1E', marginBottom: 12 }}>
               DÉCISION FINALE
             </div>
 
@@ -235,7 +235,7 @@ export default function PVDetail({ pv, onClose, onDecision }) {
                     onChange={(e) => setDecision(e.target.value)}
                     style={{ cursor: 'pointer' }}
                   />
-                  <span style={{ fontWeight: 600, color: '#0F172A' }}>{opt}</span>
+                  <span style={{ fontWeight: 600, color: '#1C1C1E' }}>{opt}</span>
                 </label>
               ))}
             </div>
@@ -248,7 +248,7 @@ export default function PVDetail({ pv, onClose, onDecision }) {
                 style={{
                   width: '100%',
                   padding: 8,
-                  border: '1px solid #E2E8F0',
+                  border: '1px solid #E5E5EA',
                   borderRadius: 6,
                   fontSize: 12,
                   fontFamily: 'inherit',
@@ -265,7 +265,7 @@ export default function PVDetail({ pv, onClose, onDecision }) {
               style={{
                 width: '100%',
                 padding: '8px 12px',
-                background: '#0F172A',
+                background: '#1C1C1E',
                 color: '#fff',
                 border: 'none',
                 borderRadius: 6,

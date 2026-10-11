@@ -20,7 +20,7 @@ export default function AIQontoV({ m }) {
 
   return (
     <div style={{ animation: 'fadeIn .3s ease' }}>
-      <h1 style={{ color: '#E2E8F0', marginBottom: '20px' }}>🤖 IA Qonto</h1>
+      <h1 style={{ color: '#E5E5EA', marginBottom: '20px' }}>🤖 IA Qonto</h1>
 
       {/* Bouton analyse */}
       <button
@@ -28,7 +28,7 @@ export default function AIQontoV({ m }) {
         disabled={loading}
         style={{
           padding: '12px 20px',
-          background: loading ? '#64748B' : '#3B82F6',
+          background: loading ? '#6E6E73' : '#007AFF',
           color: '#FFF',
           border: 'none',
           borderRadius: '6px',
@@ -44,7 +44,7 @@ export default function AIQontoV({ m }) {
       {error && (
         <div
           style={{
-            background: '#EF4444',
+            background: '#FF3B30',
             color: '#FFF',
             padding: '12px',
             borderRadius: '6px',
@@ -62,16 +62,16 @@ export default function AIQontoV({ m }) {
           {analysis.analysis?.summary && (
             <div
               style={{
-                background: '#1E293B',
+                background: '#2C2C2E',
                 padding: '15px',
                 borderRadius: '6px',
-                borderLeft: '4px solid #3B82F6',
+                borderLeft: '4px solid #007AFF',
               }}
             >
-              <h3 style={{ color: '#E2E8F0', margin: '0 0 10px 0', fontSize: '13px' }}>
+              <h3 style={{ color: '#E5E5EA', margin: '0 0 10px 0', fontSize: '13px' }}>
                 📊 Résumé Financier
               </h3>
-              <p style={{ color: '#CBD5E1', margin: '0', fontSize: '13px', lineHeight: '1.5' }}>
+              <p style={{ color: '#D1D1D6', margin: '0', fontSize: '13px', lineHeight: '1.5' }}>
                 {analysis.analysis.summary}
               </p>
             </div>
@@ -81,16 +81,16 @@ export default function AIQontoV({ m }) {
           {analysis.analysis?.paymentRate && (
             <div
               style={{
-                background: '#1E293B',
+                background: '#2C2C2E',
                 padding: '15px',
                 borderRadius: '6px',
-                borderLeft: '4px solid #10B981',
+                borderLeft: '4px solid #34C759',
               }}
             >
-              <h3 style={{ color: '#E2E8F0', margin: '0 0 10px 0', fontSize: '13px' }}>
+              <h3 style={{ color: '#E5E5EA', margin: '0 0 10px 0', fontSize: '13px' }}>
                 💳 Taux de Paiement
               </h3>
-              <p style={{ color: '#CBD5E1', margin: '0', fontSize: '13px', lineHeight: '1.5' }}>
+              <p style={{ color: '#D1D1D6', margin: '0', fontSize: '13px', lineHeight: '1.5' }}>
                 {analysis.analysis.paymentRate}
               </p>
             </div>
@@ -100,16 +100,16 @@ export default function AIQontoV({ m }) {
           {analysis.analysis?.topClients && (
             <div
               style={{
-                background: '#1E293B',
+                background: '#2C2C2E',
                 padding: '15px',
                 borderRadius: '6px',
-                borderLeft: '4px solid #F59E0B',
+                borderLeft: '4px solid #FF9500',
               }}
             >
-              <h3 style={{ color: '#E2E8F0', margin: '0 0 10px 0', fontSize: '13px' }}>
+              <h3 style={{ color: '#E5E5EA', margin: '0 0 10px 0', fontSize: '13px' }}>
                 👥 Top Clients
               </h3>
-              <ul style={{ color: '#CBD5E1', margin: '0', paddingLeft: '20px', fontSize: '12px' }}>
+              <ul style={{ color: '#D1D1D6', margin: '0', paddingLeft: '20px', fontSize: '12px' }}>
                 {Array.isArray(analysis.analysis.topClients)
                   ? analysis.analysis.topClients.map((client, i) => (
                       <li key={i}>{client}</li>
@@ -123,16 +123,16 @@ export default function AIQontoV({ m }) {
           {analysis.analysis?.recommendations && (
             <div
               style={{
-                background: '#1E293B',
+                background: '#2C2C2E',
                 padding: '15px',
                 borderRadius: '6px',
-                borderLeft: '4px solid #EC4899',
+                borderLeft: '4px solid #FF2D55',
                 gridColumn: m ? '1' : '1 / -1',
               }}
             >
               <h3
                 style={{
-                  color: '#E2E8F0',
+                  color: '#E5E5EA',
                   margin: '0 0 10px 0',
                   fontSize: '13px',
                   cursor: 'pointer',
@@ -142,7 +142,7 @@ export default function AIQontoV({ m }) {
                 💡 Recommandations {expanded ? '▼' : '▶'}
               </h3>
               {expanded && (
-                <ul style={{ color: '#CBD5E1', margin: '0', paddingLeft: '20px', fontSize: '12px' }}>
+                <ul style={{ color: '#D1D1D6', margin: '0', paddingLeft: '20px', fontSize: '12px' }}>
                   {Array.isArray(analysis.analysis.recommendations)
                     ? analysis.analysis.recommendations.map((rec, i) => (
                         <li key={i}>{rec}</li>
@@ -156,12 +156,12 @@ export default function AIQontoV({ m }) {
           {/* Meta */}
           <div
             style={{
-              background: '#0F172A',
+              background: '#1C1C1E',
               padding: '12px',
               borderRadius: '6px',
               gridColumn: m ? '1' : '1 / -1',
               textAlign: 'center',
-              color: '#64748B',
+              color: '#6E6E73',
               fontSize: '11px',
             }}
           >
@@ -173,11 +173,11 @@ export default function AIQontoV({ m }) {
       {!analysis && !loading && (
         <div
           style={{
-            background: '#1E293B',
+            background: '#2C2C2E',
             padding: '30px',
             borderRadius: '6px',
             textAlign: 'center',
-            color: '#64748B',
+            color: '#6E6E73',
           }}
         >
           <p>Clique sur "Analyser Qonto" pour voir les insights IA 🤖</p>

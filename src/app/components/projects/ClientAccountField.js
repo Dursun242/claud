@@ -36,7 +36,7 @@ export default function ClientAccountField({ value, onChange }) {
   if (failed) {
     return (
       <FF label="Compte client (accès au suivi)">
-        <div style={{fontSize:12,color:"#64748B"}}>
+        <div style={{fontSize:12,color:"#6E6E73"}}>
           Liste des comptes indisponible : rattachement automatique d&apos;après le nom du client.
         </div>
       </FF>

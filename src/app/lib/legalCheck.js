@@ -13,10 +13,10 @@
 export const BODACC_URL = 'https://bodacc-datadila.opendatasoft.com/api/explore/v2.1/catalog/datasets/annonces-commerciales/records'
 
 export const LEGAL_META = {
-  ok: { label: 'Entreprise active', color: '#047857', bg: '#ECFDF5', border: '#A7F3D0', rank: 0 },
-  inconnu: { label: 'Non vérifiée', color: '#64748B', bg: '#F1F5F9', border: '#E2E8F0', rank: 1 },
-  alerte: { label: 'Procédure en cours', color: '#B45309', bg: '#FFFBEB', border: '#FDE68A', rank: 2 },
-  critique: { label: 'Entreprise fermée ou en liquidation', color: '#B91C1C', bg: '#FEF2F2', border: '#FECACA', rank: 3 },
+  ok: { label: 'Entreprise active', color: '#1E7B34', bg: '#EAF8EE', border: '#BFE9CA', rank: 0 },
+  inconnu: { label: 'Non vérifiée', color: '#6E6E73', bg: '#F2F2F7', border: '#E5E5EA', rank: 1 },
+  alerte: { label: 'Procédure en cours', color: '#C93400', bg: '#FFF7E8', border: '#FFDDA6', rank: 2 },
+  critique: { label: 'Entreprise fermée ou en liquidation', color: '#D70015', bg: '#FFF0EF', border: '#FFC9C6', rank: 3 },
 }
 
 export const sirenOfSiret = (v) => {

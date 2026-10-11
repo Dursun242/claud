@@ -23,7 +23,7 @@ Application de gestion de chantiers BTP pour **ID Maîtrise** (SARL, Le Havre). 
 ```
 src/app/
 ├─ page.js                    → entrée app (AuthProvider + dashboard)
-├─ layout.js                  → root layout + next/font DM Sans
+├─ layout.js                  → root layout (police du système, cf. styles/global.css --font-ui)
 ├─ RootWrapper.js             → providers (Toast, Confirm, WebVitals)
 ├─ (src/middleware.js)       → headers sécurité (pas de CSP, voir "dette")
 ├─ auth.js                    → login + AuthProvider Supabase

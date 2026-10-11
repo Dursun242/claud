@@ -7,17 +7,20 @@ describe('Badge', () => {
     expect(screen.getByText('En cours')).toBeInTheDocument()
   })
 
-  it('applique la couleur passée (texte + fond)', () => {
+  it('texte en teinte foncée lisible de la couleur, sur fond dilué', () => {
     render(<Badge text="Terminé" color="#10B981"/>)
     const badge = screen.getByText('Terminé')
-    // Le fond est la couleur + suffixe "18" (opacity) — voir impl.
-    expect(badge).toHaveStyle({ color: '#10B981' })
+    expect(badge).toHaveStyle({ color: '#1E7B34' })
+    expect(badge.style.background).not.toBe('')
   })
 
-  it('utilise la couleur par défaut quand aucune n\'est fournie', () => {
+  it('utilise le bleu par défaut quand aucune couleur n\'est fournie', () => {
     render(<Badge text="Défaut"/>)
-    const badge = screen.getByText('Défaut')
-    // #3B82F6 est le bleu par défaut
-    expect(badge).toHaveStyle({ color: '#3B82F6' })
+    expect(screen.getByText('Défaut')).toHaveStyle({ color: '#0062CC' })
+  })
+
+  it('garde une couleur inconnue telle quelle', () => {
+    render(<Badge text="Autre" color="#123456"/>)
+    expect(screen.getByText('Autre')).toHaveStyle({ color: '#123456' })
   })
 })

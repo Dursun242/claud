@@ -6,11 +6,11 @@ export default function MicButton({ active, onClick, label = 'Dicter' }) {
       style={{
         display: 'inline-flex', alignItems: 'center', gap: 6, borderRadius: 999, padding: '6px 12px', minHeight: 34,
         fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
-        border: active ? '1.5px solid #DC2626' : '1.5px solid #CBD5E1',
-        background: active ? '#FEF2F2' : '#fff', color: active ? '#DC2626' : '#1E3A5F',
+        border: active ? '1.5px solid #D70015' : '1.5px solid #D1D1D6',
+        background: active ? '#FFF0EF' : '#fff', color: active ? '#D70015' : '#0071E3',
       }}>
       <span aria-hidden="true" style={{
-        width: 8, height: 8, borderRadius: '50%', background: active ? '#DC2626' : '#94A3B8',
+        width: 8, height: 8, borderRadius: '50%', background: active ? '#D70015' : '#8E8E93',
         animation: active ? 'heartbeat 0.8s ease-in-out infinite' : 'none',
       }} />
       {active ? 'Arrêter' : `🎤 ${label}`}

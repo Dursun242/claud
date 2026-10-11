@@ -24,7 +24,7 @@ export default function GlobalError({ error, reset }) {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          background: 'linear-gradient(135deg, #0F172A 0%, #1E3A5F 50%, #0F172A 100%)',
+          background: 'linear-gradient(135deg, #1C1C1E 0%, #0071E3 50%, #1C1C1E 100%)',
           padding: 24,
         }}>
           <div style={{
@@ -36,21 +36,21 @@ export default function GlobalError({ error, reset }) {
             boxShadow: '0 25px 60px rgba(0,0,0,0.3)',
           }}>
             <div style={{ fontSize: 40, marginBottom: 16 }}>💥</div>
-            <h2 style={{ margin: '0 0 8px', color: '#0F172A', fontSize: 20, fontWeight: 700 }}>
+            <h2 style={{ margin: '0 0 8px', color: '#1C1C1E', fontSize: 20, fontWeight: 700 }}>
               Erreur critique
             </h2>
-            <p style={{ margin: '0 0 24px', color: '#64748B', fontSize: 14, lineHeight: 1.6 }}>
+            <p style={{ margin: '0 0 24px', color: '#6E6E73', fontSize: 14, lineHeight: 1.6 }}>
               L&apos;application a rencontré un problème et n&apos;a pas pu se charger.<br />
               Recharge la page pour reprendre.
             </p>
             {error?.message && (
               <details style={{ textAlign: 'left', marginBottom: 20 }}>
-                <summary style={{ cursor: 'pointer', fontSize: 12, color: '#94A3B8' }}>
+                <summary style={{ cursor: 'pointer', fontSize: 12, color: '#8E8E93' }}>
                   Détails techniques
                 </summary>
                 <pre style={{
-                  marginTop: 8, padding: 12, background: '#F1F5F9', borderRadius: 8,
-                  fontSize: 11, overflowX: 'auto', color: '#475569', whiteSpace: 'pre-wrap',
+                  marginTop: 8, padding: 12, background: '#F2F2F7', borderRadius: 8,
+                  fontSize: 11, overflowX: 'auto', color: '#48484A', whiteSpace: 'pre-wrap',
                 }}>
                   {error.message}
                 </pre>
@@ -60,7 +60,7 @@ export default function GlobalError({ error, reset }) {
               onClick={() => (reset ? reset() : window.location.reload())}
               style={{
                 padding: '10px 24px',
-                background: '#1E3A5F',
+                background: '#0071E3',
                 color: '#fff',
                 border: 'none',
                 borderRadius: 8,

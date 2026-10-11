@@ -39,10 +39,10 @@ export function defaultSujet(type, contact) {
 
 export const chip = (active, color) => ({
   padding: '5px 10px', borderRadius: 999, fontSize: 11, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer',
-  border: `1px solid ${active ? color : '#E2E8F0'}`, background: active ? color : '#fff', color: active ? '#fff' : '#334155',
+  border: `1px solid ${active ? color : '#E5E5EA'}`, background: active ? color : '#fff', color: active ? '#fff' : '#3A3A3C',
 })
 
 export const iconBtn = {
-  background: '#F1F5F9', border: '1px solid #E2E8F0', borderRadius: 6, cursor: 'pointer',
-  padding: '3px 7px', fontSize: 12, fontFamily: 'inherit', color: '#475569', lineHeight: 1.2,
+  background: '#F2F2F7', border: '1px solid #E5E5EA', borderRadius: 6, cursor: 'pointer',
+  padding: '3px 7px', fontSize: 12, fontFamily: 'inherit', color: '#48484A', lineHeight: 1.2,
 }

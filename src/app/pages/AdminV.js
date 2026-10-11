@@ -23,9 +23,9 @@ async function apiUsers(method, body) {
 
 // Couleur + label par rôle (utilisé partout : pills, cartes, fallback)
 const ROLE_META = {
-  admin:   { label: "🔑 Admin",             color: "#DC2626", bg: "#FEF2F2", border: "#FECACA" },
-  salarie: { label: "👷 Salarié",           color: "#1E3A5F", bg: "#EFF6FF", border: "#BFDBFE" },
-  client:  { label: "🏗 Maître d'ouvrage",  color: "#047857", bg: "#ECFDF5", border: "#A7F3D0" },
+  admin:   { label: "🔑 Admin",             color: "#D70015", bg: "#FFF0EF", border: "#FFC9C6" },
+  salarie: { label: "👷 Salarié",           color: "#0071E3", bg: "#EAF3FF", border: "#C6DDF7" },
+  client:  { label: "🏗 Maître d'ouvrage",  color: "#1E7B34", bg: "#EAF8EE", border: "#BFE9CA" },
 }
 
 export default function AdminV({ m, reload, profile }) {
@@ -169,12 +169,12 @@ export default function AdminV({ m, reload, profile }) {
   if (!isAdmin) {
     return (
       <div style={{
-        background: "#FEF2F2", borderRadius: 14, padding: 40,
-        textAlign: "center", border: "1.5px solid #FECACA"
+        background: "#FFF0EF", borderRadius: 14, padding: 40,
+        textAlign: "center", border: "1.5px solid #FFC9C6"
       }}>
         <div style={{ fontSize: 36, marginBottom: 10 }}>🔒</div>
-        <h1 style={{ margin: "0 0 10px", fontSize: 20, fontWeight: 700, color: "#DC2626" }}>Accès refusé</h1>
-        <p style={{ margin: 0, color: "#64748B", fontSize: 14 }}>
+        <h1 style={{ margin: "0 0 10px", fontSize: 20, fontWeight: 700, color: "#D70015" }}>Accès refusé</h1>
+        <p style={{ margin: 0, color: "#6E6E73", fontSize: 14 }}>
           Seuls les administrateurs peuvent accéder à cette section.
         </p>
       </div>
@@ -260,13 +260,13 @@ export default function AdminV({ m, reload, profile }) {
   const tabBtn = (active) => ({
     padding: "8px 14px",
     border: "none",
-    borderBottom: `2px solid ${active ? "#1E3A5F" : "transparent"}`,
+    borderBottom: `2px solid ${active ? "#0071E3" : "transparent"}`,
     background: "transparent",
     cursor: "pointer",
     fontFamily: "inherit",
     fontSize: 13,
     fontWeight: active ? 700 : 500,
-    color: active ? "#0F172A" : "#64748B",
+    color: active ? "#1C1C1E" : "#6E6E73",
     transition: "color .15s, border-color .15s",
   })
 
@@ -275,12 +275,12 @@ export default function AdminV({ m, reload, profile }) {
       <h1 style={{ margin: "0 0 4px", fontSize: m ? 18 : 24, fontWeight: 700 }}>
         🔒 Administration
       </h1>
-      <div style={{ fontSize: 11, color: "#64748B", marginBottom: 14 }}>
+      <div style={{ fontSize: 11, color: "#6E6E73", marginBottom: 14 }}>
         Gestion des accès et journal d&apos;activité — admin uniquement.
       </div>
 
       {/* Sous-navigation : Utilisateurs / Journal */}
-      <div style={{ display: "flex", gap: 4, marginBottom: 18, borderBottom: "1px solid #E2E8F0", flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: 4, marginBottom: 18, borderBottom: "1px solid #E5E5EA", flexWrap: "wrap" }}>
         <button onClick={() => setSubtab('users')} style={tabBtn(subtab === 'users')}>
           👥 Utilisateurs
         </button>
@@ -294,14 +294,14 @@ export default function AdminV({ m, reload, profile }) {
       {/* CONFIGURATION STORAGE */}
       <div style={{
         background: "#fff", borderRadius: 14, padding: m ? 14 : 18,
-        boxShadow: "0 1px 3px rgba(15,23,42,0.06)", marginBottom: 18,
-        border: "1.5px solid #E0F2FE"
+        boxShadow: "0 1px 3px rgba(0,0,0,0.06)", marginBottom: 18,
+        border: "1.5px solid #E3F4FC"
       }}>
         <h2 style={{ margin: "0 0 8px", fontSize: 15, fontWeight: 700 }}>🗂 Configuration pièces jointes</h2>
-        <p style={{ margin: "0 0 12px", fontSize: 13, color: "#64748B", lineHeight: 1.6 }}>
+        <p style={{ margin: "0 0 12px", fontSize: 13, color: "#6E6E73", lineHeight: 1.6 }}>
           Si vous obtenez <strong>&quot;Bucket not found&quot;</strong>{' '}
           lors d&apos;un upload, cliquez sur ce bouton.<br />
-          <span style={{ fontSize: 11, color: "#64748B" }}>
+          <span style={{ fontSize: 11, color: "#6E6E73" }}>
             Nécessite <code>SUPABASE_SERVICE_ROLE_KEY</code> dans les variables Vercel.
           </span>
         </p>
@@ -312,10 +312,10 @@ export default function AdminV({ m, reload, profile }) {
         {setupMsg && (
           <div style={{
             marginTop: 10, fontSize: 13,
-            color: setupMsg.startsWith("✅") ? "#10B981" : "#EF4444"
+            color: setupMsg.startsWith("✅") ? "#34C759" : "#FF3B30"
           }}>{setupMsg}</div>
         )}
-        {!setupMsg && <div style={{ marginTop: 10, fontSize: 11, color: "#64748B" }}>
+        {!setupMsg && <div style={{ marginTop: 10, fontSize: 11, color: "#6E6E73" }}>
           Si l&apos;erreur persiste : Supabase Dashboard → Storage →{' '}
           New bucket → nom : <strong>attachments</strong>
         </div>}
@@ -323,10 +323,10 @@ export default function AdminV({ m, reload, profile }) {
 
       {/* MODE DÉMO */}
       <div style={{
-        background: demoMode ? "linear-gradient(135deg, #ECFDF5 0%, #F0FDF4 100%)" : "#fff",
+        background: demoMode ? "linear-gradient(135deg, #EAF8EE 0%, #EEF9F1 100%)" : "#fff",
         borderRadius: 14, padding: m ? 14 : 18,
-        boxShadow: "0 1px 3px rgba(15,23,42,0.06)", marginBottom: 18,
-        border: `1.5px solid ${demoMode ? "#10B981" : "#E2E8F0"}`,
+        boxShadow: "0 1px 3px rgba(0,0,0,0.06)", marginBottom: 18,
+        border: `1.5px solid ${demoMode ? "#34C759" : "#E5E5EA"}`,
         transition: "border-color .2s, background .2s",
       }}>
         <div style={{
@@ -336,7 +336,7 @@ export default function AdminV({ m, reload, profile }) {
           <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, display: "flex", alignItems: "center", gap: 8 }}>
             🎯 Accès démo public
             <span style={{
-              background: demoMode ? "#10B981" : "#94A3B8", color: "#fff", fontSize: 10, fontWeight: 700,
+              background: demoMode ? "#34C759" : "#8E8E93", color: "#fff", fontSize: 10, fontWeight: 700,
               padding: "3px 8px", borderRadius: 999, letterSpacing: "0.05em",
             }}>{demoMode ? "OUVERT" : "FERMÉ"}</span>
           </h2>
@@ -344,7 +344,7 @@ export default function AdminV({ m, reload, profile }) {
             onClick={handleToggleDemoMode}
             disabled={demoBusy}
             style={{
-              background: demoMode ? "#10B981" : "#E2E8F0",
+              background: demoMode ? "#34C759" : "#E5E5EA",
               border: "none", borderRadius: 999, width: 52, height: 28,
               cursor: demoBusy ? "wait" : "pointer",
               position: "relative", flexShrink: 0,
@@ -361,7 +361,7 @@ export default function AdminV({ m, reload, profile }) {
             }}/>
           </button>
         </div>
-        <p style={{ margin: "0 0 12px", fontSize: 12, color: "#475569", lineHeight: 1.55 }}>
+        <p style={{ margin: "0 0 12px", fontSize: 12, color: "#48484A", lineHeight: 1.55 }}>
           {demoMode ? (
             <>
               <strong>Accès démo ouvert par défaut.</strong>{' '}
@@ -375,7 +375,7 @@ export default function AdminV({ m, reload, profile }) {
             </>
           ) : (
             <>
-              <strong style={{ color: "#475569" }}>Accès démo fermé</strong>.
+              <strong style={{ color: "#48484A" }}>Accès démo fermé</strong>.
               Les comptes Google inconnus sont refusés.
               Réactive-le quand tu es prêt à recevoir des prospects.
             </>
@@ -386,8 +386,8 @@ export default function AdminV({ m, reload, profile }) {
             onClick={handleResetDemoData}
             disabled={demoResetBusy}
             style={{
-              background: "#FFFBEB", color: "#B45309",
-              border: "1px solid #FDE68A",
+              background: "#FFF7E8", color: "#C93400",
+              border: "1px solid #FFDDA6",
               borderRadius: 8, padding: "8px 12px", fontSize: 12, fontWeight: 600,
               cursor: demoResetBusy ? "wait" : "pointer",
               fontFamily: "inherit",
@@ -397,15 +397,15 @@ export default function AdminV({ m, reload, profile }) {
             {demoResetBusy ? "⏳ Reset…" : "🔄 Réinitialiser les données démo"}
           </button>
           <div style={{
-            fontSize: 10, color: "#64748B", alignSelf: "center",
+            fontSize: 10, color: "#6E6E73", alignSelf: "center",
             flex: "1 1 200px", minWidth: 180, lineHeight: 1.4
           }}>
             Recrée le chantier Villa Moreau + 3 OS + 2 CR + 4 tâches. Utile entre deux rendez-vous.
           </div>
         </div>
         <div style={{
-          marginTop: 12, padding: 10, background: "rgba(15,23,42,0.03)",
-          borderRadius: 8, fontSize: 11, color: "#64748B"
+          marginTop: 12, padding: 10, background: "rgba(0,0,0,0.03)",
+          borderRadius: 8, fontSize: 11, color: "#6E6E73"
         }}>
           <strong>Compte démo partagé</strong> (pour les prospects sans Google) :<br/>
           <code style={{ fontSize: 11 }}>demo-moa@id-maitrise.com</code> — à créer manuellement dans{" "}
@@ -416,24 +416,24 @@ export default function AdminV({ m, reload, profile }) {
       {/* AJOUTER UN UTILISATEUR */}
       <div style={{
         background: "#fff", borderRadius: 14, padding: m ? 14 : 18,
-        boxShadow: "0 1px 3px rgba(15,23,42,0.06)", marginBottom: 18
+        boxShadow: "0 1px 3px rgba(0,0,0,0.06)", marginBottom: 18
       }}>
         <h2 style={{ margin: "0 0 12px", fontSize: 15, fontWeight: 700 }}>➕ Ajouter un utilisateur</h2>
         <div style={{ display: "grid", gridTemplateColumns: m ? "1fr" : "repeat(3,1fr)", gap: 10, marginBottom: 10 }}>
           <input type="email" placeholder="email@exemple.com"
             value={newEmail} onChange={e => setNewEmail(e.target.value)}
             style={{
-            padding: "10px 12px", border: "1.5px solid #E2E8F0",
+            padding: "10px 12px", border: "1.5px solid #E5E5EA",
             borderRadius: 8, fontSize: 13, fontFamily: "inherit", outline: "none"
           }}/>
           <input type="text" placeholder="Prénom *" value={newPrenom} onChange={e => setNewPrenom(e.target.value)}
             style={{
-            padding: "10px 12px", border: "1.5px solid #E2E8F0",
+            padding: "10px 12px", border: "1.5px solid #E5E5EA",
             borderRadius: 8, fontSize: 13, fontFamily: "inherit", outline: "none"
           }}/>
           <input type="text" placeholder="Nom (optionnel)" value={newNom} onChange={e => setNewNom(e.target.value)}
             style={{
-            padding: "10px 12px", border: "1.5px solid #E2E8F0",
+            padding: "10px 12px", border: "1.5px solid #E5E5EA",
             borderRadius: 8, fontSize: 13, fontFamily: "inherit", outline: "none"
           }}/>
         </div>
@@ -445,10 +445,10 @@ export default function AdminV({ m, reload, profile }) {
             const active = newRole === r.value
             return (
               <button key={r.value} onClick={() => setNewRole(r.value)} style={{
-                padding: "8px 14px", border: `2px solid ${active ? "#1E3A5F" : "#E2E8F0"}`,
+                padding: "8px 14px", border: `2px solid ${active ? "#0071E3" : "#E5E5EA"}`,
                 borderRadius: 8, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 600,
-                background: active ? "#1E3A5F" : "#fff",
-                color: active ? "#fff" : "#334155", transition: "background .15s, border-color .15s, color .15s",
+                background: active ? "#0071E3" : "#fff",
+                color: active ? "#fff" : "#3A3A3C", transition: "background .15s, border-color .15s, color .15s",
                 display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 1,
               }}>
                 <span>{r.label}</span>
@@ -459,15 +459,15 @@ export default function AdminV({ m, reload, profile }) {
         </div>
         {addError && (
           <div style={{
-            background:"#FEF2F2",border:"1px solid #FECACA",borderRadius:8,
-            padding:"8px 12px",marginBottom:10,fontSize:12,color:"#DC2626",
+            background:"#FFF0EF",border:"1px solid #FFC9C6",borderRadius:8,
+            padding:"8px 12px",marginBottom:10,fontSize:12,color:"#D70015",
             display:"flex",alignItems:"center",gap:8,
           }}>
             <span style={{fontSize:14}}>⚠</span>
             <span style={{flex:1}}>{addError}</span>
             <button onClick={()=>setAddError("")} aria-label="Fermer" style={{
               background:"none",border:"none",cursor:"pointer",
-              color:"#DC2626",fontSize:14,padding:0,lineHeight:1
+              color:"#D70015",fontSize:14,padding:0,lineHeight:1
             }}>✕</button>
           </div>
         )}
@@ -479,7 +479,7 @@ export default function AdminV({ m, reload, profile }) {
       {/* LISTE DES UTILISATEURS */}
       <div style={{
         background: "#fff", borderRadius: 14, padding: m ? 14 : 18,
-        boxShadow: "0 1px 3px rgba(15,23,42,0.06)"
+        boxShadow: "0 1px 3px rgba(0,0,0,0.06)"
       }}>
         <div style={{
           display:"flex",justifyContent:"space-between",alignItems:"center",
@@ -490,7 +490,7 @@ export default function AdminV({ m, reload, profile }) {
             <svg style={{position:"absolute",left:9,top:"50%",
               transform:"translateY(-50%)",opacity:0.5}}
               width="13" height="13" viewBox="0 0 24 24"
-              fill="none" stroke="#64748B" strokeWidth="2.5">
+              fill="none" stroke="#6E6E73" strokeWidth="2.5">
               <circle cx="11" cy="11" r="8"/>
               <path d="M21 21l-4.35-4.35"/>
             </svg>
@@ -502,7 +502,7 @@ export default function AdminV({ m, reload, profile }) {
               onChange={e => setQ(e.target.value)}
               style={{
                 padding:"7px 10px 7px 28px",borderRadius:7,
-                border:"1px solid #E2E8F0",fontSize:12,width:"100%",
+                border:"1px solid #E5E5EA",fontSize:12,width:"100%",
                 boxSizing:"border-box",fontFamily:"inherit"
               }}
             />
@@ -512,7 +512,7 @@ export default function AdminV({ m, reload, profile }) {
         {/* Pills de filtre par rôle */}
         <div style={{display:"flex",gap:6,marginBottom:14,flexWrap:"wrap"}}>
           {[
-            {k:"all",     l:"Tous",                c:"#64748B"},
+            {k:"all",     l:"Tous",                c:"#6E6E73"},
             {k:"admin",   l:ROLE_META.admin.label,  c:ROLE_META.admin.color},
             {k:"salarie", l:ROLE_META.salarie.label,c:ROLE_META.salarie.color},
             {k:"client",  l:ROLE_META.client.label, c:ROLE_META.client.color},
@@ -523,9 +523,9 @@ export default function AdminV({ m, reload, profile }) {
               <button key={p.k} onClick={() => setRoleFilter(p.k)} style={{
                 display:"inline-flex",alignItems:"center",gap:6,
                 padding:"5px 11px",borderRadius:999,fontSize:11,fontWeight:600,
-                border:`1px solid ${active ? p.c : "#E2E8F0"}`,
+                border:`1px solid ${active ? p.c : "#E5E5EA"}`,
                 background:active ? p.c : "#fff",
-                color:active ? "#fff" : "#334155",
+                color:active ? "#fff" : "#3A3A3C",
                 cursor:"pointer",fontFamily:"inherit",
                 transition:"background .15s, color .15s, border-color .15s",whiteSpace:"nowrap",
               }}>
@@ -540,10 +540,10 @@ export default function AdminV({ m, reload, profile }) {
           {filteredUsers.length === 0 ? (
             <div style={{textAlign:"center",padding:"30px 16px"}}>
               <div style={{fontSize:32,marginBottom:6,opacity:0.5}}>👥</div>
-              <div style={{fontSize:13,fontWeight:600,color:"#334155",marginBottom:4}}>
+              <div style={{fontSize:13,fontWeight:600,color:"#3A3A3C",marginBottom:4}}>
                 {hasFilters ? "Aucun résultat" : "Aucun utilisateur"}
               </div>
-              <div style={{fontSize:11,color:"#64748B"}}>
+              <div style={{fontSize:11,color:"#6E6E73"}}>
                 {hasFilters ? "Essaie d'élargir ta recherche." : "Ajoute le premier utilisateur ci-dessus."}
               </div>
             </div>
@@ -552,7 +552,7 @@ export default function AdminV({ m, reload, profile }) {
               const meta = ROLE_META[u.role] || ROLE_META.salarie
               return (
                 <div key={u.id} style={{
-                  background: "#F8FAFC", borderRadius: 10, padding: 12,
+                  background: "#F5F5F7", borderRadius: 10, padding: 12,
                   display: "flex", alignItems: "center", gap: 12,
                   borderLeft: `3px solid ${meta.color}`,
                   opacity: u.actif === false ? 0.55 : 1,
@@ -567,25 +567,25 @@ export default function AdminV({ m, reload, profile }) {
                   }}>{getInitials(u)}</div>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{
-                      fontWeight: 700, fontSize: 13, color: "#0F172A",
+                      fontWeight: 700, fontSize: 13, color: "#1C1C1E",
                       overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"
                     }}>
                       {u.prenom} {u.nom || ""}
                     </div>
                     <div style={{
-                      fontSize: 11, color: "#64748B",
+                      fontSize: 11, color: "#6E6E73",
                       overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"
                     }}>
                       {u.email}
                     </div>
                     <div style={{ fontSize: 10, color: meta.color, marginTop: 2, fontWeight:600 }}>
                       {meta.label}
-                      {u.actif === false && <span style={{ color: "#EF4444", marginLeft: 8 }}>— Désactivé</span>}
+                      {u.actif === false && <span style={{ color: "#FF3B30", marginLeft: 8 }}>— Désactivé</span>}
                     </div>
                   </div>
                   <button onClick={() => handleRemove(u)} title="Retirer l'accès" style={{
-                    background: "#fff", border: "1px solid #FECACA", borderRadius: 6,
-                    padding: "6px 12px", color: "#DC2626", fontSize: 11, cursor: "pointer",
+                    background: "#fff", border: "1px solid #FFC9C6", borderRadius: 6,
+                    padding: "6px 12px", color: "#D70015", fontSize: 11, cursor: "pointer",
                     fontWeight: 600, flexShrink: 0, fontFamily: "inherit",
                   }}>
                     Retirer

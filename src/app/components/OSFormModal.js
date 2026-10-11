@@ -81,13 +81,13 @@ export default function OSFormModal({
       {/* ── IMPORT DEVIS PAR PHOTO (visible uniquement en création) ── */}
       {modal === 'new' && (
         <div style={{
-          background: '#EEF2FF', border: '1.5px solid #C7D2FE',
+          background: '#EFEFFC', border: '1.5px solid #D3D2F7',
           borderRadius: 10, padding: '12px 14px', marginBottom: 12
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, flexWrap: 'wrap' }}>
             <span style={{ fontSize: 15 }}>📸</span>
-            <span style={{ fontSize: 12, fontWeight: 700, color: '#4338CA' }}>Import devis par photo ou capture</span>
-            <span style={{ fontSize: 10, color: '#818CF8', width: '100%' }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: '#4744B8' }}>Import devis par photo ou capture</span>
+            <span style={{ fontSize: 10, color: '#8E8CE8', width: '100%' }}>
               Photo d&apos;un devis, facture, bon de commande ou screenshot PDF
             </span>
           </div>
@@ -98,9 +98,9 @@ export default function OSFormModal({
               width: '100%',
               padding: '10px 14px',
               borderRadius: 8,
-              border: '1.5px dashed #A5B4FC',
+              border: '1.5px dashed #B4B3F0',
               background: '#fff',
-              color: '#4F46E5',
+              color: '#5856D6',
               fontSize: 13,
               fontWeight: 600,
               cursor: importing ? 'wait' : 'pointer',
@@ -116,7 +116,7 @@ export default function OSFormModal({
               <>
                 <span style={{
                   display: 'inline-block', width: 12, height: 12,
-                  border: '2px solid #C7D2FE', borderTopColor: '#4F46E5',
+                  border: '2px solid #D3D2F7', borderTopColor: '#5856D6',
                   borderRadius: '50%', animation: 'spin 0.8s linear infinite'
                 }}/>
                 Extraction en cours…
@@ -126,7 +126,7 @@ export default function OSFormModal({
             )}
           </button>
           {importError && (
-            <div style={{ marginTop: 8, fontSize: 11, color: '#DC2626' }}>{importError}</div>
+            <div style={{ marginTop: 8, fontSize: 11, color: '#D70015' }}>{importError}</div>
           )}
         </div>
       )}
@@ -153,7 +153,7 @@ export default function OSFormModal({
       <div style={{ display: 'grid', gridTemplateColumns: m ? '1fr' : '1fr 1fr', gap: '0 12px' }}>
         <FF label="Client">
           {form.client_nom && (
-            <div style={{ fontSize: 13, padding: '8px 0', color: '#0F172A', fontWeight: 600 }}>
+            <div style={{ fontSize: 13, padding: '8px 0', color: '#1C1C1E', fontWeight: 600 }}>
               {form.client_nom}
             </div>
           )}
@@ -214,8 +214,8 @@ export default function OSFormModal({
       {/* TVA NON APPLICABLE — auto-entrepreneur en franchise de base (art. 293 B du CGI) */}
       <label style={{
         display: 'flex', alignItems: 'flex-start', gap: 8,
-        background: tvaNA ? '#FFFBEB' : '#F8FAFC',
-        border: `1px solid ${tvaNA ? '#FCD34D' : '#E2E8F0'}`,
+        background: tvaNA ? '#FFF7E8' : '#F5F5F7',
+        border: `1px solid ${tvaNA ? '#FFCC66' : '#E5E5EA'}`,
         borderRadius: 8, padding: '8px 12px', marginTop: 12, marginBottom: 8,
         cursor: 'pointer', fontSize: 12,
       }}>
@@ -226,10 +226,10 @@ export default function OSFormModal({
           style={{ marginTop: 2 }}
         />
         <span style={{ flex: 1, lineHeight: 1.4 }}>
-          <span style={{ fontWeight: 600, color: '#0F172A' }}>TVA non applicable</span>
-          <span style={{ color: '#64748B' }}> — auto-entrepreneur en franchise de base (art. 293 B du CGI)</span>
+          <span style={{ fontWeight: 600, color: '#1C1C1E' }}>TVA non applicable</span>
+          <span style={{ color: '#6E6E73' }}> — auto-entrepreneur en franchise de base (art. 293 B du CGI)</span>
           {tvaNA && (
-            <span style={{ display: 'block', marginTop: 2, fontSize: 11, color: '#92400E' }}>
+            <span style={{ display: 'block', marginTop: 2, fontSize: 11, color: '#A0390C' }}>
               Toutes les lignes seront facturées à 0 % et la mention légale apparaîtra sur le PDF.
             </span>
           )}
@@ -239,9 +239,9 @@ export default function OSFormModal({
       {/* PRESTATIONS */}
       <div style={{ marginTop: 4, marginBottom: 8 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-          <span style={{ fontSize: 12, fontWeight: 700, color: '#1E3A5F', textTransform: 'uppercase' }}>Prestations</span>
+          <span style={{ fontSize: 12, fontWeight: 600, color: '#6E6E73', textTransform: 'uppercase' }}>Prestations</span>
           <button onClick={addPrestation} style={{
-            fontSize: 11, color: '#3B82F6', background: 'none',
+            fontSize: 11, color: '#0066CC', background: 'none',
             border: 'none', cursor: 'pointer', fontWeight: 600
           }}>+ Ajouter une ligne</button>
         </div>
@@ -276,7 +276,7 @@ export default function OSFormModal({
             </select>
             <button onClick={() => removePrestation(i)}
               style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
-              <Icon d={I.trash} size={14} color="#EF4444"/>
+              <Icon d={I.trash} size={14} color="#FF3B30"/>
             </button>
           </div>
         ))}
@@ -284,20 +284,20 @@ export default function OSFormModal({
 
       {/* TOTAUX */}
       <div style={{
-        background: '#F8FAFC', borderRadius: 8, padding: 12,
+        background: '#F5F5F7', borderRadius: 8, padding: 12,
         display: 'flex', justifyContent: 'flex-end', gap: 20, marginBottom: 12
       }}>
         <div>
-          <span style={{ fontSize: 11, color: '#64748B' }}>Total HT : </span>
-          <span style={{ fontSize: 14, fontWeight: 700, color: '#0F172A' }}>{fmtMoney(totals.ht)}</span>
+          <span style={{ fontSize: 11, color: '#6E6E73' }}>Total HT : </span>
+          <span style={{ fontSize: 14, fontWeight: 700, color: '#1C1C1E' }}>{fmtMoney(totals.ht)}</span>
         </div>
         <div>
-          <span style={{ fontSize: 11, color: '#64748B' }}>TVA : </span>
-          <span style={{ fontSize: 14, fontWeight: 700, color: '#F59E0B' }}>{fmtMoney(totals.tva)}</span>
+          <span style={{ fontSize: 11, color: '#6E6E73' }}>TVA : </span>
+          <span style={{ fontSize: 14, fontWeight: 700, color: '#FF9500' }}>{fmtMoney(totals.tva)}</span>
         </div>
         <div>
-          <span style={{ fontSize: 11, color: '#64748B' }}>TTC : </span>
-          <span style={{ fontSize: 16, fontWeight: 700, color: '#1E3A5F' }}>{fmtMoney(totals.ttc)}</span>
+          <span style={{ fontSize: 11, color: '#6E6E73' }}>TTC : </span>
+          <span style={{ fontSize: 16, fontWeight: 700, color: '#1C1C1E' }}>{fmtMoney(totals.ttc)}</span>
         </div>
       </div>
 
@@ -314,15 +314,15 @@ export default function OSFormModal({
 
       {formError && (
         <div style={{
-          background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8,
-          padding: '8px 12px', marginTop: 10, marginBottom: 4, fontSize: 12, color: '#DC2626',
+          background: '#FFF0EF', border: '1px solid #FFC9C6', borderRadius: 8,
+          padding: '8px 12px', marginTop: 10, marginBottom: 4, fontSize: 12, color: '#D70015',
           display: 'flex', alignItems: 'center', gap: 8,
         }}>
           <span style={{ fontSize: 14 }}>⚠</span>
           <span style={{ flex: 1 }}>{formError}</span>
           <button onClick={() => setFormError('')} aria-label="Fermer" style={{
             background: 'none', border: 'none', cursor: 'pointer',
-            color: '#DC2626', fontSize: 14, padding: 0, lineHeight: 1
+            color: '#D70015', fontSize: 14, padding: 0, lineHeight: 1
           }}>✕</button>
         </div>
       )}

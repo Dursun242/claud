@@ -30,7 +30,7 @@ export default function CrmPipeline({
             return (
               <button key={e} onClick={() => onSelectStage(e)} style={{
                 flexShrink: 0, padding: '6px 11px', borderRadius: 999, fontSize: 12, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer',
-                border: `1px solid ${active ? c : '#E2E8F0'}`, background: active ? c : '#fff', color: active ? '#fff' : '#334155',
+                border: `1px solid ${active ? c : '#E5E5EA'}`, background: active ? c : '#fff', color: active ? '#fff' : '#3A3A3C',
               }}>{e} <span style={{ opacity: 0.75, fontSize: 10 }}>{grouped[e].length}</span></button>
             )
           })}
@@ -46,7 +46,7 @@ export default function CrmPipeline({
               onCall={() => onCall(o)}
               onAdvance={nextEtape(o.etape) ? () => onMove(o, nextEtape(o.etape)) : null} />
           ))}
-          <button onClick={() => onNew(stage)} style={{ ...btnS, fontSize: 12, border: '1px dashed #CBD5E1', background: '#fff' }}>
+          <button onClick={() => onNew(stage)} style={{ ...btnS, fontSize: 12, border: '1px dashed #D1D1D6', background: '#fff' }}>
             + Ajouter en « {stage} »
           </button>
         </div>
@@ -68,14 +68,14 @@ export default function CrmPipeline({
               onDrop={(e) => { e.preventDefault(); onDrop(etape) }}
               style={{
                 flex: '1 0 250px', minWidth: 250, maxWidth: 320,
-                background: dragOver === etape ? color + '12' : '#F8FAFC',
-                border: `1px solid ${dragOver === etape ? color : '#E2E8F0'}`,
+                background: dragOver === etape ? color + '12' : '#F5F5F7',
+                border: `1px solid ${dragOver === etape ? color : '#E5E5EA'}`,
                 borderRadius: 12, padding: 10, transition: 'background .15s, border-color .15s',
               }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                 <span style={{ width: 8, height: 8, borderRadius: '50%', background: color }} />
-                <span style={{ fontSize: 12, fontWeight: 700, color: '#0F172A', flex: 1 }}>{etape}</span>
-                <span style={{ fontSize: 10, color: '#64748B', fontWeight: 600 }}>{list.length}{total ? ` · ${fmtMoney(total)}` : ''}</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#1C1C1E', flex: 1 }}>{etape}</span>
+                <span style={{ fontSize: 10, color: '#6E6E73', fontWeight: 600 }}>{list.length}{total ? ` · ${fmtMoney(total)}` : ''}</span>
               </div>
               <div style={{ display: 'grid', gap: 8, gridTemplateColumns: 'minmax(0,1fr)' }}>
                 {list.map(o => (
@@ -89,15 +89,15 @@ export default function CrmPipeline({
                     onAdvance={nextEtape(o.etape) ? () => onMove(o, nextEtape(o.etape)) : null} />
                 ))}
                 <button onClick={() => onNew(etape)} title={`Nouvelle affaire directement en « ${etape} »`} style={{
-                  background: 'transparent', border: '1px dashed #CBD5E1', borderRadius: 10, padding: '8px', fontSize: 11,
-                  color: '#64748B', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600,
+                  background: 'transparent', border: '1px dashed #D1D1D6', borderRadius: 10, padding: '8px', fontSize: 11,
+                  color: '#6E6E73', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600,
                 }}>+ Ajouter ici</button>
               </div>
             </div>
           )
         })}
       </div>
-      <div style={{ fontSize: 11, color: '#64748B', marginTop: 6 }}>
+      <div style={{ fontSize: 11, color: '#6E6E73', marginTop: 6 }}>
         💡 Glisse une carte vers une autre colonne pour la faire avancer. Clique dessus pour voir la fiche.
       </div>
     </div>

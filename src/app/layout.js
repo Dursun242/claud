@@ -1,16 +1,9 @@
-import { DM_Sans } from 'next/font/google'
 import RootWrapper from '@/app/RootWrapper';
 import '@/app/styles/global.css';
 
-// next/font auto-héberge DM Sans (pas d'appel à fonts.googleapis.com au
-// runtime) et inline les @font-face : plus de FOUT, plus de CLS, et une
-// requête réseau en moins au premier paint.
-const dmSans = DM_Sans({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-  display: 'swap',
-  variable: '--font-dm-sans',
-})
+// Police du système (San Francisco sur iPhone / Mac, Roboto sur Android,
+// Segoe UI sur Windows) : rendu d'application native, aucune police à
+// télécharger. Pile définie dans styles/global.css (--font-ui).
 
 export const metadata = {
   title: 'ID Maîtrise - Dashboard',
@@ -25,12 +18,12 @@ export const viewport = {
   initialScale: 1,
   maximumScale: 5,
   userScalable: true,
-  themeColor: '#1E3A5F',
+  themeColor: '#0071E3',
 }
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="fr" className={dmSans.variable}>
+    <html lang="fr">
       <head>
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -38,7 +31,7 @@ export default function RootLayout({ children }) {
         <meta name="apple-mobile-web-app-title" content="ID Maîtrise" />
         <link rel="apple-touch-icon" href="/icon-192.png" />
       </head>
-      <body className={dmSans.className} style={{ margin: 0, padding: 0 }}>
+      <body style={{ margin: 0, padding: 0 }}>
         {/* Filet de sécurité global :
             - html/body bloqués en largeur viewport pour éviter qu'un enfant
               trop large n'oblige la page à scroller horizontalement ;

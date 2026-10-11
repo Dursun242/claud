@@ -1,7 +1,7 @@
 'use client'
 import { memo } from 'react'
 import Image from 'next/image'
-import { phase as phaseColors, status as statusColors, fmtDate, PBar, Icon, I } from '../../dashboards/shared'
+import { status as statusColors, fmtDate, PBar, Icon, I } from '../../dashboards/shared'
 import Badge from '../Badge'
 
 // Carte d'un chantier dans la liste. Memoïsée : tant que ses props ne
@@ -19,7 +19,9 @@ function ChantierCardImpl({ ch, counts, m, readOnly, onOpen, onEdit, onDelete })
   const elapsed = Math.max(0, Math.min(total, now - start.getTime()))
   const progress = total > 0 ? Math.round((elapsed / total) * 100) : 0
   const isDone = ch.statut === 'Terminé'
-  const progressColor = isDone ? '#10B981' : phaseColors[ch.phase] || '#3B82F6'
+  // Temps écoulé : marine ; vert une fois le chantier terminé
+  const progressColor = isDone ? '#34C759' : '#0071E3'
+  const progressText = isDone ? '#1E7B34' : '#3A3A3C'
 
   return (
     <div
@@ -31,8 +33,8 @@ function ChantierCardImpl({ ch, counts, m, readOnly, onOpen, onEdit, onDelete })
       className="u-press u-press--lift"
       style={{
         background: '#fff', borderRadius: 12, overflow: 'hidden',
+        border: '1px solid #E5E5EA',
         boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
-        borderLeft: `4px solid ${phaseColors[ch.phase] || '#94A3B8'}`,
       }}
     >
       {ch.photo_couverture && (
@@ -57,14 +59,14 @@ function ChantierCardImpl({ ch, counts, m, readOnly, onOpen, onEdit, onDelete })
         <div style={{ flex: 1, minWidth: 200 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
             <span style={{ fontSize: m ? 14 : 16, fontWeight: 700 }}>{ch.nom}</span>
-            <Badge text={ch.phase} color={phaseColors[ch.phase] || '#64748B'}/>
-            <Badge text={ch.statut} color={statusColors[ch.statut] || '#64748B'}/>
+            <Badge text={ch.phase} color="#6E6E73"/>
+            <Badge text={ch.statut} color={statusColors[ch.statut] || '#6E6E73'}/>
           </div>
-          <div style={{ fontSize: 12, color: '#64748B' }}>{ch.client} — {ch.adresse}</div>
+          <div style={{ fontSize: 12, color: '#6E6E73' }}>{ch.client} — {ch.adresse}</div>
           {!readOnly && ch.client && !ch.client_user_id && (
-            <div style={{ fontSize: 11, color: '#B45309', marginTop: 2 }}>Non rattaché à un compte client</div>
+            <div style={{ fontSize: 12, color: '#C93400', marginTop: 2 }}>Non rattaché à un compte client</div>
           )}
-          <div style={{ display: 'flex', gap: 12, marginTop: 4, fontSize: 11, color: '#64748B' }}>
+          <div style={{ display: 'flex', gap: 12, marginTop: 4, fontSize: 12, color: '#6E6E73' }}>
             <span>{counts.os} OS</span>
             <span>{counts.cr} CR</span>
             <span>{counts.tasks} tâches</span>
@@ -78,30 +80,29 @@ function ChantierCardImpl({ ch, counts, m, readOnly, onOpen, onEdit, onDelete })
               aria-label={`Modifier le chantier ${ch.nom}`}
               className="u-icon-btn u-icon-btn--soft"
               style={{
-                borderRadius: 6, padding: 5, width: 28, height: 28,
+                borderRadius: 8, padding: 5, width: 36, height: 36,
               }}
             >
-              <Icon d={I.edit} size={14} color="#64748B"/>
+              <Icon d={I.edit} size={16} color="#48484A"/>
             </button>
             <button
               onClick={() => onDelete(ch)}
               aria-label={`Supprimer le chantier ${ch.nom}`}
               className="u-icon-btn u-icon-btn--danger"
               style={{
-                background: '#FEF2F2', border: '1px solid #FECACA',
-                borderRadius: 6, padding: 5, width: 28, height: 28,
+                borderRadius: 8, padding: 5, width: 36, height: 36, color: '#6E6E73',
               }}
             >
-              <Icon d={I.trash} size={14} color="#EF4444"/>
+              <Icon d={I.trash} size={16}/>
             </button>
           </div>
         )}
       </div>
       <div style={{ padding: `0 ${m ? 14 : 18}px ${m ? 14 : 18}px`, marginTop: -4 }}>
         <PBar value={isDone ? 100 : Math.min(progress, 100)} max={100} color={progressColor}/>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4, fontSize: 11, color: '#64748B' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4, fontSize: 12, color: '#6E6E73' }}>
           <span>{fmtDate(start)} → {fmtDate(end)}</span>
-          <span style={{ color: progressColor, fontWeight: 600 }}>
+          <span style={{ color: progressText, fontWeight: 600 }}>
             {isDone ? 'Terminé' : progress + '%'}
           </span>
         </div>

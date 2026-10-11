@@ -58,10 +58,10 @@ export default function CRDictationPanel({ notes, setNotes, dictation, context, 
   }
 
   const item = (id, children) => (
-    <label key={id} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', padding: '6px 8px', borderRadius: 8, background: keep[id] ? '#F8FAFC' : '#fff', border: '1px solid #E2E8F0', cursor: 'pointer' }}>
+    <label key={id} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', padding: '6px 8px', borderRadius: 8, background: keep[id] ? '#F5F5F7' : '#fff', border: '1px solid #E5E5EA', cursor: 'pointer' }}>
       <input type="checkbox" checked={!!keep[id]} onChange={e => setKeep(k => ({ ...k, [id]: e.target.checked }))}
         style={{ width: 18, height: 18, marginTop: 2, accentColor: NAVY, flexShrink: 0 }} />
-      <span style={{ fontSize: 13, color: '#0F172A', lineHeight: 1.45, whiteSpace: 'pre-wrap' }}>{children}</span>
+      <span style={{ fontSize: 13, color: '#1C1C1E', lineHeight: 1.45, whiteSpace: 'pre-wrap' }}>{children}</span>
     </label>
   )
   const group = (title, items) => items.length > 0 && (
@@ -80,25 +80,25 @@ export default function CRDictationPanel({ notes, setNotes, dictation, context, 
             onClick={() => dictation.toggle(micId, (t) => setNotes(n => (n ? `${n.trimEnd()} ${t}` : t)))} />
         )}
       </div>
-      <p style={{ fontSize: 12, color: '#64748B', margin: '0 0 8px' }}>
+      <p style={{ fontSize: 12, color: '#6E6E73', margin: '0 0 8px' }}>
         Dicte ou tape tout ce qui se dit, lot par lot. L&apos;IA range ensuite les observations, l&apos;avancement, les points faits ou à relancer et les nouvelles actions — tu valides avant que ce soit ajouté.
       </p>
       <textarea aria-label="Notes de réunion" value={notes} onChange={e => setNotes(e.target.value)} rows={6}
         placeholder="Ex : Électricité, Martin absent, le tableau n'est toujours pas posé, à relancer. Plomberie : réseaux sous dallage terminés, avancement 60 %. Carreleur doit fournir les échantillons pour vendredi…"
         style={{ ...field, resize: 'vertical' }} />
       {dictation?.target === micId && dictation.interim && (
-        <div style={{ fontSize: 12, color: '#64748B', fontStyle: 'italic', marginTop: 3 }}>{dictation.interim}…</div>
+        <div style={{ fontSize: 12, color: '#6E6E73', fontStyle: 'italic', marginTop: 3 }}>{dictation.interim}…</div>
       )}
       <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
         <button type="button" onClick={analyse} disabled={busy || notes.trim().length < 10}
           style={{ ...ghostBtn('#fff'), background: NAVY, border: 'none', color: '#fff', opacity: busy || notes.trim().length < 10 ? 0.6 : 1 }}>
           {busy ? 'Analyse en cours…' : '✨ Ranger avec l’IA'}
         </button>
-        {notes && <button type="button" onClick={() => setNotes('')} style={ghostBtn('#64748B')}>Effacer les notes</button>}
+        {notes && <button type="button" onClick={() => setNotes('')} style={ghostBtn('#6E6E73')}>Effacer les notes</button>}
       </div>
 
       {proposal && (
-        <div role="region" aria-label="Proposition de l'IA" style={{ marginTop: 14, borderTop: '1px solid #E2E8F0', paddingTop: 12 }}>
+        <div role="region" aria-label="Proposition de l'IA" style={{ marginTop: 14, borderTop: '1px solid #E5E5EA', paddingTop: 12 }}>
           <div style={{ fontSize: 14, fontWeight: 800, color: NAVY, marginBottom: 8 }}>Proposition de l&apos;IA — décoche ce que tu ne veux pas garder</div>
           {group('Résumé', proposal.resume ? [item("resume", <>{proposal.resume}</>)] : [])}
           {group('Par lot', proposal.lots.map((l, i) => (
@@ -119,8 +119,8 @@ export default function CRDictationPanel({ notes, setNotes, dictation, context, 
           )))}
           {group('Décisions', proposal.decisions ? [item("decisions", <>{proposal.decisions}</>)] : [])}
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-            <button type="button" onClick={() => setProposal(null)} style={ghostBtn('#64748B')}>Annuler</button>
-            <button type="button" onClick={apply} style={{ ...ghostBtn('#fff'), background: '#047857', border: 'none', color: '#fff' }}>
+            <button type="button" onClick={() => setProposal(null)} style={ghostBtn('#6E6E73')}>Annuler</button>
+            <button type="button" onClick={apply} style={{ ...ghostBtn('#fff'), background: '#1E7B34', border: 'none', color: '#fff' }}>
               Ajouter au compte rendu
             </button>
           </div>

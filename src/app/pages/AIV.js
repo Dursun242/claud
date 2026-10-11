@@ -363,15 +363,15 @@ RÈGLES :
       ol:     ({ node: _n, ...props }) => <ol style={{ marginLeft: "20px", marginTop: 0, marginBottom: "6px" }} {...props}/>,
       code:   ({ node: _n, inline, ...props }) => inline
         ? <code style={{
-            background: "#F1F5F9", padding: "2px 6px",
+            background: "#F2F2F7", padding: "2px 6px",
             borderRadius: 4, fontSize: "0.9em", fontFamily: "monospace",
           }} {...props}/>
         : <pre style={{
-            background: "#F1F5F9", padding: "10px", borderRadius: 6,
+            background: "#F2F2F7", padding: "10px", borderRadius: 6,
             overflow: "auto", marginTop: "6px", marginBottom: "6px",
           }}><code {...props}/></pre>,
       a:      ({ node: _n, ...props }) => <a
-        style={{ color: "#3B82F6", textDecoration: "underline", cursor: "pointer" }}
+        style={{ color: "#0066CC", textDecoration: "underline", cursor: "pointer" }}
         target="_blank" rel="noopener noreferrer" {...props}/>,
     }}>
       {text}
@@ -386,14 +386,14 @@ RÈGLES :
             <h1 style={{margin:0,fontSize:m?18:24,fontWeight:700}}>Assistant IA</h1>
             <ApiBadge/>
           </div>
-          <p style={{margin:"2px 0 0",fontSize:12,color:"#64748B"}}>
+          <p style={{margin:"2px 0 0",fontSize:12,color:"#6E6E73"}}>
             Parlez ou tapez — {messages.length - 1} message{messages.length-1>1?"s":""} dans cette conversation
           </p>
         </div>
         {messages.length > 1 && (
           <button onClick={resetConversation} title="Effacer la conversation et recommencer" style={{
-            background:"#F1F5F9",border:"1px solid #E2E8F0",borderRadius:8,
-            padding:"6px 12px",fontSize:11,fontWeight:600,color:"#475569",
+            background:"#F2F2F7",border:"1px solid #E5E5EA",borderRadius:8,
+            padding:"6px 12px",fontSize:11,fontWeight:600,color:"#48484A",
             cursor:"pointer",fontFamily:"inherit",display:"inline-flex",alignItems:"center",gap:4,
           }}>
             ↻ Nouvelle conversation
@@ -415,17 +415,17 @@ RÈGLES :
             <div style={{
               maxWidth:m?"88%":"75%",padding:"10px 14px",
               borderRadius:msg.role==="user"?"12px 12px 3px 12px":"12px 12px 12px 3px",
-              background:msg.role==="user"?"linear-gradient(135deg,#1E3A5F,#2563EB)":"#F8FAFC",
-              color:msg.role==="user"?"#fff":"#334155",
+              background:msg.role==="user"?"linear-gradient(135deg,#0071E3,#0071E3)":"#F5F5F7",
+              color:msg.role==="user"?"#fff":"#3A3A3C",
               fontSize:13,lineHeight:1.6,
-              border:msg.role==="user"?"none":"1px solid #E2E8F0"
+              border:msg.role==="user"?"none":"1px solid #E5E5EA"
             }}>
               {msg.role==="assistant"?renderMd(msg.content):msg.content}
               {msg.role==="assistant" && msg.provider && (
-                <div style={{marginTop:6,fontSize:10,color:"#64748B",textAlign:"right"}}>
+                <div style={{marginTop:6,fontSize:10,color:"#6E6E73",textAlign:"right"}}>
                   via {PROVIDER_LABELS[msg.provider] || msg.provider}
                   {msg.fallbackFrom && (
-                    <div style={{color:"#B45309"}}>
+                    <div style={{color:"#C93400"}}>
                       secours : {PROVIDER_LABELS[msg.fallbackFrom] || msg.fallbackFrom} indisponible
                       {msg.fallbackReason ? ` — ${msg.fallbackReason}` : ""}
                     </div>
@@ -440,12 +440,12 @@ RÈGLES :
             <div style={{display:"flex",gap:5}}>
               {[0,1,2].map(i=>(
                 <div key={i} style={{
-                  width:7,height:7,borderRadius:"50%",background:"#94A3B8",
+                  width:7,height:7,borderRadius:"50%",background:"#8E8E93",
                   animation:`pulse 1.4s ease-in-out ${i*.2}s infinite`
                 }}/>
               ))}
             </div>
-            <span style={{fontSize:11,color:"#64748B",fontStyle:"italic"}}>L’IA réfléchit…</span>
+            <span style={{fontSize:11,color:"#6E6E73",fontStyle:"italic"}}>L’IA réfléchit…</span>
           </div>
         )}
         <div ref={endRef}/>
@@ -468,8 +468,8 @@ RÈGLES :
           }
           style={{
             ...inp,flex:1,padding:"12px 16px",fontSize:14,borderRadius:12,
-            background:listening?"#FEF2F2":"#fff",
-            borderColor:listening?"#FECACA":"#E2E8F0",
+            background:listening?"#FFF0EF":"#fff",
+            borderColor:listening?"#FFC9C6":"#E5E5EA",
             boxShadow:"0 1px 3px rgba(0,0,0,0.06)",
             resize:"none",minHeight:46,maxHeight:140,
             fontFamily:"inherit",lineHeight:1.4,
@@ -487,13 +487,13 @@ RÈGLES :
       {/* QUICK ACTIONS — suggestions cliquables */}
       <div style={{display:"flex",gap:6,marginTop:10,flexWrap:"wrap"}}>
         {[
-          {t:"Crée un OS pour…",           c:"#8B5CF6"},
-          {t:"Rédige un CR pour…",          c:"#3B82F6"},
-          {t:"Résumé avancement chantiers", c:"#10B981"},
-          {t:"Tâches urgentes",             c:"#EF4444"},
-          {t:"Relances CRM du jour",         c:"#0EA5E9"},
-          {t:"J'ai appelé … relance vendredi", c:"#F59E0B"},
-          {t:"Liste artisans actifs",       c:"#6366F1"},
+          {t:"Crée un OS pour…",           c:"#AF52DE"},
+          {t:"Rédige un CR pour…",          c:"#007AFF"},
+          {t:"Résumé avancement chantiers", c:"#34C759"},
+          {t:"Tâches urgentes",             c:"#FF3B30"},
+          {t:"Relances CRM du jour",         c:"#32ADE6"},
+          {t:"J'ai appelé … relance vendredi", c:"#FF9500"},
+          {t:"Liste artisans actifs",       c:"#5856D6"},
         ].map(q=>(
           <button
             key={q.t}

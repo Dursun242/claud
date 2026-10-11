@@ -45,22 +45,22 @@
 }
 
 .info {
-  background: #3B82F6;
+  background: #007AFF;
   color: white;
 }
 
 .success {
-  background: #10B981;
+  background: #34C759;
   color: white;
 }
 
 .error {
-  background: #EF4444;
+  background: #FF3B30;
   color: white;
 }
 
 .warning {
-  background: #F59E0B;
+  background: #FF9500;
   color: white;
 }
 

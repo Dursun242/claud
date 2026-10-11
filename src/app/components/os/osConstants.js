@@ -4,12 +4,12 @@
 export const OS_STATUSES = ["Brouillon", "Émis", "Signé", "En cours", "Terminé", "Annulé"]
 
 export const osStatusColor = {
-  "Brouillon": "#94A3B8",
-  "Émis":      "#3B82F6",
-  "Signé":     "#8B5CF6",
-  "En cours":  "#F59E0B",
-  "Terminé":   "#10B981",
-  "Annulé":    "#EF4444",
+  "Brouillon": "#8E8E93",
+  "Émis":      "#007AFF",
+  "Signé":     "#AF52DE",
+  "En cours":  "#FF9500",
+  "Terminé":   "#34C759",
+  "Annulé":    "#FF3B30",
 }
 
 // Style "pastille" pour les boutons d'action sur les cartes OS.

@@ -13,7 +13,7 @@ export default function TemplateSelector({
 }) {
   if (templates.length === 0) {
     return (
-      <p style={{ color: '#64748B', fontSize: 12 }}>
+      <p style={{ color: '#6E6E73', fontSize: 12 }}>
         Aucun template. Créez-en un en cliquant sur 💾 sur un {templateType}.
       </p>
     )
@@ -27,8 +27,8 @@ export default function TemplateSelector({
           onClick={() => onSelectTemplate(tpl)}
           disabled={loading}
           style={{
-            background: '#F0F4F8',
-            border: '1px solid #E2E8F0',
+            background: '#F2F2F7',
+            border: '1px solid #E5E5EA',
             borderRadius: 8,
             padding: 12,
             cursor: loading ? 'not-allowed' : 'pointer',
@@ -37,10 +37,10 @@ export default function TemplateSelector({
             opacity: loading ? 0.6 : 1,
           }}
         >
-          <div style={{ fontWeight: 700, fontSize: 13, color: '#0F172A' }}>
+          <div style={{ fontWeight: 700, fontSize: 13, color: '#1C1C1E' }}>
             {tpl.name}
           </div>
-          <div style={{ fontSize: 11, color: '#64748B' }}>
+          <div style={{ fontSize: 11, color: '#6E6E73' }}>
             {tpl.description}
           </div>
         </button>

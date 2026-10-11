@@ -5,8 +5,8 @@ import { qontoFingerprint } from '../../lib/qontoDevis'
 import { raisonOf, TON_COLORS } from '../../lib/devisRelance'
 
 const act = {
-  background: '#fff', border: '1px solid #E2E8F0', borderRadius: 6, cursor: 'pointer',
-  padding: '4px 8px', fontSize: 11, fontWeight: 600, fontFamily: 'inherit', color: '#334155', whiteSpace: 'nowrap',
+  background: '#fff', border: '1px solid #E5E5EA', borderRadius: 6, cursor: 'pointer',
+  padding: '4px 8px', fontSize: 11, fontWeight: 600, fontFamily: 'inherit', color: '#3A3A3C', whiteSpace: 'nowrap',
 }
 const fmtD = (d) => (d ? String(d).slice(0, 10).split('-').reverse().join('/') : '')
 
@@ -41,8 +41,8 @@ function SuiviLine({ suivi }) {
   ].filter(Boolean)
   if (!parts.length) return null
   return (
-    <div title={detail} style={{ fontSize: 11, color: '#0369A1', marginTop: 3, fontWeight: 600 }}>
-      {parts.map((p, i) => <span key={i}>{i > 0 && <span style={{ color: '#64748B' }}> · </span>}{p}</span>)}
+    <div title={detail} style={{ fontSize: 11, color: '#0071A4', marginTop: 3, fontWeight: 600 }}>
+      {parts.map((p, i) => <span key={i}>{i > 0 && <span style={{ color: '#6E6E73' }}> · </span>}{p}</span>)}
     </div>
   )
 }
@@ -55,7 +55,7 @@ function ReponseLine({ reponse }) {
   return (
     <div style={{ fontSize: 11, marginTop: 4, padding: '4px 8px', borderRadius: 6, background: t.bg, border: `1px solid ${t.border}`, color: t.color }}>
       <strong>💬 Réponse du client le {fmtDT(reponse.created_at)} : {r.court}</strong>
-      {reponse.commentaire && <span style={{ color: '#334155' }}> — « {reponse.commentaire} »</span>}
+      {reponse.commentaire && <span style={{ color: '#3A3A3C' }}> — « {reponse.commentaire} »</span>}
     </div>
   )
 }
@@ -64,52 +64,52 @@ export default function DevisList({ devis = [], missing, saving, onNew, onOpen, 
   return (
     <div style={{ marginBottom: 14 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-        <h3 style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#0F172A', flex: 1 }}>
-          Devis <span style={{ color: '#64748B', fontWeight: 500 }}>({devis.length})</span>
+        <h3 style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#1C1C1E', flex: 1 }}>
+          Devis <span style={{ color: '#6E6E73', fontWeight: 500 }}>({devis.length})</span>
         </h3>
         {!missing && (
-          <button onClick={onNew} disabled={saving} style={{ ...act, background: '#F1F5F9' }}>📄 Nouveau devis</button>
+          <button onClick={onNew} disabled={saving} style={{ ...act, background: '#F2F2F7' }}>📄 Nouveau devis</button>
         )}
       </div>
       {missing ? (
-        <div role="status" style={{ background: '#FFFBEB', border: '1px solid #FDE68A', color: '#92400E', borderRadius: 8, padding: '8px 12px', fontSize: 12 }}>
+        <div role="status" style={{ background: '#FFF7E8', border: '1px solid #FFDDA6', color: '#A0390C', borderRadius: 8, padding: '8px 12px', fontSize: 12 }}>
           Appliquer la migration <code>027_crm_devis.sql</code> pour rédiger les devis ici.
         </div>
       ) : devis.length === 0 ? (
-        <div style={{ border: '1px dashed #CBD5E1', borderRadius: 10, padding: '10px 12px', fontSize: 12, color: '#64748B' }}>
+        <div style={{ border: '1px dashed #D1D1D6', borderRadius: 10, padding: '10px 12px', fontSize: 12, color: '#6E6E73' }}>
           Aucun devis pour l&apos;instant.
         </div>
       ) : (
         <div style={{ display: 'grid', gap: 6, gridTemplateColumns: 'minmax(0,1fr)' }}>
           {devis.map(d => {
-            const c = DEVIS_STATUT_COLORS[d.statut] || '#64748B'
+            const c = DEVIS_STATUT_COLORS[d.statut] || '#6E6E73'
             const expired = isDevisExpired(d)
             const stale = isDevisStale(d)
             const qs = qontoState(d)
             return (
               <div key={d.id} style={{
                 display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', background: '#fff',
-                border: '1px solid #E2E8F0', borderLeft: `3px solid ${c}`, borderRadius: 10, padding: '8px 12px', minWidth: 0,
+                border: '1px solid #E5E5EA', borderLeft: `3px solid ${c}`, borderRadius: 10, padding: '8px 12px', minWidth: 0,
               }}>
                 <button onClick={() => onOpen(d)} title="Ouvrir le devis" style={{
                   flex: 1, minWidth: 160, background: 'none', border: 'none', padding: 0, textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit',
                 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: '#0F172A' }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#1C1C1E' }}>
                     {numeroAffiche(d.numero)}
                     <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 700, color: c, background: c + '1A', borderRadius: 999, padding: '1px 7px' }}>{d.statut}</span>
-                    {expired && <span style={{ marginLeft: 6, fontSize: 10, color: '#DC2626', fontWeight: 700 }}>expiré</span>}
-                    {!expired && stale && <span style={{ marginLeft: 6, fontSize: 10, color: '#F59E0B', fontWeight: 700 }}>sans réponse</span>}
+                    {expired && <span style={{ marginLeft: 6, fontSize: 10, color: '#D70015', fontWeight: 700 }}>expiré</span>}
+                    {!expired && stale && <span style={{ marginLeft: 6, fontSize: 10, color: '#FF9500', fontWeight: 700 }}>sans réponse</span>}
                     {d._qontoDeleted
-                      ? <span style={{ marginLeft: 6, fontSize: 10, color: '#B91C1C', fontWeight: 700 }} title="Clique sur « ↻ Qonto » pour le recréer">⚠ supprimé dans Qonto</span>
-                      : qs === 'ok' && <span style={{ marginLeft: 6, fontSize: 10, color: '#047857', fontWeight: 700 }}>✓ Qonto</span>}
+                      ? <span style={{ marginLeft: 6, fontSize: 10, color: '#D70015', fontWeight: 700 }} title="Clique sur « ↻ Qonto » pour le recréer">⚠ supprimé dans Qonto</span>
+                      : qs === 'ok' && <span style={{ marginLeft: 6, fontSize: 10, color: '#1E7B34', fontWeight: 700 }}>✓ Qonto</span>}
                     {d.statut_signature && (
-                      <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: d.statut_signature === 'Signé' ? '#047857' : ['Refusé', 'Expiré', 'Annulé'].includes(d.statut_signature) ? '#B91C1C' : '#7C3AED' }}>
+                      <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: d.statut_signature === 'Signé' ? '#1E7B34' : ['Refusé', 'Expiré', 'Annulé'].includes(d.statut_signature) ? '#D70015' : '#8944AB' }}>
                         ✍️ {d.statut_signature === 'Envoyé' ? 'signature en attente' : d.statut_signature === 'Signé' ? 'signé' : d.statut_signature.toLowerCase()}
                       </span>
                     )}
-                    {!d._qontoDeleted && qs === 'stale' && <span style={{ marginLeft: 6, fontSize: 10, color: '#B45309', fontWeight: 700 }}>Qonto à mettre à jour</span>}
+                    {!d._qontoDeleted && qs === 'stale' && <span style={{ marginLeft: 6, fontSize: 10, color: '#C93400', fontWeight: 700 }}>Qonto à mettre à jour</span>}
                   </div>
-                  <div style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>
+                  <div style={{ fontSize: 11, color: '#6E6E73', marginTop: 2 }}>
                     {fmtEur(d.total_ht)} HT · {fmtEur(d.total_ttc)} TTC
                     {d.date_envoi ? ` · envoyé le ${fmtD(d.date_envoi)}` : ` · du ${fmtD(d.date_emission)}`}
                   </div>
@@ -119,11 +119,11 @@ export default function DevisList({ devis = [], missing, saving, onNew, onOpen, 
                 <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                   <button onClick={() => onPdf(d)} style={act} aria-label={`Télécharger le PDF ${d.numero}`}>PDF</button>
                   {d.statut === 'Brouillon' && (
-                    <button onClick={() => onSend(d)} disabled={saving} style={{ ...act, background: '#1E3A5F', color: '#fff', borderColor: '#1E3A5F' }}>📤 Envoyer</button>
+                    <button onClick={() => onSend(d)} disabled={saving} style={{ ...act, background: '#0071E3', color: '#fff', borderColor: '#0071E3' }}>📤 Envoyer</button>
                   )}
                   {d.statut === 'Envoyé' && (<>
                     {d.statut_signature !== 'Signé' && onRelance && (
-                      <button onClick={() => onRelance(d)} disabled={saving} style={{ ...act, background: '#F0F9FF', color: '#0369A1', borderColor: '#BAE6FD' }}
+                      <button onClick={() => onRelance(d)} disabled={saving} style={{ ...act, background: '#F0F8FC', color: '#0071A4', borderColor: '#BDE6F7' }}
                         title="Mail de relance : le client indique en un clic pourquoi il n’a pas donné suite">✉ Relancer</button>
                     )}
                     {d.statut_signature !== 'Signé' && (
@@ -132,8 +132,8 @@ export default function DevisList({ devis = [], missing, saving, onNew, onOpen, 
                       <button onClick={() => onSend(d)} disabled={saving} style={act}
                         title="Renvoyer le devis (adresse corrigée, relance) — l'ancien lien de signature ne fonctionnera plus">↻ Renvoyer</button>
                     )}
-                    <button onClick={() => onAccept(d)} disabled={saving} style={{ ...act, background: '#ECFDF5', color: '#047857', borderColor: '#A7F3D0' }}>✓ Accepté</button>
-                    <button onClick={() => onRefuse(d)} disabled={saving} style={{ ...act, background: '#FEF2F2', color: '#B91C1C', borderColor: '#FECACA' }}>Refusé</button>
+                    <button onClick={() => onAccept(d)} disabled={saving} style={{ ...act, background: '#EAF8EE', color: '#1E7B34', borderColor: '#BFE9CA' }}>✓ Accepté</button>
+                    <button onClick={() => onRefuse(d)} disabled={saving} style={{ ...act, background: '#FFF0EF', color: '#D70015', borderColor: '#FFC9C6' }}>Refusé</button>
                   </>)}
                   {onQonto && (
                     <button onClick={() => onQonto(d)} disabled={saving} style={act}
@@ -142,13 +142,13 @@ export default function DevisList({ devis = [], missing, saving, onNew, onOpen, 
                     </button>
                   )}
                   {d.statut_signature === 'Signé' && onSignedPdf && (
-                    <button onClick={() => onSignedPdf(d)} style={{ ...act, background: '#ECFDF5', color: '#047857', borderColor: '#A7F3D0' }}>✍️ PDF signé</button>
+                    <button onClick={() => onSignedPdf(d)} style={{ ...act, background: '#EAF8EE', color: '#1E7B34', borderColor: '#BFE9CA' }}>✍️ PDF signé</button>
                   )}
                   {d.qonto_url && (
                     <a href={d.qonto_url} target="_blank" rel="noopener noreferrer" style={{ ...act, textDecoration: 'none' }}>Voir Qonto</a>
                   )}
                   <button onClick={() => onDuplicate(d)} disabled={saving} style={act} title="Créer une nouvelle version">Dupliquer</button>
-                  <button onClick={() => onDelete(d)} disabled={saving} style={{ ...act, color: '#DC2626' }} aria-label={`Supprimer le devis ${d.numero}`}>🗑</button>
+                  <button onClick={() => onDelete(d)} disabled={saving} style={{ ...act, color: '#D70015' }} aria-label={`Supprimer le devis ${d.numero}`}>🗑</button>
                 </div>
               </div>
             )

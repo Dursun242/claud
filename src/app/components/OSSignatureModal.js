@@ -21,9 +21,9 @@
 import Modal from './Modal'
 
 const SIGNER_ROLES = [
-  { key: 'moe',        label: "MOE — Id Maîtrise",  color: '#1E3A5F' },
-  { key: 'moa',        label: "Maître d'ouvrage",    color: '#0369A1' },
-  { key: 'entreprise', label: 'Entreprise',          color: '#7C3AED' },
+  { key: 'moe',        label: "MOE — Id Maîtrise",  color: '#0066CC' },
+  { key: 'moa',        label: "Maître d'ouvrage",    color: '#0071A4' },
+  { key: 'entreprise', label: 'Entreprise',          color: '#8944AB' },
 ]
 
 export default function OSSignatureModal({
@@ -45,11 +45,11 @@ export default function OSSignatureModal({
     <Modal open={!!signModal} onClose={onClose} title="Envoyer pour signature Odoo">
       {signModal && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div style={{ background: '#F5F3FF', borderRadius: 8, padding: 12 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#1E3A5F', marginBottom: 2 }}>
+          <div style={{ background: '#F7F0FC', borderRadius: 8, padding: 12 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#0066CC', marginBottom: 2 }}>
               OS {signModal.numero}
             </div>
-            <div style={{ fontSize: 11, color: '#64748B' }}>
+            <div style={{ fontSize: 11, color: '#6E6E73' }}>
               Expéditeur : <strong>Id Maîtrise</strong> — Objet :{' '}
               <em>
                 Signature requise – OS {signModal.numero}
@@ -64,10 +64,10 @@ export default function OSSignatureModal({
               <div
                 key={key}
                 style={{
-                  background: '#F8FAFC',
+                  background: '#F5F5F7',
                   borderRadius: 8,
                   padding: 10,
-                  border: `1px solid ${missing ? '#FCA5A5' : '#E2E8F0'}`,
+                  border: `1px solid ${missing ? '#FF9F99' : '#E5E5EA'}`,
                 }}
               >
                 <div
@@ -83,7 +83,7 @@ export default function OSSignatureModal({
                 >
                   <span>{label}</span>
                   {missing && (
-                    <span style={{ color: '#EF4444', fontWeight: 400, textTransform: 'none' }}>
+                    <span style={{ color: '#FF3B30', fontWeight: 400, textTransform: 'none' }}>
                       Email requis
                     </span>
                   )}
@@ -102,7 +102,7 @@ export default function OSSignatureModal({
                     style={{
                       ...inp,
                       fontSize: 12,
-                      borderColor: missing ? '#EF4444' : '#E2E8F0',
+                      borderColor: missing ? '#FF3B30' : '#E5E5EA',
                     }}
                     value={signers[key].email}
                     onChange={(e) =>
@@ -116,12 +116,12 @@ export default function OSSignatureModal({
 
           <div
             style={{
-              background: '#F0FDF4',
-              border: '1px solid #BBF7D0',
+              background: '#EEF9F1',
+              border: '1px solid #C8EED3',
               borderRadius: 8,
               padding: 10,
               fontSize: 11,
-              color: '#166534',
+              color: '#1A5E2C',
             }}
           >
             Les 3 signataires recevront chacun un email d&apos;Odoo Sign pour signer le PDF de l&apos;OS.
@@ -130,12 +130,12 @@ export default function OSSignatureModal({
           {error && (
             <div
               style={{
-                background: '#FEF2F2',
-                border: '1px solid #FECACA',
+                background: '#FFF0EF',
+                border: '1px solid #FFC9C6',
                 borderRadius: 8,
                 padding: 10,
                 fontSize: 12,
-                color: '#EF4444',
+                color: '#FF3B30',
               }}
             >
               {error}
@@ -149,7 +149,7 @@ export default function OSSignatureModal({
               disabled={sending || !allFilled}
               style={{
                 ...btnP,
-                background: '#7C3AED',
+                background: '#8944AB',
                 opacity: sending || !allFilled ? 0.5 : 1,
               }}
             >

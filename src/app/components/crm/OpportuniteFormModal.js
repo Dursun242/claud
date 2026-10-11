@@ -27,7 +27,7 @@ export default function OpportuniteFormModal({
                 onClick={() => setForm({ ...form, etape: e, probabilite: isClosed(e) ? ETAPE_PROBA[e] : (form.probabilite || ETAPE_PROBA[e]) })}
                 style={{
                   padding: '6px 10px', borderRadius: 999, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-                  border: `1px solid ${active ? c : '#E2E8F0'}`, background: active ? c : '#fff', color: active ? '#fff' : '#334155',
+                  border: `1px solid ${active ? c : '#E5E5EA'}`, background: active ? c : '#fff', color: active ? '#fff' : '#3A3A3C',
                 }}>{e}</button>
             )
           })}
@@ -51,7 +51,7 @@ export default function OpportuniteFormModal({
             {['Prix', 'Délai', 'Concurrent', 'Projet abandonné', 'Sans réponse'].map(mtf => (
               <button key={mtf} type="button" onClick={() => setForm({ ...form, motif_perte: mtf })} style={{
                 padding: '4px 9px', borderRadius: 999, fontSize: 11, fontFamily: 'inherit', cursor: 'pointer',
-                border: `1px solid ${form.motif_perte === mtf ? '#EF4444' : '#E2E8F0'}`, background: form.motif_perte === mtf ? '#FEF2F2' : '#fff', color: '#334155',
+                border: `1px solid ${form.motif_perte === mtf ? '#FF3B30' : '#E5E5EA'}`, background: form.motif_perte === mtf ? '#FFF0EF' : '#fff', color: '#3A3A3C',
               }}>{mtf}</button>
             ))}
           </div>
@@ -61,7 +61,7 @@ export default function OpportuniteFormModal({
       )}
 
       <button type="button" onClick={() => setMoreOptions(v => !v)} aria-expanded={moreOptions}
-        style={{ background: 'none', border: 'none', padding: '4px 0', marginBottom: 8, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, color: '#3B82F6', fontWeight: 600 }}>
+        style={{ background: 'none', border: 'none', padding: '4px 0', marginBottom: 8, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, color: '#0066CC', fontWeight: 600 }}>
         {moreOptions ? '▾ Moins d’options' : '▸ Plus d’options (chances, type, source, adresse, date, notes)'}
       </button>
       {moreOptions && (
@@ -102,7 +102,7 @@ export default function OpportuniteFormModal({
           </div>
         </div>
       )}
-      {error && <div role="alert" style={{ color: '#DC2626', fontSize: 12, marginBottom: 10, fontWeight: 500 }}>⚠ {error}</div>}
+      {error && <div role="alert" style={{ color: '#D70015', fontSize: 12, marginBottom: 10, fontWeight: 500 }}>⚠ {error}</div>}
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
         <button onClick={onClose} style={btnS}>Annuler</button>
         <button onClick={onSave} disabled={saving} style={{ ...btnP, opacity: saving ? 0.6 : 1 }}>

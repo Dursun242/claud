@@ -15,8 +15,8 @@ export default function MicButtonInline({ listening, onClick }) {
         height: 44,
         borderRadius: '50%',
         background: listening
-          ? 'linear-gradient(135deg, #EF4444, #DC2626)'
-          : 'linear-gradient(135deg, #1E3A5F, #3B82F6)',
+          ? 'linear-gradient(135deg, #FF3B30, #D70015)'
+          : 'linear-gradient(135deg, #0071E3, #007AFF)',
         border: listening
           ? '2px solid rgba(255,80,80,0.4)'
           : '2px solid rgba(0,255,136,0.2)',
@@ -25,7 +25,7 @@ export default function MicButtonInline({ listening, onClick }) {
         alignItems: 'center',
         justifyContent: 'center',
         boxShadow: listening
-          ? '0 0 12px rgba(239,68,68,0.5)'
+          ? '0 0 12px rgba(255,59,48,0.5)'
           : '0 0 8px rgba(0,255,136,0.2)',
         transition: 'all .3s',
         flexShrink: 0,

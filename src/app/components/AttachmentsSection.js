@@ -2,7 +2,7 @@
 import { useRef, useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
 import { useConfirm } from '../contexts/ConfirmContext'
-import { SB } from '../dashboards/shared'
+import { SB, Icon, I, btnAdd } from '../dashboards/shared'
 
 // Formatage humain d'une taille en octets (123 Ko, 4.2 Mo…)
 function formatSize(bytes) {
@@ -12,15 +12,16 @@ function formatSize(bytes) {
   return `${(bytes / 1024 / 1024).toFixed(1)} Mo`
 }
 
-// Couleur + icône selon le type de fichier
+// Type de fichier affiché en étiquette sobre (pas d'emoji : rendu
+// différent selon le téléphone)
 function kindFor(fileName) {
   const n = (fileName || '').toLowerCase()
-  if (/\.(jpg|jpeg|png|gif|webp|heic|heif)$/.test(n)) return { icon: '🖼️', color: '#10B981', bg: '#ECFDF5', label: 'IMG' }
-  if (/\.pdf$/.test(n))                                return { icon: '📄', color: '#DC2626', bg: '#FEF2F2', label: 'PDF' }
-  if (/\.(xls|xlsx|csv)$/.test(n))                     return { icon: '📊', color: '#047857', bg: '#ECFDF5', label: 'XLS' }
-  if (/\.(doc|docx)$/.test(n))                         return { icon: '📝', color: '#1D4ED8', bg: '#EFF6FF', label: 'DOC' }
-  if (/\.(zip|rar|7z)$/.test(n))                       return { icon: '🗜️', color: '#B45309', bg: '#FFFBEB', label: 'ZIP' }
-  return { icon: '📎', color: '#64748B', bg: '#F1F5F9', label: 'FILE' }
+  if (/\.(jpg|jpeg|png|gif|webp|heic|heif)$/.test(n)) return { label: 'IMG' }
+  if (/\.pdf$/.test(n))                                return { label: 'PDF' }
+  if (/\.(xls|xlsx|csv)$/.test(n))                     return { label: 'XLS' }
+  if (/\.(doc|docx)$/.test(n))                         return { label: 'DOC' }
+  if (/\.(zip|rar|7z)$/.test(n))                       return { label: 'ZIP' }
+  return { label: 'Fichier' }
 }
 
 // Ligne compacte : icône/miniature, nom, taille, bouton supprimer
@@ -84,7 +85,7 @@ function AttachmentRow({ att, onDelete }) {
         borderRadius: 8,
         textDecoration: 'none',
         color: 'inherit',
-        border: '1px solid #E2E8F0',
+        border: '1px solid #E5E5EA',
       }}
     >
       {/* Icône / miniature — `url` est une signed URL Supabase avec TTL court :
@@ -95,27 +96,26 @@ function AttachmentRow({ att, onDelete }) {
         <img
           src={url}
           alt=""
-          style={{ width: 36, height: 36, objectFit: 'cover', borderRadius: 6, flexShrink: 0, background: '#F1F5F9' }}
+          style={{ width: 36, height: 36, objectFit: 'cover', borderRadius: 6, flexShrink: 0, background: '#F2F2F7' }}
         />
       ) : (
         <div style={{
           width: 36, height: 36, minWidth: 36, flexShrink: 0,
-          borderRadius: 6, background: kind.bg,
+          borderRadius: 6, background: '#F2F2F7', color: '#48484A',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 18, lineHeight: 1,
-        }}>{kind.icon}</div>
+          fontSize: 10, fontWeight: 700, letterSpacing: '0.04em',
+        }}>{kind.label}</div>
       )}
 
       {/* Nom + taille */}
       <div style={{ flex: '1 1 0', minWidth: 0 }}>
         <div style={{
-          fontSize: 12, fontWeight: 600, color: '#0F172A',
+          fontSize: 13, fontWeight: 600, color: '#1C1C1E',
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>{att.file_name}</div>
-        <div style={{ fontSize: 10, color: '#64748B', marginTop: 1, display: 'flex', gap: 6, alignItems: 'center' }}>
-          <span style={{ color: kind.color, fontWeight: 700, letterSpacing: '0.04em' }}>{kind.label}</span>
-          {att.file_size ? <span>· {formatSize(att.file_size)}</span> : null}
-        </div>
+        {att.file_size ? (
+          <div style={{ fontSize: 12, color: '#6E6E73', marginTop: 1 }}>{formatSize(att.file_size)}</div>
+        ) : null}
       </div>
 
       {/* Bouton supprimer — discret, pas en négatif rouge */}
@@ -126,7 +126,7 @@ function AttachmentRow({ att, onDelete }) {
         title="Supprimer"
         className="u-icon-btn u-icon-btn--danger"
         style={{
-          color: '#64748B',
+          color: '#6E6E73',
           padding: 8,
           width: 32, height: 32,
           borderRadius: 6,
@@ -169,28 +169,22 @@ export default function AttachmentsSection({ attachments = [], onUpload, onDelet
   }
 
   return (
-    <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #E2E8F0' }}>
+    <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #E5E5EA', marginBottom: 24 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-        <span style={{ fontSize: 12, fontWeight: 700, color: '#334155' }}>
-          📎 Pièces jointes <span style={{ color: '#64748B', fontWeight: 500 }}>({attachments.length})</span>
+        <span style={{ fontSize: 17, fontWeight: 600, color: '#1C1C1E' }}>
+          Pièces jointes <span style={{ color: '#6E6E73', fontWeight: 500 }}>({attachments.length})</span>
         </span>
         <button
           onClick={() => fileInputRef.current?.click()}
           disabled={loading}
+          className="u-btn"
           style={{
-            background: '#EFF6FF',
-            color: '#1D4ED8',
-            border: '1px solid #BFDBFE',
-            borderRadius: 6,
-            padding: '4px 10px',
-            fontSize: 10,
-            fontWeight: 700,
+            ...btnAdd,
             cursor: loading ? 'wait' : 'pointer',
             opacity: loading ? 0.6 : 1,
-            fontFamily: 'inherit',
           }}
         >
-          {loading ? '⏳ Upload…' : '+ Ajouter'}
+          {loading ? 'Envoi…' : <><Icon d={I.plus} size={16}/>Ajouter</>}
         </button>
         <input ref={fileInputRef} type="file" multiple onChange={handleFileSelect} style={{ display: 'none' }} />
       </div>
@@ -202,8 +196,8 @@ export default function AttachmentsSection({ attachments = [], onUpload, onDelet
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
           style={{
-            border: `2px dashed ${dragOver ? '#3B82F6' : '#E2E8F0'}`,
-            background: dragOver ? '#EFF6FF' : '#F8FAFC',
+            border: `2px dashed ${dragOver ? '#007AFF' : '#E5E5EA'}`,
+            background: dragOver ? '#EAF3FF' : '#F5F5F7',
             borderRadius: 10,
             padding: '24px 16px',
             textAlign: 'center',
@@ -211,8 +205,7 @@ export default function AttachmentsSection({ attachments = [], onUpload, onDelet
             transition: 'background .15s, border-color .15s',
           }}
         >
-          <div style={{ fontSize: 24, marginBottom: 4, opacity: 0.5 }}>📎</div>
-          <div style={{ fontSize: 12, color: '#64748B', fontWeight: 600 }}>
+          <div style={{ fontSize: 12, color: '#6E6E73', fontWeight: 600 }}>
             {dragOver ? 'Déposez le fichier ici' : 'Cliquez ou glissez un fichier ici'}
           </div>
         </div>
@@ -224,8 +217,8 @@ export default function AttachmentsSection({ attachments = [], onUpload, onDelet
           style={{
             display: 'flex', flexDirection: 'column', gap: 6,
             padding: dragOver ? 6 : 0,
-            border: dragOver ? '2px dashed #3B82F6' : '2px dashed transparent',
-            background: dragOver ? '#EFF6FF' : 'transparent',
+            border: dragOver ? '2px dashed #007AFF' : '2px dashed transparent',
+            background: dragOver ? '#EAF3FF' : 'transparent',
             borderRadius: 8,
             transition: 'background .15s, border-color .15s',
           }}

@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
+import { Icon, I, btnP, btnS } from '../dashboards/shared'
 
 // Marge basse + bouton (64) + marge haute : place à réserver en bas du
 // contenu défilant (mobile) pour que la dernière ligne passe au-dessus de la bulle
@@ -47,7 +48,7 @@ function useCompactOnScroll(enabled) {
 
 /**
  * Composant FloatingMic
- * Bouton microphone flottant neon avec transcription en direct
+ * Bouton microphone flottant (marine, rouge pendant l'écoute) avec transcription en direct
  * Affiche une bulle de transcription et gère le contrôle de la saisie vocale
  *
  * Accessibilité :
@@ -94,83 +95,52 @@ export default function FloatingMic({
           transition: reduceMotion ? 'none' : 'transform .2s cubic-bezier(.4,0,.2,1), opacity .2s cubic-bezier(.4,0,.2,1)',
         }}
       >
-        {/* Transcript bubble when listening */}
+        {/* Transcription en direct pendant l'écoute */}
         {listening && transcript && (
           <div
             role="status"
             aria-live="polite"
             style={{
-              background: 'rgba(15,23,42,0.92)',
-              backdropFilter: 'blur(12px)',
-              borderRadius: 16,
-              padding: '12px 16px',
+              background: '#fff',
+              borderRadius: 12,
+              padding: '12px 14px',
               maxWidth: isMobile ? 260 : 340,
-              color: '#fff',
+              color: '#1C1C1E',
               fontSize: 13,
               lineHeight: 1.5,
-              border: '1px solid rgba(0,255,136,0.25)',
-              boxShadow:
-                '0 0 20px rgba(0,255,136,0.15), 0 8px 32px rgba(0,0,0,0.3)',
+              border: '1px solid #E5E5EA',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
               animation: 'fadeIn .2s ease',
             }}
           >
             <div
               style={{
-                fontSize: 10,
-                fontWeight: 700,
-                color: '#00FF88',
+                fontSize: 11,
+                fontWeight: 600,
+                color: '#D70015',
                 textTransform: 'uppercase',
-                letterSpacing: '0.1em',
+                letterSpacing: '0.05em',
                 marginBottom: 4,
                 display: 'flex',
                 alignItems: 'center',
-                gap: 5,
+                gap: 6,
               }}
             >
               <span
                 aria-hidden="true"
-                style={{
-                  width: 6,
-                  height: 6,
-                  borderRadius: '50%',
-                  background: '#00FF88',
-                  animation: 'neonPulse 1s infinite',
-                }}
+                style={{ width: 6, height: 6, borderRadius: '50%', background: '#D70015' }}
               />
               Transcription en direct
             </div>
-            <div>{transcript}</div>
+            <div style={{ color: '#3A3A3C' }}>{transcript}</div>
             <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
-              <button
-                onClick={onSend}
-                style={{
-                  padding: '6px 14px',
-                  borderRadius: 8,
-                  background: '#00FF88',
-                  color: '#0F172A',
-                  border: 'none',
-                  fontSize: 11,
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  fontFamily: 'inherit',
-                }}
-              >
+              <button onClick={onSend} style={{ ...btnP, fontSize: 13, minHeight: 36, padding: '8px 14px' }}>
                 Envoyer à l&apos;IA
               </button>
               <button
                 onClick={onClear}
                 aria-label="Effacer la transcription et arrêter l'écoute"
-                style={{
-                  padding: '6px 12px',
-                  borderRadius: 8,
-                  background: 'rgba(255,255,255,0.1)',
-                  color: '#E2E8F0',
-                  border: '1px solid rgba(255,255,255,0.2)',
-                  fontSize: 11,
-                  cursor: 'pointer',
-                  fontFamily: 'inherit',
-                  fontWeight: 500,
-                }}
+                style={{ ...btnS, fontSize: 13, minHeight: 36, padding: '8px 12px' }}
               >
                 Effacer
               </button>
@@ -178,103 +148,37 @@ export default function FloatingMic({
           </div>
         )}
 
-        {/* The neon mic button */}
+        {/* Bouton micro : marine au repos (sans animation), rouge pendant l'écoute */}
         <button
           onClick={onClick}
           aria-label={listening ? "Arrêter l'écoute vocale" : "Démarrer l'écoute vocale pour dicter à l'IA"}
           aria-pressed={!!listening}
           title={listening ? "Cliquer pour arrêter" : "Dicter à l'IA"}
+          className="u-icon-btn"
           style={{
             position: 'relative',
-            width: 64,
-            height: 64,
+            width: 56,
+            height: 56,
+            margin: 4,
             borderRadius: '50%',
-            background: listening
-              ? 'radial-gradient(circle at 40% 40%, #ff2d2d 0%, #cc0000 60%, #990000 100%)'
-              : 'radial-gradient(circle at 40% 40%, #1E3A5F 0%, #0F172A 70%)',
-            border: listening
-              ? '2px solid rgba(255,50,50,0.6)'
-              : '2px solid rgba(0,255,136,0.3)',
+            background: listening ? '#D70015' : '#0071E3',
+            color: '#fff',
+            border: 'none',
             cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: listening
-              ? '0 0 15px rgba(255,50,50,0.6), 0 0 40px rgba(255,50,50,0.3), 0 0 80px rgba(255,50,50,0.15), inset 0 0 15px rgba(255,100,100,0.2)'
-              : '0 0 12px rgba(0,255,136,0.3), 0 0 30px rgba(0,255,136,0.15), 0 0 60px rgba(0,255,136,0.07), inset 0 0 10px rgba(0,255,136,0.08)',
-            transition: 'transform .2s cubic-bezier(0.4,0,0.2,1), box-shadow .4s',
-            animation: listening
-              ? 'none'
-              : 'neonBreathing 3s ease-in-out infinite',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
             fontFamily: 'inherit',
           }}
-          onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(0.94)' }}
-          onMouseUp={(e) => { e.currentTarget.style.transform = 'scale(1)' }}
-          onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)' }}
         >
-          {/* IA text with heartbeat */}
-          <span
-            aria-hidden="true"
-            style={{
-              fontSize: 20,
-              fontWeight: 900,
-              letterSpacing: '-0.5px',
-              color: listening ? '#fff' : '#00FF88',
-              fontFamily: "var(--font-dm-sans), sans-serif",
-              animation: listening
-                ? 'heartbeat 0.8s ease-in-out infinite'
-                : 'none',
-              filter: listening
-                ? 'drop-shadow(0 0 4px rgba(255,200,200,0.8))'
-                : 'drop-shadow(0 0 3px rgba(0,255,136,0.6))',
-              userSelect: 'none',
-            }}
-          >
-            IA
-          </span>
-
-          {/* Neon glow rings (décoratifs — aria-hidden) */}
-          <span
-            aria-hidden="true"
-            style={{
-              position: 'absolute',
-              inset: -3,
-              borderRadius: '50%',
-              border: `2px solid ${
-                listening
-                  ? 'rgba(255,80,80,0.5)'
-                  : 'rgba(0,255,136,0.35)'
-              }`,
-              animation: listening
-                ? 'ripple 1.2s ease-out infinite'
-                : 'neonRing 3s ease-in-out infinite',
-            }}
-          />
-          <span
-            aria-hidden="true"
-            style={{
-              position: 'absolute',
-              inset: -8,
-              borderRadius: '50%',
-              border: `1.5px solid ${
-                listening
-                  ? 'rgba(255,80,80,0.25)'
-                  : 'rgba(0,255,136,0.15)'
-              }`,
-              animation: listening
-                ? 'ripple 1.2s ease-out infinite 0.25s'
-                : 'neonRing 3s ease-in-out infinite 1s',
-            }}
-          />
+          <Icon d={I.mic} size={24} color="#fff"/>
           {listening && (
             <span
               aria-hidden="true"
               style={{
                 position: 'absolute',
-                inset: -14,
+                inset: -4,
                 borderRadius: '50%',
-                border: '1px solid rgba(255,80,80,0.12)',
-                animation: 'ripple 1.2s ease-out infinite 0.5s',
+                border: '2px solid rgba(215,0,21,0.4)',
+                animation: 'ripple 1.2s ease-out infinite',
               }}
             />
           )}

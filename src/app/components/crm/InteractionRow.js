@@ -10,20 +10,20 @@ export default function InteractionRow({ it, onToggle, onDelete, context }) {
   const dateStr = it.date ? new Date(it.date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' }) : ''
   return (
     <div style={{
-      display: 'flex', gap: 10, background: '#fff', border: '1px solid #E2E8F0', borderRadius: 10, padding: '8px 12px', minWidth: 0,
-      borderLeft: `3px solid ${overdue ? '#EF4444' : pending ? '#F59E0B' : '#E2E8F0'}`,
+      display: 'flex', gap: 10, background: '#fff', border: '1px solid #E5E5EA', borderRadius: 10, padding: '8px 12px', minWidth: 0,
+      borderLeft: `3px solid ${overdue ? '#FF3B30' : pending ? '#FF9500' : '#E5E5EA'}`,
     }}>
       <span style={{ fontSize: 16, lineHeight: 1.2 }} aria-hidden="true">{INTERACTION_ICONS[it.type] || '📝'}</span>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 12, fontWeight: 600, color: '#0F172A' }}>
+        <div style={{ fontSize: 12, fontWeight: 600, color: '#1C1C1E' }}>
           {it.sujet}
-          <span style={{ fontSize: 10, color: '#64748B', fontWeight: 400, marginLeft: 6 }}>{dateStr}</span>
+          <span style={{ fontSize: 10, color: '#6E6E73', fontWeight: 400, marginLeft: 6 }}>{dateStr}</span>
         </div>
-        {context && <div style={{ fontSize: 10, color: '#64748B' }}>{context}</div>}
-        {it.contenu && <div style={{ fontSize: 12, color: '#475569', whiteSpace: 'pre-wrap', marginTop: 2 }}>{it.contenu}</div>}
+        {context && <div style={{ fontSize: 10, color: '#6E6E73' }}>{context}</div>}
+        {it.contenu && <div style={{ fontSize: 12, color: '#48484A', whiteSpace: 'pre-wrap', marginTop: 2 }}>{it.contenu}</div>}
         {it.prochaine_action && (
           <label style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6, fontSize: 11, cursor: 'pointer',
-            color: it.action_faite ? '#94A3B8' : overdue ? '#DC2626' : '#92400E', textDecoration: it.action_faite ? 'line-through' : 'none' }}>
+            color: it.action_faite ? '#8E8E93' : overdue ? '#D70015' : '#A0390C', textDecoration: it.action_faite ? 'line-through' : 'none' }}>
             <input type="checkbox" checked={!!it.action_faite} onChange={onToggle} aria-label="Marquer la relance comme faite" />
             {it.prochaine_action}{it.prochaine_action_date ? ` — ${fmtDate(it.prochaine_action_date)}` : ''}{overdue ? ' (en retard)' : ''}
           </label>
@@ -32,7 +32,7 @@ export default function InteractionRow({ it, onToggle, onDelete, context }) {
       {onDelete && (
         <button onClick={onDelete} title="Supprimer" aria-label="Supprimer l'échange"
           style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, alignSelf: 'flex-start', display: 'flex' }}>
-          <Icon d={I.trash} size={12} color="#94A3B8" />
+          <Icon d={I.trash} size={12} color="#8E8E93" />
         </button>
       )}
     </div>

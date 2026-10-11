@@ -15,12 +15,12 @@ export const ETAPES = ['Prospect', 'Qualifié', 'Devis envoyé', 'Négociation',
 export const ETAPES_ACTIVES = ETAPES.filter(e => e !== 'Gagné' && e !== 'Perdu')
 
 export const ETAPE_COLORS = {
-  'Prospect':     '#64748B',
-  'Qualifié':     '#3B82F6',
-  'Devis envoyé': '#8B5CF6',
-  'Négociation':  '#F59E0B',
-  'Gagné':        '#10B981',
-  'Perdu':        '#EF4444',
+  'Prospect':     '#6E6E73',
+  'Qualifié':     '#007AFF',
+  'Devis envoyé': '#AF52DE',
+  'Négociation':  '#FF9500',
+  'Gagné':        '#34C759',
+  'Perdu':        '#FF3B30',
 }
 
 // Probabilité proposée par défaut quand on change d'étape (l'utilisateur
