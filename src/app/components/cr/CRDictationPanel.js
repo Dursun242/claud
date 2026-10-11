@@ -92,7 +92,7 @@ export default function CRDictationPanel({ notes, setNotes, dictation, context, 
       <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
         <button type="button" onClick={analyse} disabled={busy || notes.trim().length < 10}
           style={{ ...ghostBtn('#fff'), background: NAVY, border: 'none', color: '#fff', opacity: busy || notes.trim().length < 10 ? 0.6 : 1 }}>
-          {busy ? 'Analyse en cours…' : '✨ Ranger avec l’IA'}
+          {busy ? 'Analyse en cours…' : 'Ranger avec l’IA'}
         </button>
         {notes && <button type="button" onClick={() => setNotes('')} style={ghostBtn('#6E6E73')}>Effacer les notes</button>}
       </div>

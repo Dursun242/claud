@@ -22,7 +22,7 @@ import Modal from './Modal'
 
 const SIGNER_ROLES = [
   { key: 'moe',        label: "MOE — Id Maîtrise",  color: '#0066CC' },
-  { key: 'moa',        label: "Maître d'ouvrage",    color: '#0071A4' },
+  { key: 'moa',        label: "Maître d'ouvrage",    color: '#0066CC' },
   { key: 'entreprise', label: 'Entreprise',          color: '#8944AB' },
 ]
 
@@ -67,7 +67,7 @@ export default function OSSignatureModal({
                   background: '#F5F5F7',
                   borderRadius: 8,
                   padding: 10,
-                  border: `1px solid ${missing ? '#FF9F99' : '#E5E5EA'}`,
+                  border: `1px solid ${missing ? '#FFC9C6' : '#E5E5EA'}`,
                 }}
               >
                 <div
@@ -116,12 +116,12 @@ export default function OSSignatureModal({
 
           <div
             style={{
-              background: '#EEF9F1',
-              border: '1px solid #C8EED3',
+              background: '#EAF8EE',
+              border: '1px solid #BFE9CA',
               borderRadius: 8,
               padding: 10,
               fontSize: 11,
-              color: '#1A5E2C',
+              color: '#1E7B34',
             }}
           >
             Les 3 signataires recevront chacun un email d&apos;Odoo Sign pour signer le PDF de l&apos;OS.
@@ -153,7 +153,7 @@ export default function OSSignatureModal({
                 opacity: sending || !allFilled ? 0.5 : 1,
               }}
             >
-              {sending ? 'Génération et envoi…' : '✍ Envoyer pour signature'}
+              {sending ? 'Génération et envoi…' : 'Envoyer pour signature'}
             </button>
           </div>
         </div>

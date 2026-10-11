@@ -2,10 +2,10 @@
 export const NAVY = '#0071E3'
 
 export const SUIVI_STYLE = {
-  fait: { color: '#1E7B34', bg: '#EAF8EE', border: '#8EDBA5' },
-  en_cours: { color: '#0066CC', bg: '#EAF3FF', border: '#99C7FF' },
-  relance: { color: '#D70015', bg: '#FFF0EF', border: '#FF9F99' },
-  nouveau: { color: '#8944AB', bg: '#F7F0FC', border: '#DEC3F2' },
+  fait: { color: '#1E7B34', bg: '#EAF8EE', border: '#BFE9CA' },
+  en_cours: { color: '#0066CC', bg: '#EAF3FF', border: '#C6DDF7' },
+  relance: { color: '#D70015', bg: '#FFF0EF', border: '#FFC9C6' },
+  nouveau: { color: '#8944AB', bg: '#F7F0FC', border: '#E7D4F5' },
 }
 
 export const PRIO_COLOR = { Urgent: '#D70015', 'En cours': '#0066CC', 'En attente': '#6E6E73' }

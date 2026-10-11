@@ -130,23 +130,23 @@ export default function ConformiteSuiviModal({ open, onClose, contacts = [], con
   return (
     <Modal open={open} onClose={onClose} title="Suivi des documents des entreprises" wide="xl">
       {conformite.missingMigration ? (
-        <div style={{ background: '#FFF4E8', border: '1px solid #FFD8B0', borderRadius: 8, padding: 12, fontSize: 12, color: '#9A3412' }}>
+        <div style={{ background: '#FFF7E8', border: '1px solid #FFDDA6', borderRadius: 8, padding: 12, fontSize: 12, color: '#9A3412' }}>
           Fonction non activée : appliquer les migrations 036 et 037 dans Supabase.
         </div>
       ) : (
         <>
           {/* ── Avancement ── */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 10, marginBottom: 12 }}>
-            <Stat label="Entreprises à jour" hint="chantier en cours ou demande envoyée" value={stats.aJour} total={stats.actives} color="#248A3D" />
+            <Stat label="Entreprises à jour" hint="chantier en cours ou demande envoyée" value={stats.aJour} total={stats.actives} color="#1E7B34" />
             <Stat label="Documents reçus et valables" value={stats.docsRecus} total={stats.docsTotal} color="#0071E3" />
             {demandes.length > 0 && <Stat label="Liens de dépôt ouverts" hint="parmi les demandes envoyées" value={ouverts} total={demandes.length} color="#8944AB" />}
           </div>
 
           {/* ── Aperçu des relances ── */}
-          <div style={{ background: '#F0F8FC', border: '1px solid #BDE6F7', borderRadius: 10, padding: '10px 12px', marginBottom: 14 }}>
+          <div style={{ background: '#F0F8FC', border: '1px solid #C6DDF7', borderRadius: 10, padding: '10px 12px', marginBottom: 14 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: '#0C4A6E' }}>Relances automatiques</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: '#0066CC' }}>Relances automatiques</span>
                 <span style={{ fontSize: 11, fontWeight: 700, color: conformite.globalPause ? '#C93400' : '#1E7B34' }}>
                   {conformite.globalPause ? '⏸ Suspendues' : '● Actives'}
                 </span>
@@ -174,7 +174,7 @@ export default function ConformiteSuiviModal({ open, onClose, contacts = [], con
                   {next.map(p => (
                     <li key={p.contact.id} style={{ marginBottom: 2 }}>
                       <button type="button" onClick={() => onOpenContact(p.contact.id)}
-                        style={{ background: 'none', border: 'none', padding: 0, color: '#0071A4', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12 }}>
+                        style={{ background: 'none', border: 'none', padding: 0, color: '#0066CC', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12 }}>
                         {p.contact.nom}
                       </button>
                       {' '}({p.contact.email}) : {p.kinds.map(k => DOC_META[k].label).join(', ')}
@@ -184,7 +184,7 @@ export default function ConformiteSuiviModal({ open, onClose, contacts = [], con
                 </ol>
                 {later > 0 && <div style={{ ...small, marginTop: 6 }}>Puis {later} autre{later > 1 ? 's' : ''} aux passages suivants (limite de {MAX_RELANCES_PAR_PASSAGE} par jour).</div>}
                 <button type="button" disabled={!!busy} onClick={() => relancer(next.map(p => p.contact), `Envoyer maintenant ${next.length} mail${next.length > 1 ? 's' : ''} ?`)}
-                  style={{ marginTop: 8, fontSize: 12, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', borderRadius: 6, padding: '6px 12px', background: '#0071A4', color: '#fff', border: 'none' }}>
+                  style={{ marginTop: 8, fontSize: 12, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', borderRadius: 6, padding: '6px 12px', background: '#0066CC', color: '#fff', border: 'none' }}>
                   {busy === 'relancer' ? 'Envoi…' : `Envoyer maintenant (${next.length})`}
                 </button>
               </>
@@ -276,7 +276,7 @@ const MANQUANT = { color: '#8E8E93', bg: '#F5F5F7', border: '#D1D1D6', dashed: t
 
 const srOnly = { position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' }
 
-const relanceColor = (r) => (['sans_email', 'suspendue', 'pause_globale'].includes(r.kind) ? '#C93400' : r.kind === 'prevue' ? '#0071A4' : '#6E6E73')
+const relanceColor = (r) => (['sans_email', 'suspendue', 'pause_globale'].includes(r.kind) ? '#C93400' : r.kind === 'prevue' ? '#0066CC' : '#6E6E73')
 
 function Stat({ label, hint, value, total, color }) {
   return (
@@ -325,7 +325,7 @@ function NameCell({ r, onOpenContact }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3 }}>
         <span aria-hidden="true" style={{ display: 'inline-flex', gap: 2 }}>
           {DOC_KINDS.map((k, i) => (
-            <span key={k} style={{ width: 10, height: 4, borderRadius: 2, background: i < r.recus ? '#248A3D' : '#E5E5EA' }} />
+            <span key={k} style={{ width: 10, height: 4, borderRadius: 2, background: i < r.recus ? '#1E7B34' : '#E5E5EA' }} />
           ))}
         </span>
         <span style={small}>{r.recus}/{DOC_KINDS.length} reçus</span>
@@ -354,8 +354,8 @@ function Actions({ r, busy, relancer, onChanged }) {
     <div style={{ display: 'inline-flex', gap: 6, alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
       {r.contact.email && (
         <button type="button" disabled={!!busy} onClick={() => relancer([r.contact], `Relancer ${r.contact.nom} ?`)}
-          style={{ fontSize: 11, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', borderRadius: 6, padding: '4px 8px', background: '#F0F8FC', color: '#0071A4', border: '1px solid #BDE6F7', whiteSpace: 'nowrap' }}>
-          ✉ Relancer
+          style={{ fontSize: 11, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', borderRadius: 6, padding: '4px 8px', background: '#F0F8FC', color: '#0066CC', border: '1px solid #C6DDF7', whiteSpace: 'nowrap' }}>
+          Relancer
         </button>
       )}
       <RelanceControls compact contact={r.contact} pause={r.pause} onChanged={onChanged} />
@@ -369,9 +369,9 @@ function RowCard({ r, legalByContact, onOpenContact, ...rest }) {
     <div style={{ border: '1px solid #E5E5EA', borderRadius: 10, padding: 10, opacity: r.active ? 1 : 0.6 }}>
       <NameCell r={r} onOpenContact={onOpenContact} />
       <div style={{ display: 'flex', gap: 6, margin: '8px 0', flexWrap: 'wrap' }}>
-        <div style={{ textAlign: 'center' }}><LegalDot l={legalByContact?.get(r.contact.id)} /><div style={{ fontSize: 9, color: '#8E8E93' }}>Société</div></div>
+        <div style={{ textAlign: 'center' }}><LegalDot l={legalByContact?.get(r.contact.id)} /><div style={{ fontSize: 11, color: '#8E8E93' }}>Société</div></div>
         {DOC_KINDS.map(k => (
-          <div key={k} style={{ textAlign: 'center' }}><DocDot kind={k} status={r.compliance.kinds[k].status} /><div style={{ fontSize: 9, color: '#8E8E93' }}>{DOC_META[k].label}</div></div>
+          <div key={k} style={{ textAlign: 'center' }}><DocDot kind={k} status={r.compliance.kinds[k].status} /><div style={{ fontSize: 11, color: '#8E8E93' }}>{DOC_META[k].label}</div></div>
         ))}
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'flex-start', flexWrap: 'wrap' }}>

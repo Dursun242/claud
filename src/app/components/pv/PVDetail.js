@@ -129,13 +129,13 @@ export default function PVDetail({ pv, onClose, onDecision }) {
         <div style={{ background: '#F5F5F7', borderRadius: 8, padding: 12, marginBottom: 12, fontSize: 12 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
-              <div style={{ color: '#6E6E73', fontSize: 10, fontWeight: 600 }}>DATE RÉCEPTION</div>
+              <div style={{ color: '#6E6E73', fontSize: 11, fontWeight: 600 }}>DATE RÉCEPTION</div>
               <div style={{ color: '#1C1C1E', fontWeight: 600, marginTop: 2 }}>
                 {formatDate(pv.date_reception)}
               </div>
             </div>
             <div>
-              <div style={{ color: '#6E6E73', fontSize: 10, fontWeight: 600 }}>STATUT SIGNATURE</div>
+              <div style={{ color: '#6E6E73', fontSize: 11, fontWeight: 600 }}>STATUT SIGNATURE</div>
               <div style={{ color: '#1C1C1E', fontWeight: 600, marginTop: 2 }}>
                 {pv.statut_signature}
               </div>
@@ -153,9 +153,9 @@ export default function PVDetail({ pv, onClose, onDecision }) {
                 rel="noreferrer"
                 style={{
                   padding: '8px 12px',
-                  background: '#EFEFFC',
-                  color: '#4744B8',
-                  border: '1px solid #D3D2F7',
+                  background: '#F7F0FC',
+                  color: '#8944AB',
+                  border: '1px solid #E7D4F5',
                   borderRadius: 6,
                   fontSize: 12,
                   fontWeight: 600,
@@ -172,7 +172,7 @@ export default function PVDetail({ pv, onClose, onDecision }) {
                 style={{
                   padding: '8px 12px',
                   background: '#EAF8EE',
-                  color: '#248A3D',
+                  color: '#1E7B34',
                   border: '1px solid #BFE9CA',
                   borderRadius: 6,
                   fontSize: 12,
@@ -181,7 +181,7 @@ export default function PVDetail({ pv, onClose, onDecision }) {
                   opacity: downloadingSigned ? 0.6 : 1,
                 }}
               >
-                {downloadingSigned ? '⏳ Téléchargement…' : '📥 PDF signé'}
+                {downloadingSigned ? '⏳ Téléchargement…' : 'PDF signé'}
               </button>
             )}
           </div>

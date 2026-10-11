@@ -814,7 +814,7 @@ export function FF({label, hint, error, required, children}) {
         </div>
       )}
       {hint && !error && (
-        <div style={{fontSize:10,color:"#6E6E73",marginTop:4,fontStyle:"italic"}}>
+        <div style={{fontSize:11,color:"#6E6E73",marginTop:4,fontStyle:"italic"}}>
           {hint}
         </div>
       )}
@@ -865,7 +865,7 @@ export const inpNumeric = {
 }
 // Style border rouge à passer en erreur : <input style={{...inp, ...inpError}} />
 export const inpError = {
-  borderColor: '#FF9F99',
+  borderColor: '#FFC9C6',
   background: '#FFF0EF',
 }
 

@@ -76,7 +76,7 @@ function RelanceForm({ initial, error, sending, onSubmit, onCancel }) {
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
         <button onClick={onCancel} style={btnS}>Annuler</button>
         <button onClick={submit} disabled={sending} style={{ ...btnP, opacity: sending ? 0.6 : 1 }}>
-          {sending ? 'Envoi…' : '✉ Envoyer la relance'}
+          {sending ? 'Envoi…' : 'Envoyer la relance'}
         </button>
       </div>
     </div>

@@ -151,11 +151,11 @@ export default function DocumentSearch({ chantierId = null }) {
                     }}>
                       {doc.file_name}
                     </div>
-                    <div style={{ fontSize: 10, color: '#6E6E73', marginTop: 2 }}>
+                    <div style={{ fontSize: 11, color: '#6E6E73', marginTop: 2 }}>
                       {doc.chantier_nom} • {formatSize(doc.file_size)}
                     </div>
                   </div>
-                  <span style={{ fontSize: 10, color: '#D1D1D6', whiteSpace: 'nowrap' }}>
+                  <span style={{ fontSize: 11, color: '#D1D1D6', whiteSpace: 'nowrap' }}>
                     {doc.type}
                   </span>
                 </button>

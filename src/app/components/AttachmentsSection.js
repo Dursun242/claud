@@ -105,7 +105,7 @@ function AttachmentRow({ att, onDelete }) {
           width: 36, height: 36, minWidth: 36, flexShrink: 0,
           borderRadius: 6, background: '#F2F2F7', color: '#48484A',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 10, fontWeight: 700, letterSpacing: '0.04em',
+          fontSize: 11, fontWeight: 700, letterSpacing: '0.04em',
         }}>{kind.label}</div>
       )}
 

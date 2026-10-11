@@ -197,11 +197,11 @@ export default function ChantierIntervenants({
             >
               <div style={{ minWidth: 0 }}>
                 <div style={{ fontWeight: 600, fontSize: 12, color: '#1C1C1E' }}>{c.nom}</div>
-                <div style={{ fontSize: 10, color: '#6E6E73' }}>
+                <div style={{ fontSize: 11, color: '#6E6E73' }}>
                   {c.type}{c.specialite ? ` • ${c.specialite}` : ''}
                 </div>
               </div>
-              <span style={{ fontSize: 11, fontWeight: 700, color: '#248A3D', flexShrink: 0 }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: '#1E7B34', flexShrink: 0 }}>
                 {adding === c.id ? '…' : '+ Ajouter'}
               </span>
             </button>

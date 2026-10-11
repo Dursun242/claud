@@ -259,8 +259,8 @@ export default function PhotoReportsV({ data, m }) {
         marginBottom: 16, flexWrap: 'wrap', gap: 8
       }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: m ? 18 : 24, fontWeight: 700 }}>Reportage Photo</h1>
-          <div style={{ fontSize: 11, color: '#6E6E73', marginTop: 2 }}>
+          <h1 style={{margin:0,fontSize:m?28:32,fontWeight:700,letterSpacing:"-0.02em",color:"#1C1C1E"}}>Reportage Photo</h1>
+          <div style={{ fontSize: 13, color: '#6E6E73', marginTop: 2 }}>
             Sélectionne jusqu'à {MAX_PHOTOS} photos puis génère le reportage PDF
           </div>
         </div>
@@ -352,7 +352,7 @@ export default function PhotoReportsV({ data, m }) {
               ) : photos.length >= MAX_PHOTOS ? (
                 `${MAX_PHOTOS} max atteint`
               ) : (
-                '📸 Sélectionner des photos'
+                'Sélectionner des photos'
               )}
             </button>
           </div>
@@ -453,7 +453,7 @@ export default function PhotoReportsV({ data, m }) {
                         fontSize: 11, color: '#D70015', fontFamily: 'inherit',
                         marginLeft: 'auto'
                       }}
-                    >✕ Retirer</button>
+                    >Retirer</button>
                   </div>
                 </div>
               </div>
@@ -504,7 +504,7 @@ export default function PhotoReportsV({ data, m }) {
                   }} />
                   Génération…
                 </>
-              ) : '📄 Générer le PDF'}
+              ) : 'Générer le PDF'}
             </button>
             <button
               onClick={handleSharePdf}
@@ -512,7 +512,7 @@ export default function PhotoReportsV({ data, m }) {
               title="Partager via WhatsApp, Mail, AirDrop… (sans lien parasite)"
               style={{
                 ...btnP, fontSize: 14, padding: '12px 20px',
-                background: '#248A3D',
+                background: '#1E7B34',
                 opacity: (sharingPdf || !chantier) ? 0.6 : 1,
                 cursor: (sharingPdf || !chantier) ? 'wait' : 'pointer',
                 display: 'flex', alignItems: 'center', gap: 8,
@@ -527,7 +527,7 @@ export default function PhotoReportsV({ data, m }) {
                   }} />
                   Préparation…
                 </>
-              ) : '📤 Partager'}
+              ) : 'Partager'}
             </button>
           </div>
         </div>

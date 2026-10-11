@@ -121,7 +121,7 @@ export default function ContactPicker({ contacts = [], value, onChange, onCreate
               style={{ ...row, background: active === i ? '#F2F2F7' : '#fff' }}>
               <span style={{ fontWeight: 600, color: '#1C1C1E' }}>{c.nom}</span>
               {c.societe && <span style={{ color: '#6E6E73' }}> · {c.societe}</span>}
-              <span style={{ float: 'right', fontSize: 10, color: '#6E6E73' }}>{c.type}{c.ville ? ` · ${c.ville}` : ''}</span>
+              <span style={{ float: 'right', fontSize: 11, color: '#6E6E73' }}>{c.type}{c.ville ? ` · ${c.ville}` : ''}</span>
             </button>
           ))}
         </div>

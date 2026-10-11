@@ -78,7 +78,7 @@ export default function CRIntervenantsPicker({ available = [], value = [], onCha
                       {' '}· {[it.societe && it.societe !== it.nom ? it.societe : '', it.role].filter(Boolean).join(' · ')}
                     </span>
                   ) : null}
-                  {!it.email && <span style={{ fontSize: 10, color: '#C93400' }}> · sans email</span>}
+                  {!it.email && <span style={{ fontSize: 11, color: '#C93400' }}> · sans email</span>}
                 </span>
               </label>
               {isSel && (

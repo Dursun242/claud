@@ -54,15 +54,15 @@ export default function ContactFormModal({
       {/* ── IMPORT PAR PHOTO (création uniquement) ── */}
       {modal === 'new' && (
         <div style={{
-          background: '#EFEFFC', border: '1.5px solid #D3D2F7',
+          background: '#F7F0FC', border: '1.5px solid #E7D4F5',
           borderRadius: 10, padding: '12px 14px', marginBottom: 12,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, flexWrap: 'wrap' }}>
             <span style={{ fontSize: 15 }}>📸</span>
-            <span style={{ fontSize: 12, fontWeight: 700, color: '#4744B8' }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: '#8944AB' }}>
               Import par photo ou capture d&apos;écran
             </span>
-            <span style={{ fontSize: 10, color: '#8E8CE8', width: '100%' }}>
+            <span style={{ fontSize: 11, color: '#8944AB', width: '100%' }}>
               Carte de visite, signature email, contact iOS, SMS, WhatsApp…
             </span>
           </div>
@@ -71,7 +71,7 @@ export default function ContactFormModal({
             disabled={importing}
             style={{
               width: '100%', padding: '10px 14px', borderRadius: 8,
-              border: '1.5px dashed #B4B3F0', background: '#fff',
+              border: '1.5px dashed #E7D4F5', background: '#fff',
               color: '#5856D6', fontSize: 13, fontWeight: 600,
               cursor: importing ? 'wait' : 'pointer', fontFamily: 'inherit',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -82,12 +82,12 @@ export default function ContactFormModal({
               <>
                 <span style={{
                   display: 'inline-block', width: 12, height: 12,
-                  border: '2px solid #D3D2F7', borderTopColor: '#5856D6',
+                  border: '2px solid #E7D4F5', borderTopColor: '#5856D6',
                   borderRadius: '50%', animation: 'spin 0.8s linear infinite',
                 }}/>
                 Extraction en cours…
               </>
-            ) : <>📷 Choisir une photo ou une capture d&apos;écran</>}
+            ) : <>Choisir une photo ou une capture d&apos;écran</>}
           </button>
           {importError && (
             <div style={{ marginTop: 8, fontSize: 11, color: '#D70015' }}>{importError}</div>
@@ -105,8 +105,8 @@ export default function ContactFormModal({
             <circle cx="11" cy="11" r="8" />
             <path d="M21 21l-4.35-4.35" />
           </svg>
-          <span style={{ fontSize: 12, fontWeight: 700, color: '#0058B0' }}>Recherche entreprise</span>
-          <span style={{ fontSize: 10, color: '#409CFF', width: '100%' }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: '#0066CC' }}>Recherche entreprise</span>
+          <span style={{ fontSize: 11, color: '#0066CC', width: '100%' }}>
             SIRET (14 chiffres), nom d&apos;entreprise ou nom d&apos;un dirigeant — annuaire officiel, gratuit
           </span>
         </div>
@@ -160,11 +160,11 @@ export default function ContactFormModal({
                           <div style={{ fontSize: 13, fontWeight: 700, color: '#1C1C1E' }}>
                             {r.denomination || r.nom_entreprise}
                           </div>
-                          <div style={{ fontSize: 10, color: '#6E6E73' }}>
+                          <div style={{ fontSize: 11, color: '#6E6E73' }}>
                             {siege.code_postal} {siege.ville} — SIRET {r.siret}
                           </div>
                           {r.libelle_activite_principale && (
-                            <div style={{ fontSize: 10, color: '#6E6E73' }}>
+                            <div style={{ fontSize: 11, color: '#6E6E73' }}>
                               {r.libelle_activite_principale}
                             </div>
                           )}
@@ -208,7 +208,7 @@ export default function ContactFormModal({
                           onClick={() => importDirigeantFromSearch(dirigeantInfo, ent)}
                           disabled={pLoading}
                           style={{
-                            background: '#fff', border: '1.5px solid #D3D2F7',
+                            background: '#fff', border: '1.5px solid #E7D4F5',
                             borderRadius: 8, padding: '8px 12px',
                             cursor: pLoading ? 'wait' : 'pointer', textAlign: 'left',
                             display: 'flex', justifyContent: 'space-between',
@@ -221,15 +221,15 @@ export default function ContactFormModal({
                               {fullName}
                               {dirigeantInfo.qualite && (
                                 <span style={{
-                                  fontSize: 10, color: '#5856D6',
+                                  fontSize: 11, color: '#5856D6',
                                   fontWeight: 600, marginLeft: 6,
                                 }}>({dirigeantInfo.qualite})</span>
                               )}
                             </div>
-                            <div style={{ fontSize: 11, fontWeight: 600, color: '#4744B8' }}>
+                            <div style={{ fontSize: 11, fontWeight: 600, color: '#8944AB' }}>
                               {ent.denomination || ent.nom_entreprise}
                             </div>
-                            <div style={{ fontSize: 10, color: '#6E6E73' }}>
+                            <div style={{ fontSize: 11, color: '#6E6E73' }}>
                               {[
                                 siege.code_postal || ent.code_postal,
                                 siege.ville || ent.ville,

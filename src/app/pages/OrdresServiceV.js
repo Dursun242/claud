@@ -725,7 +725,7 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly,a
               <div style={{display:"flex",gap:8,justifyContent:"center",flexWrap:"wrap"}}>
                 <button onClick={openNew} style={btnP}>+ Nouvel OS</button>
                 <button onClick={()=>devisInputRef.current?.click()}
-                  style={btnS}>📸 Importer un devis</button>
+                  style={btnS}>Importer un devis</button>
               </div>
             </>
           )}

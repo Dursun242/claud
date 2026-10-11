@@ -23,7 +23,7 @@ export const DURATION = {
 
 export const EASING = {
   standard: 'cubic-bezier(.4, 0, .2, 1)',     // ease-out canonique (Material)
-  emphasized: 'cubic-bezier(.2, 0, 0, 1.2)',  // léger rebond pour les apparitions
+  emphasized: 'cubic-bezier(.22, 1, .36, 1)',  // décélération franche pour les apparitions
   linear: 'linear',                            // spinners uniquement
 }
 

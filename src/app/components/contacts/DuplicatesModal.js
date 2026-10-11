@@ -5,7 +5,7 @@ import { Modal } from '../index'
 import { bestContact, planMerge } from '../../lib/contactDuplicates'
 
 const chip = (text, color = '#48484A', bg = '#F2F2F7') => (
-  <span key={text} style={{ fontSize: 10, fontWeight: 700, color, background: bg, borderRadius: 5, padding: '2px 7px', whiteSpace: 'nowrap' }}>{text}</span>
+  <span key={text} style={{ fontSize: 11, fontWeight: 700, color, background: bg, borderRadius: 5, padding: '2px 7px', whiteSpace: 'nowrap' }}>{text}</span>
 )
 
 const line = (c) => [c.societe && c.societe !== c.nom ? c.societe : '', c.type, c.email, c.tel || c.tel_fixe, c.ville].filter(Boolean).join(' · ')
@@ -51,7 +51,7 @@ export default function DuplicatesModal({ open, groups, usage, onClose, onIgnore
             {groups.map(g => (
               <div key={g.ids.join('|')} data-testid="dup-group" style={{ border: '1px solid #E5E5EA', borderRadius: 10, padding: 12, background: '#fff' }}>
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
-                  {g.reasons.map(r => chip(r, r === 'même SIRET' ? '#A0390C' : '#0066CC', r === 'même SIRET' ? '#FFF0D6' : '#EAF3FF'))}
+                  {g.reasons.map(r => chip(r, r === 'même SIRET' ? '#A0390C' : '#0066CC', r === 'même SIRET' ? '#FFF7E8' : '#EAF3FF'))}
                 </div>
                 {g.contacts.map(c => {
                   const u = usage(c)

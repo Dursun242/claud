@@ -132,7 +132,7 @@ export default function CommentsSection({
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2, gap: 8 }}>
                     <strong style={{ color: '#1C1C1E', fontSize: 12 }}>{comment.author_name || 'Anonyme'}</strong>
-                    <span style={{ fontSize: 10, color: '#6E6E73' }}>{formatRelative(comment.created_at)}</span>
+                    <span style={{ fontSize: 11, color: '#6E6E73' }}>{formatRelative(comment.created_at)}</span>
                   </div>
                   <p style={{ margin: '0 0 0 0', color: '#48484A', lineHeight: 1.5, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
                     {comment.content}
@@ -149,7 +149,7 @@ export default function CommentsSection({
                       borderRadius: 5,
                       color: '#D70015',
                       cursor: 'pointer',
-                      fontSize: 10,
+                      fontSize: 11,
                       padding: '3px 6px',
                       flexShrink: 0,
                       fontFamily: 'inherit',
