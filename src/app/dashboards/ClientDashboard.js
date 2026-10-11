@@ -397,7 +397,7 @@ export default function ClientDashboard({ user, profile = null }) {
           {visitedTabs.has('planning') && (
             <div style={{ display: tab === 'planning' ? 'block' : 'none' }}>
               <TabErrorBoundary name="planning" resetKey={data}>
-                <PlanningV data={data} m={isMobile} />
+                <PlanningV data={data} m={isMobile} readOnly />
               </TabErrorBoundary>
             </div>
           )}
