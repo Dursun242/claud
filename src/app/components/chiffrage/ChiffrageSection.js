@@ -6,16 +6,18 @@
 // Maîtrise). Création depuis les plans, une description, un import ou à la
 // main (ChiffrageCreateModal) ; modification dans l'éditeur (ChiffrageEditor).
 import { useMemo, useState } from 'react'
+import dynamic from 'next/dynamic'
 import { fmtMoney, Icon, I, btnAdd, btnChip } from '../../dashboards/shared'
 import { useChiffrage } from '../../hooks/useChiffrage'
 import { chiffrageTotals, compareWithOs, sanityChecks, osPriceRefs } from '../../lib/chiffrage'
 import { apiPost } from '../../lib/crmApi'
 import { useToast } from '../../contexts/ToastContext'
 import { useConfirm } from '../../contexts/ConfirmContext'
-import ChiffrageEditor from './ChiffrageEditor'
 import Emoji from '../Emoji'
 import { EMOJI } from '../../lib/emoji'
-import ChiffrageCreateModal from './ChiffrageCreateModal'
+// Éditeur et création du DPGF : chargés à l'ouverture seulement
+const ChiffrageEditor = dynamic(() => import('./ChiffrageEditor'), { ssr: false })
+const ChiffrageCreateModal = dynamic(() => import('./ChiffrageCreateModal'), { ssr: false })
 
 const kpi = { background: '#F5F5F7', borderRadius: 8, padding: 10 }
 const kpiLabel = { fontSize: 11, color: '#6E6E73', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }
@@ -226,22 +228,22 @@ export default function ChiffrageSection({ chantier, os = [], allOs = [], user, 
         </div>
       )}
 
-      <ChiffrageCreateModal
+      {creating && <ChiffrageCreateModal
         open={creating}
         chantier={chantier}
         allOs={allOs}
         hasExisting={!!chiffrage}
         onClose={() => setCreating(false)}
         onResult={(draft) => { setCreating(false); setEditing({ ...(chiffrage || {}), ...draft }) }}
-      />
-      <ChiffrageEditor
+      />}
+      {editing && <ChiffrageEditor
         open={!!editing}
         initial={editing}
         chantier={chantier}
         refs={refs}
         onClose={() => setEditing(null)}
         onSave={onSave}
-      />
+      />}
     </div>
   )
 }

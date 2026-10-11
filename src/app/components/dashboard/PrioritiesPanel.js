@@ -1,5 +1,7 @@
 'use client'
-import { useMotDuJour } from '../../hooks/useMotDuJour'
+import { useEffect, useState } from 'react'
+import { useMotDuJourState } from '../../hooks/useMotDuJour'
+import { Skeleton, SkeletonRows } from '../Skeleton'
 import Emoji from '../Emoji'
 import { EMOJI } from '../../lib/emoji'
 
@@ -18,8 +20,18 @@ import { EMOJI } from '../../lib/emoji'
  */
 export default function PrioritiesPanel({ priorities, onOpen, userId, today, ready = true, m }) {
   const { top, total } = priorities
-  const mot = useMotDuJour({ items: top, total, userId, today, enabled: ready })
+  const { text: mot, loading: motLoading } = useMotDuJourState({ items: top, total, userId, today, enabled: ready })
   const more = total - top.length
+  // Tant que toutes les données ne sont pas là (commercial, conformité…),
+  // la liste peut encore changer d'ordre : lignes d'attente plutôt qu'une
+  // liste qui se réordonne sous les yeux. Au plus 2,5 s, puis on affiche.
+  const [waitedEnough, setWaitedEnough] = useState(false)
+  useEffect(() => {
+    if (ready) return undefined
+    const t = setTimeout(() => setWaitedEnough(true), 2500)
+    return () => clearTimeout(t)
+  }, [ready])
+  const settled = ready || waitedEnough
 
   return (
     <section aria-labelledby="priorities-title" style={{
@@ -37,7 +49,9 @@ export default function PrioritiesPanel({ priorities, onOpen, userId, today, rea
         )}
       </div>
 
-      {top.length === 0 ? (
+      {!settled ? (
+        <SkeletonRows count={3} />
+      ) : top.length === 0 ? (
         <div style={{ fontSize: 13, color: '#6E6E73', padding: '2px 0' }}>
           Rien d&apos;urgent : bonne journée
         </div>
@@ -67,12 +81,12 @@ export default function PrioritiesPanel({ priorities, onOpen, userId, today, rea
         </ol>
       )}
 
-      {mot && (
-        <p aria-live="polite" style={{ margin: '12px 0 0', paddingTop: 10, borderTop: '1px solid #F2F2F7', fontSize: 13, color: '#3A3A3C', lineHeight: 1.45 }}>
+      {(mot || (settled && motLoading)) && (
+        <p aria-live="polite" style={{ margin: '12px 0 0', paddingTop: 10, borderTop: '1px solid #F2F2F7', fontSize: 13, color: '#3A3A3C', lineHeight: 1.45, minHeight: 56, boxSizing: 'border-box' }}>
           <span style={{ display: 'block', fontSize: 11, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', color: '#6E6E73', marginBottom: 3 }}>
             Le mot du jour
           </span>
-          {mot}
+          {mot || <Skeleton width="80%" height={12} style={{ marginTop: 4 }} />}
         </p>
       )}
     </section>

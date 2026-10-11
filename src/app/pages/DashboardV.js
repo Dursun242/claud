@@ -13,6 +13,7 @@ import { useConformite } from '../hooks/useConformite'
 import ClientOverview from '../components/dashboard/ClientOverview'
 import Emoji from '../components/Emoji'
 import { EMOJI } from '../lib/emoji'
+import { Skeleton } from '../components/Skeleton'
 
 // Salutation selon l'heure de la journée
 const getGreeting = () => {
@@ -290,6 +291,21 @@ export default function DashboardV({data,crm=null,ready=true,setTab,m,user,clien
         Les relances du jour sont dans « Ma journée ». */}
     {!clientMode && hasCrm && (
       <CrmPanel insights={crmInsights} nbOverdue={nbOverdue} onOpen={setTab} m={m}/>
+    )}
+    {/* Commercial encore en chargement : place réservée (pas de saut) */}
+    {!clientMode && !hasCrm && !ready && (
+      <div aria-hidden="true" style={{
+        background:"#fff", borderRadius:12, padding:m?14:18, marginBottom:18,
+        border:"1px solid #E5E5EA", minHeight:200, boxSizing:"border-box",
+      }}>
+        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14}}>
+          <Skeleton width={28} height={28} radius={8}/>
+          <Skeleton width={120} height={17}/>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:m?"repeat(2,1fr)":"repeat(4,1fr)",gap:8}}>
+          {[0,1,2,3].map(i=><Skeleton key={i} height={62} radius={10}/>)}
+        </div>
+      </div>
     )}
 
     {/* À FAIRE — tâches actives triées par priorité/échéance (interne MOE) */}

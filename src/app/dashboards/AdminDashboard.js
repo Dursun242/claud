@@ -47,7 +47,6 @@ const PAGE_LOADERS = {
   photos:    () => import('../pages/PhotoReportsV'),
 }
 const AdminV         = dyn(PAGE_LOADERS.admin)
-const DashboardV     = dyn(PAGE_LOADERS.dashboard)
 const QontoV         = dyn(PAGE_LOADERS.qonto)
 const ProjectsV      = dyn(PAGE_LOADERS.projects)
 const PlanningV      = dyn(PAGE_LOADERS.planning)
@@ -59,6 +58,9 @@ const OrdresServiceV = dyn(PAGE_LOADERS.os)
 const AIV            = dyn(PAGE_LOADERS.ai)
 const PhotoReportsV  = dyn(PAGE_LOADERS.photos)
 import GlobalSearch from '../components/GlobalSearch'
+// L'accueil est le premier écran affiché : importé directement (pas de
+// second chargement ni de second squelette au démarrage).
+import DashboardV from '../pages/DashboardV'
 
 // ═══════════════════════════════════════════
 export default function AdminDashboard({ user, profile = null }) {

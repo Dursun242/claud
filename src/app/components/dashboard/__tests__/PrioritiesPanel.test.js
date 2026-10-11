@@ -50,8 +50,9 @@ it('affiche les 3 priorités numérotées et ouvre l’élément au clic', async
 it('le mot du jour : un seul appel par jour et par liste, mis en cache', async () => {
   const p = make('B')
   const { unmount } = render(<PrioritiesPanel priorities={p} onOpen={() => {}} userId="u1" today={TODAY} />)
-  expect(await screen.findByText('Le mot du jour')).toBeInTheDocument()
-  expect(screen.getByText(/appelle le client du loft/)).toBeInTheDocument()
+  // Place réservée pendant le chargement, puis la phrase
+  expect(screen.getByText('Le mot du jour')).toBeInTheDocument()
+  expect(await screen.findByText(/appelle le client du loft/)).toBeInTheDocument()
 
   expect(global.fetch).toHaveBeenCalledTimes(1)
   const [url, opts] = global.fetch.mock.calls[0]
@@ -71,6 +72,12 @@ it('le mot du jour : un seul appel par jour et par liste, mis en cache', async (
   render(<PrioritiesPanel priorities={{ ...p, top: [...p.top] }} onOpen={() => {}} userId="u1" today={TODAY} />)
   expect(screen.getByText(/appelle le client du loft/)).toBeInTheDocument()
   expect(global.fetch).toHaveBeenCalledTimes(1)
+})
+
+it('données pas encore complètes : lignes d’attente, pas de liste qui se réordonne', () => {
+  render(<PrioritiesPanel priorities={make('E')} ready={false} onOpen={() => {}} userId="u1" today={TODAY} />)
+  expect(screen.queryByRole('listitem')).not.toBeInTheDocument()
+  expect(global.fetch).not.toHaveBeenCalled()
 })
 
 it('sans priorité : ligne compacte, pas d’appel IA', () => {

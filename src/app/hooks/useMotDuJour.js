@@ -57,7 +57,18 @@ async function fetchMot(digest) {
  * @param {string}  p.today   AAAA-MM-JJ
  * @returns {string} la phrase, ou '' tant qu'elle n'est pas disponible
  */
-export function useMotDuJour({ items = [], total = 0, userId, today, enabled = true }) {
+export function useMotDuJour(opts) {
+  return useMotDuJourState(opts).text
+}
+
+/**
+ * Même chose, avec l'état de chargement : `loading` est vrai tant qu'une
+ * phrase est attendue (liste définitive, réseau présent, pas d'échec) —
+ * l'écran peut lui réserver sa place au lieu de pousser le contenu.
+ *
+ * @returns {{ text: string, loading: boolean }}
+ */
+export function useMotDuJourState({ items = [], total = 0, userId, today, enabled = true }) {
   const digest = useMemo(() => (items.length ? prioritiesDigest(items, total) : ''), [items, total])
   const userPrefix = `${PREFIX}${userId || 'anon'}:`
   const dayPrefix = `${userPrefix}${today}:`
@@ -86,9 +97,13 @@ export function useMotDuJour({ items = [], total = 0, userId, today, enabled = t
         .finally(() => pending.delete(key))
       pending.set(key, p)
     }
-    p.then(text => { if (alive && text) setState({ key, text }) })
+    p.then(text => { if (alive) setState({ key, text: text || '', done: true }) })
     return () => { alive = false }
   }, [key, digest, userPrefix, dayPrefix, enabled])
 
-  return state.key === key ? state.text : ''
+  const text = state.key === key ? state.text : ''
+  const done = state.key === key && !!state.done
+  const online = typeof navigator === 'undefined' || navigator.onLine !== false
+  const loading = !!key && enabled && !text && !done && !failed.has(key) && online
+  return { text, loading }
 }
