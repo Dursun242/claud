@@ -11,7 +11,8 @@ const MISSING_TABLE = '42P01'
 export const isMissingTable = (err) =>
   !!err && (err.code === MISSING_TABLE || /does not exist/i.test(err.message || ''))
 
-const EVENTS_COLS = 'devis_id, kind, created_at'
+// user_agent : repérer les ouvertures automatiques (lib/devisTracking.isAutoOpen)
+const EVENTS_COLS = 'devis_id, kind, created_at, user_agent'
 async function loadDevisEvents(sb) {
   const q = (cols) => sb.from('crm_devis_events').select(cols).order('created_at', { ascending: false }).limit(3000)
   const ev = await q(`${EVENTS_COLS}, detail`)

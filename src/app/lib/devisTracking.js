@@ -41,17 +41,56 @@ export async function recordDevisEvent(admin, devisId, kind, { ip = null, userAg
   }
 }
 
+// Actions du client (et non de l'équipe : relance envoyée, réponse notée à part)
+export const CLIENT_KINDS = ['ouverture', 'consultation', 'pdf']
+// Une ouverture du mail de relance si proche de son envoi vient de la
+// messagerie (antivirus, pré-chargement des images), pas d'une lecture
+const AUTO_OPEN_MS = 3 * 60_000
+// Messageries qui chargent les images sans que le mail soit lu : Apple Mail
+// (protection de la confidentialité, agent réduit à « Mozilla/5.0 »),
+// antivirus et analyseurs de liens des messageries d'entreprise
+const AUTO_AGENT = /^Mozilla\/5\.0$|bot\b|crawler|spider|scanner|safelinks|barracuda|mimecast|proofpoint|symantec|forcepoint|trendmicro|python|curl|wget|go-http|java\//i
+
+/**
+ * Ouverture probablement automatique (pas une vraie lecture du mail) :
+ * agent de messagerie connu pour pré-charger les images, ou ouverture de la
+ * relance dans les 3 minutes autour de son envoi.
+ * @param {object} e       événement { kind, created_at, detail?, user_agent? }
+ * @param {Array}  events  événements du même devis
+ */
+export function isAutoOpen(e, events = []) {
+  if (e?.kind !== 'ouverture') return false
+  const ua = String(e.user_agent || '').trim()
+  if (ua && AUTO_AGENT.test(ua)) return true
+  if (!e.detail?.relance) return false
+  const t = Date.parse(e.created_at)
+  if (!Number.isFinite(t)) return false
+  return events.some(r => r?.kind === 'relance' && r.devis_id === e.devis_id
+    && Math.abs(Date.parse(r.created_at) - t) <= AUTO_OPEN_MS)
+}
+
+/**
+ * Événements venant vraiment du client : ouvertures (hors ouvertures
+ * automatiques), consultations du devis en ligne, téléchargements du PDF.
+ */
+export function clientEvents(events = []) {
+  const list = events.filter(Boolean)
+  return list.filter(e => CLIENT_KINDS.includes(e.kind) && !isAutoOpen(e, list))
+}
+
 /**
  * Résumé par devis : { [devisId]: { ouvertures, consultations, derniereOuverture,
  * derniereConsultation, relances, derniereRelance, relanceOuvertures,
  * derniereRelanceOuverture, reponses: [{ raison, commentaire, created_at }],
  * events: [{ kind, created_at, relance? }] } } (plus récents d'abord).
  * Une ouverture marquée detail.relance (image du mail de relance) est comptée
- * dans relanceOuvertures, pas dans ouvertures (premier mail).
+ * dans relanceOuvertures, pas dans ouvertures (premier mail). Les ouvertures
+ * automatiques (isAutoOpen) ne sont pas comptées.
  */
 export function summarizeDevisEvents(events = []) {
   const out = {}
-  const sorted = [...events].sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)))
+  const all = events.filter(Boolean)
+  const sorted = all.filter(e => !isAutoOpen(e, all)).sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)))
   for (const e of sorted) {
     if (!e?.devis_id) continue
     const s = out[e.devis_id] || (out[e.devis_id] = {
