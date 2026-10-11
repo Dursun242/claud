@@ -16,6 +16,43 @@
  * en collision avec un futur design system (`btn-*`, `card-*`, etc.).
  */
 
+/* ── Couleurs de la charte (DESIGN.md) ─────────────────────────
+   Une seule source : les styles des composants utilisent var(--…). */
+:root {
+  --accent: #0071E3;
+  --accent-text: #0066CC;
+  --system-blue: #007AFF;
+  --accent-tint: #EAF3FF;
+  --label: #1C1C1E;
+  --label-2: #3A3A3C;
+  --label-secondary: #6E6E73;
+  --label-tertiary: #8E8E93;
+  --separator-opaque: #D1D1D6;
+  --separator: #E5E5EA;
+  --grouped-bg: #F2F2F7;
+  --fill-gray: #EFEFF0;
+  --row-fill: #F5F5F7;
+  --sidebar: #F9F9FB;
+  --green: #34C759;
+  --green-text: #1E7B34;
+  --orange: #FF9500;
+  --orange-text: #C93400;
+  --red: #FF3B30;
+  --red-text: #D70015;
+  --purple: #AF52DE;
+  --purple-text: #8944AB;
+  --green-tint: #EAF8EE;
+  --green-line: #BFE9CA;
+  --orange-tint: #FFF7E8;
+  --orange-line: #FFDDA6;
+  --orange-deep: #A0390C;
+  --red-tint: #FFF0EF;
+  --red-line: #FFC9C6;
+  --blue-line: #C6DDF7;
+  --purple-tint: #F7F0FC;
+  --purple-line: #E7D4F5;
+}
+
 :root {
   /* Police du système : rendu iOS / natif. --font-dm-sans reste un alias
    * (ancien nom encore utilisé dans des styles en ligne). */

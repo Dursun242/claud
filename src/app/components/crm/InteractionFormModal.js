@@ -15,7 +15,7 @@ export default function InteractionFormModal({ open, form, setForm, error, savin
               onClick={() => setForm(f => ({ ...f, type: t, sujet: isAutoSujet(f.sujet) ? defaultSujet(t, contactsById.get(f.contact_id)) : f.sujet }))}
               style={{
                 padding: '8px 12px', borderRadius: 999, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-                border: `1px solid ${active ? '#0071E3' : '#E5E5EA'}`, background: active ? '#0071E3' : '#fff', color: active ? '#fff' : '#3A3A3C',
+                border: `1px solid ${active ? 'var(--accent)' : 'var(--separator)'}`, background: active ? 'var(--accent)' : '#fff', color: active ? '#fff' : 'var(--label-2)',
               }}>{INTERACTION_ICONS[t]} {t}</button>
           )
         })}
@@ -60,7 +60,7 @@ export default function InteractionFormModal({ open, form, setForm, error, savin
             onChange={e => setForm({ ...form, prochaine_action: e.target.value })} />
         </FF>
       )}
-      {error && <div role="alert" style={{ color: '#D70015', fontSize: 12, marginBottom: 10, fontWeight: 500 }}>⚠ {error}</div>}
+      {error && <div role="alert" style={{ color: 'var(--red-text)', fontSize: 12, marginBottom: 10, fontWeight: 500 }}>⚠ {error}</div>}
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
         <button onClick={onClose} style={btnS}>Annuler</button>
         <button onClick={onSave} disabled={saving} style={{ ...btnP, opacity: saving ? 0.6 : 1 }}>

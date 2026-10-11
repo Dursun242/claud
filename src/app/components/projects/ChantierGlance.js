@@ -20,19 +20,19 @@ function Tile({ emoji, label, value, detail, tone, onClick, m }) {
     <button type="button" onClick={onClick} className="u-press"
       style={{
         display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left',
-        background: '#fff', border: '1px solid #E5E5EA', borderRadius: 12,
+        background: '#fff', border: '1px solid var(--separator)', borderRadius: 12,
         padding: m ? '10px' : '10px 12px', minHeight: 56, minWidth: 0, cursor: 'pointer',
-        fontFamily: 'inherit', color: '#1C1C1E',
+        fontFamily: 'inherit', color: 'var(--label)',
       }}>
       <Emoji e={emoji} size={m ? 28 : 32} />
       <span style={{ minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-        <span style={{ fontSize: 12, color: '#6E6E73' }}>{label}</span>
+        <span style={{ fontSize: 12, color: 'var(--label-secondary)' }}>{label}</span>
         <span style={{
-          fontSize: 16, fontWeight: 600, color: tone || '#1C1C1E',
+          fontSize: 16, fontWeight: 600, color: tone || 'var(--label)',
           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
         }}>{value}</span>
         {detail && <span style={{
-          fontSize: 12, color: '#6E6E73', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+          fontSize: 12, color: 'var(--label-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
         }}>{detail}</span>}
       </span>
     </button>

@@ -28,7 +28,7 @@ export default function MobileNav({ items, active, onSelect, onMenu, onCreate })
     return (
       <button key={it.key} data-nav onClick={() => onSelect(it.key)}
         aria-current={on ? 'page' : undefined}
-        style={{ ...itemStyle, color: on ? '#0071E3' : '#6E6E73', fontWeight: on ? 600 : 500 }}>
+        style={{ ...itemStyle, color: on ? 'var(--accent)' : 'var(--label-secondary)', fontWeight: on ? 600 : 500 }}>
         <Icon d={it.icon} size={22} color={on ? '#0071E3' : '#8E8E93'} />
         <span style={labelStyle}>{it.label}</span>
       </button>
@@ -51,7 +51,7 @@ export default function MobileNav({ items, active, onSelect, onMenu, onCreate })
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <button data-nav onClick={onCreate} aria-label="Créer (OS, CR, tâche…)" style={{
             width: 48, height: 48, borderRadius: '50%', border: 'none', cursor: 'pointer',
-            background: '#0071E3', color: '#fff',
+            background: 'var(--accent)', color: '#fff',
             boxShadow: '0 4px 12px rgba(0,113,227,0.3)',
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
           }}>
@@ -61,7 +61,7 @@ export default function MobileNav({ items, active, onSelect, onMenu, onCreate })
       )}
       {right.map(tabBtn)}
       <button data-nav onClick={onMenu} aria-label="Plus d'onglets"
-        style={{ ...itemStyle, color: menuActive ? '#0071E3' : '#6E6E73', fontWeight: menuActive ? 600 : 500 }}>
+        style={{ ...itemStyle, color: menuActive ? 'var(--accent)' : 'var(--label-secondary)', fontWeight: menuActive ? 600 : 500 }}>
         <Icon d={I.menu} size={22} color={menuActive ? '#0071E3' : '#8E8E93'} />
         <span style={labelStyle}>Plus</span>
       </button>
@@ -107,13 +107,13 @@ export function QuickCreateSheet({ open, onClose, actions, isMobile }) {
         padding: isMobile ? '10px 16px calc(16px + env(safe-area-inset-bottom))' : 20,
         boxShadow: '0 -8px 24px rgba(0,0,0,0.18)',
       }}>
-        {isMobile && <div aria-hidden style={{ width: 40, height: 4, borderRadius: 2, background: '#D1D1D6', margin: '0 auto 12px' }} />}
-        <div style={{ fontSize: 17, fontWeight: 600, color: '#1C1C1E', marginBottom: 12 }}>Créer…</div>
+        {isMobile && <div aria-hidden style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--separator-opaque)', margin: '0 auto 12px' }} />}
+        <div style={{ fontSize: 17, fontWeight: 600, color: 'var(--label)', marginBottom: 12 }}>Créer…</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 8 }}>
           {actions.map((a, i) => (
             <button key={a.key} autoFocus={i === 0} onClick={() => { onClose(); a.onPick() }} style={{
               display: 'flex', alignItems: 'center', gap: 10, padding: '12px 12px', minHeight: 56,
-              border: 'none', borderRadius: 12, background: '#F2F2F7', cursor: 'pointer',
+              border: 'none', borderRadius: 12, background: 'var(--grouped-bg)', cursor: 'pointer',
               fontFamily: 'inherit', textAlign: 'left', minWidth: 0,
             }}>
               <span aria-hidden style={{
@@ -121,8 +121,8 @@ export function QuickCreateSheet({ open, onClose, actions, isMobile }) {
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
               }}>{a.icon ? <Icon d={a.icon} size={20} color="#0071E3" /> : a.emoji}</span>
               <span style={{ minWidth: 0 }}>
-                <span style={{ display: 'block', fontSize: 14, fontWeight: 600, color: '#1C1C1E' }}>{a.label}</span>
-                {a.hint && <span style={{ display: 'block', fontSize: 12, color: '#6E6E73', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.hint}</span>}
+                <span style={{ display: 'block', fontSize: 14, fontWeight: 600, color: 'var(--label)' }}>{a.label}</span>
+                {a.hint && <span style={{ display: 'block', fontSize: 12, color: 'var(--label-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.hint}</span>}
               </span>
             </button>
           ))}

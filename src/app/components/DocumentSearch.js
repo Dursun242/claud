@@ -79,7 +79,7 @@ export default function DocumentSearch({ chantierId = null }) {
           style={{
             flex: 1,
             padding: '8px 12px',
-            border: '1px solid #E5E5EA',
+            border: '1px solid var(--separator)',
             borderRadius: 8,
             fontSize: 13,
             fontFamily: 'inherit',
@@ -99,7 +99,7 @@ export default function DocumentSearch({ chantierId = null }) {
           right: 0,
           marginTop: 8,
           background: '#fff',
-          border: '1px solid #E5E5EA',
+          border: '1px solid var(--separator)',
           borderRadius: 8,
           boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
           zIndex: 100,
@@ -107,7 +107,7 @@ export default function DocumentSearch({ chantierId = null }) {
           overflowY: 'auto',
         }}>
           {loading ? (
-            <div style={{ padding: 16, textAlign: 'center', color: '#6E6E73', fontSize: 12 }}>
+            <div style={{ padding: 16, textAlign: 'center', color: 'var(--label-secondary)', fontSize: 12 }}>
               Recherche en cours...
             </div>
           ) : results.length === 0 ? (
@@ -133,7 +133,7 @@ export default function DocumentSearch({ chantierId = null }) {
                     gap: 10,
                     padding: '10px 12px',
                     minHeight: 44,
-                    borderTop: idx > 0 ? '1px solid #F2F2F7' : 'none',
+                    borderTop: idx > 0 ? '1px solid var(--grouped-bg)' : 'none',
                     border: 'none',
                     background: 'transparent',
                     textAlign: 'left',
@@ -144,18 +144,18 @@ export default function DocumentSearch({ chantierId = null }) {
                     <div style={{
                       fontSize: 12,
                       fontWeight: 600,
-                      color: '#1C1C1E',
+                      color: 'var(--label)',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
                       whiteSpace: 'nowrap',
                     }}>
                       {doc.file_name}
                     </div>
-                    <div style={{ fontSize: 11, color: '#6E6E73', marginTop: 2 }}>
+                    <div style={{ fontSize: 11, color: 'var(--label-secondary)', marginTop: 2 }}>
                       {doc.chantier_nom} • {formatSize(doc.file_size)}
                     </div>
                   </div>
-                  <span style={{ fontSize: 11, color: '#D1D1D6', whiteSpace: 'nowrap' }}>
+                  <span style={{ fontSize: 11, color: 'var(--separator-opaque)', whiteSpace: 'nowrap' }}>
                     {doc.type}
                   </span>
                 </button>

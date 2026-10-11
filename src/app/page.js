@@ -13,16 +13,16 @@ function ProtectedApp() {
     return (
       <div style={{
         height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: 'linear-gradient(135deg, #F5F5F7 0%, #EAF3FF 100%)',
+        background: 'linear-gradient(135deg, var(--row-fill) 0%, var(--accent-tint) 100%)',
         fontFamily: "var(--font-dm-sans), sans-serif"
       }}>
         <div style={{ textAlign: 'center' }}>
           <div style={{
-            width: 52, height: 52, border: '4px solid #E5E5EA', borderTopColor: '#0071E3',
+            width: 52, height: 52, border: '4px solid var(--separator)', borderTopColor: 'var(--accent)',
             borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 18px'
           }} aria-hidden="true"/>
-          <p style={{ margin: 0, color: '#0071E3', fontSize: 15, fontWeight: 600 }}>ID Maîtrise</p>
-          <p style={{ margin: '4px 0 0', color: '#6E6E73', fontSize: 12 }}>Vérification de votre accès…</p>
+          <p style={{ margin: 0, color: 'var(--accent)', fontSize: 15, fontWeight: 600 }}>ID Maîtrise</p>
+          <p style={{ margin: '4px 0 0', color: 'var(--label-secondary)', fontSize: 12 }}>Vérification de votre accès…</p>
         </div>
       </div>
     )

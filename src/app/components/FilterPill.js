@@ -10,8 +10,8 @@ export default function FilterPill({ active, color = '#8E8E93', label, count, on
       style={{
         display: 'inline-flex', alignItems: 'center', gap: 6, flexShrink: 0,
         minHeight: 32, padding: '0 12px', borderRadius: 999,
-        border: `1px solid ${active ? '#0071E3' : '#E5E5EA'}`,
-        background: active ? '#0071E3' : '#fff', color: active ? '#fff' : '#1C1C1E',
+        border: `1px solid ${active ? 'var(--accent)' : 'var(--separator)'}`,
+        background: active ? 'var(--accent)' : '#fff', color: active ? '#fff' : 'var(--label)',
         fontSize: 13, fontWeight: active ? 600 : 500, fontFamily: 'inherit',
         cursor: 'pointer', whiteSpace: 'nowrap',
       }}>
@@ -20,7 +20,7 @@ export default function FilterPill({ active, color = '#8E8E93', label, count, on
       }} />
       {label}
       {count !== undefined && (
-        <span style={{ fontSize: 12, fontWeight: 500, color: active ? 'rgba(255,255,255,0.85)' : '#6E6E73' }}>{count}</span>
+        <span style={{ fontSize: 12, fontWeight: 500, color: active ? 'rgba(255,255,255,0.85)' : 'var(--label-secondary)' }}>{count}</span>
       )}
     </button>
   )

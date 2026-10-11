@@ -67,18 +67,18 @@ export default function ProcesVerbalReception({ chantierId, chantier, ordresServ
         </div>}
 
         {loading ? (
-          <p style={{ color: '#6E6E73', fontSize: 12 }}>Chargement…</p>
+          <p style={{ color: 'var(--label-secondary)', fontSize: 12 }}>Chargement…</p>
         ) : loadError ? (
           <div role="alert" style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
-            flexWrap: 'wrap', background: '#FFF0EF', border: '1px solid #FFC9C6',
-            borderRadius: 10, padding: '10px 12px', fontSize: 13, color: '#D70015',
+            flexWrap: 'wrap', background: 'var(--red-tint)', border: '1px solid var(--red-line)',
+            borderRadius: 10, padding: '10px 12px', fontSize: 13, color: 'var(--red-text)',
           }}>
             <span>{loadError}</span>
             <button type="button" onClick={loadPVs} className="u-hit" style={{
-              background: '#fff', border: '1px solid #FFC9C6', borderRadius: 8,
+              background: '#fff', border: '1px solid var(--red-line)', borderRadius: 8,
               padding: '8px 14px', minHeight: 36, fontSize: 13, fontWeight: 600,
-              color: '#D70015', cursor: 'pointer', fontFamily: 'inherit',
+              color: 'var(--red-text)', cursor: 'pointer', fontFamily: 'inherit',
             }}>Réessayer</button>
           </div>
         ) : pvs.length === 0 ? (

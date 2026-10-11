@@ -23,7 +23,7 @@ import SearchField, { toolbarSelect } from '../components/SearchField'
 const HeaderSpinner = () => (
   <span aria-hidden="true" style={{
     display:"inline-block",width:12,height:12,borderRadius:"50%",
-    border:"2px solid #D1D1D6",borderTopColor:"#0066CC",animation:"spin .8s linear infinite",
+    border:"2px solid var(--separator-opaque)",borderTopColor:"var(--accent-text)",animation:"spin .8s linear infinite",
   }}/>
 )
 
@@ -612,8 +612,8 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly,a
       marginBottom:14,flexWrap:"wrap",gap:8
     }}>
       <div>
-        <h1 style={{margin:0,fontSize:m?28:32,fontWeight:700,letterSpacing:"-0.02em",color:"#1C1C1E"}}>Ordres de service</h1>
-        <div style={{fontSize:13,color:"#6E6E73",marginTop:2}}>
+        <h1 style={{margin:0,fontSize:m?28:32,fontWeight:700,letterSpacing:"-0.02em",color:"var(--label)"}}>Ordres de service</h1>
+        <div style={{fontSize:13,color:"var(--label-secondary)",marginTop:2}}>
           {countByStatus.all} au total
           {statusFilter !== "all" && (
             <> · <strong>{filteredSortedOS.length}</strong>{" "}
@@ -680,13 +680,13 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly,a
 
     {importError && (
       <div style={{
-        background:"#FFF0EF",
-        border:"1px solid #FFC9C6",
+        background:"var(--red-tint)",
+        border:"1px solid var(--red-line)",
         borderRadius:8,
         padding:"8px 12px",
         marginBottom:12,
         fontSize:12,
-        color:"#D70015",
+        color:"var(--red-text)",
         display:"flex",
         justifyContent:"space-between",
         alignItems:"center",
@@ -695,7 +695,7 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly,a
         <span>{importError}</span>
         <button onClick={()=>setImportError("")} aria-label="Fermer le message"
           style={{background:"none",border:"none",cursor:"pointer",
-            color:"#D70015",fontSize:16,padding:0}}>✕</button>
+            color:"var(--red-text)",fontSize:16,padding:0}}>✕</button>
       </div>
     )}
 
@@ -709,8 +709,8 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly,a
           <div style={{fontSize:36,marginBottom:8,opacity:0.5}}>📋</div>
           {searchOS || statusFilter !== "all" ? (
             <>
-              <div style={{fontSize:14,fontWeight:700,color:"#3A3A3C",marginBottom:4}}>Aucun résultat</div>
-              <div style={{fontSize:12,color:"#6E6E73",marginBottom:14}}>
+              <div style={{fontSize:14,fontWeight:700,color:"var(--label-2)",marginBottom:4}}>Aucun résultat</div>
+              <div style={{fontSize:12,color:"var(--label-secondary)",marginBottom:14}}>
                 Essaie d&apos;élargir ta recherche ou de changer de statut.
               </div>
               <button onClick={()=>{setSearchOS("");setStatusFilter("all");}}
@@ -718,8 +718,8 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly,a
             </>
           ) : (
             <>
-              <div style={{fontSize:14,fontWeight:700,color:"#3A3A3C",marginBottom:4}}>Aucun ordre de service</div>
-              <div style={{fontSize:12,color:"#6E6E73",marginBottom:14}}>
+              <div style={{fontSize:14,fontWeight:700,color:"var(--label-2)",marginBottom:4}}>Aucun ordre de service</div>
+              <div style={{fontSize:12,color:"var(--label-secondary)",marginBottom:14}}>
                 Crée-en un ou importe un devis par photo pour démarrer.
               </div>
               <div style={{display:"flex",gap:8,justifyContent:"center",flexWrap:"wrap"}}>

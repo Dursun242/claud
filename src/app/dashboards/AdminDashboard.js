@@ -310,12 +310,12 @@ export default function AdminDashboard({ user, profile = null }) {
     <div style={{
       display:"flex",height:"100vh",
       fontFamily:"var(--font-dm-sans), sans-serif",
-      background:"#F2F2F7",overflow:"hidden"
+      background:"var(--grouped-bg)",overflow:"hidden"
     }}>
       {/* Skip link a11y : caché visuellement mais accessible au focus clavier */}
       <a href="#main-content" style={{
         position:"absolute",left:-9999,top:0,
-        background:"#0071E3",color:"#fff",padding:"10px 16px",
+        background:"var(--accent)",color:"#fff",padding:"10px 16px",
         borderRadius:"0 0 8px 0",fontSize:13,fontWeight:600,
         textDecoration:"none",zIndex:10001,
       }}
@@ -343,21 +343,21 @@ export default function AdminDashboard({ user, profile = null }) {
       <nav aria-label="Navigation principale" style={{
         width:280,position:isMobile?"fixed":"relative",
         left:isMobile?(sidebarOpen?0:-300):0,top:0,bottom:0,
-        background:"#F9F9FB",borderRight:"1px solid #E5E5EA",
-        color:"#1C1C1E",display:"flex",flexDirection:"column",flexShrink:0,
+        background:"var(--sidebar)",borderRight:"1px solid var(--separator)",
+        color:"var(--label)",display:"flex",flexDirection:"column",flexShrink:0,
         zIndex:999,transition:"left .25s ease",
         boxShadow:isMobile&&sidebarOpen?"4px 0 24px rgba(0,0,0,0.15)":"none"
       }}>
         <div style={{padding:"18px 16px 10px"}}>
           <div style={{fontSize:20,fontWeight:700,letterSpacing:"-0.01em"}}>ID Maîtrise</div>
-          <div style={{fontSize:12,color:"#6E6E73",marginTop:2}}>Maîtrise d&apos;œuvre · Le Havre</div>
+          <div style={{fontSize:12,color:"var(--label-secondary)",marginTop:2}}>Maîtrise d&apos;œuvre · Le Havre</div>
         </div>
         <GlobalSearch data={data} crm={crm} onNavigate={jumpTo} />
         <div style={{padding:"4px 8px 8px"}}>
           <button onClick={()=>setCreateOpen(true)} title="Créer (raccourci : c)" className="u-btn" style={{
             width:"100%",display:"flex",alignItems:"center",justifyContent:"center",gap:6,
             padding:"9px 10px",minHeight:38,borderRadius:10,border:"none",cursor:"pointer",
-            background:"#0071E3",color:"#fff",fontFamily:"inherit",fontSize:14,fontWeight:600,
+            background:"var(--accent)",color:"#fff",fontFamily:"inherit",fontSize:14,fontWeight:600,
           }}>
             <Icon d={I.plus} size={16} color="#fff"/> Créer…
           </button>
@@ -386,8 +386,8 @@ export default function AdminDashboard({ user, profile = null }) {
                 borderRadius:10,cursor:"pointer",
                 fontFamily:"inherit",fontSize:15,
                 fontWeight:active?600:400,
-                color:active?"#fff":"#1C1C1E",
-                background:active?"#0071E3":"transparent",
+                color:active?"#fff":"var(--label)",
+                background:active?"var(--accent)":"transparent",
                 textAlign:"left",width:"100%",
               }}>
                 {t.isQonto ? (
@@ -406,7 +406,7 @@ export default function AdminDashboard({ user, profile = null }) {
                     display:"inline-flex",alignItems:"center",
                     padding:"1px 6px",borderRadius:999,
                     background:active?"rgba(255,255,255,0.2)":"#AF52DE18",
-                    color:active?"#fff":"#8944AB",fontSize:11,fontWeight:600,
+                    color:active?"#fff":"var(--purple-text)",fontSize:11,fontWeight:600,
                   }}>API</span>
                 )}
               </button>
@@ -414,7 +414,7 @@ export default function AdminDashboard({ user, profile = null }) {
           })}
         </div>
         {/* Compte + déconnexion */}
-        <div style={{padding:"12px 16px",borderTop:"1px solid #E5E5EA"}}>
+        <div style={{padding:"12px 16px",borderTop:"1px solid var(--separator)"}}>
           {user && (
             <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
               {user.user_metadata?.avatar_url && (
@@ -424,11 +424,11 @@ export default function AdminDashboard({ user, profile = null }) {
               )}
               <div style={{flex:1,minWidth:0}}>
                 <div style={{
-                  fontSize:14,fontWeight:600,color:"#1C1C1E",
+                  fontSize:14,fontWeight:600,color:"var(--label)",
                   overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"
                 }}>{user.user_metadata?.full_name || user.email}</div>
                 <div style={{
-                  fontSize:12,color:"#6E6E73",
+                  fontSize:12,color:"var(--label-secondary)",
                   overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"
                 }}>{user.email}</div>
               </div>
@@ -436,13 +436,13 @@ export default function AdminDashboard({ user, profile = null }) {
           )}
           <button onClick={logout} className="u-btn" style={{
             width:"100%",padding:"8px 10px",minHeight:36,borderRadius:10,
-            border:"none",background:"#EFEFF0",
-            color:"#D70015",fontSize:14,cursor:"pointer",
+            border:"none",background:"var(--fill-gray)",
+            color:"var(--red-text)",fontSize:14,cursor:"pointer",
             fontFamily:"inherit",fontWeight:500
           }}>
             Déconnexion
           </button>
-          <div style={{fontSize:11,color:"#6E6E73",marginTop:10,lineHeight:1.4}}>
+          <div style={{fontSize:11,color:"var(--label-secondary)",marginTop:10,lineHeight:1.4}}>
             SARL ID MAITRISE<br/>9 Rue Henry Genestal, 76600 Le Havre
           </div>
         </div>
@@ -471,15 +471,15 @@ export default function AdminDashboard({ user, profile = null }) {
           }}>
             <button onClick={()=>setSidebarOpen(s=>!s)} aria-label="Ouvrir le menu"
               className="u-icon-btn"
-              style={{ width:40,height:40,borderRadius:10,color:"#0071E3" }}>
+              style={{ width:40,height:40,borderRadius:10,color:"var(--accent)" }}>
               <Icon d={I.menu} size={22} color="#0071E3"/>
             </button>
             <div style={{flex:1,minWidth:0,display:"flex",flexDirection:"column",lineHeight:1.15}}>
               <span style={{
-                fontSize:11,fontWeight:500,color:"#6E6E73",
+                fontSize:11,fontWeight:500,color:"var(--label-secondary)",
               }}>ID Maîtrise</span>
               <span style={{
-                fontSize:17,fontWeight:600,color:"#1C1C1E",
+                fontSize:17,fontWeight:600,color:"var(--label)",
                 overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"
               }}>
                 {tabs.find(t=>t.key===tab)?.label}
@@ -498,7 +498,7 @@ export default function AdminDashboard({ user, profile = null }) {
             <button type="button" onClick={back.go} style={{
               background:"none",border:"none",cursor:"pointer",padding:0,marginBottom:12,
               display:"flex",alignItems:"center",gap:6,fontFamily:"inherit",
-              color:"#0066CC",fontSize:15,fontWeight:500,minHeight:36,
+              color:"var(--accent-text)",fontSize:15,fontWeight:500,minHeight:36,
             }}>
               ‹ {back.label}
             </button>

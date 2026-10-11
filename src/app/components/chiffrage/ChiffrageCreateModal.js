@@ -147,11 +147,11 @@ export default function ChiffrageCreateModal({ open, chantier, allOs = [], hasEx
         {TABS.map(([k, label]) => (
           <button key={k} onClick={() => setTab(k)} disabled={busy} style={{
             ...btnS, padding: '7px 12px', fontSize: 12,
-            background: tab === k ? '#0066CC' : '#F2F2F7', color: tab === k ? '#fff' : '#48484A',
+            background: tab === k ? 'var(--accent-text)' : 'var(--grouped-bg)', color: tab === k ? '#fff' : '#48484A',
           }}>{label}</button>
         ))}
       </div>
-      {hasExisting && <div style={{ fontSize: 12, color: '#A0390C', background: '#FFF7E8', borderRadius: 8, padding: '8px 10px', marginBottom: 12 }}>
+      {hasExisting && <div style={{ fontSize: 12, color: 'var(--orange-deep)', background: 'var(--orange-tint)', borderRadius: 8, padding: '8px 10px', marginBottom: 12 }}>
         Le résultat remplacera les lots du chiffrage actuel, une fois enregistré dans l’éditeur.
       </div>}
 
@@ -167,7 +167,7 @@ export default function ChiffrageCreateModal({ open, chantier, allOs = [], hasEx
           <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3} style={{ ...inp, resize: 'vertical' }}
             placeholder="Ex. : finitions standard, PAC air/eau + plancher chauffant, terrain plat, cuisine hors lot." />
         </FF>
-        <div style={{ fontSize: 11, color: '#6E6E73', marginBottom: 12 }}>
+        <div style={{ fontSize: 11, color: 'var(--label-secondary)', marginBottom: 12 }}>
           1. L’IA relève le métré sur les plans (surfaces, murs, toiture, menuiseries…). 2. Vous le vérifiez. 3. Elle chiffre avec les prix de vos ordres de service.
         </div>
         <button onClick={lirePlans} disabled={busy || !files.length} style={{ ...btnP, opacity: busy || !files.length ? 0.6 : 1 }}>
@@ -175,7 +175,7 @@ export default function ChiffrageCreateModal({ open, chantier, allOs = [], hasEx
       </>}
 
       {tab === 'plans' && metre && <>
-        {metre.alertes?.length > 0 && <ul style={{ fontSize: 12, color: '#A0390C', background: '#FFF7E8', border: '1px solid #FFDDA6', borderRadius: 8, padding: '8px 10px 8px 26px', margin: '0 0 12px' }}>
+        {metre.alertes?.length > 0 && <ul style={{ fontSize: 12, color: 'var(--orange-deep)', background: 'var(--orange-tint)', border: '1px solid var(--orange-line)', borderRadius: 8, padding: '8px 10px 8px 26px', margin: '0 0 12px' }}>
           {metre.alertes.map(a => <li key={a}>{a}</li>)}
         </ul>}
         <FF label="Projet (relevé sur les plans)">
@@ -188,18 +188,18 @@ export default function ChiffrageCreateModal({ open, chantier, allOs = [], hasEx
             Reprendre les lots du chantier ({chantierLots.length})
           </label>}
         </div>
-        <div style={{ fontSize: 11, fontWeight: 600, color: '#6E6E73', textTransform: 'uppercase', marginBottom: 6 }}>Métré à vérifier</div>
+        <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--label-secondary)', textTransform: 'uppercase', marginBottom: 6 }}>Métré à vérifier</div>
         {metre.metre.map((r, i) => (
           <div key={i} style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginBottom: 6 }}>
             <input aria-label="Élément" value={r.element} onChange={e => setRow(i, { element: e.target.value })} style={{ ...inp, ...small, flex: '1 1 220px' }} />
             <input aria-label="Quantité" inputMode="decimal" value={r.quantite} onChange={e => setRow(i, { quantite: e.target.value })} style={{ ...inp, ...small, width: 84, textAlign: 'right' }} />
             <input aria-label="Unité" value={r.unite} onChange={e => setRow(i, { unite: e.target.value })} style={{ ...inp, ...small, width: 64 }} />
-            <span title={r.source} style={{ fontSize: 11, width: 110, color: /estim/i.test(r.source) ? '#C93400' : '#6E6E73', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.source}</span>
+            <span title={r.source} style={{ fontSize: 11, width: 110, color: /estim/i.test(r.source) ? 'var(--orange-text)' : 'var(--label-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.source}</span>
             <button aria-label="Retirer la ligne" onClick={() => setMetre(m => ({ ...m, metre: m.metre.filter((_, j) => j !== i) }))} style={xBtn}>✕</button>
           </div>
         ))}
         <button onClick={() => setMetre(m => ({ ...m, metre: [...m.metre, { element: '', quantite: '', unite: 'm²', source: 'saisi' }] }))}
-          style={{ ...xBtn, color: '#0066CC', fontWeight: 700, fontSize: 12, marginBottom: 12 }}>+ Ligne</button>
+          style={{ ...xBtn, color: 'var(--accent-text)', fontWeight: 700, fontSize: 12, marginBottom: 12 }}>+ Ligne</button>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <button onClick={chiffrerPlans} disabled={busy} style={{ ...btnP, opacity: busy ? 0.6 : 1 }}>{busy ? step : 'Chiffrer avec les prix des OS'}</button>
           <button onClick={() => setMetre(null)} disabled={busy} style={btnS}>Recommencer</button>
@@ -218,7 +218,7 @@ export default function ChiffrageCreateModal({ open, chantier, allOs = [], hasEx
             Reprendre les lots du chantier ({chantierLots.length})
           </label>}
         </div>
-        <div style={{ fontSize: 11, color: '#6E6E73', marginBottom: 12 }}>
+        <div style={{ fontSize: 11, color: 'var(--label-secondary)', marginBottom: 12 }}>
           L’IA s’appuie sur les prix de vos ordres de service passés quand un poste équivalent existe. Compter 30 secondes à 1 minute 30 : la trame, puis les lots en parallèle.
         </div>
         <button onClick={generer} disabled={busy || description.trim().length < 10} style={{ ...btnP, opacity: busy || description.trim().length < 10 ? 0.6 : 1 }}>
@@ -231,7 +231,7 @@ export default function ChiffrageCreateModal({ open, chantier, allOs = [], hasEx
             <input type="file" accept=".json,.csv,.txt,application/json,text/plain,text/csv" disabled={busy}
               onChange={async e => { const f = e.target.files?.[0]; if (f) setTexte(await f.text()) }} style={{ fontSize: 12 }} />
           </label>
-          <div style={{ fontSize: 11, color: '#6E6E73', marginTop: 4 }}>Un DPGF au format JSON (export d’une conversation Claude, par exemple) est repris tel quel, sans IA.</div>
+          <div style={{ fontSize: 11, color: 'var(--label-secondary)', marginTop: 4 }}>Un DPGF au format JSON (export d’une conversation Claude, par exemple) est repris tel quel, sans IA.</div>
         </div>
         <FF label="Texte ou tableau à importer" hint="Coller un DPGF (copié d’Excel, d’un PDF, d’une conversation avec une IA…). Les prix sont repris tels quels, rien n’est inventé.">
           <textarea value={texte} onChange={e => setTexte(e.target.value)} rows={12} style={{ ...inp, resize: 'vertical', fontSize: 13, fontFamily: 'ui-monospace, monospace' }} />

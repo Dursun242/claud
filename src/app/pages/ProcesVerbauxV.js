@@ -84,8 +84,8 @@ export default function ProcesVerbauxV({ data, m, reload, user: _user }) {
     <div>
       {/* En-tête */}
       <div style={{ marginBottom: 16 }}>
-        <h1 style={{margin:0,fontSize:m?28:32,fontWeight:700,letterSpacing:"-0.02em",color:"#1C1C1E"}}>Procès-verbaux de réception</h1>
-        <div style={{ fontSize: 13, color: '#6E6E73', marginTop: 2 }}>
+        <h1 style={{margin:0,fontSize:m?28:32,fontWeight:700,letterSpacing:"-0.02em",color:"var(--label)"}}>Procès-verbaux de réception</h1>
+        <div style={{ fontSize: 13, color: 'var(--label-secondary)', marginTop: 2 }}>
           {allPVs.length} PV{allPVs.length !== 1 ? 's' : ''}
         </div>
       </div>
@@ -124,7 +124,7 @@ export default function ProcesVerbauxV({ data, m, reload, user: _user }) {
                     alignItems: 'center',
                     gap: 12,
                     padding: '12px 14px',
-                    borderTop: idx > 0 ? '1px solid #F2F2F7' : 'none',
+                    borderTop: idx > 0 ? '1px solid var(--grouped-bg)' : 'none',
                     background: 'transparent',
                     border: 'none',
                     cursor: 'pointer',
@@ -136,14 +136,14 @@ export default function ProcesVerbauxV({ data, m, reload, user: _user }) {
                 >
                   {/* Info */}
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: '#1C1C1E' }}>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--label)' }}>
                       {pv.numero}
                     </div>
-                    <div style={{ fontSize: 11, color: '#6E6E73', marginTop: 2 }}>
+                    <div style={{ fontSize: 11, color: 'var(--label-secondary)', marginTop: 2 }}>
                       {pv.titre}
                     </div>
                     {chantier && (
-                      <div style={{ fontSize: 11, color: '#6E6E73', marginTop: 2 }}>
+                      <div style={{ fontSize: 11, color: 'var(--label-secondary)', marginTop: 2 }}>
                         {chantier.nom}
                       </div>
                     )}
@@ -211,14 +211,14 @@ export default function ProcesVerbauxV({ data, m, reload, user: _user }) {
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: 20 }}>
               <div>
-                <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#1C1C1E' }}>
+                <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--label)' }}>
                   {selectedPV.numero}
                 </h2>
-                <p style={{ margin: '4px 0 0 0', fontSize: 12, color: '#6E6E73' }}>
+                <p style={{ margin: '4px 0 0 0', fontSize: 12, color: 'var(--label-secondary)' }}>
                   {selectedPV.titre}
                 </p>
                 {chantiersMap.get(selectedPV.chantier_id) && (
-                  <p style={{ margin: '4px 0 0 0', fontSize: 11, color: '#6E6E73' }}>
+                  <p style={{ margin: '4px 0 0 0', fontSize: 11, color: 'var(--label-secondary)' }}>
                     {chantiersMap.get(selectedPV.chantier_id).nom}
                   </p>
                 )}
@@ -228,22 +228,22 @@ export default function ProcesVerbauxV({ data, m, reload, user: _user }) {
                 border: 'none',
                 fontSize: 20,
                 cursor: 'pointer',
-                color: '#6E6E73'
+                color: 'var(--label-secondary)'
               }}>×</button>
             </div>
 
             {/* Infos */}
-            <div style={{ background: '#F5F5F7', borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 12 }}>
+            <div style={{ background: 'var(--row-fill)', borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 12 }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div>
-                  <div style={{ color: '#6E6E73', fontSize: 11, fontWeight: 600 }}>DATE RÉCEPTION</div>
-                  <div style={{ color: '#1C1C1E', fontWeight: 600, marginTop: 2 }}>
+                  <div style={{ color: 'var(--label-secondary)', fontSize: 11, fontWeight: 600 }}>DATE RÉCEPTION</div>
+                  <div style={{ color: 'var(--label)', fontWeight: 600, marginTop: 2 }}>
                     {formatDate(selectedPV.date_reception)}
                   </div>
                 </div>
                 <div>
-                  <div style={{ color: '#6E6E73', fontSize: 11, fontWeight: 600 }}>STATUT SIGNATURE</div>
-                  <div style={{ color: '#1C1C1E', fontWeight: 600, marginTop: 2 }}>
+                  <div style={{ color: 'var(--label-secondary)', fontSize: 11, fontWeight: 600 }}>STATUT SIGNATURE</div>
+                  <div style={{ color: 'var(--label)', fontWeight: 600, marginTop: 2 }}>
                     {selectedPV.statut_signature}
                   </div>
                 </div>
@@ -252,20 +252,20 @@ export default function ProcesVerbauxV({ data, m, reload, user: _user }) {
 
             {/* Signataires */}
             {(selectedPV.signataire_moe_email || selectedPV.signataire_moa_email || selectedPV.signataire_entreprise_email) && (
-              <div style={{ background: '#F5F5F7', borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 11 }}>
-                <div style={{ fontWeight: 600, color: '#6E6E73', marginBottom: 8 }}>SIGNATAIRES</div>
+              <div style={{ background: 'var(--row-fill)', borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 11 }}>
+                <div style={{ fontWeight: 600, color: 'var(--label-secondary)', marginBottom: 8 }}>SIGNATAIRES</div>
                 {selectedPV.signataire_moe_email && (
-                  <div style={{ color: '#1C1C1E', marginBottom: 4 }}>
+                  <div style={{ color: 'var(--label)', marginBottom: 4 }}>
                     <strong>MOE:</strong> {selectedPV.signataire_moe_email}
                   </div>
                 )}
                 {selectedPV.signataire_moa_email && (
-                  <div style={{ color: '#1C1C1E', marginBottom: 4 }}>
+                  <div style={{ color: 'var(--label)', marginBottom: 4 }}>
                     <strong>MOA:</strong> {selectedPV.signataire_moa_email}
                   </div>
                 )}
                 {selectedPV.signataire_entreprise_email && (
-                  <div style={{ color: '#1C1C1E' }}>
+                  <div style={{ color: 'var(--label)' }}>
                     <strong>Entreprise:</strong> {selectedPV.signataire_entreprise_email}
                   </div>
                 )}
@@ -274,8 +274,8 @@ export default function ProcesVerbauxV({ data, m, reload, user: _user }) {
 
             {/* Décision */}
             {selectedPV.statut_signature === 'Signé' && selectedPV.statut_reception === 'En attente' && (
-              <div style={{ borderTop: '1px solid #E5E5EA', paddingTop: 16 }}>
-                <div style={{ fontSize: 12, fontWeight: 600, color: '#1C1C1E', marginBottom: 12 }}>
+              <div style={{ borderTop: '1px solid var(--separator)', paddingTop: 16 }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--label)', marginBottom: 12 }}>
                   DÉCISION FINALE
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -285,7 +285,7 @@ export default function ProcesVerbauxV({ data, m, reload, user: _user }) {
                       onClick={() => handleDecision(selectedPV.id, opt, opt === 'Refusé' ? 'Voir motif' : null)}
                       style={{
                         padding: '8px 12px',
-                        background: '#1C1C1E',
+                        background: 'var(--label)',
                         color: '#fff',
                         border: 'none',
                         borderRadius: 6,

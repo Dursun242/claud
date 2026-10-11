@@ -311,8 +311,8 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
       {/* ─── En-tête ─── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
         <div>
-          <h1 style={{margin:0,fontSize:m?28:32,fontWeight:700,letterSpacing:"-0.02em",color:"#1C1C1E"}}>CRM</h1>
-          <div style={{ fontSize: 13, color: '#6E6E73', marginTop: 2 }}>
+          <h1 style={{margin:0,fontSize:m?28:32,fontWeight:700,letterSpacing:"-0.02em",color:"var(--label)"}}>CRM</h1>
+          <div style={{ fontSize: 13, color: 'var(--label-secondary)', marginTop: 2 }}>
             {stats.actives === 0 ? 'Tes affaires en cours, du premier appel au chantier.' :
               `${stats.actives} affaire${stats.actives > 1 ? 's' : ''} en cours · ${fmtMoney(stats.montantPipeline)}`}
           </div>
@@ -334,13 +334,13 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
       </div>
 
       {missingMigration && (
-        <div role="alert" style={{ background: '#FFF7E8', border: '1px solid #FFDDA6', color: '#A0390C', borderRadius: 10, padding: '10px 14px', fontSize: 12, marginBottom: 14 }}>
+        <div role="alert" style={{ background: 'var(--orange-tint)', border: '1px solid var(--orange-line)', color: 'var(--orange-deep)', borderRadius: 10, padding: '10px 14px', fontSize: 12, marginBottom: 14 }}>
           La migration <code>025_crm.sql</code> n&apos;est pas encore appliquée sur la base : le pipeline restera vide
           et les enregistrements échoueront. Voir <code>migrations/025_README.md</code>.
         </div>
       )}
       {error && !missingMigration && (
-        <div role="alert" style={{ background: '#FFF0EF', border: '1px solid #FFC9C6', color: '#D70015', borderRadius: 10, padding: '10px 14px', fontSize: 12, marginBottom: 14 }}>
+        <div role="alert" style={{ background: 'var(--red-tint)', border: '1px solid var(--red-line)', color: 'var(--red-text)', borderRadius: 10, padding: '10px 14px', fontSize: 12, marginBottom: 14 }}>
           {error.message}
         </div>
       )}
@@ -353,7 +353,7 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
           <input ref={quickRef} value={quick} onChange={e => setQuick(e.target.value)}
             aria-label="Ajouter une affaire rapidement"
             placeholder={m ? 'Nouvelle affaire… puis Entrée' : 'Ajouter une affaire : ex. « Rénovation maison Dupont » puis Entrée  (raccourci : n)'}
-            style={{ ...inp, paddingLeft: 38, fontSize: 14, background: '#fff', borderColor: '#D1D1D6' }} />
+            style={{ ...inp, paddingLeft: 38, fontSize: 14, background: '#fff', borderColor: 'var(--separator-opaque)' }} />
         </div>
         {quick.trim() && (
           <button type="submit" disabled={saving} style={{ ...btnP, fontSize: 12, whiteSpace: 'nowrap' }}>Ajouter</button>
@@ -386,8 +386,8 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
             return (
               <button key={p.k} onClick={() => setView(p.k)} style={{
                 display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 999,
-                fontSize: 12, fontWeight: 600, border: `1px solid ${active ? p.c : '#E5E5EA'}`,
-                background: active ? p.c : '#fff', color: active ? '#fff' : '#3A3A3C', cursor: 'pointer', fontFamily: 'inherit',
+                fontSize: 12, fontWeight: 600, border: `1px solid ${active ? p.c : 'var(--separator)'}`,
+                background: active ? p.c : '#fff', color: active ? '#fff' : 'var(--label-2)', cursor: 'pointer', fontFamily: 'inherit',
               }}>
                 {p.l} <span style={{ fontSize: 11, opacity: 0.75, fontWeight: 500 }}>{p.n}</span>
               </button>

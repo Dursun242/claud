@@ -96,7 +96,7 @@ export default function DevisEditor({
   return (
     <div>
       {sent && (
-        <div role="status" style={{ background: '#F7F0FC', border: '1px solid #E7D4F5', color: '#8944AB', borderRadius: 8, padding: '8px 12px', fontSize: 12, marginBottom: 12 }}>
+        <div role="status" style={{ background: 'var(--purple-tint)', border: '1px solid var(--purple-line)', color: 'var(--purple-text)', borderRadius: 8, padding: '8px 12px', fontSize: 12, marginBottom: 12 }}>
           Ce devis est <strong style={{ color: DEVIS_STATUT_COLORS[form.statut] }}>{form.statut.toLowerCase()}</strong>.
           Pour une nouvelle proposition, préfère « Dupliquer » depuis la fiche affaire.
         </div>
@@ -117,11 +117,11 @@ export default function DevisEditor({
 
       {/* ─── Assistant IA ─── */}
       {onAiGenerate && (
-        <div style={{ background: 'linear-gradient(135deg,#EAF3FF,#F7F0FC)', border: '1px solid #DCEBFF', borderRadius: 10, padding: aiOpen ? 12 : '8px 12px', marginBottom: 12 }}>
+        <div style={{ background: 'linear-gradient(135deg,var(--accent-tint),var(--purple-tint))', border: '1px solid #DCEBFF', borderRadius: 10, padding: aiOpen ? 12 : '8px 12px', marginBottom: 12 }}>
           <button type="button" onClick={() => setAiOpen(o => !o)} aria-expanded={aiOpen}
-            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: 700, color: '#0066CC', width: '100%', textAlign: 'left' }}>
+            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: 700, color: 'var(--accent-text)', width: '100%', textAlign: 'left' }}>
             Rédiger avec l’IA {aiOpen ? '▾' : '▸'}
-            {!aiOpen && <span style={{ fontWeight: 400, color: '#6E6E73', fontSize: 12 }}> — décris le besoin, l’IA propose les lignes chiffrées</span>}
+            {!aiOpen && <span style={{ fontWeight: 400, color: 'var(--label-secondary)', fontSize: 12 }}> — décris le besoin, l’IA propose les lignes chiffrées</span>}
           </button>
           {aiOpen && (
             <div style={{ marginTop: 8 }}>
@@ -137,11 +137,11 @@ export default function DevisEditor({
                   <button type="button" onClick={() => runAi('append')} disabled={aiBusy}
                     style={{ ...btnS, fontSize: 12, padding: '6px 12px', minHeight: 32, background: '#fff' }}>Ajouter à la suite</button>
                 )}
-                <span style={{ fontSize: 11, color: '#6E6E73' }}>Tes prix habituels sont repris en priorité. Relis toujours avant d’envoyer.</span>
+                <span style={{ fontSize: 11, color: 'var(--label-secondary)' }}>Tes prix habituels sont repris en priorité. Relis toujours avant d’envoyer.</span>
               </div>
-              {aiError && <div role="alert" style={{ color: '#D70015', fontSize: 12, marginTop: 6 }}>⚠ {aiError}</div>}
+              {aiError && <div role="alert" style={{ color: 'var(--red-text)', fontSize: 12, marginTop: 6 }}>⚠ {aiError}</div>}
               {aiConseils.length > 0 && (
-                <ul aria-label="Conseils de l'IA" style={{ margin: '8px 0 0', paddingLeft: 18, fontSize: 12, color: '#3A3A3C' }}>
+                <ul aria-label="Conseils de l'IA" style={{ margin: '8px 0 0', paddingLeft: 18, fontSize: 12, color: 'var(--label-2)' }}>
                   {aiConseils.map((c, k) => <li key={k}>{c}</li>)}
                 </ul>
               )}
@@ -151,9 +151,9 @@ export default function DevisEditor({
       )}
 
       {/* ─── Lignes ─── */}
-      <div style={{ fontSize: 12, fontWeight: 700, color: '#1C1C1E', margin: '4px 0 6px' }}>Détail</div>
+      <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--label)', margin: '4px 0 6px' }}>Détail</div>
       {!m && (
-        <div style={{ display: 'grid', gridTemplateColumns: cols, gap: 6, fontSize: 11, fontWeight: 700, color: '#6E6E73', textTransform: 'uppercase', letterSpacing: '0.04em', padding: '0 2px 4px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: cols, gap: 6, fontSize: 11, fontWeight: 700, color: 'var(--label-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em', padding: '0 2px 4px' }}>
           <span>Désignation</span><span>Unité</span><span>Qté</span><span>PU HT</span><span>TVA</span><span style={{ textAlign: 'right' }}>Total HT</span><span />
         </div>
       )}
@@ -162,13 +162,13 @@ export default function DevisEditor({
           const tools = (
             <div style={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
               <button type="button" onClick={() => move(i, -1)} disabled={i === 0} aria-label={`Monter la ligne ${i + 1}`} style={miniBtn}>↑</button>
-              <button type="button" onClick={() => removeLigne(i)} aria-label={`Supprimer la ligne ${i + 1}`} style={{ ...miniBtn, color: '#D70015' }}>×</button>
+              <button type="button" onClick={() => removeLigne(i)} aria-label={`Supprimer la ligne ${i + 1}`} style={{ ...miniBtn, color: 'var(--red-text)' }}>×</button>
             </div>
           )
           if (l.type === 'titre') {
             return (
               <div key={i} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                <input style={{ ...small, fontWeight: 700, background: '#F2F2F7', flex: 1 }} value={l.designation || ''}
+                <input style={{ ...small, fontWeight: 700, background: 'var(--grouped-bg)', flex: 1 }} value={l.designation || ''}
                   aria-label={`Titre de section ${i + 1}`} placeholder="Titre de section (ex : Phase conception)"
                   onChange={e => setLigne(i, 'designation', e.target.value)} />
                 {tools}
@@ -187,7 +187,7 @@ export default function DevisEditor({
                     onChange={e => setLigne(i, 'designation', e.target.value)} />
                   {sugg.length > 0 && (
                     <div role="listbox" aria-label={`Prix habituels ligne ${i + 1}`} style={{
-                      position: 'absolute', zIndex: 5, left: 0, right: 0, top: '100%', background: '#fff', border: '1px solid #D1D1D6',
+                      position: 'absolute', zIndex: 5, left: 0, right: 0, top: '100%', background: '#fff', border: '1px solid var(--separator-opaque)',
                       borderRadius: 8, boxShadow: '0 6px 16px rgba(0,0,0,0.12)', marginTop: 2, overflow: 'hidden',
                     }}>
                       {sugg.map(h => (
@@ -195,7 +195,7 @@ export default function DevisEditor({
                           onMouseDown={e => { e.preventDefault(); pickHistory(i, h); setActiveLine(null) }}
                           style={{ display: 'flex', width: '100%', gap: 8, justifyContent: 'space-between', padding: '6px 10px', border: 'none', background: '#fff', cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, textAlign: 'left' }}>
                           <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{h.designation}</span>
-                          <span style={{ color: '#6E6E73', whiteSpace: 'nowrap' }}>{fmtEur(h.prix_unitaire)} / {h.unite}</span>
+                          <span style={{ color: 'var(--label-secondary)', whiteSpace: 'nowrap' }}>{fmtEur(h.prix_unitaire)} / {h.unite}</span>
                         </button>
                       ))}
                     </div>
@@ -221,11 +221,11 @@ export default function DevisEditor({
                 {TVA_TAUX.map(t => <option key={t} value={String(t)}>{String(t).replace('.', ',')} %</option>)}
               </select>
             ),
-            total: <span style={{ fontSize: 12, fontWeight: 600, color: '#1C1C1E', textAlign: 'right', whiteSpace: 'nowrap' }}>{fmtEur(ligneTotal(l))}</span>,
+            total: <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--label)', textAlign: 'right', whiteSpace: 'nowrap' }}>{fmtEur(ligneTotal(l))}</span>,
           }
           if (m) {
             return (
-              <div key={i} style={{ border: '1px solid #E5E5EA', borderRadius: 8, padding: 8, display: 'grid', gap: 6 }}>
+              <div key={i} style={{ border: '1px solid var(--separator)', borderRadius: 8, padding: 8, display: 'grid', gap: 6 }}>
                 {fields.designation}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
                   {fields.quantite}{fields.unite}{fields.pu}{fields.tva}
@@ -260,25 +260,25 @@ export default function DevisEditor({
               onChange={e => set('acompte_pct', e.target.value)} />
           </FF>
         </div>
-        <div data-testid="devis-totaux" style={{ background: '#F5F5F7', border: '1px solid #E5E5EA', borderRadius: 10, padding: '10px 12px', fontSize: 12, color: '#3A3A3C' }}>
+        <div data-testid="devis-totaux" style={{ background: 'var(--row-fill)', border: '1px solid var(--separator)', borderRadius: 10, padding: '10px 12px', fontSize: 12, color: 'var(--label-2)' }}>
           {totals.remise > 0 && (<>
             <Row l="Total HT brut" v={fmtEur(totals.htBrut)} />
             <Row l="Remise" v={`− ${fmtEur(totals.remise)}`} />
           </>)}
           <Row l="Total HT" v={fmtEur(totals.ht)} bold />
           {totals.tvaParTaux.map(x => <Row key={x.taux} l={`TVA ${String(x.taux).replace('.', ',')} %`} v={fmtEur(x.montant)} />)}
-          <div style={{ borderTop: '1px solid #D1D1D6', margin: '6px 0' }} />
+          <div style={{ borderTop: '1px solid var(--separator-opaque)', margin: '6px 0' }} />
           <Row l="Total TTC" v={fmtEur(totals.ttc)} bold big />
           {totals.acompte > 0 && <Row l="Acompte à la commande" v={fmtEur(totals.acompte)} />}
         </div>
       </div>
 
       {checks.length > 0 && (
-        <div aria-label="Points à vérifier" style={{ border: '1px solid #FFDDA6', background: '#FFF7E8', borderRadius: 10, padding: '8px 12px', marginBottom: 12 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#A0390C', marginBottom: 4 }}>Points à vérifier</div>
+        <div aria-label="Points à vérifier" style={{ border: '1px solid var(--orange-line)', background: 'var(--orange-tint)', borderRadius: 10, padding: '8px 12px', marginBottom: 12 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--orange-deep)', marginBottom: 4 }}>Points à vérifier</div>
           <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12 }}>
             {checks.map((c, k) => (
-              <li key={k} style={{ color: c.level === 'error' ? '#D70015' : c.level === 'warn' ? '#A0390C' : '#48484A' }}>{c.text}</li>
+              <li key={k} style={{ color: c.level === 'error' ? 'var(--red-text)' : c.level === 'warn' ? 'var(--orange-deep)' : '#48484A' }}>{c.text}</li>
             ))}
           </ul>
         </div>
@@ -293,7 +293,7 @@ export default function DevisEditor({
           onChange={e => set('notes', e.target.value)} />
       </FF>
 
-      {error && <div role="alert" style={{ color: '#D70015', fontSize: 12, marginBottom: 10, fontWeight: 500 }}>⚠ {error}</div>}
+      {error && <div role="alert" style={{ color: 'var(--red-text)', fontSize: 12, marginBottom: 10, fontWeight: 500 }}>⚠ {error}</div>}
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
         <button onClick={onCancel} style={btnS}>Annuler</button>
         <button onClick={onPreview} disabled={saving} style={btnS} title="Télécharger le PDF sans enregistrer">Aperçu PDF</button>
@@ -313,7 +313,7 @@ export default function DevisEditor({
 
 function Row({ l, v, bold, big }) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, padding: '2px 0', fontWeight: bold ? 700 : 400, fontSize: big ? 14 : 12, color: big ? '#0071E3' : undefined }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, padding: '2px 0', fontWeight: bold ? 700 : 400, fontSize: big ? 14 : 12, color: big ? 'var(--accent)' : undefined }}>
       <span>{l}</span><span style={{ whiteSpace: 'nowrap' }}>{v}</span>
     </div>
   )

@@ -22,13 +22,13 @@ export default function Section({ title, count, color, emoji, action, children }
         }}
       >
         <Emoji e={emoji} tile="#fff" />
-        <h3 style={{ margin: 0, fontSize: 17, fontWeight: 600, color: '#1C1C1E', letterSpacing: '-0.01em' }}>
+        <h3 style={{ margin: 0, fontSize: 17, fontWeight: 600, color: 'var(--label)', letterSpacing: '-0.01em' }}>
           {title}
         </h3>
         {count !== undefined && (
           <span
             style={{
-              background: '#E5E5EA',
+              background: 'var(--separator)',
               color: '#48484A',
               fontSize: 12,
               fontWeight: 600,

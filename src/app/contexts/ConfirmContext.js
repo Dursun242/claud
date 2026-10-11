@@ -159,11 +159,11 @@ function ConfirmDialog({ state, onResolve }) {
             {danger ? '⚠' : '?'}
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <h3 id="confirm-title" style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#1C1C1E', lineHeight: 1.3 }}>
+            <h3 id="confirm-title" style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--label)', lineHeight: 1.3 }}>
               {title}
             </h3>
             {message && (
-              <p id="confirm-message" style={{ margin: '6px 0 0', fontSize: 13, color: '#6E6E73', lineHeight: 1.5 }}>
+              <p id="confirm-message" style={{ margin: '6px 0 0', fontSize: 13, color: 'var(--label-secondary)', lineHeight: 1.5 }}>
                 {message}
               </p>
             )}
@@ -175,7 +175,7 @@ function ConfirmDialog({ state, onResolve }) {
             style={{
               padding: '9px 16px',
               borderRadius: 8,
-              border: '1px solid #E5E5EA',
+              border: '1px solid var(--separator)',
               background: '#fff',
               color: '#48484A',
               fontSize: 13,
@@ -186,14 +186,14 @@ function ConfirmDialog({ state, onResolve }) {
           >
             {cancelLabel}
           </button>
-          <button
+          <button data-tone={danger ? 'danger' : 'accent'}
             ref={confirmBtnRef}
             onClick={() => onResolve(true)}
             style={{
               padding: '9px 16px',
               borderRadius: 8,
               border: 'none',
-              background: danger ? '#D70015' : '#0071E3',
+              background: danger ? 'var(--red-text)' : 'var(--accent)',
               color: '#fff',
               fontSize: 13,
               fontWeight: 700,

@@ -46,17 +46,17 @@ export default function DashboardLoadState({ role = 'admin', error, paused, onRe
     return (
       <div style={{
         minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: '#F2F2F7', padding: 16, boxSizing: 'border-box',
+        background: 'var(--grouped-bg)', padding: 16, boxSizing: 'border-box',
         fontFamily: 'var(--font-dm-sans), sans-serif',
       }}>
         <div role="alert" style={{
-          background: '#fff', border: '1px solid #E5E5EA', borderRadius: 12,
+          background: '#fff', border: '1px solid var(--separator)', borderRadius: 12,
           boxShadow: '0 1px 3px rgba(0,0,0,0.06)', padding: 20, maxWidth: 400, width: '100%',
         }}>
-          <h1 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: '#1C1C1E' }}>
+          <h1 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: 'var(--label)' }}>
             Impossible de charger les chantiers
           </h1>
-          <p style={{ margin: '8px 0 16px', fontSize: 13, lineHeight: 1.5, color: '#3A3A3C' }}>
+          <p style={{ margin: '8px 0 16px', fontSize: 13, lineHeight: 1.5, color: 'var(--label-2)' }}>
             {offline
               ? 'Pas de réseau. Vérifiez la connexion, puis réessayez.'
               : 'Le serveur n\'a pas répondu correctement. Réessayez dans un instant.'}
@@ -75,9 +75,9 @@ export default function DashboardLoadState({ role = 'admin', error, paused, onRe
           position: 'fixed', left: 16, right: 16, bottom: 'calc(16px + env(safe-area-inset-bottom))',
           margin: '0 auto', maxWidth: 440, zIndex: 50,
           display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap',
-          background: '#fff', border: '1px solid #E5E5EA', borderRadius: 12,
+          background: '#fff', border: '1px solid var(--separator)', borderRadius: 12,
           boxShadow: '0 8px 24px rgba(0,0,0,0.12)', padding: '12px 14px',
-          fontFamily: 'var(--font-dm-sans), sans-serif', fontSize: 13, lineHeight: 1.5, color: '#3A3A3C',
+          fontFamily: 'var(--font-dm-sans), sans-serif', fontSize: 13, lineHeight: 1.5, color: 'var(--label-2)',
         }}>
           <span>
             {notice === 'paused'

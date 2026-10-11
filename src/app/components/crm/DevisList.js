@@ -41,8 +41,8 @@ function SuiviLine({ suivi }) {
   ].filter(Boolean)
   if (!parts.length) return null
   return (
-    <div title={detail} style={{ fontSize: 11, color: '#0066CC', marginTop: 3, fontWeight: 600 }}>
-      {parts.map((p, i) => <span key={i}>{i > 0 && <span style={{ color: '#6E6E73' }}> · </span>}{p}</span>)}
+    <div title={detail} style={{ fontSize: 11, color: 'var(--accent-text)', marginTop: 3, fontWeight: 600 }}>
+      {parts.map((p, i) => <span key={i}>{i > 0 && <span style={{ color: 'var(--label-secondary)' }}> · </span>}{p}</span>)}
     </div>
   )
 }
@@ -55,7 +55,7 @@ function ReponseLine({ reponse }) {
   return (
     <div style={{ fontSize: 11, marginTop: 4, padding: '4px 8px', borderRadius: 6, background: t.bg, border: `1px solid ${t.border}`, color: t.color }}>
       <strong>💬 Réponse du client le {fmtDT(reponse.created_at)} : {r.court}</strong>
-      {reponse.commentaire && <span style={{ color: '#3A3A3C' }}> — « {reponse.commentaire} »</span>}
+      {reponse.commentaire && <span style={{ color: 'var(--label-2)' }}> — « {reponse.commentaire} »</span>}
     </div>
   )
 }
@@ -64,19 +64,19 @@ export default function DevisList({ devis = [], missing, saving, onNew, onOpen, 
   return (
     <div style={{ marginBottom: 14 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-        <h3 style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#1C1C1E', flex: 1 }}>
-          Devis <span style={{ color: '#6E6E73', fontWeight: 500 }}>({devis.length})</span>
+        <h3 style={{ margin: 0, fontSize: 13, fontWeight: 700, color: 'var(--label)', flex: 1 }}>
+          Devis <span style={{ color: 'var(--label-secondary)', fontWeight: 500 }}>({devis.length})</span>
         </h3>
         {!missing && (
-          <button onClick={onNew} disabled={saving} style={{ ...act, background: '#F2F2F7' }}>Nouveau devis</button>
+          <button onClick={onNew} disabled={saving} style={{ ...act, background: 'var(--grouped-bg)' }}>Nouveau devis</button>
         )}
       </div>
       {missing ? (
-        <div role="status" style={{ background: '#FFF7E8', border: '1px solid #FFDDA6', color: '#A0390C', borderRadius: 8, padding: '8px 12px', fontSize: 12 }}>
+        <div role="status" style={{ background: 'var(--orange-tint)', border: '1px solid var(--orange-line)', color: 'var(--orange-deep)', borderRadius: 8, padding: '8px 12px', fontSize: 12 }}>
           Appliquer la migration <code>027_crm_devis.sql</code> pour rédiger les devis ici.
         </div>
       ) : devis.length === 0 ? (
-        <div style={{ border: '1px dashed #D1D1D6', borderRadius: 10, padding: '10px 12px', fontSize: 12, color: '#6E6E73' }}>
+        <div style={{ border: '1px dashed var(--separator-opaque)', borderRadius: 10, padding: '10px 12px', fontSize: 12, color: 'var(--label-secondary)' }}>
           Aucun devis pour l&apos;instant.
         </div>
       ) : (
@@ -89,27 +89,27 @@ export default function DevisList({ devis = [], missing, saving, onNew, onOpen, 
             return (
               <div key={d.id} style={{
                 display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', background: '#fff',
-                border: '1px solid #E5E5EA', borderRadius: 10, padding: '8px 12px', minWidth: 0,
+                border: '1px solid var(--separator)', borderRadius: 10, padding: '8px 12px', minWidth: 0,
               }}>
                 <button onClick={() => onOpen(d)} title="Ouvrir le devis" style={{
                   flex: 1, minWidth: 160, background: 'none', border: 'none', padding: 0, textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit',
                 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: '#1C1C1E' }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--label)' }}>
                     {numeroAffiche(d.numero)}
                     <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 700, color: c, background: c + '1A', borderRadius: 999, padding: '1px 7px' }}>{d.statut}</span>
-                    {expired && <span style={{ marginLeft: 6, fontSize: 11, color: '#D70015', fontWeight: 700 }}>expiré</span>}
-                    {!expired && stale && <span style={{ marginLeft: 6, fontSize: 11, color: '#FF9500', fontWeight: 700 }}>sans réponse</span>}
+                    {expired && <span style={{ marginLeft: 6, fontSize: 11, color: 'var(--red-text)', fontWeight: 700 }}>expiré</span>}
+                    {!expired && stale && <span style={{ marginLeft: 6, fontSize: 11, color: 'var(--orange)', fontWeight: 700 }}>sans réponse</span>}
                     {d._qontoDeleted
-                      ? <span style={{ marginLeft: 6, fontSize: 11, color: '#D70015', fontWeight: 700 }} title="« Créer dans Qonto » le recrée">supprimé dans Qonto</span>
-                      : qs === 'ok' && <span style={{ marginLeft: 6, fontSize: 11, color: '#1E7B34', fontWeight: 700 }}>dans Qonto</span>}
+                      ? <span style={{ marginLeft: 6, fontSize: 11, color: 'var(--red-text)', fontWeight: 700 }} title="« Créer dans Qonto » le recrée">supprimé dans Qonto</span>
+                      : qs === 'ok' && <span style={{ marginLeft: 6, fontSize: 11, color: 'var(--green-text)', fontWeight: 700 }}>dans Qonto</span>}
                     {d.statut_signature && (
-                      <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 700, color: d.statut_signature === 'Signé' ? '#1E7B34' : ['Refusé', 'Expiré', 'Annulé'].includes(d.statut_signature) ? '#D70015' : '#8944AB' }}>
+                      <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 700, color: d.statut_signature === 'Signé' ? 'var(--green-text)' : ['Refusé', 'Expiré', 'Annulé'].includes(d.statut_signature) ? 'var(--red-text)' : 'var(--purple-text)' }}>
                         ✍️ {d.statut_signature === 'Envoyé' ? 'signature en attente' : d.statut_signature === 'Signé' ? 'signé' : d.statut_signature.toLowerCase()}
                       </span>
                     )}
-                    {!d._qontoDeleted && qs === 'stale' && <span style={{ marginLeft: 6, fontSize: 11, color: '#C93400', fontWeight: 700 }}>Qonto à mettre à jour</span>}
+                    {!d._qontoDeleted && qs === 'stale' && <span style={{ marginLeft: 6, fontSize: 11, color: 'var(--orange-text)', fontWeight: 700 }}>Qonto à mettre à jour</span>}
                   </div>
-                  <div style={{ fontSize: 11, color: '#6E6E73', marginTop: 2 }}>
+                  <div style={{ fontSize: 11, color: 'var(--label-secondary)', marginTop: 2 }}>
                     {fmtEur(d.total_ht)} HT · {fmtEur(d.total_ttc)} TTC
                     {d.date_envoi ? ` · envoyé le ${fmtD(d.date_envoi)}` : ` · du ${fmtD(d.date_emission)}`}
                   </div>
@@ -119,11 +119,11 @@ export default function DevisList({ devis = [], missing, saving, onNew, onOpen, 
                 <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                   <button onClick={() => onPdf(d)} style={act} aria-label={`Télécharger le PDF ${d.numero}`}>PDF</button>
                   {d.statut === 'Brouillon' && (
-                    <button onClick={() => onSend(d)} disabled={saving} style={{ ...act, background: '#0071E3', color: '#fff', borderColor: '#0071E3' }}>Envoyer</button>
+                    <button onClick={() => onSend(d)} disabled={saving} style={{ ...act, background: 'var(--accent)', color: '#fff', borderColor: 'var(--accent)' }}>Envoyer</button>
                   )}
                   {d.statut === 'Envoyé' && (<>
                     {d.statut_signature !== 'Signé' && onRelance && (
-                      <button onClick={() => onRelance(d)} disabled={saving} style={{ ...act, background: '#F0F8FC', color: '#0066CC', borderColor: '#C6DDF7' }}
+                      <button onClick={() => onRelance(d)} disabled={saving} style={{ ...act, background: '#F0F8FC', color: 'var(--accent-text)', borderColor: 'var(--blue-line)' }}
                         title="Mail de relance : le client indique en un clic pourquoi il n’a pas donné suite">Relancer</button>
                     )}
                     {d.statut_signature !== 'Signé' && (
@@ -132,8 +132,8 @@ export default function DevisList({ devis = [], missing, saving, onNew, onOpen, 
                       <button onClick={() => onSend(d)} disabled={saving} style={act}
                         title="Renvoyer le devis (adresse corrigée, relance) — l'ancien lien de signature ne fonctionnera plus">Renvoyer</button>
                     )}
-                    <button onClick={() => onAccept(d)} disabled={saving} style={{ ...act, background: '#EAF8EE', color: '#1E7B34', borderColor: '#BFE9CA' }}>Accepté</button>
-                    <button onClick={() => onRefuse(d)} disabled={saving} style={{ ...act, background: '#FFF0EF', color: '#D70015', borderColor: '#FFC9C6' }}>Refusé</button>
+                    <button onClick={() => onAccept(d)} disabled={saving} style={{ ...act, background: 'var(--green-tint)', color: 'var(--green-text)', borderColor: 'var(--green-line)' }}>Accepté</button>
+                    <button onClick={() => onRefuse(d)} disabled={saving} style={{ ...act, background: 'var(--red-tint)', color: 'var(--red-text)', borderColor: 'var(--red-line)' }}>Refusé</button>
                   </>)}
                   {onQonto && (
                     <button onClick={() => onQonto(d)} disabled={saving} style={act}
@@ -142,13 +142,13 @@ export default function DevisList({ devis = [], missing, saving, onNew, onOpen, 
                     </button>
                   )}
                   {d.statut_signature === 'Signé' && onSignedPdf && (
-                    <button onClick={() => onSignedPdf(d)} style={{ ...act, background: '#EAF8EE', color: '#1E7B34', borderColor: '#BFE9CA' }}>PDF signé</button>
+                    <button onClick={() => onSignedPdf(d)} style={{ ...act, background: 'var(--green-tint)', color: 'var(--green-text)', borderColor: 'var(--green-line)' }}>PDF signé</button>
                   )}
                   {d.qonto_url && (
                     <a href={d.qonto_url} target="_blank" rel="noopener noreferrer" style={{ ...act, textDecoration: 'none' }}>Voir Qonto</a>
                   )}
                   <button onClick={() => onDuplicate(d)} disabled={saving} style={act} title="Créer une nouvelle version">Dupliquer</button>
-                  <button onClick={() => onDelete(d)} disabled={saving} style={{ ...act, color: '#D70015' }} aria-label={`Supprimer le devis ${d.numero}`}>🗑</button>
+                  <button onClick={() => onDelete(d)} disabled={saving} style={{ ...act, color: 'var(--red-text)' }} aria-label={`Supprimer le devis ${d.numero}`}>🗑</button>
                 </div>
               </div>
             )

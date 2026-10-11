@@ -45,11 +45,11 @@ export default function OSSignatureModal({
     <Modal open={!!signModal} onClose={onClose} title="Envoyer pour signature Odoo">
       {signModal && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div style={{ background: '#F7F0FC', borderRadius: 8, padding: 12 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#0066CC', marginBottom: 2 }}>
+          <div style={{ background: 'var(--purple-tint)', borderRadius: 8, padding: 12 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--accent-text)', marginBottom: 2 }}>
               OS {signModal.numero}
             </div>
-            <div style={{ fontSize: 11, color: '#6E6E73' }}>
+            <div style={{ fontSize: 11, color: 'var(--label-secondary)' }}>
               Expéditeur : <strong>Id Maîtrise</strong> — Objet :{' '}
               <em>
                 Signature requise – OS {signModal.numero}
@@ -64,10 +64,10 @@ export default function OSSignatureModal({
               <div
                 key={key}
                 style={{
-                  background: '#F5F5F7',
+                  background: 'var(--row-fill)',
                   borderRadius: 8,
                   padding: 10,
-                  border: `1px solid ${missing ? '#FFC9C6' : '#E5E5EA'}`,
+                  border: `1px solid ${missing ? 'var(--red-line)' : 'var(--separator)'}`,
                 }}
               >
                 <div
@@ -83,7 +83,7 @@ export default function OSSignatureModal({
                 >
                   <span>{label}</span>
                   {missing && (
-                    <span style={{ color: '#FF3B30', fontWeight: 400, textTransform: 'none' }}>
+                    <span style={{ color: 'var(--red)', fontWeight: 400, textTransform: 'none' }}>
                       Email requis
                     </span>
                   )}
@@ -102,7 +102,7 @@ export default function OSSignatureModal({
                     style={{
                       ...inp,
                       fontSize: 12,
-                      borderColor: missing ? '#FF3B30' : '#E5E5EA',
+                      borderColor: missing ? 'var(--red)' : 'var(--separator)',
                     }}
                     value={signers[key].email}
                     onChange={(e) =>
@@ -116,12 +116,12 @@ export default function OSSignatureModal({
 
           <div
             style={{
-              background: '#EAF8EE',
-              border: '1px solid #BFE9CA',
+              background: 'var(--green-tint)',
+              border: '1px solid var(--green-line)',
               borderRadius: 8,
               padding: 10,
               fontSize: 11,
-              color: '#1E7B34',
+              color: 'var(--green-text)',
             }}
           >
             Les 3 signataires recevront chacun un email d&apos;Odoo Sign pour signer le PDF de l&apos;OS.
@@ -130,12 +130,12 @@ export default function OSSignatureModal({
           {error && (
             <div
               style={{
-                background: '#FFF0EF',
-                border: '1px solid #FFC9C6',
+                background: 'var(--red-tint)',
+                border: '1px solid var(--red-line)',
                 borderRadius: 8,
                 padding: 10,
                 fontSize: 12,
-                color: '#FF3B30',
+                color: 'var(--red)',
               }}
             >
               {error}
@@ -149,7 +149,7 @@ export default function OSSignatureModal({
               disabled={sending || !allFilled}
               style={{
                 ...btnP,
-                background: '#8944AB',
+                background: 'var(--purple-text)',
                 opacity: sending || !allFilled ? 0.5 : 1,
               }}
             >

@@ -30,7 +30,7 @@ export function CopyIconBtn({ onClick }) {
         display: 'inline-flex',
         alignItems: 'center',
         justifyContent: 'center',
-        color: '#6E6E73',
+        color: 'var(--label-secondary)',
         fontFamily: 'inherit',
         opacity: 0.7,
       }}
@@ -59,7 +59,7 @@ export default function ContactInfoLink({ href, onCopy, onTap, label, maxWidth }
         href={href}
         onClick={(e) => { e.stopPropagation(); onTap?.() }}
         style={{
-          color: '#0066CC',
+          color: 'var(--accent-text)',
           textDecoration: 'none',
           fontWeight: 500,
           overflow: 'hidden',

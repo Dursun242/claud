@@ -125,7 +125,7 @@ export default function AddressPicker({
       {open && items.length > 0 && (
         <div role="listbox" id={listId.current} style={{
           position: 'absolute', zIndex: 20, top: '100%', left: 0, right: 0, marginTop: 4,
-          background: '#fff', border: '1px solid #E5E5EA', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+          background: '#fff', border: '1px solid var(--separator)', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
           maxHeight: 240, overflowY: 'auto',
         }}>
           {items.map((a, i) => (
@@ -134,17 +134,17 @@ export default function AddressPicker({
               style={{
                 display: 'block', width: '100%', textAlign: 'left', padding: '9px 12px', fontSize: 13,
                 border: 'none', cursor: 'pointer', fontFamily: 'inherit', minHeight: 40,
-                background: active === i ? '#F2F2F7' : '#fff',
+                background: active === i ? 'var(--grouped-bg)' : '#fff',
               }}>
-              <div style={{ fontWeight: 600, color: '#1C1C1E' }}>{a.rue || a.ville}</div>
-              <div style={{ fontSize: 11, color: '#6E6E73' }}>{a.code_postal} {a.ville}{a.contexte ? ` · ${a.contexte}` : ''}</div>
+              <div style={{ fontWeight: 600, color: 'var(--label)' }}>{a.rue || a.ville}</div>
+              <div style={{ fontSize: 11, color: 'var(--label-secondary)' }}>{a.code_postal} {a.ville}{a.contexte ? ` · ${a.contexte}` : ''}</div>
             </button>
           ))}
-          <div style={{ padding: '4px 12px', fontSize: 11, color: '#6E6E73', borderTop: '1px solid #F2F2F7' }}>Base Adresse Nationale</div>
+          <div style={{ padding: '4px 12px', fontSize: 11, color: 'var(--label-secondary)', borderTop: '1px solid var(--grouped-bg)' }}>Base Adresse Nationale</div>
         </div>
       )}
       {failed && (value || '').trim().length >= MIN_CHARS && (
-        <div style={{ fontSize: 11, color: '#6E6E73', marginTop: 3 }}>Suggestions indisponibles — tu peux saisir l&apos;adresse librement.</div>
+        <div style={{ fontSize: 11, color: 'var(--label-secondary)', marginTop: 3 }}>Suggestions indisponibles — tu peux saisir l&apos;adresse librement.</div>
       )}
     </div>
   )

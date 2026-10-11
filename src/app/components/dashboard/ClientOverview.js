@@ -29,25 +29,25 @@ export default function ClientOverview({ overview, onOpen, m }) {
         cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
       }} className="u-press">
         <span aria-hidden style={{
-          width: 36, height: 36, borderRadius: 8, flexShrink: 0, background: '#F2F2F7', color: '#0071E3',
+          width: 36, height: 36, borderRadius: 8, flexShrink: 0, background: 'var(--grouped-bg)', color: 'var(--accent)',
           display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
         }}><Icon d={I.os} size={18}/></span>
         <span style={{ flex: 1, minWidth: 0 }}>
-          <span style={{ display: 'block', fontSize: 14, fontWeight: 700, color: '#1C1C1E' }}>
+          <span style={{ display: 'block', fontSize: 14, fontWeight: 700, color: 'var(--label)' }}>
             {osToSign.length} ordre{osToSign.length > 1 ? 's' : ''} de service en cours de signature
           </span>
-          <span style={{ display: 'block', fontSize: 13, color: '#6E6E73', ...ellipsis }}>
+          <span style={{ display: 'block', fontSize: 13, color: 'var(--label-secondary)', ...ellipsis }}>
             Voir le détail et l&apos;état des signatures
           </span>
         </span>
-        <span aria-hidden style={{ color: '#8E8E93', fontSize: 16 }}>›</span>
+        <span aria-hidden style={{ color: 'var(--label-tertiary)', fontSize: 16 }}>›</span>
       </button>
     )}
 
     <section style={card(m)} aria-labelledby="client-progress">
       <h2 id="client-progress" style={{ ...h2, display: 'flex', alignItems: 'center', gap: 8 }}><Emoji e={EMOJI.travaux} />Où en sont les travaux ?</h2>
       {enCours.length === 0 && aVenir.length === 0 ? (
-        <div style={{ fontSize: 13, color: '#6E6E73', padding: '6px 0' }}>
+        <div style={{ fontSize: 13, color: 'var(--label-secondary)', padding: '6px 0' }}>
           Le planning détaillé n&apos;est pas encore disponible. Votre maître d&apos;œuvre le complétera prochainement.
         </div>
       ) : (<>
@@ -58,14 +58,14 @@ export default function ClientOverview({ overview, onOpen, m }) {
               {enCours.slice(0, 5).map(p => (
                 <div key={p.id} style={{ minWidth: 0 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: 13, marginBottom: 4 }}>
-                    <span style={{ fontWeight: 600, color: '#1C1C1E', ...ellipsis }}>{p.title}</span>
-                    <span style={{ fontWeight: 600, color: '#3A3A3C', whiteSpace: 'nowrap' }}>{p.avancement} %</span>
+                    <span style={{ fontWeight: 600, color: 'var(--label)', ...ellipsis }}>{p.title}</span>
+                    <span style={{ fontWeight: 600, color: 'var(--label-2)', whiteSpace: 'nowrap' }}>{p.avancement} %</span>
                   </div>
                   <div role="progressbar" aria-valuenow={p.avancement} aria-valuemin={0} aria-valuemax={100} aria-label={p.title}
-                    style={{ height: 6, background: '#E5E5EA', borderRadius: 3, overflow: 'hidden' }}>
-                    <div style={{ width: `${p.avancement}%`, height: '100%', background: '#0071E3' }} />
+                    style={{ height: 6, background: 'var(--separator)', borderRadius: 3, overflow: 'hidden' }}>
+                    <div style={{ width: `${p.avancement}%`, height: '100%', background: 'var(--accent)' }} />
                   </div>
-                  <div style={{ fontSize: 12, color: '#6E6E73', marginTop: 3, ...ellipsis }}>
+                  <div style={{ fontSize: 12, color: 'var(--label-secondary)', marginTop: 3, ...ellipsis }}>
                     {p.chantier ? `${p.chantier} · ` : ''}fin prévue {fmtDate(p.fin)}
                   </div>
                 </div>
@@ -78,8 +78,8 @@ export default function ClientOverview({ overview, onOpen, m }) {
             <div style={label}>Prochaines étapes</div>
             {aVenir.slice(0, 4).map(p => (
               <div key={p.id} style={{ display: 'flex', gap: 10, fontSize: 13, padding: '4px 0', minWidth: 0 }}>
-                <span style={{ fontWeight: 600, color: '#1C1C1E', whiteSpace: 'nowrap', minWidth: 52 }}>{fmtDate(p.debut)}</span>
-                <span style={{ color: '#3A3A3C', ...ellipsis }}>{p.title}{p.chantier ? ` · ${p.chantier}` : ''}</span>
+                <span style={{ fontWeight: 600, color: 'var(--label)', whiteSpace: 'nowrap', minWidth: 52 }}>{fmtDate(p.debut)}</span>
+                <span style={{ color: 'var(--label-2)', ...ellipsis }}>{p.title}{p.chantier ? ` · ${p.chantier}` : ''}</span>
               </div>
             ))}
           </div>
@@ -92,11 +92,11 @@ export default function ClientOverview({ overview, onOpen, m }) {
       <section style={card(m)} aria-labelledby="client-last-cr">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 8 }}>
           <h2 id="client-last-cr" style={{ ...h2, margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}><Emoji e={EMOJI.cr} />Dernier compte rendu</h2>
-          <span style={{ fontSize: 12, color: '#6E6E73', whiteSpace: 'nowrap' }}>n°{dernierCR.numero} · {fmtDate(dernierCR.date)}</span>
+          <span style={{ fontSize: 12, color: 'var(--label-secondary)', whiteSpace: 'nowrap' }}>n°{dernierCR.numero} · {fmtDate(dernierCR.date)}</span>
         </div>
-        {dernierCR.chantier && <div style={{ fontSize: 12, color: '#6E6E73', marginBottom: 6 }}>{dernierCR.chantier}</div>}
+        {dernierCR.chantier && <div style={{ fontSize: 12, color: 'var(--label-secondary)', marginBottom: 6 }}>{dernierCR.chantier}</div>}
         <p style={{
-          margin: 0, fontSize: 13, color: '#3A3A3C', lineHeight: 1.55,
+          margin: 0, fontSize: 13, color: 'var(--label-2)', lineHeight: 1.55,
           display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden',
         }}>{dernierCR.resume || 'Pas de résumé.'}</p>
         <button onClick={() => onOpen('reports', dernierCR.id)} style={linkBtn}>Lire le compte rendu →</button>

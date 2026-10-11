@@ -35,7 +35,7 @@ export default function AIQontoV({ m }) {
   const a = analysis?.analysis
   return (
     <div style={{ animation: 'fadeIn .3s ease' }}>
-      <h2 style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 12px', fontSize: 20, fontWeight: 700, color: '#1C1C1E' }}>
+      <h2 style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 12px', fontSize: 20, fontWeight: 700, color: 'var(--label)' }}>
         <Emoji e="🤖" tile="#fff" />Analyse IA
       </h2>
 
@@ -46,7 +46,7 @@ export default function AIQontoV({ m }) {
 
       {error && (
         <div role="alert" style={{
-          background: '#FFF0EF', border: '1px solid #FFC9C6', color: '#D70015',
+          background: 'var(--red-tint)', border: '1px solid var(--red-line)', color: 'var(--red-text)',
           padding: 12, borderRadius: 10, marginBottom: 16, fontSize: 14,
         }}>{error}</div>
       )}
@@ -76,19 +76,19 @@ export default function AIQontoV({ m }) {
               <button type="button" onClick={() => setExpanded(!expanded)} aria-expanded={expanded}
                 style={{ ...title, margin: expanded ? '0 0 10px' : 0, background: 'none', border: 'none', padding: 0, minHeight: 32, cursor: 'pointer', fontFamily: 'inherit', width: '100%', textAlign: 'left' }}>
                 <Emoji e="💡" size={24} />Recommandations
-                <span aria-hidden="true" style={{ marginLeft: 'auto', color: '#8E8E93', fontWeight: 400 }}>{expanded ? '⌃' : '⌄'}</span>
+                <span aria-hidden="true" style={{ marginLeft: 'auto', color: 'var(--label-tertiary)', fontWeight: 400 }}>{expanded ? '⌃' : '⌄'}</span>
               </button>
               {expanded && <ul style={list}>{asList(a.recommendations).map((r, i) => <li key={i}>{r}</li>)}</ul>}
             </div>
           )}
-          <div style={{ gridColumn: m ? '1' : '1 / -1', textAlign: 'center', color: '#6E6E73', fontSize: 12 }}>
+          <div style={{ gridColumn: m ? '1' : '1 / -1', textAlign: 'center', color: 'var(--label-secondary)', fontSize: 12 }}>
             {analysis.invoiceCount} factures analysées · {new Date(analysis.generatedAt).toLocaleDateString('fr-FR')}
           </div>
         </div>
       )}
 
       {!analysis && !loading && (
-        <div style={{ ...card, textAlign: 'center', color: '#6E6E73', fontSize: 14, padding: 24 }}>
+        <div style={{ ...card, textAlign: 'center', color: 'var(--label-secondary)', fontSize: 14, padding: 24 }}>
           « Analyser Qonto » fait lire vos factures par l&apos;IA : résumé, taux de paiement, principaux clients et recommandations.
         </div>
       )}

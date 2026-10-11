@@ -30,7 +30,7 @@ function PVRowImpl({ pv, onDetail }) {
     >
       <div style={{ flex: '1 1 0', minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2, flexWrap: 'wrap' }}>
-          <span style={{ fontWeight: 700, fontSize: 13, color: '#1C1C1E', whiteSpace: 'nowrap' }}>
+          <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--label)', whiteSpace: 'nowrap' }}>
             {pv.numero}
           </span>
           <span style={{
@@ -47,7 +47,7 @@ function PVRowImpl({ pv, onDetail }) {
           </span>
         </div>
         <div style={{
-          fontSize: 11, color: '#6E6E73',
+          fontSize: 11, color: 'var(--label-secondary)',
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>
           {pv.titre} • {formatDate(pv.date_reception)}

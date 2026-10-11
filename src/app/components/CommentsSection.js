@@ -22,7 +22,7 @@ function formatRelative(dateStr) {
 }
 
 // Palette de couleurs déterministes par nom (stable entre renders)
-const AVATAR_COLORS = ['#007AFF','#34C759','#FF9500','#AF52DE','#FF2D55','#30B0C7','#FF9500','#5856D6']
+const AVATAR_COLORS = ['#007AFF','#34C759','#FF9500','#AF52DE','#FF2D55','#30B0C7','#FF9500','#8944AB']
 function hashColor(name) {
   const s = name || 'x'
   let h = 0
@@ -87,9 +87,9 @@ export default function CommentsSection({
   const sorted = [...comments].sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
 
   return (
-    <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid #E5E5EA' }}>
-      <h4 style={{ margin: '0 0 12px 0', display: 'flex', alignItems: 'center', gap: 8, fontSize: 17, fontWeight: 600, color: '#1C1C1E' }}>
-        <Emoji e={EMOJI.commentaires} tile="#fff" />Commentaires <span style={{ color: '#6E6E73', fontWeight: 500 }}>({comments.length})</span>
+    <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--separator)' }}>
+      <h4 style={{ margin: '0 0 12px 0', display: 'flex', alignItems: 'center', gap: 8, fontSize: 17, fontWeight: 600, color: 'var(--label)' }}>
+        <Emoji e={EMOJI.commentaires} tile="#fff" />Commentaires <span style={{ color: 'var(--label-secondary)', fontWeight: 500 }}>({comments.length})</span>
       </h4>
 
       {/* Liste commentaires */}
@@ -111,7 +111,7 @@ export default function CommentsSection({
               <div
                 key={comment.id}
                 style={{
-                  background: '#F5F5F7',
+                  background: 'var(--row-fill)',
                   borderRadius: 10,
                   padding: 10,
                   marginBottom: 8,
@@ -131,8 +131,8 @@ export default function CommentsSection({
                 }}>{getInitials(comment.author_name)}</div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2, gap: 8 }}>
-                    <strong style={{ color: '#1C1C1E', fontSize: 12 }}>{comment.author_name || 'Anonyme'}</strong>
-                    <span style={{ fontSize: 11, color: '#6E6E73' }}>{formatRelative(comment.created_at)}</span>
+                    <strong style={{ color: 'var(--label)', fontSize: 12 }}>{comment.author_name || 'Anonyme'}</strong>
+                    <span style={{ fontSize: 11, color: 'var(--label-secondary)' }}>{formatRelative(comment.created_at)}</span>
                   </div>
                   <p style={{ margin: '0 0 0 0', color: '#48484A', lineHeight: 1.5, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
                     {comment.content}
@@ -145,9 +145,9 @@ export default function CommentsSection({
                     title="Supprimer"
                     style={{
                       background: '#fff',
-                      border: '1px solid #FFC9C6',
+                      border: '1px solid var(--red-line)',
                       borderRadius: 5,
-                      color: '#D70015',
+                      color: 'var(--red-text)',
                       cursor: 'pointer',
                       fontSize: 11,
                       padding: '3px 6px',
@@ -176,7 +176,7 @@ export default function CommentsSection({
           style={{
             flex: 1,
             padding: 8,
-            border: '1px solid #E5E5EA',
+            border: '1px solid var(--separator)',
             borderRadius: 6,
             fontSize: 12,
             fontFamily: 'inherit',
@@ -189,7 +189,7 @@ export default function CommentsSection({
           onClick={handleSubmit}
           disabled={submitting || !newComment.trim()}
           style={{
-            background: '#0071E3',
+            background: 'var(--accent)',
             color: '#fff',
             border: 'none',
             borderRadius: 8,

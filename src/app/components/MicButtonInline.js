@@ -15,8 +15,8 @@ export default function MicButtonInline({ listening, onClick }) {
         height: 44,
         borderRadius: '50%',
         background: listening
-          ? 'linear-gradient(135deg, #FF3B30, #D70015)'
-          : 'linear-gradient(135deg, #0071E3, #007AFF)',
+          ? 'linear-gradient(135deg, var(--red), var(--red-text))'
+          : 'linear-gradient(135deg, var(--accent), var(--system-blue))',
         border: listening
           ? '2px solid rgba(255,80,80,0.4)'
           : '2px solid rgba(0,255,136,0.2)',
