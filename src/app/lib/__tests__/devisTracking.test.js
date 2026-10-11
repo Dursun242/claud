@@ -67,3 +67,20 @@ describe('ouverture du mail de relance', () => {
     expect(s.events[0]).toEqual({ kind: 'ouverture', created_at: '2026-10-06T06:12:00Z', relance: true })
   })
 })
+
+describe('ouvertures automatiques', () => {
+  // eslint-disable-next-line import/first
+  const { isAutoOpen, summarizeDevisEvents: sum } = require('../devisTracking')
+  const relance = { devis_id: 'd1', kind: 'relance', created_at: '2026-10-01T08:00:00Z' }
+  it('relance ouverte dans les 3 minutes de son envoi : automatique', () => {
+    const auto = { devis_id: 'd1', kind: 'ouverture', detail: { relance: true }, created_at: '2026-10-01T08:01:00Z' }
+    const vraie = { devis_id: 'd1', kind: 'ouverture', detail: { relance: true }, created_at: '2026-10-01T10:00:00Z' }
+    expect(isAutoOpen(auto, [relance, auto])).toBe(true)
+    expect(isAutoOpen(vraie, [relance, vraie])).toBe(false)
+    expect(sum([relance, auto, vraie]).d1.relanceOuvertures).toBe(1)
+  })
+  it('agent de pré-chargement (Apple Mail) : automatique', () => {
+    expect(isAutoOpen({ kind: 'ouverture', user_agent: 'Mozilla/5.0' }, [])).toBe(true)
+    expect(isAutoOpen({ kind: 'consultation', user_agent: 'Mozilla/5.0' }, [])).toBe(false)
+  })
+})

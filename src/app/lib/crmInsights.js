@@ -13,6 +13,7 @@
 // Un devis n'apparaît qu'une fois (son signal le plus fort).
 
 import { isClosed, daysSinceLastInteraction, pipelineStats } from './crm'
+import { clientEvents } from './devisTracking'
 
 const DAY = 86_400_000
 const day = (v) => (v ? String(v).slice(0, 10) : '')
@@ -67,8 +68,10 @@ export function buildCrmInsights(crm = {}, { today = new Date(), contactsById = 
   }
 
   // ─── Signaux ───
+  // Dernière action du client : la relance envoyée par l'équipe, la réponse
+  // notée et les ouvertures automatiques des messageries ne comptent pas
   const lastEvent = new Map()
-  for (const e of events) {
+  for (const e of clientEvents(events)) {
     if (!e?.devis_id || !e.created_at) continue
     const prev = lastEvent.get(e.devis_id)
     if (!prev || String(e.created_at) > String(prev.created_at)) lastEvent.set(e.devis_id, e)
@@ -85,7 +88,8 @@ export function buildCrmInsights(crm = {}, { today = new Date(), contactsById = 
       const ev = lastEvent.get(d.id)
       const evDays = ev ? daysBetween(day(ev.created_at), td) : null
       if (ev && evDays != null && evDays <= HOT_DAYS && d.statut_signature !== 'Signé') {
-        const what = ev.kind === 'ouverture' ? 'mail ouvert' : ev.kind === 'pdf' ? 'PDF téléchargé' : 'devis consulté'
+        const what = ev.kind === 'ouverture' ? (ev.detail?.relance ? 'relance ouverte' : 'mail ouvert')
+          : ev.kind === 'pdf' ? 'PDF téléchargé' : 'devis consulté'
         push({ ...base, kind: 'chaud', days: evDays, event: ev.kind, title: `Devis ${d.numero} : ${what} ${evDays === 0 ? "aujourd'hui" : evDays === 1 ? 'hier' : `il y a ${evDays} j`}`, hint: 'Le client y pense : appelle-le' })
         seenDevis.add(d.id); continue
       }

@@ -63,3 +63,35 @@ describe('buildCrmInsights', () => {
     })
   })
 })
+
+describe('signaux « le client y pense » : seulement les actions du client', () => {
+  const base = { opportunites: [{ id: 'o1', titre: 'Escalier', etape: 'Devis envoyé' }],
+    devis: [{ id: 'd1', numero: 'D-048', statut: 'Envoyé', opportunite_id: 'o1', total_ht: 24400, date_envoi: '2026-09-28' }] }
+  const kinds = (devisEvents) => buildCrmInsights({ ...base, devisEvents }, { today }).items.map(i => i.kind)
+  const title = (devisEvents) => buildCrmInsights({ ...base, devisEvents }, { today }).items[0]?.title
+
+  it('une relance envoyée par l’équipe n’est pas une consultation du client', () => {
+    expect(kinds([{ devis_id: 'd1', kind: 'relance', created_at: '2026-10-01T08:00:00Z' }])).not.toContain('chaud')
+  })
+
+  it('ouverture de la relance juste après son envoi : automatique, ignorée', () => {
+    expect(kinds([
+      { devis_id: 'd1', kind: 'relance', created_at: '2026-10-01T08:00:00Z' },
+      { devis_id: 'd1', kind: 'ouverture', detail: { relance: true }, created_at: '2026-10-01T08:00:40Z' },
+    ])).not.toContain('chaud')
+  })
+
+  it('ouverture de la relance plus tard : signalée comme « relance ouverte »', () => {
+    expect(title([
+      { devis_id: 'd1', kind: 'relance', created_at: '2026-10-01T08:00:00Z' },
+      { devis_id: 'd1', kind: 'ouverture', detail: { relance: true }, created_at: '2026-10-01T14:20:00Z' },
+    ])).toBe("Devis D-048 : relance ouverte aujourd'hui")
+  })
+
+  it('images chargées par Apple Mail ou un antivirus : ignorées', () => {
+    expect(kinds([{ devis_id: 'd1', kind: 'ouverture', user_agent: 'Mozilla/5.0', created_at: '2026-10-01T09:00:00Z' }])).not.toContain('chaud')
+    expect(kinds([{ devis_id: 'd1', kind: 'ouverture', user_agent: 'Mozilla/5.0 (compatible; Barracuda Sentinel)', created_at: '2026-10-01T09:00:00Z' }])).not.toContain('chaud')
+    expect(title([{ devis_id: 'd1', kind: 'ouverture', user_agent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148', created_at: '2026-10-01T09:00:00Z' }]))
+      .toBe("Devis D-048 : mail ouvert aujourd'hui")
+  })
+})
