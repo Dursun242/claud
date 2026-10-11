@@ -39,6 +39,7 @@ export default function ChantierTabs({ value, onChange, tabs = CHANTIER_TABS }) 
             tabIndex={active ? 0 : -1}
             ref={el => { refs.current[t.id] = el }}
             onClick={() => onChange(t.id)}
+            className="u-hit"
             style={{
               flex: '1 1 0', minWidth: 'max-content', minHeight: 36, padding: '6px 8px', border: 'none', borderRadius: 8,
               background: active ? '#fff' : 'transparent',

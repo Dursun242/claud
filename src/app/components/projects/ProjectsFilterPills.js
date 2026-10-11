@@ -1,57 +1,37 @@
 'use client'
 import { memo } from 'react'
 import { phase as phaseColors, status as statusColors } from '../../dashboards/shared'
-import { PROJECT_STATUSES, PROJECT_PHASES, pillStyle, pillDot } from './projectsConstants'
+import { PROJECT_STATUSES, PROJECT_PHASES } from './projectsConstants'
+import FilterPill, { pillRow } from '../FilterPill'
 
-// Deux rangées de pills (statut + phase) pour filtrer la liste des
+const rowLabel = {
+  fontSize: 12, fontWeight: 600, color: '#6E6E73', flexShrink: 0, marginRight: 2,
+}
+
+// Deux rangées de pastilles (statut + phase) pour filtrer la liste des
 // chantiers. Memoïsée : ne re-render que si un filtre actif change.
 function ProjectsFilterPillsImpl({ filterStatut, filterPhase, onStatut, onPhase, m }) {
   return (
     <>
-      {/* Statut */}
-      <div style={{
-        display: 'flex', gap: 6, marginBottom: 8, flexWrap: 'wrap',
-        overflowX: m ? 'auto' : 'visible', paddingBottom: m ? 4 : 0,
-      }}>
-        <span style={{
-          fontSize: 10, fontWeight: 700, color: '#6E6E73',
-          textTransform: 'uppercase', letterSpacing: '0.05em',
-          alignSelf: 'center', marginRight: 4,
-        }}>Statut</span>
-        <button onClick={() => onStatut('')} style={pillStyle(filterStatut === '', '#0071E3')}>
-          <span style={pillDot(filterStatut === '', '#6E6E73')}/>Tous
-        </button>
+      <div role="group" aria-label="Statut" style={{ ...pillRow(m), marginBottom: m ? 0 : 8 }}>
+        <span style={rowLabel}>Statut</span>
+        <FilterPill active={filterStatut === ''} label="Tous" onClick={() => onStatut('')} />
         {PROJECT_STATUSES.map(s => {
           const active = filterStatut === s
-          const color = statusColors[s] || '#0071E3'
           return (
-            <button key={s} onClick={() => onStatut(active ? '' : s)} style={pillStyle(active, color)}>
-              <span style={pillDot(active, color)}/>{s}
-            </button>
+            <FilterPill key={s} active={active} color={statusColors[s]} label={s}
+              onClick={() => onStatut(active ? '' : s)} />
           )
         })}
       </div>
-
-      {/* Phase */}
-      <div style={{
-        display: 'flex', gap: 6, marginBottom: 14, flexWrap: 'wrap',
-        overflowX: m ? 'auto' : 'visible', paddingBottom: m ? 4 : 0,
-      }}>
-        <span style={{
-          fontSize: 10, fontWeight: 700, color: '#6E6E73',
-          textTransform: 'uppercase', letterSpacing: '0.05em',
-          alignSelf: 'center', marginRight: 4,
-        }}>Phase</span>
-        <button onClick={() => onPhase('')} style={pillStyle(filterPhase === '', '#0071E3')}>
-          <span style={pillDot(filterPhase === '', '#6E6E73')}/>Toutes
-        </button>
+      <div role="group" aria-label="Phase" style={pillRow(m)}>
+        <span style={rowLabel}>Phase</span>
+        <FilterPill active={filterPhase === ''} label="Toutes" onClick={() => onPhase('')} />
         {PROJECT_PHASES.map(p => {
           const active = filterPhase === p
-          const color = phaseColors[p] || '#0071E3'
           return (
-            <button key={p} onClick={() => onPhase(active ? '' : p)} style={pillStyle(active, color)}>
-              <span style={pillDot(active, color)}/>{p}
-            </button>
+            <FilterPill key={p} active={active} color={phaseColors[p]} label={p}
+              onClick={() => onPhase(active ? '' : p)} />
           )
         })}
       </div>

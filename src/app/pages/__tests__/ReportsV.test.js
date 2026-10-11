@@ -9,7 +9,9 @@ jest.mock('../../contexts/ConfirmContext', () => ({ useConfirm: () => jest.fn().
 jest.mock('../../dashboards/shared', () => ({
   SB: { deleteCR: jest.fn() },
   fmtDate: (d) => String(d || ''),
-  btnP: {},
+  btnP: {}, btnChip: {},
+  Icon: () => null,
+  I: {},
 }))
 jest.mock('../../components', () => ({ EmptyState: ({ title }) => <div role="status">{title}</div> }))
 jest.mock('../../components/cr/CREditor', () => function CREditor({ open }) {

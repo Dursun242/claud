@@ -12,17 +12,3 @@ export const osStatusColor = {
   "Annulé":    "#FF3B30",
 }
 
-// Style "pastille" pour les boutons d'action sur les cartes OS.
-// Remplace les boutons saturés (rouge/vert/violet plein) par des versions
-// plus douces, plus cohérentes visuellement.
-export const osBtn = (color, bg, border) => ({
-  background: bg,
-  border: `1px solid ${border}`,
-  borderRadius: 6,
-  padding: "4px 10px",
-  cursor: "pointer",
-  fontSize: 11,
-  fontWeight: 600,
-  color,
-  fontFamily: "inherit",
-})

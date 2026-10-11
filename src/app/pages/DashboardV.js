@@ -200,12 +200,12 @@ export default function DashboardV({data,crm=null,ready=true,setTab,m,user,clien
             <Emoji e={EMOJI.chantiers} />Chantiers en cours
           </h2>
           <button
-            onClick={()=>setTab("projects")}
+            onClick={()=>setTab("projects")} className="u-hit"
             style={{
-              fontSize:13, color:"#0066CC", background:"none", minHeight:36,
+              fontSize:15, color:"#0066CC", background:"none", minHeight:36,
               border:"none", cursor:"pointer", fontWeight:600, fontFamily:"inherit"
             }}
-          >Voir tous →</button>
+          >Voir tout</button>
         </div>
         <div style={{
           display:"grid",

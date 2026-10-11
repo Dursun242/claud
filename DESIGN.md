@@ -289,6 +289,14 @@ Choix de l'équipe (octobre 2026) : quelques emoji pour repérer d'un coup d'œi
 - **Lignes dans une carte :** fond `row-fill` / `grouped-background`, coins de 10 px, 44 px minimum, chevron › en `label-tertiary`.
 - **Survol :** `.u-press` (fond gris léger), `.u-press--row` pour les lignes denses.
 
+### Au doigt (terrain)
+- **44 × 44 px minimum au doigt** pour tout ce qui se touche. Sur écran tactile (`pointer: coarse`), `.u-btn`, `.u-icon-btn` et `.u-hit` ajoutent une zone invisible centrée de 44 px autour des petits boutons (pastilles, actions de ligne, cases à cocher rondes) sans changer leur dessin ; à la souris, rien ne change.
+- Boutons pleins et gris (`btnP`, `btnS`) : 44 px ; bouton teinté (`btnAdd`) : 40 px ; actions de ligne (`btnChip`) : 32 px + zone au doigt.
+- Lignes de liste : 56 px de haut, toute la ligne ouvre l'élément.
+- **Recherche des listes :** `components/SearchField.js` (gris iOS, loupe, 36 px ; 44 px et texte 16 px au téléphone pour éviter le zoom de Safari). Listes de tri / filtre assorties (`toolbarSelect`).
+- **Pastilles de filtre :** `components/FilterPill.js` : blanches avec le point de la couleur du statut, bleu plein quand elles sont choisies ; une ligne qui défile au téléphone.
+- **Titres de page :** grand titre 28 px (téléphone) / 32 px, sous-titre 13 px gris.
+
 ### Inputs / Fields
 - **Champ :** fond blanc, trait 1 px `separator-opaque`, coins de 10 px, 44 px, 16 px.
 - **Recherche :** champ gris `fill-gray` sans trait, loupe grise, 36 px.
@@ -296,7 +304,7 @@ Choix de l'équipe (octobre 2026) : quelques emoji pour repérer d'un coup d'œi
 
 ### Navigation
 - **Barre latérale (ordinateur) :** fond `sidebar`, trait à droite ; marque « ID Maîtrise » en titre 20 px ; recherche ; bouton « Créer… » plein ; onglets 15 px avec icône bleue 18 px ; onglet actif en pastille `accent` texte et icône blancs ; Qonto en violet ; compte et « Déconnexion » (bouton gris, texte rouge) en bas.
-- **Téléphone :** en-tête translucide (bouton menu bleu, nom de la page en headline), barre d'onglets translucide (icône active bleue, inactives grises), bouton + rond bleu.
+- **Téléphone :** en-tête translucide (bouton menu bleu, nom de la page en headline), barre d'onglets translucide : Accueil · Chantiers · + · CR · Tâches · Plus (icône active bleue, inactives grises), bouton + rond bleu.
 - **Retour :** lien bleu « ‹ Page » en haut à gauche.
 
 ### Fiche chantier : bandeau et onglets
