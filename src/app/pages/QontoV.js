@@ -405,7 +405,7 @@ export default function QontoV({m, data, reload, crm = null, reloadCrm = null, s
               strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </div>
-        <h3 style={{margin:"0 0 6px",fontSize:17,fontWeight:700}}>Connecter Qonto</h3>
+        <h2 style={{margin:"0 0 6px",fontSize:17,fontWeight:700}}>Connecter Qonto</h2>
         <p style={{margin:"0 0 4px",fontSize:13,color:"#6E6E73"}}>Entrez votre clé API Qonto au format :</p>
         <p style={{
           margin:"0 0 12px",fontSize:13,fontWeight:700,
@@ -414,7 +414,7 @@ export default function QontoV({m, data, reload, crm = null, reloadCrm = null, s
         <p style={{margin:"0 0 16px",fontSize:11,color:"#6E6E73"}}>
           Trouvez-la dans Qonto → Paramètres → Intégrations → API
         </p>
-        <input value={token} onChange={e=>setToken(e.target.value)}
+        <input aria-label="Clé API Qonto" value={token} onChange={e=>setToken(e.target.value)}
           placeholder="exemple: mon-login:xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
           type="password"
           style={{
@@ -743,7 +743,7 @@ export default function QontoV({m, data, reload, crm = null, reloadCrm = null, s
                         {c.email && <div style={{fontSize:11,color:"#6E6E73"}}>{c.email}</div>}
                         {c.phone_number && <div style={{fontSize:11,color:"#6E6E73"}}>{c.phone_number}</div>}
                         {c.billing_address?.street_address && (
-                          <div style={{fontSize:11,color:"#D1D1D6",marginTop:2}}>
+                          <div style={{fontSize:11,color:"#6E6E73",marginTop:2}}>
                             {c.billing_address.street_address}{" "}
                             {c.billing_address.zip_code}{" "}
                             {c.billing_address.city}

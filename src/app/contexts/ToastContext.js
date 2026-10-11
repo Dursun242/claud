@@ -48,8 +48,9 @@ export function ToastProvider({ children }) {
     const opts = typeof optsOrDuration === 'number'
       ? { duration: optsOrDuration }
       : (optsOrDuration || {})
-    const duration = opts.duration ?? 3000
     const action = opts.action || null
+    // Message avec action (« Annuler ») : le temps de lire et de réagir
+    const duration = opts.duration ?? (action ? 7000 : 3000)
 
     const id = Date.now() + Math.random()
     setToasts((prev) => [...prev, { id, message, type, duration, action }])

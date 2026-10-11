@@ -33,7 +33,8 @@ export default function FollowUpList({ followUps, opportunites, contactsById, on
                 <div key={it.id} style={{ cursor: o ? 'pointer' : 'default' }}
                   // Un clic sur la case « faite » (ou son libellé) ne doit pas ouvrir la fiche
                   onClick={(e) => { if (o && !e.target.closest?.('label, input, button')) onOpen(o.id) }}>
-                  <InteractionRow it={it} context={ctx} onToggle={() => onToggle(it)} />
+                  <InteractionRow it={it} context={ctx} onToggle={() => onToggle(it)}
+                    onOpen={o ? () => onOpen(o.id) : null} />
                 </div>
               )
             })}

@@ -77,7 +77,7 @@ export default function EmptyState({
         boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
       }}
     >
-      {icon && <div aria-hidden="true" style={{ display: 'flex', justifyContent: 'center', color: '#8E8E93', marginBottom: 10 }}>{icon}</div>}
+      {icon && <div aria-hidden="true" style={{ display: 'flex', justifyContent: 'center', color: '#6E6E73', marginBottom: 10 }}>{icon}</div>}
       <div style={{
         fontSize: 14, fontWeight: 700, color: '#3A3A3C',
         marginBottom: description ? 6 : 0,

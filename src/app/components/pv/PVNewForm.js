@@ -251,7 +251,7 @@ export default function PVNewForm({ chantierId, chantier, clientContact, ordresS
         </h2>
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <input
+          <input aria-label="Titre du PV"
             type="text"
             placeholder="Titre du PV"
             value={form.titre}
@@ -259,13 +259,13 @@ export default function PVNewForm({ chantierId, chantier, clientContact, ordresS
             style={{ padding: '8px 12px', border: '1px solid #E5E5EA', borderRadius: 6, fontSize: 12, fontFamily: 'inherit' }}
             required
           />
-          <textarea
+          <textarea aria-label="Description"
             placeholder="Description (optionnelle)"
             value={form.description}
             onChange={(e) => setForm({ ...form, description: e.target.value })}
             style={{ padding: '8px 12px', border: '1px solid #E5E5EA', borderRadius: 6, fontSize: 12, fontFamily: 'inherit', minHeight: 60, resize: 'vertical' }}
           />
-          <input
+          <input aria-label="Date de réception"
             type="date"
             value={form.dateReception}
             onChange={(e) => setForm({ ...form, dateReception: e.target.value })}
@@ -331,7 +331,7 @@ export default function PVNewForm({ chantierId, chantier, clientContact, ordresS
             <label style={{ display: 'block', fontSize: 11, color: '#6E6E73', marginBottom: 4, fontWeight: 600 }}>
               Email MOE (Maître d&apos;œuvre) {form.signataireMoeEmail ? '✓' : ''}
             </label>
-            <input
+            <input aria-label="Email MOE (maître d’œuvre)"
               type="email"
               value={form.signataireMoeEmail}
               onChange={(e) => setForm({ ...form, signataireMoeEmail: e.target.value })}
@@ -345,7 +345,7 @@ export default function PVNewForm({ chantierId, chantier, clientContact, ordresS
             </label>
             {form.signataireMotEmails.map((email, idx) => (
               <div key={idx} style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'center' }}>
-                <input
+                <input aria-label={`Email entreprise ${idx + 1}`}
                   type="email"
                   value={email}
                   onChange={(e) => {
@@ -358,7 +358,7 @@ export default function PVNewForm({ chantierId, chantier, clientContact, ordresS
                   required={idx === 0}
                 />
                 {form.signataireMotEmails.length > 1 && (
-                  <button
+                  <button aria-label={`Retirer l’email ${idx + 1}`}
                     type="button"
                     onClick={() => setForm({ ...form, signataireMotEmails: form.signataireMotEmails.filter((_, i) => i !== idx) })}
                     style={{
@@ -427,7 +427,7 @@ export default function PVNewForm({ chantierId, chantier, clientContact, ordresS
 
             {/* Motif refus */}
             {form.decision === 'Refusé' && (
-              <textarea
+              <textarea aria-label="Motif du refus"
                 placeholder="Motif du refus..."
                 value={form.motifRefus}
                 onChange={(e) => setForm({ ...form, motifRefus: e.target.value })}
@@ -456,7 +456,7 @@ export default function PVNewForm({ chantierId, chantier, clientContact, ordresS
                     <div style={{ minWidth: 50, fontSize: 11, fontWeight: 600, color: '#6E6E73', paddingTop: 9 }}>
                       Ligne {idx + 1}:
                     </div>
-                    <textarea
+                    <textarea aria-label={`Réserve, ligne ${idx + 1}`}
                       value={reserve}
                       onChange={(e) => {
                         const reserves = Array.isArray(form.reservesAcceptation) ? [...form.reservesAcceptation] : [form.reservesAcceptation || '']
@@ -476,7 +476,7 @@ export default function PVNewForm({ chantierId, chantier, clientContact, ordresS
                       }}
                     />
                     {(Array.isArray(form.reservesAcceptation) ? form.reservesAcceptation : [form.reservesAcceptation || '']).length > 1 && (
-                      <button
+                      <button aria-label={`Retirer la réserve ${idx + 1}`}
                         type="button"
                         onClick={() => {
                           const reserves = Array.isArray(form.reservesAcceptation) ? form.reservesAcceptation : [form.reservesAcceptation || '']
@@ -592,8 +592,9 @@ export default function PVNewForm({ chantierId, chantier, clientContact, ordresS
           alignItems: 'center',
           justifyContent: 'center',
           zIndex: 2000
-        }} onClick={() => setShowPreview(false)}>
-          <div style={{
+        }} onClick={() => setShowPreview(false)}
+          onKeyDown={(e) => { if (e.key === 'Escape') setShowPreview(false) }}>
+          <div role="dialog" aria-modal="true" aria-label="Aperçu du PV" style={{
             background: '#fff',
             borderRadius: 12,
             width: '90%',
@@ -605,7 +606,7 @@ export default function PVNewForm({ chantierId, chantier, clientContact, ordresS
           }} onClick={(e) => e.stopPropagation()}>
             <div style={{ padding: 16, borderBottom: '1px solid #E5E5EA', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>Aperçu du PV</h3>
-              <button onClick={() => setShowPreview(false)} aria-label="Fermer l'aperçu" style={{ background: 'none', border: 'none', fontSize: 24, cursor: 'pointer', color: '#6E6E73' }}>×</button>
+              <button autoFocus onClick={() => setShowPreview(false)} aria-label="Fermer l'aperçu" style={{ background: 'none', border: 'none', fontSize: 24, cursor: 'pointer', color: '#6E6E73' }}>×</button>
             </div>
             <iframe
               title="Aperçu PV"

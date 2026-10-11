@@ -164,7 +164,7 @@ export default function CommentsSection({
 
       {/* Ajout commentaire */}
       <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
-        <textarea
+        <textarea aria-label="Nouveau commentaire"
           value={newComment}
           onChange={(e) => setNewComment(e.target.value)}
           onKeyDown={(e) => {

@@ -450,16 +450,16 @@ export default function ClientDashboard({ user, profile = null }) {
           zIndex:5000, display:'flex', alignItems:'center', justifyContent:'center', padding:16,
           animation:'fadeIn .15s ease'
         }}>
-          <div onClick={e => e.stopPropagation()} style={{
+          <div onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="aide-clavier-client" style={{
             background:'#fff', borderRadius:14, boxShadow:'0 20px 60px rgba(0,0,0,0.3)',
             width:'100%', maxWidth:420, padding:'20px 24px 22px', fontFamily:"var(--font-dm-sans), sans-serif"
           }}>
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14 }}>
               <div>
-                <div style={{ fontSize:16, fontWeight:700, color:'#1C1C1E' }}>Raccourcis clavier</div>
+                <div id="aide-clavier-client" style={{ fontSize:16, fontWeight:700, color:'#1C1C1E' }}>Raccourcis clavier</div>
                 <div style={{ fontSize:11, color:'#6E6E73', marginTop:2 }}>Naviguer plus vite dans l&apos;app</div>
               </div>
-              <button onClick={() => setHelpOpen(false)} aria-label="Fermer"
+              <button autoFocus onClick={() => setHelpOpen(false)} aria-label="Fermer"
                 style={{
                   background:'#F2F2F7', border:'none', width:28, height:28,
                   borderRadius:6, cursor:'pointer', color:'#6E6E73', fontSize:16

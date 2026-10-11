@@ -202,7 +202,7 @@ export default function CREditor({ open, initial, data, onClose, onSaved, lockCh
       style={{ display: 'flex', gap: 6, marginTop: 8 }}>
       <input value={newLot} onChange={e => setNewLot(e.target.value)} placeholder="Ajouter un lot…" aria-label="Nom du lot à ajouter"
         style={{ ...field, minHeight: 36, fontSize: 13 }} />
-      <button type="submit" disabled={!newLot.trim()} style={{ ...ghostBtn(), padding: '6px 10px' }}>+</button>
+      <button aria-label="Ajouter le lot" type="submit" disabled={!newLot.trim()} style={{ ...ghostBtn(), padding: '6px 10px' }}>+</button>
     </form>
   )
 

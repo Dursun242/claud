@@ -384,7 +384,7 @@ export default function ContactFormModal({
         <FF label="Note (étoiles)">
           <div style={{ display: 'flex', gap: 4 }}>
             {[1, 2, 3, 4, 5].map((n) => (
-              <button key={n}
+              <button type="button" aria-label={`${n} étoile${n > 1 ? 's' : ''}`} aria-pressed={n <= (form.note || 0)} key={n}
                 onClick={() => setForm({ ...form, note: form.note === n ? 0 : n })}
                 style={{
                   background: 'none', border: 'none', cursor: 'pointer',

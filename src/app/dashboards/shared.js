@@ -793,8 +793,17 @@ export const pct = (a,b) => b ? Math.round(a/b*100) : 0;
 const FF_FIELDS = new Set(['input', 'select', 'textarea'])
 export function FF({label, hint, error, required, children}) {
   const autoId = useId();
-  const field = isValidElement(children) && FF_FIELDS.has(children.type) ? children : null;
-  const fieldId = field ? (field.props.id || autoId) : undefined;
+  const native = isValidElement(children) && FF_FIELDS.has(children.type) ? children : null;
+  // Composant de saisie qui transmet `inputProps` à son champ (AddressPicker…)
+  const custom = !native && isValidElement(children) && children.type?.acceptsInputProps ? children : null;
+  const fieldId = native ? (native.props.id || autoId) : custom ? (custom.props.inputProps?.id || autoId) : undefined;
+  const errorId = error && fieldId ? `${fieldId}-erreur` : undefined;
+  const a11y = { 'aria-invalid': error ? true : undefined, 'aria-describedby': errorId };
+  const control = native
+    ? cloneElement(native, { id: fieldId, ...a11y })
+    : custom
+      ? cloneElement(custom, { inputProps: { ...custom.props.inputProps, id: fieldId, ...a11y } })
+      : children;
   return (
     <div style={{marginBottom:12}}>
       <label htmlFor={fieldId} style={{
@@ -804,9 +813,9 @@ export function FF({label, hint, error, required, children}) {
         {label}
         {required && <span aria-hidden="true" style={{color:"#D70015", marginLeft:3}}>*</span>}
       </label>
-      {field && !field.props.id ? cloneElement(field, { id: fieldId }) : children}
+      {control}
       {error && (
-        <div role="alert" style={{
+        <div role="alert" id={errorId} style={{
           fontSize:11, color:"#D70015", marginTop:4, fontWeight:500,
           display:"flex", alignItems:"center", gap:4,
         }}>

@@ -19,7 +19,7 @@ import { useToast } from '../../contexts/ToastContext'
 
 const TABS = [['plans', '📐 Depuis les plans'], ['ia', '✨ Depuis une description'], ['import', '📋 Importer'], ['manuel', '✏️ À la main']]
 const small = { minHeight: 38, padding: '7px 9px', fontSize: 14 }
-const xBtn = { background: 'none', border: 'none', cursor: 'pointer', color: '#8E8E93', fontSize: 14, padding: '4px 6px', fontFamily: 'inherit' }
+const xBtn = { background: 'none', border: 'none', cursor: 'pointer', color: '#6E6E73', fontSize: 14, padding: '4px 6px', fontFamily: 'inherit' }
 
 const post = async (body) => (await apiPost('/api/chiffrage/ia', body)).data
 
