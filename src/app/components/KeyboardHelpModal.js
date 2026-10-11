@@ -51,7 +51,7 @@ export default function KeyboardHelpModal({ open, onClose, tabs = [] }) {
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           {/* Raccourcis globaux */}
           <div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#6E6E73", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6 }}>Global</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "#6E6E73", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6 }}>Global</div>
             {[
               { k: ["Ctrl", "K"], label: "Recherche globale" },
               { k: ["/"],         label: "Focus la recherche" },
@@ -69,7 +69,7 @@ export default function KeyboardHelpModal({ open, onClose, tabs = [] }) {
 
           {/* Aller à (g + lettre) */}
           <div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#6E6E73", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "#6E6E73", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6 }}>
               Aller à (appuie sur <kbd style={KBD}>g</kbd> puis…)
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: "4px 16px" }}>

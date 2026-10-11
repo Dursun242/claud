@@ -81,13 +81,13 @@ export default function OSFormModal({
       {/* ── IMPORT DEVIS PAR PHOTO (visible uniquement en création) ── */}
       {modal === 'new' && (
         <div style={{
-          background: '#EFEFFC', border: '1.5px solid #D3D2F7',
+          background: '#F7F0FC', border: '1.5px solid #E7D4F5',
           borderRadius: 10, padding: '12px 14px', marginBottom: 12
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, flexWrap: 'wrap' }}>
             <span style={{ fontSize: 15 }}>📸</span>
-            <span style={{ fontSize: 12, fontWeight: 700, color: '#4744B8' }}>Import devis par photo ou capture</span>
-            <span style={{ fontSize: 10, color: '#8E8CE8', width: '100%' }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: '#8944AB' }}>Import devis par photo ou capture</span>
+            <span style={{ fontSize: 11, color: '#8944AB', width: '100%' }}>
               Photo d&apos;un devis, facture, bon de commande ou screenshot PDF
             </span>
           </div>
@@ -98,7 +98,7 @@ export default function OSFormModal({
               width: '100%',
               padding: '10px 14px',
               borderRadius: 8,
-              border: '1.5px dashed #B4B3F0',
+              border: '1.5px dashed #E7D4F5',
               background: '#fff',
               color: '#5856D6',
               fontSize: 13,
@@ -116,13 +116,13 @@ export default function OSFormModal({
               <>
                 <span style={{
                   display: 'inline-block', width: 12, height: 12,
-                  border: '2px solid #D3D2F7', borderTopColor: '#5856D6',
+                  border: '2px solid #E7D4F5', borderTopColor: '#5856D6',
                   borderRadius: '50%', animation: 'spin 0.8s linear infinite'
                 }}/>
                 Extraction en cours…
               </>
             ) : (
-              <>📷 Choisir une photo ou capture</>
+              <>Choisir une photo ou capture</>
             )}
           </button>
           {importError && (
@@ -215,7 +215,7 @@ export default function OSFormModal({
       <label style={{
         display: 'flex', alignItems: 'flex-start', gap: 8,
         background: tvaNA ? '#FFF7E8' : '#F5F5F7',
-        border: `1px solid ${tvaNA ? '#FFCC66' : '#E5E5EA'}`,
+        border: `1px solid ${tvaNA ? '#FFDDA6' : '#E5E5EA'}`,
         borderRadius: 8, padding: '8px 12px', marginTop: 12, marginBottom: 8,
         cursor: 'pointer', fontSize: 12,
       }}>

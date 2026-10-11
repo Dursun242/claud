@@ -338,7 +338,7 @@ export default function ClientDashboard({ user, profile = null }) {
           {/* Aucun chantier associé */}
           {!data?.chantiers?.length && (
             <div style={{
-              background:'#FFF4E8', border:'1px solid #FFD8B0',
+              background:'#FFF7E8', border:'1px solid #FFDDA6',
               borderRadius:14, padding:28, marginBottom:20, textAlign:'center'
             }}>
               <div style={{ fontSize:32, marginBottom:8 }}>🔗</div>
@@ -466,7 +466,7 @@ export default function ClientDashboard({ user, profile = null }) {
                 }}>×</button>
             </div>
             <div style={{
-              fontSize:10, fontWeight:700, color:'#6E6E73',
+              fontSize:11, fontWeight:700, color:'#6E6E73',
               letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:6
             }}>
               Aller à (appuie sur <kbd style={kbdStyleC}>g</kbd> puis…)
@@ -480,7 +480,7 @@ export default function ClientDashboard({ user, profile = null }) {
                 <kbd style={kbdStyleC}>{t.sc}</kbd>
               </div>
             ))}
-            <div style={{ fontSize:10, color:'#6E6E73', marginTop:10, borderTop:'1px solid #E5E5EA', paddingTop:10 }}>
+            <div style={{ fontSize:11, color:'#6E6E73', marginTop:10, borderTop:'1px solid #E5E5EA', paddingTop:10 }}>
               Appuie sur <kbd style={kbdStyleC}>?</kbd> à tout moment pour réouvrir
               cette aide · <kbd style={kbdStyleC}>Esc</kbd> pour fermer
             </div>

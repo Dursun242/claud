@@ -16,7 +16,7 @@ import { useToast } from '../../contexts/ToastContext'
 
 const small = { ...inp, minHeight: 38, padding: '7px 9px', fontSize: 14 }
 const iconBtn = { background: 'none', border: 'none', cursor: 'pointer', color: '#8E8E93', fontSize: 14, padding: '4px 6px', fontFamily: 'inherit' }
-const label = { display: 'block', fontSize: 10, fontWeight: 600, color: '#6E6E73', textTransform: 'uppercase', marginBottom: 3 }
+const label = { display: 'block', fontSize: 11, fontWeight: 600, color: '#6E6E73', textTransform: 'uppercase', marginBottom: 3 }
 const box = { border: '1px solid #E5E5EA', borderRadius: 10, padding: 10, marginBottom: 10 }
 
 const str = (v) => (v == null ? '' : String(v).replace('.', ','))
@@ -177,7 +177,7 @@ export default function ChiffrageEditor({ open, initial, chantier, refs = [], on
                   {r && (
                     <button type="button" disabled={sameRef} onClick={() => setPoste(l.id, p.id, { pu_ht: str(r.pu_ht), verrou: true })}
                       title={`Prix payé dans ${r.nb} OS${r.metier ? ` (${r.metier})` : ''}${r.nb > 1 && r.min !== r.max ? ` · ${r.min}–${r.max} €` : ''}${sameRef ? '' : ' — cliquer pour l’appliquer'}`}
-                      style={{ fontSize: 10, fontWeight: 700, borderRadius: 10, padding: '2px 7px', fontFamily: 'inherit', cursor: sameRef ? 'default' : 'pointer',
+                      style={{ fontSize: 11, fontWeight: 700, borderRadius: 10, padding: '2px 7px', fontFamily: 'inherit', cursor: sameRef ? 'default' : 'pointer',
                         border: `1px solid ${sameRef ? '#BFE9CA' : '#FFDDA6'}`, background: sameRef ? '#EAF8EE' : '#FFF7E8', color: sameRef ? '#1E7B34' : '#A0390C' }}>
                       OS {str(r.pu_ht)} €{r.nb > 1 ? ` ×${r.nb}` : ''}
                     </button>
@@ -186,7 +186,7 @@ export default function ChiffrageEditor({ open, initial, chantier, refs = [], on
                 </div>
               )
             })}
-            <button onClick={() => addPoste(l.id)} style={{ ...iconBtn, color: '#0077B6', fontWeight: 700, fontSize: 12, paddingLeft: 40 }}>+ Poste</button>
+            <button onClick={() => addPoste(l.id)} style={{ ...iconBtn, color: '#0066CC', fontWeight: 700, fontSize: 12, paddingLeft: 40 }}>+ Poste</button>
           </div>
         )
       })}

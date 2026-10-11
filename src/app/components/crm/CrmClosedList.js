@@ -58,8 +58,8 @@ export default function CrmClosedList({ kind = 'won', list, contactsById, chanti
         return (
           <button type="button" key={o.id} onClick={() => onOpen(o.id)} style={{
             display: 'flex', alignItems: 'center', gap: 10, background: '#fff', borderRadius: 10, textAlign: 'left',
-            padding: '10px 14px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', cursor: 'pointer', fontFamily: 'inherit',
-            border: 'none', borderLeft: `3px solid ${k.color}`, minWidth: 0, width: '100%',
+            padding: '10px 14px', minHeight: 56, cursor: 'pointer', fontFamily: 'inherit',
+            border: '1px solid #E5E5EA', minWidth: 0, width: '100%',
           }}>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 13, fontWeight: 600, color: '#1C1C1E', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.titre}</div>

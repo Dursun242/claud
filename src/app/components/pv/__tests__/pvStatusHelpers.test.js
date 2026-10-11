@@ -20,7 +20,7 @@ describe('formatDate', () => {
 describe('statusColor', () => {
   it('renvoie un vert pour "Signé"', () => {
     expect(statusColor('Signé')).toEqual({
-      bg: '#EAF8EE', color: '#248A3D', icon: '✓',
+      bg: '#EAF8EE', color: '#1E7B34', icon: '✓',
     })
   })
 

@@ -11,7 +11,7 @@ export default function LegalBadge({ check, always = false, onClick }) {
   const text = check.statut === 'critique' ? '⚠ Fermée / liquidation' : check.statut === 'alerte' ? '⚠ Procédure collective' : meta.label
   const style = {
     display: 'inline-flex', alignItems: 'center', gap: 4, background: meta.bg, color: meta.color,
-    border: `1px solid ${meta.border}`, borderRadius: 999, padding: '2px 9px', fontSize: 10, fontWeight: 800,
+    border: `1px solid ${meta.border}`, borderRadius: 999, padding: '2px 9px', fontSize: 11, fontWeight: 800,
     fontFamily: 'inherit', whiteSpace: 'nowrap',
   }
   return onClick

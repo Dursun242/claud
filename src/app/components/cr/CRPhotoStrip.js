@@ -47,7 +47,7 @@ export default function CRPhotoStrip({ photos = [], onChange, label = 'Photo' })
             <div style={{ position: 'relative', width: 108, height: 80, borderRadius: 8, overflow: 'hidden', background: '#E5E5EA' }}>
               {/* eslint-disable-next-line @next/next/no-img-element -- dataUrl locale ou URL signée à durée courte */}
               {src && <img src={src} alt={p.legende || `Photo ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
-              {!p.path && <span title="Pas encore envoyée" style={{ position: 'absolute', left: 4, top: 4, fontSize: 9, fontWeight: 700, background: '#FFF0D6', color: '#A0390C', borderRadius: 4, padding: '1px 4px' }}>local</span>}
+              {!p.path && <span title="Pas encore envoyée" style={{ position: 'absolute', left: 4, top: 4, fontSize: 11, fontWeight: 700, background: '#FFF7E8', color: '#A0390C', borderRadius: 4, padding: '1px 4px' }}>local</span>}
               <button type="button" aria-label={`Retirer la photo ${i + 1}`}
                 onClick={() => onChange(photos.filter((_, j) => j !== i))}
                 style={{ position: 'absolute', right: 3, top: 3, width: 24, height: 24, borderRadius: '50%', border: 'none', background: 'rgba(0,0,0,.65)', color: '#fff', cursor: 'pointer', fontSize: 13, lineHeight: 1 }}>✕</button>

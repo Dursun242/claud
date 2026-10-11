@@ -13,30 +13,30 @@ import { useConfirm } from '../contexts/ConfirmContext'
 const ACTION_STYLES = {
   login:           { bg: '#EAF8EE', color: '#1E7B34', border: '#BFE9CA', label: 'Connexion' },
   logout:          { bg: '#F2F2F7', color: '#48484A', border: '#D1D1D6', label: 'Déconnexion' },
-  access_denied:   { bg: '#FFE3E1', color: '#A50011', border: '#FF9F99', label: 'Accès refusé' },
+  access_denied:   { bg: '#FFE3E1', color: '#D70015', border: '#FFC9C6', label: 'Accès refusé' },
   session_expired: { bg: '#FFF7E8', color: '#A0390C', border: '#FFDDA6', label: 'Session expirée' },
   create:          { bg: '#EAF3FF', color: '#0066CC', border: '#C6DDF7', label: 'Création' },
-  update:          { bg: '#FFF0D6', color: '#A0390C', border: '#FFDDA6', label: 'Modification' },
+  update:          { bg: '#FFF7E8', color: '#A0390C', border: '#FFDDA6', label: 'Modification' },
   delete:          { bg: '#FFF0EF', color: '#D70015', border: '#FFC9C6', label: 'Suppression' },
   duplicate:       { bg: '#F7F0FC', color: '#8944AB', border: '#E7D4F5', label: 'Duplication' },
-  generate_pdf:    { bg: '#FDF4FF', color: '#A21CAF', border: '#F5D0FE', label: 'Génération PDF' },
-  generate_excel:  { bg: '#ECFEFF', color: '#0E7490', border: '#A5F3FC', label: 'Génération Excel' },
-  view:            { bg: '#F0F8FC', color: '#0071A4', border: '#BDE6F7', label: 'Consultation' },
-  view_attachment: { bg: '#F0F8FC', color: '#0071A4', border: '#BDE6F7', label: 'Consultation PJ' },
+  generate_pdf:    { bg: '#FDF4FF', color: '#8944AB', border: '#E7D4F5', label: 'Génération PDF' },
+  generate_excel:  { bg: '#ECFEFF', color: '#0066CC', border: '#A5F3FC', label: 'Génération Excel' },
+  view:            { bg: '#F0F8FC', color: '#0066CC', border: '#C6DDF7', label: 'Consultation' },
+  view_attachment: { bg: '#F0F8FC', color: '#0066CC', border: '#C6DDF7', label: 'Consultation PJ' },
   view_sign_request:{ bg: '#F7F0FC', color: '#8944AB', border: '#E7D4F5', label: 'Consultation signature' },
   odoo_sign_send:  { bg: '#F7F0FC', color: '#8944AB', border: '#E7D4F5', label: 'Envoi signature' },
   odoo_sign_reset: { bg: '#F5F5F7', color: '#48484A', border: '#D1D1D6', label: 'Reset signature' },
   send_email:      { bg: '#EAF3FF', color: '#0066CC', border: '#C6DDF7', label: 'Envoi email' },
-  contact_tap:     { bg: '#F0FDFA', color: '#0F6E7E', border: '#99F6E4', label: 'Appel/Email contact' },
+  contact_tap:     { bg: '#EAF3FF', color: '#0066CC', border: '#BFE9CA', label: 'Appel/Email contact' },
   copy:            { bg: '#F5F5F7', color: '#48484A', border: '#D1D1D6', label: 'Copie presse-papier' },
-  search_pappers:  { bg: '#FFF4E8', color: '#9A3412', border: '#FFD8B0', label: 'Recherche Pappers' },
-  search_entreprise: { bg: '#FFF4E8', color: '#9A3412', border: '#FFD8B0', label: 'Recherche entreprise' },
-  import_photo:    { bg: '#FDF2F8', color: '#9D174D', border: '#FBCFE8', label: 'Import par photo' },
-  ai_action:       { bg: '#F0FDFA', color: '#0F6E7E', border: '#99F6E4', label: 'Action IA' },
+  search_pappers:  { bg: '#FFF7E8', color: '#9A3412', border: '#FFDDA6', label: 'Recherche Pappers' },
+  search_entreprise: { bg: '#FFF7E8', color: '#9A3412', border: '#FFDDA6', label: 'Recherche entreprise' },
+  import_photo:    { bg: '#FDF2F8', color: '#D70015', border: '#FFC9C6', label: 'Import par photo' },
+  ai_action:       { bg: '#EAF3FF', color: '#0066CC', border: '#BFE9CA', label: 'Action IA' },
   seed:            { bg: '#F2F2F7', color: '#48484A', border: '#D1D1D6', label: 'Initialisation' },
-  export_csv:      { bg: '#F7F0FC', color: '#6E3591', border: '#E7D4F5', label: 'Export CSV' },
+  export_csv:      { bg: '#F7F0FC', color: '#8944AB', border: '#E7D4F5', label: 'Export CSV' },
   convert:         { bg: '#EAF8EE', color: '#1E7B34', border: '#BFE9CA', label: 'Conversion en chantier' },
-  merge:           { bg: '#FFF4E8', color: '#9A3412', border: '#FFD8B0', label: 'Fusion de doublons' },
+  merge:           { bg: '#FFF7E8', color: '#9A3412', border: '#FFDDA6', label: 'Fusion de doublons' },
 }
 const ENTITY_LABELS = {
   chantier:     'Chantier',
@@ -263,7 +263,7 @@ export default function LogsV({ m, profile, embedded = false }) {
       }}>
         <div>
           {!embedded && (
-            <h1 style={{ margin: 0, fontSize: m ? 18 : 24, fontWeight: 700 }}>📋 Journal d&apos;activité</h1>
+            <h1 style={{margin:0,fontSize:m?28:32,fontWeight:700,letterSpacing:"-0.02em",color:"#1C1C1E"}}>Journal d&apos;activité</h1>
           )}
           <div style={{ fontSize: 11, color: "#6E6E73", marginTop: embedded ? 0 : 2 }}>
             {embedded
@@ -280,17 +280,17 @@ export default function LogsV({ m, profile, embedded = false }) {
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <button onClick={() => load({ append: false })} disabled={loading}
             title="Actualiser" style={{ ...btnS, fontSize: 12 }}>
-            {loading ? '⏳ Chargement…' : '↻ Actualiser'}
+            {loading ? '⏳ Chargement…' : 'Actualiser'}
           </button>
           <button onClick={exportCsv} disabled={exporting || logs.length === 0}
             title="Exporter TOUT le journal filtré en CSV"
             style={{ ...btnS, fontSize: 12 }}>
-            {exporting ? '⏳ Export…' : '⬇ Export CSV'}
+            {exporting ? '⏳ Export…' : 'Export CSV'}
           </button>
           <button onClick={handlePurge} disabled={purging}
             title="Supprimer les entrées de plus de 90 jours"
             style={{ ...btnS, fontSize: 12, color: '#D70015' }}>
-            {purging ? '⏳ Purge…' : '🧹 Purger > 90j'}
+            {purging ? '⏳ Purge…' : 'Purger > 90j'}
           </button>
         </div>
       </div>
@@ -309,19 +309,19 @@ export default function LogsV({ m, profile, embedded = false }) {
             style={{ ...inp, fontSize: 13 }}
           />
           <select value={userFilter} onChange={e => setUserFilter(e.target.value)} style={{ ...sel, fontSize: 12 }}>
-            <option value="">👥 Tous les utilisateurs</option>
+            <option value="">Tous les utilisateurs</option>
             {userOptions.map(u => (
               <option key={u.email} value={u.email}>{u.prenom || u.email} ({u.email})</option>
             ))}
           </select>
           <select value={actionFilter} onChange={e => setActionFilter(e.target.value)} style={{ ...sel, fontSize: 12 }}>
-            <option value="">⚡ Toutes les actions</option>
+            <option value="">Toutes les actions</option>
             {Object.entries(ACTION_STYLES).map(([k, v]) => (
               <option key={k} value={k}>{v.label}</option>
             ))}
           </select>
           <select value={entityFilter} onChange={e => setEntityFilter(e.target.value)} style={{ ...sel, fontSize: 12 }}>
-            <option value="">📂 Tous les types</option>
+            <option value="">Tous les types</option>
             {Object.entries(ENTITY_LABELS).map(([k, v]) => (
               <option key={k} value={k}>{v}</option>
             ))}
@@ -398,8 +398,7 @@ export default function LogsV({ m, profile, embedded = false }) {
             return (
               <div key={l.id} style={{
                 background: '#fff', borderRadius: 10, padding: 12,
-                boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-                borderLeft: `4px solid ${a.color}`
+                border: '1px solid #E5E5EA'
               }}>
                 <div style={{
                   display: 'flex', justifyContent: 'space-between',
@@ -408,11 +407,11 @@ export default function LogsV({ m, profile, embedded = false }) {
                   <span style={{
                     background: a.bg, color: a.color,
                     border: `1px solid ${a.border}`, borderRadius: 5,
-                    padding: '2px 8px', fontSize: 10, fontWeight: 700
+                    padding: '2px 8px', fontSize: 11, fontWeight: 700
                   }}>
                     {a.label}
                   </span>
-                  <span style={{ fontSize: 10, color: '#6E6E73' }}>{formatWhen(l.created_at)}</span>
+                  <span style={{ fontSize: 11, color: '#6E6E73' }}>{formatWhen(l.created_at)}</span>
                 </div>
                 <div style={{ fontSize: 13, fontWeight: 600, color: '#1C1C1E', marginBottom: 2 }}>
                   {l.user_prenom || '—'}{' '}
@@ -429,7 +428,7 @@ export default function LogsV({ m, profile, embedded = false }) {
                     <button onClick={() => toggleExpanded(l.id)}
                       style={{
                         marginTop: 6, background: 'none', border: 'none',
-                        color: '#6E6E73', fontSize: 10, cursor: 'pointer',
+                        color: '#6E6E73', fontSize: 11, cursor: 'pointer',
                         padding: 0, fontFamily: 'inherit', textDecoration: 'underline'
                       }}>
                       {isOpen ? '▾ Masquer les détails' : '▸ Afficher les détails'}
@@ -504,7 +503,7 @@ export default function LogsV({ m, profile, embedded = false }) {
                             {src === 'ai' && <span style={sourceBadge}>🤖 IA</span>}
                             {src === 'duplicate' && <span style={sourceBadge}>📋 Copie</span>}
                             {hasMeta && (
-                              <span style={{ fontSize: 10, color: '#6E6E73' }}>
+                              <span style={{ fontSize: 11, color: '#6E6E73' }}>
                                 {isOpen ? '▾' : '▸'}
                               </span>
                             )}
@@ -516,7 +515,7 @@ export default function LogsV({ m, profile, embedded = false }) {
                           <td colSpan={5} style={{ padding: '10px 14px' }}>
                             <pre style={metaStyle}>{JSON.stringify(l.metadata, null, 2)}</pre>
                             {l.user_agent && (
-                              <div style={{ fontSize: 10, color: '#6E6E73', marginTop: 4 }}>
+                              <div style={{ fontSize: 11, color: '#6E6E73', marginTop: 4 }}>
                                 Appareil : {l.user_agent}
                               </div>
                             )}
@@ -555,9 +554,9 @@ const thStyle = { padding: '10px 14px', fontWeight: 700 }
 const tdStyle = { padding: '10px 14px', verticalAlign: 'top' }
 const sourceBadge = {
   display: 'inline-flex', alignItems: 'center', gap: 3,
-  padding: '1px 6px', borderRadius: 4, background: '#F0FDFA',
-  border: '1px solid #99F6E4', color: '#0F6E7E',
-  fontSize: 10, fontWeight: 700, whiteSpace: 'nowrap',
+  padding: '1px 6px', borderRadius: 4, background: '#EAF3FF',
+  border: '1px solid #BFE9CA', color: '#0066CC',
+  fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap',
 }
 const metaStyle = {
   fontSize: 11, color: '#3A3A3C',

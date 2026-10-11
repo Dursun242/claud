@@ -244,7 +244,7 @@ export function LoginPage() {
 
       <div style={{
         background: '#fff', borderRadius: 24, padding: '48px 40px', maxWidth: 420, width: '100%',
-        boxShadow: '0 25px 80px rgba(0,0,0,0.4)', animation: 'fadeInUp 0.5s cubic-bezier(.2, 0, 0, 1.2)', textAlign: 'center',
+        boxShadow: '0 25px 80px rgba(0,0,0,0.4)', animation: 'fadeInUp 0.5s cubic-bezier(.22, 1, .36, 1)', textAlign: 'center',
         position: 'relative', zIndex: 1,
       }}>
         <div style={{
@@ -270,11 +270,11 @@ export function LoginPage() {
             <div style={{ fontWeight: 700, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
               <span>🔒</span> Accès refusé
             </div>
-            <div style={{ fontSize: 12, color: '#A50011', lineHeight: 1.5 }}>
+            <div style={{ fontSize: 12, color: '#D70015', lineHeight: 1.5 }}>
               Votre compte Google n&apos;est pas autorisé pour le moment.<br/>
               Contactez-nous à{' '}
               <a href="mailto:contact@id-maitrise.com"
-                style={{ color: '#7C2D12', fontWeight: 600 }}>
+                style={{ color: '#A0390C', fontWeight: 600 }}>
                 contact@id-maitrise.com</a>.
             </div>
           </div>
@@ -345,7 +345,7 @@ export function LoginPage() {
 
         <div style={{
           margin: '16px 0 0',
-          background: 'linear-gradient(135deg, #EAF3FF 0%, #EEF9F1 100%)',
+          background: 'linear-gradient(135deg, #EAF3FF 0%, #EAF8EE 100%)',
           border: '1.5px solid #C6DDF7',
           borderRadius: 10,
           padding: '12px 14px',
@@ -362,7 +362,7 @@ export function LoginPage() {
         </div>
 
         <div style={{ marginTop: 32, paddingTop: 20, borderTop: '1px solid #F2F2F7' }}>
-          <p style={{ margin: 0, fontSize: 10, color: '#6E6E73' }}>
+          <p style={{ margin: 0, fontSize: 11, color: '#6E6E73' }}>
             SARL ID MAÎTRISE — 9 Rue Henry Genestal, 76600 Le Havre<br />
             SIRET 921 536 181 00024
           </p>

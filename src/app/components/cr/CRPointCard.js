@@ -27,7 +27,7 @@ export default function CRPointCard({ row, crId, crDate, lots = [], entreprisesL
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
         {row.num ? <span style={{ fontSize: 12, fontWeight: 700, color: '#6E6E73', minWidth: 28 }}>n°{row.num}</span> : null}
         {row.isNew ? (
-          <span style={{ fontSize: 10, fontWeight: 800, color: st.color, background: '#fff', border: `1px solid ${st.border}`, borderRadius: 5, padding: '3px 7px' }}>NOUVEAU</span>
+          <span style={{ fontSize: 11, fontWeight: 800, color: st.color, background: '#fff', border: `1px solid ${st.border}`, borderRadius: 5, padding: '3px 7px' }}>NOUVEAU</span>
         ) : (
           <div role="radiogroup" aria-label={`État de « ${row.titre} »`} style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
             {['fait', 'en_cours', 'relance'].map(k => {
@@ -47,10 +47,10 @@ export default function CRPointCard({ row, crId, crDate, lots = [], entreprisesL
           </div>
         )}
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-          {row.origineNumero ? <span style={{ fontSize: 10, color: '#6E6E73' }}>depuis CR n°{row.origineNumero}</span> : null}
-          {late > 0 && row.suivi !== 'fait' && <span style={{ fontSize: 10, fontWeight: 700, color: '#D70015' }}>retard {late} j</span>}
-          {nbRappels > 0 && row.suivi !== 'fait' && <span style={{ fontSize: 10, fontWeight: 700, color: '#D70015' }}>rappel n°{nbRappels}</span>}
-          {disabled && <span style={{ fontSize: 10, color: '#6E6E73' }}>tâche supprimée</span>}
+          {row.origineNumero ? <span style={{ fontSize: 11, color: '#6E6E73' }}>depuis CR n°{row.origineNumero}</span> : null}
+          {late > 0 && row.suivi !== 'fait' && <span style={{ fontSize: 11, fontWeight: 700, color: '#D70015' }}>retard {late} j</span>}
+          {nbRappels > 0 && row.suivi !== 'fait' && <span style={{ fontSize: 11, fontWeight: 700, color: '#D70015' }}>rappel n°{nbRappels}</span>}
+          {disabled && <span style={{ fontSize: 11, color: '#6E6E73' }}>tâche supprimée</span>}
           <button type="button" onClick={() => setShowPhotos(v => !v)} aria-expanded={showPhotos}
             style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700, color: '#0066CC', fontFamily: 'inherit', padding: '2px 4px' }}>
             📷 {photos.length || ''}

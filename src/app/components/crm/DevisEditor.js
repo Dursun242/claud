@@ -96,7 +96,7 @@ export default function DevisEditor({
   return (
     <div>
       {sent && (
-        <div role="status" style={{ background: '#F7F0FC', border: '1px solid #E7D4F5', color: '#6E3591', borderRadius: 8, padding: '8px 12px', fontSize: 12, marginBottom: 12 }}>
+        <div role="status" style={{ background: '#F7F0FC', border: '1px solid #E7D4F5', color: '#8944AB', borderRadius: 8, padding: '8px 12px', fontSize: 12, marginBottom: 12 }}>
           Ce devis est <strong style={{ color: DEVIS_STATUT_COLORS[form.statut] }}>{form.statut.toLowerCase()}</strong>.
           Pour une nouvelle proposition, préfère « Dupliquer » depuis la fiche affaire.
         </div>
@@ -120,7 +120,7 @@ export default function DevisEditor({
         <div style={{ background: 'linear-gradient(135deg,#EAF3FF,#F7F0FC)', border: '1px solid #DCEBFF', borderRadius: 10, padding: aiOpen ? 12 : '8px 12px', marginBottom: 12 }}>
           <button type="button" onClick={() => setAiOpen(o => !o)} aria-expanded={aiOpen}
             style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: 700, color: '#0066CC', width: '100%', textAlign: 'left' }}>
-            ✨ Rédiger avec l’IA {aiOpen ? '▾' : '▸'}
+            Rédiger avec l’IA {aiOpen ? '▾' : '▸'}
             {!aiOpen && <span style={{ fontWeight: 400, color: '#6E6E73', fontSize: 12 }}> — décris le besoin, l’IA propose les lignes chiffrées</span>}
           </button>
           {aiOpen && (
@@ -153,7 +153,7 @@ export default function DevisEditor({
       {/* ─── Lignes ─── */}
       <div style={{ fontSize: 12, fontWeight: 700, color: '#1C1C1E', margin: '4px 0 6px' }}>Détail</div>
       {!m && (
-        <div style={{ display: 'grid', gridTemplateColumns: cols, gap: 6, fontSize: 10, fontWeight: 700, color: '#6E6E73', textTransform: 'uppercase', letterSpacing: '0.04em', padding: '0 2px 4px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: cols, gap: 6, fontSize: 11, fontWeight: 700, color: '#6E6E73', textTransform: 'uppercase', letterSpacing: '0.04em', padding: '0 2px 4px' }}>
           <span>Désignation</span><span>Unité</span><span>Qté</span><span>PU HT</span><span>TVA</span><span style={{ textAlign: 'right' }}>Total HT</span><span />
         </div>
       )}
@@ -303,7 +303,7 @@ export default function DevisEditor({
         {!sent && (
           <button onClick={onSend} disabled={saving} style={{ ...btnP, opacity: saving ? 0.6 : 1 }}
             title="Enregistre puis ouvre la fenêtre d'envoi par mail (PDF joint)">
-            📤 Enregistrer et envoyer
+            Enregistrer et envoyer
           </button>
         )}
       </div>

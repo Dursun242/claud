@@ -1,6 +1,7 @@
 'use client'
 import { useState, useMemo, useRef, useCallback, useEffect } from 'react'
-import { phase as PHASE_COLORS, sel, fmtDate } from '../dashboards/shared'
+import { phase as PHASE_COLORS, fmtDate, btnChip } from '../dashboards/shared'
+import { toolbarSelect } from '../components/SearchField'
 import { supabase } from '../supabaseClient'
 import { useToast } from '../contexts/ToastContext'
 import EmptyState from '../components/EmptyState'
@@ -26,9 +27,9 @@ const OS_COLOR = {
 
 // ─── Bouton zoom ───────────────────────────────────────────
 const zBtnS = {
-  width: 26, height: 26, border: '1px solid #E5E5EA', borderRadius: 6,
-  background: '#fff', cursor: 'pointer', fontSize: 14, fontWeight: 700,
-  fontFamily: 'inherit', color: '#3A3A3C',
+  width: 32, height: 32, border: 'none', borderRadius: 8,
+  background: '#EFEFF0', cursor: 'pointer', fontSize: 16, fontWeight: 600,
+  fontFamily: 'inherit', color: '#0066CC',
   display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: 0,
 }
 
@@ -41,11 +42,13 @@ function ListeView({ filteredChantiers, osByChantier, m: _m }) {
         if (!osList.length) return null
         const color = PHASE_COLORS[c.phase] || '#007AFF'
         return (
-          <div key={c.id} style={{ background: '#fff', borderRadius: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
+          <div key={c.id} style={{ background: '#fff', borderRadius: 12, border: '1px solid #E5E5EA', overflow: 'hidden' }}>
             {/* En-tête chantier */}
-            <div style={{ background: color + '12', borderLeft: `3px solid ${color}`, padding: '10px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ background: '#F5F5F7', borderBottom: '1px solid #E5E5EA', padding: '10px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <div style={{ fontWeight: 700, fontSize: 13, color: '#1C1C1E' }}>{c.nom}</div>
+                <div style={{ fontWeight: 700, fontSize: 13, color: '#1C1C1E', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span aria-hidden="true" title={c.phase} style={{ width: 8, height: 8, borderRadius: '50%', background: color, flexShrink: 0 }} />{c.nom}
+                </div>
                 <div style={{ fontSize: 11, color: '#6E6E73', marginTop: 1 }}>
                   {c.date_debut ? fmtDate(c.date_debut) : '—'} → {c.date_fin ? fmtDate(c.date_fin) : '—'}
                 </div>
@@ -58,11 +61,11 @@ function ListeView({ filteredChantiers, osByChantier, m: _m }) {
                 <div key={os.id} style={{ display: 'flex', alignItems: 'center', padding: '8px 16px', borderTop: i > 0 ? '1px solid #F5F5F7' : 'none', gap: 12, flexWrap: 'wrap' }}>
                   <div style={{ minWidth: 70 }}>
                     <div style={{ fontSize: 11, fontWeight: 700, color: '#3A3A3C' }}>{os.numero}</div>
-                    <div style={{ fontSize: 10, color: OS_COLOR[os.statut] || '#8E8E93', fontWeight: 600 }}>{os.statut}</div>
+                    <div style={{ fontSize: 11, color: OS_COLOR[os.statut] || '#8E8E93', fontWeight: 600 }}>{os.statut}</div>
                   </div>
                   <div style={{ flex: 1, minWidth: 120 }}>
                     <div style={{ fontSize: 12, color: '#1C1C1E', fontWeight: 600 }}>{os.artisan_specialite || os.artisan_nom || '—'}</div>
-                    <div style={{ fontSize: 10, color: '#6E6E73' }}>{os.artisan_nom}</div>
+                    <div style={{ fontSize: 11, color: '#6E6E73' }}>{os.artisan_nom}</div>
                   </div>
                   <div style={{ fontSize: 11, color: '#6E6E73', whiteSpace: 'nowrap' }}>
                     {os.date_intervention ? fmtDate(os.date_intervention) : '—'}
@@ -259,8 +262,8 @@ export default function PlanningV({ data, m, reload }) {
       {/* ── En-tête ───────────────────────────────────────── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 10 }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: m ? 18 : 24, fontWeight: 700 }}>Planning</h1>
-          <div style={{ fontSize: 11, color: '#6E6E73', marginTop: 2 }}>
+          <h1 style={{margin:0,fontSize:m?28:32,fontWeight:700,letterSpacing:"-0.02em",color:"#1C1C1E"}}>Planning</h1>
+          <div style={{ fontSize: 13, color: '#6E6E73', marginTop: 2 }}>
             {osPlanned.length} OS planifié{osPlanned.length !== 1 ? 's' : ''}
             {filter !== 'all' && <> · filtre actif</>}
           </div>
@@ -269,19 +272,19 @@ export default function PlanningV({ data, m, reload }) {
           {/* Zoom +/- (Gantt uniquement) */}
           {view === 'gantt' && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <button onClick={() => setPxDay(d => Math.max(8, d - 4))} aria-label="Dézoomer" style={zBtnS}>−</button>
-              <span style={{ fontSize: 10, color: '#6E6E73', minWidth: 34, textAlign: 'center' }}>{pxDay}px/j</span>
-              <button onClick={() => setPxDay(d => Math.min(80, d + 4))} aria-label="Zoomer" style={zBtnS}>+</button>
+              <button onClick={() => setPxDay(d => Math.max(8, d - 4))} aria-label="Dézoomer" className="u-hit" style={zBtnS}>−</button>
+              <span style={{ fontSize: 11, color: '#6E6E73', minWidth: 34, textAlign: 'center' }}>{pxDay}px/j</span>
+              <button onClick={() => setPxDay(d => Math.min(80, d + 4))} aria-label="Zoomer" className="u-hit" style={zBtnS}>+</button>
             </div>
           )}
           {/* Toggle Gantt / Liste */}
-          <div style={{ display: 'flex', background: '#F2F2F7', borderRadius: 8, padding: 2 }}>
-            {[['gantt', '📊 Gantt'], ['list', '☰ Liste']].map(([v, lbl]) => (
-              <button key={v} onClick={() => setView(v)} style={{
-                padding: '4px 10px', border: 'none', borderRadius: 6, cursor: 'pointer',
-                fontSize: 11, fontWeight: 600, fontFamily: 'inherit',
+          <div role="group" aria-label="Affichage" style={{ display: 'flex', background: '#E9E9EB', borderRadius: 10, padding: 2 }}>
+            {[['gantt', 'Gantt'], ['list', 'Liste']].map(([v, lbl]) => (
+              <button key={v} onClick={() => setView(v)} aria-pressed={view === v} className="u-hit" style={{
+                minHeight: 32, padding: '0 14px', border: 'none', borderRadius: 8, cursor: 'pointer',
+                fontSize: 13, fontWeight: view === v ? 600 : 500, fontFamily: 'inherit',
                 background: view === v ? '#fff' : 'transparent',
-                color: view === v ? '#1C1C1E' : '#8E8E93',
+                color: '#1C1C1E',
                 boxShadow: view === v ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
                 transition: 'all .15s',
               }}>{lbl}</button>
@@ -289,17 +292,15 @@ export default function PlanningV({ data, m, reload }) {
           </div>
           {/* Bouton Aujourd'hui (Gantt uniquement) */}
           {view === 'gantt' && (
-            <button onClick={scrollToToday} disabled={!showToday} style={{
-              padding: '4px 12px', border: '1px solid #E5E5EA', borderRadius: 6, cursor: showToday ? 'pointer' : 'not-allowed',
-              fontSize: 11, fontWeight: 600, fontFamily: 'inherit',
-              background: '#fff', color: showToday ? '#1C1C1E' : '#D1D1D6',
+            <button onClick={scrollToToday} disabled={!showToday} className="u-btn" style={{
+              ...btnChip, cursor: showToday ? 'pointer' : 'not-allowed',
               opacity: showToday ? 1 : 0.5,
               transition: 'all .15s',
-            }}>📍 Aujourd'hui</button>
+            }}>Aujourd'hui</button>
           )}
           {/* Filtre chantier */}
-          <select style={{ ...sel, width: 'auto' }} value={filter} onChange={e => setFilter(e.target.value)}>
-            <option value="all">🏗️ Tous les chantiers</option>
+          <select style={toolbarSelect(m)} aria-label="Filtrer par chantier" value={filter} onChange={e => setFilter(e.target.value)}>
+            <option value="all">Tous les chantiers</option>
             {chantiers.map(c => <option key={c.id} value={c.id}>{c.nom}</option>)}
           </select>
         </div>
@@ -322,7 +323,7 @@ export default function PlanningV({ data, m, reload }) {
         <div style={{ background: '#fff', borderRadius: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
 
           {/* Aide */}
-          <div style={{ padding: '5px 14px', borderBottom: '1px solid #F2F2F7', fontSize: 10, color: '#6E6E73', display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+          <div style={{ padding: '5px 14px', borderBottom: '1px solid #F2F2F7', fontSize: 11, color: '#6E6E73', display: 'flex', gap: 14, flexWrap: 'wrap' }}>
             <span>↔ Glisser la barre pour déplacer</span>
             <span>⊣⊢ Bord droit pour redimensionner</span>
             {saving && <span style={{ color: '#0066CC', fontWeight: 600 }}>💾 Sauvegarde…</span>}
@@ -333,13 +334,13 @@ export default function PlanningV({ data, m, reload }) {
 
               {/* ── En-tête mois (sticky) ── */}
               <div style={{ display: 'flex', position: 'sticky', top: 0, zIndex: 10, background: '#F5F5F7', borderBottom: '2px solid #E5E5EA' }}>
-                <div style={{ width: LABEL_W, flexShrink: 0, borderRight: '2px solid #E5E5EA', padding: '0 12px', display: 'flex', alignItems: 'center', fontSize: 10, fontWeight: 700, color: '#6E6E73', letterSpacing: '0.05em', height: 34 }}>
+                <div style={{ width: LABEL_W, flexShrink: 0, borderRight: '2px solid #E5E5EA', padding: '0 12px', display: 'flex', alignItems: 'center', fontSize: 11, fontWeight: 700, color: '#6E6E73', letterSpacing: '0.05em', height: 34 }}>
                   CHANTIER / OS
                 </div>
                 <div style={{ width: totalW, flexShrink: 0, position: 'relative', height: 34 }}>
                   {months.map((mo, i) => (
                     <div key={i} style={{ position: 'absolute', left: mo.off * pxDay, top: 0, bottom: 0, borderLeft: '1px solid #E5E5EA' }}>
-                      <span style={{ position: 'absolute', left: 5, top: '50%', transform: 'translateY(-50%)', fontSize: 10, fontWeight: 700, color: '#6E6E73', whiteSpace: 'nowrap' }}>
+                      <span style={{ position: 'absolute', left: 5, top: '50%', transform: 'translateY(-50%)', fontSize: 11, fontWeight: 700, color: '#6E6E73', whiteSpace: 'nowrap' }}>
                         {mo.label}
                       </span>
                     </div>
@@ -405,7 +406,7 @@ export default function PlanningV({ data, m, reload }) {
                             <div style={{ fontSize: 11, fontWeight: 600, color: '#1C1C1E', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                               {os.artisan_specialite || os.artisan_nom || os.numero}
                             </div>
-                            <div style={{ fontSize: 10, color: osColor, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            <div style={{ fontSize: 11, color: osColor, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                               {os.numero} · {os.statut}
                             </div>
                           </div>
@@ -444,7 +445,7 @@ export default function PlanningV({ data, m, reload }) {
                             >
                               {/* Libellé dans la barre */}
                               {barWidth > 32 && (
-                                <span style={{ position: 'absolute', left: 5, top: '50%', transform: 'translateY(-50%)', fontSize: 10, fontWeight: 700, color: osColor, pointerEvents: 'none', whiteSpace: 'nowrap', overflow: 'hidden', maxWidth: barWidth - 20 }}>
+                                <span style={{ position: 'absolute', left: 5, top: '50%', transform: 'translateY(-50%)', fontSize: 11, fontWeight: 700, color: osColor, pointerEvents: 'none', whiteSpace: 'nowrap', overflow: 'hidden', maxWidth: barWidth - 20 }}>
                                   {os.artisan_specialite || os.numero}
                                 </span>
                               )}
@@ -462,7 +463,7 @@ export default function PlanningV({ data, m, reload }) {
 
                               {/* Tooltip dates pendant le drag */}
                               {isActive && (
-                                <div style={{ position: 'absolute', bottom: '110%', left: '50%', transform: 'translateX(-50%)', background: '#1C1C1E', color: '#fff', fontSize: 10, fontWeight: 600, padding: '3px 7px', borderRadius: 5, whiteSpace: 'nowrap', pointerEvents: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.2)' }}>
+                                <div style={{ position: 'absolute', bottom: '110%', left: '50%', transform: 'translateX(-50%)', background: '#1C1C1E', color: '#fff', fontSize: 11, fontWeight: 600, padding: '3px 7px', borderRadius: 5, whiteSpace: 'nowrap', pointerEvents: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.2)' }}>
                                   {fmtDate(os.date_intervention)} → {fmtDate(os.date_fin_prevue)}
                                 </div>
                               )}

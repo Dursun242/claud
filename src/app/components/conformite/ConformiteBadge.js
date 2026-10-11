@@ -18,7 +18,7 @@ export default function ConformiteBadge({ compliance, onClick, compact = false }
   const style = {
     display: 'inline-flex', alignItems: 'center', gap: 4,
     background: meta.bg, color: meta.color, border: `1px solid ${meta.border}`,
-    borderRadius: 999, padding: '2px 9px', fontSize: 10, fontWeight: 700,
+    borderRadius: 999, padding: '2px 9px', fontSize: 11, fontWeight: 700,
     fontFamily: 'inherit', whiteSpace: 'nowrap',
   }
   const content = <>📄 {text}</>

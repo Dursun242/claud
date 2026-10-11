@@ -22,7 +22,7 @@ export default function FollowUpList({ followUps, opportunites, contactsById, on
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
             <span style={{ width: 8, height: 8, borderRadius: '50%', background: g.c }} />
             <h3 style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#1C1C1E' }}>{g.l}</h3>
-            <span style={{ fontSize: 10, color: '#6E6E73', fontWeight: 600 }}>{g.list.length}</span>
+            <span style={{ fontSize: 11, color: '#6E6E73', fontWeight: 600 }}>{g.list.length}</span>
           </div>
           <div style={{ display: 'grid', gap: 6, gridTemplateColumns: 'minmax(0,1fr)' }}>
             {g.list.map(it => {

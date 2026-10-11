@@ -303,7 +303,7 @@ export default function PVNewForm({ chantierId, chantier, clientContact, ordresS
                       style={{ cursor: 'pointer' }}
                     />
                     <span style={{ fontWeight: 500, color: '#1C1C1E' }}>{int.nom}</span>
-                    {int.type && <span style={{ fontSize: 10, color: '#6E6E73' }}>({int.type})</span>}
+                    {int.type && <span style={{ fontSize: 11, color: '#6E6E73' }}>({int.type})</span>}
                   </label>
                 )
               })}
@@ -315,7 +315,7 @@ export default function PVNewForm({ chantierId, chantier, clientContact, ordresS
                   Intervenants sélectionnés ({form.selectedIntervenants.length})
                 </div>
                 {form.selectedIntervenants.map((intervenant, idx) => (
-                  <div key={intervenant.nom} style={{ marginBottom: idx < form.selectedIntervenants.length - 1 ? 12 : 0, fontSize: 10 }}>
+                  <div key={intervenant.nom} style={{ marginBottom: idx < form.selectedIntervenants.length - 1 ? 12 : 0, fontSize: 11 }}>
                     <div style={{ fontWeight: 600, color: '#1C1C1E', marginBottom: 4 }}>{intervenant.nom}</div>
                     {intervenant.societe && <div style={{ color: '#6E6E73' }}>{intervenant.societe}</div>}
                     {intervenant.adresse && <div style={{ color: '#6E6E73' }}>{intervenant.adresse}</div>}
@@ -363,7 +363,7 @@ export default function PVNewForm({ chantierId, chantier, clientContact, ordresS
                     onClick={() => setForm({ ...form, signataireMotEmails: form.signataireMotEmails.filter((_, i) => i !== idx) })}
                     style={{
                       padding: '6px 10px', background: '#FFE3E1', color: '#D70015',
-                      border: '1px solid #FF9F99', borderRadius: 6, fontSize: 12,
+                      border: '1px solid #FFC9C6', borderRadius: 6, fontSize: 12,
                       fontWeight: 600, cursor: 'pointer', flexShrink: 0
                     }}
                   >
@@ -377,8 +377,8 @@ export default function PVNewForm({ chantierId, chantier, clientContact, ordresS
                 type="button"
                 onClick={() => setForm({ ...form, signataireMotEmails: [...form.signataireMotEmails, ''] })}
                 style={{
-                  padding: '8px 12px', background: '#DCEBFF', color: '#0077B6',
-                  border: '1px solid #8FD6F2', borderRadius: 6, fontSize: 12,
+                  padding: '8px 12px', background: '#DCEBFF', color: '#0066CC',
+                  border: '1px solid #C6DDF7', borderRadius: 6, fontSize: 12,
                   fontWeight: 600, cursor: 'pointer', width: '100%', marginBottom: 12
                 }}
               >
@@ -395,7 +395,7 @@ export default function PVNewForm({ chantierId, chantier, clientContact, ordresS
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {[
-                { value: 'Accepté', label: '✓ Accepté sans réserve', color: '#248A3D' },
+                { value: 'Accepté', label: '✓ Accepté sans réserve', color: '#1E7B34' },
                 { value: 'Accepté avec réserve', label: '⚠️ Accepté avec réserve', color: '#C93400' },
                 { value: 'Refusé', label: '✕ Refusé', color: '#D70015' }
               ].map(opt => (
@@ -487,7 +487,7 @@ export default function PVNewForm({ chantierId, chantier, clientContact, ordresS
                           padding: '6px 10px',
                           background: '#FFE3E1',
                           color: '#D70015',
-                          border: '1px solid #FF9F99',
+                          border: '1px solid #FFC9C6',
                           borderRadius: 6,
                           fontSize: 12,
                           fontWeight: 600,
@@ -509,8 +509,8 @@ export default function PVNewForm({ chantierId, chantier, clientContact, ordresS
                   style={{
                     padding: '8px 12px',
                     background: '#DCEBFF',
-                    color: '#0077B6',
-                    border: '1px solid #8FD6F2',
+                    color: '#0066CC',
+                    border: '1px solid #C6DDF7',
                     borderRadius: 6,
                     fontSize: 12,
                     fontWeight: 600,
@@ -558,7 +558,7 @@ export default function PVNewForm({ chantierId, chantier, clientContact, ordresS
                 cursor: 'pointer'
               }}
             >
-              👁️ Voir aperçu
+              Voir aperçu
             </button>
             <button
               type="submit"
@@ -576,7 +576,7 @@ export default function PVNewForm({ chantierId, chantier, clientContact, ordresS
                 opacity: saving ? 0.6 : 1
               }}
             >
-              {saving ? 'Création...' : '✓ Envoyer en signature'}
+              {saving ? 'Création...' : 'Envoyer en signature'}
             </button>
           </div>
         </form>

@@ -383,7 +383,7 @@ RÈGLES :
       <div style={{marginBottom:12,display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8}}>
         <div>
           <div style={{display:"flex",alignItems:"center",gap:8}}>
-            <h1 style={{margin:0,fontSize:m?18:24,fontWeight:700}}>Assistant IA</h1>
+            <h1 style={{margin:0,fontSize:m?28:32,fontWeight:700,letterSpacing:"-0.02em",color:"#1C1C1E"}}>Assistant IA</h1>
             <ApiBadge/>
           </div>
           <p style={{margin:"2px 0 0",fontSize:12,color:"#6E6E73"}}>
@@ -396,7 +396,7 @@ RÈGLES :
             padding:"6px 12px",fontSize:11,fontWeight:600,color:"#48484A",
             cursor:"pointer",fontFamily:"inherit",display:"inline-flex",alignItems:"center",gap:4,
           }}>
-            ↻ Nouvelle conversation
+            Nouvelle conversation
           </button>
         )}
       </div>
@@ -422,7 +422,7 @@ RÈGLES :
             }}>
               {msg.role==="assistant"?renderMd(msg.content):msg.content}
               {msg.role==="assistant" && msg.provider && (
-                <div style={{marginTop:6,fontSize:10,color:"#6E6E73",textAlign:"right"}}>
+                <div style={{marginTop:6,fontSize:11,color:"#6E6E73",textAlign:"right"}}>
                   via {PROVIDER_LABELS[msg.provider] || msg.provider}
                   {msg.fallbackFrom && (
                     <div style={{color:"#C93400"}}>

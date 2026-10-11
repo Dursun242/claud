@@ -1,24 +1,22 @@
 'use client'
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { supabase } from '../supabaseClient'
-import { SB, fmtDate, fmtMoney, inp } from '../dashboards/shared'
+import { SB, fmtDate, fmtMoney, inp, btnChip } from '../dashboards/shared'
 import { Badge } from '../components'
 import { useToast } from '../contexts/ToastContext'
 import AIQontoV from './AIQontoV'
 import { quoteToOpportunite } from '../lib/crm'
 import { upsertOpportunite } from '../lib/crmDb'
+import SearchField from '../components/SearchField'
 
 const QT = {
   primary:"#8944AB", light:"#F7F0FC", border:"#E7D4F5",
-  gradient:"linear-gradient(135deg,#8944AB,#BF5AF2,#C084FC)"
+  // Couleur unie (pas de dégradé) : le violet repère Qonto dans l'app
+  gradient:"#8944AB"
 };
 
-// Style commun pour le bouton PDF (soft)
-const pdfBtn = {
-  background:"#FFF0EF",border:"1px solid #FFC9C6",borderRadius:5,
-  padding:"3px 10px",cursor:"pointer",fontSize:10,fontWeight:700,
-  color:"#D70015",fontFamily:"inherit",
-}
+// Actions des lignes (PDF, CRM, Qonto) : boutons gris iOS, comme partout
+const pdfBtn = { ...btnChip, textDecoration:"none" }
 
 // Bouton texte (aspect d'un lien) : styles natifs du bouton remis à zéro
 const linkBtn = {
@@ -40,26 +38,9 @@ function QontoBadge() {
 // Déclaré hors de QontoV : sinon il serait recréé à chaque rendu et le champ
 // perdrait le focus à chaque frappe.
 const LocalSearch = ({ value, onChange, placeholder, m }) => (
-  <div style={{position:"relative",marginBottom:10}}>
-    <svg style={{
-      position:"absolute",left:9,top:"50%",
-      transform:"translateY(-50%)",opacity:0.5
-    }} width="13" height="13" viewBox="0 0 24 24"
-      fill="none" stroke="#6E6E73" strokeWidth="2.5">
-      <circle cx="11" cy="11" r="8"/>
-      <path d="M21 21l-4.35-4.35"/>
-    </svg>
-    <input
-      type="search"
-      placeholder={placeholder}
-      value={value}
-      onChange={e => onChange(e.target.value)}
-      style={{
-        padding:"7px 10px 7px 28px",borderRadius:7,
-        border:"1px solid #E5E5EA",fontSize:12,
-        width:m?"100%":320,boxSizing:"border-box",fontFamily:"inherit"
-      }}
-    />
+  <div style={{marginBottom:10}}>
+    <SearchField value={value} onChange={e => onChange(e.target.value)} m={m} width={320}
+      placeholder={placeholder} label={placeholder}/>
   </div>
 );
 
@@ -392,7 +373,7 @@ export default function QontoV({m, data, reload, crm = null, reloadCrm = null, s
         </svg>
       </div>
       <div style={{flex:1}}>
-        <h1 style={{margin:0,fontSize:m?18:24,fontWeight:700}}>Qonto <QontoBadge/></h1>
+        <h1 style={{margin:0,fontSize:m?28:32,fontWeight:700,letterSpacing:"-0.02em",color:"#1C1C1E"}}>Qonto <QontoBadge/></h1>
         <p style={{margin:0,fontSize:12,color:"#6E6E73"}}>Factures, Devis & Clients — API Qonto v2</p>
       </div>
       {connected && (
@@ -456,8 +437,8 @@ export default function QontoV({m, data, reload, crm = null, reloadCrm = null, s
       <>
         {/* CONNECTION STATUS */}
         <div style={{
-          background:connected?"#EEF9F1":"#FFF0EF",
-          border:`1.5px solid ${connected?"#C8EED3":"#FFC9C6"}`,
+          background:connected?"#EAF8EE":"#FFF0EF",
+          border:`1.5px solid ${connected?"#BFE9CA":"#FFC9C6"}`,
           borderRadius:10,padding:"10px 14px",marginBottom:16,fontSize:12
         }}>
           <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
@@ -466,7 +447,7 @@ export default function QontoV({m, data, reload, crm = null, reloadCrm = null, s
               background:connected?"#34C759":"#FF3B30",
               animation:connected?"pulseGlow 2s infinite":"none",flexShrink:0
             }}/>
-            <span style={{fontWeight:600,color:connected?"#1A5E2C":"#A50011"}}>
+            <span style={{fontWeight:600,color:connected?"#1E7B34":"#D70015"}}>
               {connected?"Connecté":"Échec de connexion"}
             </span>
             {connected && <span style={{color:"#6E6E73"}}>• {savedToken.split(":")[0]}</span>}
@@ -520,7 +501,7 @@ export default function QontoV({m, data, reload, crm = null, reloadCrm = null, s
                   boxShadow:"0 1px 3px rgba(0,0,0,0.06)",borderTop:`3px solid ${k.c}`
                 }}>
                   <div style={{
-                    fontSize:10,fontWeight:600,color:"#6E6E73",
+                    fontSize:11,fontWeight:600,color:"#6E6E73",
                     textTransform:"uppercase",marginBottom:4
                   }}>{k.l}</div>
                   <div style={{fontSize:m?18:24,fontWeight:700,color:k.c}}>{k.v}</div>
@@ -565,8 +546,7 @@ export default function QontoV({m, data, reload, crm = null, reloadCrm = null, s
                   ) : filteredInvoices.map(inv=>(
                     <div key={inv.id} style={{
                       background:"#fff",borderRadius:10,padding:m?12:16,
-                      boxShadow:"0 1px 2px rgba(0,0,0,0.05)",
-                      borderLeft:`4px solid ${invStatusColor[inv.status]||"#8E8E93"}`,
+                      border:"1px solid #E5E5EA",
                       display:"flex",justifyContent:"space-between",
                       alignItems:"center",flexWrap:"wrap",gap:8
                     }}>
@@ -592,7 +572,7 @@ export default function QontoV({m, data, reload, crm = null, reloadCrm = null, s
                           color:inv.status==="paid"?"#34C759":"#1C1C1E"
                         }}>{fmtMoney(getAmt(inv))}</div>
                         {(inv.vat_amount?.value||inv.vat_amount_cents) && (
-                          <div style={{fontSize:10,color:"#6E6E73"}}>
+                          <div style={{fontSize:11,color:"#6E6E73"}}>
                             TVA: {fmtMoney(parseFloat(inv.vat_amount?.value??(inv.vat_amount_cents||0)/100))}
                           </div>
                         )}
@@ -600,11 +580,9 @@ export default function QontoV({m, data, reload, crm = null, reloadCrm = null, s
                           <a href="https://app.qonto.com" target="_blank" rel="noopener noreferrer"
                             title="PDF non disponible via l'API Qonto — ouvrir sur l'app Qonto"
                             style={{
-                              ...pdfBtn,background:"#FFF0D6",
-                              color:"#A0390C",border:"1px solid #FFDDA6",
-                              textDecoration:"none"
+                              ...pdfBtn
                             }}>
-                            ↗ Voir Qonto
+                            Voir dans Qonto
                           </a>
                         ) : (
                           <button onClick={()=>downloadPdf(inv,"invoice")}
@@ -618,12 +596,12 @@ export default function QontoV({m, data, reload, crm = null, reloadCrm = null, s
                             {pdfLoadingId===inv.id ? (
                               <><span style={{
                                 display:"inline-block",width:9,height:9,
-                                border:"2px solid #FFC9C6",borderTopColor:"#D70015",
+                                border:"2px solid #D1D1D6",borderTopColor:"#0066CC",
                                 borderRadius:"50%",
                                 animation:"spin .8s linear infinite",
                                 marginRight:4,verticalAlign:"middle"
                               }}/>Récup…</>
-                            ) : '⬇ PDF'}
+                            ) : 'PDF'}
                           </button>
                         )}
                       </div>
@@ -652,8 +630,7 @@ export default function QontoV({m, data, reload, crm = null, reloadCrm = null, s
                   ) : filteredQuotes.map(q=>(
                     <div key={q.id} style={{
                       background:"#fff",borderRadius:10,padding:m?12:16,
-                      boxShadow:"0 1px 2px rgba(0,0,0,0.05)",
-                      borderLeft:`4px solid ${quoStatusColor[q.status]||"#8E8E93"}`,
+                      border:"1px solid #E5E5EA",
                       display:"flex",justifyContent:"space-between",
                       alignItems:"center",flexWrap:"wrap",gap:8
                     }}>
@@ -681,15 +658,14 @@ export default function QontoV({m, data, reload, crm = null, reloadCrm = null, s
                           return linked ? (
                             <button onClick={()=>setTab?.("crm", linked.id)} disabled={!setTab}
                               title={`Opportunité CRM : ${linked.titre} (${linked.etape})`}
-                              style={{...pdfBtn,background:"#EAF8EE",color:"#1E7B34",border:"1px solid #BFE9CA"}}>
-                              🎯 Voir dans CRM
+                              style={pdfBtn}>
+                              Voir dans CRM
                             </button>
                           ) : (
                             <button onClick={()=>importQuoteToCrm(q)} disabled={!!crmImporting[q.id]}
                               title="Créer une opportunité CRM à partir de ce devis"
-                              style={{...pdfBtn,background:"#F0F8FC",color:"#0071A4",border:"1px solid #BDE6F7",
-                                opacity:crmImporting[q.id]?0.6:1}}>
-                              {crmImporting[q.id] ? "…" : "🎯 → CRM"}
+                              style={{...pdfBtn,opacity:crmImporting[q.id]?0.6:1}}>
+                              {crmImporting[q.id] ? "…" : "Ajouter au CRM"}
                             </button>
                           );
                         })()}
@@ -697,11 +673,9 @@ export default function QontoV({m, data, reload, crm = null, reloadCrm = null, s
                           <a href="https://app.qonto.com" target="_blank" rel="noopener noreferrer"
                             title="PDF non disponible via l'API Qonto — ouvrir sur l'app Qonto"
                             style={{
-                              ...pdfBtn,background:"#FFF0D6",
-                              color:"#A0390C",border:"1px solid #FFDDA6",
-                              textDecoration:"none"
+                              ...pdfBtn
                             }}>
-                            ↗ Voir Qonto
+                            Voir dans Qonto
                           </a>
                         ) : (
                           <button onClick={()=>downloadPdf(q,"quote")}
@@ -715,12 +689,12 @@ export default function QontoV({m, data, reload, crm = null, reloadCrm = null, s
                             {pdfLoadingId===q.id ? (
                               <><span style={{
                                 display:"inline-block",width:9,height:9,
-                                border:"2px solid #FFC9C6",borderTopColor:"#D70015",
+                                border:"2px solid #D1D1D6",borderTopColor:"#0066CC",
                                 borderRadius:"50%",
                                 animation:"spin .8s linear infinite",
                                 marginRight:4,verticalAlign:"middle"
                               }}/>Récup…</>
-                            ) : '⬇ PDF'}
+                            ) : 'PDF'}
                           </button>
                         )}
                       </div>
@@ -756,8 +730,7 @@ export default function QontoV({m, data, reload, crm = null, reloadCrm = null, s
                   return (
                   <div key={c.id} style={{
                     background:"#fff",borderRadius:10,padding:14,
-                    boxShadow:"0 1px 2px rgba(0,0,0,0.04)",
-                    borderLeft:`4px solid ${existing?"#34C759":c.kind==="company"?"#8944AB":"#007AFF"}`
+                    border:`1px solid ${existing?"#BFE9CA":"#E5E5EA"}`
                   }}>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8}}>
                       <div style={{flex:1}}>
@@ -770,15 +743,15 @@ export default function QontoV({m, data, reload, crm = null, reloadCrm = null, s
                         {c.email && <div style={{fontSize:11,color:"#6E6E73"}}>{c.email}</div>}
                         {c.phone_number && <div style={{fontSize:11,color:"#6E6E73"}}>{c.phone_number}</div>}
                         {c.billing_address?.street_address && (
-                          <div style={{fontSize:10,color:"#D1D1D6",marginTop:2}}>
+                          <div style={{fontSize:11,color:"#D1D1D6",marginTop:2}}>
                             {c.billing_address.street_address}{" "}
                             {c.billing_address.zip_code}{" "}
                             {c.billing_address.city}
                           </div>
                         )}
-                        {siret && <div style={{fontSize:10,color:"#6E6E73",marginTop:2}}>SIRET : {siret}</div>}
+                        {siret && <div style={{fontSize:11,color:"#6E6E73",marginTop:2}}>SIRET : {siret}</div>}
                         {existBySiret && (
-                          <div style={{fontSize:10,color:"#34C759",marginTop:2}}>
+                          <div style={{fontSize:11,color:"#34C759",marginTop:2}}>
                             ✓ SIRET identique à : {existBySiret.nom}
                           </div>
                         )}
@@ -796,7 +769,7 @@ export default function QontoV({m, data, reload, crm = null, reloadCrm = null, s
                           }}
                         >{importing[c.id]?"...":(existing?"Mettre à jour":"Importer →")}</button>
                         {importMsg[c.id] && (
-                          <span style={{fontSize:10,color:importMsg[c.id].startsWith("✅")?"#34C759":"#FF3B30"}}>
+                          <span style={{fontSize:11,color:importMsg[c.id].startsWith("✅")?"#34C759":"#FF3B30"}}>
                             {importMsg[c.id]}
                           </span>
                         )}
@@ -824,8 +797,7 @@ export default function QontoV({m, data, reload, crm = null, reloadCrm = null, s
       gap:8,fontSize:11,color:"#6E6E73",flexWrap:"wrap"
     }}>
       <span style={{
-        background:QT.gradient,WebkitBackgroundClip:"text",
-        WebkitTextFillColor:"transparent",fontWeight:700
+        color:QT.primary,fontWeight:700
       }}>Qonto API v2</span>
       <span>•</span>
       <span>Lecture seule — GET /v2/client_invoices, /v2/quotes, /v2/clients</span>

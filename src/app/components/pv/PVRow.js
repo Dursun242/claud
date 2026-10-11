@@ -35,13 +35,13 @@ function PVRowImpl({ pv, onDetail }) {
           </span>
           <span style={{
             padding: '3px 7px', background: sigStatus.bg, color: sigStatus.color,
-            borderRadius: 6, fontSize: 10, fontWeight: 700, whiteSpace: 'nowrap',
+            borderRadius: 6, fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap',
           }}>
             {sigStatus.icon} {pv.statut_signature}
           </span>
           <span style={{
             padding: '3px 7px', background: decStatus.bg, color: decStatus.color,
-            borderRadius: 6, fontSize: 10, fontWeight: 700, whiteSpace: 'nowrap',
+            borderRadius: 6, fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap',
           }}>
             {decStatus.icon} {pv.statut_reception}
           </span>

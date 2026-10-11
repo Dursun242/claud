@@ -30,6 +30,7 @@ import OpportuniteDetail from '../components/crm/OpportuniteDetail'
 import OpportuniteFormModal from '../components/crm/OpportuniteFormModal'
 import InteractionFormModal from '../components/crm/InteractionFormModal'
 import { defaultSujet } from '../components/crm/crmUi'
+import SearchField from '../components/SearchField'
 
 // ═══════════════════════════════════════════════════════════════
 // Page CRM — suivi commercial
@@ -310,22 +311,21 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
       {/* ─── En-tête ─── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: m ? 18 : 24, fontWeight: 700 }}>CRM</h1>
-          <div style={{ fontSize: 11, color: '#6E6E73', marginTop: 2 }}>
+          <h1 style={{margin:0,fontSize:m?28:32,fontWeight:700,letterSpacing:"-0.02em",color:"#1C1C1E"}}>CRM</h1>
+          <div style={{ fontSize: 13, color: '#6E6E73', marginTop: 2 }}>
             {stats.actives === 0 ? 'Tes affaires en cours, du premier appel au chantier.' :
               `${stats.actives} affaire${stats.actives > 1 ? 's' : ''} en cours · ${fmtMoney(stats.montantPipeline)}`}
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
           {!isFirstUse && (
-            <input type="search" value={q} onChange={e => setQ(e.target.value)}
-              placeholder="Rechercher…" aria-label="Rechercher une affaire"
-              style={{ padding: '8px 10px', borderRadius: 8, border: '1px solid #E5E5EA', fontSize: 13, width: m ? '100%' : 200, boxSizing: 'border-box', fontFamily: 'inherit' }} />
+            <SearchField value={q} onChange={e => setQ(e.target.value)} m={m} width={220}
+              placeholder="Rechercher…" label="Rechercher une affaire" />
           )}
           {!dv.devisMissing && (
             <button onClick={dv.importQonto} disabled={dv.importing} title="Importer dans le CRM les devis déjà présents dans Qonto"
-              style={{ ...btnS, fontSize: 12, padding: '8px 12px', opacity: dv.importing ? 0.6 : 1 }}>
-              {dv.importing ? 'Import…' : '↓ Devis Qonto'}
+              style={{ ...btnS, opacity: dv.importing ? 0.6 : 1 }}>
+              {dv.importing ? 'Import…' : 'Importer les devis Qonto'}
             </button>
           )}
           <button onClick={() => openNew()} title="Nouvelle affaire avec tous les détails"
@@ -340,7 +340,7 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
         </div>
       )}
       {error && !missingMigration && (
-        <div role="alert" style={{ background: '#FFF0EF', border: '1px solid #FFC9C6', color: '#A50011', borderRadius: 10, padding: '10px 14px', fontSize: 12, marginBottom: 14 }}>
+        <div role="alert" style={{ background: '#FFF0EF', border: '1px solid #FFC9C6', color: '#D70015', borderRadius: 10, padding: '10px 14px', fontSize: 12, marginBottom: 14 }}>
           {error.message}
         </div>
       )}
@@ -389,7 +389,7 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
                 fontSize: 12, fontWeight: 600, border: `1px solid ${active ? p.c : '#E5E5EA'}`,
                 background: active ? p.c : '#fff', color: active ? '#fff' : '#3A3A3C', cursor: 'pointer', fontFamily: 'inherit',
               }}>
-                {p.l} <span style={{ fontSize: 10, opacity: 0.75, fontWeight: 500 }}>{p.n}</span>
+                {p.l} <span style={{ fontSize: 11, opacity: 0.75, fontWeight: 500 }}>{p.n}</span>
               </button>
             )
           })}

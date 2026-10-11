@@ -5,6 +5,7 @@ import { supabase } from '../supabaseClient'
 import { useToast } from '../contexts/ToastContext'
 import { useConfirm } from '../contexts/ConfirmContext'
 import LogsV from './LogsV'
+import SearchField from '../components/SearchField'
 
 async function apiUsers(method, body) {
   const { data: { session } } = await supabase.auth.getSession()
@@ -272,8 +273,8 @@ export default function AdminV({ m, reload, profile }) {
 
   return (
     <div>
-      <h1 style={{ margin: "0 0 4px", fontSize: m ? 18 : 24, fontWeight: 700 }}>
-        🔒 Administration
+      <h1 style={{margin:"0 0 4px",fontSize:m?28:32,fontWeight:700,letterSpacing:"-0.02em",color:"#1C1C1E"}}>
+        Administration
       </h1>
       <div style={{ fontSize: 11, color: "#6E6E73", marginBottom: 14 }}>
         Gestion des accès et journal d&apos;activité — admin uniquement.
@@ -282,10 +283,10 @@ export default function AdminV({ m, reload, profile }) {
       {/* Sous-navigation : Utilisateurs / Journal */}
       <div style={{ display: "flex", gap: 4, marginBottom: 18, borderBottom: "1px solid #E5E5EA", flexWrap: "wrap" }}>
         <button onClick={() => setSubtab('users')} style={tabBtn(subtab === 'users')}>
-          👥 Utilisateurs
+          Utilisateurs
         </button>
         <button onClick={() => setSubtab('logs')} style={tabBtn(subtab === 'logs')}>
-          📋 Journal d&apos;activité
+          Journal d&apos;activité
         </button>
       </div>
 
@@ -307,7 +308,7 @@ export default function AdminV({ m, reload, profile }) {
         </p>
         <button onClick={handleSetupStorage} disabled={setupLoading}
           style={{ ...btnP, fontSize: 12, opacity: setupLoading ? 0.7 : 1 }}>
-          {setupLoading ? "⏳ Configuration…" : "⚙️ Créer le bucket Storage"}
+          {setupLoading ? "⏳ Configuration…" : "Créer le bucket Storage"}
         </button>
         {setupMsg && (
           <div style={{
@@ -323,7 +324,7 @@ export default function AdminV({ m, reload, profile }) {
 
       {/* MODE DÉMO */}
       <div style={{
-        background: demoMode ? "linear-gradient(135deg, #EAF8EE 0%, #EEF9F1 100%)" : "#fff",
+        background: demoMode ? "linear-gradient(135deg, #EAF8EE 0%, #EAF8EE 100%)" : "#fff",
         borderRadius: 14, padding: m ? 14 : 18,
         boxShadow: "0 1px 3px rgba(0,0,0,0.06)", marginBottom: 18,
         border: `1.5px solid ${demoMode ? "#34C759" : "#E5E5EA"}`,
@@ -336,7 +337,7 @@ export default function AdminV({ m, reload, profile }) {
           <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, display: "flex", alignItems: "center", gap: 8 }}>
             🎯 Accès démo public
             <span style={{
-              background: demoMode ? "#34C759" : "#8E8E93", color: "#fff", fontSize: 10, fontWeight: 700,
+              background: demoMode ? "#34C759" : "#8E8E93", color: "#fff", fontSize: 11, fontWeight: 700,
               padding: "3px 8px", borderRadius: 999, letterSpacing: "0.05em",
             }}>{demoMode ? "OUVERT" : "FERMÉ"}</span>
           </h2>
@@ -394,10 +395,10 @@ export default function AdminV({ m, reload, profile }) {
               opacity: demoResetBusy ? 0.6 : 1,
             }}
           >
-            {demoResetBusy ? "⏳ Reset…" : "🔄 Réinitialiser les données démo"}
+            {demoResetBusy ? "⏳ Reset…" : "Réinitialiser les données démo"}
           </button>
           <div style={{
-            fontSize: 10, color: "#6E6E73", alignSelf: "center",
+            fontSize: 11, color: "#6E6E73", alignSelf: "center",
             flex: "1 1 200px", minWidth: 180, lineHeight: 1.4
           }}>
             Recrée le chantier Villa Moreau + 3 OS + 2 CR + 4 tâches. Utile entre deux rendez-vous.
@@ -418,7 +419,7 @@ export default function AdminV({ m, reload, profile }) {
         background: "#fff", borderRadius: 14, padding: m ? 14 : 18,
         boxShadow: "0 1px 3px rgba(0,0,0,0.06)", marginBottom: 18
       }}>
-        <h2 style={{ margin: "0 0 12px", fontSize: 15, fontWeight: 700 }}>➕ Ajouter un utilisateur</h2>
+        <h2 style={{ margin: "0 0 12px", fontSize: 15, fontWeight: 700 }}>Ajouter un utilisateur</h2>
         <div style={{ display: "grid", gridTemplateColumns: m ? "1fr" : "repeat(3,1fr)", gap: 10, marginBottom: 10 }}>
           <input type="email" placeholder="email@exemple.com"
             value={newEmail} onChange={e => setNewEmail(e.target.value)}
@@ -452,7 +453,7 @@ export default function AdminV({ m, reload, profile }) {
                 display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 1,
               }}>
                 <span>{r.label}</span>
-                <span style={{ fontSize: 10, fontWeight: 400, opacity: .7 }}>{r.desc}</span>
+                <span style={{ fontSize: 11, fontWeight: 400, opacity: .7 }}>{r.desc}</span>
               </button>
             )
           })}
@@ -472,7 +473,7 @@ export default function AdminV({ m, reload, profile }) {
           </div>
         )}
         <button onClick={handleAdd} disabled={loading} style={{ ...btnP, fontSize: 12, opacity: loading ? 0.7 : 1 }}>
-          {loading ? "⏳ Ajout…" : "✓ Ajouter"}
+          {loading ? "⏳ Ajout…" : "Ajouter"}
         </button>
       </div>
 
@@ -485,28 +486,9 @@ export default function AdminV({ m, reload, profile }) {
           display:"flex",justifyContent:"space-between",alignItems:"center",
           marginBottom:14,flexWrap:"wrap",gap:10
         }}>
-          <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700 }}>👥 Utilisateurs autorisés ({users.length})</h2>
-          <div style={{position:"relative",width:m?"100%":240}}>
-            <svg style={{position:"absolute",left:9,top:"50%",
-              transform:"translateY(-50%)",opacity:0.5}}
-              width="13" height="13" viewBox="0 0 24 24"
-              fill="none" stroke="#6E6E73" strokeWidth="2.5">
-              <circle cx="11" cy="11" r="8"/>
-              <path d="M21 21l-4.35-4.35"/>
-            </svg>
-            <input
-              ref={searchInputRef}
-              type="search"
-              placeholder="Rechercher nom, email…"
-              value={q}
-              onChange={e => setQ(e.target.value)}
-              style={{
-                padding:"7px 10px 7px 28px",borderRadius:7,
-                border:"1px solid #E5E5EA",fontSize:12,width:"100%",
-                boxSizing:"border-box",fontFamily:"inherit"
-              }}
-            />
-          </div>
+          <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700 }}>Utilisateurs autorisés ({users.length})</h2>
+          <SearchField inputRef={searchInputRef} value={q} onChange={e => setQ(e.target.value)} m={m} width={240}
+            label="Rechercher un utilisateur" placeholder="Rechercher nom, email…"/>
         </div>
 
         {/* Pills de filtre par rôle */}
@@ -530,7 +512,7 @@ export default function AdminV({ m, reload, profile }) {
                 transition:"background .15s, color .15s, border-color .15s",whiteSpace:"nowrap",
               }}>
                 <span style={{width:7,height:7,borderRadius:"50%",background:active?"#fff":p.c,opacity:active?0.8:1}}/>
-                {p.l} <span style={{fontSize:10,opacity:0.75,fontWeight:500}}>{count}</span>
+                {p.l} <span style={{fontSize:11,opacity:0.75,fontWeight:500}}>{count}</span>
               </button>
             )
           })}
@@ -554,7 +536,6 @@ export default function AdminV({ m, reload, profile }) {
                 <div key={u.id} style={{
                   background: "#F5F5F7", borderRadius: 10, padding: 12,
                   display: "flex", alignItems: "center", gap: 12,
-                  borderLeft: `3px solid ${meta.color}`,
                   opacity: u.actif === false ? 0.55 : 1,
                 }}>
                   {/* Avatar avec initiales */}
@@ -578,7 +559,7 @@ export default function AdminV({ m, reload, profile }) {
                     }}>
                       {u.email}
                     </div>
-                    <div style={{ fontSize: 10, color: meta.color, marginTop: 2, fontWeight:600 }}>
+                    <div style={{ fontSize: 11, color: meta.color, marginTop: 2, fontWeight:600 }}>
                       {meta.label}
                       {u.actif === false && <span style={{ color: "#FF3B30", marginLeft: 8 }}>— Désactivé</span>}
                     </div>

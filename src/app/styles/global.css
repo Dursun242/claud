@@ -25,7 +25,7 @@
   --motion-base: 180ms;
   --motion-slow: 280ms;
   --ease-standard: cubic-bezier(.4, 0, .2, 1);
-  --ease-emphasized: cubic-bezier(.2, 0, 0, 1.2);
+  --ease-emphasized: cubic-bezier(.22, 1, .36, 1);
 }
 
 /* Chiffres de même largeur partout (montants, dates, compteurs) : les
@@ -58,7 +58,7 @@ textarea:focus {
 }
 input[aria-invalid="true"],
 textarea[aria-invalid="true"] {
-  border-color: #FF9F99 !important;
+  border-color: #FFC9C6 !important;
   background: #FFF0EF;
 }
 input[aria-invalid="true"]:focus,

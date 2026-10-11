@@ -24,6 +24,7 @@ import ConformiteSuiviModal from '../components/conformite/ConformiteSuiviModal'
 import LegalBadge from '../components/conformite/LegalBadge'
 import { useConformite } from '../hooks/useConformite'
 import { isSubject, complianceOf, activeCompanyIds, buildSuivi, trackedReason } from '../lib/conformite'
+import SearchField from '../components/SearchField'
 
 // Paires marquées « pas un doublon » (sur cet appareil)
 const IGNORED_KEY = 'idm_contacts_not_duplicates'
@@ -462,7 +463,7 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
       marginBottom:14,flexWrap:"wrap",gap:8
     }}>
       <div>
-        <h1 style={{margin:0,fontSize:m?18:24,fontWeight:700}}>Contacts</h1>
+        <h1 style={{margin:0,fontSize:m?28:32,fontWeight:700,letterSpacing:"-0.02em",color:"#1C1C1E"}}>Contacts</h1>
         <p style={{margin:"2px 0 0",fontSize:12,color:"#6E6E73"}}>
           {data.contacts.length} contact{data.contacts.length>1?"s":""}
           {(q || tf !== "all") && <> · <strong>{list.length}</strong> affiché{list.length>1?"s":""}</>}
@@ -474,10 +475,7 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
           disabled={importing}
           style={{
             ...btnS,
-            fontSize:12,
-            background:"#EFEFFC",
-            color:"#5856D6",
-            border:"1.5px solid #D3D2F7",
+            
             cursor:importing?"wait":"pointer",
             opacity:importing?0.7:1,
             display:"flex",
@@ -493,13 +491,13 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
             <>
               <span style={{
                 display:"inline-block",width:12,height:12,
-                border:"2px solid #D3D2F7",borderTopColor:"#5856D6",
+                border:"2px solid #E7D4F5",borderTopColor:"#5856D6",
                 borderRadius:"50%",animation:"spin 0.8s linear infinite"
               }}/>
               Extraction…
             </>
           ) : (
-            <>📸 Importer photo / capture</>
+            <>Importer photo / capture</>
           )}
         </button>
         {dupGroups.length > 0 && (
@@ -507,11 +505,11 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
             onClick={() => setDupOpen(true)}
             title="Contacts qui semblent en double : vérifier et fusionner"
             style={{
-              ...btnS, fontSize: 12, background: "#FFF4E8", color: "#9A3412",
-              border: "1.5px solid #FFD8B0", display: "flex", alignItems: "center", gap: 6,
+              ...btnS, fontSize: 12, background: "#FFF7E8", color: "#A0390C",
+              border: "1.5px solid #FFDDA6", display: "flex", alignItems: "center", gap: 6,
             }}
           >
-            👥 Doublons ({dupGroups.length})
+            Doublons ({dupGroups.length})
           </button>
         )}
         <button
@@ -520,14 +518,11 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
           disabled={list.length === 0}
           style={{
             ...btnS,
-            fontSize: 12,
-            background: "#EEF9F1",
-            color: "#1E7B34",
-            border: "1.5px solid #BFE9CA",
+            
             cursor: list.length === 0 ? "not-allowed" : "pointer",
             opacity: list.length === 0 ? 0.5 : 1,
           }}
-        >⬇ CSV</button>
+        >CSV</button>
         <button onClick={openNew}
           title="Nouveau contact (raccourci : n)"
           style={{...btnP,fontSize:12}}>+ Nouveau contact</button>
@@ -558,19 +553,9 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
 
     {/* Search + Filters */}
     <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap"}}>
-      <div style={{position:"relative",flex:1,minWidth:200}}>
-        <span style={{
-          position:"absolute",left:10,top:"50%",
-          transform:"translateY(-50%)",pointerEvents:"none"
-        }}><Icon d={I.search} size={14} color="#8E8E93"/></span>
-        <input
-          ref={searchInputRef}
-          type="search"
-          placeholder="Rechercher nom, société, ville, email… (tape /)"
-          style={{...inp,paddingLeft:30,fontSize:13}}
-          value={q}
-          onChange={e=>setQ(e.target.value)}
-        />
+      <div style={{flex:1,minWidth:200}}>
+        <SearchField inputRef={searchInputRef} value={q} onChange={e=>setQ(e.target.value)} m={m} width="100%"
+          label="Rechercher un contact" placeholder={m?"Rechercher nom, société, ville…":"Rechercher nom, société, ville, email… (tape /)"}/>
       </div>
     </div>
     {/* Bandeau « Suivi des documents » : bien visible, aussi sur téléphone */}
@@ -579,12 +564,12 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
         title="Avancement des documents des entreprises et aperçu des relances automatiques"
         style={{
           display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,width:"100%",
-          background:"#F0F8FC",border:"1.5px solid #BDE6F7",borderRadius:12,padding:m?"10px 12px":"12px 14px",
+          background:"#F0F8FC",border:"1.5px solid #C6DDF7",borderRadius:12,padding:m?"10px 12px":"12px 14px",
           marginBottom:12,cursor:"pointer",fontFamily:"inherit",textAlign:"left",
         }}>
         <span style={{minWidth:0}}>
-          <span style={{display:"block",fontSize:14,fontWeight:700,color:"#0C4A6E"}}>📊 Suivi des documents des entreprises</span>
-          <span style={{display:"block",fontSize:11,color:"#0071A4",marginTop:2}}>
+          <span style={{display:"block",fontSize:14,fontWeight:700,color:"#0066CC"}}>Suivi des documents des entreprises</span>
+          <span style={{display:"block",fontSize:11,color:"#0066CC",marginTop:2}}>
             {conf.missingMigration ? "À activer : migrations 036 à 038 dans Supabase"
               : suiviStats ? [
                 `${suiviStats.aJour}/${suiviStats.actives} entreprise${suiviStats.actives>1?"s":""} suivie${suiviStats.actives>1?"s":""} à jour`,
@@ -593,7 +578,7 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
               ].join(" · ") : ""}
           </span>
         </span>
-        <span style={{fontSize:12,fontWeight:700,color:"#0071A4",flexShrink:0}}>Ouvrir →</span>
+        <span style={{fontSize:12,fontWeight:700,color:"#0066CC",flexShrink:0}}>Ouvrir →</span>
       </button>
     )}
     <div style={{
@@ -612,7 +597,7 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
           width:7,height:7,borderRadius:"50%",
           background:tf==="all"?"#fff":"#6E6E73",opacity:tf==="all"?0.8:1
         }}/>
-        Tous <span style={{fontSize:10,opacity:0.75,fontWeight:500}}>{data.contacts.length}</span>
+        Tous <span style={{fontSize:11,opacity:0.75,fontWeight:500}}>{data.contacts.length}</span>
       </button>
       {Object.entries(stats).map(([type,count])=>{
         const active = tf === type;
@@ -627,7 +612,7 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
             transition:"background .15s, color .15s, border-color .15s",whiteSpace:"nowrap",
           }}>
             <span style={{width:7,height:7,borderRadius:"50%",background:active?"#fff":color,opacity:active?0.8:1}}/>
-            {type} <span style={{fontSize:10,opacity:0.75,fontWeight:500}}>{count}</span>
+            {type} <span style={{fontSize:11,opacity:0.75,fontWeight:500}}>{count}</span>
           </button>
         );
       })}
@@ -641,7 +626,7 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
             background:tf==="__docs"?"#D70015":"#FFF0EF",
             color:tf==="__docs"?"#fff":"#D70015",cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap",
           }}>
-          📄 Documents à revoir <span style={{fontSize:10,opacity:0.85,fontWeight:600}}>{docsToReview.size}</span>
+          Documents à revoir <span style={{fontSize:11,opacity:0.85,fontWeight:600}}>{docsToReview.size}</span>
         </button>
       )}
     </div>
@@ -662,7 +647,7 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
             <div style={{display:"flex",gap:8,justifyContent:"center",flexWrap:"wrap"}}>
               <button onClick={openNew} style={{...btnP,fontSize:12}}>+ Nouveau contact</button>
               <button onClick={()=>fileInputRef.current?.click()}
-                style={{...btnS,fontSize:12}}>📸 Importer une photo</button>
+                style={{...btnS,fontSize:12}}>Importer une photo</button>
             </div>
           </>
         ) : (
@@ -681,8 +666,7 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
       {list.map(c=>(
         <div key={c.id} style={{
           background:"#fff",borderRadius:12,padding:m?14:16,
-          boxShadow:"0 1px 3px rgba(0,0,0,0.05)",
-          borderLeft:`4px solid ${tc[c.type]||"#8E8E93"}`,
+          border:"1px solid #E5E5EA",
           opacity:c.actif===false?0.55:1
         }}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8}}>
@@ -742,7 +726,7 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
                 )}
               </div>
               {(c.ville||c.adresse) && (
-                <div style={{fontSize:10,color:"#6E6E73",marginTop:3,display:"inline-flex",alignItems:"center",gap:5}}>
+                <div style={{fontSize:11,color:"#6E6E73",marginTop:3,display:"inline-flex",alignItems:"center",gap:5}}>
                   📍 {[c.adresse,c.code_postal,c.ville].filter(Boolean).join(", ")}
                   <CopyIconBtn onClick={() =>
                     copyToClipboard([c.adresse,c.code_postal,c.ville].filter(Boolean).join(", "), "Adresse")
@@ -750,13 +734,13 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
                 </div>
               )}
               {c.siret && (
-                <div style={{fontSize:10,color:"#6E6E73",marginTop:2,display:"inline-flex",alignItems:"center",gap:5}}>
+                <div style={{fontSize:11,color:"#6E6E73",marginTop:2,display:"inline-flex",alignItems:"center",gap:5}}>
                   SIRET : {c.siret}
                   <CopyIconBtn onClick={() => copyToClipboard(c.siret, "SIRET", c)}/>
                 </div>
               )}
               {c.qualifications && (
-                <div style={{fontSize:10,color:"#0066CC",marginTop:2,fontWeight:600}}>
+                <div style={{fontSize:11,color:"#0066CC",marginTop:2,fontWeight:600}}>
                   🏅 {c.qualifications}
                 </div>
               )}
@@ -774,8 +758,8 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
                       <button onClick={()=>setTab("crm", `contact:${c.id}`)}
                         title="Voir les affaires de ce contact dans le CRM"
                         style={{
-                          background:"#F0F8FC",border:"1px solid #BDE6F7",borderRadius:999,
-                          padding:"2px 9px",fontSize:10,fontWeight:700,color:"#0071A4",
+                          background:"#F0F8FC",border:"1px solid #C6DDF7",borderRadius:999,
+                          padding:"2px 9px",fontSize:11,fontWeight:700,color:"#0066CC",
                           cursor:"pointer",fontFamily:"inherit",
                         }}>
                         🎯 {k.actives} affaire{k.actives>1?"s":""} en cours{k.gagnees?` · ${k.gagnees} gagnée${k.gagnees>1?"s":""}`:""}
@@ -785,7 +769,7 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
                       title="Créer une opportunité CRM pour ce contact"
                       style={{
                         background:"#fff",border:"1px dashed #D1D1D6",borderRadius:999,
-                        padding:"2px 9px",fontSize:10,fontWeight:600,color:"#6E6E73",
+                        padding:"2px 9px",fontSize:11,fontWeight:600,color:"#6E6E73",
                         cursor:"pointer",fontFamily:"inherit",
                       }}>+ Affaire</button>
                   </div>

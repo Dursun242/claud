@@ -33,6 +33,8 @@ colors:
   red-tint: "#FFF0EF"
   red-line: "#FFC9C6"
   blue-line: "#C6DDF7"
+  purple-tint: "#F7F0FC"
+  purple-line: "#E7D4F5"
 typography:
   large-title:
     fontFamily: "-apple-system, BlinkMacSystemFont, SF Pro Text, Segoe UI, Roboto, sans-serif"
@@ -306,6 +308,12 @@ Choix de l'équipe (octobre 2026) : quelques emoji pour repérer d'un coup d'œi
 - **Barre latérale (ordinateur) :** fond `sidebar`, trait à droite ; marque « ID Maîtrise » en titre 20 px ; recherche ; bouton « Créer… » plein ; onglets 15 px avec icône bleue 18 px ; onglet actif en pastille `accent` texte et icône blancs ; Qonto en violet ; compte et « Déconnexion » (bouton gris, texte rouge) en bas.
 - **Téléphone :** en-tête translucide (bouton menu bleu, nom de la page en headline), barre d'onglets translucide : Accueil · Chantiers · + · CR · Tâches · Plus (icône active bleue, inactives grises), bouton + rond bleu.
 - **Retour :** lien bleu « ‹ Page » en haut à gauche.
+
+### Pages de liste (toutes)
+- Grand titre 28 / 32 px, sous-titre 13 px gris ; recherche `SearchField` ; filtres `FilterPill` ; tri / filtre `toolbarSelect`.
+- Cartes blanches à trait `separator`, **jamais de bande de couleur sur le côté** ni de liseré en haut : le statut se lit dans un badge teinté, un point de couleur ou le texte.
+- Actions de ligne en `btnChip` gris à icône ; actions d'en-tête en `btnS` gris, action principale en `btnP`. Pas d'emoji ni de flèche décorative dans les libellés de boutons ; seuls l'orange / rouge / vert teintés restent pour un sens (doublons, gagné / perdu).
+- Qonto : violet uni `#8944AB` (pas de dégradé, pas de texte en dégradé).
 
 ### Fiche chantier : bandeau et onglets
 - **Bandeau « en un coup d'œil » :** quatre tuiles blanches (coins de 12 px, emoji en tuile grise) sous l'en-tête : 📅 prochaine réunion (annoncée au dernier CR), 📝 points de CR ouverts, ✅ tâches en retard, 💶 budget engagé. Valeur en 16 px semi-gras, couleur seulement pour signaler (retard en rouge, budget ≥ 95 % en orange, dépassement en rouge). Une tuile ouvre l'onglet qui détaille. Deux colonnes au téléphone, quatre à l'ordinateur (`components/projects/ChantierGlance.js`, logique dans `lib/chantierGlance.js`).

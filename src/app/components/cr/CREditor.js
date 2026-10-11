@@ -208,7 +208,7 @@ export default function CREditor({ open, initial, data, onClose, onSaved, lockCh
 
   const statusBadge = form.statut === 'Diffusé'
     ? { text: 'Diffusé', color: '#1E7B34', bg: '#EAF8EE' }
-    : { text: 'Brouillon', color: '#A0390C', bg: '#FFF0D6' }
+    : { text: 'Brouillon', color: '#A0390C', bg: '#FFF7E8' }
 
   return (
     <div role="dialog" aria-modal="true" aria-label={ed.isEdit ? `Compte rendu n°${form.numero}` : 'Nouveau compte rendu'}
@@ -341,7 +341,7 @@ export default function CREditor({ open, initial, data, onClose, onSaved, lockCh
             {current.id === 'cloture' && <div style={{ ...card, marginTop: 12 }}>{addLotForm}</div>}
             <div style={{ display: 'flex', gap: 8, marginTop: 14, position: 'sticky', bottom: 0, background: '#F2F2F7', padding: '10px 0' }}>
               <button type="button" disabled={step === 0} onClick={() => goTo(step - 1)}
-                style={{ ...ghostBtn(), flex: 1, minHeight: 48, opacity: step === 0 ? 0.5 : 1 }}>← Précédent</button>
+                style={{ ...ghostBtn(), flex: 1, minHeight: 48, opacity: step === 0 ? 0.5 : 1 }}>Précédent</button>
               {step < steps.length - 1 ? (
                 <button type="button" onClick={() => goTo(step + 1)}
                   style={{ ...ghostBtn('#fff'), flex: 2, minHeight: 48, background: NAVY, border: 'none', color: '#fff' }}>

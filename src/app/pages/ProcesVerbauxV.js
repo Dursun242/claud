@@ -3,6 +3,7 @@ import { useState, useMemo } from 'react'
 import { supabase } from '../supabaseClient'
 import { useToast } from '../contexts/ToastContext'
 import EmptyState from '../components/EmptyState'
+import SearchField from '../components/SearchField'
 
 function formatDate(iso) {
   if (!iso) return '—'
@@ -11,8 +12,8 @@ function formatDate(iso) {
 
 function statusColor(statut) {
   switch (statut) {
-    case 'Signé': return { bg: '#EAF8EE', color: '#248A3D', icon: '✓' }
-    case 'Envoyé': return { bg: '#EAF3FF', color: '#0077B6', icon: '⏳' }
+    case 'Signé': return { bg: '#EAF8EE', color: '#1E7B34', icon: '✓' }
+    case 'Envoyé': return { bg: '#EAF3FF', color: '#0066CC', icon: '⏳' }
     case 'Brouillon': return { bg: '#F2F2F7', color: '#6E6E73', icon: '📝' }
     case 'Refusé': return { bg: '#FFF0EF', color: '#D70015', icon: '✕' }
     default: return { bg: '#F2F2F7', color: '#6E6E73', icon: '?' }
@@ -21,8 +22,8 @@ function statusColor(statut) {
 
 function decisionColor(decision) {
   switch (decision) {
-    case 'Accepté': return { bg: '#EAF8EE', color: '#248A3D', icon: '✓' }
-    case 'Accepté avec réserve': return { bg: '#FFF0D6', color: '#C93400', icon: '⚠️' }
+    case 'Accepté': return { bg: '#EAF8EE', color: '#1E7B34', icon: '✓' }
+    case 'Accepté avec réserve': return { bg: '#FFF7E8', color: '#C93400', icon: '⚠️' }
     case 'Refusé': return { bg: '#FFF0EF', color: '#D70015', icon: '✕' }
     case 'En attente': return { bg: '#F2F2F7', color: '#6E6E73', icon: '⏳' }
     default: return { bg: '#F2F2F7', color: '#6E6E73', icon: '?' }
@@ -83,29 +84,17 @@ export default function ProcesVerbauxV({ data, m, reload, user: _user }) {
     <div>
       {/* En-tête */}
       <div style={{ marginBottom: 16 }}>
-        <h1 style={{ margin: 0, fontSize: m ? 18 : 24, fontWeight: 700 }}>Procès-verbaux de réception</h1>
-        <div style={{ fontSize: 11, color: '#6E6E73', marginTop: 2 }}>
+        <h1 style={{margin:0,fontSize:m?28:32,fontWeight:700,letterSpacing:"-0.02em",color:"#1C1C1E"}}>Procès-verbaux de réception</h1>
+        <div style={{ fontSize: 13, color: '#6E6E73', marginTop: 2 }}>
           {allPVs.length} PV{allPVs.length !== 1 ? 's' : ''}
         </div>
       </div>
 
       {/* Recherche */}
-      <input
-        type="text"
-        placeholder="🔍 Chercher par numéro ou titre..."
-        value={q}
-        onChange={(e) => setQ(e.target.value)}
-        style={{
-          width: '100%',
-          padding: '10px 12px',
-          border: '1px solid #E5E5EA',
-          borderRadius: 8,
-          fontSize: 12,
-          fontFamily: 'inherit',
-          marginBottom: 16,
-          outline: 'none'
-        }}
-      />
+      <div style={{ marginBottom: 16 }}>
+        <SearchField value={q} onChange={(e) => setQ(e.target.value)} m={m} width={320}
+          label="Chercher un PV" placeholder="Chercher par numéro ou titre…" />
+      </div>
 
       {/* Liste */}
       <div style={{ background: '#fff', borderRadius: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
@@ -154,7 +143,7 @@ export default function ProcesVerbauxV({ data, m, reload, user: _user }) {
                       {pv.titre}
                     </div>
                     {chantier && (
-                      <div style={{ fontSize: 10, color: '#6E6E73', marginTop: 2 }}>
+                      <div style={{ fontSize: 11, color: '#6E6E73', marginTop: 2 }}>
                         {chantier.nom}
                       </div>
                     )}
@@ -166,7 +155,7 @@ export default function ProcesVerbauxV({ data, m, reload, user: _user }) {
                     background: sigStatus.bg,
                     color: sigStatus.color,
                     borderRadius: 6,
-                    fontSize: 10,
+                    fontSize: 11,
                     fontWeight: 600,
                     display: 'flex',
                     alignItems: 'center',
@@ -182,7 +171,7 @@ export default function ProcesVerbauxV({ data, m, reload, user: _user }) {
                     background: decStatus.bg,
                     color: decStatus.color,
                     borderRadius: 6,
-                    fontSize: 10,
+                    fontSize: 11,
                     fontWeight: 600,
                     display: 'flex',
                     alignItems: 'center',
@@ -247,13 +236,13 @@ export default function ProcesVerbauxV({ data, m, reload, user: _user }) {
             <div style={{ background: '#F5F5F7', borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 12 }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div>
-                  <div style={{ color: '#6E6E73', fontSize: 10, fontWeight: 600 }}>DATE RÉCEPTION</div>
+                  <div style={{ color: '#6E6E73', fontSize: 11, fontWeight: 600 }}>DATE RÉCEPTION</div>
                   <div style={{ color: '#1C1C1E', fontWeight: 600, marginTop: 2 }}>
                     {formatDate(selectedPV.date_reception)}
                   </div>
                 </div>
                 <div>
-                  <div style={{ color: '#6E6E73', fontSize: 10, fontWeight: 600 }}>STATUT SIGNATURE</div>
+                  <div style={{ color: '#6E6E73', fontSize: 11, fontWeight: 600 }}>STATUT SIGNATURE</div>
                   <div style={{ color: '#1C1C1E', fontWeight: 600, marginTop: 2 }}>
                     {selectedPV.statut_signature}
                   </div>

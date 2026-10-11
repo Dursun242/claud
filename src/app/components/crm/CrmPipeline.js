@@ -31,7 +31,7 @@ export default function CrmPipeline({
               <button key={e} onClick={() => onSelectStage(e)} style={{
                 flexShrink: 0, padding: '6px 11px', borderRadius: 999, fontSize: 12, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer',
                 border: `1px solid ${active ? c : '#E5E5EA'}`, background: active ? c : '#fff', color: active ? '#fff' : '#3A3A3C',
-              }}>{e} <span style={{ opacity: 0.75, fontSize: 10 }}>{grouped[e].length}</span></button>
+              }}>{e} <span style={{ opacity: 0.75, fontSize: 11 }}>{grouped[e].length}</span></button>
             )
           })}
         </div>
@@ -75,7 +75,7 @@ export default function CrmPipeline({
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                 <span style={{ width: 8, height: 8, borderRadius: '50%', background: color }} />
                 <span style={{ fontSize: 12, fontWeight: 700, color: '#1C1C1E', flex: 1 }}>{etape}</span>
-                <span style={{ fontSize: 10, color: '#6E6E73', fontWeight: 600 }}>{list.length}{total ? ` · ${fmtMoney(total)}` : ''}</span>
+                <span style={{ fontSize: 11, color: '#6E6E73', fontWeight: 600 }}>{list.length}{total ? ` · ${fmtMoney(total)}` : ''}</span>
               </div>
               <div style={{ display: 'grid', gap: 8, gridTemplateColumns: 'minmax(0,1fr)' }}>
                 {list.map(o => (

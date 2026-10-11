@@ -20,27 +20,27 @@ export default function ToastContainer() {
 
   const typeStyles = {
     success: {
-      background: '#D4F2DD',
-      borderColor: '#8EDBA5',
-      textColor: '#1A5E2C',
+      background: '#EAF8EE',
+      borderColor: '#BFE9CA',
+      textColor: '#1E7B34',
       iconColor: '#34C759',
     },
     error: {
       background: '#FFE3E1',
-      borderColor: '#FF9F99',
+      borderColor: '#FFC9C6',
       textColor: '#7F1D1D',
       iconColor: '#FF3B30',
     },
     warning: {
-      background: '#FFF0D6',
-      borderColor: '#FFCC66',
+      background: '#FFF7E8',
+      borderColor: '#FFDDA6',
       textColor: '#A0390C',
       iconColor: '#FF9500',
     },
     info: {
       background: '#DCEBFF',
-      borderColor: '#99C7FF',
-      textColor: '#0058B0',
+      borderColor: '#C6DDF7',
+      textColor: '#0066CC',
       iconColor: '#007AFF',
     },
   }

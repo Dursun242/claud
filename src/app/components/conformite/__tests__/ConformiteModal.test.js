@@ -48,7 +48,7 @@ describe('ConformiteModal', () => {
   it('dépôt d’un document : lu puis enregistré', async () => {
     mockUpload.mockResolvedValue({ id: 'd3', anomalies: [] })
     const { container, onChanged } = setup()
-    const kbis = screen.getByText('Extrait Kbis').closest('div[style*="border-left"]')
+    const kbis = screen.getByRole('group', { name: 'Extrait Kbis' })
     await userEvent.click(within(kbis).getByRole('button', { name: 'Déposer' }))
     const file = new File(['%PDF'], 'kbis.pdf', { type: 'application/pdf' })
     fireEvent.change(container.ownerDocument.querySelector('input[type="file"]'), { target: { files: [file] } })
@@ -62,7 +62,7 @@ describe('ConformiteModal', () => {
     window.open = jest.fn(() => tab)
     mockPost.mockResolvedValue({ url: 'https://files/urssaf.pdf' })
     setup()
-    const urssaf = screen.getByText('Attestation de vigilance URSSAF').closest('div[style*="border-left"]')
+    const urssaf = screen.getByRole('group', { name: 'Attestation de vigilance URSSAF' })
     await userEvent.click(within(urssaf).getByRole('button', { name: 'Voir' }))
     expect(mockPost).toHaveBeenCalledWith({ action: 'url', id: 'd2' })
     expect(window.open).toHaveBeenCalledWith('', '_blank')
@@ -72,7 +72,7 @@ describe('ConformiteModal', () => {
   it('correction des dates', async () => {
     mockPost.mockResolvedValue({})
     setup()
-    const urssaf = screen.getByText('Attestation de vigilance URSSAF').closest('div[style*="border-left"]')
+    const urssaf = screen.getByRole('group', { name: 'Attestation de vigilance URSSAF' })
     await userEvent.click(within(urssaf).getByRole('button', { name: 'Dates' }))
     fireEvent.change(within(urssaf).getByLabelText('Date du document'), { target: { value: '2026-09-15' } })
     await userEvent.click(within(urssaf).getByRole('button', { name: 'Enregistrer' }))

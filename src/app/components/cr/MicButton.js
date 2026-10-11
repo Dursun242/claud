@@ -13,7 +13,7 @@ export default function MicButton({ active, onClick, label = 'Dicter' }) {
         width: 8, height: 8, borderRadius: '50%', background: active ? '#D70015' : '#8E8E93',
         animation: active ? 'heartbeat 0.8s ease-in-out infinite' : 'none',
       }} />
-      {active ? 'Arrêter' : `🎤 ${label}`}
+      {active ? 'Arrêter' : `${label}`}
     </button>
   )
 }

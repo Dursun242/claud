@@ -118,7 +118,7 @@ export default function DevisSendForm({ initial = {}, filename, sending, error, 
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 12, fontSize: 12, color: '#3A3A3C' }}>
         <span style={chip}>📎 {filename} · Qonto</span>
         {onPreviewPdf && (
-          <button type="button" onClick={onPreviewPdf} style={smallBtn}>👁 Vérifier le PDF Qonto</button>
+          <button type="button" onClick={onPreviewPdf} style={smallBtn}>Vérifier le PDF Qonto</button>
         )}
         {docs.map(d => {
           const on = !unchecked.has(d.path)
@@ -144,7 +144,7 @@ export default function DevisSendForm({ initial = {}, filename, sending, error, 
           <>
             <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading}
               title="Joindre un fichier à ce mail" style={smallBtn}>
-              {uploading ? 'Ajout…' : '📎 Joindre un fichier'}
+              {uploading ? 'Ajout…' : 'Joindre un fichier'}
             </button>
             <button type="button" onClick={() => permRef.current?.click()} disabled={uploading}
               title="Document proposé à chaque envoi de devis (Kbis, attestation décennale…)" style={smallBtn}>
@@ -172,7 +172,7 @@ export default function DevisSendForm({ initial = {}, filename, sending, error, 
         {onDraftAi && (
           <button type="button" onClick={draft} disabled={drafting || sending}
             style={{ ...btnS, fontSize: 12, padding: '5px 10px', minHeight: 30, marginLeft: 'auto' }}>
-            {drafting ? 'Rédaction…' : '✨ Rédiger avec l’IA'}
+            {drafting ? 'Rédaction…' : 'Rédiger avec l’IA'}
           </button>
         )}
       </div>
@@ -185,7 +185,7 @@ export default function DevisSendForm({ initial = {}, filename, sending, error, 
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
         <button onClick={onCancel} style={btnS}>Annuler</button>
         <button onClick={submit} disabled={sending} style={{ ...btnP, opacity: sending ? 0.6 : 1 }}>
-          {sending ? 'Envoi…' : form.sign ? '📤 Envoyer pour signature' : '📤 Envoyer le devis'}
+          {sending ? 'Envoi…' : form.sign ? 'Envoyer pour signature' : 'Envoyer le devis'}
         </button>
       </div>
     </div>

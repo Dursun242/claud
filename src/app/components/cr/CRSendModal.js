@@ -100,8 +100,8 @@ export default function CRSendModal({ cr, chantier, onClose, onSent }) {
                       <span style={{ fontSize: 13, fontWeight: 600 }}>{it.nom}</span>
                       <span style={{ fontSize: 11, color: '#6E6E73', overflow: 'hidden', textOverflow: 'ellipsis' }}>{it.email}</span>
                     </label>
-                    {it.convoque !== false && cr.prochaine_reunion?.date && <span style={{ fontSize: 10, fontWeight: 700, color: '#0066CC' }}>convoqué</span>}
-                    {acts.length > 0 && <span style={{ fontSize: 10, fontWeight: 700, color: late ? '#D70015' : '#8944AB' }}>{acts.length} action{acts.length > 1 ? 's' : ''}{late ? ` · ${late} relance${late > 1 ? 's' : ''}` : ''}</span>}
+                    {it.convoque !== false && cr.prochaine_reunion?.date && <span style={{ fontSize: 11, fontWeight: 700, color: '#0066CC' }}>convoqué</span>}
+                    {acts.length > 0 && <span style={{ fontSize: 11, fontWeight: 700, color: late ? '#D70015' : '#8944AB' }}>{acts.length} action{acts.length > 1 ? 's' : ''}{late ? ` · ${late} relance${late > 1 ? 's' : ''}` : ''}</span>}
                     <button type="button" onClick={() => setPreview(preview === it.email ? null : it.email)}
                       style={{ background: 'none', border: 'none', color: '#0066CC', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
                       {preview === it.email ? 'Masquer' : 'Aperçu'}

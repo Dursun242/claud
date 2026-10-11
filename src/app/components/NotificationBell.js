@@ -86,7 +86,6 @@ function Toast({ notif, index, total, onDismiss, onClick, isMobile }) {
         backdropFilter: 'blur(36px) saturate(200%)',
         WebkitBackdropFilter: 'blur(36px) saturate(200%)',
         border: '1px solid rgba(255,255,255,0.3)',
-        borderLeft: `3px solid ${accent}`,
         borderRadius: 12,
         boxShadow: '0 14px 36px rgba(0,0,0,0.14), inset 0 1px 0 rgba(255,255,255,0.4)',
         cursor: 'pointer',
@@ -95,8 +94,8 @@ function Toast({ notif, index, total, onDismiss, onClick, isMobile }) {
         gap: 10,
         transform: `translateY(${closing ? '20px' : -offsetY + 'px'}) scale(${closing ? 0.95 : scale})`,
         opacity: closing ? 0 : 1,
-        transition: 'transform .22s cubic-bezier(.2,.9,.3,1.2), opacity .22s ease',
-        animation: 'notifyIn .28s cubic-bezier(.2,.9,.3,1.2)',
+        transition: 'transform .22s cubic-bezier(.22,1,.36,1), opacity .22s ease',
+        animation: 'notifyIn .28s cubic-bezier(.22,1,.36,1)',
         position: 'relative',
         overflow: 'hidden',
       }}
@@ -115,7 +114,7 @@ function Toast({ notif, index, total, onDismiss, onClick, isMobile }) {
         }}>{notif.title}</div>
         {notif.body && (
           <div style={{
-            fontSize: 10, color: '#6E6E73', marginTop: 3, lineHeight: 1.4,
+            fontSize: 11, color: '#6E6E73', marginTop: 3, lineHeight: 1.4,
             display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden',
           }}>{notif.body}</div>
         )}
@@ -240,7 +239,7 @@ export default function NotificationBell({ userEmail, onNavigate, isMobile = fal
               background: '#D70015', color: '#fff',
               borderRadius: 999,
               minWidth: 18, height: 18,
-              padding: '0 5px', fontSize: 10, fontWeight: 800,
+              padding: '0 5px', fontSize: 11, fontWeight: 800,
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
               border: '2px solid #fff', boxSizing: 'content-box', lineHeight: 1,
               animation: 'pulseBadge 2s ease-in-out infinite',
@@ -260,7 +259,7 @@ export default function NotificationBell({ userEmail, onNavigate, isMobile = fal
             border: '1px solid rgba(255,255,255,0.3)',
             boxShadow: '0 24px 60px rgba(0,0,0,0.16), inset 0 1px 0 rgba(255,255,255,0.4)',
             zIndex: 5000, overflow: 'hidden',
-            animation: 'fadeInDown .22s cubic-bezier(.2,.9,.3,1.2)',
+            animation: 'fadeInDown .22s cubic-bezier(.22,1,.36,1)',
           }}>
             <div style={{
               padding: '12px 14px 10px',
@@ -272,7 +271,7 @@ export default function NotificationBell({ userEmail, onNavigate, isMobile = fal
                 </span>
                 {unreadCount > 0 && (
                   <span style={{
-                    fontSize: 10, fontWeight: 700, color: '#0066CC',
+                    fontSize: 11, fontWeight: 700, color: '#0066CC',
                     background: 'rgba(0,122,255,0.12)',
                     padding: '2px 7px', borderRadius: 999, lineHeight: 1.4,
                   }}>{unreadCount} nouveau{unreadCount > 1 ? 'x' : ''}</span>
@@ -283,7 +282,7 @@ export default function NotificationBell({ userEmail, onNavigate, isMobile = fal
                   onClick={markAllRead}
                   style={{
                     background: 'transparent', border: 'none', color: '#0066CC',
-                    cursor: 'pointer', fontSize: 10, fontWeight: 600,
+                    cursor: 'pointer', fontSize: 11, fontWeight: 600,
                     padding: '4px 6px', borderRadius: 5, fontFamily: 'inherit', whiteSpace: 'nowrap',
                   }}
                 >Tout marquer comme lu</button>
@@ -330,11 +329,11 @@ export default function NotificationBell({ userEmail, onNavigate, isMobile = fal
                           }}>{n.title}</div>
                           {n.body && (
                             <div style={{
-                              fontSize: 10, color: '#6E6E73', marginTop: 3, lineHeight: 1.4,
+                              fontSize: 11, color: '#6E6E73', marginTop: 3, lineHeight: 1.4,
                               display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden',
                             }}>{n.body}</div>
                           )}
-                          <div style={{ fontSize: 10, color: '#6E6E73', marginTop: 4, fontWeight: 500, letterSpacing: '0.02em' }}>
+                          <div style={{ fontSize: 11, color: '#6E6E73', marginTop: 4, fontWeight: 500, letterSpacing: '0.02em' }}>
                             {relativeTime(n.created_at)}
                             {g.count > 1 && (
                               <span style={{ marginLeft: 6, fontWeight: 700, color: accent }}>

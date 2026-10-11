@@ -147,7 +147,7 @@ export default function ChiffrageCreateModal({ open, chantier, allOs = [], hasEx
         {TABS.map(([k, label]) => (
           <button key={k} onClick={() => setTab(k)} disabled={busy} style={{
             ...btnS, padding: '7px 12px', fontSize: 12,
-            background: tab === k ? '#0077B6' : '#F2F2F7', color: tab === k ? '#fff' : '#48484A',
+            background: tab === k ? '#0066CC' : '#F2F2F7', color: tab === k ? '#fff' : '#48484A',
           }}>{label}</button>
         ))}
       </div>
@@ -199,7 +199,7 @@ export default function ChiffrageCreateModal({ open, chantier, allOs = [], hasEx
           </div>
         ))}
         <button onClick={() => setMetre(m => ({ ...m, metre: [...m.metre, { element: '', quantite: '', unite: 'm²', source: 'saisi' }] }))}
-          style={{ ...xBtn, color: '#0077B6', fontWeight: 700, fontSize: 12, marginBottom: 12 }}>+ Ligne</button>
+          style={{ ...xBtn, color: '#0066CC', fontWeight: 700, fontSize: 12, marginBottom: 12 }}>+ Ligne</button>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <button onClick={chiffrerPlans} disabled={busy} style={{ ...btnP, opacity: busy ? 0.6 : 1 }}>{busy ? step : 'Chiffrer avec les prix des OS'}</button>
           <button onClick={() => setMetre(null)} disabled={busy} style={btnS}>Recommencer</button>

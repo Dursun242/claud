@@ -185,7 +185,7 @@ export default function ConformiteModal({ open, onClose, contact, compliance, la
       </div>
 
       {missingMigration ? (
-        <div style={{ background: '#FFF4E8', border: '1px solid #FFD8B0', borderRadius: 8, padding: 12, fontSize: 12, color: '#9A3412' }}>
+        <div style={{ background: '#FFF7E8', border: '1px solid #FFDDA6', borderRadius: 8, padding: 12, fontSize: 12, color: '#9A3412' }}>
           Fonction non activée : appliquer la migration 036 dans Supabase (voir migrations/036_README.md).
         </div>
       ) : (
@@ -203,10 +203,10 @@ export default function ConformiteModal({ open, onClose, contact, compliance, la
               </div>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                 <button type="button" onClick={verifier} disabled={checking} style={btn('#3A3A3C', '#fff', '#D1D1D6')}>
-                  {checking ? 'Vérification…' : '🔎 Vérifier maintenant'}
+                  {checking ? 'Vérification…' : 'Vérifier maintenant'}
                 </button>
                 <button type="button" onClick={dossier} disabled={building} style={btn('#fff', '#0071E3', '#0071E3')}>
-                  {building ? 'Préparation…' : '📄 Dossier de vigilance (PDF)'}
+                  {building ? 'Préparation…' : 'Dossier de vigilance (PDF)'}
                 </button>
               </div>
             </div>
@@ -217,7 +217,7 @@ export default function ConformiteModal({ open, onClose, contact, compliance, la
               const meta = STATUS_META[k.status]
               const doc = k.doc
               return (
-                <div key={kind} style={{ border: `1px solid ${meta.border}`, borderLeft: `4px solid ${meta.color}`, borderRadius: 8, padding: 10, background: '#fff' }}>
+                <div key={kind} role="group" aria-label={DOC_META[kind].long} style={{ border: `1px solid ${meta.border}`, borderRadius: 10, padding: 10, background: '#fff' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
                     <div style={{ minWidth: 0 }}>
                       <div style={{ fontSize: 13, fontWeight: 700, color: '#1C1C1E' }}>{DOC_META[kind].long}</div>
@@ -266,15 +266,15 @@ export default function ConformiteModal({ open, onClose, contact, compliance, la
             })}
           </div>
 
-          <div style={{ marginTop: 14, background: '#F0F8FC', border: '1px solid #BDE6F7', borderRadius: 8, padding: 12 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#0C4A6E', marginBottom: 4 }}>Demander les documents à l’entreprise</div>
+          <div style={{ marginTop: 14, background: '#F0F8FC', border: '1px solid #C6DDF7', borderRadius: 8, padding: 12 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#0066CC', marginBottom: 4 }}>Demander les documents à l’entreprise</div>
             <div style={{ ...small, marginBottom: 8 }}>
               Un mail lui envoie un lien (valable 30 jours) pour déposer elle-même ses documents, sans compte. Ensuite, elle est relancée automatiquement chaque semaine tant qu’un document manque, est erroné ou expire (sauf si vous suspendez ses relances).
             </div>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="email de l’entreprise"
                 aria-label="Email de l’entreprise" style={{ ...input, flex: 1, minWidth: 180 }} />
-              <button type="button" onClick={request} disabled={sending} style={btn('#fff', '#0071A4', '#0071A4')}>
+              <button type="button" onClick={request} disabled={sending} style={btn('#fff', '#0066CC', '#0066CC')}>
                 {sending ? 'Envoi…' : 'Envoyer la demande'}
               </button>
             </div>

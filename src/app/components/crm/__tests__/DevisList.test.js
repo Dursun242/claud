@@ -29,16 +29,16 @@ describe('DevisList — renvoi', () => {
   it('devis envoyé non signé : bouton « Renvoyer » qui rouvre l’envoi', () => {
     const onSend = jest.fn()
     render(<DevisList devis={[{ ...base, statut_signature: 'Envoyé' }]} {...props} onSend={onSend} />)
-    screen.getByRole('button', { name: '↻ Renvoyer' }).click()
+    screen.getByRole('button', { name: 'Renvoyer' }).click()
     expect(onSend).toHaveBeenCalledWith(expect.objectContaining({ id: 'd1' }))
   })
 
   it('pas de renvoi une fois signé, ni pour un brouillon (bouton Envoyer)', () => {
     const { rerender } = render(<DevisList devis={[{ ...base, statut_signature: 'Signé' }]} {...props} />)
-    expect(screen.queryByRole('button', { name: '↻ Renvoyer' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Renvoyer' })).not.toBeInTheDocument()
     rerender(<DevisList devis={[{ ...base, statut: 'Brouillon' }]} {...props} />)
-    expect(screen.queryByRole('button', { name: '↻ Renvoyer' })).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: '📤 Envoyer' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Renvoyer' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Envoyer' })).toBeInTheDocument()
   })
 })
 
@@ -46,12 +46,12 @@ describe('DevisList — relance avec choix de réponse', () => {
   it('bouton « Relancer » sur un devis envoyé non signé', () => {
     const onRelance = jest.fn()
     const { rerender } = render(<DevisList devis={[base]} {...props} onRelance={onRelance} />)
-    screen.getByRole('button', { name: '✉ Relancer' }).click()
+    screen.getByRole('button', { name: 'Relancer' }).click()
     expect(onRelance).toHaveBeenCalledWith(expect.objectContaining({ id: 'd1' }))
     rerender(<DevisList devis={[{ ...base, statut_signature: 'Signé' }]} {...props} onRelance={onRelance} />)
-    expect(screen.queryByRole('button', { name: '✉ Relancer' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Relancer' })).not.toBeInTheDocument()
     rerender(<DevisList devis={[{ ...base, statut: 'Accepté' }]} {...props} onRelance={onRelance} />)
-    expect(screen.queryByRole('button', { name: '✉ Relancer' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Relancer' })).not.toBeInTheDocument()
   })
 
   it('relances et dernière réponse du client affichées', () => {

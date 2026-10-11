@@ -27,7 +27,7 @@ export default function OpportuniteDetail({
         {Number(o.montant_estime) > 0 && <span style={{ fontSize: 13, fontWeight: 700, color: '#1C1C1E' }}>{fmtMoney(o.montant_estime)}</span>}
         {!closed && <span style={{ fontSize: 11, color: '#6E6E73' }} title="Chances de gagner">{o.probabilite} % de chances</span>}
         <span style={{ flex: 1 }} />
-        <button onClick={onEdit} style={{ ...btnS, fontSize: 12, padding: '6px 10px' }}>✎ Modifier</button>
+        <button onClick={onEdit} style={{ ...btnS, fontSize: 12, padding: '6px 10px' }}>Modifier</button>
         <button onClick={onDelete} aria-label="Supprimer l'affaire" title="Supprimer"
           style={{ ...btnS, fontSize: 12, padding: '6px 10px', color: '#D70015', background: '#FFF0EF' }}>🗑</button>
       </div>
@@ -66,12 +66,12 @@ export default function OpportuniteDetail({
           </div>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             {pendingRelance ? (
-              <button onClick={() => onToggleAction(pendingRelance)} style={{ ...btnS, fontSize: 12 }}>✓ Fait</button>
+              <button onClick={() => onToggleAction(pendingRelance)} style={{ ...btnS, fontSize: 12 }}>Fait</button>
             ) : hint?.action === 'call' ? (
               <button onClick={() => onAddInteraction({ type: 'Appel' })} style={{ ...btnP, fontSize: 12 }}>{hint.cta}</button>
             ) : hint?.action === 'devis' && !devisMissing ? (
               <button onClick={onNewDevis} disabled={saving} style={{ ...btnP, fontSize: 12 }}>
-                {draft ? '📄 Reprendre le devis' : hint.cta}
+                {draft ? 'Reprendre le devis' : hint.cta}
               </button>
             ) : hint?.action === 'devis' && next ? (
               <button onClick={() => onChangeEtape(next)} disabled={saving} style={{ ...btnP, fontSize: 12 }}>→ {next}</button>
@@ -79,7 +79,7 @@ export default function OpportuniteDetail({
               <button onClick={() => onChangeEtape(next)} disabled={saving} style={{ ...btnP, fontSize: 12 }}>{hint.cta}</button>
             ) : null}
             <button onClick={() => onChangeEtape('Gagné')} disabled={saving} title="Marquer comme gagnée"
-              style={{ ...btnS, fontSize: 12, background: '#EAF8EE', color: '#1E7B34', border: '1px solid #BFE9CA' }}>🎉 Gagnée</button>
+              style={{ ...btnS, fontSize: 12, background: '#EAF8EE', color: '#1E7B34', border: '1px solid #BFE9CA' }}>Gagnée</button>
             <button onClick={() => onChangeEtape('Perdu')} disabled={saving} title="Marquer comme perdue"
               style={{ ...btnS, fontSize: 12, background: '#FFF0EF', color: '#D70015', border: '1px solid #FFC9C6' }}>Perdue</button>
           </div>
@@ -90,12 +90,12 @@ export default function OpportuniteDetail({
           {chantier ? (
             <button onClick={onGoChantier || undefined} disabled={!onGoChantier}
               style={{ ...btnS, fontSize: 12, background: '#EAF8EE', color: '#1E7B34', border: '1px solid #BFE9CA' }}>
-              🏗️ Ouvrir le chantier « {chantier.nom} »
+              Ouvrir le chantier « {chantier.nom} »
             </button>
           ) : o.etape === 'Gagné' ? (
-            <button onClick={onConvert} disabled={saving} style={{ ...btnP, fontSize: 12 }}>🏗️ Créer le chantier</button>
+            <button onClick={onConvert} disabled={saving} style={{ ...btnP, fontSize: 12 }}>Créer le chantier</button>
           ) : null}
-          <button onClick={() => onChangeEtape('Négociation')} disabled={saving} style={{ ...btnS, fontSize: 12 }}>↩ Rouvrir l&apos;affaire</button>
+          <button onClick={() => onChangeEtape('Négociation')} disabled={saving} style={{ ...btnS, fontSize: 12 }}>Rouvrir l&apos;affaire</button>
         </div>
       )}
 
@@ -156,7 +156,7 @@ export default function OpportuniteDetail({
 function Info({ label, value }) {
   return (
     <div style={{ minWidth: 0 }}>
-      <span style={{ fontSize: 10, fontWeight: 700, color: '#6E6E73', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</span>
+      <span style={{ fontSize: 11, fontWeight: 700, color: '#6E6E73', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</span>
       <div style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{value}</div>
     </div>
   )
