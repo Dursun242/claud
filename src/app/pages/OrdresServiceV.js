@@ -17,6 +17,15 @@ import { parseNewIntent } from '../lib/navIntent'
 import { useChiffrage } from '../hooks/useChiffrage'
 import { lotOptions as getLotOptions, suggestLot } from '../lib/chiffrage'
 import { nextOsNumero } from '../lib/osNumero'
+import SearchField, { toolbarSelect } from '../components/SearchField'
+
+// Indicateur d'attente dans un bouton de la barre d'outils
+const HeaderSpinner = () => (
+  <span aria-hidden="true" style={{
+    display:"inline-block",width:12,height:12,borderRadius:"50%",
+    border:"2px solid #D1D1D6",borderTopColor:"#0066CC",animation:"spin .8s linear infinite",
+  }}/>
+)
 
 export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly,active}) {
   const { addToast } = useToast();
@@ -603,8 +612,8 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly,a
       marginBottom:14,flexWrap:"wrap",gap:8
     }}>
       <div>
-        <h1 style={{margin:0,fontSize:m?18:24,fontWeight:700,color:"#1C1C1E"}}>Ordres de Service</h1>
-        <div style={{fontSize:11,color:"#6E6E73",marginTop:2}}>
+        <h1 style={{margin:0,fontSize:m?28:32,fontWeight:700,letterSpacing:"-0.02em",color:"#1C1C1E"}}>Ordres de service</h1>
+        <div style={{fontSize:13,color:"#6E6E73",marginTop:2}}>
           {countByStatus.all} au total
           {statusFilter !== "all" && (
             <> · <strong>{filteredSortedOS.length}</strong>{" "}
@@ -614,110 +623,49 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly,a
         </div>
       </div>
       <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
-        <div style={{position:"relative",width:m?"100%":260}}>
-          <svg style={{position:"absolute",left:9,top:"50%",
-            transform:"translateY(-50%)",opacity:0.5}}
-            width="13" height="13" viewBox="0 0 24 24"
-            fill="none" stroke="#6E6E73" strokeWidth="2.5">
-            <circle cx="11" cy="11" r="8"/>
-            <path d="M21 21l-4.35-4.35"/>
-          </svg>
-          <input
-            ref={searchInputRef}
-            type="search"
-            placeholder="Rechercher n°, chantier, client… (tape /)"
-            value={searchOS}
-            onChange={e=>setSearchOS(e.target.value)}
-            style={{
-              padding:"7px 10px 7px 28px",borderRadius:7,
-              border:"1px solid #E5E5EA",fontSize:12,width:"100%",
-              boxSizing:"border-box",fontFamily:"inherit"
-            }}
-          />
-        </div>
-        <select value={sortBy} onChange={e=>setSortBy(e.target.value)} title="Trier"
-          style={{
-            padding:"7px 8px",borderRadius:7,border:"1px solid #E5E5EA",
-            fontSize:12,background:"#fff",cursor:"pointer",fontFamily:"inherit"
-          }}>
-          <option value="date_desc">📅 Plus récents</option>
-          <option value="date_asc">📅 Plus anciens</option>
-          <option value="amount_desc">💰 Montant ↓</option>
-          <option value="amount_asc">💰 Montant ↑</option>
+        <SearchField inputRef={searchInputRef} value={searchOS} onChange={e=>setSearchOS(e.target.value)} m={m} width={260}
+          label="Rechercher un OS" placeholder={m?"Rechercher n°, chantier, client…":"Rechercher n°, chantier, client… (tape /)"}/>
+        <select value={sortBy} onChange={e=>setSortBy(e.target.value)} aria-label="Trier" title="Trier"
+          style={toolbarSelect(m)}>
+          <option value="date_desc">Plus récents</option>
+          <option value="date_asc">Plus anciens</option>
+          <option value="amount_desc">Montant décroissant</option>
+          <option value="amount_asc">Montant croissant</option>
         </select>
         {!readOnly && <button
           onClick={() => devisInputRef.current?.click()}
           disabled={importing}
-          style={{
-            ...btnS,
-            fontSize:12,
-            background:"#EFEFFC",
-            color:"#5856D6",
-            border:"1.5px solid #D3D2F7",
-            cursor:importing?"wait":"pointer",
-            opacity:importing?0.7:1,
-            display:"flex",
-            alignItems:"center",
-            gap:6,
-          }}
+          className="u-btn"
+          style={{...btnS,display:"inline-flex",alignItems:"center",gap:6,
+            cursor:importing?"wait":"pointer",opacity:importing?0.7:1}}
           title="Photographie ou screenshot un devis artisan pour auto-remplir un OS"
         >
-          {importing ? (
-            <>
-              <span style={{
-                display:"inline-block",width:12,height:12,
-                border:"2px solid #D3D2F7",borderTopColor:"#5856D6",
-                borderRadius:"50%",animation:"spin 0.8s linear infinite"
-              }}/>
-              Extraction…
-            </>
-          ) : (
-            <>📸 Importer devis</>
-          )}
+          {importing ? <><HeaderSpinner/>Extraction…</> : <><Icon d={I.camera} size={16}/>Importer un devis</>}
         </button>}
         <button
           onClick={handleExportCSV}
           title="Exporter la liste filtrée au format CSV (Excel)"
           disabled={filteredSortedOS.length === 0}
-          style={{
-            ...btnS,
-            fontSize: 12,
-            background: "#EEF9F1",
-            color: "#1E7B34",
-            border: "1.5px solid #BFE9CA",
-            cursor: filteredSortedOS.length === 0 ? "not-allowed" : "pointer",
-            opacity: filteredSortedOS.length === 0 ? 0.5 : 1,
-          }}
-        >⬇ CSV</button>
+          className="u-btn"
+          style={{...btnS,display:"inline-flex",alignItems:"center",gap:6,
+            cursor:filteredSortedOS.length === 0 ? "not-allowed" : "pointer",
+            opacity:filteredSortedOS.length === 0 ? 0.5 : 1}}
+        ><Icon d={I.download} size={16}/>CSV</button>
         {!readOnly && (
           <button
             onClick={() => handleSyncSignatures(false)}
             disabled={syncingSigs}
             title="Actualiser les statuts de signature depuis Odoo"
-            style={{
-              background:'#F7F0FC', color:'#8944AB', border:'1px solid #E7D4F5',
-              borderRadius:6, padding:'8px 12px', fontSize:12, fontWeight:600,
-              cursor: syncingSigs ? 'wait' : 'pointer',
-              opacity: syncingSigs ? 0.6 : 1,
-              fontFamily: 'inherit',
-              display:'inline-flex', alignItems:'center', gap:6,
-            }}
+            className="u-btn"
+            style={{...btnS,display:"inline-flex",alignItems:"center",gap:6,
+              cursor:syncingSigs?"wait":"pointer",opacity:syncingSigs?0.6:1}}
           >
-            {syncingSigs ? (
-              <>
-                <span style={{
-                  display:'inline-block',width:10,height:10,
-                  border:'2px solid #E7D4F5',borderTopColor:'#8944AB',
-                  borderRadius:'50%',animation:'spin .8s linear infinite'
-                }}/>
-                Sync…
-              </>
-            ) : '🔄 Signatures'}
+            {syncingSigs ? <><HeaderSpinner/>Actualisation…</> : "Signatures"}
           </button>
         )}
         {!readOnly && (
           <button onClick={openNew} title="Nouvel OS (raccourci : n)"
-            style={{...btnP,fontSize:12}}>+ Nouvel OS</button>
+            style={{...btnP,display:"inline-flex",alignItems:"center",gap:4}}><Icon d={I.plus} size={16} color="#fff"/>Nouvel OS</button>
         )}
       </div>
     </div>
@@ -766,7 +714,7 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly,a
                 Essaie d&apos;élargir ta recherche ou de changer de statut.
               </div>
               <button onClick={()=>{setSearchOS("");setStatusFilter("all");}}
-                style={{...btnS,fontSize:12}}>Réinitialiser les filtres</button>
+                style={btnS}>Réinitialiser les filtres</button>
             </>
           ) : (
             <>
@@ -775,9 +723,9 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly,a
                 Crée-en un ou importe un devis par photo pour démarrer.
               </div>
               <div style={{display:"flex",gap:8,justifyContent:"center",flexWrap:"wrap"}}>
-                <button onClick={openNew} style={{...btnP,fontSize:12}}>+ Nouvel OS</button>
+                <button onClick={openNew} style={btnP}>+ Nouvel OS</button>
                 <button onClick={()=>devisInputRef.current?.click()}
-                  style={{...btnS,fontSize:12}}>📸 Importer un devis</button>
+                  style={btnS}>📸 Importer un devis</button>
               </div>
             </>
           )}

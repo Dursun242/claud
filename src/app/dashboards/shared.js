@@ -870,7 +870,7 @@ export const inpError = {
 }
 
 export const btnP = {
-  padding:"10px 18px", minHeight:40, background:"#0071E3", color:"#fff",
+  padding:"10px 18px", minHeight:44, background:"#0071E3", color:"#fff",
   border:"none", borderRadius:10, fontSize:14,
   fontWeight:600, cursor:"pointer", fontFamily:"inherit",
   transition:"transform 120ms cubic-bezier(.4, 0, .2, 1), box-shadow 180ms cubic-bezier(.4, 0, .2, 1)",
@@ -882,7 +882,7 @@ export const btnS = {...btnP,background:"#EFEFF0",color:"#0066CC"};
 // reste réservé à l'action principale (btnP). À combiner avec className="u-press".
 export const btnAdd = {
   display:"inline-flex", alignItems:"center", gap:6,
-  padding:"8px 14px", minHeight:36, background:"#EAF3FF", color:"#0066CC",
+  padding:"8px 14px", minHeight:40, background:"#EAF3FF", color:"#0066CC",
   border:"none", borderRadius:10, fontSize:14, fontWeight:600,
   cursor:"pointer", fontFamily:"inherit",
 };

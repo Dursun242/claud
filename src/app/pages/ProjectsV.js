@@ -35,6 +35,7 @@ import { nextOsNumero } from '../lib/osNumero'
 import { localISO } from '../lib/today'
 import { chantierGlance } from '../lib/chantierGlance'
 import { isNetworkError } from '../lib/offlineStore'
+import SearchField from '../components/SearchField'
 // Éditeur de CR et envoi : chargés à l'ouverture seulement
 const CREditor = dynamic(() => import('../components/cr/CREditor'), { ssr: false })
 const CRSendModal = dynamic(() => import('../components/cr/CRSendModal'), { ssr: false })
@@ -326,13 +327,13 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
           if (!ok) return;
         }
         setSelected(null);
-      }} style={{
+      }} aria-label="Retour aux chantiers" style={{
         background:"none",border:"none",cursor:"pointer",
-        display:"flex",alignItems:"center",gap:6,
-        color:"#0066CC",fontSize:13,fontWeight:600,
-        marginBottom:16,fontFamily:"inherit",padding:0
+        display:"flex",alignItems:"center",gap:4,minHeight:44,
+        color:"#0066CC",fontSize:17,fontWeight:400,
+        marginBottom:4,fontFamily:"inherit",padding:0
       }}>
-        ← Retour aux chantiers
+        <span aria-hidden="true" style={{fontSize:24,lineHeight:1,marginTop:-2}}>‹</span>Chantiers
       </button>
 
       {/* Photo de couverture */}
@@ -468,6 +469,7 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
                   onClick={()=>toggleTask(t)} disabled={taskBusy===t.id}
                   aria-label={t.statut==="Terminé"?`Marquer « ${t.titre} » comme non terminée`:`Marquer « ${t.titre} » comme terminée`}
                   aria-pressed={t.statut==="Terminé"}
+                  className="u-hit"
                   style={{
                     width:20,height:20,minWidth:20,minHeight:20,
                     borderRadius:"50%",
@@ -817,7 +819,7 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
     }}>
       <div>
         <h1 style={{margin:0,fontSize:m?28:32,fontWeight:700,letterSpacing:"-0.02em",color:"#1C1C1E"}}>Chantiers</h1>
-        <div style={{fontSize:11,color:"#6E6E73",marginTop:2}}>
+        <div style={{fontSize:13,color:"#6E6E73",marginTop:2}}>
           {data.chantiers.length} au total
           {hasFilters && <>
             {" "}· <strong>{chantiersFiltered.length}</strong>{" "}
@@ -826,28 +828,8 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
         </div>
       </div>
       <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
-        <div style={{position:"relative",width:m?"100%":260}}>
-          <svg style={{
-            position:"absolute",left:9,top:"50%",
-            transform:"translateY(-50%)",opacity:0.5
-          }} width="13" height="13" viewBox="0 0 24 24"
-            fill="none" stroke="#6E6E73" strokeWidth="2.5">
-            <circle cx="11" cy="11" r="8"/>
-            <path d="M21 21l-4.35-4.35"/>
-          </svg>
-          <input
-            ref={searchInputRef}
-            type="search"
-            placeholder="Rechercher nom, client, adresse… (tape /)"
-            value={q}
-            onChange={e=>setQ(e.target.value)}
-            style={{
-              padding:"7px 10px 7px 28px",borderRadius:7,
-              border:"1px solid #E5E5EA",fontSize:12,
-              width:"100%",boxSizing:"border-box",fontFamily:"inherit"
-            }}
-          />
-        </div>
+        <SearchField inputRef={searchInputRef} value={q} onChange={e=>setQ(e.target.value)} m={m} width={260}
+          label="Rechercher un chantier" placeholder={m?"Rechercher nom, client, adresse…":"Rechercher nom, client, adresse… (tape /)"}/>
         {!readOnly && <button onClick={openNew}
           title="Nouveau chantier (raccourci : n)"
           style={{...btnP,fontSize:12,display:"inline-flex",alignItems:"center",gap:4}}>
@@ -879,13 +861,13 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
             </div>
             <button
               onClick={()=>{setQ("");setFilterStatut("");setFilterPhase("");}}
-              style={{...btnS,fontSize:12}}>Réinitialiser les filtres</button>
+              style={btnS}>Réinitialiser les filtres</button>
           </>
         ) : (
           <>
             <div style={{fontSize:14,fontWeight:700,color:"#3A3A3C",marginBottom:4}}>Aucun chantier</div>
             <div style={{fontSize:12,color:"#6E6E73",marginBottom:14}}>Démarre en créant ton premier chantier.</div>
-            <button onClick={openNew} style={{...btnP,fontSize:12}}>+ Nouveau chantier</button>
+            <button onClick={openNew} style={btnP}>+ Nouveau chantier</button>
           </>
         )}
       </div>

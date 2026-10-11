@@ -75,7 +75,7 @@ export default function ProcesVerbalReception({ chantierId, chantier, ordresServ
             borderRadius: 10, padding: '10px 12px', fontSize: 13, color: '#D70015',
           }}>
             <span>{loadError}</span>
-            <button type="button" onClick={loadPVs} style={{
+            <button type="button" onClick={loadPVs} className="u-hit" style={{
               background: '#fff', border: '1px solid #FFC9C6', borderRadius: 8,
               padding: '8px 14px', minHeight: 36, fontSize: 13, fontWeight: 600,
               color: '#D70015', cursor: 'pointer', fontFamily: 'inherit',

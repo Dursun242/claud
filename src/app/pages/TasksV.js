@@ -8,6 +8,9 @@ import { useUndoableDelete } from '../hooks/useUndoableDelete'
 import { parseNewIntent } from '../lib/navIntent'
 import { useSaveTask } from '../hooks/useSaveTask'
 import { useNavReturn } from '../hooks/useNavReturn'
+import SearchField from '../components/SearchField'
+import FilterPill, { pillRow } from '../components/FilterPill'
+import { EMOJI } from '../lib/emoji'
 
 // Ordre de priorité canonique (pour le tri)
 const PRIORITY_ORDER = { Urgent: 0, "En cours": 1, "En attente": 2 }
@@ -162,65 +165,29 @@ export default function TasksV({ data, save: _save, m, reload, focusId, focusTs,
       marginBottom:12,flexWrap:"wrap",gap:8
     }}>
       <div>
-        <h1 style={{margin:0,fontSize:m?18:24,fontWeight:700}}>Tâches</h1>
-        <div style={{fontSize:11,color:"#6E6E73",marginTop:2}}>
+        <h1 style={{margin:0,fontSize:m?28:32,fontWeight:700,letterSpacing:"-0.02em",color:"#1C1C1E"}}>Tâches</h1>
+        <div style={{fontSize:13,color:"#6E6E73",marginTop:2}}>
           {countByStatus.all} au total
           {hasFilters && <> · <strong>{filteredTasks.length}</strong> affichée{filteredTasks.length>1?"s":""}</>}
         </div>
       </div>
       <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
-        <div style={{position:"relative",width:m?"100%":240}}>
-          <svg style={{position:"absolute",left:9,top:"50%",
-            transform:"translateY(-50%)",opacity:0.5}}
-            width="13" height="13" viewBox="0 0 24 24"
-            fill="none" stroke="#6E6E73" strokeWidth="2.5">
-            <circle cx="11" cy="11" r="8"/>
-            <path d="M21 21l-4.35-4.35"/>
-          </svg>
-          <input
-            ref={searchInputRef}
-            type="search"
-            placeholder="Rechercher titre, lot, chantier… (tape /)"
-            value={q}
-            onChange={e=>setQ(e.target.value)}
-            style={{
-              padding:"7px 10px 7px 28px",borderRadius:7,
-              border:"1px solid #E5E5EA",fontSize:12,width:"100%",
-              boxSizing:"border-box",fontFamily:"inherit"
-            }}
-          />
-        </div>
+        <SearchField inputRef={searchInputRef} value={q} onChange={e=>setQ(e.target.value)} m={m} width={240}
+          label="Rechercher une tâche" placeholder={m?"Rechercher titre, lot, chantier…":"Rechercher titre, lot, chantier… (tape /)"}/>
         <button onClick={openNew} title="Nouvelle tâche (raccourci : n)"
-          style={{...btnP,fontSize:12,padding:"8px 14px"}}>+ Tâche</button>
+          style={{...btnP,display:"inline-flex",alignItems:"center",gap:4}}><Icon d={I.plus} size={16} color="#fff"/>Nouvelle tâche</button>
       </div>
     </div>
 
-    {/* Pills de filtre par statut */}
-    <div style={{
-      display:"flex",gap:6,marginBottom:14,flexWrap:"wrap",
-      overflowX:m?"auto":"visible",paddingBottom:m?4:0
-    }}>
-      {[{k:"all",l:"Toutes",c:"#6E6E73"},
+    {/* Pastilles de filtre par statut */}
+    <div role="group" aria-label="Filtrer par statut" style={pillRow(m)}>
+      {[{k:"all",l:"Toutes"},
         {k:"En cours",l:"En cours",c:status["En cours"]||"#007AFF"},
         {k:"Planifié",l:"Planifiées",c:status["Planifié"]||"#AF52DE"},
-        {k:"Terminé",l:"Terminées",c:status["Terminé"]||"#34C759"}].map(p => {
-        const active = filter === p.k
-        const count = countByStatus[p.k] || 0
-        return (
-          <button key={p.k} onClick={()=>setFilter(p.k)} style={{
-            display:"inline-flex",alignItems:"center",gap:6,
-            padding:"5px 11px",borderRadius:999,fontSize:11,fontWeight:600,
-            border:`1px solid ${active ? p.c : "#E5E5EA"}`,
-            background:active ? p.c : "#fff",
-            color:active ? "#fff" : "#3A3A3C",
-            cursor:"pointer",fontFamily:"inherit",
-            transition:"background .15s, color .15s, border-color .15s",whiteSpace:"nowrap",
-          }}>
-            <span style={{width:7,height:7,borderRadius:"50%",background:active?"#fff":p.c,opacity:active?0.8:1}}/>
-            {p.l} <span style={{fontSize:10,opacity:0.75,fontWeight:500}}>{count}</span>
-          </button>
-        )
-      })}
+        {k:"Terminé",l:"Terminées",c:status["Terminé"]||"#34C759"}].map(p => (
+        <FilterPill key={p.k} active={filter===p.k} color={p.c} label={p.l}
+          count={countByStatus[p.k] || 0} onClick={()=>setFilter(p.k)}/>
+      ))}
     </div>
 
     {filteredTasks.length === 0 ? (
@@ -236,7 +203,7 @@ export default function TasksV({ data, save: _save, m, reload, focusId, focusTs,
               Essaie d&apos;élargir ta recherche ou de changer de filtre.
             </div>
             <button onClick={()=>{setQ("");setFilter("all")}}
-              style={{...btnS,fontSize:12}}>Réinitialiser les filtres</button>
+              style={btnS}>Réinitialiser les filtres</button>
           </>
         ) : (
           <>
@@ -244,7 +211,7 @@ export default function TasksV({ data, save: _save, m, reload, focusId, focusTs,
             <div style={{fontSize:12,color:"#6E6E73",marginBottom:14}}>
               Crée ta première tâche pour commencer à suivre le travail.
             </div>
-            <button onClick={openNew} style={{...btnP,fontSize:12}}>+ Nouvelle tâche</button>
+            <button onClick={openNew} style={btnP}>+ Nouvelle tâche</button>
           </>
         )}
       </div>
@@ -258,14 +225,14 @@ export default function TasksV({ data, save: _save, m, reload, focusId, focusTs,
         return (
           <div key={t.id} style={{
             display:"flex",alignItems:"center",gap:m?8:10,
-            background:"#fff",borderRadius:10,padding:m?"10px 12px":"11px 16px",
-            boxShadow:"0 1px 2px rgba(0,0,0,0.05)",
-            borderLeft:overdue ? "3px solid #FF3B30" : "3px solid transparent",
+            background:"#fff",borderRadius:10,padding:m?"6px 8px 6px 12px":"6px 10px 6px 16px",
+            border:"1px solid #E5E5EA",minHeight:56,boxSizing:"border-box",
             minWidth:0,                // important : autorise le shrink des enfants
             overflow:"hidden",         // dernière ligne de défense anti-overflow
           }}>
             <button onClick={()=>toggle(t)} title="Changer le statut"
               aria-label={`Marquer comme ${t.statut==="Terminé"?"à faire":"terminée"}`}
+              className="u-hit"
               style={{
               width:24,height:24,minWidth:24,minHeight:24,borderRadius:"50%",
               border:`2px solid ${status[t.statut]||"#D1D1D6"}`,
@@ -279,28 +246,26 @@ export default function TasksV({ data, save: _save, m, reload, focusId, focusTs,
             <div onClick={()=>openEdit(t)}
               role="button" tabIndex={0}
               onKeyDown={e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); openEdit(t); } }}
-              style={{flex:"1 1 0",minWidth:0,cursor:"pointer",opacity:t.statut==="Terminé"?0.5:1}}>
+              style={{flex:"1 1 0",minWidth:0,alignSelf:"stretch",display:"flex",flexDirection:"column",justifyContent:"center",
+                cursor:"pointer",opacity:t.statut==="Terminé"?0.5:1}}>
               <div style={{
-                fontSize:13,fontWeight:600,color:"#1C1C1E",
+                fontSize:15,fontWeight:600,color:"#1C1C1E",
                 overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",
                 textDecoration:t.statut==="Terminé"?"line-through":"none"
               }}>{t.titre}</div>
-              <div style={{fontSize:10,color:"#6E6E73",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+              <div style={{fontSize:12,color:"#6E6E73",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
                 {ch?.nom || "—"}{t.entreprise ? ` · ${t.entreprise}` : ""}{t.lot ? ` · ${t.lot}` : ""}
                 {t.nb_rappels > 0 && t.statut !== "Terminé" && (
-                  <span style={{color:"#D70015",fontWeight:700}}> · 🔔 {t.nb_rappels} rappel{t.nb_rappels>1?"s":""}</span>
+                  <span style={{color:"#D70015",fontWeight:600}}> · {EMOJI.rappel} {t.nb_rappels} rappel{t.nb_rappels>1?"s":""}</span>
                 )}
               </div>
             </div>
-            {/* Sur mobile, on n'affiche que le pictogramme pour économiser la largeur */}
             {overdue && (
-              <span title="En retard" style={{
-                fontSize:10,fontWeight:700,color:"#D70015",
-                background:"#FFF0EF",border:"1px solid #FFC9C6",borderRadius:999,
-                padding:m?"2px 5px":"2px 7px",whiteSpace:"nowrap",flexShrink:0
-              }}>
-                {m ? "⚠" : "⚠ Retard"}
-              </span>
+              <span style={{
+                fontSize:12,fontWeight:600,color:"#D70015",
+                background:"#FFF0EF",borderRadius:999,
+                padding:"2px 8px",whiteSpace:"nowrap",flexShrink:0
+              }}>Retard</span>
             )}
             {!m && <Badge text={t.priorite} color={status[t.priorite]||"#6E6E73"}/>}
             {!m && (
@@ -310,20 +275,14 @@ export default function TasksV({ data, save: _save, m, reload, focusId, focusTs,
               }}>{fmtDate(t.echeance)}</span>
             )}
             <button onClick={()=>openEdit(t)} title="Modifier"
-              aria-label="Modifier la tâche" style={{
-              background:"#F2F2F7",border:"1px solid #E5E5EA",
-              borderRadius:6,cursor:"pointer",padding:"4px 6px",
-              display:"flex",flexShrink:0
-            }}>
-              <Icon d={I.edit} size={12} color="#48484A"/>
+              aria-label="Modifier la tâche" className="u-icon-btn"
+              style={{width:36,height:36,borderRadius:8,color:"#48484A",flexShrink:0}}>
+              <Icon d={I.edit} size={16}/>
             </button>
             <button onClick={()=>handleDelete(t)} title="Supprimer"
-              aria-label="Supprimer la tâche" style={{
-              background:"#fff",border:"1px solid #FFC9C6",
-              borderRadius:6,cursor:"pointer",padding:"4px 6px",
-              display:"flex",flexShrink:0
-            }}>
-              <Icon d={I.trash} size={12} color="#D70015"/>
+              aria-label="Supprimer la tâche" className="u-icon-btn u-icon-btn--danger"
+              style={{width:36,height:36,borderRadius:8,color:"#8E8E93",flexShrink:0}}>
+              <Icon d={I.trash} size={16}/>
             </button>
           </div>
         )

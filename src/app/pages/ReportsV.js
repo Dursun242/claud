@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useMemo, useRef } from 'react'
-import { SB, fmtDate, btnP } from '../dashboards/shared'
+import { SB, fmtDate, btnP, btnChip, Icon, I } from '../dashboards/shared'
 import { EmptyState } from '../components'
 import CREditor from '../components/cr/CREditor'
 import CRSendModal from '../components/cr/CRSendModal'
@@ -10,19 +10,15 @@ import { useToast } from '../contexts/ToastContext'
 import { useConfirm } from '../contexts/ConfirmContext'
 import { useUndoableDelete } from '../hooks/useUndoableDelete'
 import { parseNewIntent } from '../lib/navIntent'
+import SearchField, { toolbarSelect } from '../components/SearchField'
 
-// Style doux pour les boutons d'action sur les cartes CR
-const crBtn = (color, bg, border) => ({
-  background: bg,
-  border: `1px solid ${border}`,
-  borderRadius: 5,
-  padding: "4px 9px",
-  cursor: "pointer",
-  fontSize: 10,
-  fontWeight: 700,
-  color,
-  fontFamily: "inherit",
-})
+// Petit indicateur de génération (PDF / Excel) dans un bouton
+const Spinner = () => (
+  <span aria-hidden="true" style={{
+    display:"inline-block",width:12,height:12,borderRadius:"50%",
+    border:"2px solid #D1D1D6",borderTopColor:"#0066CC",animation:"spin .8s linear infinite",
+  }}/>
+)
 
 export default function ReportsV({ data, save: _save, m, reload, focusId, focusTs, readOnly, active }) {
   const { addToast } = useToast()
@@ -42,6 +38,7 @@ export default function ReportsV({ data, save: _save, m, reload, focusId, focusT
 
   // Loading state pour la génération de PDF / Excel
   const [generating, setGenerating] = useState(null)
+  const busy = (cr, kind) => generating?.id === cr.id && generating?.kind === kind
 
   const handlePdf = async (cr, ch) => {
     if (generating) return
@@ -149,8 +146,8 @@ export default function ReportsV({ data, save: _save, m, reload, focusId, focusT
       alignItems:"center",marginBottom:14,flexWrap:"wrap",gap:8
     }}>
       <div>
-        <h1 style={{margin:0,fontSize:m?18:24,fontWeight:700}}>Comptes Rendus</h1>
-        <div style={{fontSize:11,color:"#6E6E73",marginTop:2}}>
+        <h1 style={{margin:0,fontSize:m?28:32,fontWeight:700,letterSpacing:"-0.02em",color:"#1C1C1E"}}>Comptes rendus</h1>
+        <div style={{fontSize:13,color:"#6E6E73",marginTop:2}}>
           {total} au total
           {hasFilters && <>
             {" "}· <strong>{filteredSortedCRs.length}</strong>{" "}
@@ -159,43 +156,18 @@ export default function ReportsV({ data, save: _save, m, reload, focusId, focusT
         </div>
       </div>
       <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
-        <div style={{position:"relative",width:m?"100%":260}}>
-          <svg style={{
-            position:"absolute",left:9,top:"50%",
-            transform:"translateY(-50%)",opacity:0.5
-          }} width="13" height="13" viewBox="0 0 24 24"
-            fill="none" stroke="#6E6E73" strokeWidth="2.5">
-            <circle cx="11" cy="11" r="8"/>
-            <path d="M21 21l-4.35-4.35"/>
-          </svg>
-          <input
-            ref={searchInputRef}
-            type="search"
-            placeholder="Rechercher n°, chantier, résumé… (tape /)"
-            value={searchCR}
-            onChange={e=>setSearchCR(e.target.value)}
-            style={{
-              padding:"7px 10px 7px 28px",borderRadius:7,
-              border:"1px solid #E5E5EA",fontSize:12,
-              width:"100%",boxSizing:"border-box",fontFamily:"inherit"
-            }}
-          />
-        </div>
+        <SearchField inputRef={searchInputRef} value={searchCR} onChange={e=>setSearchCR(e.target.value)} m={m} width={260}
+          label="Rechercher un compte rendu" placeholder={m?"Rechercher n°, chantier, résumé…":"Rechercher n°, chantier, résumé… (tape /)"}/>
         <select value={chantierFilter}
           onChange={e=>setChantierFilter(e.target.value)}
-          title="Filtrer par chantier"
-          style={{
-            padding:"7px 8px",borderRadius:7,
-            border:"1px solid #E5E5EA",fontSize:12,
-            background:"#fff",cursor:"pointer",
-            fontFamily:"inherit",maxWidth:180
-          }}>
-          <option value="">🏗️ Tous les chantiers</option>
+          aria-label="Filtrer par chantier" title="Filtrer par chantier"
+          style={toolbarSelect(m)}>
+          <option value="">Tous les chantiers</option>
           {data.chantiers.map(c => <option key={c.id} value={c.id}>{c.nom}</option>)}
         </select>
         {!readOnly && (
           <button onClick={openNew} title="Nouveau CR (raccourci : n)"
-            style={{...btnP,fontSize:12}}>+ CR</button>
+            style={btnP}>+ CR</button>
         )}
       </div>
     </div>
@@ -225,86 +197,56 @@ export default function ReportsV({ data, save: _save, m, reload, focusId, focusT
         return (
           <div key={cr.id} style={{
             background:"#fff",borderRadius:12,padding:m?14:18,
-            boxShadow:"0 1px 3px rgba(0,0,0,0.05)",
-            marginBottom:10,borderLeft:"4px solid #007AFF"
+            border:"1px solid #E5E5EA",marginBottom:10
           }}>
             <div style={{
               display:"flex",justifyContent:"space-between",
               alignItems:"center",marginBottom:10,flexWrap:"wrap",gap:6
             }}>
               <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
-                <span style={{
-                  background:"#0071E3",color:"#fff",borderRadius:6,
-                  padding:"3px 9px",fontSize:11,fontWeight:700
-                }}>CR n°{cr.numero}</span>
-                <span style={{fontWeight:700,fontSize:14,color:"#1C1C1E"}}>{ch?.nom || "—"}</span>
-                <span style={{fontSize:11,color:"#6E6E73"}}>{fmtDate(cr.date)}</span>
+                <span style={{fontWeight:700,fontSize:15,color:"#1C1C1E"}}>CR n°{cr.numero}</span>
+                <span style={{fontWeight:600,fontSize:15,color:"#1C1C1E"}}>{ch?.nom || "—"}</span>
+                <span style={{fontSize:13,color:"#6E6E73"}}>{fmtDate(cr.date)}</span>
                 {cr.statut === 'Brouillon' && (
-                  <span style={{fontSize:10,fontWeight:700,color:"#A0390C",background:"#FFF0D6",borderRadius:5,padding:"2px 7px"}}>Brouillon — non diffusé</span>
+                  <span style={{fontSize:12,fontWeight:600,color:"#A0390C",background:"#FFF7E8",borderRadius:999,padding:"2px 8px"}}>Brouillon — non diffusé</span>
                 )}
               </div>
-              <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+              <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
                 <button onClick={()=>handlePdf(cr,ch)} disabled={!!generating} title="Télécharger le PDF"
-                  style={{
-                    ...crBtn("#D70015","#FFF0EF","#FFC9C6"),
-                    opacity:generating?.id===cr.id&&generating?.kind==='pdf'
-                      ?0.7:(generating?0.5:1),
-                    cursor:generating?'wait':'pointer'
-                  }}>
-                  {generating?.id===cr.id && generating?.kind==='pdf' ? (
-                    <><span style={{
-                      display:"inline-block",width:10,height:10,
-                      border:"2px solid #FFC9C6",borderTopColor:"#D70015",
-                      borderRadius:"50%",
-                      animation:"spin .8s linear infinite",
-                      marginRight:4,verticalAlign:"middle"
-                    }}/>Génération…</>
-                  ) : '📄 PDF'}
+                  className="u-btn" style={{...btnChip,opacity:generating&&!busy(cr,'pdf')?0.5:1,cursor:generating?'wait':'pointer'}}>
+                  {busy(cr,'pdf') ? <><Spinner/>Génération…</> : <><Icon d={I.download} size={14}/>PDF</>}
                 </button>
                 <button onClick={()=>handleExcel(cr,ch)} disabled={!!generating} title="Télécharger l'Excel"
-                  style={{
-                    ...crBtn("#1E7B34","#EAF8EE","#BFE9CA"),
-                    opacity:generating?.id===cr.id&&generating?.kind==='xls'
-                      ?0.7:(generating?0.5:1),
-                    cursor:generating?'wait':'pointer'
-                  }}>
-                  {generating?.id===cr.id && generating?.kind==='xls' ? (
-                    <><span style={{
-                      display:"inline-block",width:10,height:10,
-                      border:"2px solid #BFE9CA",borderTopColor:"#1E7B34",
-                      borderRadius:"50%",
-                      animation:"spin .8s linear infinite",
-                      marginRight:4,verticalAlign:"middle"
-                    }}/>Génération…</>
-                  ) : '📊 XLS'}
+                  className="u-btn" style={{...btnChip,opacity:generating&&!busy(cr,'xls')?0.5:1,cursor:generating?'wait':'pointer'}}>
+                  {busy(cr,'xls') ? <><Spinner/>Génération…</> : <><Icon d={I.sheet} size={14}/>Excel</>}
                 </button>
                 {!readOnly && (
                   <button onClick={()=>setSendCr(cr)} title="Envoyer le CR et la convocation par mail"
-                    style={crBtn("#0071E3","#F2F2F7","#D1D1D6")}>✉ {cr.statut === 'Brouillon' ? 'Diffuser' : 'Renvoyer'}</button>
+                    className="u-btn" style={btnChip}><Icon d={I.send} size={14}/>{cr.statut === 'Brouillon' ? 'Diffuser' : 'Renvoyer'}</button>
                 )}
                 {!readOnly && (
                   <button onClick={()=>openEdit(cr)} title="Modifier"
-                    style={crBtn("#0066CC","#EAF3FF","#C6DDF7")}>✎ Modifier</button>
+                    className="u-btn" style={btnChip}><Icon d={I.edit} size={14}/>Modifier</button>
                 )}
                 {!readOnly && (
                   <button onClick={()=>handleDelete(cr)} title="Supprimer"
-                    style={crBtn("#D70015","#fff","#FFC9C6")}>Supprimer</button>
+                    className="u-btn" style={{...btnChip,color:"#D70015"}}><Icon d={I.trash} size={14}/>Supprimer</button>
                 )}
               </div>
             </div>
             {cr.resume && <div style={{fontSize:13,color:"#3A3A3C",lineHeight:1.6,marginBottom:8}}>{cr.resume}</div>}
             <CRCardSummary cr={cr} />
             {cr.participants && (
-              <div style={{fontSize:11}}>
+              <div style={{fontSize:12}}>
                 <span style={{fontWeight:600,color:"#6E6E73"}}>Présents :</span>{" "}
                 <span style={{color:"#6E6E73"}}>{cr.participants}</span>
               </div>
             )}
             {cr.decisions && (
               <div style={{
-                marginTop:8,background:"#FFF0D6",
-                border:"1px solid #FFDDA6",borderRadius:6,
-                padding:"8px 12px",fontSize:11,color:"#A0390C"
+                marginTop:8,background:"#FFF7E8",
+                border:"1px solid #FFDDA6",borderRadius:10,
+                padding:"8px 12px",fontSize:13,color:"#A0390C"
               }}><b>Décisions :</b> {cr.decisions}</div>
             )}
           </div>
@@ -332,7 +274,7 @@ function CRCardSummary({ cr }) {
   const progress = globalProgress(cr.sections || [])
   if (!st.total && !next?.date && progress == null) return null
   const chip = (text, color, bg) => (
-    <span style={{ fontSize: 10, fontWeight: 700, color, background: bg, borderRadius: 5, padding: "2px 7px" }}>{text}</span>
+    <span style={{ fontSize: 12, fontWeight: 600, color, background: bg, borderRadius: 999, padding: "2px 8px" }}>{text}</span>
   )
   return (
     <div style={{ display: "flex", gap: 5, flexWrap: "wrap", alignItems: "center", marginBottom: 8 }}>

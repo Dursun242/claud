@@ -79,7 +79,7 @@ describe('OsCard', () => {
 
   it('déclenche onExcel(os) au clic sur "XLS"', async () => {
     const handlers = renderCard()
-    await userEvent.click(screen.getByRole('button', { name: /XLS/ }))
+    await userEvent.click(screen.getByRole('button', { name: /Excel/ }))
     expect(handlers.onExcel).toHaveBeenCalledWith(baseOs)
   })
 
@@ -150,7 +150,7 @@ describe('OsCard', () => {
     const pdfBtn = screen.getByRole('button', { name: /Génération/ })
     expect(pdfBtn).toBeDisabled()
 
-    const xlsBtn = screen.getByRole('button', { name: /XLS/ })
+    const xlsBtn = screen.getByRole('button', { name: /Excel/ })
     expect(xlsBtn).toBeDisabled()
   })
 })

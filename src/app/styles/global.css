@@ -260,6 +260,22 @@ textarea[aria-invalid="true"]:focus {
   color: #D70015;
 }
 
+/* ── Zone de toucher au doigt (téléphone, tablette) ──────────────
+ * Sur écran tactile, chaque bouton offre au moins 44 × 44 px au doigt
+ * (règle iOS), sans grossir le dessin : une zone invisible centrée
+ * déborde autour des petits boutons (.u-btn, .u-icon-btn, .u-hit).
+ * À la souris, rien ne change. */
+@media (pointer: coarse) {
+  .u-btn, .u-icon-btn, .u-hit { position: relative; }
+  .u-btn::after, .u-icon-btn::after, .u-hit::after {
+    content: "";
+    position: absolute;
+    top: 50%; left: 50%;
+    width: max(100%, 44px); height: max(100%, 44px);
+    transform: translate(-50%, -50%);
+  }
+}
+
 /* ── Utility : ligne de menu (sidebar, dropdown, popover) ─────── */
 .u-menu-item {
   cursor: pointer;
