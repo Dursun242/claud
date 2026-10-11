@@ -141,7 +141,7 @@ export default function AdminDashboard({ user, profile = null }) {
     {key:"crm",      label:"CRM",               icon:I.crm,       sc:"v"},
     {key:"photos",   label:"Reportage Photo",   icon:I.camera,    sc:"h"},
     {key:"qonto",    label:"Qonto",             icon:null,        sc:"q", isQonto:true},
-    ...(profile?.role === 'admin' ? [{key:"admin",label:"🔒 Admin", icon:I.settings, sc:"s"}] : []),
+    ...(profile?.role === 'admin' ? [{key:"admin",label:"Admin", icon:I.settings, sc:"s"}] : []),
     {key:"ai",       label:"Assistant IA",      icon:I.ai,        sc:"a"},
   ], [profile?.role]);
 
@@ -331,7 +331,7 @@ export default function AdminDashboard({ user, profile = null }) {
       {/* MOBILE OVERLAY */}
       {isMobile && sidebarOpen && (
         <div style={{
-          position:"fixed",inset:0,background:"rgba(0,0,0,0.4)",zIndex:998
+          position:"fixed",inset:0,background:"rgba(15,23,42,0.5)",zIndex:998
         }} onClick={()=>setSidebarOpen(false)} />
       )}
 
@@ -342,12 +342,12 @@ export default function AdminDashboard({ user, profile = null }) {
         background:"linear-gradient(195deg,#0F172A,#1E3A5F)",
         color:"#fff",display:"flex",flexDirection:"column",flexShrink:0,
         zIndex:999,transition:"left .25s ease",
-        boxShadow:isMobile&&sidebarOpen?"4px 0 24px rgba(0,0,0,0.35)":"none"
+        boxShadow:isMobile&&sidebarOpen?"4px 0 24px rgba(15,23,42,0.35)":"none"
       }}>
         <div style={{padding:"16px 16px 12px",borderBottom:"1px solid rgba(255,255,255,0.08)"}}>
           <div style={{fontSize:17,fontWeight:700}}>ID MAÎTRISE</div>
           <div style={{
-            fontSize:10,color:"#64748B",marginTop:2,letterSpacing:"0.05em"
+            fontSize:11,color:"#94A3B8",marginTop:2,letterSpacing:"0.05em"
           }}>MAÎTRISE D'ŒUVRE • LE HAVRE</div>
         </div>
         <GlobalSearch data={data} crm={crm} onNavigate={jumpTo} />
@@ -406,10 +406,10 @@ export default function AdminDashboard({ user, profile = null }) {
                 <span style={{flex:1}}>{t.label}</span>
                 {t.isQonto && (
                   <span style={{
-                    display:"inline-flex",alignItems:"center",gap:3,
-                    padding:"2px 7px",borderRadius:5,
-                    background:"linear-gradient(135deg,#7C3AED,#A855F7)",
-                    color:"#fff",fontSize:8,fontWeight:800,letterSpacing:"0.1em"
+                    display:"inline-flex",alignItems:"center",
+                    padding:"1px 6px",borderRadius:999,
+                    border:"1px solid rgba(167,139,250,0.5)",
+                    color:"#A78BFA",fontSize:10,fontWeight:600,letterSpacing:"0.05em"
                   }}>API</span>
                 )}
               </button>
@@ -430,26 +430,26 @@ export default function AdminDashboard({ user, profile = null }) {
               )}
               <div style={{flex:1,minWidth:0}}>
                 <div style={{
-                  fontSize:11,fontWeight:600,color:"#fff",
+                  fontSize:12,fontWeight:600,color:"#fff",
                   overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"
                 }}>{user.user_metadata?.full_name || user.email}</div>
                 <div style={{
-                  fontSize:10,color:"#64748B",
+                  fontSize:11,color:"#94A3B8",
                   overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"
                 }}>{user.email}</div>
               </div>
             </div>
           )}
           <button onClick={logout} style={{
-            width:"100%",padding:"6px 10px",borderRadius:6,
-            border:"1px solid rgba(255,255,255,0.1)",
+            width:"100%",padding:"8px 10px",minHeight:36,borderRadius:8,
+            border:"1px solid rgba(255,255,255,0.15)",
             background:"rgba(255,255,255,0.05)",
-            color:"#64748B",fontSize:10,cursor:"pointer",
+            color:"#CBD5E1",fontSize:12,cursor:"pointer",
             fontFamily:"inherit",fontWeight:500
           }}>
             Déconnexion
           </button>
-          <div style={{fontSize:10,color:"#475569",marginTop:6}}>
+          <div style={{fontSize:11,color:"#94A3B8",marginTop:8,lineHeight:1.4}}>
             SARL ID MAITRISE<br/>9 Rue Henry Genestal, 76600 Le Havre
           </div>
         </div>

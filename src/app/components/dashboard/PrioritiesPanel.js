@@ -1,12 +1,6 @@
 'use client'
 import { useMotDuJour } from '../../hooks/useMotDuJour'
 
-// Couleur du repère par type de priorité
-const COLOR = {
-  task: '#F59E0B', rdv: '#2563EB', relance: '#EC4899', planning: '#10B981', os: '#8B5CF6',
-  chaud: '#DC2626', signature: '#7C3AED', expire: '#D97706', sans_reponse: '#B45309',
-  brouillon: '#64748B', dormante: '#64748B', conformite: '#B91C1C',
-}
 
 /**
  * Bloc « Mes priorités du jour » (admin) : les 3 éléments les plus urgents,
@@ -27,14 +21,14 @@ export default function PrioritiesPanel({ priorities, onOpen, userId, today, rea
 
   return (
     <section aria-labelledby="priorities-title" style={{
-      background: '#fff', borderRadius: 14, padding: m ? 14 : 18,
-      boxShadow: '0 1px 3px rgba(0,0,0,0.06)', marginBottom: 18,
-      border: top.length ? '1.5px solid #BFDBFE' : '1px solid transparent',
+      background: '#fff', borderRadius: 12, padding: m ? 14 : 18,
+      border: '1px solid #E2E8F0',
+      boxShadow: '0 1px 3px rgba(15,23,42,0.06)', marginBottom: 18,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: top.length ? 12 : 4 }}>
-        <h2 id="priorities-title" style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#0F172A' }}>🎯 Mes priorités du jour</h2>
+        <h2 id="priorities-title" style={{ margin: 0, fontSize: 17, fontWeight: 700, color: '#0F172A' }}>Mes priorités du jour</h2>
         {more > 0 && (
-          <span style={{ fontSize: 11, color: '#64748B' }}>
+          <span style={{ fontSize: 12, color: '#64748B' }}>
             + {more} autre{more > 1 ? 's' : ''} point{more > 1 ? 's' : ''} plus bas
           </span>
         )}
@@ -48,16 +42,16 @@ export default function PrioritiesPanel({ priorities, onOpen, userId, today, rea
         <ol style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 8, gridTemplateColumns: 'minmax(0,1fr)' }}>
           {top.map((it, i) => (
             <li key={it.id}>
-              <button type="button" onClick={() => onOpen(it.tab, it.focus)} style={{
+              <button type="button" onClick={() => onOpen(it.tab, it.focus)} className="u-press u-press--row" style={{
                 width: '100%', minHeight: 44, display: 'flex', alignItems: 'center', gap: 12, minWidth: 0,
                 padding: m ? '10px 12px' : '9px 12px', background: '#F8FAFC', border: 'none',
-                borderLeft: `3px solid ${COLOR[it.kind] || '#3B82F6'}`, borderRadius: 10,
+                borderRadius: 10,
                 cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
               }}>
                 <span aria-hidden="true" style={{
                   flexShrink: 0, width: 26, height: 26, borderRadius: '50%',
                   background: i === 0 ? '#1E3A5F' : '#E2E8F0', color: i === 0 ? '#fff' : '#334155',
-                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800,
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700,
                 }}>{i + 1}</span>
                 <span style={{ flex: 1, minWidth: 0 }}>
                   <span style={{ display: 'block', fontSize: m ? 14 : 13, fontWeight: 700, color: '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{it.title}</span>
@@ -72,7 +66,7 @@ export default function PrioritiesPanel({ priorities, onOpen, userId, today, rea
 
       {mot && (
         <p aria-live="polite" style={{ margin: '12px 0 0', paddingTop: 10, borderTop: '1px solid #F1F5F9', fontSize: 13, color: '#334155', lineHeight: 1.45 }}>
-          <span style={{ display: 'block', fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#94A3B8', marginBottom: 3 }}>
+          <span style={{ display: 'block', fontSize: 11, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', color: '#64748B', marginBottom: 3 }}>
             Le mot du jour
           </span>
           {mot}

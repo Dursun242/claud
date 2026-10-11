@@ -86,8 +86,8 @@ export default function CommentsSection({
 
   return (
     <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid #E2E8F0' }}>
-      <h4 style={{ margin: '0 0 12px 0', fontSize: 13, fontWeight: 700, color: '#0F172A' }}>
-        💬 Commentaires <span style={{ color: '#64748B', fontWeight: 500 }}>({comments.length})</span>
+      <h4 style={{ margin: '0 0 12px 0', fontSize: 15, fontWeight: 700, color: '#0F172A' }}>
+        Commentaires <span style={{ color: '#64748B', fontWeight: 500 }}>({comments.length})</span>
       </h4>
 
       {/* Liste commentaires */}
@@ -187,20 +187,21 @@ export default function CommentsSection({
           onClick={handleSubmit}
           disabled={submitting || !newComment.trim()}
           style={{
-            background: '#3B82F6',
+            background: '#1E3A5F',
             color: '#fff',
             border: 'none',
-            borderRadius: 6,
+            borderRadius: 8,
             padding: '8px 14px',
+            minHeight: 40,
             cursor: (submitting || !newComment.trim()) ? 'not-allowed' : 'pointer',
-            fontSize: 12,
+            fontSize: 13,
             fontWeight: 600,
             opacity: (submitting || !newComment.trim()) ? 0.5 : 1,
             fontFamily: 'inherit',
             alignSelf: 'flex-end',
           }}
         >
-          {submitting ? '…' : 'Envoyer'}
+          {submitting ? 'Envoi…' : 'Envoyer'}
         </button>
       </div>
     </div>

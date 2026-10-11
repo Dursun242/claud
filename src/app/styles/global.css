@@ -16,6 +16,10 @@
  * en collision avec un futur design system (`btn-*`, `card-*`, etc.).
  */
 
+/* Chiffres de même largeur partout (montants, dates, compteurs) : les
+ * colonnes de chiffres s'alignent (DESIGN.md, « Le bureau d'études »). */
+body { font-variant-numeric: tabular-nums; }
+
 :root {
   --motion-fast: 120ms;
   --motion-base: 180ms;

@@ -6,7 +6,7 @@
 // Maîtrise). Création depuis les plans, une description, un import ou à la
 // main (ChiffrageCreateModal) ; modification dans l'éditeur (ChiffrageEditor).
 import { useMemo, useState } from 'react'
-import { fmtMoney } from '../../dashboards/shared'
+import { fmtMoney, Icon, I, btnAdd, btnChip } from '../../dashboards/shared'
 import { useChiffrage } from '../../hooks/useChiffrage'
 import { chiffrageTotals, compareWithOs, sanityChecks, osPriceRefs } from '../../lib/chiffrage'
 import { apiPost } from '../../lib/crmApi'
@@ -15,19 +15,17 @@ import { useConfirm } from '../../contexts/ConfirmContext'
 import ChiffrageEditor from './ChiffrageEditor'
 import ChiffrageCreateModal from './ChiffrageCreateModal'
 
-const btn = (color, bg, border) => ({
-  background: bg, border: `1px solid ${border}`, borderRadius: 6, padding: '6px 11px',
-  cursor: 'pointer', fontSize: 11, fontWeight: 700, color, fontFamily: 'inherit',
-})
 const kpi = { background: '#F8FAFC', borderRadius: 8, padding: 10 }
-const kpiLabel = { fontSize: 10, color: '#64748B', fontWeight: 600, textTransform: 'uppercase' }
+const kpiLabel = { fontSize: 11, color: '#64748B', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }
+const kpiSub = { fontSize: 12, color: '#64748B' }
 
 const VERIF_META = {
   oubli: ['Oubli', '#B91C1C'], prix_bas: ['Prix bas', '#B45309'], prix_haut: ['Prix haut', '#B45309'],
-  quantite: ['Quantité', '#7C3AED'], incoherence: ['Incohérence', '#B91C1C'], info: ['Info', '#475569'],
+  quantite: ['Quantité', '#6D28D9'], incoherence: ['Incohérence', '#B91C1C'], info: ['Info', '#475569'],
 }
 
-const barColor = (pct) => pct == null ? '#94A3B8' : pct > 105 ? '#EF4444' : pct >= 90 ? '#F59E0B' : '#10B981'
+// Couleur seulement en cas d'alerte (lot dépassé ou presque), sinon marine
+const barColor = (pct) => pct == null ? '#94A3B8' : pct > 105 ? '#DC2626' : pct >= 90 ? '#F59E0B' : '#1E3A5F'
 
 export default function ChiffrageSection({ chantier, os = [], allOs = [], user, m, onApplyToChantier }) {
   const { addToast } = useToast()
@@ -97,52 +95,52 @@ export default function ChiffrageSection({ chantier, os = [], allOs = [], user, 
 
   const header = (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
-      <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#0F172A' }}>Chiffrage estimatif</h3>
-      {chiffrage && <span style={{ background: '#0EA5E918', color: '#0284C7', fontSize: 11, fontWeight: 700, borderRadius: 10, padding: '2px 8px' }}>{chiffrage.lots.length} lots</span>}
+      <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#0F172A' }}>Chiffrage estimatif</h3>
+      {chiffrage && <span style={{ background: '#E2E8F0', color: '#475569', fontSize: 12, fontWeight: 600, borderRadius: 999, padding: '1px 8px', lineHeight: 1.5 }}>{chiffrage.lots.length} lots</span>}
     </div>
   )
 
   if (!ready) return null
   if (missingMigration) {
-    return <div style={{ marginBottom: 20 }}>{header}
-      <div style={{ fontSize: 12, color: '#92400E', background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 8, padding: 10 }}>
+    return <div style={{ marginBottom: 24 }}>{header}
+      <div style={{ fontSize: 13, color: '#475569', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 8, padding: 10 }}>
         Module disponible après application de la migration 040 dans Supabase.
       </div></div>
   }
 
   return (
-    <div style={{ marginBottom: 20 }}>
+    <div style={{ marginBottom: 24 }}>
       {header}
       {!chiffrage ? (
         <div style={{ background: '#fff', border: '1px dashed #CBD5E1', borderRadius: 10, padding: 14 }}>
-          <div style={{ fontSize: 12, color: '#64748B', marginBottom: 10 }}>
+          <div style={{ fontSize: 13, color: '#64748B', marginBottom: 10 }}>
             Pas encore de chiffrage. Établis le DPGF du projet : il sera comparé lot par lot aux ordres de service.
           </div>
-          <button onClick={() => setCreating(true)} style={btn('#fff', '#0284C7', '#0284C7')}>+ Créer le chiffrage</button>
+          <button onClick={() => setCreating(true)} className="u-press" style={btnAdd}><Icon d={I.plus} size={16}/>Créer le chiffrage</button>
         </div>
       ) : (
-        <div style={{ background: '#fff', borderRadius: 12, padding: m ? 12 : 16, boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+        <div style={{ background: '#fff', borderRadius: 12, padding: m ? 12 : 16, border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(15,23,42,0.06)' }}>
           <div style={{ display: 'grid', gridTemplateColumns: m ? 'repeat(2,1fr)' : 'repeat(4,1fr)', gap: 10, marginBottom: 12 }}>
             <div style={kpi}><div style={kpiLabel}>Travaux HT</div>
               <div style={{ fontSize: 17, fontWeight: 700, color: '#0F172A' }}>{fmtMoney(totals.htAleas)}</div>
-              <div style={{ fontSize: 10, color: '#64748B' }}>{chiffrage.aleas_pct ? `dont aléas ${chiffrage.aleas_pct} %` : `${fmtMoney(totals.travauxTtc)} TTC`}</div></div>
+              <div style={kpiSub}>{chiffrage.aleas_pct ? `dont aléas ${chiffrage.aleas_pct} %` : `${fmtMoney(totals.travauxTtc)} TTC`}</div></div>
             <div style={kpi}><div style={kpiLabel}>Total TTC</div>
               <div style={{ fontSize: 17, fontWeight: 700, color: '#0F172A' }}>{fmtMoney(totals.ttc)}</div>
-              <div style={{ fontSize: 10, color: '#64748B' }}>{totals.honoraires ? `MOE comprise (${fmtMoney(totals.honoraires)} HT)` : `TVA ${chiffrage.tva_pct} %`}</div></div>
+              <div style={kpiSub}>{totals.honoraires ? `MOE comprise (${fmtMoney(totals.honoraires)} HT)` : `TVA ${chiffrage.tva_pct} %`}</div></div>
             <div style={kpi}><div style={kpiLabel}>Ratio TTC/m²</div>
               <div style={{ fontSize: 17, fontWeight: 700, color: '#0F172A' }}>{totals.ratioTtc ? `${fmtMoney(totals.ratioTtc)}` : '—'}</div>
-              <div style={{ fontSize: 10, color: '#64748B' }}>{totals.surfaceRef
+              <div style={kpiSub}>{totals.surfaceRef
                 ? `${totals.honoraires ? 'MOE comprise · ' : ''}${String(totals.surfaceRef).replace('.', ',')} m²${Number(chiffrage.surface_annexes) ? ' (SHAB + ½ garage)' : ''}`
                 : 'surface non renseignée'}</div></div>
             <div style={kpi}><div style={kpiLabel}>Engagé (OS HT)</div>
               <div style={{ fontSize: 17, fontWeight: 700, color: barColor(cmp.totaux.pct) }}>{fmtMoney(cmp.totaux.engage)}</div>
-              <div style={{ fontSize: 10, color: '#64748B' }}>{cmp.totaux.pct != null ? `${cmp.totaux.pct} % des travaux` : '—'}</div></div>
+              <div style={kpiSub}>{cmp.totaux.pct != null ? `${cmp.totaux.pct} % des travaux` : '—'}</div></div>
           </div>
 
           {/* Estimé / engagé par lot */}
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, minWidth: 460 }}>
-              <thead><tr style={{ color: '#64748B', fontSize: 10, textTransform: 'uppercase', textAlign: 'right' }}>
+              <thead><tr style={{ color: '#64748B', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'right' }}>
                 <th style={{ textAlign: 'left', padding: '4px 6px' }}>Lot</th><th style={{ padding: '4px 6px' }}>Estimé HT</th>
                 <th style={{ padding: '4px 6px' }}>Engagé (OS)</th><th style={{ padding: '4px 6px' }}>Écart</th><th style={{ padding: '4px 6px', width: 90 }} />
               </tr></thead>
@@ -150,12 +148,12 @@ export default function ChiffrageSection({ chantier, os = [], allOs = [], user, 
                 {cmp.lignes.map(l => (
                   <tr key={l.nom} style={{ borderTop: '1px solid #F1F5F9' }}>
                     <td style={{ padding: '6px', fontWeight: 600, color: '#0F172A' }}>{l.nom}
-                      {l.horsChiffrage && <span style={{ marginLeft: 6, fontSize: 10, color: '#B45309', fontWeight: 600 }}>hors chiffrage</span>}
-                      {l.brouillon > 0 && <div style={{ fontSize: 10, color: '#64748B', fontWeight: 400 }}>+ {fmtMoney(l.brouillon)} en brouillon</div>}
+                      {l.horsChiffrage && <span style={{ marginLeft: 6, fontSize: 11, color: '#B45309', fontWeight: 600 }}>hors chiffrage</span>}
+                      {l.brouillon > 0 && <div style={{ fontSize: 11, color: '#64748B', fontWeight: 400 }}>+ {fmtMoney(l.brouillon)} en brouillon</div>}
                     </td>
                     <td style={{ padding: '6px', textAlign: 'right' }}>{fmtMoney(l.estime)}</td>
                     <td style={{ padding: '6px', textAlign: 'right' }}>{l.nbOs ? `${fmtMoney(l.engage)} · ${l.nbOs} OS` : '—'}</td>
-                    <td style={{ padding: '6px', textAlign: 'right', fontWeight: 600, color: l.nbOs ? (l.ecart > 0 ? '#DC2626' : '#059669') : '#94A3B8' }}>
+                    <td style={{ padding: '6px', textAlign: 'right', fontWeight: 600, color: l.nbOs ? (l.ecart > 0 ? '#B91C1C' : '#047857') : '#64748B' }}>
                       {l.nbOs ? `${l.ecart > 0 ? '+' : ''}${fmtMoney(l.ecart)}` : '—'}</td>
                     <td style={{ padding: '6px' }}>
                       {l.nbOs > 0 && l.pct != null && <div title={`${l.pct} %`} style={{ height: 6, background: '#F1F5F9', borderRadius: 3 }}>
@@ -173,7 +171,7 @@ export default function ChiffrageSection({ chantier, os = [], allOs = [], user, 
                   <td style={{ padding: '6px' }}>Total travaux{chiffrage.aleas_pct ? ` (avec aléas : ${fmtMoney(cmp.totaux.budget)})` : ''}</td>
                   <td style={{ padding: '6px', textAlign: 'right' }}>{fmtMoney(cmp.totaux.estime)}</td>
                   <td style={{ padding: '6px', textAlign: 'right' }}>{fmtMoney(cmp.totaux.engage)}</td>
-                  <td style={{ padding: '6px', textAlign: 'right', color: cmp.totaux.ecart > 0 ? '#DC2626' : '#059669' }}>
+                  <td style={{ padding: '6px', textAlign: 'right', color: cmp.totaux.ecart > 0 ? '#B91C1C' : '#047857' }}>
                     {cmp.totaux.engage ? `${cmp.totaux.ecart > 0 ? '+' : ''}${fmtMoney(cmp.totaux.ecart)}` : '—'}</td><td />
                 </tr>
               </tbody>
@@ -181,9 +179,9 @@ export default function ChiffrageSection({ chantier, os = [], allOs = [], user, 
           </div>
 
           {checks.length > 0 && (
-            <div style={{ marginTop: 10, fontSize: 12, background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 8, padding: '8px 10px', color: '#92400E' }}>
-              <button onClick={() => setShowChecks(v => !v)} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: '#92400E', fontWeight: 700, fontSize: 12, fontFamily: 'inherit' }}>
-                ⚠ {checks.length} point{checks.length > 1 ? 's' : ''} à vérifier {showChecks ? '▴' : '▾'}
+            <div style={{ marginTop: 10, fontSize: 13, background: '#FFFBEB', border: '1px solid #E2E8F0', borderRadius: 8, padding: '8px 10px', color: '#334155' }}>
+              <button onClick={() => setShowChecks(v => !v)} aria-expanded={showChecks} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, minHeight: 32, background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: '#B45309', fontWeight: 600, fontSize: 13, fontFamily: 'inherit' }}>
+                <Icon d={I.alert} size={15}/>{checks.length} point{checks.length > 1 ? 's' : ''} à vérifier {showChecks ? '▴' : '▾'}
               </button>
               {showChecks && <ul style={{ margin: '6px 0 0', paddingLeft: 18 }}>{checks.map(c => <li key={c}>{c}</li>)}</ul>}
             </div>
@@ -200,7 +198,7 @@ export default function ChiffrageSection({ chantier, os = [], allOs = [], user, 
                 const [lib, color] = VERIF_META[x.type] || VERIF_META.info
                 return (
                   <div key={k} style={{ display: 'flex', gap: 8, alignItems: 'baseline', padding: '4px 0', borderTop: k ? '1px solid #E2E8F0' : 'none' }}>
-                    <span style={{ fontSize: 10, fontWeight: 700, color, minWidth: 70 }}>{lib}{x.poste ? ` · ${x.poste}` : ''}</span>
+                    <span style={{ fontSize: 12, fontWeight: 600, color, minWidth: 70 }}>{lib}{x.poste ? ` · ${x.poste}` : ''}</span>
                     <span style={{ flex: 1, color: '#334155' }}>{x.message}</span>
                     {x.impact_ht !== 0 && <span style={{ fontWeight: 700, color: x.impact_ht > 0 ? '#B91C1C' : '#047857', whiteSpace: 'nowrap' }}>{x.impact_ht > 0 ? '+' : ''}{fmtMoney(x.impact_ht)}</span>}
                   </div>
@@ -210,16 +208,16 @@ export default function ChiffrageSection({ chantier, os = [], allOs = [], user, 
           )}
 
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 12 }}>
-            <button onClick={() => setEditing(chiffrage)} style={btn('#fff', '#0284C7', '#0284C7')}>Modifier le DPGF</button>
-            <button onClick={verifier} disabled={verif === 'busy'} style={{ ...btn('#0F172A', '#fff', '#CBD5E1'), opacity: verif === 'busy' ? 0.6 : 1 }}>
+            <button onClick={() => setEditing(chiffrage)} className="u-press" style={btnAdd}><Icon d={I.edit} size={16}/>Modifier le DPGF</button>
+            <button onClick={verifier} disabled={verif === 'busy'} className="u-press" style={{ ...btnChip, opacity: verif === 'busy' ? 0.6 : 1 }}>
               {verif === 'busy' ? 'Relecture en cours…' : 'Vérifier les prix (IA)'}</button>
-            <button onClick={exportPdf} style={btn('#B91C1C', '#FEF2F2', '#FECACA')}>PDF</button>
-            <button onClick={exportXlsx} style={btn('#047857', '#ECFDF5', '#A7F3D0')}>Excel</button>
-            {onApplyToChantier && <button onClick={applyToChantier} style={btn('#475569', '#F1F5F9', '#E2E8F0')}>Reporter budget et lots</button>}
-            <button onClick={() => setCreating(true)} style={btn('#475569', '#F1F5F9', '#E2E8F0')}>Refaire (IA / import)</button>
-            <button onClick={onDelete} style={btn('#B91C1C', '#fff', '#FECACA')}>Supprimer</button>
+            <button onClick={exportPdf} className="u-press" style={btnChip}><Icon d={I.download} size={14}/>PDF</button>
+            <button onClick={exportXlsx} className="u-press" style={btnChip}><Icon d={I.sheet} size={14}/>Excel</button>
+            {onApplyToChantier && <button onClick={applyToChantier} className="u-press" style={btnChip}>Reporter budget et lots</button>}
+            <button onClick={() => setCreating(true)} className="u-press" style={btnChip}>Refaire (IA / import)</button>
+            <button onClick={onDelete} className="u-icon-btn u-icon-btn--danger" style={{ ...btnChip, color: '#B91C1C' }}><Icon d={I.trash} size={14}/>Supprimer</button>
           </div>
-          {chiffrage.updated_at && <div style={{ fontSize: 10, color: '#94A3B8', marginTop: 8 }}>
+          {chiffrage.updated_at && <div style={{ fontSize: 12, color: '#64748B', marginTop: 8 }}>
             Mis à jour le {new Date(chiffrage.updated_at).toLocaleDateString('fr-FR')}{chiffrage.updated_by ? ` par ${chiffrage.updated_by}` : ''}
           </div>}
         </div>

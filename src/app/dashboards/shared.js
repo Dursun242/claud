@@ -633,6 +633,13 @@ export const I = {
   // Cible (CRM / pipeline commercial)
   crm: "M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z M12 6a6 6 0 1 0 0 12 6 6 0 0 0 0-12z M12 10a2 2 0 1 0 0 4 2 2 0 0 0 0-4z",
   camera: "M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z M12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8z",
+  // Fichiers : PDF (document + flèche), tableur, modèle (copie)
+  download: "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6 M12 18v-6 M9 15l3 3 3-3",
+  sheet: "M4 3h16a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z M3 9h18 M3 15h18 M9 9v12",
+  copy: "M9 9h11a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V10a1 1 0 0 1 1-1z M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1",
+  bell: "M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9 M13.73 21a2 2 0 0 1-3.46 0",
+  alert: "M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z M12 9v4 M12 17h.01",
+  clock: "M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z M12 6v6l4 2",
 };
 
 // ─── COLORS ───
@@ -869,6 +876,22 @@ export const btnP = {
   transition:"transform 120ms cubic-bezier(.4, 0, .2, 1), box-shadow 180ms cubic-bezier(.4, 0, .2, 1)",
 };
 export const btnS = {...btnP,background:"#F1F5F9",color:"#475569"};
+// Action secondaire d'une section (« + Nouvel OS », « + Nouvelle tâche »…) :
+// fond blanc, trait fin, texte marine. Le marine plein reste réservé à
+// l'action principale (btnP). À combiner avec className="u-press".
+export const btnAdd = {
+  display:"inline-flex", alignItems:"center", gap:6,
+  padding:"8px 12px", minHeight:36, background:"#fff", color:"#1E3A5F",
+  border:"1px solid #CBD5E1", borderRadius:8, fontSize:13, fontWeight:600,
+  cursor:"pointer", fontFamily:"inherit",
+};
+// Petite action sur une ligne (PDF, Excel, modèle…) : discrète, ardoise.
+export const btnChip = {
+  display:"inline-flex", alignItems:"center", gap:5,
+  padding:"6px 10px", minHeight:32, background:"#fff", color:"#334155",
+  border:"1px solid #E2E8F0", borderRadius:8, fontSize:12, fontWeight:600,
+  cursor:"pointer", fontFamily:"inherit", whiteSpace:"nowrap",
+};
 
 export const PBar = ({value, max=100, color="#3B82F6", h=8}) => (
   <ProgressBar value={value} max={max} color={color} height={h} />

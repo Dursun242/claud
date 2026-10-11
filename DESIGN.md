@@ -26,7 +26,9 @@ colors:
   danger-bright: "#EF4444"
   danger-line: "#FECACA"
   danger-tint: "#FEF2F2"
+  danger-text: "#B91C1C"
   planned-violet: "#8B5CF6"
+  planned-violet-text: "#6D28D9"
   qonto-lavender: "#A78BFA"
   info-tint: "#EFF6FF"
 typography:
@@ -115,9 +117,21 @@ components:
     textColor: "{colors.ink-night}"
     rounded: "{rounded.sm}"
   badge:
-    typography: "{typography.label}"
-    rounded: "{rounded.xl}"
+    typography: "{typography.caption}"
+    rounded: "{rounded.pill}"
     padding: "2px 8px"
+  button-add:
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.navy-maitrise}"
+    rounded: "{rounded.sm}"
+    padding: "8px 12px"
+    height: "36px"
+  button-chip:
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.slate-strong}"
+    rounded: "{rounded.sm}"
+    padding: "6px 10px"
+    height: "32px"
   card:
     backgroundColor: "{colors.surface}"
     rounded: "{rounded.md}"
@@ -188,14 +202,14 @@ Une palette ardoise froide, ponctuée du marine ID Maîtrise et de couleurs de s
 ### Statuts
 - **Succès** (`success`, texte `success-text`, fond `success-tint`) : « Terminé », validations.
 - **Attention** (`warning`, texte `warning-text`, fond `warning-tint`) : « En attente », échéances proches.
-- **Danger** (`danger`, `danger-bright`, trait `danger-line`, fond `danger-tint`) : « Urgent », retards, suppression, champs en erreur.
+- **Danger** (`danger`, `danger-bright`, trait `danger-line`, fond `danger-tint`, texte `danger-text`) : « Urgent », retards, suppression, champs en erreur.
 
 ### Named Rules
 **The Meaning-Only Rule.** Une couleur vive porte toujours un sens (statut, alerte, action). Hors de ces cas, l'interface reste en marine et ardoise.
 
 **The Neutral Section Rule.** Les sections d'un écran (OS, CR, tâches, PV, entreprises, planning, chiffrage…) n'ont pas de couleur propre : titres, compteurs et boutons de création restent en marine et ardoise (décision d'octobre 2026, l'équipe ne se repère pas à la couleur des sections).
 
-**The Tinted Badge Rule.** Un statut s'affiche en texte de sa couleur sur un fond de la même couleur très diluée (couleur + `18` en hexadécimal, environ 9 % d'opacité), jamais en aplat plein.
+**The Tinted Badge Rule.** Un statut s'affiche en texte d'une teinte foncée de sa couleur sur un fond de la même couleur très diluée (couleur + `18` en hexadécimal, environ 9 % d'opacité), jamais en aplat plein. La teinte foncée vient de `lib/tone.js` (bleu → `link-blue-deep`, violet → `planned-violet-text`, vert → `success-text`, ambre → `warning-text`, rouge → `danger-text`, gris → `slate-secondary`) et garde au moins 4,5:1 de contraste.
 
 **Open decision — l'or.** L'or des mails de devis (`#C8A45C`) n'est pas encore tranché comme couleur de marque. Ne pas l'introduire dans l'application tant que la décision n'est pas prise.
 
@@ -267,12 +281,16 @@ Doux et nets : un seul bouton marine par zone, le reste en gris.
 - **Shape :** coins arrondis de 8 px.
 - **Primary :** fond marine ID Maîtrise, texte blanc, 13 px en 600, 40 px de haut (`btnP`).
 - **Secondary :** fond `canvas`, texte ardoise secondaire, mêmes dimensions (`btnS`).
-- **Créer :** fond bleu action, réservé à la création depuis la barre latérale ; sur mobile, bouton + de 50 px en dégradé marine vers bleu action.
+- **Créer :** fond bleu action, réservé à la création depuis la barre latérale ; sur mobile, bouton + de 50 px marine plein.
+- **Action de section** (`btnAdd`) : « + Nouvel OS », « + Nouveau CR »… fond blanc, trait `line-strong`, texte marine, icône +, 36 px de haut.
+- **Action de ligne** (`btnChip`) : PDF, Excel, Envoyer, Modifier… fond blanc, trait `line`, texte ardoise forte, icône dessinée, 32 px de haut.
 - **Icône :** `.u-icon-btn` (fond transparent, gris au survol ; variante `--danger` rouge pâle pour supprimer).
+- **Icônes :** toujours dessinées (`I.*` de `shared.js`), jamais d'emoji.
 - **Hover / Focus / Press :** anneau de focus bleu signal de 2 px décalé de 2 px, visible au clavier seulement ; léger enfoncement à l'appui (`scale(.94)` à `.99`).
 
 ### Chips / Badges
-- **Style :** texte de la couleur du statut sur fond de la même couleur diluée, 10 px en 700, coins de 16 px, `2px 8px` (`components/Badge.js`).
+- **Style :** texte en teinte foncée du statut sur fond de la même couleur diluée, 11 px en 600, pastille, `2px 8px` (`components/Badge.js`, `lib/tone.js`).
+- **Catégories** (phase, type d'intervenant) : badge neutre ardoise ; la couleur reste aux statuts.
 - **Couleurs :** table `status` de `shared.js` (En cours, Planifié, Terminé, En attente, Urgent) et `phase` (Hors d'air, Technique, Finitions).
 
 ### Cards / Containers
@@ -293,6 +311,7 @@ Doux et nets : un seul bouton marine par zone, le reste en gris.
 - **Barre latérale :** dégradé nuit ardoise vers marine, 280 px ; onglets 12,5 px, gris pâle au repos, blancs sur fond `rgba(255,255,255,0.10)` quand actifs, avec une barre verticale d'accent de 3 px (bleu clair `#60A5FA`, lavande pour Qonto).
 - **Barre du haut :** blanche, bordure basse `line`, titre de page en 15 px 700.
 - **Mobile :** barre basse blanche avec libellés de 10,5 px et bouton + central ; menu « Créer » en panneau qui monte du bas.
+- **Micro de dictée :** rond marine de 56 px avec icône micro, sans animation au repos ; rouge `danger` avec une onde pendant l'écoute.
 
 ### Modal
 - **Style :** fenêtre blanche, coins de 16 px, 20 px de marge intérieure, ombre « Fenêtre » sur voile nuit à 60 % ; sur téléphone, panneau plein largeur qui monte du bas.
@@ -306,6 +325,7 @@ Doux et nets : un seul bouton marine par zone, le reste en gris.
 - **Do** garder les champs à 16 px et 44 px de haut, et les boutons à 40 px minimum.
 - **Do** afficher les statuts avec la règle du badge teinté et les couleurs de la table `status`.
 - **Do** teinter les ombres en nuit ardoise et les garder légères au repos.
+- **Do** afficher les chiffres en chiffres de même largeur (`font-variant-numeric: tabular-nums`, posé sur `body`).
 - **Do** utiliser les durées et courbes de `styles/global.css` (`--motion-fast` 120 ms, `--motion-base` 180 ms, `--motion-slow` 280 ms, `--ease-standard`).
 
 ### Don't:
@@ -313,5 +333,6 @@ Doux et nets : un seul bouton marine par zone, le reste en gris.
 - **Don't** créer de nouveau texte sous 10 px, ni de texte courant sous 12 px.
 - **Don't** ajouter une couleur vive qui ne porte pas de sens (statut, alerte, action).
 - **Don't** donner une couleur propre à une section d'écran (titres, compteurs, boutons « + Nouveau »).
+- **Don't** utiliser d'emoji comme icône ou dans un titre : leur rendu change d'un téléphone à l'autre.
 - **Don't** gérer le survol avec `onMouseEnter` / `onMouseLeave` en ligne : les classes `u-*` couvrent aussi le clavier et le tactile.
 - **Don't** fermer une fenêtre de saisie au clic sur le fond.

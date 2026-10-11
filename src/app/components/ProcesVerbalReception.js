@@ -7,6 +7,7 @@ import PVRow from './pv/PVRow'
 import PVDetail from './pv/PVDetail'
 import PVNewForm from './pv/PVNewForm'
 import { isNetworkError } from '../lib/offlineStore'
+import { Icon, I, btnAdd } from '../dashboards/shared'
 
 // Container : charge la liste des PV d'un chantier et orchestre les modales
 // (détail + création). La logique de rendu est déléguée aux 3 sous-composants
@@ -51,21 +52,16 @@ export default function ProcesVerbalReception({ chantierId, chantier, ordresServ
     loadPVs()
   }, [loadPVs])
 
-  const PV_COLOR = '#14B8A6'
-
   return (
     <>
-      <Section title="Procès-verbaux de réception" count={pvs.length} color={PV_COLOR}>
+      <Section title="Procès-verbaux de réception" count={pvs.length}>
         {!readOnly && <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
           <button
             onClick={() => setShowNewForm(true)}
-            style={{
-              background: PV_COLOR, color: '#fff', border: 'none',
-              borderRadius: 6, padding: '6px 12px',
-              fontSize: 11, fontWeight: 700, cursor: 'pointer'
-            }}
+            className="u-press"
+            style={btnAdd}
           >
-            + Nouveau PV
+            <Icon d={I.plus} size={16}/>Nouveau PV
           </button>
         </div>}
 

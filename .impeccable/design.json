@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-11T09:28:26Z",
+  "generatedAt": "2026-10-11T11:21:03Z",
   "title": "Design System: ID Maîtrise — Dashboard",
   "extensions": {
     "colorMeta": {
@@ -381,6 +381,34 @@
           "#C4CAD2",
           "#E8EFF8"
         ]
+      },
+      "danger-text": {
+        "role": "status",
+        "displayName": "Danger (texte)",
+        "tonalRamp": [
+          "#360000",
+          "#600000",
+          "#8C0000",
+          "#BA000D",
+          "#E53732",
+          "#FF695D",
+          "#FF9586",
+          "#FFC0B0"
+        ]
+      },
+      "planned-violet-text": {
+        "role": "tertiary",
+        "displayName": "Violet planifié (texte)",
+        "tonalRamp": [
+          "#170046",
+          "#2F006F",
+          "#4B179A",
+          "#6A3BC8",
+          "#8B5DF6",
+          "#AC86FF",
+          "#CFAEFF",
+          "#F3D7FF"
+        ]
       }
     },
     "typographyMeta": {
@@ -516,8 +544,8 @@
       "kind": "chip",
       "refersTo": "badge",
       "description": "Statut en texte coloré sur fond dilué.",
-      "html": "<span class=\"ds-badges\"><span class=\"ds-badge\" style=\"color:#3B82F6;background:#3B82F618\">En cours</span><span class=\"ds-badge\" style=\"color:#8B5CF6;background:#8B5CF618\">Planifié</span><span class=\"ds-badge\" style=\"color:#10B981;background:#10B98118\">Terminé</span><span class=\"ds-badge\" style=\"color:#F59E0B;background:#F59E0B18\">En attente</span><span class=\"ds-badge\" style=\"color:#EF4444;background:#EF444418\">Urgent</span></span>",
-      "css": ".ds-badges{display:flex;gap:6px;flex-wrap:wrap}.ds-badge{font-family: var(--font-dm-sans), 'DM Sans', sans-serif;display:inline-block;padding:2px 8px;border-radius:16px;font-size:10px;font-weight:700;white-space:nowrap}"
+      "html": "<span class=\"ds-badges\"><span class=\"ds-badge\" style=\"color:#1D4ED8;background:#3B82F618\">En cours</span><span class=\"ds-badge\" style=\"color:#6D28D9;background:#8B5CF618\">Planifié</span><span class=\"ds-badge\" style=\"color:#047857;background:#10B98118\">Terminé</span><span class=\"ds-badge\" style=\"color:#B45309;background:#F59E0B18\">En attente</span><span class=\"ds-badge\" style=\"color:#B91C1C;background:#EF444418\">Urgent</span></span>",
+      "css": ".ds-badges{display:flex;gap:6px;flex-wrap:wrap}.ds-badge{font-family: var(--font-dm-sans), 'DM Sans', sans-serif;display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;white-space:nowrap}"
     },
     {
       "name": "Carte cliquable",
@@ -542,6 +570,14 @@
       "description": "Modale blanche, fermée seulement par ✕ ou les boutons.",
       "html": "<div class=\"ds-modal\"><div class=\"ds-modal-head\"><span>Nouvelle tâche</span><button class=\"ds-x\" aria-label=\"Fermer\">✕</button></div><p class=\"ds-modal-body\">Contenu du formulaire…</p></div>",
       "css": ".ds-modal{font-family: var(--font-dm-sans), 'DM Sans', sans-serif;background:#fff;border-radius:16px;padding:20px;max-width:420px;box-shadow:0 25px 50px rgba(15,23,42,0.25)}.ds-modal-head{display:flex;justify-content:space-between;align-items:center;font-size:17px;font-weight:700;color:#0F172A}.ds-x{border:none;background:transparent;border-radius:8px;width:32px;height:32px;font-size:16px;color:#64748B;cursor:pointer}.ds-x:hover,.ds-x:focus-visible{background:#E2E8F0}.ds-modal-body{font-size:13px;color:#334155;margin:12px 0 0}"
+    },
+    {
+      "name": "Action de section",
+      "kind": "button",
+      "refersTo": "button-add",
+      "description": "« + Nouvel OS », « + Nouveau CR » : discret, texte marine.",
+      "html": "<button class=\"ds-btn-add\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"><path d=\"M12 5v14 M5 12h14\"/></svg>Nouvel OS</button>",
+      "css": ".ds-btn-add{font-family:var(--font-dm-sans),'DM Sans',sans-serif;display:inline-flex;align-items:center;gap:6px;padding:8px 12px;min-height:36px;background:#fff;color:#1E3A5F;border:1px solid #CBD5E1;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:background 120ms cubic-bezier(.4,0,.2,1)}.ds-btn-add:hover{background:#F8FAFC}.ds-btn-add:focus-visible{outline:2px solid #3B82F6;outline-offset:2px}"
     }
   ],
   "narrative": {
@@ -563,7 +599,7 @@
       },
       {
         "name": "The Tinted Badge Rule",
-        "body": "Un statut s'affiche en texte de sa couleur sur un fond de la même couleur très diluée (couleur + 18 en hexadécimal, environ 9 % d'opacité), jamais en aplat plein.",
+        "body": "Un statut s'affiche en texte d'une teinte foncée de sa couleur sur un fond de la même couleur très diluée (couleur + 18 en hexadécimal, environ 9 % d'opacité), jamais en aplat plein. La teinte foncée vient de lib/tone.js et garde au moins 4,5:1 de contraste.",
         "section": "colors"
       },
       {
@@ -603,6 +639,7 @@
       "Do garder les champs à 16 px et 44 px de haut, et les boutons à 40 px minimum.",
       "Do afficher les statuts avec la règle du badge teinté et les couleurs de la table `status`.",
       "Do teinter les ombres en nuit ardoise et les garder légères au repos.",
+      "Do afficher les chiffres en chiffres de même largeur (`font-variant-numeric: tabular-nums`, posé sur `body`).",
       "Do utiliser les durées et courbes de `styles/global.css` (`--motion-fast` 120 ms, `--motion-base` 180 ms, `--motion-slow` 280 ms, `--ease-standard`)."
     ],
     "donts": [
@@ -610,6 +647,7 @@
       "Don't créer de nouveau texte sous 10 px, ni de texte courant sous 12 px.",
       "Don't ajouter une couleur vive qui ne porte pas de sens (statut, alerte, action).",
       "Don't donner une couleur propre à une section d'écran (titres, compteurs, boutons « + Nouveau »).",
+      "Don't utiliser d'emoji comme icône ou dans un titre : leur rendu change d'un téléphone à l'autre.",
       "Don't gérer le survol avec `onMouseEnter` / `onMouseLeave` en ligne : les classes `u-*` couvrent aussi le clavier et le tactile.",
       "Don't fermer une fenêtre de saisie au clic sur le fond."
     ]

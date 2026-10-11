@@ -13,6 +13,10 @@
  * - bouton d'action optionnel (label + onClick)
  * - 2 variantes : `compact` (inline, dense) et défaut (carte centrée)
  *
+ * Les icônes en emoji (chaîne de caractères) ne sont plus affichées : leur
+ * rendu change d'un téléphone à l'autre (DESIGN.md). Passer un ReactNode
+ * (ex. <Icon d={I.reports}/>) pour garder une icône dessinée.
+ *
  * Accessibilité : role="status" pour annoncer aux lecteurs d'écran qu'on
  * est dans un état particulier (vide) plutôt que dans un chargement.
  *
@@ -26,12 +30,13 @@
  *   }} />
  */
 export default function EmptyState({
-  icon,
+  icon: iconProp,
   title,
   description,
   action,
   compact = false,
 }) {
+  const icon = typeof iconProp === 'string' ? null : iconProp
   if (compact) {
     return (
       <div
@@ -42,17 +47,17 @@ export default function EmptyState({
           gap: 10,
           padding: '14px 16px',
           color: '#64748B',
-          fontSize: 12,
+          fontSize: 13,
           background: '#F8FAFC',
           border: '1px dashed #E2E8F0',
           borderRadius: 10,
         }}
       >
-        {icon && <span aria-hidden="true" style={{ fontSize: 18, opacity: 0.7, flexShrink: 0 }}>{icon}</span>}
+        {icon && <span aria-hidden="true" style={{ display: 'inline-flex', color: '#64748B', flexShrink: 0 }}>{icon}</span>}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontWeight: 600, color: '#334155' }}>{title}</div>
           {description && (
-            <div style={{ fontSize: 11, color: '#64748B', marginTop: 2, lineHeight: 1.4 }}>
+            <div style={{ fontSize: 12, color: '#64748B', marginTop: 2, lineHeight: 1.5 }}>
               {description}
             </div>
           )}
@@ -72,7 +77,7 @@ export default function EmptyState({
         boxShadow: '0 1px 3px rgba(15,23,42,0.06)',
       }}
     >
-      {icon && <div aria-hidden="true" style={{ fontSize: 40, marginBottom: 10, opacity: 0.5 }}>{icon}</div>}
+      {icon && <div aria-hidden="true" style={{ display: 'flex', justifyContent: 'center', color: '#94A3B8', marginBottom: 10 }}>{icon}</div>}
       <div style={{
         fontSize: 14, fontWeight: 700, color: '#334155',
         marginBottom: description ? 6 : 0,
@@ -81,7 +86,7 @@ export default function EmptyState({
       </div>
       {description && (
         <div style={{
-          fontSize: 12, color: '#64748B', maxWidth: 360, margin: '0 auto',
+          fontSize: 13, color: '#64748B', maxWidth: 360, margin: '0 auto',
           lineHeight: 1.5,
         }}>
           {description}

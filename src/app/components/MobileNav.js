@@ -49,8 +49,8 @@ export default function MobileNav({ items, active, onSelect, onMenu, onCreate })
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <button data-nav onClick={onCreate} aria-label="Créer (OS, CR, tâche…)" style={{
             width: 50, height: 50, borderRadius: 16, border: 'none', cursor: 'pointer',
-            background: 'linear-gradient(135deg,#1E3A5F,#2563EB)', color: '#fff',
-            boxShadow: '0 4px 14px rgba(37,99,235,0.35)',
+            background: '#1E3A5F', color: '#fff',
+            boxShadow: '0 4px 12px rgba(15,23,42,0.18)',
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
           }}>
             <Icon d={I.plus} size={24} color="#fff" />
@@ -103,7 +103,7 @@ export function QuickCreateSheet({ open, onClose, actions, isMobile }) {
         background: '#fff', width: '100%', maxWidth: isMobile ? '100%' : 440,
         borderRadius: isMobile ? '18px 18px 0 0' : 16,
         padding: isMobile ? '10px 16px calc(16px + env(safe-area-inset-bottom))' : 20,
-        boxShadow: '0 -8px 40px rgba(0,0,0,0.25)',
+        boxShadow: '0 -8px 24px rgba(15,23,42,0.18)',
       }}>
         {isMobile && <div aria-hidden style={{ width: 40, height: 4, borderRadius: 2, background: '#CBD5E1', margin: '0 auto 12px' }} />}
         <div style={{ fontSize: 15, fontWeight: 700, color: '#0F172A', marginBottom: 12 }}>Créer…</div>
