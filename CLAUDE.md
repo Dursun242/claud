@@ -110,6 +110,8 @@ Stage 3 = **CRM** (`crm_opportunites`, `crm_interactions`, `crm_devis`, `crm_dev
 
 `.claude/settings.json` active le plugin **ECC** (Everything Claude Code, `ecc@ecc`, marketplace `affaan-m/ECC`) pour toutes les sessions sur ce dépôt : agents, skills, commandes (`/ecc:…`) et hooks. Les « rules » d'ECC ne sont pas installées : en cas de conflit, ce fichier CLAUDE.md fait foi (messages de commit, branches, conventions ci-dessus).
 
+Skill **impeccable** (`.claude/skills/impeccable`, repris du dépôt `idm`) : conception, critique et finition d'interface (`/impeccable audit|critique|polish|…`). Son moteur se télécharge au premier lancement dans `~/.impeccable` (hors dépôt). Pas encore de `PRODUCT.md` / `DESIGN.md` : `/impeccable init` les crée.
+
 ## Commandes
 
 ```bash
