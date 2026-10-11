@@ -1,0 +1,611 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-11T08:51:31Z",
+  "title": "Design System: ID Maîtrise — Dashboard",
+  "extensions": {
+    "colorMeta": {
+      "navy-maitrise": {
+        "role": "primary",
+        "displayName": "Marine ID Maîtrise",
+        "tonalRamp": [
+          "#000925",
+          "#0B2546",
+          "#274368",
+          "#486387",
+          "#6A84A8",
+          "#8EA7C9",
+          "#B4CBEB",
+          "#DAF1FF"
+        ]
+      },
+      "ink-night": {
+        "role": "primary",
+        "displayName": "Nuit ardoise",
+        "tonalRamp": [
+          "#050A1B",
+          "#1C2538",
+          "#394255",
+          "#586175",
+          "#7A8295",
+          "#9DA5B7",
+          "#C1C9DA",
+          "#E7EFFE"
+        ]
+      },
+      "signal-blue": {
+        "role": "secondary",
+        "displayName": "Bleu signal",
+        "tonalRamp": [
+          "#000042",
+          "#00186A",
+          "#003995",
+          "#1A5BC1",
+          "#377DEF",
+          "#5FA3FF",
+          "#88C9FF",
+          "#B2EFFF"
+        ]
+      },
+      "action-blue": {
+        "role": "secondary",
+        "displayName": "Bleu action",
+        "tonalRamp": [
+          "#06004F",
+          "#000579",
+          "#0030A6",
+          "#1853D5",
+          "#3A78FC",
+          "#629FFF",
+          "#8AC6FF",
+          "#B4EDFF"
+        ]
+      },
+      "link-blue-deep": {
+        "role": "secondary",
+        "displayName": "Bleu lien profond",
+        "tonalRamp": [
+          "#090053",
+          "#01007E",
+          "#062CAB",
+          "#1E50D9",
+          "#4378F9",
+          "#699EFF",
+          "#90C5FF",
+          "#B9ECFF"
+        ]
+      },
+      "slate-strong": {
+        "role": "neutral",
+        "displayName": "Ardoise forte",
+        "tonalRamp": [
+          "#030B19",
+          "#192637",
+          "#354357",
+          "#546276",
+          "#768397",
+          "#99A6B9",
+          "#BECADC",
+          "#E4F0FF"
+        ]
+      },
+      "slate-secondary": {
+        "role": "neutral",
+        "displayName": "Ardoise secondaire",
+        "tonalRamp": [
+          "#040B18",
+          "#1B2635",
+          "#364355",
+          "#546276",
+          "#768397",
+          "#99A6B9",
+          "#BECADC",
+          "#E4F0FF"
+        ]
+      },
+      "slate-muted": {
+        "role": "neutral",
+        "displayName": "Ardoise atténuée",
+        "tonalRamp": [
+          "#040B18",
+          "#1B2635",
+          "#364355",
+          "#536278",
+          "#74849A",
+          "#97A6BC",
+          "#BCCAE0",
+          "#E2F0FF"
+        ]
+      },
+      "slate-faint": {
+        "role": "neutral",
+        "displayName": "Ardoise pâle",
+        "tonalRamp": [
+          "#050B15",
+          "#1D2632",
+          "#384351",
+          "#566273",
+          "#768396",
+          "#97A6BB",
+          "#BCCADF",
+          "#E2F0FF"
+        ]
+      },
+      "line-strong": {
+        "role": "neutral",
+        "displayName": "Trait appuyé",
+        "tonalRamp": [
+          "#080B10",
+          "#21262B",
+          "#3D4349",
+          "#5B626A",
+          "#7B838C",
+          "#9DA6B0",
+          "#C1CAD6",
+          "#E6F0FB"
+        ]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Trait",
+        "tonalRamp": [
+          "#090B0E",
+          "#232529",
+          "#3F4247",
+          "#5E6267",
+          "#7E8388",
+          "#A1A5AC",
+          "#C4CAD1",
+          "#E9EFF7"
+        ]
+      },
+      "canvas": {
+        "role": "neutral",
+        "displayName": "Fond d'application",
+        "tonalRamp": [
+          "#090B0E",
+          "#222528",
+          "#3F4246",
+          "#5E6265",
+          "#7F8386",
+          "#A2A5A9",
+          "#C6CACD",
+          "#EBEFF3"
+        ]
+      },
+      "surface-soft": {
+        "role": "neutral",
+        "displayName": "Fond doux",
+        "tonalRamp": [
+          "#0A0B0D",
+          "#242527",
+          "#414244",
+          "#606163",
+          "#818284",
+          "#A3A5A7",
+          "#C7C9CB",
+          "#EDEFF1"
+        ]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Surface",
+        "tonalRamp": [
+          "#0B0B0B",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#A5A5A5",
+          "#C9C9C9",
+          "#EEEEEE"
+        ]
+      },
+      "success": {
+        "role": "status",
+        "displayName": "Succès",
+        "tonalRamp": [
+          "#001500",
+          "#003313",
+          "#00542E",
+          "#00774A",
+          "#009C68",
+          "#2AC189",
+          "#68E5AF",
+          "#9AFFD5"
+        ]
+      },
+      "success-text": {
+        "role": "status",
+        "displayName": "Succès (texte)",
+        "tonalRamp": [
+          "#001404",
+          "#00311A",
+          "#005135",
+          "#007353",
+          "#3D9574",
+          "#69B897",
+          "#93DBBC",
+          "#BEFFE2"
+        ]
+      },
+      "success-tint": {
+        "role": "status",
+        "displayName": "Succès (fond)",
+        "tonalRamp": [
+          "#070D0A",
+          "#202724",
+          "#3C4440",
+          "#5A645F",
+          "#7A8680",
+          "#9BA9A2",
+          "#BECDC6",
+          "#E3F3EB"
+        ]
+      },
+      "warning": {
+        "role": "status",
+        "displayName": "Attention",
+        "tonalRamp": [
+          "#230000",
+          "#451300",
+          "#6A3000",
+          "#914F00",
+          "#B96F00",
+          "#E39000",
+          "#FFB542",
+          "#FFDC79"
+        ]
+      },
+      "warning-text": {
+        "role": "status",
+        "displayName": "Attention (texte)",
+        "tonalRamp": [
+          "#290000",
+          "#4E0100",
+          "#752300",
+          "#9D4200",
+          "#C46428",
+          "#E68A57",
+          "#FFB181",
+          "#FFD9AC"
+        ]
+      },
+      "warning-tint": {
+        "role": "status",
+        "displayName": "Attention (fond)",
+        "tonalRamp": [
+          "#0C0B06",
+          "#27251E",
+          "#44423A",
+          "#646158",
+          "#858277",
+          "#A8A599",
+          "#CDC9BB",
+          "#F3EFDF"
+        ]
+      },
+      "danger": {
+        "role": "status",
+        "displayName": "Danger",
+        "tonalRamp": [
+          "#360000",
+          "#600000",
+          "#8C0000",
+          "#BA000D",
+          "#E53732",
+          "#FF695D",
+          "#FF9586",
+          "#FFC0B0"
+        ]
+      },
+      "danger-bright": {
+        "role": "status",
+        "displayName": "Danger vif",
+        "tonalRamp": [
+          "#330000",
+          "#5D0000",
+          "#880001",
+          "#B41420",
+          "#E33B3D",
+          "#FF6862",
+          "#FF948A",
+          "#FFBFB4"
+        ]
+      },
+      "danger-line": {
+        "role": "status",
+        "displayName": "Danger (trait)",
+        "tonalRamp": [
+          "#170506",
+          "#351D1E",
+          "#563939",
+          "#795757",
+          "#9E7777",
+          "#C59898",
+          "#EDBBBB",
+          "#FFE0E0"
+        ]
+      },
+      "danger-tint": {
+        "role": "status",
+        "displayName": "Danger (fond)",
+        "tonalRamp": [
+          "#0E0A0A",
+          "#292424",
+          "#464040",
+          "#665F5F",
+          "#888080",
+          "#ACA2A2",
+          "#D1C6C6",
+          "#F7EBEB"
+        ]
+      },
+      "planned-violet": {
+        "role": "tertiary",
+        "displayName": "Violet planifié",
+        "tonalRamp": [
+          "#170046",
+          "#2F006F",
+          "#4B179A",
+          "#6A3BC8",
+          "#8B5DF6",
+          "#AC86FF",
+          "#CFAEFF",
+          "#F3D7FF"
+        ]
+      },
+      "qonto-lavender": {
+        "role": "tertiary",
+        "displayName": "Lavande Qonto",
+        "tonalRamp": [
+          "#110032",
+          "#2A1157",
+          "#472F7E",
+          "#674EA7",
+          "#886DD2",
+          "#AB8FFE",
+          "#CEB6FF",
+          "#F3DDFF"
+        ]
+      },
+      "info-tint": {
+        "role": "secondary",
+        "displayName": "Information (fond)",
+        "tonalRamp": [
+          "#090B0E",
+          "#222529",
+          "#3F4247",
+          "#5D6267",
+          "#7E8389",
+          "#A0A6AD",
+          "#C4CAD2",
+          "#E8EFF8"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Chiffres clés et titres d'écran importants."
+      },
+      "title-lg": {
+        "displayName": "Title large",
+        "purpose": "Titres des fenêtres, marque dans la barre latérale."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Titre de page et titres de sections."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Texte courant et boutons."
+      },
+      "body-sm": {
+        "displayName": "Body small",
+        "purpose": "Texte des listes et des cartes."
+      },
+      "caption": {
+        "displayName": "Caption",
+        "purpose": "Dates, compteurs, informations secondaires."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Intitulés de champs et de colonnes, badges ; souvent en capitales."
+      },
+      "input": {
+        "displayName": "Input",
+        "purpose": "Tous les champs de saisie (16 px, pas de zoom iOS)."
+      }
+    },
+    "shadows": [
+      {
+        "name": "rest",
+        "value": "0 1px 3px rgba(15,23,42,0.06)",
+        "purpose": "Cartes et blocs au repos."
+      },
+      {
+        "name": "hover-lift",
+        "value": "0 4px 12px rgba(15,23,42,0.10)",
+        "purpose": "Cartes cliquables au survol."
+      },
+      {
+        "name": "floating",
+        "value": "0 8px 24px rgba(15,23,42,0.12)",
+        "purpose": "Menus et popovers."
+      },
+      {
+        "name": "modal",
+        "value": "0 25px 50px rgba(15,23,42,0.25)",
+        "purpose": "Fenêtres modales, sur voile rgba(15,23,42,0.6)."
+      },
+      {
+        "name": "focus-field",
+        "value": "0 0 0 3px rgba(59,130,246,0.15)",
+        "purpose": "Halo des champs au focus."
+      }
+    ],
+    "motion": [
+      {
+        "name": "motion-fast",
+        "value": "120ms",
+        "purpose": "Survol, couleur, bordure."
+      },
+      {
+        "name": "motion-base",
+        "value": "180ms",
+        "purpose": "Ombres, déplacements."
+      },
+      {
+        "name": "motion-slow",
+        "value": "280ms",
+        "purpose": "Apparitions plus amples."
+      },
+      {
+        "name": "ease-standard",
+        "value": "cubic-bezier(.4, 0, .2, 1)",
+        "purpose": "Courbe par défaut."
+      },
+      {
+        "name": "ease-emphasized",
+        "value": "cubic-bezier(.2, 0, 0, 1.2)",
+        "purpose": "Apparitions avec léger rebond."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "mobile-fields",
+        "value": "640px"
+      },
+      {
+        "name": "mobile-nav",
+        "value": "768px"
+      },
+      {
+        "name": "content-max",
+        "value": "1200px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Bouton principal",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Action principale d'une zone, une seule fois.",
+      "html": "<button class=\"ds-btn-primary\">Enregistrer</button>",
+      "css": ".ds-btn-primary{font-family: var(--font-dm-sans), 'DM Sans', sans-serif;padding:10px 18px;min-height:40px;background:#1E3A5F;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:transform 120ms cubic-bezier(.4,0,.2,1),box-shadow 180ms cubic-bezier(.4,0,.2,1)}.ds-btn-primary:hover{box-shadow:0 4px 12px rgba(15,23,42,0.10)}.ds-btn-primary:focus-visible{outline:2px solid #3B82F6;outline-offset:2px}.ds-btn-primary:active{transform:scale(.98)}"
+    },
+    {
+      "name": "Bouton secondaire",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Annuler, actions secondaires.",
+      "html": "<button class=\"ds-btn-secondary\">Annuler</button>",
+      "css": ".ds-btn-secondary{font-family: var(--font-dm-sans), 'DM Sans', sans-serif;padding:10px 18px;min-height:40px;background:#F1F5F9;color:#475569;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:background 120ms cubic-bezier(.4,0,.2,1)}.ds-btn-secondary:hover{background:#E2E8F0}.ds-btn-secondary:focus-visible{outline:2px solid #3B82F6;outline-offset:2px}.ds-btn-secondary:active{transform:scale(.98)}"
+    },
+    {
+      "name": "Champ de saisie",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Champ standard, 16 px pour éviter le zoom iOS.",
+      "html": "<label class=\"ds-field\"><span class=\"ds-label\">NOM DU CHANTIER</span><input class=\"ds-input\" placeholder=\"Maison Dupont\"></label>",
+      "css": ".ds-field{display:flex;flex-direction:column;gap:6px;font-family: var(--font-dm-sans), 'DM Sans', sans-serif;}.ds-label{font-size:10px;font-weight:700;letter-spacing:0.05em;color:#64748B}.ds-input{font-family: var(--font-dm-sans), 'DM Sans', sans-serif;width:100%;box-sizing:border-box;padding:10px 12px;min-height:44px;border:1.5px solid #E2E8F0;border-radius:8px;font-size:16px;color:#0F172A;background:#fff;outline:none;transition:border-color 120ms cubic-bezier(.4,0,.2,1),box-shadow 120ms cubic-bezier(.4,0,.2,1)}.ds-input:focus{border-color:#3B82F6;box-shadow:0 0 0 3px rgba(59,130,246,0.15)}"
+    },
+    {
+      "name": "Badges de statut",
+      "kind": "chip",
+      "refersTo": "badge",
+      "description": "Statut en texte coloré sur fond dilué.",
+      "html": "<span class=\"ds-badges\"><span class=\"ds-badge\" style=\"color:#3B82F6;background:#3B82F618\">En cours</span><span class=\"ds-badge\" style=\"color:#8B5CF6;background:#8B5CF618\">Planifié</span><span class=\"ds-badge\" style=\"color:#10B981;background:#10B98118\">Terminé</span><span class=\"ds-badge\" style=\"color:#F59E0B;background:#F59E0B18\">En attente</span><span class=\"ds-badge\" style=\"color:#EF4444;background:#EF444418\">Urgent</span></span>",
+      "css": ".ds-badges{display:flex;gap:6px;flex-wrap:wrap}.ds-badge{font-family: var(--font-dm-sans), 'DM Sans', sans-serif;display:inline-block;padding:2px 8px;border-radius:16px;font-size:10px;font-weight:700;white-space:nowrap}"
+    },
+    {
+      "name": "Carte cliquable",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Carte de chantier ou de liste, soulevée au survol.",
+      "html": "<div class=\"ds-card\" tabindex=\"0\"><div class=\"ds-card-title\">Maison Dupont — Sainte-Adresse</div><div class=\"ds-card-meta\">Gros œuvre · 12 tâches · Prochaine réunion jeudi</div></div>",
+      "css": ".ds-card{font-family: var(--font-dm-sans), 'DM Sans', sans-serif;background:#fff;border:1px solid #E2E8F0;border-radius:10px;padding:16px;box-shadow:0 1px 3px rgba(15,23,42,0.06);cursor:pointer;transition:background 120ms cubic-bezier(.4,0,.2,1),border-color 120ms cubic-bezier(.4,0,.2,1),box-shadow 180ms cubic-bezier(.4,0,.2,1),transform 180ms cubic-bezier(.4,0,.2,1)}.ds-card:hover,.ds-card:focus-visible{background:#F8FAFC;border-color:#CBD5E1;box-shadow:0 4px 12px rgba(15,23,42,0.10);transform:translateX(3px)}.ds-card:focus-visible{outline:2px solid #3B82F6;outline-offset:2px}.ds-card-title{font-size:13px;font-weight:700;color:#0F172A}.ds-card-meta{font-size:12px;color:#64748B;margin-top:4px}"
+    },
+    {
+      "name": "Barre latérale",
+      "kind": "nav",
+      "refersTo": "sidebar",
+      "description": "Navigation principale, nuit vers marine, accent vertical sur l'onglet actif.",
+      "html": "<nav class=\"ds-side\"><div class=\"ds-brand\">ID MAÎTRISE</div><a class=\"ds-tab\" data-active=\"true\" href=\"#\">Tableau de bord</a><a class=\"ds-tab\" href=\"#\">Chantiers</a><a class=\"ds-tab\" href=\"#\">Comptes rendus</a></nav>",
+      "css": ".ds-side{font-family: var(--font-dm-sans), 'DM Sans', sans-serif;width:280px;padding:16px 12px;background:linear-gradient(195deg,#0F172A,#1E3A5F);color:#fff;display:flex;flex-direction:column;gap:2px;border-radius:8px}.ds-brand{font-size:17px;font-weight:700;padding:4px 12px 14px}.ds-tab{position:relative;display:block;padding:9px 12px 9px 18px;border-radius:8px;font-size:12.5px;color:#94A3B8;text-decoration:none;transition:background 120ms cubic-bezier(.4,0,.2,1),color 120ms cubic-bezier(.4,0,.2,1)}.ds-tab:hover,.ds-tab:focus-visible{background:rgba(255,255,255,0.04)}.ds-tab[data-active=true]{background:rgba(255,255,255,0.10);color:#fff}.ds-tab[data-active=true]::before{content:'';position:absolute;left:4px;top:8px;bottom:8px;width:3px;border-radius:2px;background:#60A5FA}"
+    },
+    {
+      "name": "Fenêtre de saisie",
+      "kind": "custom",
+      "refersTo": "modal",
+      "description": "Modale blanche, fermée seulement par ✕ ou les boutons.",
+      "html": "<div class=\"ds-modal\"><div class=\"ds-modal-head\"><span>Nouvelle tâche</span><button class=\"ds-x\" aria-label=\"Fermer\">✕</button></div><p class=\"ds-modal-body\">Contenu du formulaire…</p></div>",
+      "css": ".ds-modal{font-family: var(--font-dm-sans), 'DM Sans', sans-serif;background:#fff;border-radius:16px;padding:20px;max-width:420px;box-shadow:0 25px 50px rgba(15,23,42,0.25)}.ds-modal-head{display:flex;justify-content:space-between;align-items:center;font-size:17px;font-weight:700;color:#0F172A}.ds-x{border:none;background:transparent;border-radius:8px;width:32px;height:32px;font-size:16px;color:#64748B;cursor:pointer}.ds-x:hover,.ds-x:focus-visible{background:#E2E8F0}.ds-modal-body{font-size:13px;color:#334155;margin:12px 0 0}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Le bureau d'études",
+    "overview": "L'application doit avoir la rigueur d'un plan d'ingénieur : une grille nette, des traits fins, des chiffres alignés, une hiérarchie qui se lit d'un coup d'œil. Le bleu marine ID Maîtrise signe l'ensemble ; le reste est une gamme de gris ardoise qui laisse la place au contenu (chantiers, montants, échéances). Cette rigueur est adoucie par des coins arrondis, des ombres à peine marquées et de l'air entre les blocs : un outil précis, pas austère.\n\nC'est un outil de travail utilisé toute la journée, au bureau sur ordinateur et sur chantier au téléphone. La couleur sert d'abord le sens (statut, alerte, action principale) ; la marque vit dans les détails : la barre latérale nuit-marine, le bouton principal marine, l'anneau de focus bleu.",
+    "keyCharacteristics": [
+      "Marine ID Maîtrise pour la marque et l'action principale, bleu signal pour le focus et l'information.",
+      "Gamme ardoise froide (de #0F172A à #F8FAFC) pour le texte, les traits et les fonds.",
+      "Fond d'application gris clair, contenus sur cartes blanches à bordure fine.",
+      "Une seule police, DM Sans, en graisses 400 à 700.",
+      "Coins arrondis doux (6 à 16 px), ombres très légères.",
+      "Mouvement court et discret (120 à 280 ms), coupé si l'utilisateur demande moins d'animations."
+    ],
+    "rules": [
+      {
+        "name": "The Meaning-Only Rule",
+        "body": "Une couleur vive porte toujours un sens (statut, alerte, action). Hors de ces cas, l'interface reste en marine et ardoise.",
+        "section": "colors"
+      },
+      {
+        "name": "The Tinted Badge Rule",
+        "body": "Un statut s'affiche en texte de sa couleur sur un fond de la même couleur très diluée (couleur + 18 en hexadécimal, environ 9 % d'opacité), jamais en aplat plein.",
+        "section": "colors"
+      },
+      {
+        "name": "The 16px Field Rule",
+        "body": "Un champ de saisie n'est jamais en dessous de 16 px sur téléphone (règle déjà imposée par inp et par layout.js sous 640 px).",
+        "section": "typography"
+      },
+      {
+        "name": "The Readable Floor Rule",
+        "body": "Le texte courant reste à 12 px ou plus ; 10 et 11 px sont réservés aux intitulés et légendes courts. Les tailles en dessous de 10 px (8 px, 7,5 px aujourd'hui sur quelques badges) sont à remonter, pas à reproduire.",
+        "section": "typography"
+      },
+      {
+        "name": "The Air Over Density Rule",
+        "body": "Entre deux blocs, préférer un espacement de plus à une bordure de plus.",
+        "section": "layout"
+      },
+      {
+        "name": "The Flat-At-Rest Rule",
+        "body": "Au repos, une carte n'a qu'une bordure fine et l'ombre de repos. Une ombre plus forte signale toujours un état (survol) ou un élément au-dessus de la page.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Slate Shadow Rule",
+        "body": "Les ombres sont teintées nuit ardoise (rgba(15,23,42,…)), pas noir pur.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do utiliser le marine ID Maîtrise (`#1E3A5F`) pour l'action principale d'un écran, et une seule fois par zone.",
+      "Do passer par `btnP`, `btnS`, `inp`, `Badge` et les classes `u-*` plutôt que de réécrire des styles en ligne.",
+      "Do garder les champs à 16 px et 44 px de haut, et les boutons à 40 px minimum.",
+      "Do afficher les statuts avec la règle du badge teinté et les couleurs de la table `status`.",
+      "Do teinter les ombres en nuit ardoise et les garder légères au repos.",
+      "Do utiliser les durées et courbes de `styles/global.css` (`--motion-fast` 120 ms, `--motion-base` 180 ms, `--motion-slow` 280 ms, `--ease-standard`)."
+    ],
+    "donts": [
+      "Don't introduire l'or `#C8A45C` dans l'application tant que la décision de marque n'est pas prise.",
+      "Don't créer de nouveau texte sous 10 px, ni de texte courant sous 12 px.",
+      "Don't ajouter une couleur vive qui ne porte pas de sens (statut, alerte, action).",
+      "Don't gérer le survol avec `onMouseEnter` / `onMouseLeave` en ligne : les classes `u-*` couvrent aussi le clavier et le tactile.",
+      "Don't fermer une fenêtre de saisie au clic sur le fond."
+    ]
+  }
+}
