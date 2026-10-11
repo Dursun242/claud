@@ -643,10 +643,10 @@ export const I = {
 };
 
 // ─── COLORS ───
-export const phase = { "Hors d'air": "#F59E0B", "Technique": "#3B82F6", "Finitions": "#10B981" };
+export const phase = { "Hors d'air": "#FF9500", "Technique": "#007AFF", "Finitions": "#34C759" };
 export const status = {
-  "En cours": "#3B82F6", "Planifié": "#8B5CF6",
-  "Terminé": "#10B981", "En attente": "#F59E0B", "Urgent": "#EF4444"
+  "En cours": "#007AFF", "Planifié": "#AF52DE",
+  "Terminé": "#34C759", "En attente": "#FF9500", "Urgent": "#FF3B30"
 };
 
 // ─── DEFAULT DATA ───
@@ -798,23 +798,23 @@ export function FF({label, hint, error, required, children}) {
   return (
     <div style={{marginBottom:12}}>
       <label htmlFor={fieldId} style={{
-        display:"block", fontSize:11, fontWeight:600, color:"#64748B",
+        display:"block", fontSize:11, fontWeight:600, color:"#6E6E73",
         marginBottom:3, textTransform:"uppercase", letterSpacing:"0.05em"
       }}>
         {label}
-        {required && <span aria-hidden="true" style={{color:"#DC2626", marginLeft:3}}>*</span>}
+        {required && <span aria-hidden="true" style={{color:"#D70015", marginLeft:3}}>*</span>}
       </label>
       {field && !field.props.id ? cloneElement(field, { id: fieldId }) : children}
       {error && (
         <div role="alert" style={{
-          fontSize:11, color:"#DC2626", marginTop:4, fontWeight:500,
+          fontSize:11, color:"#D70015", marginTop:4, fontWeight:500,
           display:"flex", alignItems:"center", gap:4,
         }}>
           <span aria-hidden="true">⚠</span>{error}
         </div>
       )}
       {hint && !error && (
-        <div style={{fontSize:10,color:"#64748B",marginTop:4,fontStyle:"italic"}}>
+        <div style={{fontSize:10,color:"#6E6E73",marginTop:4,fontStyle:"italic"}}>
           {hint}
         </div>
       )}
@@ -830,8 +830,8 @@ export function FF({label, hint, error, required, children}) {
 // (la page reste zoomée même après le blur, avec un scroll horizontal cassé).
 export const inp = {
   width:"100%", padding:"10px 12px", minHeight:44,
-  border:"1.5px solid #E2E8F0",
-  borderRadius:8, fontSize:16, outline:"none",
+  border:"1px solid #D1D1D6", background:"#fff",
+  borderRadius:10, fontSize:16, outline:"none",
   fontFamily:"inherit", boxSizing:"border-box",
   transition:"border-color 120ms cubic-bezier(.4, 0, .2, 1), box-shadow 120ms cubic-bezier(.4, 0, .2, 1)",
 };
@@ -865,35 +865,36 @@ export const inpNumeric = {
 }
 // Style border rouge à passer en erreur : <input style={{...inp, ...inpError}} />
 export const inpError = {
-  borderColor: '#FCA5A5',
-  background: '#FEF2F2',
+  borderColor: '#FF9F99',
+  background: '#FFF0EF',
 }
 
 export const btnP = {
-  padding:"10px 18px", minHeight:40, background:"#1E3A5F", color:"#fff",
-  border:"none", borderRadius:8, fontSize:13,
+  padding:"10px 18px", minHeight:40, background:"#0071E3", color:"#fff",
+  border:"none", borderRadius:10, fontSize:14,
   fontWeight:600, cursor:"pointer", fontFamily:"inherit",
   transition:"transform 120ms cubic-bezier(.4, 0, .2, 1), box-shadow 180ms cubic-bezier(.4, 0, .2, 1)",
 };
-export const btnS = {...btnP,background:"#F1F5F9",color:"#475569"};
+// Bouton gris iOS : fond gris léger, texte bleu.
+export const btnS = {...btnP,background:"#EFEFF0",color:"#0066CC"};
 // Action secondaire d'une section (« + Nouvel OS », « + Nouvelle tâche »…) :
-// fond blanc, trait fin, texte marine. Le marine plein reste réservé à
-// l'action principale (btnP). À combiner avec className="u-press".
+// bouton « teinté » iOS (fond bleu très léger, texte bleu). Le bleu plein
+// reste réservé à l'action principale (btnP). À combiner avec className="u-press".
 export const btnAdd = {
   display:"inline-flex", alignItems:"center", gap:6,
-  padding:"8px 12px", minHeight:36, background:"#fff", color:"#1E3A5F",
-  border:"1px solid #CBD5E1", borderRadius:8, fontSize:13, fontWeight:600,
+  padding:"8px 14px", minHeight:36, background:"#EAF3FF", color:"#0066CC",
+  border:"none", borderRadius:10, fontSize:14, fontWeight:600,
   cursor:"pointer", fontFamily:"inherit",
 };
-// Petite action sur une ligne (PDF, Excel, modèle…) : discrète, ardoise.
+// Petite action sur une ligne (PDF, Excel, modèle…) : gris iOS, texte bleu.
 export const btnChip = {
   display:"inline-flex", alignItems:"center", gap:5,
-  padding:"6px 10px", minHeight:32, background:"#fff", color:"#334155",
-  border:"1px solid #E2E8F0", borderRadius:8, fontSize:12, fontWeight:600,
+  padding:"6px 10px", minHeight:32, background:"#F2F2F7", color:"#0066CC",
+  border:"none", borderRadius:8, fontSize:13, fontWeight:500,
   cursor:"pointer", fontFamily:"inherit", whiteSpace:"nowrap",
 };
 
-export const PBar = ({value, max=100, color="#3B82F6", h=8}) => (
+export const PBar = ({value, max=100, color="#007AFF", h=8}) => (
   <ProgressBar value={value} max={max} color={color} height={h} />
 );
 
@@ -902,7 +903,7 @@ export function ApiBadge() {
     <span style={{
       display:"inline-flex", alignItems:"center", gap:3,
       padding:"2px 7px", borderRadius:5,
-      background:"linear-gradient(135deg,#1E3A5F,#3B82F6)",
+      background:"linear-gradient(135deg,#0071E3,#007AFF)",
       color:"#fff", fontSize:8, fontWeight:800, letterSpacing:"0.1em"
     }}>API</span>
   );

@@ -1,189 +1,203 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-11T11:21:03Z",
+  "generatedAt": "2026-10-11T11:43:24Z",
   "title": "Design System: ID Maîtrise — Dashboard",
   "extensions": {
     "colorMeta": {
-      "navy-maitrise": {
+      "accent": {
         "role": "primary",
-        "displayName": "Marine ID Maîtrise",
+        "displayName": "Bleu d'action",
         "tonalRamp": [
-          "#000925",
-          "#0B2546",
-          "#274368",
-          "#486387",
-          "#6A84A8",
-          "#8EA7C9",
-          "#B4CBEB",
-          "#DAF1FF"
+          "#000046",
+          "#00176F",
+          "#003A9A",
+          "#005CC7",
+          "#2280EF",
+          "#54A5FF",
+          "#80CBFF",
+          "#ABF2FF"
         ]
       },
-      "ink-night": {
+      "accent-text": {
         "role": "primary",
-        "displayName": "Nuit ardoise",
+        "displayName": "Bleu de lien",
         "tonalRamp": [
-          "#050A1B",
-          "#1C2538",
-          "#394255",
-          "#586175",
-          "#7A8295",
-          "#9DA5B7",
-          "#C1C9DA",
-          "#E7EFFE"
+          "#000043",
+          "#001A6B",
+          "#003C95",
+          "#005DC1",
+          "#3281E4",
+          "#5EA6FF",
+          "#88CCFF",
+          "#B3F2FF"
         ]
       },
-      "signal-blue": {
-        "role": "secondary",
-        "displayName": "Bleu signal",
+      "system-blue": {
+        "role": "primary",
+        "displayName": "Bleu système",
         "tonalRamp": [
-          "#000042",
-          "#00186A",
-          "#003995",
-          "#1A5BC1",
-          "#377DEF",
-          "#5FA3FF",
-          "#88C9FF",
-          "#B2EFFF"
+          "#00004C",
+          "#001076",
+          "#0036A2",
+          "#0058D1",
+          "#057CFF",
+          "#47A2FF",
+          "#75C9FF",
+          "#A2F0FF"
         ]
       },
-      "action-blue": {
-        "role": "secondary",
-        "displayName": "Bleu action",
+      "accent-tint": {
+        "role": "primary",
+        "displayName": "Bleu teinté",
         "tonalRamp": [
-          "#06004F",
-          "#000579",
-          "#0030A6",
-          "#1853D5",
-          "#3A78FC",
-          "#629FFF",
-          "#8AC6FF",
-          "#B4EDFF"
+          "#090B0F",
+          "#22252A",
+          "#3E4249",
+          "#5C6269",
+          "#7D838B",
+          "#9FA6AF",
+          "#C2CAD5",
+          "#E6EFFB"
         ]
       },
-      "link-blue-deep": {
-        "role": "secondary",
-        "displayName": "Bleu lien profond",
-        "tonalRamp": [
-          "#090053",
-          "#01007E",
-          "#062CAB",
-          "#1E50D9",
-          "#4378F9",
-          "#699EFF",
-          "#90C5FF",
-          "#B9ECFF"
-        ]
-      },
-      "slate-strong": {
+      "label": {
         "role": "neutral",
-        "displayName": "Ardoise forte",
+        "displayName": "Libellé",
         "tonalRamp": [
-          "#030B19",
-          "#192637",
-          "#354357",
-          "#546276",
-          "#768397",
-          "#99A6B9",
-          "#BECADC",
-          "#E4F0FF"
+          "#0B0B0D",
+          "#252527",
+          "#424244",
+          "#616163",
+          "#828284",
+          "#A5A5A7",
+          "#C9C9CB",
+          "#EEEEF1"
         ]
       },
-      "slate-secondary": {
+      "label-strong-secondary": {
         "role": "neutral",
-        "displayName": "Ardoise secondaire",
+        "displayName": "Libellé secondaire fort",
         "tonalRamp": [
-          "#040B18",
-          "#1B2635",
-          "#364355",
-          "#546276",
-          "#768397",
-          "#99A6B9",
-          "#BECADC",
-          "#E4F0FF"
+          "#0B0B0D",
+          "#252527",
+          "#424244",
+          "#616163",
+          "#828284",
+          "#A5A5A7",
+          "#C9C9CB",
+          "#EEEEF1"
         ]
       },
-      "slate-muted": {
+      "label-secondary": {
         "role": "neutral",
-        "displayName": "Ardoise atténuée",
+        "displayName": "Libellé secondaire",
         "tonalRamp": [
-          "#040B18",
-          "#1B2635",
-          "#364355",
-          "#536278",
-          "#74849A",
-          "#97A6BC",
-          "#BCCAE0",
-          "#E2F0FF"
+          "#0B0B0E",
+          "#252529",
+          "#414146",
+          "#616165",
+          "#828287",
+          "#A4A4AA",
+          "#C8C8CE",
+          "#EEEEF4"
         ]
       },
-      "slate-faint": {
+      "label-tertiary": {
         "role": "neutral",
-        "displayName": "Ardoise pâle",
+        "displayName": "Libellé tertiaire",
         "tonalRamp": [
-          "#050B15",
-          "#1D2632",
-          "#384351",
-          "#566273",
-          "#768396",
-          "#97A6BB",
-          "#BCCADF",
-          "#E2F0FF"
+          "#0B0B0E",
+          "#252529",
+          "#414146",
+          "#616165",
+          "#828287",
+          "#A4A4A9",
+          "#C8C8CE",
+          "#EEEEF3"
         ]
       },
-      "line-strong": {
+      "separator-opaque": {
         "role": "neutral",
-        "displayName": "Trait appuyé",
+        "displayName": "Séparateur opaque",
         "tonalRamp": [
-          "#080B10",
-          "#21262B",
-          "#3D4349",
-          "#5B626A",
-          "#7B838C",
-          "#9DA6B0",
-          "#C1CAD6",
-          "#E6F0FB"
+          "#0B0B0E",
+          "#252528",
+          "#414146",
+          "#616165",
+          "#828286",
+          "#A4A4A9",
+          "#C8C8CD",
+          "#EEEEF3"
         ]
       },
-      "line": {
+      "separator": {
         "role": "neutral",
-        "displayName": "Trait",
+        "displayName": "Séparateur",
         "tonalRamp": [
-          "#090B0E",
-          "#232529",
-          "#3F4247",
-          "#5E6267",
-          "#7E8388",
-          "#A1A5AC",
-          "#C4CAD1",
-          "#E9EFF7"
+          "#0B0B0E",
+          "#252528",
+          "#414145",
+          "#616165",
+          "#828286",
+          "#A4A4A9",
+          "#C8C8CD",
+          "#EEEEF3"
         ]
       },
-      "canvas": {
+      "grouped-background": {
         "role": "neutral",
-        "displayName": "Fond d'application",
+        "displayName": "Fond groupé",
         "tonalRamp": [
-          "#090B0E",
-          "#222528",
-          "#3F4246",
-          "#5E6265",
-          "#7F8386",
-          "#A2A5A9",
-          "#C6CACD",
-          "#EBEFF3"
+          "#0B0B0E",
+          "#252528",
+          "#414145",
+          "#616165",
+          "#828286",
+          "#A4A4A9",
+          "#C8C8CD",
+          "#EEEEF3"
         ]
       },
-      "surface-soft": {
+      "fill-gray": {
         "role": "neutral",
-        "displayName": "Fond doux",
+        "displayName": "Gris de remplissage",
         "tonalRamp": [
-          "#0A0B0D",
-          "#242527",
-          "#414244",
-          "#606163",
-          "#818284",
-          "#A3A5A7",
-          "#C7C9CB",
-          "#EDEFF1"
+          "#0B0B0C",
+          "#252526",
+          "#424243",
+          "#616162",
+          "#828283",
+          "#A5A5A6",
+          "#C9C9CA",
+          "#EEEEEF"
+        ]
+      },
+      "row-fill": {
+        "role": "neutral",
+        "displayName": "Fond de ligne",
+        "tonalRamp": [
+          "#0B0B0C",
+          "#252526",
+          "#424243",
+          "#616163",
+          "#828284",
+          "#A5A5A7",
+          "#C9C9CB",
+          "#EEEEF0"
+        ]
+      },
+      "sidebar": {
+        "role": "neutral",
+        "displayName": "Barre latérale",
+        "tonalRamp": [
+          "#0B0B0C",
+          "#252526",
+          "#424243",
+          "#616163",
+          "#828284",
+          "#A5A5A7",
+          "#C9C9CB",
+          "#EEEEF0"
         ]
       },
       "surface": {
@@ -200,283 +214,287 @@
           "#EEEEEE"
         ]
       },
-      "success": {
+      "green": {
         "role": "status",
-        "displayName": "Succès",
+        "displayName": "Vert",
         "tonalRamp": [
           "#001500",
-          "#003313",
-          "#00542E",
-          "#00774A",
-          "#009C68",
-          "#2AC189",
-          "#68E5AF",
-          "#9AFFD5"
+          "#003400",
+          "#005500",
+          "#00781C",
+          "#009D3A",
+          "#31C457",
+          "#6AE880",
+          "#9AFFAB"
         ]
       },
-      "success-text": {
+      "green-text": {
         "role": "status",
-        "displayName": "Succès (texte)",
+        "displayName": "Vert (texte)",
         "tonalRamp": [
-          "#001404",
-          "#00311A",
-          "#005135",
-          "#007353",
-          "#3D9574",
-          "#69B897",
-          "#93DBBC",
-          "#BEFFE2"
+          "#001400",
+          "#003200",
+          "#005212",
+          "#17752F",
+          "#459753",
+          "#6FB979",
+          "#98DD9F",
+          "#C2FFC8"
         ]
       },
-      "success-tint": {
+      "orange": {
         "role": "status",
-        "displayName": "Succès (fond)",
+        "displayName": "Orange",
         "tonalRamp": [
-          "#070D0A",
-          "#202724",
-          "#3C4440",
-          "#5A645F",
-          "#7A8680",
-          "#9BA9A2",
-          "#BECDC6",
-          "#E3F3EB"
+          "#260000",
+          "#4B0A00",
+          "#712900",
+          "#994800",
+          "#C36700",
+          "#EE8800",
+          "#FFAE41",
+          "#FFD678"
         ]
       },
-      "warning": {
+      "orange-text": {
         "role": "status",
-        "displayName": "Attention",
-        "tonalRamp": [
-          "#230000",
-          "#451300",
-          "#6A3000",
-          "#914F00",
-          "#B96F00",
-          "#E39000",
-          "#FFB542",
-          "#FFDC79"
-        ]
-      },
-      "warning-text": {
-        "role": "status",
-        "displayName": "Attention (texte)",
-        "tonalRamp": [
-          "#290000",
-          "#4E0100",
-          "#752300",
-          "#9D4200",
-          "#C46428",
-          "#E68A57",
-          "#FFB181",
-          "#FFD9AC"
-        ]
-      },
-      "warning-tint": {
-        "role": "status",
-        "displayName": "Attention (fond)",
-        "tonalRamp": [
-          "#0C0B06",
-          "#27251E",
-          "#44423A",
-          "#646158",
-          "#858277",
-          "#A8A599",
-          "#CDC9BB",
-          "#F3EFDF"
-        ]
-      },
-      "danger": {
-        "role": "status",
-        "displayName": "Danger",
-        "tonalRamp": [
-          "#360000",
-          "#600000",
-          "#8C0000",
-          "#BA000D",
-          "#E53732",
-          "#FF695D",
-          "#FF9586",
-          "#FFC0B0"
-        ]
-      },
-      "danger-bright": {
-        "role": "status",
-        "displayName": "Danger vif",
+        "displayName": "Orange (texte)",
         "tonalRamp": [
           "#330000",
-          "#5D0000",
-          "#880001",
-          "#B41420",
-          "#E33B3D",
-          "#FF6862",
-          "#FF948A",
-          "#FFBFB4"
+          "#5C0000",
+          "#860000",
+          "#B22100",
+          "#DA4B26",
+          "#FD7754",
+          "#FFA07F",
+          "#FFCAAA"
         ]
       },
-      "danger-line": {
+      "red": {
         "role": "status",
-        "displayName": "Danger (trait)",
+        "displayName": "Rouge",
         "tonalRamp": [
-          "#170506",
-          "#351D1E",
-          "#563939",
-          "#795757",
-          "#9E7777",
-          "#C59898",
-          "#EDBBBB",
-          "#FFE0E0"
+          "#370000",
+          "#610000",
+          "#8D0000",
+          "#BB0000",
+          "#EB2B23",
+          "#FF5C4C",
+          "#FF8B78",
+          "#FFB8A3"
         ]
       },
-      "danger-tint": {
+      "red-text": {
         "role": "status",
-        "displayName": "Danger (fond)",
+        "displayName": "Rouge (texte)",
+        "tonalRamp": [
+          "#390000",
+          "#640000",
+          "#900000",
+          "#BE0000",
+          "#E8312F",
+          "#FF665A",
+          "#FF9384",
+          "#FFBEAE"
+        ]
+      },
+      "purple": {
+        "role": "status",
+        "displayName": "Violet",
+        "tonalRamp": [
+          "#1F0037",
+          "#3F005D",
+          "#620885",
+          "#862FAF",
+          "#AC50DB",
+          "#CF79FD",
+          "#F2A2FF",
+          "#FFCBFF"
+        ]
+      },
+      "purple-text": {
+        "role": "status",
+        "displayName": "Violet (texte)",
+        "tonalRamp": [
+          "#1D0030",
+          "#3C0054",
+          "#5D1D7A",
+          "#813DA2",
+          "#A362C4",
+          "#C588E6",
+          "#E8AFFF",
+          "#FFD6FF"
+        ]
+      },
+      "green-tint": {
+        "role": "status",
+        "displayName": "Vert (fond)",
+        "tonalRamp": [
+          "#080C09",
+          "#212723",
+          "#3D443F",
+          "#5B645E",
+          "#7B857E",
+          "#9DA8A0",
+          "#C0CDC4",
+          "#E5F3E9"
+        ]
+      },
+      "green-line": {
+        "role": "status",
+        "displayName": "Vert (trait)",
+        "tonalRamp": [
+          "#010F05",
+          "#162A1C",
+          "#304937",
+          "#4D6955",
+          "#6C8B74",
+          "#8CAF95",
+          "#ADD5B7",
+          "#D2FBDC"
+        ]
+      },
+      "orange-tint": {
+        "role": "status",
+        "displayName": "Orange (fond)",
+        "tonalRamp": [
+          "#0D0B06",
+          "#28251E",
+          "#46413A",
+          "#656158",
+          "#878277",
+          "#ABA498",
+          "#CFC8BB",
+          "#F5EEDF"
+        ]
+      },
+      "orange-line": {
+        "role": "status",
+        "displayName": "Orange (trait)",
+        "tonalRamp": [
+          "#140800",
+          "#322205",
+          "#513F1E",
+          "#735D39",
+          "#977E55",
+          "#BDA072",
+          "#E4C491",
+          "#FFE9B3"
+        ]
+      },
+      "orange-deep": {
+        "role": "status",
+        "displayName": "Orange foncé",
+        "tonalRamp": [
+          "#2C0000",
+          "#520000",
+          "#791B00",
+          "#A23B10",
+          "#C4623F",
+          "#E78867",
+          "#FFAF90",
+          "#FFD7B9"
+        ]
+      },
+      "red-tint": {
+        "role": "status",
+        "displayName": "Rouge (fond)",
         "tonalRamp": [
           "#0E0A0A",
-          "#292424",
-          "#464040",
-          "#665F5F",
-          "#888080",
-          "#ACA2A2",
-          "#D1C6C6",
-          "#F7EBEB"
+          "#2A2323",
+          "#47403F",
+          "#685F5E",
+          "#8A7F7F",
+          "#AEA2A1",
+          "#D3C6C5",
+          "#F9EBEA"
         ]
       },
-      "planned-violet": {
-        "role": "tertiary",
-        "displayName": "Violet planifié",
-        "tonalRamp": [
-          "#170046",
-          "#2F006F",
-          "#4B179A",
-          "#6A3BC8",
-          "#8B5DF6",
-          "#AC86FF",
-          "#CFAEFF",
-          "#F3D7FF"
-        ]
-      },
-      "qonto-lavender": {
-        "role": "tertiary",
-        "displayName": "Lavande Qonto",
-        "tonalRamp": [
-          "#110032",
-          "#2A1157",
-          "#472F7E",
-          "#674EA7",
-          "#886DD2",
-          "#AB8FFE",
-          "#CEB6FF",
-          "#F3DDFF"
-        ]
-      },
-      "info-tint": {
-        "role": "secondary",
-        "displayName": "Information (fond)",
-        "tonalRamp": [
-          "#090B0E",
-          "#222529",
-          "#3F4247",
-          "#5D6267",
-          "#7E8389",
-          "#A0A6AD",
-          "#C4CAD2",
-          "#E8EFF8"
-        ]
-      },
-      "danger-text": {
+      "red-line": {
         "role": "status",
-        "displayName": "Danger (texte)",
+        "displayName": "Rouge (trait)",
         "tonalRamp": [
-          "#360000",
-          "#600000",
-          "#8C0000",
-          "#BA000D",
-          "#E53732",
-          "#FF695D",
-          "#FF9586",
-          "#FFC0B0"
+          "#170505",
+          "#361D1C",
+          "#573938",
+          "#7A5755",
+          "#9F7674",
+          "#C69895",
+          "#EEBAB8",
+          "#FFE0DD"
         ]
       },
-      "planned-violet-text": {
-        "role": "tertiary",
-        "displayName": "Violet planifié (texte)",
+      "blue-line": {
+        "role": "status",
+        "displayName": "Bleu (trait)",
         "tonalRamp": [
-          "#170046",
-          "#2F006F",
-          "#4B179A",
-          "#6A3BC8",
-          "#8B5DF6",
-          "#AC86FF",
-          "#CFAEFF",
-          "#F3D7FF"
+          "#040C15",
+          "#1B2632",
+          "#364352",
+          "#546374",
+          "#738498",
+          "#94A7BD",
+          "#B6CCE4",
+          "#DBF1FF"
         ]
       }
     },
     "typographyMeta": {
-      "headline": {
-        "displayName": "Headline",
-        "purpose": "Chiffres clés et titres d'écran importants."
-      },
-      "title-lg": {
-        "displayName": "Title large",
-        "purpose": "Titres des fenêtres, marque dans la barre latérale."
+      "large-title": {
+        "displayName": "Large title",
+        "purpose": "Titre de page."
       },
       "title": {
         "displayName": "Title",
-        "purpose": "Titre de page et titres de sections."
+        "purpose": "Bloc principal d'un écran, marque."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Titres de section, de carte, de fenêtre."
       },
       "body": {
         "displayName": "Body",
-        "purpose": "Texte courant et boutons."
+        "purpose": "Boutons, lignes, texte courant."
       },
-      "body-sm": {
-        "displayName": "Body small",
-        "purpose": "Texte des listes et des cartes."
+      "subhead": {
+        "displayName": "Subhead",
+        "purpose": "Texte des cartes."
+      },
+      "footnote": {
+        "displayName": "Footnote",
+        "purpose": "Dates, sous-lignes."
       },
       "caption": {
         "displayName": "Caption",
-        "purpose": "Dates, compteurs, informations secondaires."
-      },
-      "label": {
-        "displayName": "Label",
-        "purpose": "Intitulés de champs et de colonnes, badges ; souvent en capitales."
+        "purpose": "Intitulés en capitales, badges."
       },
       "input": {
         "displayName": "Input",
-        "purpose": "Tous les champs de saisie (16 px, pas de zoom iOS)."
+        "purpose": "Champs (16 px)."
       }
     },
     "shadows": [
       {
         "name": "rest",
-        "value": "0 1px 3px rgba(15,23,42,0.06)",
-        "purpose": "Cartes et blocs au repos."
-      },
-      {
-        "name": "hover-lift",
-        "value": "0 4px 12px rgba(15,23,42,0.10)",
-        "purpose": "Cartes cliquables au survol."
+        "value": "0 1px 3px rgba(0,0,0,0.06)",
+        "purpose": "Cartes au repos (facultative)."
       },
       {
         "name": "floating",
-        "value": "0 8px 24px rgba(15,23,42,0.12)",
-        "purpose": "Menus et popovers."
+        "value": "0 12px 32px rgba(0,0,0,0.12)",
+        "purpose": "Menus, résultats de recherche."
       },
       {
-        "name": "modal",
-        "value": "0 25px 50px rgba(15,23,42,0.25)",
-        "purpose": "Fenêtres modales, sur voile rgba(15,23,42,0.6)."
-      },
-      {
-        "name": "focus-field",
-        "value": "0 0 0 3px rgba(59,130,246,0.15)",
-        "purpose": "Halo des champs au focus."
+        "name": "fab",
+        "value": "0 8px 24px rgba(0,0,0,0.18)",
+        "purpose": "Micro de dictée."
       }
     ],
     "motion": [
       {
         "name": "motion-fast",
         "value": "120ms",
-        "purpose": "Survol, couleur, bordure."
+        "purpose": "Survol, couleur."
       },
       {
         "name": "motion-base",
@@ -484,19 +502,9 @@
         "purpose": "Ombres, déplacements."
       },
       {
-        "name": "motion-slow",
-        "value": "280ms",
-        "purpose": "Apparitions plus amples."
-      },
-      {
         "name": "ease-standard",
         "value": "cubic-bezier(.4, 0, .2, 1)",
         "purpose": "Courbe par défaut."
-      },
-      {
-        "name": "ease-emphasized",
-        "value": "cubic-bezier(.2, 0, 0, 1.2)",
-        "purpose": "Apparitions avec léger rebond."
       }
     ],
     "breakpoints": [
@@ -516,139 +524,124 @@
   },
   "components": [
     {
-      "name": "Bouton principal",
+      "name": "Bouton plein",
       "kind": "button",
-      "refersTo": "button-primary",
-      "description": "Action principale d'une zone, une seule fois.",
-      "html": "<button class=\"ds-btn-primary\">Enregistrer</button>",
-      "css": ".ds-btn-primary{font-family: var(--font-dm-sans), 'DM Sans', sans-serif;padding:10px 18px;min-height:40px;background:#1E3A5F;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:transform 120ms cubic-bezier(.4,0,.2,1),box-shadow 180ms cubic-bezier(.4,0,.2,1)}.ds-btn-primary:hover{box-shadow:0 4px 12px rgba(15,23,42,0.10)}.ds-btn-primary:focus-visible{outline:2px solid #3B82F6;outline-offset:2px}.ds-btn-primary:active{transform:scale(.98)}"
+      "refersTo": "button-filled",
+      "description": "Action principale d'une zone.",
+      "html": "<button class=\"ds-filled\">Enregistrer</button>",
+      "css": ".ds-filled{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Segoe UI',Roboto,sans-serif;padding:10px 18px;min-height:40px;background:#0071E3;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;transition:filter 120ms}.ds-filled:hover{filter:brightness(.96)}.ds-filled:focus-visible{outline:2px solid #007AFF;outline-offset:2px}.ds-filled:active{transform:scale(.98)}"
     },
     {
-      "name": "Bouton secondaire",
+      "name": "Bouton gris",
       "kind": "button",
-      "refersTo": "button-secondary",
+      "refersTo": "button-gray",
       "description": "Annuler, actions secondaires.",
-      "html": "<button class=\"ds-btn-secondary\">Annuler</button>",
-      "css": ".ds-btn-secondary{font-family: var(--font-dm-sans), 'DM Sans', sans-serif;padding:10px 18px;min-height:40px;background:#F1F5F9;color:#475569;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:background 120ms cubic-bezier(.4,0,.2,1)}.ds-btn-secondary:hover{background:#E2E8F0}.ds-btn-secondary:focus-visible{outline:2px solid #3B82F6;outline-offset:2px}.ds-btn-secondary:active{transform:scale(.98)}"
+      "html": "<button class=\"ds-gray\">Annuler</button>",
+      "css": ".ds-gray{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Segoe UI',Roboto,sans-serif;padding:10px 18px;min-height:40px;background:#EFEFF0;color:#0066CC;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer}.ds-gray:hover{filter:brightness(.96)}.ds-gray:focus-visible{outline:2px solid #007AFF;outline-offset:2px}"
     },
     {
-      "name": "Champ de saisie",
+      "name": "Bouton teinté",
+      "kind": "button",
+      "refersTo": "button-tinted",
+      "description": "« + Nouvel OS », « + Nouveau CR ».",
+      "html": "<button class=\"ds-tinted\">+ Nouvel OS</button>",
+      "css": ".ds-tinted{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Segoe UI',Roboto,sans-serif;display:inline-flex;align-items:center;gap:6px;padding:8px 14px;min-height:36px;background:#EAF3FF;color:#0066CC;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer}.ds-tinted:hover{filter:brightness(.96)}.ds-tinted:focus-visible{outline:2px solid #007AFF;outline-offset:2px}"
+    },
+    {
+      "name": "Champ de recherche",
       "kind": "input",
-      "refersTo": "input",
-      "description": "Champ standard, 16 px pour éviter le zoom iOS.",
-      "html": "<label class=\"ds-field\"><span class=\"ds-label\">NOM DU CHANTIER</span><input class=\"ds-input\" placeholder=\"Maison Dupont\"></label>",
-      "css": ".ds-field{display:flex;flex-direction:column;gap:6px;font-family: var(--font-dm-sans), 'DM Sans', sans-serif;}.ds-label{font-size:10px;font-weight:700;letter-spacing:0.05em;color:#64748B}.ds-input{font-family: var(--font-dm-sans), 'DM Sans', sans-serif;width:100%;box-sizing:border-box;padding:10px 12px;min-height:44px;border:1.5px solid #E2E8F0;border-radius:8px;font-size:16px;color:#0F172A;background:#fff;outline:none;transition:border-color 120ms cubic-bezier(.4,0,.2,1),box-shadow 120ms cubic-bezier(.4,0,.2,1)}.ds-input:focus{border-color:#3B82F6;box-shadow:0 0 0 3px rgba(59,130,246,0.15)}"
+      "refersTo": "search-field",
+      "description": "Recherche globale de la barre latérale.",
+      "html": "<input class=\"ds-search\" placeholder=\"Rechercher…\">",
+      "css": ".ds-search{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Segoe UI',Roboto,sans-serif;width:100%;box-sizing:border-box;padding:8px 12px 8px 30px;min-height:36px;background:#EEEEF0;border:none;border-radius:10px;font-size:14px;color:#1C1C1E;outline:none}.ds-search:focus{box-shadow:0 0 0 3px rgba(0,122,255,0.25)}"
     },
     {
       "name": "Badges de statut",
       "kind": "chip",
       "refersTo": "badge",
-      "description": "Statut en texte coloré sur fond dilué.",
-      "html": "<span class=\"ds-badges\"><span class=\"ds-badge\" style=\"color:#1D4ED8;background:#3B82F618\">En cours</span><span class=\"ds-badge\" style=\"color:#6D28D9;background:#8B5CF618\">Planifié</span><span class=\"ds-badge\" style=\"color:#047857;background:#10B98118\">Terminé</span><span class=\"ds-badge\" style=\"color:#B45309;background:#F59E0B18\">En attente</span><span class=\"ds-badge\" style=\"color:#B91C1C;background:#EF444418\">Urgent</span></span>",
-      "css": ".ds-badges{display:flex;gap:6px;flex-wrap:wrap}.ds-badge{font-family: var(--font-dm-sans), 'DM Sans', sans-serif;display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;white-space:nowrap}"
+      "description": "Statut en teinte lisible sur fond dilué.",
+      "html": "<span class=\"ds-b\" style=\"color:#0062CC;background:#007AFF18\">En cours</span> <span class=\"ds-b\" style=\"color:#1E7B34;background:#34C75918\">Terminé</span> <span class=\"ds-b\" style=\"color:#C93400;background:#FF950018\">En attente</span> <span class=\"ds-b\" style=\"color:#D70015;background:#FF3B3018\">Urgent</span>",
+      "css": ".ds-b{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Segoe UI',Roboto,sans-serif;display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600}"
     },
     {
-      "name": "Carte cliquable",
+      "name": "Carte et ligne",
       "kind": "card",
       "refersTo": "card",
-      "description": "Carte de chantier ou de liste, soulevée au survol.",
-      "html": "<div class=\"ds-card\" tabindex=\"0\"><div class=\"ds-card-title\">Maison Dupont — Sainte-Adresse</div><div class=\"ds-card-meta\">Gros œuvre · 12 tâches · Prochaine réunion jeudi</div></div>",
-      "css": ".ds-card{font-family: var(--font-dm-sans), 'DM Sans', sans-serif;background:#fff;border:1px solid #E2E8F0;border-radius:10px;padding:16px;box-shadow:0 1px 3px rgba(15,23,42,0.06);cursor:pointer;transition:background 120ms cubic-bezier(.4,0,.2,1),border-color 120ms cubic-bezier(.4,0,.2,1),box-shadow 180ms cubic-bezier(.4,0,.2,1),transform 180ms cubic-bezier(.4,0,.2,1)}.ds-card:hover,.ds-card:focus-visible{background:#F8FAFC;border-color:#CBD5E1;box-shadow:0 4px 12px rgba(15,23,42,0.10);transform:translateX(3px)}.ds-card:focus-visible{outline:2px solid #3B82F6;outline-offset:2px}.ds-card-title{font-size:13px;font-weight:700;color:#0F172A}.ds-card-meta{font-size:12px;color:#64748B;margin-top:4px}"
+      "description": "Carte blanche sur fond gris, ligne de liste à chevron.",
+      "html": "<div class=\"ds-card\"><div class=\"ds-h\">Mes priorités du jour</div><div class=\"ds-row\"><span>Validation plans structure<br><small>Urgente, en retard de 3 jours</small></span><span class=\"ds-chev\">›</span></div></div>",
+      "css": ".ds-card{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Segoe UI',Roboto,sans-serif;background:#fff;border-radius:12px;padding:16px;max-width:420px}.ds-h{font-size:20px;font-weight:700;color:#1C1C1E;margin-bottom:10px}.ds-row{display:flex;align-items:center;justify-content:space-between;min-height:44px;padding:8px 12px;background:#F5F5F7;border-radius:10px;font-size:14px;font-weight:600;color:#1C1C1E}.ds-row small{font-weight:400;color:#6E6E73;font-size:12px}.ds-chev{color:#8E8E93}.ds-row:hover{background:#EFEFF0}"
     },
     {
       "name": "Barre latérale",
       "kind": "nav",
       "refersTo": "sidebar",
-      "description": "Navigation principale, nuit vers marine, accent vertical sur l'onglet actif.",
-      "html": "<nav class=\"ds-side\"><div class=\"ds-brand\">ID MAÎTRISE</div><a class=\"ds-tab\" data-active=\"true\" href=\"#\">Tableau de bord</a><a class=\"ds-tab\" href=\"#\">Chantiers</a><a class=\"ds-tab\" href=\"#\">Comptes rendus</a></nav>",
-      "css": ".ds-side{font-family: var(--font-dm-sans), 'DM Sans', sans-serif;width:280px;padding:16px 12px;background:linear-gradient(195deg,#0F172A,#1E3A5F);color:#fff;display:flex;flex-direction:column;gap:2px;border-radius:8px}.ds-brand{font-size:17px;font-weight:700;padding:4px 12px 14px}.ds-tab{position:relative;display:block;padding:9px 12px 9px 18px;border-radius:8px;font-size:12.5px;color:#94A3B8;text-decoration:none;transition:background 120ms cubic-bezier(.4,0,.2,1),color 120ms cubic-bezier(.4,0,.2,1)}.ds-tab:hover,.ds-tab:focus-visible{background:rgba(255,255,255,0.04)}.ds-tab[data-active=true]{background:rgba(255,255,255,0.10);color:#fff}.ds-tab[data-active=true]::before{content:'';position:absolute;left:4px;top:8px;bottom:8px;width:3px;border-radius:2px;background:#60A5FA}"
-    },
-    {
-      "name": "Fenêtre de saisie",
-      "kind": "custom",
-      "refersTo": "modal",
-      "description": "Modale blanche, fermée seulement par ✕ ou les boutons.",
-      "html": "<div class=\"ds-modal\"><div class=\"ds-modal-head\"><span>Nouvelle tâche</span><button class=\"ds-x\" aria-label=\"Fermer\">✕</button></div><p class=\"ds-modal-body\">Contenu du formulaire…</p></div>",
-      "css": ".ds-modal{font-family: var(--font-dm-sans), 'DM Sans', sans-serif;background:#fff;border-radius:16px;padding:20px;max-width:420px;box-shadow:0 25px 50px rgba(15,23,42,0.25)}.ds-modal-head{display:flex;justify-content:space-between;align-items:center;font-size:17px;font-weight:700;color:#0F172A}.ds-x{border:none;background:transparent;border-radius:8px;width:32px;height:32px;font-size:16px;color:#64748B;cursor:pointer}.ds-x:hover,.ds-x:focus-visible{background:#E2E8F0}.ds-modal-body{font-size:13px;color:#334155;margin:12px 0 0}"
-    },
-    {
-      "name": "Action de section",
-      "kind": "button",
-      "refersTo": "button-add",
-      "description": "« + Nouvel OS », « + Nouveau CR » : discret, texte marine.",
-      "html": "<button class=\"ds-btn-add\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"><path d=\"M12 5v14 M5 12h14\"/></svg>Nouvel OS</button>",
-      "css": ".ds-btn-add{font-family:var(--font-dm-sans),'DM Sans',sans-serif;display:inline-flex;align-items:center;gap:6px;padding:8px 12px;min-height:36px;background:#fff;color:#1E3A5F;border:1px solid #CBD5E1;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:background 120ms cubic-bezier(.4,0,.2,1)}.ds-btn-add:hover{background:#F8FAFC}.ds-btn-add:focus-visible{outline:2px solid #3B82F6;outline-offset:2px}"
+      "description": "Claire, façon iPad ; onglet actif en pastille bleue.",
+      "html": "<nav class=\"ds-side\"><div class=\"ds-brand\">ID Maîtrise</div><a class=\"ds-tab ds-on\" href=\"#\">Tableau de bord</a><a class=\"ds-tab\" href=\"#\">Chantiers</a><a class=\"ds-tab\" href=\"#\">Comptes rendus</a></nav>",
+      "css": ".ds-side{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Segoe UI',Roboto,sans-serif;width:280px;padding:16px 8px;background:#F9F9FB;border-right:1px solid #E5E5EA;display:flex;flex-direction:column;gap:2px}.ds-brand{font-size:20px;font-weight:700;color:#1C1C1E;padding:0 10px 12px}.ds-tab{display:block;padding:9px 10px;border-radius:10px;font-size:15px;color:#1C1C1E;text-decoration:none}.ds-tab:hover{background:rgba(0,0,0,0.04)}.ds-on{background:#0071E3;color:#fff;font-weight:600}.ds-on:hover{background:#0071E3}"
     }
   ],
   "narrative": {
-    "northStar": "Le bureau d'études",
-    "overview": "L'application doit avoir la rigueur d'un plan d'ingénieur : une grille nette, des traits fins, des chiffres alignés, une hiérarchie qui se lit d'un coup d'œil. Le bleu marine ID Maîtrise signe l'ensemble ; le reste est une gamme de gris ardoise qui laisse la place au contenu (chantiers, montants, échéances). Cette rigueur est adoucie par des coins arrondis, des ombres à peine marquées et de l'air entre les blocs : un outil précis, pas austère.\n\nC'est un outil de travail utilisé toute la journée, au bureau sur ordinateur et sur chantier au téléphone. La couleur sert d'abord le sens (statut, alerte, action principale) ; la marque vit dans les détails : la barre latérale nuit-marine, le bouton principal marine, l'anneau de focus bleu.",
+    "northStar": "L'app native",
+    "overview": "L'application doit se sentir comme une app iOS / iPadOS bien faite : claire, légère, évidente. Fond gris très clair, contenus sur des cartes blanches à coins arrondis, séparateurs fins, une seule couleur d'accent (le bleu iOS) pour tout ce qui se touche, du texte presque noir pour tout ce qui se lit. Rien de sombre, rien de décoratif : la couleur et le poids servent à dire ce qui compte.\n\nChoix de l'équipe (octobre 2026) : le style précédent était jugé trop sombre ; l'équipe a retenu un style iOS, avec le bleu iOS comme accent, une barre latérale claire façon iPad et la police du système (San Francisco sur iPhone et Mac, Roboto sur Android, Segoe UI sur Windows).\n\nC'est un outil de travail utilisé au bureau et sur chantier, souvent au téléphone : les zones tactiles font au moins 36 à 44 px, les textes ne descendent pas sous 11 px, les champs restent à 16 px.\n\nLes documents produits (PDF, Excel, mails) gardent leur propre charte ID Maîtrise (noir, gris, marine, `lib/`) ; ce document ne concerne que l'interface. Le logo (`public/images/logo-id-maitrise.png`) est en noir et blanc.",
     "keyCharacteristics": [
-      "Marine ID Maîtrise pour la marque et l'action principale, bleu signal pour le focus et l'information.",
-      "Gamme ardoise froide (de #0F172A à #F8FAFC) pour le texte, les traits et les fonds.",
-      "Fond d'application gris clair, contenus sur cartes blanches à bordure fine.",
-      "Une seule police, DM Sans, en graisses 400 à 700.",
-      "Coins arrondis doux (6 à 16 px), ombres très légères.",
-      "Mouvement court et discret (120 à 280 ms), coupé si l'utilisateur demande moins d'animations."
+      "Fond gris iOS `#F2F2F7`, cartes blanches à coins de 12 px, séparateurs `#E5E5EA`.",
+      "Un seul accent : le bleu iOS, en remplissage `#0071E3` et en texte `#0066CC` (variantes lisibles du `#007AFF` d'Apple).",
+      "Police du système, grands titres en gras serré (`-0.02em`), titres de section en semi-gras 17 px.",
+      "Barre latérale claire façon iPad : icônes bleues, onglet actif en pastille bleue.",
+      "Barres du haut et du bas translucides (flou) sur téléphone.",
+      "Couleurs système iOS pour les statuts (vert, orange, rouge, violet), toujours en teinte lisible sur fond dilué."
     ],
     "rules": [
       {
-        "name": "The Meaning-Only Rule",
-        "body": "Une couleur vive porte toujours un sens (statut, alerte, action). Hors de ces cas, l'interface reste en marine et ardoise.",
+        "name": "The One Accent Rule",
+        "body": "Le bleu est la seule couleur d'interaction. Tout ce qui est bleu se touche ; ce qui ne se touche pas n'est pas bleu.",
         "section": "colors"
       },
       {
-        "name": "The Tinted Badge Rule",
-        "body": "Un statut s'affiche en texte d'une teinte foncée de sa couleur sur un fond de la même couleur très diluée (couleur + 18 en hexadécimal, environ 9 % d'opacité), jamais en aplat plein. La teinte foncée vient de lib/tone.js et garde au moins 4,5:1 de contraste.",
+        "name": "The Meaning-Only Rule",
+        "body": "Hors du bleu d'action, une couleur porte toujours un statut (vert, orange, rouge, violet). Les sections, catégories, phases et types restent en gris.",
         "section": "colors"
       },
       {
         "name": "The Neutral Section Rule",
-        "body": "Les sections d'un écran (OS, CR, tâches, PV, entreprises, planning, chiffrage…) n'ont pas de couleur propre : titres, compteurs et boutons de création restent en marine et ardoise (décision d'octobre 2026, l'équipe ne se repère pas à la couleur des sections).",
+        "body": "Les sections d'un écran (OS, CR, tâches, PV, entreprises, planning, chiffrage…) n'ont pas de couleur propre (décision d'octobre 2026).",
+        "section": "colors"
+      },
+      {
+        "name": "The Tinted Badge Rule",
+        "body": "Un statut s'affiche en texte de sa teinte lisible (`lib/tone.js`) sur un fond de sa couleur diluée à environ 9 %, en pastille ; jamais en aplat plein. Contraste ≥ 4,5:1.",
+        "section": "colors"
+      },
+      {
+        "name": "The Readable Floor Rule",
+        "body": "Rien sous 11 px ; le texte courant reste à 12 px ou plus.",
         "section": "colors"
       },
       {
         "name": "The 16px Field Rule",
-        "body": "Un champ de saisie n'est jamais en dessous de 16 px sur téléphone (règle déjà imposée par inp et par layout.js sous 640 px).",
+        "body": "Un champ de saisie n'est jamais sous 16 px sur téléphone.",
         "section": "typography"
-      },
-      {
-        "name": "The Readable Floor Rule",
-        "body": "Le texte courant reste à 12 px ou plus ; 10 et 11 px sont réservés aux intitulés et légendes courts. Les tailles en dessous de 10 px (8 px, 7,5 px aujourd'hui sur quelques badges) sont à remonter, pas à reproduire.",
-        "section": "typography"
-      },
-      {
-        "name": "The Air Over Density Rule",
-        "body": "Entre deux blocs, préférer un espacement de plus à une bordure de plus.",
-        "section": "layout"
       },
       {
         "name": "The Flat-At-Rest Rule",
-        "body": "Au repos, une carte n'a qu'une bordure fine et l'ombre de repos. Une ombre plus forte signale toujours un état (survol) ou un élément au-dessus de la page.",
-        "section": "elevation"
-      },
-      {
-        "name": "The Slate Shadow Rule",
-        "body": "Les ombres sont teintées nuit ardoise (rgba(15,23,42,…)), pas noir pur.",
-        "section": "elevation"
+        "body": "Au repos, une carte est blanche sur gris, avec au plus un trait fin. Une ombre marquée signale toujours un élément au-dessus de la page.",
+        "section": "typography"
       }
     ],
     "dos": [
-      "Do utiliser le marine ID Maîtrise (`#1E3A5F`) pour l'action principale d'un écran, et une seule fois par zone.",
-      "Do passer par `btnP`, `btnS`, `inp`, `Badge` et les classes `u-*` plutôt que de réécrire des styles en ligne.",
-      "Do garder les champs à 16 px et 44 px de haut, et les boutons à 40 px minimum.",
-      "Do afficher les statuts avec la règle du badge teinté et les couleurs de la table `status`.",
-      "Do teinter les ombres en nuit ardoise et les garder légères au repos.",
-      "Do afficher les chiffres en chiffres de même largeur (`font-variant-numeric: tabular-nums`, posé sur `body`).",
-      "Do utiliser les durées et courbes de `styles/global.css` (`--motion-fast` 120 ms, `--motion-base` 180 ms, `--motion-slow` 280 ms, `--ease-standard`)."
+      "Do utiliser le bleu d'action pour tout ce qui se touche, et seulement pour ça.",
+      "Do passer par `btnP`, `btnS`, `btnAdd`, `btnChip`, `inp`, `Badge`, `Section` et les classes `u-*` plutôt que de réécrire des styles.",
+      "Do écrire les liens et le texte bleu en `#0066CC`, jamais en `#007AFF` (pas assez lisible).",
+      "Do garder les montants et les chiffres clés en `label` (presque noir), en chiffres de même largeur.",
+      "Do garder les champs à 16 px et 44 px, les lignes de liste à 44 px.",
+      "Do utiliser les durées et courbes de `styles/global.css` (`--motion-fast` 120 ms, `--motion-base` 180 ms, `--ease-standard`)."
     ],
     "donts": [
-      "Don't introduire l'or `#C8A45C` dans l'application tant que la décision de marque n'est pas prise.",
-      "Don't créer de nouveau texte sous 10 px, ni de texte courant sous 12 px.",
-      "Don't ajouter une couleur vive qui ne porte pas de sens (statut, alerte, action).",
-      "Don't donner une couleur propre à une section d'écran (titres, compteurs, boutons « + Nouveau »).",
-      "Don't utiliser d'emoji comme icône ou dans un titre : leur rendu change d'un téléphone à l'autre.",
-      "Don't gérer le survol avec `onMouseEnter` / `onMouseLeave` en ligne : les classes `u-*` couvrent aussi le clavier et le tactile.",
+      "Don't remettre de fond sombre (barre latérale, en-têtes, cartes) : le style est clair.",
+      "Don't donner une couleur propre à une section, une catégorie ou une phase.",
+      "Don't utiliser d'emoji comme icône ou dans un titre.",
+      "Don't utiliser `label-tertiary` (`#8E8E93`) pour du texte à lire.",
+      "Don't introduire l'or `#C8A45C` dans l'interface tant que la décision de marque n'est pas prise.",
       "Don't fermer une fenêtre de saisie au clic sur le fond."
     ]
   }

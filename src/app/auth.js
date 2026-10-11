@@ -225,20 +225,20 @@ export function LoginPage() {
   return (
     <div style={{
       minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: 'linear-gradient(135deg, #0F172A 0%, #1E3A5F 50%, #0F172A 100%)',
+      background: 'linear-gradient(135deg, #1C1C1E 0%, #0071E3 50%, #1C1C1E 100%)',
       fontFamily: "var(--font-dm-sans), sans-serif", padding: 20, position: 'relative', overflow: 'hidden',
     }}>
       {/* Halos décoratifs en arrière-plan (très subtils) */}
       <div aria-hidden style={{
         position: 'absolute', top: '-10%', left: '-10%',
         width: 400, height: 400, borderRadius: '50%',
-        background: 'radial-gradient(circle, rgba(96,165,250,0.15) 0%, transparent 70%)',
+        background: 'radial-gradient(circle, rgba(64,156,255,0.15) 0%, transparent 70%)',
         animation: 'floatBg1 12s ease-in-out infinite', pointerEvents: 'none',
       }}/>
       <div aria-hidden style={{
         position: 'absolute', bottom: '-10%', right: '-10%',
         width: 500, height: 500, borderRadius: '50%',
-        background: 'radial-gradient(circle, rgba(124,58,237,0.12) 0%, transparent 70%)',
+        background: 'radial-gradient(circle, rgba(137,68,171,0.12) 0%, transparent 70%)',
         animation: 'floatBg2 15s ease-in-out infinite', pointerEvents: 'none',
       }}/>
 
@@ -248,7 +248,7 @@ export function LoginPage() {
         position: 'relative', zIndex: 1,
       }}>
         <div style={{
-          width: 80, height: 80, borderRadius: 20, background: '#F8FAFC',
+          width: 80, height: 80, borderRadius: 20, background: '#F5F5F7',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           margin: '0 auto 20px', boxShadow: '0 4px 16px rgba(0,0,0,0.08)', overflow: 'hidden',
         }}>
@@ -257,20 +257,20 @@ export function LoginPage() {
             style={{ objectFit: 'contain' }} />
         </div>
 
-        <h1 style={{ margin: '0 0 4px', fontSize: 26, fontWeight: 700, color: '#0F172A' }}>ID Maîtrise</h1>
-        <p style={{ margin: '0 0 8px', fontSize: 13, color: '#64748B' }}>Ingénierie de la construction</p>
-        <p style={{ margin: '0 0 32px', fontSize: 12, color: '#64748B' }}>Tableau de bord de gestion de chantiers</p>
+        <h1 style={{ margin: '0 0 4px', fontSize: 26, fontWeight: 700, color: '#1C1C1E' }}>ID Maîtrise</h1>
+        <p style={{ margin: '0 0 8px', fontSize: 13, color: '#6E6E73' }}>Ingénierie de la construction</p>
+        <p style={{ margin: '0 0 32px', fontSize: 12, color: '#6E6E73' }}>Tableau de bord de gestion de chantiers</p>
 
         {denied && (
           <div style={{
-            background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 10,
-            padding: '14px 16px', marginBottom: 20, fontSize: 13, color: '#DC2626',
+            background: '#FFF0EF', border: '1px solid #FFC9C6', borderRadius: 10,
+            padding: '14px 16px', marginBottom: 20, fontSize: 13, color: '#D70015',
             textAlign: 'left',
           }}>
             <div style={{ fontWeight: 700, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
               <span>🔒</span> Accès refusé
             </div>
-            <div style={{ fontSize: 12, color: '#991B1B', lineHeight: 1.5 }}>
+            <div style={{ fontSize: 12, color: '#A50011', lineHeight: 1.5 }}>
               Votre compte Google n&apos;est pas autorisé pour le moment.<br/>
               Contactez-nous à{' '}
               <a href="mailto:contact@id-maitrise.com"
@@ -281,14 +281,14 @@ export function LoginPage() {
         )}
         {expired && !denied && (
           <div style={{
-            background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 10,
-            padding: '14px 16px', marginBottom: 20, fontSize: 13, color: '#92400E',
+            background: '#FFF7E8', border: '1px solid #FFDDA6', borderRadius: 10,
+            padding: '14px 16px', marginBottom: 20, fontSize: 13, color: '#A0390C',
             textAlign: 'left',
           }}>
             <div style={{ fontWeight: 700, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
               <span>⏱</span> Session expirée
             </div>
-            <div style={{ fontSize: 12, color: '#92400E', lineHeight: 1.5 }}>
+            <div style={{ fontSize: 12, color: '#A0390C', lineHeight: 1.5 }}>
               Votre session a expiré par mesure de sécurité.{' '}
               Reconnectez-vous avec votre compte Google pour continuer.
             </div>
@@ -296,8 +296,8 @@ export function LoginPage() {
         )}
         {error && !denied && (
           <div style={{
-            background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 10,
-            padding: '12px 16px', marginBottom: 20, fontSize: 13, color: '#DC2626',
+            background: '#FFF0EF', border: '1px solid #FFC9C6', borderRadius: 10,
+            padding: '12px 16px', marginBottom: 20, fontSize: 13, color: '#D70015',
           }}>
             ⚠ {error}
           </div>
@@ -310,18 +310,18 @@ export function LoginPage() {
           className="login-btn"
           style={{
             width: '100%', padding: '14px 24px', borderRadius: 12,
-            border: '1.5px solid #E2E8F0', background: '#fff',
+            border: '1.5px solid #E5E5EA', background: '#fff',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12,
             cursor: loggingIn ? 'wait' : 'pointer', fontSize: 15, fontWeight: 600,
-            color: '#334155', fontFamily: 'inherit',
+            color: '#3A3A3C', fontFamily: 'inherit',
             boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
           }}
         >
           {loggingIn ? (
             <>
               <span style={{
-                width: 18, height: 18, border: '2px solid #E2E8F0',
-                borderTopColor: '#3B82F6', borderRadius: '50%',
+                width: 18, height: 18, border: '2px solid #E5E5EA',
+                borderTopColor: '#007AFF', borderRadius: '50%',
                 display: 'inline-block', animation: 'spin .8s linear infinite'
               }}/>
               Connexion en cours…
@@ -339,30 +339,30 @@ export function LoginPage() {
           )}
         </button>
 
-        <p style={{ margin: '24px 0 0', fontSize: 11, color: '#64748B' }}>
+        <p style={{ margin: '24px 0 0', fontSize: 11, color: '#6E6E73' }}>
           Accès réservé aux collaborateurs et maîtres d&apos;ouvrage ID Maîtrise
         </p>
 
         <div style={{
           margin: '16px 0 0',
-          background: 'linear-gradient(135deg, #EFF6FF 0%, #F0FDF4 100%)',
-          border: '1.5px solid #BFDBFE',
+          background: 'linear-gradient(135deg, #EAF3FF 0%, #EEF9F1 100%)',
+          border: '1.5px solid #C6DDF7',
           borderRadius: 10,
           padding: '12px 14px',
           textAlign: 'left',
         }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: '#1D4ED8', marginBottom: 4 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: '#0066CC', marginBottom: 4 }}>
             🎯 Pas encore client ID Maîtrise ?
           </div>
-          <div style={{ fontSize: 12, color: '#334155', lineHeight: 1.6 }}>
+          <div style={{ fontSize: 12, color: '#3A3A3C', lineHeight: 1.6 }}>
             Découvrez l&apos;outil <strong>gratuitement en mode démo</strong>
             {' '}— cliquez sur <strong>Se connecter avec Google</strong>
             {' '}avec n&apos;importe quel compte Gmail.
           </div>
         </div>
 
-        <div style={{ marginTop: 32, paddingTop: 20, borderTop: '1px solid #F1F5F9' }}>
-          <p style={{ margin: 0, fontSize: 10, color: '#64748B' }}>
+        <div style={{ marginTop: 32, paddingTop: 20, borderTop: '1px solid #F2F2F7' }}>
+          <p style={{ margin: 0, fontSize: 10, color: '#6E6E73' }}>
             SARL ID MAÎTRISE — 9 Rue Henry Genestal, 76600 Le Havre<br />
             SIRET 921 536 181 00024
           </p>

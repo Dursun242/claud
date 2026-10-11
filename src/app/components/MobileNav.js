@@ -28,8 +28,8 @@ export default function MobileNav({ items, active, onSelect, onMenu, onCreate })
     return (
       <button key={it.key} data-nav onClick={() => onSelect(it.key)}
         aria-current={on ? 'page' : undefined}
-        style={{ ...itemStyle, color: on ? '#1E3A5F' : '#64748B', fontWeight: on ? 700 : 500 }}>
-        <Icon d={it.icon} size={21} color={on ? '#2563EB' : '#94A3B8'} />
+        style={{ ...itemStyle, color: on ? '#0071E3' : '#6E6E73', fontWeight: on ? 600 : 500 }}>
+        <Icon d={it.icon} size={22} color={on ? '#0071E3' : '#8E8E93'} />
         <span style={labelStyle}>{it.label}</span>
       </button>
     )
@@ -40,17 +40,19 @@ export default function MobileNav({ items, active, onSelect, onMenu, onCreate })
       position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 996,
       height: `calc(${MOBILE_NAV_HEIGHT}px + env(safe-area-inset-bottom))`,
       paddingBottom: 'env(safe-area-inset-bottom)',
-      background: '#fff', borderTop: '1px solid #E2E8F0',
-      boxShadow: '0 -2px 10px rgba(15,23,42,0.05)',
+      // Barre d'onglets translucide façon iOS
+      background: 'rgba(249,249,251,0.88)',
+      backdropFilter: 'saturate(180%) blur(20px)', WebkitBackdropFilter: 'saturate(180%) blur(20px)',
+      borderTop: '1px solid rgba(0,0,0,0.1)',
       display: 'flex', alignItems: 'stretch',
     }}>
       {left.map(tabBtn)}
       {onCreate && (
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <button data-nav onClick={onCreate} aria-label="Créer (OS, CR, tâche…)" style={{
-            width: 50, height: 50, borderRadius: 16, border: 'none', cursor: 'pointer',
-            background: '#1E3A5F', color: '#fff',
-            boxShadow: '0 4px 12px rgba(15,23,42,0.18)',
+            width: 48, height: 48, borderRadius: '50%', border: 'none', cursor: 'pointer',
+            background: '#0071E3', color: '#fff',
+            boxShadow: '0 4px 12px rgba(0,113,227,0.3)',
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
           }}>
             <Icon d={I.plus} size={24} color="#fff" />
@@ -59,8 +61,8 @@ export default function MobileNav({ items, active, onSelect, onMenu, onCreate })
       )}
       {right.map(tabBtn)}
       <button data-nav onClick={onMenu} aria-label="Plus d'onglets"
-        style={{ ...itemStyle, color: menuActive ? '#1E3A5F' : '#64748B', fontWeight: menuActive ? 700 : 500 }}>
-        <Icon d={I.menu} size={21} color={menuActive ? '#2563EB' : '#94A3B8'} />
+        style={{ ...itemStyle, color: menuActive ? '#0071E3' : '#6E6E73', fontWeight: menuActive ? 600 : 500 }}>
+        <Icon d={I.menu} size={22} color={menuActive ? '#0071E3' : '#8E8E93'} />
         <span style={labelStyle}>Plus</span>
       </button>
     </nav>
@@ -73,7 +75,7 @@ const itemStyle = {
   gap: 3, padding: '6px 2px', fontFamily: 'inherit',
 }
 const labelStyle = {
-  fontSize: 10.5, lineHeight: 1.1, maxWidth: '100%',
+  fontSize: 11, lineHeight: 1.1, maxWidth: '100%',
   overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
 }
 
@@ -82,7 +84,7 @@ const labelStyle = {
  * desktop. Chaque action ouvre directement le formulaire de création de
  * l'onglet concerné (cf. lib/navIntent.js).
  *
- * @param actions [{ key, label, hint, emoji, onPick }]
+ * @param actions [{ key, label, hint, icon, onPick }]
  */
 export function QuickCreateSheet({ open, onClose, actions, isMobile }) {
   useEffect(() => {
@@ -95,7 +97,7 @@ export function QuickCreateSheet({ open, onClose, actions, isMobile }) {
   if (!open) return null
   return (
     <div onClick={onClose} style={{
-      position: 'fixed', inset: 0, zIndex: 4000, background: 'rgba(15,23,42,0.45)',
+      position: 'fixed', inset: 0, zIndex: 4000, background: 'rgba(0,0,0,0.45)',
       display: 'flex', alignItems: isMobile ? 'flex-end' : 'center', justifyContent: 'center',
       animation: 'fadeIn .15s ease',
     }}>
@@ -103,24 +105,24 @@ export function QuickCreateSheet({ open, onClose, actions, isMobile }) {
         background: '#fff', width: '100%', maxWidth: isMobile ? '100%' : 440,
         borderRadius: isMobile ? '18px 18px 0 0' : 16,
         padding: isMobile ? '10px 16px calc(16px + env(safe-area-inset-bottom))' : 20,
-        boxShadow: '0 -8px 24px rgba(15,23,42,0.18)',
+        boxShadow: '0 -8px 24px rgba(0,0,0,0.18)',
       }}>
-        {isMobile && <div aria-hidden style={{ width: 40, height: 4, borderRadius: 2, background: '#CBD5E1', margin: '0 auto 12px' }} />}
-        <div style={{ fontSize: 15, fontWeight: 700, color: '#0F172A', marginBottom: 12 }}>Créer…</div>
+        {isMobile && <div aria-hidden style={{ width: 40, height: 4, borderRadius: 2, background: '#D1D1D6', margin: '0 auto 12px' }} />}
+        <div style={{ fontSize: 17, fontWeight: 600, color: '#1C1C1E', marginBottom: 12 }}>Créer…</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 8 }}>
           {actions.map((a, i) => (
             <button key={a.key} autoFocus={i === 0} onClick={() => { onClose(); a.onPick() }} style={{
               display: 'flex', alignItems: 'center', gap: 10, padding: '12px 12px', minHeight: 56,
-              border: '1.5px solid #E2E8F0', borderRadius: 12, background: '#fff', cursor: 'pointer',
+              border: 'none', borderRadius: 12, background: '#F2F2F7', cursor: 'pointer',
               fontFamily: 'inherit', textAlign: 'left', minWidth: 0,
             }}>
               <span aria-hidden style={{
-                fontSize: 20, width: 36, height: 36, borderRadius: 10, background: '#F1F5F9', flexShrink: 0,
+                width: 36, height: 36, borderRadius: 10, background: '#fff', flexShrink: 0,
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              }}>{a.emoji}</span>
+              }}>{a.icon ? <Icon d={a.icon} size={20} color="#0071E3" /> : a.emoji}</span>
               <span style={{ minWidth: 0 }}>
-                <span style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#0F172A' }}>{a.label}</span>
-                {a.hint && <span style={{ display: 'block', fontSize: 10.5, color: '#64748B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.hint}</span>}
+                <span style={{ display: 'block', fontSize: 14, fontWeight: 600, color: '#1C1C1E' }}>{a.label}</span>
+                {a.hint && <span style={{ display: 'block', fontSize: 12, color: '#6E6E73', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.hint}</span>}
               </span>
             </button>
           ))}

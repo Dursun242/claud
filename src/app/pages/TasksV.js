@@ -163,7 +163,7 @@ export default function TasksV({ data, save: _save, m, reload, focusId, focusTs,
     }}>
       <div>
         <h1 style={{margin:0,fontSize:m?18:24,fontWeight:700}}>Tâches</h1>
-        <div style={{fontSize:11,color:"#64748B",marginTop:2}}>
+        <div style={{fontSize:11,color:"#6E6E73",marginTop:2}}>
           {countByStatus.all} au total
           {hasFilters && <> · <strong>{filteredTasks.length}</strong> affichée{filteredTasks.length>1?"s":""}</>}
         </div>
@@ -173,7 +173,7 @@ export default function TasksV({ data, save: _save, m, reload, focusId, focusTs,
           <svg style={{position:"absolute",left:9,top:"50%",
             transform:"translateY(-50%)",opacity:0.5}}
             width="13" height="13" viewBox="0 0 24 24"
-            fill="none" stroke="#64748B" strokeWidth="2.5">
+            fill="none" stroke="#6E6E73" strokeWidth="2.5">
             <circle cx="11" cy="11" r="8"/>
             <path d="M21 21l-4.35-4.35"/>
           </svg>
@@ -185,7 +185,7 @@ export default function TasksV({ data, save: _save, m, reload, focusId, focusTs,
             onChange={e=>setQ(e.target.value)}
             style={{
               padding:"7px 10px 7px 28px",borderRadius:7,
-              border:"1px solid #E2E8F0",fontSize:12,width:"100%",
+              border:"1px solid #E5E5EA",fontSize:12,width:"100%",
               boxSizing:"border-box",fontFamily:"inherit"
             }}
           />
@@ -200,19 +200,19 @@ export default function TasksV({ data, save: _save, m, reload, focusId, focusTs,
       display:"flex",gap:6,marginBottom:14,flexWrap:"wrap",
       overflowX:m?"auto":"visible",paddingBottom:m?4:0
     }}>
-      {[{k:"all",l:"Toutes",c:"#64748B"},
-        {k:"En cours",l:"En cours",c:status["En cours"]||"#3B82F6"},
-        {k:"Planifié",l:"Planifiées",c:status["Planifié"]||"#8B5CF6"},
-        {k:"Terminé",l:"Terminées",c:status["Terminé"]||"#10B981"}].map(p => {
+      {[{k:"all",l:"Toutes",c:"#6E6E73"},
+        {k:"En cours",l:"En cours",c:status["En cours"]||"#007AFF"},
+        {k:"Planifié",l:"Planifiées",c:status["Planifié"]||"#AF52DE"},
+        {k:"Terminé",l:"Terminées",c:status["Terminé"]||"#34C759"}].map(p => {
         const active = filter === p.k
         const count = countByStatus[p.k] || 0
         return (
           <button key={p.k} onClick={()=>setFilter(p.k)} style={{
             display:"inline-flex",alignItems:"center",gap:6,
             padding:"5px 11px",borderRadius:999,fontSize:11,fontWeight:600,
-            border:`1px solid ${active ? p.c : "#E2E8F0"}`,
+            border:`1px solid ${active ? p.c : "#E5E5EA"}`,
             background:active ? p.c : "#fff",
-            color:active ? "#fff" : "#334155",
+            color:active ? "#fff" : "#3A3A3C",
             cursor:"pointer",fontFamily:"inherit",
             transition:"background .15s, color .15s, border-color .15s",whiteSpace:"nowrap",
           }}>
@@ -231,8 +231,8 @@ export default function TasksV({ data, save: _save, m, reload, focusId, focusTs,
         <div style={{fontSize:36,marginBottom:8,opacity:0.5}}>✓</div>
         {hasFilters ? (
           <>
-            <div style={{fontSize:14,fontWeight:700,color:"#334155",marginBottom:4}}>Aucun résultat</div>
-            <div style={{fontSize:12,color:"#64748B",marginBottom:14}}>
+            <div style={{fontSize:14,fontWeight:700,color:"#3A3A3C",marginBottom:4}}>Aucun résultat</div>
+            <div style={{fontSize:12,color:"#6E6E73",marginBottom:14}}>
               Essaie d&apos;élargir ta recherche ou de changer de filtre.
             </div>
             <button onClick={()=>{setQ("");setFilter("all")}}
@@ -240,8 +240,8 @@ export default function TasksV({ data, save: _save, m, reload, focusId, focusTs,
           </>
         ) : (
           <>
-            <div style={{fontSize:14,fontWeight:700,color:"#334155",marginBottom:4}}>Aucune tâche 🎉</div>
-            <div style={{fontSize:12,color:"#64748B",marginBottom:14}}>
+            <div style={{fontSize:14,fontWeight:700,color:"#3A3A3C",marginBottom:4}}>Aucune tâche 🎉</div>
+            <div style={{fontSize:12,color:"#6E6E73",marginBottom:14}}>
               Crée ta première tâche pour commencer à suivre le travail.
             </div>
             <button onClick={openNew} style={{...btnP,fontSize:12}}>+ Nouvelle tâche</button>
@@ -259,8 +259,8 @@ export default function TasksV({ data, save: _save, m, reload, focusId, focusTs,
           <div key={t.id} style={{
             display:"flex",alignItems:"center",gap:m?8:10,
             background:"#fff",borderRadius:10,padding:m?"10px 12px":"11px 16px",
-            boxShadow:"0 1px 2px rgba(15,23,42,0.05)",
-            borderLeft:overdue ? "3px solid #EF4444" : "3px solid transparent",
+            boxShadow:"0 1px 2px rgba(0,0,0,0.05)",
+            borderLeft:overdue ? "3px solid #FF3B30" : "3px solid transparent",
             minWidth:0,                // important : autorise le shrink des enfants
             overflow:"hidden",         // dernière ligne de défense anti-overflow
           }}>
@@ -268,8 +268,8 @@ export default function TasksV({ data, save: _save, m, reload, focusId, focusTs,
               aria-label={`Marquer comme ${t.statut==="Terminé"?"à faire":"terminée"}`}
               style={{
               width:24,height:24,minWidth:24,minHeight:24,borderRadius:"50%",
-              border:`2px solid ${status[t.statut]||"#CBD5E1"}`,
-              background:t.statut==="Terminé"?"#10B981":"transparent",
+              border:`2px solid ${status[t.statut]||"#D1D1D6"}`,
+              background:t.statut==="Terminé"?"#34C759":"transparent",
               display:"flex",alignItems:"center",justifyContent:"center",
               cursor:"pointer",flexShrink:0,padding:0,
               boxSizing:"border-box",appearance:"none",WebkitAppearance:"none",
@@ -281,49 +281,49 @@ export default function TasksV({ data, save: _save, m, reload, focusId, focusTs,
               onKeyDown={e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); openEdit(t); } }}
               style={{flex:"1 1 0",minWidth:0,cursor:"pointer",opacity:t.statut==="Terminé"?0.5:1}}>
               <div style={{
-                fontSize:13,fontWeight:600,color:"#0F172A",
+                fontSize:13,fontWeight:600,color:"#1C1C1E",
                 overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",
                 textDecoration:t.statut==="Terminé"?"line-through":"none"
               }}>{t.titre}</div>
-              <div style={{fontSize:10,color:"#64748B",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+              <div style={{fontSize:10,color:"#6E6E73",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
                 {ch?.nom || "—"}{t.entreprise ? ` · ${t.entreprise}` : ""}{t.lot ? ` · ${t.lot}` : ""}
                 {t.nb_rappels > 0 && t.statut !== "Terminé" && (
-                  <span style={{color:"#B91C1C",fontWeight:700}}> · 🔔 {t.nb_rappels} rappel{t.nb_rappels>1?"s":""}</span>
+                  <span style={{color:"#D70015",fontWeight:700}}> · 🔔 {t.nb_rappels} rappel{t.nb_rappels>1?"s":""}</span>
                 )}
               </div>
             </div>
             {/* Sur mobile, on n'affiche que le pictogramme pour économiser la largeur */}
             {overdue && (
               <span title="En retard" style={{
-                fontSize:10,fontWeight:700,color:"#DC2626",
-                background:"#FEF2F2",border:"1px solid #FECACA",borderRadius:999,
+                fontSize:10,fontWeight:700,color:"#D70015",
+                background:"#FFF0EF",border:"1px solid #FFC9C6",borderRadius:999,
                 padding:m?"2px 5px":"2px 7px",whiteSpace:"nowrap",flexShrink:0
               }}>
                 {m ? "⚠" : "⚠ Retard"}
               </span>
             )}
-            {!m && <Badge text={t.priorite} color={status[t.priorite]||"#64748B"}/>}
+            {!m && <Badge text={t.priorite} color={status[t.priorite]||"#6E6E73"}/>}
             {!m && (
               <span style={{
-                fontSize:11,color:overdue?"#DC2626":"#94A3B8",
+                fontSize:11,color:overdue?"#D70015":"#8E8E93",
                 fontWeight:overdue?600:400,whiteSpace:"nowrap"
               }}>{fmtDate(t.echeance)}</span>
             )}
             <button onClick={()=>openEdit(t)} title="Modifier"
               aria-label="Modifier la tâche" style={{
-              background:"#F1F5F9",border:"1px solid #E2E8F0",
+              background:"#F2F2F7",border:"1px solid #E5E5EA",
               borderRadius:6,cursor:"pointer",padding:"4px 6px",
               display:"flex",flexShrink:0
             }}>
-              <Icon d={I.edit} size={12} color="#475569"/>
+              <Icon d={I.edit} size={12} color="#48484A"/>
             </button>
             <button onClick={()=>handleDelete(t)} title="Supprimer"
               aria-label="Supprimer la tâche" style={{
-              background:"#fff",border:"1px solid #FECACA",
+              background:"#fff",border:"1px solid #FFC9C6",
               borderRadius:6,cursor:"pointer",padding:"4px 6px",
               display:"flex",flexShrink:0
             }}>
-              <Icon d={I.trash} size={12} color="#DC2626"/>
+              <Icon d={I.trash} size={12} color="#D70015"/>
             </button>
           </div>
         )
@@ -370,15 +370,15 @@ export default function TasksV({ data, save: _save, m, reload, focusId, focusTs,
       </div>
       {formError && (
         <div style={{
-          background:"#FEF2F2",border:"1px solid #FECACA",borderRadius:8,
-          padding:"8px 12px",marginTop:10,fontSize:12,color:"#DC2626",
+          background:"#FFF0EF",border:"1px solid #FFC9C6",borderRadius:8,
+          padding:"8px 12px",marginTop:10,fontSize:12,color:"#D70015",
           display:"flex",alignItems:"center",gap:8,
         }}>
           <span style={{fontSize:14}}>⚠</span>
           <span style={{flex:1}}>{formError}</span>
           <button onClick={()=>setFormError("")} aria-label="Fermer" style={{
             background:"none",border:"none",cursor:"pointer",
-            color:"#DC2626",fontSize:14,padding:0,lineHeight:1
+            color:"#D70015",fontSize:14,padding:0,lineHeight:1
           }}>✕</button>
         </div>
       )}

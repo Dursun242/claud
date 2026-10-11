@@ -44,23 +44,23 @@ export default function CRPhotoStrip({ photos = [], onChange, label = 'Photo' })
         const src = p.dataUrl || urls[p.path]
         return (
           <figure key={p.path || i} style={{ margin: 0, width: 108 }}>
-            <div style={{ position: 'relative', width: 108, height: 80, borderRadius: 8, overflow: 'hidden', background: '#E2E8F0' }}>
+            <div style={{ position: 'relative', width: 108, height: 80, borderRadius: 8, overflow: 'hidden', background: '#E5E5EA' }}>
               {/* eslint-disable-next-line @next/next/no-img-element -- dataUrl locale ou URL signée à durée courte */}
               {src && <img src={src} alt={p.legende || `Photo ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
-              {!p.path && <span title="Pas encore envoyée" style={{ position: 'absolute', left: 4, top: 4, fontSize: 9, fontWeight: 700, background: '#FEF3C7', color: '#92400E', borderRadius: 4, padding: '1px 4px' }}>local</span>}
+              {!p.path && <span title="Pas encore envoyée" style={{ position: 'absolute', left: 4, top: 4, fontSize: 9, fontWeight: 700, background: '#FFF0D6', color: '#A0390C', borderRadius: 4, padding: '1px 4px' }}>local</span>}
               <button type="button" aria-label={`Retirer la photo ${i + 1}`}
                 onClick={() => onChange(photos.filter((_, j) => j !== i))}
-                style={{ position: 'absolute', right: 3, top: 3, width: 24, height: 24, borderRadius: '50%', border: 'none', background: 'rgba(15,23,42,.65)', color: '#fff', cursor: 'pointer', fontSize: 13, lineHeight: 1 }}>✕</button>
+                style={{ position: 'absolute', right: 3, top: 3, width: 24, height: 24, borderRadius: '50%', border: 'none', background: 'rgba(0,0,0,.65)', color: '#fff', cursor: 'pointer', fontSize: 13, lineHeight: 1 }}>✕</button>
             </div>
             <input aria-label={`Légende de la photo ${i + 1}`} value={p.legende || ''} placeholder="Légende"
               onChange={e => onChange(photos.map((x, j) => (j === i ? { ...x, legende: e.target.value } : x)))}
-              style={{ width: '100%', marginTop: 3, fontSize: 11, padding: '3px 5px', border: '1px solid #E2E8F0', borderRadius: 5, fontFamily: 'inherit', boxSizing: 'border-box' }} />
+              style={{ width: '100%', marginTop: 3, fontSize: 11, padding: '3px 5px', border: '1px solid #E5E5EA', borderRadius: 5, fontFamily: 'inherit', boxSizing: 'border-box' }} />
           </figure>
         )
       })}
       <label style={{
-        width: 80, height: 80, borderRadius: 8, border: '1.5px dashed #94A3B8', display: 'flex', flexDirection: 'column',
-        alignItems: 'center', justifyContent: 'center', cursor: busy ? 'wait' : 'pointer', color: '#475569', fontSize: 11, fontWeight: 700, gap: 2,
+        width: 80, height: 80, borderRadius: 8, border: '1.5px dashed #8E8E93', display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center', cursor: busy ? 'wait' : 'pointer', color: '#48484A', fontSize: 11, fontWeight: 700, gap: 2,
       }}>
         <span aria-hidden="true" style={{ fontSize: 20 }}>📷</span>
         {busy ? '…' : `+ ${label}`}

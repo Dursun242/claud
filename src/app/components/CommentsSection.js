@@ -20,7 +20,7 @@ function formatRelative(dateStr) {
 }
 
 // Palette de couleurs déterministes par nom (stable entre renders)
-const AVATAR_COLORS = ['#3B82F6','#10B981','#F59E0B','#8B5CF6','#EC4899','#14B8A6','#F97316','#6366F1']
+const AVATAR_COLORS = ['#007AFF','#34C759','#FF9500','#AF52DE','#FF2D55','#30B0C7','#FF9500','#5856D6']
 function hashColor(name) {
   const s = name || 'x'
   let h = 0
@@ -85,9 +85,9 @@ export default function CommentsSection({
   const sorted = [...comments].sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
 
   return (
-    <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid #E2E8F0' }}>
-      <h4 style={{ margin: '0 0 12px 0', fontSize: 15, fontWeight: 700, color: '#0F172A' }}>
-        Commentaires <span style={{ color: '#64748B', fontWeight: 500 }}>({comments.length})</span>
+    <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid #E5E5EA' }}>
+      <h4 style={{ margin: '0 0 12px 0', fontSize: 17, fontWeight: 600, color: '#1C1C1E' }}>
+        Commentaires <span style={{ color: '#6E6E73', fontWeight: 500 }}>({comments.length})</span>
       </h4>
 
       {/* Liste commentaires */}
@@ -109,7 +109,7 @@ export default function CommentsSection({
               <div
                 key={comment.id}
                 style={{
-                  background: '#F8FAFC',
+                  background: '#F5F5F7',
                   borderRadius: 10,
                   padding: 10,
                   marginBottom: 8,
@@ -129,10 +129,10 @@ export default function CommentsSection({
                 }}>{getInitials(comment.author_name)}</div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2, gap: 8 }}>
-                    <strong style={{ color: '#0F172A', fontSize: 12 }}>{comment.author_name || 'Anonyme'}</strong>
-                    <span style={{ fontSize: 10, color: '#64748B' }}>{formatRelative(comment.created_at)}</span>
+                    <strong style={{ color: '#1C1C1E', fontSize: 12 }}>{comment.author_name || 'Anonyme'}</strong>
+                    <span style={{ fontSize: 10, color: '#6E6E73' }}>{formatRelative(comment.created_at)}</span>
                   </div>
-                  <p style={{ margin: '0 0 0 0', color: '#475569', lineHeight: 1.5, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                  <p style={{ margin: '0 0 0 0', color: '#48484A', lineHeight: 1.5, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
                     {comment.content}
                   </p>
                 </div>
@@ -143,9 +143,9 @@ export default function CommentsSection({
                     title="Supprimer"
                     style={{
                       background: '#fff',
-                      border: '1px solid #FECACA',
+                      border: '1px solid #FFC9C6',
                       borderRadius: 5,
-                      color: '#DC2626',
+                      color: '#D70015',
                       cursor: 'pointer',
                       fontSize: 10,
                       padding: '3px 6px',
@@ -174,7 +174,7 @@ export default function CommentsSection({
           style={{
             flex: 1,
             padding: 8,
-            border: '1px solid #E2E8F0',
+            border: '1px solid #E5E5EA',
             borderRadius: 6,
             fontSize: 12,
             fontFamily: 'inherit',
@@ -187,7 +187,7 @@ export default function CommentsSection({
           onClick={handleSubmit}
           disabled={submitting || !newComment.trim()}
           style={{
-            background: '#1E3A5F',
+            background: '#0071E3',
             color: '#fff',
             border: 'none',
             borderRadius: 8,

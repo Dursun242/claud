@@ -58,7 +58,7 @@ export default function ProcesVerbalReception({ chantierId, chantier, ordresServ
         {!readOnly && <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
           <button
             onClick={() => setShowNewForm(true)}
-            className="u-press"
+            className="u-btn"
             style={btnAdd}
           >
             <Icon d={I.plus} size={16}/>Nouveau PV
@@ -66,18 +66,18 @@ export default function ProcesVerbalReception({ chantierId, chantier, ordresServ
         </div>}
 
         {loading ? (
-          <p style={{ color: '#64748B', fontSize: 12 }}>Chargement…</p>
+          <p style={{ color: '#6E6E73', fontSize: 12 }}>Chargement…</p>
         ) : loadError ? (
           <div role="alert" style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
-            flexWrap: 'wrap', background: '#FEF2F2', border: '1px solid #FECACA',
-            borderRadius: 10, padding: '10px 12px', fontSize: 13, color: '#DC2626',
+            flexWrap: 'wrap', background: '#FFF0EF', border: '1px solid #FFC9C6',
+            borderRadius: 10, padding: '10px 12px', fontSize: 13, color: '#D70015',
           }}>
             <span>{loadError}</span>
             <button type="button" onClick={loadPVs} style={{
-              background: '#fff', border: '1px solid #FECACA', borderRadius: 8,
+              background: '#fff', border: '1px solid #FFC9C6', borderRadius: 8,
               padding: '8px 14px', minHeight: 36, fontSize: 13, fontWeight: 600,
-              color: '#DC2626', cursor: 'pointer', fontFamily: 'inherit',
+              color: '#D70015', cursor: 'pointer', fontFamily: 'inherit',
             }}>Réessayer</button>
           </div>
         ) : pvs.length === 0 ? (

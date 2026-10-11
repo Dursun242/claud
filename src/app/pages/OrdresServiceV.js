@@ -603,8 +603,8 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly,a
       marginBottom:14,flexWrap:"wrap",gap:8
     }}>
       <div>
-        <h1 style={{margin:0,fontSize:m?18:24,fontWeight:700,color:"#0F172A"}}>Ordres de Service</h1>
-        <div style={{fontSize:11,color:"#64748B",marginTop:2}}>
+        <h1 style={{margin:0,fontSize:m?18:24,fontWeight:700,color:"#1C1C1E"}}>Ordres de Service</h1>
+        <div style={{fontSize:11,color:"#6E6E73",marginTop:2}}>
           {countByStatus.all} au total
           {statusFilter !== "all" && (
             <> · <strong>{filteredSortedOS.length}</strong>{" "}
@@ -618,7 +618,7 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly,a
           <svg style={{position:"absolute",left:9,top:"50%",
             transform:"translateY(-50%)",opacity:0.5}}
             width="13" height="13" viewBox="0 0 24 24"
-            fill="none" stroke="#64748B" strokeWidth="2.5">
+            fill="none" stroke="#6E6E73" strokeWidth="2.5">
             <circle cx="11" cy="11" r="8"/>
             <path d="M21 21l-4.35-4.35"/>
           </svg>
@@ -630,14 +630,14 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly,a
             onChange={e=>setSearchOS(e.target.value)}
             style={{
               padding:"7px 10px 7px 28px",borderRadius:7,
-              border:"1px solid #E2E8F0",fontSize:12,width:"100%",
+              border:"1px solid #E5E5EA",fontSize:12,width:"100%",
               boxSizing:"border-box",fontFamily:"inherit"
             }}
           />
         </div>
         <select value={sortBy} onChange={e=>setSortBy(e.target.value)} title="Trier"
           style={{
-            padding:"7px 8px",borderRadius:7,border:"1px solid #E2E8F0",
+            padding:"7px 8px",borderRadius:7,border:"1px solid #E5E5EA",
             fontSize:12,background:"#fff",cursor:"pointer",fontFamily:"inherit"
           }}>
           <option value="date_desc">📅 Plus récents</option>
@@ -651,9 +651,9 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly,a
           style={{
             ...btnS,
             fontSize:12,
-            background:"#EEF2FF",
-            color:"#4F46E5",
-            border:"1.5px solid #C7D2FE",
+            background:"#EFEFFC",
+            color:"#5856D6",
+            border:"1.5px solid #D3D2F7",
             cursor:importing?"wait":"pointer",
             opacity:importing?0.7:1,
             display:"flex",
@@ -666,7 +666,7 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly,a
             <>
               <span style={{
                 display:"inline-block",width:12,height:12,
-                border:"2px solid #C7D2FE",borderTopColor:"#4F46E5",
+                border:"2px solid #D3D2F7",borderTopColor:"#5856D6",
                 borderRadius:"50%",animation:"spin 0.8s linear infinite"
               }}/>
               Extraction…
@@ -682,9 +682,9 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly,a
           style={{
             ...btnS,
             fontSize: 12,
-            background: "#F0FDF4",
-            color: "#047857",
-            border: "1.5px solid #A7F3D0",
+            background: "#EEF9F1",
+            color: "#1E7B34",
+            border: "1.5px solid #BFE9CA",
             cursor: filteredSortedOS.length === 0 ? "not-allowed" : "pointer",
             opacity: filteredSortedOS.length === 0 ? 0.5 : 1,
           }}
@@ -695,7 +695,7 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly,a
             disabled={syncingSigs}
             title="Actualiser les statuts de signature depuis Odoo"
             style={{
-              background:'#F5F3FF', color:'#6D28D9', border:'1px solid #DDD6FE',
+              background:'#F7F0FC', color:'#8944AB', border:'1px solid #E7D4F5',
               borderRadius:6, padding:'8px 12px', fontSize:12, fontWeight:600,
               cursor: syncingSigs ? 'wait' : 'pointer',
               opacity: syncingSigs ? 0.6 : 1,
@@ -707,7 +707,7 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly,a
               <>
                 <span style={{
                   display:'inline-block',width:10,height:10,
-                  border:'2px solid #DDD6FE',borderTopColor:'#6D28D9',
+                  border:'2px solid #E7D4F5',borderTopColor:'#8944AB',
                   borderRadius:'50%',animation:'spin .8s linear infinite'
                 }}/>
                 Sync…
@@ -732,13 +732,13 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly,a
 
     {importError && (
       <div style={{
-        background:"#FEF2F2",
-        border:"1px solid #FECACA",
+        background:"#FFF0EF",
+        border:"1px solid #FFC9C6",
         borderRadius:8,
         padding:"8px 12px",
         marginBottom:12,
         fontSize:12,
-        color:"#DC2626",
+        color:"#D70015",
         display:"flex",
         justifyContent:"space-between",
         alignItems:"center",
@@ -747,7 +747,7 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly,a
         <span>{importError}</span>
         <button onClick={()=>setImportError("")} aria-label="Fermer le message"
           style={{background:"none",border:"none",cursor:"pointer",
-            color:"#DC2626",fontSize:16,padding:0}}>✕</button>
+            color:"#D70015",fontSize:16,padding:0}}>✕</button>
       </div>
     )}
 
@@ -761,8 +761,8 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly,a
           <div style={{fontSize:36,marginBottom:8,opacity:0.5}}>📋</div>
           {searchOS || statusFilter !== "all" ? (
             <>
-              <div style={{fontSize:14,fontWeight:700,color:"#334155",marginBottom:4}}>Aucun résultat</div>
-              <div style={{fontSize:12,color:"#64748B",marginBottom:14}}>
+              <div style={{fontSize:14,fontWeight:700,color:"#3A3A3C",marginBottom:4}}>Aucun résultat</div>
+              <div style={{fontSize:12,color:"#6E6E73",marginBottom:14}}>
                 Essaie d&apos;élargir ta recherche ou de changer de statut.
               </div>
               <button onClick={()=>{setSearchOS("");setStatusFilter("all");}}
@@ -770,8 +770,8 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly,a
             </>
           ) : (
             <>
-              <div style={{fontSize:14,fontWeight:700,color:"#334155",marginBottom:4}}>Aucun ordre de service</div>
-              <div style={{fontSize:12,color:"#64748B",marginBottom:14}}>
+              <div style={{fontSize:14,fontWeight:700,color:"#3A3A3C",marginBottom:4}}>Aucun ordre de service</div>
+              <div style={{fontSize:12,color:"#6E6E73",marginBottom:14}}>
                 Crée-en un ou importe un devis par photo pour démarrer.
               </div>
               <div style={{display:"flex",gap:8,justifyContent:"center",flexWrap:"wrap"}}>

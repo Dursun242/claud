@@ -4,7 +4,7 @@ import { btnP, btnS } from '../../dashboards/shared'
 import { Modal } from '../index'
 import { bestContact, planMerge } from '../../lib/contactDuplicates'
 
-const chip = (text, color = '#475569', bg = '#F1F5F9') => (
+const chip = (text, color = '#48484A', bg = '#F2F2F7') => (
   <span key={text} style={{ fontSize: 10, fontWeight: 700, color, background: bg, borderRadius: 5, padding: '2px 7px', whiteSpace: 'nowrap' }}>{text}</span>
 )
 
@@ -40,25 +40,25 @@ export default function DuplicatesModal({ open, groups, usage, onClose, onIgnore
     <Modal open={open} onClose={() => !merging && onClose()} title={title} wide>
       {!current && (
         groups.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '20px 0', color: '#64748B', fontSize: 14 }}>
+          <div style={{ textAlign: 'center', padding: '20px 0', color: '#6E6E73', fontSize: 14 }}>
             ✅ Aucun doublon détecté.
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <p style={{ margin: 0, fontSize: 12, color: '#64748B' }}>
+            <p style={{ margin: 0, fontSize: 12, color: '#6E6E73' }}>
               Contacts qui semblent être la même personne ou la même entreprise. Vérifie avant de fusionner : rien n&apos;est fait automatiquement.
             </p>
             {groups.map(g => (
-              <div key={g.ids.join('|')} data-testid="dup-group" style={{ border: '1px solid #E2E8F0', borderRadius: 10, padding: 12, background: '#fff' }}>
+              <div key={g.ids.join('|')} data-testid="dup-group" style={{ border: '1px solid #E5E5EA', borderRadius: 10, padding: 12, background: '#fff' }}>
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
-                  {g.reasons.map(r => chip(r, r === 'même SIRET' ? '#92400E' : '#1D4ED8', r === 'même SIRET' ? '#FEF3C7' : '#EFF6FF'))}
+                  {g.reasons.map(r => chip(r, r === 'même SIRET' ? '#A0390C' : '#0066CC', r === 'même SIRET' ? '#FFF0D6' : '#EAF3FF'))}
                 </div>
                 {g.contacts.map(c => {
                   const u = usage(c)
                   return (
-                    <div key={c.id} style={{ padding: '6px 0', borderTop: '1px solid #F1F5F9' }}>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: '#0F172A' }}>{c.nom}</div>
-                      <div style={{ fontSize: 12, color: '#64748B' }}>{line(c) || '—'}</div>
+                    <div key={c.id} style={{ padding: '6px 0', borderTop: '1px solid #F2F2F7' }}>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: '#1C1C1E' }}>{c.nom}</div>
+                      <div style={{ fontSize: 12, color: '#6E6E73' }}>{line(c) || '—'}</div>
                       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 3 }}>
                         {u.affaires > 0 && chip(`${u.affaires} affaire${u.affaires > 1 ? 's' : ''}`)}
                         {u.chantiers > 0 && chip(`${u.chantiers} chantier${u.chantiers > 1 ? 's' : ''}`)}
@@ -79,17 +79,17 @@ export default function DuplicatesModal({ open, groups, usage, onClose, onIgnore
 
       {current && keep && fields && (
         <div>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 6 }}>Fiche à conserver</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#6E6E73', textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 6 }}>Fiche à conserver</div>
           <div role="radiogroup" aria-label="Fiche à conserver" style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
             {current.contacts.map(c => (
               <label key={c.id} style={{
                 display: 'flex', gap: 8, alignItems: 'flex-start', padding: '8px 10px', borderRadius: 8, cursor: 'pointer',
-                border: c.id === keepId ? '1.5px solid #1E3A5F' : '1px solid #E2E8F0', background: c.id === keepId ? '#F1F5F9' : '#fff',
+                border: c.id === keepId ? '1.5px solid #0071E3' : '1px solid #E5E5EA', background: c.id === keepId ? '#F2F2F7' : '#fff',
               }}>
                 <input type="radio" name="keep" checked={c.id === keepId} onChange={() => { setKeepId(c.id); setChoices({}) }} style={{ marginTop: 3 }} />
                 <span>
                   <span style={{ display: 'block', fontSize: 14, fontWeight: 700 }}>{c.nom}</span>
-                  <span style={{ display: 'block', fontSize: 12, color: '#64748B' }}>{line(c) || '—'}</span>
+                  <span style={{ display: 'block', fontSize: 12, color: '#6E6E73' }}>{line(c) || '—'}</span>
                 </span>
               </label>
             ))}
@@ -97,13 +97,13 @@ export default function DuplicatesModal({ open, groups, usage, onClose, onIgnore
 
           {plan.conflicts.length > 0 && (
             <>
-              <div style={{ fontSize: 12, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 6 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#6E6E73', textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 6 }}>
                 Valeurs différentes — choisis celle à garder
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
                 {plan.conflicts.map(cf => (
-                  <fieldset key={cf.key} style={{ border: '1px solid #E2E8F0', borderRadius: 8, padding: '6px 10px', margin: 0 }}>
-                    <legend style={{ fontSize: 12, fontWeight: 700, color: '#0F172A', padding: '0 4px' }}>{cf.label}</legend>
+                  <fieldset key={cf.key} style={{ border: '1px solid #E5E5EA', borderRadius: 8, padding: '6px 10px', margin: 0 }}>
+                    <legend style={{ fontSize: 12, fontWeight: 700, color: '#1C1C1E', padding: '0 4px' }}>{cf.label}</legend>
                     {cf.values.map(v => (
                       <label key={v} style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 13, padding: '3px 0', cursor: 'pointer' }}>
                         <input type="radio" name={`f-${cf.key}`} checked={fields[cf.key] === v}
@@ -117,7 +117,7 @@ export default function DuplicatesModal({ open, groups, usage, onClose, onIgnore
             </>
           )}
 
-          <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 8, padding: '10px 12px', fontSize: 13, color: '#334155', lineHeight: 1.5 }}>
+          <div style={{ background: '#F5F5F7', border: '1px solid #E5E5EA', borderRadius: 8, padding: '10px 12px', fontSize: 13, color: '#3A3A3C', lineHeight: 1.5 }}>
             <b>{fields.nom}</b> regroupera : {total('affaires')} affaire(s), {total('chantiers')} chantier(s), {total('os')} OS, ainsi que tous les échanges du CRM.
             Les autres fiches ({others.map(c => c.nom).join(', ')}) seront supprimées ; les champs vides de la fiche conservée sont complétés et les notes regroupées.
           </div>
@@ -126,7 +126,7 @@ export default function DuplicatesModal({ open, groups, usage, onClose, onIgnore
             <button type="button" onClick={() => setCurrent(null)} disabled={merging} style={btnS}>Retour</button>
             <button type="button" disabled={merging}
               onClick={() => onMerge({ keep, drops: others, fields }).then(ok => { if (ok) setCurrent(null) })}
-              style={{ ...btnP, background: '#B45309' }}>
+              style={{ ...btnP, background: '#C93400' }}>
               {merging ? 'Fusion…' : `Fusionner en « ${fields.nom} »`}
             </button>
           </div>

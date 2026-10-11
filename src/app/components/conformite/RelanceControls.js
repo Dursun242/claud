@@ -28,9 +28,9 @@ export default function RelanceControls({ contact, pause, onChanged, compact = f
   if (pause) {
     return (
       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', ...font }}>
-        {!compact && <span style={{ color: '#B45309', fontWeight: 600 }}>⏸ Relances suspendues{pause.jusquau ? ` jusqu’au ${fmtD(pause.jusquau)}` : ''}</span>}
+        {!compact && <span style={{ color: '#C93400', fontWeight: 600 }}>⏸ Relances suspendues{pause.jusquau ? ` jusqu’au ${fmtD(pause.jusquau)}` : ''}</span>}
         <button type="button" onClick={() => set(false)} disabled={busy}
-          style={{ ...font, background: '#ECFDF5', color: '#047857', border: '1px solid #A7F3D0', borderRadius: 6, padding: '3px 8px', fontWeight: 700, cursor: 'pointer' }}>
+          style={{ ...font, background: '#EAF8EE', color: '#1E7B34', border: '1px solid #BFE9CA', borderRadius: 6, padding: '3px 8px', fontWeight: 700, cursor: 'pointer' }}>
           ▶ Reprendre
         </button>
       </span>
@@ -39,7 +39,7 @@ export default function RelanceControls({ contact, pause, onChanged, compact = f
   return (
     <select aria-label={`Suspendre les relances de ${contact.nom}`} value="" disabled={busy}
       onChange={(e) => { const v = e.target.value; if (v !== '') set(true, v === '0' ? null : addDays(Number(v))) }}
-      style={{ ...font, border: '1px solid #CBD5E1', borderRadius: 6, padding: '3px 6px', background: '#fff', color: '#334155', cursor: 'pointer' }}>
+      style={{ ...font, border: '1px solid #D1D1D6', borderRadius: 6, padding: '3px 6px', background: '#fff', color: '#3A3A3C', cursor: 'pointer' }}>
       <option value="">⏸ Suspendre…</option>
       {DUREES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
     </select>

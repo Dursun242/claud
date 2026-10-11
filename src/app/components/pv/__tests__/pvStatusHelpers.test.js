@@ -20,7 +20,7 @@ describe('formatDate', () => {
 describe('statusColor', () => {
   it('renvoie un vert pour "Signé"', () => {
     expect(statusColor('Signé')).toEqual({
-      bg: '#ECFDF5', color: '#059669', icon: '✓',
+      bg: '#EAF8EE', color: '#248A3D', icon: '✓',
     })
   })
 
@@ -49,6 +49,6 @@ describe('decisionColor', () => {
   })
 
   it('renvoie le rouge pour "Refusé"', () => {
-    expect(decisionColor('Refusé')).toMatchObject({ color: '#DC2626', icon: '✕' })
+    expect(decisionColor('Refusé')).toMatchObject({ color: '#D70015', icon: '✕' })
   })
 })

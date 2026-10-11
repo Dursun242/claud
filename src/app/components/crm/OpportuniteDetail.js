@@ -24,12 +24,12 @@ export default function OpportuniteDetail({
       {/* Bandeau étape + actions */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
         <Badge text={o.etape} color={color} />
-        {Number(o.montant_estime) > 0 && <span style={{ fontSize: 13, fontWeight: 700, color: '#1E3A5F' }}>{fmtMoney(o.montant_estime)}</span>}
-        {!closed && <span style={{ fontSize: 11, color: '#64748B' }} title="Chances de gagner">{o.probabilite} % de chances</span>}
+        {Number(o.montant_estime) > 0 && <span style={{ fontSize: 13, fontWeight: 700, color: '#1C1C1E' }}>{fmtMoney(o.montant_estime)}</span>}
+        {!closed && <span style={{ fontSize: 11, color: '#6E6E73' }} title="Chances de gagner">{o.probabilite} % de chances</span>}
         <span style={{ flex: 1 }} />
         <button onClick={onEdit} style={{ ...btnS, fontSize: 12, padding: '6px 10px' }}>✎ Modifier</button>
         <button onClick={onDelete} aria-label="Supprimer l'affaire" title="Supprimer"
-          style={{ ...btnS, fontSize: 12, padding: '6px 10px', color: '#DC2626', background: '#FEF2F2' }}>🗑</button>
+          style={{ ...btnS, fontSize: 12, padding: '6px 10px', color: '#D70015', background: '#FFF0EF' }}>🗑</button>
       </div>
 
       {/* Frise des étapes */}
@@ -43,7 +43,7 @@ export default function OpportuniteDetail({
               <button key={e} onClick={() => onChangeEtape(e)} disabled={active || saving} title={active ? 'Étape actuelle' : `Passer à « ${e} »`}
                 style={{
                   padding: '5px 10px', borderRadius: 999, fontSize: 11, fontWeight: 600, cursor: active ? 'default' : 'pointer', fontFamily: 'inherit',
-                  border: `1px solid ${active || done ? c : '#E2E8F0'}`, background: active ? c : done ? c + '22' : '#fff', color: active ? '#fff' : done ? c : '#64748B',
+                  border: `1px solid ${active || done ? c : '#E5E5EA'}`, background: active ? c : done ? c + '22' : '#fff', color: active ? '#fff' : done ? c : '#6E6E73',
                 }}>{done ? '✓ ' : ''}{e}</button>
             )
           })}
@@ -52,12 +52,12 @@ export default function OpportuniteDetail({
 
       {/* Prochaine étape suggérée + issue */}
       {!closed && (
-        <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 10, padding: '10px 12px', marginBottom: 14, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-          <div style={{ flex: 1, minWidth: 180, fontSize: 12, color: '#334155' }}>
+        <div style={{ background: '#F5F5F7', border: '1px solid #E5E5EA', borderRadius: 10, padding: '10px 12px', marginBottom: 14, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ flex: 1, minWidth: 180, fontSize: 12, color: '#3A3A3C' }}>
             {pendingRelance ? (
               <>
                 <strong>Relance prévue :</strong> {pendingRelance.prochaine_action}
-                <span style={{ color: pendingRelance.prochaine_action_date < todayISO() ? '#DC2626' : '#92400E', fontWeight: 600 }}> le {fmtDate(pendingRelance.prochaine_action_date)}</span>
+                <span style={{ color: pendingRelance.prochaine_action_date < todayISO() ? '#D70015' : '#A0390C', fontWeight: 600 }}> le {fmtDate(pendingRelance.prochaine_action_date)}</span>
                 {pendingRelance.prochaine_action_date < todayISO() ? ' (en retard)' : ''}
               </>
             ) : (
@@ -79,9 +79,9 @@ export default function OpportuniteDetail({
               <button onClick={() => onChangeEtape(next)} disabled={saving} style={{ ...btnP, fontSize: 12 }}>{hint.cta}</button>
             ) : null}
             <button onClick={() => onChangeEtape('Gagné')} disabled={saving} title="Marquer comme gagnée"
-              style={{ ...btnS, fontSize: 12, background: '#ECFDF5', color: '#047857', border: '1px solid #A7F3D0' }}>🎉 Gagnée</button>
+              style={{ ...btnS, fontSize: 12, background: '#EAF8EE', color: '#1E7B34', border: '1px solid #BFE9CA' }}>🎉 Gagnée</button>
             <button onClick={() => onChangeEtape('Perdu')} disabled={saving} title="Marquer comme perdue"
-              style={{ ...btnS, fontSize: 12, background: '#FEF2F2', color: '#B91C1C', border: '1px solid #FECACA' }}>Perdue</button>
+              style={{ ...btnS, fontSize: 12, background: '#FFF0EF', color: '#D70015', border: '1px solid #FFC9C6' }}>Perdue</button>
           </div>
         </div>
       )}
@@ -89,7 +89,7 @@ export default function OpportuniteDetail({
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14, alignItems: 'center' }}>
           {chantier ? (
             <button onClick={onGoChantier || undefined} disabled={!onGoChantier}
-              style={{ ...btnS, fontSize: 12, background: '#ECFDF5', color: '#047857', border: '1px solid #A7F3D0' }}>
+              style={{ ...btnS, fontSize: 12, background: '#EAF8EE', color: '#1E7B34', border: '1px solid #BFE9CA' }}>
               🏗️ Ouvrir le chantier « {chantier.nom} »
             </button>
           ) : o.etape === 'Gagné' ? (
@@ -100,21 +100,21 @@ export default function OpportuniteDetail({
       )}
 
       {/* Infos */}
-      <div style={{ display: 'grid', gridTemplateColumns: m ? '1fr' : '1fr 1fr', gap: '6px 16px', fontSize: 12, color: '#334155', marginBottom: 12 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: m ? '1fr' : '1fr 1fr', gap: '6px 16px', fontSize: 12, color: '#3A3A3C', marginBottom: 12 }}>
         <Info label="Client / contact" value={contact ? (
           onGoContact ? (
             <button onClick={onGoContact} title="Ouvrir la fiche contact"
-              style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: '#1D4ED8', fontFamily: 'inherit', fontSize: 12, fontWeight: 600, textDecoration: 'underline' }}>
+              style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: '#0066CC', fontFamily: 'inherit', fontSize: 12, fontWeight: 600, textDecoration: 'underline' }}>
               {contact.nom}{contact.societe ? ` · ${contact.societe}` : ''}
             </button>
           ) : `${contact.nom}${contact.societe ? ` · ${contact.societe}` : ''}`
         ) : (
-          <button onClick={onEdit} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: '#3B82F6', fontFamily: 'inherit', fontSize: 12, fontWeight: 600 }}>+ Rattacher un contact</button>
+          <button onClick={onEdit} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: '#0066CC', fontFamily: 'inherit', fontSize: 12, fontWeight: 600 }}>+ Rattacher un contact</button>
         )} />
         {(contact?.tel || contact?.tel_fixe) && (
-          <Info label="Téléphone" value={<a href={`tel:${(contact.tel || contact.tel_fixe).replace(/\s/g, '')}`} style={{ color: '#1D4ED8' }}>{contact.tel || contact.tel_fixe}</a>} />
+          <Info label="Téléphone" value={<a href={`tel:${(contact.tel || contact.tel_fixe).replace(/\s/g, '')}`} style={{ color: '#0066CC' }}>{contact.tel || contact.tel_fixe}</a>} />
         )}
-        {contact?.email && <Info label="Email" value={<a href={`mailto:${contact.email}`} style={{ color: '#1D4ED8' }}>{contact.email}</a>} />}
+        {contact?.email && <Info label="Email" value={<a href={`mailto:${contact.email}`} style={{ color: '#0066CC' }}>{contact.email}</a>} />}
         {o.type_projet && <Info label="Type de projet" value={o.type_projet} />}
         {o.source && <Info label="Source" value={o.source} />}
         {o.adresse && <Info label="Adresse" value={o.adresse} />}
@@ -124,7 +124,7 @@ export default function OpportuniteDetail({
         {o.qonto_quote_number && <Info label="Devis Qonto" value={o.qonto_quote_number} />}
       </div>
       {o.notes && (
-        <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 8, padding: 10, fontSize: 12, color: '#334155', whiteSpace: 'pre-wrap', marginBottom: 12 }}>{o.notes}</div>
+        <div style={{ background: '#FFF7E8', border: '1px solid #FFDDA6', borderRadius: 8, padding: 10, fontSize: 12, color: '#3A3A3C', whiteSpace: 'pre-wrap', marginBottom: 12 }}>{o.notes}</div>
       )}
 
       {/* Devis : affichés dès qu'il en existe, ou à partir de « Qualifié » */}
@@ -134,8 +134,8 @@ export default function OpportuniteDetail({
 
       {/* Échanges */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, flexWrap: 'wrap' }}>
-        <h3 style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#0F172A', flex: 1 }}>
-          Échanges <span style={{ color: '#64748B', fontWeight: 500 }}>({interactions.length})</span>
+        <h3 style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#1C1C1E', flex: 1 }}>
+          Échanges <span style={{ color: '#6E6E73', fontWeight: 500 }}>({interactions.length})</span>
         </h3>
         {INTERACTION_TYPES.map(t => (
           <button key={t} onClick={() => onAddInteraction({ type: t })} title={`Noter : ${t}`} aria-label={`Noter ${t}`}
@@ -156,7 +156,7 @@ export default function OpportuniteDetail({
 function Info({ label, value }) {
   return (
     <div style={{ minWidth: 0 }}>
-      <span style={{ fontSize: 10, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</span>
+      <span style={{ fontSize: 10, fontWeight: 700, color: '#6E6E73', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</span>
       <div style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{value}</div>
     </div>
   )

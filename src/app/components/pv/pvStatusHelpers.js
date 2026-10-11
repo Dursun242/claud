@@ -8,20 +8,20 @@ export function formatDate(iso) {
 
 export function statusColor(statut) {
   switch (statut) {
-    case 'Signé':     return { bg: '#ECFDF5', color: '#059669', icon: '✓' }
-    case 'Envoyé':    return { bg: '#EFF6FF', color: '#0284C7', icon: '⏳' }
-    case 'Brouillon': return { bg: '#F3F4F6', color: '#6B7280', icon: '📝' }
-    case 'Refusé':    return { bg: '#FEF2F2', color: '#DC2626', icon: '✕' }
-    default:          return { bg: '#F1F5F9', color: '#64748B', icon: '?' }
+    case 'Signé':     return { bg: '#EAF8EE', color: '#248A3D', icon: '✓' }
+    case 'Envoyé':    return { bg: '#EAF3FF', color: '#0077B6', icon: '⏳' }
+    case 'Brouillon': return { bg: '#F2F2F7', color: '#6E6E73', icon: '📝' }
+    case 'Refusé':    return { bg: '#FFF0EF', color: '#D70015', icon: '✕' }
+    default:          return { bg: '#F2F2F7', color: '#6E6E73', icon: '?' }
   }
 }
 
 export function decisionColor(decision) {
   switch (decision) {
-    case 'Accepté':              return { bg: '#ECFDF5', color: '#059669', icon: '✓' }
-    case 'Accepté avec réserve': return { bg: '#FEF3C7', color: '#D97706', icon: '⚠️' }
-    case 'Refusé':               return { bg: '#FEF2F2', color: '#DC2626', icon: '✕' }
-    case 'En attente':           return { bg: '#F1F5F9', color: '#64748B', icon: '⏳' }
-    default:                     return { bg: '#F1F5F9', color: '#64748B', icon: '?' }
+    case 'Accepté':              return { bg: '#EAF8EE', color: '#248A3D', icon: '✓' }
+    case 'Accepté avec réserve': return { bg: '#FFF0D6', color: '#C93400', icon: '⚠️' }
+    case 'Refusé':               return { bg: '#FFF0EF', color: '#D70015', icon: '✕' }
+    case 'En attente':           return { bg: '#F2F2F7', color: '#6E6E73', icon: '⏳' }
+    default:                     return { bg: '#F2F2F7', color: '#6E6E73', icon: '?' }
   }
 }

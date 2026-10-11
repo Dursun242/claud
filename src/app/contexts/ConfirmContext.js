@@ -115,8 +115,8 @@ function ConfirmDialog({ state, onResolve }) {
   }
 
   const { title, message, confirmLabel, cancelLabel, danger } = state
-  const accentColor = danger ? '#DC2626' : '#1E3A5F'
-  const accentBg = danger ? '#FEF2F2' : '#EFF6FF'
+  const accentColor = danger ? '#D70015' : '#0071E3'
+  const accentBg = danger ? '#FFF0EF' : '#EAF3FF'
 
   return (
     <div
@@ -129,7 +129,7 @@ function ConfirmDialog({ state, onResolve }) {
       style={{
         position: 'fixed', inset: 0, zIndex: 10000,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: 'rgba(15,23,42,0.6)',
+        background: 'rgba(0,0,0,0.6)',
         backdropFilter: 'blur(4px)',
         padding: 16,
         fontFamily: "var(--font-dm-sans), sans-serif",
@@ -145,7 +145,7 @@ function ConfirmDialog({ state, onResolve }) {
           padding: '24px 24px 20px',
           width: '100%',
           maxWidth: 440,
-          boxShadow: '0 25px 50px rgba(15,23,42,0.3)',
+          boxShadow: '0 25px 50px rgba(0,0,0,0.3)',
           animation: ANIMATION.popIn,
         }}
       >
@@ -159,11 +159,11 @@ function ConfirmDialog({ state, onResolve }) {
             {danger ? '⚠' : '?'}
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <h3 id="confirm-title" style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#0F172A', lineHeight: 1.3 }}>
+            <h3 id="confirm-title" style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#1C1C1E', lineHeight: 1.3 }}>
               {title}
             </h3>
             {message && (
-              <p id="confirm-message" style={{ margin: '6px 0 0', fontSize: 13, color: '#64748B', lineHeight: 1.5 }}>
+              <p id="confirm-message" style={{ margin: '6px 0 0', fontSize: 13, color: '#6E6E73', lineHeight: 1.5 }}>
                 {message}
               </p>
             )}
@@ -175,9 +175,9 @@ function ConfirmDialog({ state, onResolve }) {
             style={{
               padding: '9px 16px',
               borderRadius: 8,
-              border: '1px solid #E2E8F0',
+              border: '1px solid #E5E5EA',
               background: '#fff',
-              color: '#475569',
+              color: '#48484A',
               fontSize: 13,
               fontWeight: 600,
               cursor: 'pointer',
@@ -193,13 +193,13 @@ function ConfirmDialog({ state, onResolve }) {
               padding: '9px 16px',
               borderRadius: 8,
               border: 'none',
-              background: danger ? '#DC2626' : '#1E3A5F',
+              background: danger ? '#D70015' : '#0071E3',
               color: '#fff',
               fontSize: 13,
               fontWeight: 700,
               cursor: 'pointer',
               fontFamily: 'inherit',
-              boxShadow: `0 2px 8px ${danger ? 'rgba(220,38,38,0.3)' : 'rgba(30,58,95,0.3)'}`,
+              boxShadow: `0 2px 8px ${danger ? 'rgba(215,0,21,0.3)' : 'rgba(0,113,227,0.3)'}`,
             }}
           >
             {confirmLabel}

@@ -13,10 +13,10 @@
 export const DEVIS_STATUTS = ['Brouillon', 'Envoyé', 'Accepté', 'Refusé']
 
 export const DEVIS_STATUT_COLORS = {
-  'Brouillon': '#64748B',
-  'Envoyé':    '#8B5CF6',
-  'Accepté':   '#10B981',
-  'Refusé':    '#EF4444',
+  'Brouillon': '#6E6E73',
+  'Envoyé':    '#AF52DE',
+  'Accepté':   '#34C759',
+  'Refusé':    '#FF3B30',
 }
 
 // Taux usuels en bâtiment : 20 % (neuf), 10 % (rénovation logement > 2 ans),

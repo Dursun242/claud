@@ -7,7 +7,7 @@ import { OS_STATUSES, osStatusColor } from './osConstants'
 // les compteurs changent.
 function OsStatusPillsImpl({ statusFilter, onChange, countByStatus, m }) {
   const pills = [
-    { key: 'all', label: 'Tous', color: '#64748B' },
+    { key: 'all', label: 'Tous', color: '#6E6E73' },
     ...OS_STATUSES.map(s => ({ key: s, label: s, color: osStatusColor[s] })),
   ]
 
@@ -23,9 +23,9 @@ function OsStatusPillsImpl({ statusFilter, onChange, countByStatus, m }) {
           <button key={p.key} onClick={() => onChange(p.key)} style={{
             display: 'inline-flex', alignItems: 'center', gap: 6,
             padding: '5px 11px', borderRadius: 999, fontSize: 11, fontWeight: 600,
-            border: `1px solid ${active ? p.color : '#E2E8F0'}`,
+            border: `1px solid ${active ? p.color : '#E5E5EA'}`,
             background: active ? p.color : '#fff',
-            color: active ? '#fff' : '#334155',
+            color: active ? '#fff' : '#3A3A3C',
             cursor: 'pointer', fontFamily: 'inherit',
             transition: 'background .15s, color .15s, border-color .15s',
             whiteSpace: 'nowrap',

@@ -1,17 +1,21 @@
 import { toneText, toneBg } from '../tone'
 
 describe('tone', () => {
-  it('assombrit les couleurs de statut connues', () => {
-    expect(toneText('#F59E0B')).toBe('#B45309')
-    expect(toneText('#ef4444')).toBe('#B91C1C')
-    expect(toneText('#3B82F6')).toBe('#1D4ED8')
+  it('assombrit les couleurs de statut iOS', () => {
+    expect(toneText('#FF9500')).toBe('#C93400')
+    expect(toneText('#ff3b30')).toBe('#D70015')
+    expect(toneText('#007AFF')).toBe('#0062CC')
+    expect(toneText('#34C759')).toBe('#1E7B34')
+  })
+  it('garde les anciennes couleurs lisibles', () => {
+    expect(toneText('#F59E0B')).toBe('#C93400')
   })
   it('garde une couleur inconnue', () => {
     expect(toneText('#123456')).toBe('#123456')
   })
   it('fond dilué à 9 %, gris si la couleur est invalide', () => {
-    expect(toneBg('#10B981')).toBe('#10B98118')
-    expect(toneBg('red')).toBe('#F1F5F9')
-    expect(toneBg(undefined)).toBe('#F1F5F9')
+    expect(toneBg('#34C759')).toBe('#34C75918')
+    expect(toneBg('red')).toBe('#F2F2F7')
+    expect(toneBg(undefined)).toBe('#F2F2F7')
   })
 })

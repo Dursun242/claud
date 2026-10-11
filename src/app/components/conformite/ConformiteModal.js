@@ -13,12 +13,12 @@ import { conformitePost } from '../../hooks/useConformite'
 
 const fmtD = (iso) => (iso ? String(iso).slice(0, 10).split('-').reverse().join('/') : '')
 const fmtDT = (iso) => (iso ? new Date(iso).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' }) : '')
-const small = { fontSize: 11, color: '#64748B' }
+const small = { fontSize: 11, color: '#6E6E73' }
 const btn = (color, bg, border) => ({
   background: bg, color, border: `1px solid ${border}`, borderRadius: 6, padding: '5px 10px',
   fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
 })
-const input = { padding: '6px 8px', border: '1px solid #CBD5E1', borderRadius: 6, fontSize: 12, fontFamily: 'inherit' }
+const input = { padding: '6px 8px', border: '1px solid #D1D1D6', borderRadius: 6, fontSize: 12, fontFamily: 'inherit' }
 
 function validity(k, kind) {
   if (!k.doc) return 'Aucun document'
@@ -39,7 +39,7 @@ function DatesForm({ doc, onSave, onCancel }) {
     try { await onSave({ date_document: dd || null, valide_au: fin || undefined, verifie }) } finally { setSaving(false) }
   }
   return (
-    <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 8, padding: 10, marginTop: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
+    <div style={{ background: '#F5F5F7', border: '1px solid #E5E5EA', borderRadius: 8, padding: 10, marginTop: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
       <label style={{ ...small, display: 'flex', flexDirection: 'column', gap: 3 }}>
         Date du document
         <input type="date" value={dd} onChange={e => setDd(e.target.value)} style={input} />
@@ -53,8 +53,8 @@ function DatesForm({ doc, onSave, onCancel }) {
         J’ai vérifié le document (efface les points à vérifier)
       </label>
       <div style={{ display: 'flex', gap: 6 }}>
-        <button type="button" onClick={save} disabled={saving} style={btn('#fff', '#2563EB', '#2563EB')}>{saving ? '…' : 'Enregistrer'}</button>
-        <button type="button" onClick={onCancel} style={btn('#475569', '#fff', '#CBD5E1')}>Annuler</button>
+        <button type="button" onClick={save} disabled={saving} style={btn('#fff', '#0071E3', '#0071E3')}>{saving ? '…' : 'Enregistrer'}</button>
+        <button type="button" onClick={onCancel} style={btn('#48484A', '#fff', '#D1D1D6')}>Annuler</button>
       </div>
     </div>
   )
@@ -185,7 +185,7 @@ export default function ConformiteModal({ open, onClose, contact, compliance, la
       </div>
 
       {missingMigration ? (
-        <div style={{ background: '#FFF7ED', border: '1px solid #FED7AA', borderRadius: 8, padding: 12, fontSize: 12, color: '#9A3412' }}>
+        <div style={{ background: '#FFF4E8', border: '1px solid #FFD8B0', borderRadius: 8, padding: 12, fontSize: 12, color: '#9A3412' }}>
           Fonction non activée : appliquer la migration 036 dans Supabase (voir migrations/036_README.md).
         </div>
       ) : (
@@ -202,10 +202,10 @@ export default function ConformiteModal({ open, onClose, contact, compliance, la
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                <button type="button" onClick={verifier} disabled={checking} style={btn('#334155', '#fff', '#CBD5E1')}>
+                <button type="button" onClick={verifier} disabled={checking} style={btn('#3A3A3C', '#fff', '#D1D1D6')}>
                   {checking ? 'Vérification…' : '🔎 Vérifier maintenant'}
                 </button>
-                <button type="button" onClick={dossier} disabled={building} style={btn('#fff', '#1E3A5F', '#1E3A5F')}>
+                <button type="button" onClick={dossier} disabled={building} style={btn('#fff', '#0071E3', '#0071E3')}>
                   {building ? 'Préparation…' : '📄 Dossier de vigilance (PDF)'}
                 </button>
               </div>
@@ -220,20 +220,20 @@ export default function ConformiteModal({ open, onClose, contact, compliance, la
                 <div key={kind} style={{ border: `1px solid ${meta.border}`, borderLeft: `4px solid ${meta.color}`, borderRadius: 8, padding: 10, background: '#fff' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
                     <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A' }}>{DOC_META[kind].long}</div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: '#1C1C1E' }}>{DOC_META[kind].long}</div>
                       <div style={{ fontSize: 11, color: meta.color, fontWeight: 600 }}>{meta.label} · {validity(k, kind)}</div>
                     </div>
                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                       <button type="button" onClick={() => pick(kind)} disabled={!!busy}
-                        style={btn('#fff', '#2563EB', '#2563EB')}>
+                        style={btn('#fff', '#0071E3', '#0071E3')}>
                         {busy === kind ? 'Lecture du document…' : doc ? 'Remplacer' : 'Déposer'}
                       </button>
-                      {doc && <button type="button" onClick={() => open_(doc)} style={btn('#334155', '#fff', '#CBD5E1')}>Voir</button>}
-                      {doc && !DOC_META[kind].sansExpiration && <button type="button" onClick={() => setEditing(editing === kind ? null : kind)} style={btn('#334155', '#fff', '#CBD5E1')}>Dates</button>}
+                      {doc && <button type="button" onClick={() => open_(doc)} style={btn('#3A3A3C', '#fff', '#D1D1D6')}>Voir</button>}
+                      {doc && !DOC_META[kind].sansExpiration && <button type="button" onClick={() => setEditing(editing === kind ? null : kind)} style={btn('#3A3A3C', '#fff', '#D1D1D6')}>Dates</button>}
                       {doc && DOC_META[kind].sansExpiration && doc.anomalies?.length > 0 && (
-                        <button type="button" onClick={() => confirmRib(doc)} style={btn('#047857', '#fff', '#A7F3D0')}>J’ai vérifié</button>
+                        <button type="button" onClick={() => confirmRib(doc)} style={btn('#1E7B34', '#fff', '#BFE9CA')}>J’ai vérifié</button>
                       )}
-                      {doc && <button type="button" onClick={() => remove(doc)} aria-label={`Supprimer ${DOC_META[kind].long}`} style={btn('#B91C1C', '#fff', '#FECACA')}>✕</button>}
+                      {doc && <button type="button" onClick={() => remove(doc)} aria-label={`Supprimer ${DOC_META[kind].long}`} style={btn('#D70015', '#fff', '#FFC9C6')}>✕</button>}
                     </div>
                   </div>
                   {doc && (
@@ -256,7 +256,7 @@ export default function ConformiteModal({ open, onClose, contact, compliance, la
                     </div>
                   )}
                   {doc?.anomalies?.length > 0 && (
-                    <ul style={{ margin: '6px 0 0', paddingLeft: 18, fontSize: 11, color: '#C2410C' }}>
+                    <ul style={{ margin: '6px 0 0', paddingLeft: 18, fontSize: 11, color: '#C93400' }}>
                       {doc.anomalies.map((a, i) => <li key={i}>{a}</li>)}
                     </ul>
                   )}
@@ -266,7 +266,7 @@ export default function ConformiteModal({ open, onClose, contact, compliance, la
             })}
           </div>
 
-          <div style={{ marginTop: 14, background: '#F0F9FF', border: '1px solid #BAE6FD', borderRadius: 8, padding: 12 }}>
+          <div style={{ marginTop: 14, background: '#F0F8FC', border: '1px solid #BDE6F7', borderRadius: 8, padding: 12 }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: '#0C4A6E', marginBottom: 4 }}>Demander les documents à l’entreprise</div>
             <div style={{ ...small, marginBottom: 8 }}>
               Un mail lui envoie un lien (valable 30 jours) pour déposer elle-même ses documents, sans compte. Ensuite, elle est relancée automatiquement chaque semaine tant qu’un document manque, est erroné ou expire (sauf si vous suspendez ses relances).
@@ -274,7 +274,7 @@ export default function ConformiteModal({ open, onClose, contact, compliance, la
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="email de l’entreprise"
                 aria-label="Email de l’entreprise" style={{ ...input, flex: 1, minWidth: 180 }} />
-              <button type="button" onClick={request} disabled={sending} style={btn('#fff', '#0369A1', '#0369A1')}>
+              <button type="button" onClick={request} disabled={sending} style={btn('#fff', '#0071A4', '#0071A4')}>
                 {sending ? 'Envoi…' : 'Envoyer la demande'}
               </button>
             </div>
@@ -292,7 +292,7 @@ export default function ConformiteModal({ open, onClose, contact, compliance, la
             {link && (
               <div style={{ display: 'flex', gap: 6, marginTop: 8, alignItems: 'center' }}>
                 <input readOnly value={link} aria-label="Lien de dépôt" style={{ ...input, flex: 1, fontSize: 11 }} onFocus={e => e.target.select()} />
-                <button type="button" onClick={copyLink} style={btn('#334155', '#fff', '#CBD5E1')}>Copier</button>
+                <button type="button" onClick={copyLink} style={btn('#3A3A3C', '#fff', '#D1D1D6')}>Copier</button>
               </div>
             )}
           </div>

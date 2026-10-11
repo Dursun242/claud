@@ -15,9 +15,9 @@ import {
 import { useToast } from '../../contexts/ToastContext'
 
 const small = { ...inp, minHeight: 38, padding: '7px 9px', fontSize: 14 }
-const iconBtn = { background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8', fontSize: 14, padding: '4px 6px', fontFamily: 'inherit' }
-const label = { display: 'block', fontSize: 10, fontWeight: 600, color: '#64748B', textTransform: 'uppercase', marginBottom: 3 }
-const box = { border: '1px solid #E2E8F0', borderRadius: 10, padding: 10, marginBottom: 10 }
+const iconBtn = { background: 'none', border: 'none', cursor: 'pointer', color: '#8E8E93', fontSize: 14, padding: '4px 6px', fontFamily: 'inherit' }
+const label = { display: 'block', fontSize: 10, fontWeight: 600, color: '#6E6E73', textTransform: 'uppercase', marginBottom: 3 }
+const box = { border: '1px solid #E5E5EA', borderRadius: 10, padding: 10, marginBottom: 10 }
 
 const str = (v) => (v == null ? '' : String(v).replace('.', ','))
 const dec = (v) => String(v ?? '').replace(/\s/g, '').replace(',', '.')
@@ -111,7 +111,7 @@ export default function ChiffrageEditor({ open, initial, chantier, refs = [], on
   return (
     <Modal open={open} onClose={saving ? undefined : onClose} title={`DPGF — ${chantier?.nom || ''}`} wide="xl">
       {(d.hypotheses.length > 0 || d.conseils.length > 0) && (
-        <div style={{ fontSize: 12, background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 8, padding: '8px 12px', marginBottom: 12, color: '#334155' }}>
+        <div style={{ fontSize: 12, background: '#F5F5F7', border: '1px solid #E5E5EA', borderRadius: 8, padding: '8px 12px', marginBottom: 12, color: '#3A3A3C' }}>
           {d.hypotheses.length > 0 && <><b>Hypothèses à confirmer</b><ul style={{ margin: '4px 0 6px', paddingLeft: 18 }}>{d.hypotheses.map(h => <li key={h}>{h}</li>)}</ul></>}
           {d.conseils.length > 0 && <><b>Conseils</b><ul style={{ margin: '4px 0 0', paddingLeft: 18 }}>{d.conseils.map(h => <li key={h}>{h}</li>)}</ul></>}
         </div>
@@ -138,32 +138,32 @@ export default function ChiffrageEditor({ open, initial, chantier, refs = [], on
         <textarea value={d.description} onChange={e => setD(s => ({ ...s, description: e.target.value }))} rows={2} style={{ ...small, resize: 'vertical' }}
           placeholder="Construction d'une maison individuelle R+1, toitures terrasses, garage accolé…" />
       </div>
-      <div style={{ fontSize: 11, color: '#64748B', marginBottom: 10 }}>
+      <div style={{ fontSize: 11, color: '#6E6E73', marginBottom: 10 }}>
         🔒 Un prix saisi à la main est verrouillé : le calage sur un objectif ne le modifie pas.
       </div>
 
       {d.lots.map((l, i) => {
         const cleanLot = clean.lots.find(c => c.id === l.id) || l
         return (
-          <div key={l.id} style={{ ...box, ...(l.honoraires ? { background: '#F8FAFC' } : {}) }}>
+          <div key={l.id} style={{ ...box, ...(l.honoraires ? { background: '#F5F5F7' } : {}) }}>
             <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 8, flexWrap: 'wrap' }}>
-              <span style={{ fontSize: 12, fontWeight: 700, color: '#475569', width: 22 }}>{lotNumero(i)}</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: '#48484A', width: 22 }}>{lotNumero(i)}</span>
               <input aria-label="Nom du lot" value={l.nom} onChange={e => setLot(l.id, x => ({ ...x, nom: e.target.value }))} placeholder="Intitulé du lot" style={{ ...small, fontWeight: 700, flex: '1 1 200px' }} />
               <label title="Honoraires de maîtrise d'œuvre : comptés dans le total de l'opération, pas dans les travaux ni les OS"
-                style={{ fontSize: 11, color: '#475569', display: 'flex', gap: 4, alignItems: 'center' }}>
+                style={{ fontSize: 11, color: '#48484A', display: 'flex', gap: 4, alignItems: 'center' }}>
                 <input type="checkbox" checked={l.honoraires} onChange={e => setLot(l.id, x => ({ ...x, honoraires: e.target.checked }))} /> Honoraires
               </label>
-              <span style={{ fontSize: 13, fontWeight: 700, color: '#0F172A', whiteSpace: 'nowrap' }}>{fmtMoney(lotTotal(cleanLot))}</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: '#1C1C1E', whiteSpace: 'nowrap' }}>{fmtMoney(lotTotal(cleanLot))}</span>
               <button title="Monter" onClick={() => moveLot(l.id, -1)} style={iconBtn}>↑</button>
               <button title="Descendre" onClick={() => moveLot(l.id, 1)} style={iconBtn}>↓</button>
-              <button title="Supprimer le lot" aria-label="Supprimer le lot" onClick={() => delLot(l.id)} style={{ ...iconBtn, color: '#DC2626' }}>✕</button>
+              <button title="Supprimer le lot" aria-label="Supprimer le lot" onClick={() => delLot(l.id)} style={{ ...iconBtn, color: '#D70015' }}>✕</button>
             </div>
             {l.postes.map((p, j) => {
               const r = l.honoraires ? null : refFor(refIdx, p)
               const sameRef = r && Math.abs(Number(dec(p.pu_ht)) - r.pu_ht) < 0.01
               return (
                 <div key={p.id} style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginBottom: 6 }}>
-                  <span style={{ fontSize: 11, color: '#64748B', width: 34, textAlign: 'right' }}>{posteNumero(i, j)}</span>
+                  <span style={{ fontSize: 11, color: '#6E6E73', width: 34, textAlign: 'right' }}>{posteNumero(i, j)}</span>
                   <input aria-label="Désignation" value={p.designation} onChange={e => setPoste(l.id, p.id, { designation: e.target.value })} placeholder="Désignation" style={{ ...small, flex: '1 1 240px' }} />
                   <input aria-label="Quantité" inputMode="decimal" value={p.quantite} onChange={e => setPoste(l.id, p.id, { quantite: e.target.value })} style={{ ...small, width: 72, textAlign: 'right' }} />
                   <select aria-label="Unité" value={UNITES.includes(p.unite) ? p.unite : 'u'} onChange={e => setPoste(l.id, p.id, { unite: e.target.value })} style={{ ...sel, ...small, width: 82 }}>
@@ -173,12 +173,12 @@ export default function ChiffrageEditor({ open, initial, chantier, refs = [], on
                   <button type="button" aria-label={p.verrou ? 'Déverrouiller le prix' : 'Verrouiller le prix'} aria-pressed={p.verrou}
                     title={p.verrou ? 'Prix verrouillé : inchangé par le calage (cliquer pour libérer)' : 'Prix libre : ajusté par le calage (cliquer pour verrouiller)'}
                     onClick={() => setPoste(l.id, p.id, { verrou: !p.verrou })} style={{ ...iconBtn, opacity: p.verrou ? 1 : 0.35 }}>🔒</button>
-                  <span style={{ width: 92, textAlign: 'right', fontSize: 13, color: '#334155' }}>{fmtMoney(posteTotal({ quantite: dec(p.quantite), pu_ht: dec(p.pu_ht) }))}</span>
+                  <span style={{ width: 92, textAlign: 'right', fontSize: 13, color: '#3A3A3C' }}>{fmtMoney(posteTotal({ quantite: dec(p.quantite), pu_ht: dec(p.pu_ht) }))}</span>
                   {r && (
                     <button type="button" disabled={sameRef} onClick={() => setPoste(l.id, p.id, { pu_ht: str(r.pu_ht), verrou: true })}
                       title={`Prix payé dans ${r.nb} OS${r.metier ? ` (${r.metier})` : ''}${r.nb > 1 && r.min !== r.max ? ` · ${r.min}–${r.max} €` : ''}${sameRef ? '' : ' — cliquer pour l’appliquer'}`}
                       style={{ fontSize: 10, fontWeight: 700, borderRadius: 10, padding: '2px 7px', fontFamily: 'inherit', cursor: sameRef ? 'default' : 'pointer',
-                        border: `1px solid ${sameRef ? '#A7F3D0' : '#FDE68A'}`, background: sameRef ? '#ECFDF5' : '#FFFBEB', color: sameRef ? '#047857' : '#92400E' }}>
+                        border: `1px solid ${sameRef ? '#BFE9CA' : '#FFDDA6'}`, background: sameRef ? '#EAF8EE' : '#FFF7E8', color: sameRef ? '#1E7B34' : '#A0390C' }}>
                       OS {str(r.pu_ht)} €{r.nb > 1 ? ` ×${r.nb}` : ''}
                     </button>
                   )}
@@ -186,7 +186,7 @@ export default function ChiffrageEditor({ open, initial, chantier, refs = [], on
                 </div>
               )
             })}
-            <button onClick={() => addPoste(l.id)} style={{ ...iconBtn, color: '#0284C7', fontWeight: 700, fontSize: 12, paddingLeft: 40 }}>+ Poste</button>
+            <button onClick={() => addPoste(l.id)} style={{ ...iconBtn, color: '#0077B6', fontWeight: 700, fontSize: 12, paddingLeft: 40 }}>+ Poste</button>
           </div>
         )
       })}
@@ -214,13 +214,13 @@ export default function ChiffrageEditor({ open, initial, chantier, refs = [], on
       </div>
 
       {checks.length > 0 && (
-        <ul style={{ fontSize: 12, color: '#92400E', background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 8, padding: '8px 10px 8px 26px', margin: '0 0 12px' }}>
+        <ul style={{ fontSize: 12, color: '#A0390C', background: '#FFF7E8', border: '1px solid #FFDDA6', borderRadius: 8, padding: '8px 10px 8px 26px', margin: '0 0 12px' }}>
           {checks.map(c => <li key={c}>{c}</li>)}
         </ul>
       )}
 
-      <div style={{ position: 'sticky', bottom: -1, background: '#fff', borderTop: '1px solid #E2E8F0', paddingTop: 10, display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'space-between' }}>
-        <div data-testid="chiffrage-totaux" style={{ fontSize: 12, color: '#475569' }}>
+      <div style={{ position: 'sticky', bottom: -1, background: '#fff', borderTop: '1px solid #E5E5EA', paddingTop: 10, display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'space-between' }}>
+        <div data-testid="chiffrage-totaux" style={{ fontSize: 12, color: '#48484A' }}>
           Travaux <b>{fmtMoney(totals.htAleas)} HT</b>
           {totals.honoraires > 0 && <> · Honoraires {fmtMoney(totals.honoraires)} HT</>}
           {' '}· Total <b>{fmtMoney(totals.ttc)} TTC</b>

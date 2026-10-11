@@ -9,16 +9,16 @@ export default function DevisSendModal({ sendState, saving, docsApi, onRetry, on
     <Modal open={!!sendState} onClose={() => !saving && onClose()}
       title={sendState ? `Envoyer le devis ${sendState.devis.numero}` : ''}>
       {sendState?.status === 'loading' && (
-        <div role="status" style={{ padding: '24px 4px', fontSize: 13, color: '#475569' }}>
+        <div role="status" style={{ padding: '24px 4px', fontSize: 13, color: '#48484A' }}>
           Récupération du devis dans Qonto…
         </div>
       )}
       {sendState?.status === 'error' && (
         <div>
-          <div role="alert" style={{ color: '#DC2626', fontSize: 13, marginBottom: 12, fontWeight: 500 }}>
+          <div role="alert" style={{ color: '#D70015', fontSize: 13, marginBottom: 12, fontWeight: 500 }}>
             ⚠ Devis Qonto indisponible : {sendState.error}
           </div>
-          <div style={{ fontSize: 12, color: '#64748B', marginBottom: 12 }}>
+          <div style={{ fontSize: 12, color: '#6E6E73', marginBottom: 12 }}>
             Seul le devis édité par Qonto peut être envoyé.
           </div>
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>

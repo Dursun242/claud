@@ -113,13 +113,13 @@ export default function DashboardV({data,crm=null,ready=true,setTab,m,user,clien
     {/* HEADER */}
     <div style={{marginBottom:22}}>
       <h1 style={{
-        margin:0, fontSize:m?20:24, fontWeight:700, color:"#0F172A",
+        margin:0, fontSize:m?28:32, fontWeight:700, color:"#1C1C1E", letterSpacing:"-0.02em",
         // Force le wrapping pour les prénoms longs (ex: noms composés, adresse
         // email utilisée en fallback) — évite tout débordement horizontal.
         wordBreak:"break-word", overflowWrap:"anywhere"
       }}>{getGreeting()} {firstName}</h1>
       <p style={{
-        margin:"6px 0 0", color:"#64748B",
+        margin:"6px 0 0", color:"#6E6E73",
         fontSize:13, textTransform:"capitalize"
       }}>{new Date().toLocaleDateString("fr-FR", {
         weekday:"long", day:"numeric", month:"long"
@@ -148,14 +148,14 @@ export default function DashboardV({data,crm=null,ready=true,setTab,m,user,clien
         {label:"Nouveau chantier", icon:I.projects, tab:"projects"},
       ].map((a,i)=>(
         <button key={i} onClick={()=>setTab(a.tab, newIntent())} className="u-press" style={{
-          background:"#fff", border:"1px solid #E2E8F0", borderRadius:10,
+          background:"#fff", border:"1px solid #E5E5EA", borderRadius:10,
           padding:"12px", minHeight:48, cursor:"pointer",
-          textAlign:"left", fontWeight:600, fontSize:13, color:"#0F172A",
+          textAlign:"left", fontWeight:600, fontSize:13, color:"#1C1C1E",
           display:"flex", alignItems:"center", gap:10, fontFamily:"inherit",
         }}>
           <span style={{
             width:32, height:32, borderRadius:8, flexShrink:0,
-            background:"#F1F5F9", color:"#1E3A5F", display:"inline-flex",
+            background:"#F2F2F7", color:"#0071E3", display:"inline-flex",
             alignItems:"center", justifyContent:"center"
           }}><Icon d={a.icon} size={18}/></span>
           {a.label}
@@ -184,26 +184,26 @@ export default function DashboardV({data,crm=null,ready=true,setTab,m,user,clien
         {label:"OS actifs",        value:osEnCours,
           total:osCount, tab:"os"},
         {label:"Tâches urgentes",  value:urgentTasks.length,
-          total:allActiveTasks.length, alert:"#B91C1C", tab:"tasks"},
+          total:allActiveTasks.length, alert:"#D70015", tab:"tasks"},
         {label:"En retard",        value:overdueTasks.length,
-          total:allActiveTasks.length, alert:"#B45309", tab:"tasks"},
+          total:allActiveTasks.length, alert:"#C93400", tab:"tasks"},
       ]).map((k,i)=>(
         <button key={i} onClick={()=>setTab(k.tab)} className="u-press" style={{
-          background:"#fff", border:"1px solid #E2E8F0", borderRadius:10,
+          background:"#fff", border:"1px solid #E5E5EA", borderRadius:10,
           padding:"12px 14px", cursor:"pointer", textAlign:"left",
           fontFamily:"inherit",
         }}>
           <div style={{
-            fontSize:11, fontWeight:600, color:"#64748B",
+            fontSize:11, fontWeight:600, color:"#6E6E73",
             textTransform:"uppercase", letterSpacing:"0.05em", marginBottom:4
           }}>{k.label}</div>
           <div style={{display:"flex",alignItems:"baseline",gap:6}}>
             <span style={{
               fontSize:m?22:24, fontWeight:700, lineHeight:1,
               // Couleur seulement si le chiffre signale un problème
-              color:k.alert && k.value>0 ? k.alert : "#0F172A",
+              color:k.alert && k.value>0 ? k.alert : "#1C1C1E",
             }}>{k.value}</span>
-            {k.total!=null && <span style={{fontSize:12,color:"#64748B",fontWeight:500}}>
+            {k.total!=null && <span style={{fontSize:12,color:"#6E6E73",fontWeight:500}}>
               / {k.total}
             </span>}
           </div>
@@ -215,20 +215,20 @@ export default function DashboardV({data,crm=null,ready=true,setTab,m,user,clien
     {chantiersEnCours.length>0&&(
       <div style={{
         background:"#fff", borderRadius:12, padding:m?14:18,
-        border:"1px solid #E2E8F0",
-        boxShadow:"0 1px 3px rgba(15,23,42,0.06)", marginBottom:18
+        border:"1px solid #E5E5EA",
+        boxShadow:"0 1px 3px rgba(0,0,0,0.06)", marginBottom:18
       }}>
         <div style={{
           display:"flex", justifyContent:"space-between",
           alignItems:"center", marginBottom:14
         }}>
-          <h2 style={{margin:0,fontSize:15,fontWeight:700,color:"#0F172A"}}>
+          <h2 style={{margin:0,fontSize:17,fontWeight:600,color:"#1C1C1E"}}>
             Chantiers en cours
           </h2>
           <button
             onClick={()=>setTab("projects")}
             style={{
-              fontSize:13, color:"#1D4ED8", background:"none", minHeight:36,
+              fontSize:13, color:"#0066CC", background:"none", minHeight:36,
               border:"none", cursor:"pointer", fontWeight:600, fontFamily:"inherit"
             }}
           >Voir tous →</button>
@@ -242,34 +242,34 @@ export default function DashboardV({data,crm=null,ready=true,setTab,m,user,clien
             const ratio=pct(ch.depenses,ch.budget);
             // Rouge seulement si le budget est dépassé, sinon marine
             const over = ratio>100;
-            const budgetColor = over ? "#DC2626" : "#1E3A5F";
+            const budgetColor = over ? "#D70015" : "#0071E3";
             return(
               <div key={ch.id} onClick={()=>setTab("projects",ch.id)}
                 role="button" tabIndex={0} aria-label={`Ouvrir le chantier ${ch.nom}`}
                 onKeyDown={e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); setTab("projects",ch.id); } }}
                 className="u-press"
                 style={{
-                  border:"1px solid #E2E8F0",
+                  border:"1px solid #E5E5EA",
                   borderRadius:10, padding:12,
                   cursor:"pointer", background:"#fff",
                 }}>
                 <div style={{marginBottom:8}}>
                   <div style={{
-                    fontWeight:700, fontSize:13, color:"#0F172A", marginBottom:2,
+                    fontWeight:700, fontSize:13, color:"#1C1C1E", marginBottom:2,
                     overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"
                   }}>{ch.nom}</div>
                   <div style={{
-                    fontSize:12, color:"#64748B",
+                    fontSize:12, color:"#6E6E73",
                     overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"
                   }}>{ch.client}</div>
                 </div>
                 <PBar value={ch.depenses} max={ch.budget} color={budgetColor}/>
                 <div style={{
                   display:"flex", justifyContent:"space-between",
-                  marginTop:8, fontSize:12, color:"#64748B"
+                  marginTop:8, fontSize:12, color:"#6E6E73"
                 }}>
                   <span>
-                    <span style={{fontWeight:600,color:over?"#B91C1C":"#334155"}}>
+                    <span style={{fontWeight:600,color:over?"#D70015":"#3A3A3C"}}>
                       {ratio}%
                     </span>
                     {" dépensé"}
@@ -294,8 +294,8 @@ export default function DashboardV({data,crm=null,ready=true,setTab,m,user,clien
     {!clientMode && <div style={{
       background:"#fff",
       borderRadius:12, padding:m?14:18,
-      border:"1px solid #E2E8F0",
-      boxShadow:"0 1px 3px rgba(15,23,42,0.06)",
+      border:"1px solid #E5E5EA",
+      boxShadow:"0 1px 3px rgba(0,0,0,0.06)",
       marginBottom:18
     }}>
       <div style={{
@@ -303,19 +303,19 @@ export default function DashboardV({data,crm=null,ready=true,setTab,m,user,clien
         justifyContent:"space-between", gap:6, marginBottom:12
       }}>
         <div style={{display:"flex",alignItems:"center",gap:6}}>
-          <h2 style={{margin:0,fontWeight:700,fontSize:15,color:"#0F172A"}}>À faire</h2>
+          <h2 style={{margin:0,fontWeight:600,fontSize:17,color:"#1C1C1E"}}>À faire</h2>
           {urgentTasks.length>0&&(
-            <Badge text={`${urgentTasks.length} urgente${urgentTasks.length>1?"s":""}`} color="#EF4444"/>
+            <Badge text={`${urgentTasks.length} urgente${urgentTasks.length>1?"s":""}`} color="#FF3B30"/>
           )}
           {overdueTasks.length>0&&(
-            <Badge text={`${overdueTasks.length} en retard`} color="#F59E0B"/>
+            <Badge text={`${overdueTasks.length} en retard`} color="#FF9500"/>
           )}
         </div>
         {allActiveTasks.length>0 && (
           <button
             onClick={()=>setTab("tasks")}
             style={{
-              fontSize:13, color:"#1D4ED8", background:"none", minHeight:36,
+              fontSize:13, color:"#0066CC", background:"none", minHeight:36,
               border:"none", cursor:"pointer",
               fontWeight:600, fontFamily:"inherit"
             }}
@@ -325,7 +325,7 @@ export default function DashboardV({data,crm=null,ready=true,setTab,m,user,clien
       {allActiveTasks.length===0
         ? <div style={{
             textAlign:"center", padding:"14px 0",
-            fontSize:13, color:"#64748B"
+            fontSize:13, color:"#6E6E73"
           }}>Aucune tâche en attente</div>
         : <div style={{display:"flex",flexDirection:"column",gap:0}}>
             {allActiveTasks.slice(0,5).map((t,i)=>{
@@ -333,15 +333,15 @@ export default function DashboardV({data,crm=null,ready=true,setTab,m,user,clien
               const isUrgent=t.priorite==="Urgent";
               const isOverdue=!isUrgent&&t.echeance&&t.echeance<today;
               const isLast = i === Math.min(4, allActiveTasks.length - 1);
-              const dotColor = isUrgent?"#DC2626":isOverdue?"#F59E0B":"#CBD5E1";
-              const titleColor = isUrgent?"#B91C1C":"#0F172A";
+              const dotColor = isUrgent?"#D70015":isOverdue?"#FF9500":"#D1D1D6";
+              const titleColor = isUrgent?"#D70015":"#1C1C1E";
               return(
                 <div key={t.id} onClick={()=>setTab("tasks",t.id)}
                   role="button" tabIndex={0} className="u-press u-press--row"
                   onKeyDown={e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); setTab("tasks",t.id); } }}
                   style={{
                   cursor:"pointer", padding:"10px 4px", minHeight:44, boxSizing:"border-box",
-                  borderBottom:isLast?"none":"1px solid #F1F5F9",
+                  borderBottom:isLast?"none":"1px solid #F2F2F7",
                   display:"flex", alignItems:"center", gap:10,
                 }}>
                   <span style={{
@@ -355,18 +355,18 @@ export default function DashboardV({data,crm=null,ready=true,setTab,m,user,clien
                       overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"
                     }}>{t.titre}</div>
                     <div style={{
-                      fontSize:12, color:"#64748B", marginTop:2,
+                      fontSize:12, color:"#6E6E73", marginTop:2,
                       overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"
                     }}>
                       {ch?.nom || "—"}
                       {isOverdue&&(
                         <span style={{
-                          color:"#B45309",fontWeight:600,marginLeft:6
+                          color:"#C93400",fontWeight:600,marginLeft:6
                         }}>· Échéance dépassée</span>
                       )}
                     </div>
                   </div>
-                  <span style={{fontSize:14,color:"#CBD5E1",flexShrink:0}}>›</span>
+                  <span style={{fontSize:14,color:"#D1D1D6",flexShrink:0}}>›</span>
                 </div>
               );
             })}
@@ -377,10 +377,10 @@ export default function DashboardV({data,crm=null,ready=true,setTab,m,user,clien
     {/* BUDGET GLOBAL — vue d'ensemble financière */}
     <div style={{
       background:"#fff", borderRadius:12, padding:m?14:18,
-      border:"1px solid #E2E8F0",
-      boxShadow:"0 1px 3px rgba(15,23,42,0.06)"
+      border:"1px solid #E5E5EA",
+      boxShadow:"0 1px 3px rgba(0,0,0,0.06)"
     }}>
-      <h3 style={{margin:"0 0 14px",fontSize:15,fontWeight:700,color:"#0F172A"}}>
+      <h3 style={{margin:"0 0 14px",fontSize:17,fontWeight:600,color:"#1C1C1E"}}>
         Budget global
       </h3>
       <div style={{
@@ -390,29 +390,29 @@ export default function DashboardV({data,crm=null,ready=true,setTab,m,user,clien
       }}>
         <div>
           <div style={{
-            fontSize:11, color:"#64748B", fontWeight:600, marginBottom:4,
+            fontSize:11, color:"#6E6E73", fontWeight:600, marginBottom:4,
             textTransform:"uppercase", letterSpacing:"0.05em"
           }}>Alloué</div>
-          <div style={{fontSize:m?20:22,fontWeight:700,color:"#0F172A"}}>
+          <div style={{fontSize:m?20:22,fontWeight:700,color:"#1C1C1E"}}>
             {fmtMoney(totalB)}
           </div>
         </div>
         <div>
           <div style={{
-            fontSize:11, color:"#64748B", fontWeight:600, marginBottom:4,
+            fontSize:11, color:"#6E6E73", fontWeight:600, marginBottom:4,
             textTransform:"uppercase", letterSpacing:"0.05em"
           }}>Dépensé</div>
           <div style={{
             fontSize:m?20:22, fontWeight:700,
-            color: pct(totalD,totalB)>100 ? "#B91C1C" : "#0F172A"
+            color: pct(totalD,totalB)>100 ? "#D70015" : "#1C1C1E"
           }}>{fmtMoney(totalD)}</div>
         </div>
         <div>
           <div style={{
-            fontSize:11, color:"#64748B", fontWeight:600, marginBottom:4,
+            fontSize:11, color:"#6E6E73", fontWeight:600, marginBottom:4,
             textTransform:"uppercase", letterSpacing:"0.05em"
           }}>Reste</div>
-          <div style={{fontSize:m?20:22,fontWeight:700,color:"#0F172A"}}>
+          <div style={{fontSize:m?20:22,fontWeight:700,color:"#1C1C1E"}}>
             {fmtMoney(Math.max(0,totalB-totalD))}
           </div>
         </div>
@@ -421,10 +421,10 @@ export default function DashboardV({data,crm=null,ready=true,setTab,m,user,clien
         <PBar
           value={totalD}
           max={totalB||1}
-          color={pct(totalD,totalB)>100 ? "#DC2626" : "#1E3A5F"}
+          color={pct(totalD,totalB)>100 ? "#D70015" : "#0071E3"}
           h={8}
         />
-        <div style={{fontSize:12,color:"#64748B",marginTop:6,textAlign:"right"}}>
+        <div style={{fontSize:12,color:"#6E6E73",marginTop:6,textAlign:"right"}}>
           {pct(totalD,totalB)}% du budget consommé
         </div>
       </div>

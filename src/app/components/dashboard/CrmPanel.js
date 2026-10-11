@@ -6,12 +6,12 @@ import Badge from '../Badge'
 // Signal → étiquette ; couleur seulement quand elle a un sens (à saisir
 // vite : bleu ; échéance proche : ambre ; le reste : neutre)
 const KIND = {
-  chaud:        { color: '#3B82F6', label: 'Client intéressé' },
-  signature:    { color: '#8B5CF6', label: 'Signature' },
-  expire:       { color: '#F59E0B', label: 'Expiration' },
-  sans_reponse: { color: '#64748B', label: 'Sans réponse' },
-  brouillon:    { color: '#64748B', label: 'Brouillon' },
-  dormante:     { color: '#64748B', label: 'Affaire dormante' },
+  chaud:        { color: '#0066CC', label: 'Client intéressé' },
+  signature:    { color: '#AF52DE', label: 'Signature' },
+  expire:       { color: '#FF9500', label: 'Expiration' },
+  sans_reponse: { color: '#6E6E73', label: 'Sans réponse' },
+  brouillon:    { color: '#6E6E73', label: 'Brouillon' },
+  dormante:     { color: '#6E6E73', label: 'Affaire dormante' },
 }
 const COLLAPSED = 5
 
@@ -33,37 +33,37 @@ export default function CrmPanel({ insights, nbOverdue = 0, onOpen, m }) {
   return (
     <section aria-labelledby="crm-panel-title" style={{
       background: '#fff', borderRadius: 12, padding: m ? 14 : 18,
-      border: '1px solid #E2E8F0',
-      boxShadow: '0 1px 3px rgba(15,23,42,0.06)', marginBottom: 18,
+      border: '1px solid #E5E5EA',
+      boxShadow: '0 1px 3px rgba(0,0,0,0.06)', marginBottom: 18,
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-          <h2 id="crm-panel-title" style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#0F172A' }}>Commercial</h2>
+          <h2 id="crm-panel-title" style={{ margin: 0, fontSize: 17, fontWeight: 600, color: '#1C1C1E' }}>Commercial</h2>
           {nbOverdue > 0 && (
             <button type="button" onClick={() => onOpen('crm', 'relances')}
-              style={{ background: '#FEF2F2', color: '#B91C1C', border: '1px solid #FECACA', borderRadius: 999, padding: '2px 10px', minHeight: 28, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+              style={{ background: '#FFF0EF', color: '#D70015', border: '1px solid #FFC9C6', borderRadius: 999, padding: '2px 10px', minHeight: 28, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
               {nbOverdue} relance{nbOverdue > 1 ? 's' : ''} en retard
             </button>
           )}
         </div>
         <button type="button" onClick={() => onOpen('crm')} style={{
-          fontSize: 13, color: '#1D4ED8', background: 'none', border: 'none', minHeight: 36, cursor: 'pointer', fontWeight: 600, fontFamily: 'inherit',
+          fontSize: 13, color: '#0066CC', background: 'none', border: 'none', minHeight: 36, cursor: 'pointer', fontWeight: 600, fontFamily: 'inherit',
         }}>Ouvrir le CRM →</button>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: m ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 8, marginBottom: items.length ? 14 : 0 }}>
         {tiles.map(t => (
-          <div key={t.label} style={{ background: '#F8FAFC', borderRadius: 10, padding: '10px 12px', minWidth: 0 }}>
-            <div style={{ fontSize: 11, fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t.label}</div>
-            <div style={{ fontSize: m ? 17 : 19, fontWeight: 700, color: '#0F172A', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.value}</div>
-            <div style={{ fontSize: 12, color: '#64748B', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.sub}</div>
+          <div key={t.label} style={{ background: '#F5F5F7', borderRadius: 10, padding: '10px 12px', minWidth: 0 }}>
+            <div style={{ fontSize: 11, fontWeight: 600, color: '#6E6E73', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t.label}</div>
+            <div style={{ fontSize: m ? 17 : 19, fontWeight: 700, color: '#1C1C1E', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.value}</div>
+            <div style={{ fontSize: 12, color: '#6E6E73', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.sub}</div>
           </div>
         ))}
       </div>
 
       {items.length > 0 && (
         <>
-          <div style={{ fontSize: 11, fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: '#6E6E73', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
             À saisir · {items.length}
           </div>
           <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -75,18 +75,18 @@ export default function CrmPanel({ insights, nbOverdue = 0, onOpen, m }) {
                     className="u-press u-press--row"
                     style={{
                       display: 'flex', width: '100%', minHeight: 44, alignItems: 'center', gap: 10, textAlign: 'left',
-                      background: '#fff', border: '1px solid #E2E8F0', borderRadius: 10,
+                      background: '#fff', border: '1px solid #E5E5EA', borderRadius: 10,
                       padding: '8px 10px', cursor: 'pointer', fontFamily: 'inherit',
                     }}>
                     <span style={{ flex: 1, minWidth: 0 }}>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', fontSize: 13, fontWeight: 600, color: '#0F172A' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', fontSize: 13, fontWeight: 600, color: '#1C1C1E' }}>
                         {it.title}<Badge text={k.label} color={k.color}/>
                       </span>
-                      <span style={{ display: 'block', fontSize: 12, color: '#64748B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <span style={{ display: 'block', fontSize: 12, color: '#6E6E73', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {[it.sub, it.hint].filter(Boolean).join(' — ')}
                       </span>
                     </span>
-                    {it.montant > 0 && <span style={{ fontSize: 12, fontWeight: 700, color: '#0F172A', whiteSpace: 'nowrap' }}>{fmtMoney(it.montant)}</span>}
+                    {it.montant > 0 && <span style={{ fontSize: 12, fontWeight: 700, color: '#1C1C1E', whiteSpace: 'nowrap' }}>{fmtMoney(it.montant)}</span>}
                   </button>
                 </li>
               )
@@ -94,7 +94,7 @@ export default function CrmPanel({ insights, nbOverdue = 0, onOpen, m }) {
           </ul>
           {items.length > COLLAPSED && (
             <button type="button" onClick={() => setExpanded(v => !v)} style={{
-              marginTop: 8, fontSize: 13, color: '#1D4ED8', background: 'none', border: 'none', minHeight: 36, cursor: 'pointer', fontWeight: 600, fontFamily: 'inherit',
+              marginTop: 8, fontSize: 13, color: '#0066CC', background: 'none', border: 'none', minHeight: 36, cursor: 'pointer', fontWeight: 600, fontFamily: 'inherit',
             }}>{expanded ? 'Voir moins' : items.length - COLLAPSED === 1 ? 'Voir le dernier' : `Voir les ${items.length - COLLAPSED} autres`}</button>
           )}
         </>

@@ -4,7 +4,7 @@
  * EmptyState — état vide engageant et cohérent.
  *
  * Avant : 12+ implémentations différentes pour dire "rien à afficher",
- * allant d'un `<p style={{color:'#64748B'}}>Aucun X</p>` discret à des
+ * allant d'un `<p style={{color:'#6E6E73'}}>Aucun X</p>` discret à des
  * blocs avec icône 36px + sous-titre. Visuellement disparate.
  *
  * Cette version unifie :
@@ -46,18 +46,18 @@ export default function EmptyState({
           alignItems: 'center',
           gap: 10,
           padding: '14px 16px',
-          color: '#64748B',
+          color: '#6E6E73',
           fontSize: 13,
-          background: '#F8FAFC',
-          border: '1px dashed #E2E8F0',
+          background: '#F5F5F7',
+          border: '1px dashed #E5E5EA',
           borderRadius: 10,
         }}
       >
-        {icon && <span aria-hidden="true" style={{ display: 'inline-flex', color: '#64748B', flexShrink: 0 }}>{icon}</span>}
+        {icon && <span aria-hidden="true" style={{ display: 'inline-flex', color: '#6E6E73', flexShrink: 0 }}>{icon}</span>}
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 600, color: '#334155' }}>{title}</div>
+          <div style={{ fontWeight: 600, color: '#3A3A3C' }}>{title}</div>
           {description && (
-            <div style={{ fontSize: 12, color: '#64748B', marginTop: 2, lineHeight: 1.5 }}>
+            <div style={{ fontSize: 12, color: '#6E6E73', marginTop: 2, lineHeight: 1.5 }}>
               {description}
             </div>
           )}
@@ -74,19 +74,19 @@ export default function EmptyState({
         borderRadius: 12,
         padding: '40px 24px',
         textAlign: 'center',
-        boxShadow: '0 1px 3px rgba(15,23,42,0.06)',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
       }}
     >
-      {icon && <div aria-hidden="true" style={{ display: 'flex', justifyContent: 'center', color: '#94A3B8', marginBottom: 10 }}>{icon}</div>}
+      {icon && <div aria-hidden="true" style={{ display: 'flex', justifyContent: 'center', color: '#8E8E93', marginBottom: 10 }}>{icon}</div>}
       <div style={{
-        fontSize: 14, fontWeight: 700, color: '#334155',
+        fontSize: 14, fontWeight: 700, color: '#3A3A3C',
         marginBottom: description ? 6 : 0,
       }}>
         {title}
       </div>
       {description && (
         <div style={{
-          fontSize: 13, color: '#64748B', maxWidth: 360, margin: '0 auto',
+          fontSize: 13, color: '#6E6E73', maxWidth: 360, margin: '0 auto',
           lineHeight: 1.5,
         }}>
           {description}
@@ -100,7 +100,7 @@ export default function EmptyState({
             marginTop: 16,
             padding: '10px 18px',
             minHeight: 40,
-            background: '#1E3A5F',
+            background: '#0071E3',
             color: '#fff',
             border: 'none',
             borderRadius: 8,

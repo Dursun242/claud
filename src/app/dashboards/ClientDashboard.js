@@ -168,12 +168,12 @@ export default function ClientDashboard({ user, profile = null }) {
     <div style={{
       display:'flex', height:'100vh',
       fontFamily:"var(--font-dm-sans), sans-serif",
-      background:'#F1F5F9', overflow:'hidden'
+      background:'#F2F2F7', overflow:'hidden'
     }}>
       {/* Skip link a11y */}
       <a href="#main-content" style={{
         position:'absolute', left:-9999, top:0,
-        background:'#1E3A5F', color:'#fff', padding:'10px 16px',
+        background:'#0071E3', color:'#fff', padding:'10px 16px',
         borderRadius:'0 0 8px 0', fontSize:13, fontWeight:600,
         textDecoration:'none', zIndex:10001,
       }}
@@ -182,7 +182,7 @@ export default function ClientDashboard({ user, profile = null }) {
       >Passer au contenu principal</a>
       <style>{`
         *{box-sizing:border-box}
-        ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-thumb{background:#CBD5E1;border-radius:3px}
+        ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-thumb{background:#D1D1D6;border-radius:3px}
         @media (max-width: 768px){
           input:not([type="checkbox"]):not([type="radio"]),select,textarea{font-size:16px !important}
           button:not([aria-label="Copier"]):not([aria-label="Fermer"]):not([aria-label="Fermer la notification"]):not([data-nav]){min-height:36px}
@@ -201,20 +201,20 @@ export default function ClientDashboard({ user, profile = null }) {
       <aside aria-label="Navigation principale" style={{
         width:280, position:isMobile?'fixed':'relative',
         left:isMobile?(sidebarOpen?0:-300):0, top:0, bottom:0,
-        background:'linear-gradient(180deg,#0F172A 0%,#1E293B 100%)',
+        background:'#F9F9FB', borderRight:'1px solid #E5E5EA', color:'#1C1C1E',
         display:'flex', flexDirection:'column',
         zIndex:999, transition:'left .25s ease',
-        boxShadow:isMobile&&sidebarOpen?'4px 0 24px rgba(0,0,0,0.35)':'none',
+        boxShadow:isMobile&&sidebarOpen?'4px 0 24px rgba(0,0,0,0.15)':'none',
         flexShrink:0,
       }}>
         {/* Logo */}
-        <div style={{ padding:'16px 20px 12px', borderBottom:'1px solid rgba(255,255,255,0.07)' }}>
-          <div style={{ fontSize:16, fontWeight:800, color:'#fff', letterSpacing:1, marginBottom:2 }}>ID MAÎTRISE</div>
-          <div style={{ fontSize:10, color:'#64748B', letterSpacing:2, textTransform:'uppercase' }}>Espace Client</div>
+        <div style={{ padding:'18px 16px 10px' }}>
+          <div style={{ fontSize:20, fontWeight:700, color:'#1C1C1E', letterSpacing:'-0.01em', marginBottom:2 }}>ID Maîtrise</div>
+          <div style={{ fontSize:12, color:'#6E6E73' }}>Espace client</div>
         </div>
 
         {/* Navigation */}
-        <nav style={{ flex:1, padding:'6px 10px', overflowY:'auto' }}>
+        <nav style={{ flex:1, padding:'4px 8px', overflowY:'auto' }}>
           {TABS.map(t => {
             const active = tab === t.key
             return (
@@ -230,21 +230,15 @@ export default function ClientDashboard({ user, profile = null }) {
                 aria-label={`${t.label}, raccourci g puis ${t.sc}`}
                 className="sidebar-tab"
                 style={{
-                position:'relative',
                 width:'100%', textAlign:'left', display:'flex', alignItems:'center', gap:10,
-                padding:'7px 12px 7px 16px', marginBottom:1,
-                border:'none', borderRadius:8, cursor:'pointer',
+                padding:'8px 10px', minHeight:38, marginBottom:2,
+                border:'none', borderRadius:10, cursor:'pointer',
                 fontFamily:'inherit',
-                background:active?'rgba(255,255,255,0.10)':'transparent',
-                color:active?'#fff':'#94A3B8',
-                fontWeight:active?600:400, fontSize:13,
+                background:active?'#0071E3':'transparent',
+                color:active?'#fff':'#1C1C1E',
+                fontWeight:active?600:400, fontSize:15,
               }}>
-                {/* Barre d'accent verticale uniforme */}
-                <span aria-hidden style={{
-                  position:'absolute', left:4, top:9, bottom:9, width:3, borderRadius:2,
-                  background:active?'#60A5FA':'transparent', transition:'background .15s'
-                }}/>
-                {t.icon && <Icon d={t.icon} size={15} color={active?'#60A5FA':'#64748B'} />}
+                {t.icon && <Icon d={t.icon} size={18} color={active?'#fff':'#0071E3'} />}
                 <span style={{ flex:1 }}>{t.label}</span>
               </button>
             )
@@ -252,49 +246,46 @@ export default function ClientDashboard({ user, profile = null }) {
         </nav>
 
         {/* Footer utilisateur */}
-        <div style={{ padding:'12px 16px', borderTop:'1px solid rgba(255,255,255,0.07)' }}>
+        <div style={{ padding:'12px 16px', borderTop:'1px solid #E5E5EA' }}>
           {user && (
             <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:10 }}>
               {user.user_metadata?.avatar_url
                 ? <Image src={user.user_metadata.avatar_url}
-                    width={28} height={28} unoptimized alt=""
-                    style={{
-                      borderRadius:'50%',
-                      border:'2px solid rgba(255,255,255,0.15)'
-                    }}/>
+                    width={32} height={32} unoptimized alt=""
+                    style={{ borderRadius:'50%' }}/>
                 : <div style={{
-                    width:28, height:28, borderRadius:'50%',
-                    background:'#3B82F6', display:'flex',
+                    width:32, height:32, borderRadius:'50%',
+                    background:'#0071E3', display:'flex',
                     alignItems:'center', justifyContent:'center',
-                    fontSize:11, fontWeight:700, color:'#fff'
+                    fontSize:13, fontWeight:600, color:'#fff'
                   }}>
                     {(user.user_metadata?.full_name || user.email || '?')[0].toUpperCase()}
                   </div>
               }
               <div style={{ minWidth:0 }}>
                 <div style={{
-                  fontSize:11, fontWeight:600, color:'#fff',
+                  fontSize:14, fontWeight:600, color:'#1C1C1E',
                   overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'
                 }}>
                   {user.user_metadata?.full_name || user.email}
                 </div>
                 <div style={{
-                  fontSize:10, color:'#64748B',
+                  fontSize:12, color:'#6E6E73',
                   overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'
                 }}>
-                  Maître d&apos;Ouvrage
+                  Maître d&apos;ouvrage
                 </div>
               </div>
             </div>
           )}
-          <button onClick={() => logout()} style={{
-            width:'100%', padding:'8px', background:'rgba(239,68,68,0.15)',
-            color:'#F87171', border:'1px solid rgba(239,68,68,0.2)',
-            borderRadius:8, cursor:'pointer', fontFamily:'inherit', fontSize:12, fontWeight:600,
+          <button onClick={() => logout()} className="u-btn" style={{
+            width:'100%', padding:'8px', minHeight:36, background:'#EFEFF0',
+            color:'#D70015', border:'none',
+            borderRadius:10, cursor:'pointer', fontFamily:'inherit', fontSize:14, fontWeight:500,
           }}>
             Déconnexion
           </button>
-          <div style={{ fontSize:10, color:'#334155', textAlign:'center', marginTop:10 }}>
+          <div style={{ fontSize:11, color:'#6E6E73', textAlign:'center', marginTop:10 }}>
             SARL ID MAÎTRISE · Le Havre
           </div>
         </div>
@@ -310,24 +301,24 @@ export default function ClientDashboard({ user, profile = null }) {
         {isMobile && (
           <div style={{
             position:'fixed', top:0, left:0, right:0, height:52,
-            background:'#fff', borderBottom:'1px solid #E2E8F0',
-            display:'flex', alignItems:'center', padding:'0 12px',
-            zIndex:997, boxShadow:'0 1px 3px rgba(15,23,42,0.04)', gap:10
+            background:'rgba(249,249,251,0.88)',
+            backdropFilter:'saturate(180%) blur(20px)', WebkitBackdropFilter:'saturate(180%) blur(20px)',
+            borderBottom:'1px solid rgba(0,0,0,0.1)',
+            display:'flex', alignItems:'center', padding:'0 8px',
+            zIndex:997, gap:6
           }}>
             <button onClick={() => setSidebarOpen(s => !s)}
               aria-label="Ouvrir le menu"
-              style={{
-                background:'none', border:'none', fontSize:22,
-                cursor:'pointer', color:'#334155', padding:'6px 8px', borderRadius:6,
-                lineHeight:1,
-              }}>☰</button>
+              className="u-icon-btn"
+              style={{ width:40, height:40, borderRadius:10 }}>
+              <Icon d={I.menu} size={22} color="#0071E3" />
+            </button>
             <div style={{ flex:1, minWidth:0, display:'flex', flexDirection:'column', lineHeight:1.15 }}>
               <span style={{
-                fontSize:10, fontWeight:600, color:'#64748B',
-                letterSpacing:'0.06em', textTransform:'uppercase'
+                fontSize:11, fontWeight:500, color:'#6E6E73',
               }}>Espace client</span>
               <span style={{
-                fontSize:15, fontWeight:700, color:'#0F172A',
+                fontSize:17, fontWeight:600, color:'#1C1C1E',
                 overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'
               }}>
                 {TABS.find(t => t.key === tab)?.label}
@@ -346,14 +337,14 @@ export default function ClientDashboard({ user, profile = null }) {
           {/* Aucun chantier associé */}
           {!data?.chantiers?.length && (
             <div style={{
-              background:'#FFF7ED', border:'1px solid #FED7AA',
+              background:'#FFF4E8', border:'1px solid #FFD8B0',
               borderRadius:14, padding:28, marginBottom:20, textAlign:'center'
             }}>
               <div style={{ fontSize:32, marginBottom:8 }}>🔗</div>
-              <div style={{ fontWeight:700, fontSize:15, color:'#92400E', marginBottom:6 }}>
+              <div style={{ fontWeight:700, fontSize:15, color:'#A0390C', marginBottom:6 }}>
                 Aucun chantier associé
               </div>
-              <div style={{ fontSize:13, color:'#B45309', lineHeight:1.7 }}>
+              <div style={{ fontSize:13, color:'#C93400', lineHeight:1.7 }}>
                 Votre compte n&apos;est pas encore lié à un chantier.<br/>
                 L&apos;administrateur doit rattacher le chantier concerné{" "}
                 à votre compte (<strong>{user?.email}</strong>).
@@ -454,7 +445,7 @@ export default function ClientDashboard({ user, profile = null }) {
       {/* Aide clavier (déclenchée par « ? ») */}
       {helpOpen && (
         <div onClick={() => setHelpOpen(false)} style={{
-          position:'fixed', inset:0, background:'rgba(15,23,42,0.55)', backdropFilter:'blur(4px)',
+          position:'fixed', inset:0, background:'rgba(0,0,0,0.55)', backdropFilter:'blur(4px)',
           zIndex:5000, display:'flex', alignItems:'center', justifyContent:'center', padding:16,
           animation:'fadeIn .15s ease'
         }}>
@@ -464,17 +455,17 @@ export default function ClientDashboard({ user, profile = null }) {
           }}>
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14 }}>
               <div>
-                <div style={{ fontSize:16, fontWeight:700, color:'#0F172A' }}>Raccourcis clavier</div>
-                <div style={{ fontSize:11, color:'#64748B', marginTop:2 }}>Naviguer plus vite dans l&apos;app</div>
+                <div style={{ fontSize:16, fontWeight:700, color:'#1C1C1E' }}>Raccourcis clavier</div>
+                <div style={{ fontSize:11, color:'#6E6E73', marginTop:2 }}>Naviguer plus vite dans l&apos;app</div>
               </div>
               <button onClick={() => setHelpOpen(false)} aria-label="Fermer"
                 style={{
-                  background:'#F1F5F9', border:'none', width:28, height:28,
-                  borderRadius:6, cursor:'pointer', color:'#64748B', fontSize:16
+                  background:'#F2F2F7', border:'none', width:28, height:28,
+                  borderRadius:6, cursor:'pointer', color:'#6E6E73', fontSize:16
                 }}>×</button>
             </div>
             <div style={{
-              fontSize:10, fontWeight:700, color:'#64748B',
+              fontSize:10, fontWeight:700, color:'#6E6E73',
               letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:6
             }}>
               Aller à (appuie sur <kbd style={kbdStyleC}>g</kbd> puis…)
@@ -484,11 +475,11 @@ export default function ClientDashboard({ user, profile = null }) {
                 display:'flex', alignItems:'center',
                 justifyContent:'space-between', padding:'6px 0'
               }}>
-                <span style={{ fontSize:13, color:'#334155' }}>{t.label}</span>
+                <span style={{ fontSize:13, color:'#3A3A3C' }}>{t.label}</span>
                 <kbd style={kbdStyleC}>{t.sc}</kbd>
               </div>
             ))}
-            <div style={{ fontSize:10, color:'#64748B', marginTop:10, borderTop:'1px solid #E2E8F0', paddingTop:10 }}>
+            <div style={{ fontSize:10, color:'#6E6E73', marginTop:10, borderTop:'1px solid #E5E5EA', paddingTop:10 }}>
               Appuie sur <kbd style={kbdStyleC}>?</kbd> à tout moment pour réouvrir
               cette aide · <kbd style={kbdStyleC}>Esc</kbd> pour fermer
             </div>
@@ -502,6 +493,6 @@ export default function ClientDashboard({ user, profile = null }) {
 const kbdStyleC = {
   display:'inline-flex', alignItems:'center', justifyContent:'center',
   minWidth:22, height:22, padding:'0 6px',
-  background:'#F1F5F9', border:'1px solid #CBD5E1', borderBottomWidth:2,
-  borderRadius:5, fontSize:11, fontWeight:600, color:'#334155', fontFamily:"var(--font-dm-sans), sans-serif"
+  background:'#F2F2F7', border:'1px solid #D1D1D6', borderBottomWidth:2,
+  borderRadius:5, fontSize:11, fontWeight:600, color:'#3A3A3C', fontFamily:"var(--font-dm-sans), sans-serif"
 }

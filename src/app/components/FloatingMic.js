@@ -105,11 +105,11 @@ export default function FloatingMic({
               borderRadius: 12,
               padding: '12px 14px',
               maxWidth: isMobile ? 260 : 340,
-              color: '#0F172A',
+              color: '#1C1C1E',
               fontSize: 13,
               lineHeight: 1.5,
-              border: '1px solid #E2E8F0',
-              boxShadow: '0 8px 24px rgba(15,23,42,0.12)',
+              border: '1px solid #E5E5EA',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
               animation: 'fadeIn .2s ease',
             }}
           >
@@ -117,7 +117,7 @@ export default function FloatingMic({
               style={{
                 fontSize: 11,
                 fontWeight: 600,
-                color: '#B91C1C',
+                color: '#D70015',
                 textTransform: 'uppercase',
                 letterSpacing: '0.05em',
                 marginBottom: 4,
@@ -128,11 +128,11 @@ export default function FloatingMic({
             >
               <span
                 aria-hidden="true"
-                style={{ width: 6, height: 6, borderRadius: '50%', background: '#DC2626' }}
+                style={{ width: 6, height: 6, borderRadius: '50%', background: '#D70015' }}
               />
               Transcription en direct
             </div>
-            <div style={{ color: '#334155' }}>{transcript}</div>
+            <div style={{ color: '#3A3A3C' }}>{transcript}</div>
             <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
               <button onClick={onSend} style={{ ...btnP, fontSize: 13, minHeight: 36, padding: '8px 14px' }}>
                 Envoyer à l&apos;IA
@@ -161,11 +161,11 @@ export default function FloatingMic({
             height: 56,
             margin: 4,
             borderRadius: '50%',
-            background: listening ? '#DC2626' : '#1E3A5F',
+            background: listening ? '#D70015' : '#0071E3',
             color: '#fff',
             border: 'none',
             cursor: 'pointer',
-            boxShadow: '0 8px 24px rgba(15,23,42,0.18)',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
             fontFamily: 'inherit',
           }}
         >
@@ -177,7 +177,7 @@ export default function FloatingMic({
                 position: 'absolute',
                 inset: -4,
                 borderRadius: '50%',
-                border: '2px solid rgba(220,38,38,0.4)',
+                border: '2px solid rgba(215,0,21,0.4)',
                 animation: 'ripple 1.2s ease-out infinite',
               }}
             />

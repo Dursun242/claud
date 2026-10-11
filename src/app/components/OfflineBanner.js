@@ -16,9 +16,9 @@ export default function OfflineBanner({ online, pending, restoredAt, onRetry }) 
       position: 'fixed', top: 8, left: '50%', transform: 'translateX(-50%)', zIndex: 1000,
       width: 'max-content', maxWidth: 'calc(100vw - 16px)', boxSizing: 'border-box',
       display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
-      background: online ? '#FFFBEB' : '#1E293B', color: online ? '#92400E' : '#F8FAFC',
-      border: `1px solid ${online ? '#FDE68A' : '#0F172A'}`, borderRadius: 12,
-      boxShadow: '0 6px 20px rgba(15,23,42,0.18)', padding: '8px 14px', fontSize: 13, fontWeight: 600,
+      background: online ? '#FFF7E8' : '#2C2C2E', color: online ? '#A0390C' : '#F5F5F7',
+      border: `1px solid ${online ? '#FFDDA6' : '#1C1C1E'}`, borderRadius: 12,
+      boxShadow: '0 6px 20px rgba(0,0,0,0.18)', padding: '8px 14px', fontSize: 13, fontWeight: 600,
     }}>
       <span aria-hidden="true">{online ? '⏳' : '📴'}</span>
       <span style={{ flex: 1, minWidth: 200 }}>
@@ -30,7 +30,7 @@ export default function OfflineBanner({ online, pending, restoredAt, onRetry }) 
       </span>
       {online && pending > 0 && onRetry && (
         <button onClick={onRetry} style={{
-          background: '#92400E', color: '#fff', border: 'none', borderRadius: 6, padding: '5px 12px',
+          background: '#A0390C', color: '#fff', border: 'none', borderRadius: 6, padding: '5px 12px',
           fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
         }}>Envoyer maintenant</button>
       )}

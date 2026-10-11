@@ -7,7 +7,7 @@
 export default function ProgressBar({
   value = 0,
   max = 100,
-  color = '#3B82F6',
+  color = '#007AFF',
   height = 8,
 }) {
   const percentage = Math.min(Math.round((value / max) * 100), 100);
@@ -15,7 +15,7 @@ export default function ProgressBar({
   return (
     <div
       style={{
-        background: '#F1F5F9',
+        background: '#F2F2F7',
         borderRadius: height,
         height,
         overflow: 'hidden',

@@ -85,7 +85,7 @@ function AttachmentRow({ att, onDelete }) {
         borderRadius: 8,
         textDecoration: 'none',
         color: 'inherit',
-        border: '1px solid #E2E8F0',
+        border: '1px solid #E5E5EA',
       }}
     >
       {/* Icône / miniature — `url` est une signed URL Supabase avec TTL court :
@@ -96,12 +96,12 @@ function AttachmentRow({ att, onDelete }) {
         <img
           src={url}
           alt=""
-          style={{ width: 36, height: 36, objectFit: 'cover', borderRadius: 6, flexShrink: 0, background: '#F1F5F9' }}
+          style={{ width: 36, height: 36, objectFit: 'cover', borderRadius: 6, flexShrink: 0, background: '#F2F2F7' }}
         />
       ) : (
         <div style={{
           width: 36, height: 36, minWidth: 36, flexShrink: 0,
-          borderRadius: 6, background: '#F1F5F9', color: '#475569',
+          borderRadius: 6, background: '#F2F2F7', color: '#48484A',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontSize: 10, fontWeight: 700, letterSpacing: '0.04em',
         }}>{kind.label}</div>
@@ -110,11 +110,11 @@ function AttachmentRow({ att, onDelete }) {
       {/* Nom + taille */}
       <div style={{ flex: '1 1 0', minWidth: 0 }}>
         <div style={{
-          fontSize: 13, fontWeight: 600, color: '#0F172A',
+          fontSize: 13, fontWeight: 600, color: '#1C1C1E',
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>{att.file_name}</div>
         {att.file_size ? (
-          <div style={{ fontSize: 12, color: '#64748B', marginTop: 1 }}>{formatSize(att.file_size)}</div>
+          <div style={{ fontSize: 12, color: '#6E6E73', marginTop: 1 }}>{formatSize(att.file_size)}</div>
         ) : null}
       </div>
 
@@ -126,7 +126,7 @@ function AttachmentRow({ att, onDelete }) {
         title="Supprimer"
         className="u-icon-btn u-icon-btn--danger"
         style={{
-          color: '#64748B',
+          color: '#6E6E73',
           padding: 8,
           width: 32, height: 32,
           borderRadius: 6,
@@ -169,15 +169,15 @@ export default function AttachmentsSection({ attachments = [], onUpload, onDelet
   }
 
   return (
-    <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #E2E8F0', marginBottom: 24 }}>
+    <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #E5E5EA', marginBottom: 24 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-        <span style={{ fontSize: 15, fontWeight: 700, color: '#0F172A' }}>
-          Pièces jointes <span style={{ color: '#64748B', fontWeight: 500 }}>({attachments.length})</span>
+        <span style={{ fontSize: 17, fontWeight: 600, color: '#1C1C1E' }}>
+          Pièces jointes <span style={{ color: '#6E6E73', fontWeight: 500 }}>({attachments.length})</span>
         </span>
         <button
           onClick={() => fileInputRef.current?.click()}
           disabled={loading}
-          className="u-press"
+          className="u-btn"
           style={{
             ...btnAdd,
             cursor: loading ? 'wait' : 'pointer',
@@ -196,8 +196,8 @@ export default function AttachmentsSection({ attachments = [], onUpload, onDelet
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
           style={{
-            border: `2px dashed ${dragOver ? '#3B82F6' : '#E2E8F0'}`,
-            background: dragOver ? '#EFF6FF' : '#F8FAFC',
+            border: `2px dashed ${dragOver ? '#007AFF' : '#E5E5EA'}`,
+            background: dragOver ? '#EAF3FF' : '#F5F5F7',
             borderRadius: 10,
             padding: '24px 16px',
             textAlign: 'center',
@@ -205,7 +205,7 @@ export default function AttachmentsSection({ attachments = [], onUpload, onDelet
             transition: 'background .15s, border-color .15s',
           }}
         >
-          <div style={{ fontSize: 12, color: '#64748B', fontWeight: 600 }}>
+          <div style={{ fontSize: 12, color: '#6E6E73', fontWeight: 600 }}>
             {dragOver ? 'Déposez le fichier ici' : 'Cliquez ou glissez un fichier ici'}
           </div>
         </div>
@@ -217,8 +217,8 @@ export default function AttachmentsSection({ attachments = [], onUpload, onDelet
           style={{
             display: 'flex', flexDirection: 'column', gap: 6,
             padding: dragOver ? 6 : 0,
-            border: dragOver ? '2px dashed #3B82F6' : '2px dashed transparent',
-            background: dragOver ? '#EFF6FF' : 'transparent',
+            border: dragOver ? '2px dashed #007AFF' : '2px dashed transparent',
+            background: dragOver ? '#EAF3FF' : 'transparent',
             borderRadius: 8,
             transition: 'background .15s, border-color .15s',
           }}

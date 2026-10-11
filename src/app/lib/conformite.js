@@ -41,11 +41,11 @@ export const DOC_META = {
 }
 
 export const STATUS_META = {
-  ok: { label: 'À jour', color: '#047857', bg: '#ECFDF5', border: '#A7F3D0', rank: 0 },
-  bientot: { label: 'Expire bientôt', color: '#B45309', bg: '#FFFBEB', border: '#FDE68A', rank: 1 },
-  a_verifier: { label: 'À vérifier', color: '#C2410C', bg: '#FFF7ED', border: '#FED7AA', rank: 2 },
-  manquant: { label: 'Manquant', color: '#B91C1C', bg: '#FEF2F2', border: '#FECACA', rank: 3 },
-  expire: { label: 'Expiré', color: '#B91C1C', bg: '#FEF2F2', border: '#FECACA', rank: 4 },
+  ok: { label: 'À jour', color: '#1E7B34', bg: '#EAF8EE', border: '#BFE9CA', rank: 0 },
+  bientot: { label: 'Expire bientôt', color: '#C93400', bg: '#FFF7E8', border: '#FFDDA6', rank: 1 },
+  a_verifier: { label: 'À vérifier', color: '#C93400', bg: '#FFF4E8', border: '#FFD8B0', rank: 2 },
+  manquant: { label: 'Manquant', color: '#D70015', bg: '#FFF0EF', border: '#FFC9C6', rank: 3 },
+  expire: { label: 'Expiré', color: '#D70015', bg: '#FFF0EF', border: '#FFC9C6', rank: 4 },
 }
 
 /** Types de contacts soumis à l'obligation de vigilance. */

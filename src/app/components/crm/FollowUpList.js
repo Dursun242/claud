@@ -7,9 +7,9 @@ import InteractionRow from './InteractionRow'
 export default function FollowUpList({ followUps, opportunites, contactsById, onToggle, onOpen }) {
   const oppById = useMemo(() => new Map(opportunites.map(o => [o.id, o])), [opportunites])
   const groups = [
-    { k: 'overdue', l: 'En retard', c: '#EF4444', list: followUps.overdue },
-    { k: 'today',   l: "Aujourd'hui", c: '#F59E0B', list: followUps.today },
-    { k: 'upcoming', l: 'À venir', c: '#3B82F6', list: followUps.upcoming },
+    { k: 'overdue', l: 'En retard', c: '#FF3B30', list: followUps.overdue },
+    { k: 'today',   l: "Aujourd'hui", c: '#FF9500', list: followUps.today },
+    { k: 'upcoming', l: 'À venir', c: '#007AFF', list: followUps.upcoming },
   ]
   const total = groups.reduce((s, g) => s + g.list.length, 0)
   if (total === 0) {
@@ -21,8 +21,8 @@ export default function FollowUpList({ followUps, opportunites, contactsById, on
         <div key={g.k} style={{ marginBottom: 18 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
             <span style={{ width: 8, height: 8, borderRadius: '50%', background: g.c }} />
-            <h3 style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#0F172A' }}>{g.l}</h3>
-            <span style={{ fontSize: 10, color: '#64748B', fontWeight: 600 }}>{g.list.length}</span>
+            <h3 style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#1C1C1E' }}>{g.l}</h3>
+            <span style={{ fontSize: 10, color: '#6E6E73', fontWeight: 600 }}>{g.list.length}</span>
           </div>
           <div style={{ display: 'grid', gap: 6, gridTemplateColumns: 'minmax(0,1fr)' }}>
             {g.list.map(it => {

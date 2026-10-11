@@ -11,32 +11,32 @@ import { useConfirm } from '../contexts/ConfirmContext'
 // rôle ci-dessous (défense en profondeur).
 
 const ACTION_STYLES = {
-  login:           { bg: '#ECFDF5', color: '#047857', border: '#A7F3D0', label: 'Connexion' },
-  logout:          { bg: '#F1F5F9', color: '#475569', border: '#CBD5E1', label: 'Déconnexion' },
-  access_denied:   { bg: '#FEE2E2', color: '#991B1B', border: '#FCA5A5', label: 'Accès refusé' },
-  session_expired: { bg: '#FFFBEB', color: '#92400E', border: '#FDE68A', label: 'Session expirée' },
-  create:          { bg: '#EFF6FF', color: '#1D4ED8', border: '#BFDBFE', label: 'Création' },
-  update:          { bg: '#FEF3C7', color: '#92400E', border: '#FDE68A', label: 'Modification' },
-  delete:          { bg: '#FEF2F2', color: '#B91C1C', border: '#FECACA', label: 'Suppression' },
-  duplicate:       { bg: '#F5F3FF', color: '#6D28D9', border: '#DDD6FE', label: 'Duplication' },
+  login:           { bg: '#EAF8EE', color: '#1E7B34', border: '#BFE9CA', label: 'Connexion' },
+  logout:          { bg: '#F2F2F7', color: '#48484A', border: '#D1D1D6', label: 'Déconnexion' },
+  access_denied:   { bg: '#FFE3E1', color: '#A50011', border: '#FF9F99', label: 'Accès refusé' },
+  session_expired: { bg: '#FFF7E8', color: '#A0390C', border: '#FFDDA6', label: 'Session expirée' },
+  create:          { bg: '#EAF3FF', color: '#0066CC', border: '#C6DDF7', label: 'Création' },
+  update:          { bg: '#FFF0D6', color: '#A0390C', border: '#FFDDA6', label: 'Modification' },
+  delete:          { bg: '#FFF0EF', color: '#D70015', border: '#FFC9C6', label: 'Suppression' },
+  duplicate:       { bg: '#F7F0FC', color: '#8944AB', border: '#E7D4F5', label: 'Duplication' },
   generate_pdf:    { bg: '#FDF4FF', color: '#A21CAF', border: '#F5D0FE', label: 'Génération PDF' },
   generate_excel:  { bg: '#ECFEFF', color: '#0E7490', border: '#A5F3FC', label: 'Génération Excel' },
-  view:            { bg: '#F0F9FF', color: '#0369A1', border: '#BAE6FD', label: 'Consultation' },
-  view_attachment: { bg: '#F0F9FF', color: '#0369A1', border: '#BAE6FD', label: 'Consultation PJ' },
-  view_sign_request:{ bg: '#F5F3FF', color: '#6D28D9', border: '#DDD6FE', label: 'Consultation signature' },
-  odoo_sign_send:  { bg: '#F5F3FF', color: '#6D28D9', border: '#DDD6FE', label: 'Envoi signature' },
-  odoo_sign_reset: { bg: '#F8FAFC', color: '#475569', border: '#CBD5E1', label: 'Reset signature' },
-  send_email:      { bg: '#EFF6FF', color: '#1D4ED8', border: '#BFDBFE', label: 'Envoi email' },
-  contact_tap:     { bg: '#F0FDFA', color: '#0F766E', border: '#99F6E4', label: 'Appel/Email contact' },
-  copy:            { bg: '#F8FAFC', color: '#475569', border: '#CBD5E1', label: 'Copie presse-papier' },
-  search_pappers:  { bg: '#FFF7ED', color: '#9A3412', border: '#FED7AA', label: 'Recherche Pappers' },
-  search_entreprise: { bg: '#FFF7ED', color: '#9A3412', border: '#FED7AA', label: 'Recherche entreprise' },
+  view:            { bg: '#F0F8FC', color: '#0071A4', border: '#BDE6F7', label: 'Consultation' },
+  view_attachment: { bg: '#F0F8FC', color: '#0071A4', border: '#BDE6F7', label: 'Consultation PJ' },
+  view_sign_request:{ bg: '#F7F0FC', color: '#8944AB', border: '#E7D4F5', label: 'Consultation signature' },
+  odoo_sign_send:  { bg: '#F7F0FC', color: '#8944AB', border: '#E7D4F5', label: 'Envoi signature' },
+  odoo_sign_reset: { bg: '#F5F5F7', color: '#48484A', border: '#D1D1D6', label: 'Reset signature' },
+  send_email:      { bg: '#EAF3FF', color: '#0066CC', border: '#C6DDF7', label: 'Envoi email' },
+  contact_tap:     { bg: '#F0FDFA', color: '#0F6E7E', border: '#99F6E4', label: 'Appel/Email contact' },
+  copy:            { bg: '#F5F5F7', color: '#48484A', border: '#D1D1D6', label: 'Copie presse-papier' },
+  search_pappers:  { bg: '#FFF4E8', color: '#9A3412', border: '#FFD8B0', label: 'Recherche Pappers' },
+  search_entreprise: { bg: '#FFF4E8', color: '#9A3412', border: '#FFD8B0', label: 'Recherche entreprise' },
   import_photo:    { bg: '#FDF2F8', color: '#9D174D', border: '#FBCFE8', label: 'Import par photo' },
-  ai_action:       { bg: '#F0FDFA', color: '#0F766E', border: '#99F6E4', label: 'Action IA' },
-  seed:            { bg: '#F1F5F9', color: '#475569', border: '#CBD5E1', label: 'Initialisation' },
-  export_csv:      { bg: '#F5F3FF', color: '#5B21B6', border: '#DDD6FE', label: 'Export CSV' },
-  convert:         { bg: '#ECFDF5', color: '#047857', border: '#A7F3D0', label: 'Conversion en chantier' },
-  merge:           { bg: '#FFF7ED', color: '#9A3412', border: '#FED7AA', label: 'Fusion de doublons' },
+  ai_action:       { bg: '#F0FDFA', color: '#0F6E7E', border: '#99F6E4', label: 'Action IA' },
+  seed:            { bg: '#F2F2F7', color: '#48484A', border: '#D1D1D6', label: 'Initialisation' },
+  export_csv:      { bg: '#F7F0FC', color: '#6E3591', border: '#E7D4F5', label: 'Export CSV' },
+  convert:         { bg: '#EAF8EE', color: '#1E7B34', border: '#BFE9CA', label: 'Conversion en chantier' },
+  merge:           { bg: '#FFF4E8', color: '#9A3412', border: '#FFD8B0', label: 'Fusion de doublons' },
 }
 const ENTITY_LABELS = {
   chantier:     'Chantier',
@@ -241,11 +241,11 @@ export default function LogsV({ m, profile, embedded = false }) {
   if (!isAdmin) {
     return (
       <div style={{
-        background: "#FEF2F2", borderRadius: 14, padding: 40,
-        textAlign: "center", border: "1.5px solid #FECACA"
+        background: "#FFF0EF", borderRadius: 14, padding: 40,
+        textAlign: "center", border: "1.5px solid #FFC9C6"
       }}>
-        <h1 style={{ margin: "0 0 10px", fontSize: 20, fontWeight: 700, color: "#DC2626" }}>🔒 Accès refusé</h1>
-        <p style={{ margin: 0, color: "#64748B", fontSize: 14 }}>
+        <h1 style={{ margin: "0 0 10px", fontSize: 20, fontWeight: 700, color: "#D70015" }}>🔒 Accès refusé</h1>
+        <p style={{ margin: 0, color: "#6E6E73", fontSize: 14 }}>
           Seuls les administrateurs peuvent consulter le journal d&apos;activité.
         </p>
       </div>
@@ -265,7 +265,7 @@ export default function LogsV({ m, profile, embedded = false }) {
           {!embedded && (
             <h1 style={{ margin: 0, fontSize: m ? 18 : 24, fontWeight: 700 }}>📋 Journal d&apos;activité</h1>
           )}
-          <div style={{ fontSize: 11, color: "#64748B", marginTop: embedded ? 0 : 2 }}>
+          <div style={{ fontSize: 11, color: "#6E6E73", marginTop: embedded ? 0 : 2 }}>
             {embedded
               ? <>Connexions, créations, modifications et suppressions.</>
               : <>Connexions, créations, modifications et suppressions — admin uniquement.</>
@@ -289,7 +289,7 @@ export default function LogsV({ m, profile, embedded = false }) {
           </button>
           <button onClick={handlePurge} disabled={purging}
             title="Supprimer les entrées de plus de 90 jours"
-            style={{ ...btnS, fontSize: 12, color: '#B91C1C' }}>
+            style={{ ...btnS, fontSize: 12, color: '#D70015' }}>
             {purging ? '⏳ Purge…' : '🧹 Purger > 90j'}
           </button>
         </div>
@@ -330,7 +330,7 @@ export default function LogsV({ m, profile, embedded = false }) {
         {hasFilters && (
           <div style={{ marginTop: 8, textAlign: 'right' }}>
             <button onClick={resetFilters} style={{
-              background: 'none', border: 'none', color: '#64748B',
+              background: 'none', border: 'none', color: '#6E6E73',
               fontSize: 11, cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'underline'
             }}>
               Réinitialiser les filtres
@@ -342,11 +342,11 @@ export default function LogsV({ m, profile, embedded = false }) {
       {/* Erreur */}
       {error && (
         <div style={{
-          background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 8,
-          padding: "10px 14px", marginBottom: 12, fontSize: 13, color: "#DC2626"
+          background: "#FFF0EF", border: "1px solid #FFC9C6", borderRadius: 8,
+          padding: "10px 14px", marginBottom: 12, fontSize: 13, color: "#D70015"
         }}>
           ⚠ {error}
-          <div style={{ fontSize: 11, marginTop: 4, color: '#64748B' }}>
+          <div style={{ fontSize: 11, marginTop: 4, color: '#6E6E73' }}>
             {errorCode === 'MIGRATION_MISSING'
               ? <>La table <code>activity_logs</code> n&apos;existe pas.{' '}
                 Exécute la migration <code>007_activity_logs_consolidated.sql</code>{' '}
@@ -362,11 +362,11 @@ export default function LogsV({ m, profile, embedded = false }) {
       {loading ? (
         <div style={{
           background: "#fff", borderRadius: 12, padding: "40px 24px",
-          textAlign: "center", color: "#64748B", fontSize: 13
+          textAlign: "center", color: "#6E6E73", fontSize: 13
         }}>
           <div style={{
-            width: 32, height: 32, border: "3px solid #E2E8F0",
-            borderTopColor: "#1E3A5F", borderRadius: "50%",
+            width: 32, height: 32, border: "3px solid #E5E5EA",
+            borderTopColor: "#0071E3", borderRadius: "50%",
             animation: "spin .9s linear infinite", margin: "0 auto 10px"
           }} />
           Chargement du journal…
@@ -377,10 +377,10 @@ export default function LogsV({ m, profile, embedded = false }) {
           textAlign: "center", boxShadow: "0 1px 3px rgba(0,0,0,0.04)"
         }}>
           <div style={{ fontSize: 36, marginBottom: 8, opacity: 0.5 }}>📋</div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: "#334155", marginBottom: 4 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: "#3A3A3C", marginBottom: 4 }}>
             {hasFilters ? 'Aucun résultat' : 'Journal vide'}
           </div>
-          <div style={{ fontSize: 12, color: "#64748B", marginBottom: 14 }}>
+          <div style={{ fontSize: 12, color: "#6E6E73", marginBottom: 14 }}>
             {hasFilters
               ? "Essaie d'élargir les filtres."
               : "Les actions des utilisateurs apparaîtront ici dès qu'ils se connecteront" +
@@ -392,13 +392,13 @@ export default function LogsV({ m, profile, embedded = false }) {
         // Vue carte (mobile)
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {logs.map(l => {
-            const a = ACTION_STYLES[l.action] || { bg: '#F1F5F9', color: '#475569', border: '#CBD5E1', label: l.action }
+            const a = ACTION_STYLES[l.action] || { bg: '#F2F2F7', color: '#48484A', border: '#D1D1D6', label: l.action }
             const src = l.metadata?.source
             const isOpen = expanded.has(l.id)
             return (
               <div key={l.id} style={{
                 background: '#fff', borderRadius: 10, padding: 12,
-                boxShadow: '0 1px 3px rgba(15,23,42,0.05)',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
                 borderLeft: `4px solid ${a.color}`
               }}>
                 <div style={{
@@ -412,13 +412,13 @@ export default function LogsV({ m, profile, embedded = false }) {
                   }}>
                     {a.label}
                   </span>
-                  <span style={{ fontSize: 10, color: '#64748B' }}>{formatWhen(l.created_at)}</span>
+                  <span style={{ fontSize: 10, color: '#6E6E73' }}>{formatWhen(l.created_at)}</span>
                 </div>
-                <div style={{ fontSize: 13, fontWeight: 600, color: '#0F172A', marginBottom: 2 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: '#1C1C1E', marginBottom: 2 }}>
                   {l.user_prenom || '—'}{' '}
-                  <span style={{ fontSize: 11, fontWeight: 400, color: '#64748B' }}>· {l.user_email}</span>
+                  <span style={{ fontSize: 11, fontWeight: 400, color: '#6E6E73' }}>· {l.user_email}</span>
                 </div>
-                <div style={{ fontSize: 12, color: '#475569' }}>
+                <div style={{ fontSize: 12, color: '#48484A' }}>
                   <span style={{ fontWeight: 600 }}>{ENTITY_LABELS[l.entity_type] || l.entity_type || '—'}</span>
                   {l.entity_label && <> — {l.entity_label}</>}
                   {src === 'ai' && <span style={sourceBadge}>🤖 IA</span>}
@@ -429,7 +429,7 @@ export default function LogsV({ m, profile, embedded = false }) {
                     <button onClick={() => toggleExpanded(l.id)}
                       style={{
                         marginTop: 6, background: 'none', border: 'none',
-                        color: '#64748B', fontSize: 10, cursor: 'pointer',
+                        color: '#6E6E73', fontSize: 10, cursor: 'pointer',
                         padding: 0, fontFamily: 'inherit', textDecoration: 'underline'
                       }}>
                       {isOpen ? '▾ Masquer les détails' : '▸ Afficher les détails'}
@@ -453,8 +453,8 @@ export default function LogsV({ m, profile, embedded = false }) {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead>
                 <tr style={{
-                  background: '#F8FAFC', textAlign: 'left', fontSize: 11,
-                  color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em'
+                  background: '#F5F5F7', textAlign: 'left', fontSize: 11,
+                  color: '#6E6E73', textTransform: 'uppercase', letterSpacing: '0.05em'
                 }}>
                   <th style={thStyle}>Date</th>
                   <th style={thStyle}>Utilisateur</th>
@@ -466,20 +466,20 @@ export default function LogsV({ m, profile, embedded = false }) {
               <tbody>
                 {logs.map((l, i) => {
                   const a = ACTION_STYLES[l.action] ||
-                    { bg: '#F1F5F9', color: '#475569', border: '#CBD5E1', label: l.action }
+                    { bg: '#F2F2F7', color: '#48484A', border: '#D1D1D6', label: l.action }
                   const hasMeta = l.metadata && Object.keys(l.metadata).length > 0
                   const isOpen = expanded.has(l.id)
                   const src = l.metadata?.source
                   return (
                     <React.Fragment key={l.id}>
-                      <tr style={{ borderTop: i === 0 ? 'none' : '1px solid #F1F5F9',
+                      <tr style={{ borderTop: i === 0 ? 'none' : '1px solid #F2F2F7',
                         cursor: hasMeta ? 'pointer' : 'default' }}
                           onClick={() => hasMeta && toggleExpanded(l.id)}>
                         <td style={{ ...tdStyle, whiteSpace: 'nowrap',
-                          color: '#64748B', fontSize: 12 }}>{formatWhen(l.created_at)}</td>
+                          color: '#6E6E73', fontSize: 12 }}>{formatWhen(l.created_at)}</td>
                         <td style={tdStyle}>
-                          <div style={{ fontWeight: 600, color: '#0F172A' }}>{l.user_prenom || '—'}</div>
-                          <div style={{ fontSize: 11, color: '#64748B' }}>{l.user_email}</div>
+                          <div style={{ fontWeight: 600, color: '#1C1C1E' }}>{l.user_prenom || '—'}</div>
+                          <div style={{ fontSize: 11, color: '#6E6E73' }}>{l.user_email}</div>
                         </td>
                         <td style={tdStyle}>
                           <span style={{
@@ -490,10 +490,10 @@ export default function LogsV({ m, profile, embedded = false }) {
                             {a.label}
                           </span>
                         </td>
-                        <td style={{ ...tdStyle, color: '#475569' }}>
+                        <td style={{ ...tdStyle, color: '#48484A' }}>
                           {ENTITY_LABELS[l.entity_type] || l.entity_type || '—'}
                         </td>
-                        <td style={{ ...tdStyle, color: '#334155' }}>
+                        <td style={{ ...tdStyle, color: '#3A3A3C' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                             <span style={{
                               overflow: 'hidden', textOverflow: 'ellipsis',
@@ -504,7 +504,7 @@ export default function LogsV({ m, profile, embedded = false }) {
                             {src === 'ai' && <span style={sourceBadge}>🤖 IA</span>}
                             {src === 'duplicate' && <span style={sourceBadge}>📋 Copie</span>}
                             {hasMeta && (
-                              <span style={{ fontSize: 10, color: '#64748B' }}>
+                              <span style={{ fontSize: 10, color: '#6E6E73' }}>
                                 {isOpen ? '▾' : '▸'}
                               </span>
                             )}
@@ -512,11 +512,11 @@ export default function LogsV({ m, profile, embedded = false }) {
                         </td>
                       </tr>
                       {hasMeta && isOpen && (
-                        <tr style={{ background: '#F8FAFC', borderTop: '1px solid #E2E8F0' }}>
+                        <tr style={{ background: '#F5F5F7', borderTop: '1px solid #E5E5EA' }}>
                           <td colSpan={5} style={{ padding: '10px 14px' }}>
                             <pre style={metaStyle}>{JSON.stringify(l.metadata, null, 2)}</pre>
                             {l.user_agent && (
-                              <div style={{ fontSize: 10, color: '#64748B', marginTop: 4 }}>
+                              <div style={{ fontSize: 10, color: '#6E6E73', marginTop: 4 }}>
                                 Appareil : {l.user_agent}
                               </div>
                             )}
@@ -556,12 +556,12 @@ const tdStyle = { padding: '10px 14px', verticalAlign: 'top' }
 const sourceBadge = {
   display: 'inline-flex', alignItems: 'center', gap: 3,
   padding: '1px 6px', borderRadius: 4, background: '#F0FDFA',
-  border: '1px solid #99F6E4', color: '#0F766E',
+  border: '1px solid #99F6E4', color: '#0F6E7E',
   fontSize: 10, fontWeight: 700, whiteSpace: 'nowrap',
 }
 const metaStyle = {
-  fontSize: 11, color: '#334155',
-  background: '#fff', border: '1px solid #E2E8F0',
+  fontSize: 11, color: '#3A3A3C',
+  background: '#fff', border: '1px solid #E5E5EA',
   borderRadius: 6, padding: '8px 10px', margin: 0,
   overflowX: 'auto', maxWidth: '100%',
   fontFamily: 'ui-monospace, "SF Mono", Menlo, monospace',

@@ -245,7 +245,7 @@ export default function PVNewForm({ chantierId, chantier, clientContact, ordresS
         maxHeight: '90vh',
         overflowY: 'auto'
       }}>
-        <h2 style={{ margin: '0 0 20px 0', fontSize: 16, fontWeight: 700, color: '#0F172A' }}>
+        <h2 style={{ margin: '0 0 20px 0', fontSize: 16, fontWeight: 700, color: '#1C1C1E' }}>
           Nouveau PV de réception
         </h2>
 
@@ -255,26 +255,26 @@ export default function PVNewForm({ chantierId, chantier, clientContact, ordresS
             placeholder="Titre du PV"
             value={form.titre}
             onChange={(e) => setForm({ ...form, titre: e.target.value })}
-            style={{ padding: '8px 12px', border: '1px solid #E2E8F0', borderRadius: 6, fontSize: 12, fontFamily: 'inherit' }}
+            style={{ padding: '8px 12px', border: '1px solid #E5E5EA', borderRadius: 6, fontSize: 12, fontFamily: 'inherit' }}
             required
           />
           <textarea
             placeholder="Description (optionnelle)"
             value={form.description}
             onChange={(e) => setForm({ ...form, description: e.target.value })}
-            style={{ padding: '8px 12px', border: '1px solid #E2E8F0', borderRadius: 6, fontSize: 12, fontFamily: 'inherit', minHeight: 60, resize: 'vertical' }}
+            style={{ padding: '8px 12px', border: '1px solid #E5E5EA', borderRadius: 6, fontSize: 12, fontFamily: 'inherit', minHeight: 60, resize: 'vertical' }}
           />
           <input
             type="date"
             value={form.dateReception}
             onChange={(e) => setForm({ ...form, dateReception: e.target.value })}
-            style={{ padding: '8px 12px', border: '1px solid #E2E8F0', borderRadius: 6, fontSize: 12, fontFamily: 'inherit' }}
+            style={{ padding: '8px 12px', border: '1px solid #E5E5EA', borderRadius: 6, fontSize: 12, fontFamily: 'inherit' }}
           />
 
-          <div style={{ borderTop: '1px solid #E2E8F0', paddingTop: 12, marginTop: 12 }}>
-            <div style={{ fontSize: 11, fontWeight: 600, color: '#64748B', marginBottom: 12 }}>SIGNATAIRES</div>
+          <div style={{ borderTop: '1px solid #E5E5EA', paddingTop: 12, marginTop: 12 }}>
+            <div style={{ fontSize: 11, fontWeight: 600, color: '#6E6E73', marginBottom: 12 }}>SIGNATAIRES</div>
 
-            <label style={{ display: 'block', fontSize: 11, color: '#64748B', marginBottom: 8, fontWeight: 600 }}>
+            <label style={{ display: 'block', fontSize: 11, color: '#6E6E73', marginBottom: 8, fontWeight: 600 }}>
               Sélectionner les intervenants/entreprises
             </label>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
@@ -288,9 +288,9 @@ export default function PVNewForm({ chantierId, chantier, clientContact, ordresS
                       alignItems: 'center',
                       gap: 10,
                       padding: '10px 12px',
-                      border: isSelected ? '2px solid #3B82F6' : '1px solid #E2E8F0',
+                      border: isSelected ? '2px solid #007AFF' : '1px solid #E5E5EA',
                       borderRadius: 6,
-                      background: isSelected ? 'rgba(59, 130, 246, 0.05)' : '#fff',
+                      background: isSelected ? 'rgba(0,122,255, 0.05)' : '#fff',
                       cursor: 'pointer',
                       fontSize: 12
                     }}
@@ -301,45 +301,45 @@ export default function PVNewForm({ chantierId, chantier, clientContact, ordresS
                       onChange={() => handleIntervenantToggle(int)}
                       style={{ cursor: 'pointer' }}
                     />
-                    <span style={{ fontWeight: 500, color: '#0F172A' }}>{int.nom}</span>
-                    {int.type && <span style={{ fontSize: 10, color: '#64748B' }}>({int.type})</span>}
+                    <span style={{ fontWeight: 500, color: '#1C1C1E' }}>{int.nom}</span>
+                    {int.type && <span style={{ fontSize: 10, color: '#6E6E73' }}>({int.type})</span>}
                   </label>
                 )
               })}
             </div>
 
             {form.selectedIntervenants.length > 0 && (
-              <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 6, padding: 12, marginBottom: 12 }}>
-                <div style={{ fontWeight: 600, color: '#0F172A', marginBottom: 8, fontSize: 11 }}>
+              <div style={{ background: '#F5F5F7', border: '1px solid #E5E5EA', borderRadius: 6, padding: 12, marginBottom: 12 }}>
+                <div style={{ fontWeight: 600, color: '#1C1C1E', marginBottom: 8, fontSize: 11 }}>
                   Intervenants sélectionnés ({form.selectedIntervenants.length})
                 </div>
                 {form.selectedIntervenants.map((intervenant, idx) => (
                   <div key={intervenant.nom} style={{ marginBottom: idx < form.selectedIntervenants.length - 1 ? 12 : 0, fontSize: 10 }}>
-                    <div style={{ fontWeight: 600, color: '#0F172A', marginBottom: 4 }}>{intervenant.nom}</div>
-                    {intervenant.societe && <div style={{ color: '#64748B' }}>{intervenant.societe}</div>}
-                    {intervenant.adresse && <div style={{ color: '#64748B' }}>{intervenant.adresse}</div>}
-                    {(intervenant.codePostal || intervenant.ville) && <div style={{ color: '#64748B' }}>{intervenant.codePostal} {intervenant.ville}</div>}
-                    {intervenant.tel && <div style={{ color: '#64748B' }}>Tel: {intervenant.tel}</div>}
-                    {intervenant.email && <div style={{ color: '#64748B' }}>Email: {intervenant.email}</div>}
-                    {intervenant.siret && <div style={{ color: '#64748B' }}>SIRET: {intervenant.siret}</div>}
+                    <div style={{ fontWeight: 600, color: '#1C1C1E', marginBottom: 4 }}>{intervenant.nom}</div>
+                    {intervenant.societe && <div style={{ color: '#6E6E73' }}>{intervenant.societe}</div>}
+                    {intervenant.adresse && <div style={{ color: '#6E6E73' }}>{intervenant.adresse}</div>}
+                    {(intervenant.codePostal || intervenant.ville) && <div style={{ color: '#6E6E73' }}>{intervenant.codePostal} {intervenant.ville}</div>}
+                    {intervenant.tel && <div style={{ color: '#6E6E73' }}>Tel: {intervenant.tel}</div>}
+                    {intervenant.email && <div style={{ color: '#6E6E73' }}>Email: {intervenant.email}</div>}
+                    {intervenant.siret && <div style={{ color: '#6E6E73' }}>SIRET: {intervenant.siret}</div>}
                   </div>
                 ))}
               </div>
             )}
 
-            <label style={{ display: 'block', fontSize: 11, color: '#64748B', marginBottom: 4, fontWeight: 600 }}>
+            <label style={{ display: 'block', fontSize: 11, color: '#6E6E73', marginBottom: 4, fontWeight: 600 }}>
               Email MOE (Maître d&apos;œuvre) {form.signataireMoeEmail ? '✓' : ''}
             </label>
             <input
               type="email"
               value={form.signataireMoeEmail}
               onChange={(e) => setForm({ ...form, signataireMoeEmail: e.target.value })}
-              style={{ padding: '8px 12px', border: '1px solid #E2E8F0', borderRadius: 6, fontSize: 12, fontFamily: 'inherit', width: '100%', marginBottom: 12 }}
+              style={{ padding: '8px 12px', border: '1px solid #E5E5EA', borderRadius: 6, fontSize: 12, fontFamily: 'inherit', width: '100%', marginBottom: 12 }}
               placeholder="ID MAÎTRISE"
               disabled
             />
 
-            <label style={{ display: 'block', fontSize: 11, color: '#64748B', marginBottom: 4, fontWeight: 600 }}>
+            <label style={{ display: 'block', fontSize: 11, color: '#6E6E73', marginBottom: 4, fontWeight: 600 }}>
               Email(s) MOA (Maître{form.signataireMotEmails.length > 1 ? 's' : ''} d&apos;ouvrage) — jusqu&apos;à 3 {form.signataireMotEmails.some(e => e?.trim()) ? '✓' : ''}
             </label>
             {form.signataireMotEmails.map((email, idx) => (
@@ -352,7 +352,7 @@ export default function PVNewForm({ chantierId, chantier, clientContact, ordresS
                     emails[idx] = e.target.value
                     setForm({ ...form, signataireMotEmails: emails })
                   }}
-                  style={{ flex: 1, padding: '8px 12px', border: '1px solid #E2E8F0', borderRadius: 6, fontSize: 12, fontFamily: 'inherit' }}
+                  style={{ flex: 1, padding: '8px 12px', border: '1px solid #E5E5EA', borderRadius: 6, fontSize: 12, fontFamily: 'inherit' }}
                   placeholder={idx === 0 ? 'Email du client du chantier' : `Co-propriétaire ${idx + 1}`}
                   required={idx === 0}
                 />
@@ -361,8 +361,8 @@ export default function PVNewForm({ chantierId, chantier, clientContact, ordresS
                     type="button"
                     onClick={() => setForm({ ...form, signataireMotEmails: form.signataireMotEmails.filter((_, i) => i !== idx) })}
                     style={{
-                      padding: '6px 10px', background: '#FEE2E2', color: '#DC2626',
-                      border: '1px solid #FCA5A5', borderRadius: 6, fontSize: 12,
+                      padding: '6px 10px', background: '#FFE3E1', color: '#D70015',
+                      border: '1px solid #FF9F99', borderRadius: 6, fontSize: 12,
                       fontWeight: 600, cursor: 'pointer', flexShrink: 0
                     }}
                   >
@@ -376,8 +376,8 @@ export default function PVNewForm({ chantierId, chantier, clientContact, ordresS
                 type="button"
                 onClick={() => setForm({ ...form, signataireMotEmails: [...form.signataireMotEmails, ''] })}
                 style={{
-                  padding: '8px 12px', background: '#DBEAFE', color: '#0284C7',
-                  border: '1px solid #7DD3FC', borderRadius: 6, fontSize: 12,
+                  padding: '8px 12px', background: '#DCEBFF', color: '#0077B6',
+                  border: '1px solid #8FD6F2', borderRadius: 6, fontSize: 12,
                   fontWeight: 600, cursor: 'pointer', width: '100%', marginBottom: 12
                 }}
               >
@@ -387,23 +387,23 @@ export default function PVNewForm({ chantierId, chantier, clientContact, ordresS
           </div>
 
           {/* DÉCISION IMMÉDIATE */}
-          <div style={{ borderTop: '1px solid #E2E8F0', paddingTop: 12, marginTop: 12 }}>
-            <div style={{ fontSize: 12, fontWeight: 600, color: '#0F172A', marginBottom: 12 }}>
+          <div style={{ borderTop: '1px solid #E5E5EA', paddingTop: 12, marginTop: 12 }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: '#1C1C1E', marginBottom: 12 }}>
               DÉCISION FINALE
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {[
-                { value: 'Accepté', label: '✓ Accepté sans réserve', color: '#059669' },
-                { value: 'Accepté avec réserve', label: '⚠️ Accepté avec réserve', color: '#D97706' },
-                { value: 'Refusé', label: '✕ Refusé', color: '#DC2626' }
+                { value: 'Accepté', label: '✓ Accepté sans réserve', color: '#248A3D' },
+                { value: 'Accepté avec réserve', label: '⚠️ Accepté avec réserve', color: '#C93400' },
+                { value: 'Refusé', label: '✕ Refusé', color: '#D70015' }
               ].map(opt => (
                 <label key={opt.value} style={{
                   display: 'flex',
                   alignItems: 'center',
                   gap: 10,
                   padding: '10px 12px',
-                  border: form.decision === opt.value ? `2px solid ${opt.color}` : '1px solid #E2E8F0',
+                  border: form.decision === opt.value ? `2px solid ${opt.color}` : '1px solid #E5E5EA',
                   borderRadius: 6,
                   cursor: 'pointer',
                   background: form.decision === opt.value ? 'rgba(0,0,0,0.02)' : '#fff',
@@ -433,7 +433,7 @@ export default function PVNewForm({ chantierId, chantier, clientContact, ordresS
                 style={{
                   width: '100%',
                   padding: 8,
-                  border: '1px solid #E2E8F0',
+                  border: '1px solid #E5E5EA',
                   borderRadius: 6,
                   fontSize: 12,
                   fontFamily: 'inherit',
@@ -447,12 +447,12 @@ export default function PVNewForm({ chantierId, chantier, clientContact, ordresS
             {/* Réserves acceptation */}
             {form.decision === 'Accepté avec réserve' && (
               <div style={{ marginTop: 12 }}>
-                <div style={{ fontSize: 11, fontWeight: 600, color: '#0F172A', marginBottom: 8 }}>
+                <div style={{ fontSize: 11, fontWeight: 600, color: '#1C1C1E', marginBottom: 8 }}>
                   Réserves mentionnées
                 </div>
                 {(Array.isArray(form.reservesAcceptation) ? form.reservesAcceptation : [form.reservesAcceptation || '']).map((reserve, idx) => (
                   <div key={idx} style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'flex-start' }}>
-                    <div style={{ minWidth: 50, fontSize: 11, fontWeight: 600, color: '#64748B', paddingTop: 9 }}>
+                    <div style={{ minWidth: 50, fontSize: 11, fontWeight: 600, color: '#6E6E73', paddingTop: 9 }}>
                       Ligne {idx + 1}:
                     </div>
                     <textarea
@@ -466,7 +466,7 @@ export default function PVNewForm({ chantierId, chantier, clientContact, ordresS
                       style={{
                         flex: 1,
                         padding: 8,
-                        border: '1px solid #E2E8F0',
+                        border: '1px solid #E5E5EA',
                         borderRadius: 6,
                         fontSize: 12,
                         fontFamily: 'inherit',
@@ -484,9 +484,9 @@ export default function PVNewForm({ chantierId, chantier, clientContact, ordresS
                         }}
                         style={{
                           padding: '6px 10px',
-                          background: '#FEE2E2',
-                          color: '#DC2626',
-                          border: '1px solid #FCA5A5',
+                          background: '#FFE3E1',
+                          color: '#D70015',
+                          border: '1px solid #FF9F99',
                           borderRadius: 6,
                           fontSize: 12,
                           fontWeight: 600,
@@ -507,9 +507,9 @@ export default function PVNewForm({ chantierId, chantier, clientContact, ordresS
                   }}
                   style={{
                     padding: '8px 12px',
-                    background: '#DBEAFE',
-                    color: '#0284C7',
-                    border: '1px solid #7DD3FC',
+                    background: '#DCEBFF',
+                    color: '#0077B6',
+                    border: '1px solid #8FD6F2',
                     borderRadius: 6,
                     fontSize: 12,
                     fontWeight: 600,
@@ -531,8 +531,8 @@ export default function PVNewForm({ chantierId, chantier, clientContact, ordresS
               style={{
                 flex: 1,
                 padding: '8px 12px',
-                background: '#F1F5F9',
-                color: '#0F172A',
+                background: '#F2F2F7',
+                color: '#1C1C1E',
                 border: 'none',
                 borderRadius: 6,
                 fontSize: 12,
@@ -548,7 +548,7 @@ export default function PVNewForm({ chantierId, chantier, clientContact, ordresS
               style={{
                 flex: 1,
                 padding: '8px 12px',
-                background: '#3B82F6',
+                background: '#007AFF',
                 color: '#fff',
                 border: 'none',
                 borderRadius: 6,
@@ -565,7 +565,7 @@ export default function PVNewForm({ chantierId, chantier, clientContact, ordresS
               style={{
                 flex: 1,
                 padding: '8px 12px',
-                background: '#1E3A5F',
+                background: '#0071E3',
                 color: '#fff',
                 border: 'none',
                 borderRadius: 6,
@@ -602,9 +602,9 @@ export default function PVNewForm({ chantierId, chantier, clientContact, ordresS
             flexDirection: 'column',
             boxShadow: '0 20px 25px rgba(0,0,0,0.2)'
           }} onClick={(e) => e.stopPropagation()}>
-            <div style={{ padding: 16, borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ padding: 16, borderBottom: '1px solid #E5E5EA', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>Aperçu du PV</h3>
-              <button onClick={() => setShowPreview(false)} aria-label="Fermer l'aperçu" style={{ background: 'none', border: 'none', fontSize: 24, cursor: 'pointer', color: '#64748B' }}>×</button>
+              <button onClick={() => setShowPreview(false)} aria-label="Fermer l'aperçu" style={{ background: 'none', border: 'none', fontSize: 24, cursor: 'pointer', color: '#6E6E73' }}>×</button>
             </div>
             <iframe
               title="Aperçu PV"

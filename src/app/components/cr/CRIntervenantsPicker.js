@@ -2,9 +2,9 @@
 import { toCrIntervenant } from '../../lib/crSuivi'
 
 const PRESENCES = [
-  { v: 'Présent', short: 'P', color: '#047857', bg: '#ECFDF5' },
-  { v: 'Absent', short: 'A', color: '#B91C1C', bg: '#FEF2F2' },
-  { v: 'Excusé', short: 'E', color: '#B45309', bg: '#FFFBEB' },
+  { v: 'Présent', short: 'P', color: '#1E7B34', bg: '#EAF8EE' },
+  { v: 'Absent', short: 'A', color: '#D70015', bg: '#FFF0EF' },
+  { v: 'Excusé', short: 'E', color: '#C93400', bg: '#FFF7E8' },
 ]
 
 const linkBtn = (color) => ({
@@ -26,7 +26,7 @@ export default function CRIntervenantsPicker({ available = [], value = [], onCha
 
   if (!list.length) {
     return (
-      <div style={{ background: '#F8FAFC', border: '1px dashed #CBD5E1', borderRadius: 8, padding: '12px 14px', fontSize: 12, color: '#64748B' }}>
+      <div style={{ background: '#F5F5F7', border: '1px dashed #D1D1D6', borderRadius: 8, padding: '12px 14px', fontSize: 12, color: '#6E6E73' }}>
         Aucun intervenant sur ce chantier — ajoutez-en depuis sa fiche (onglet Chantiers), puis revenez ici.
       </div>
     )
@@ -47,15 +47,15 @@ export default function CRIntervenantsPicker({ available = [], value = [], onCha
   const convoques = value.filter(v => v.convoque !== false).length
 
   return (
-    <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 8, padding: 10 }}>
+    <div style={{ background: '#F5F5F7', border: '1px solid #E5E5EA', borderRadius: 8, padding: 10 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, gap: 8, flexWrap: 'wrap' }}>
-        <span style={{ fontSize: 12, fontWeight: 700, color: '#0F172A' }}>
+        <span style={{ fontSize: 12, fontWeight: 700, color: '#1C1C1E' }}>
           {value.length === 0 ? 'Aucun sélectionné' : `${value.length} intervenant${value.length > 1 ? 's' : ''} · ${convoques} convoqué${convoques > 1 ? 's' : ''}`}
         </span>
         <div style={{ display: 'flex', gap: 12 }}>
-          <button type="button" style={linkBtn('#1D4ED8')}
+          <button type="button" style={linkBtn('#0066CC')}
             onClick={() => set(new Map(list.map(it => [it.nom, byNom.get(it.nom) || toCrIntervenant(it)])))}>Tout cocher</button>
-          <button type="button" style={linkBtn('#64748B')} onClick={() => onChange([])}>Tout décocher</button>
+          <button type="button" style={linkBtn('#6E6E73')} onClick={() => onChange([])}>Tout décocher</button>
         </div>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -65,20 +65,20 @@ export default function CRIntervenantsPicker({ available = [], value = [], onCha
           return (
             <div key={it.id || it.nom} style={{
               display: 'flex', alignItems: m ? 'stretch' : 'center', flexDirection: m ? 'column' : 'row', gap: 8,
-              padding: '8px 10px', borderRadius: 6, background: isSel ? '#EFF6FF' : '#fff',
-              border: isSel ? '1.5px solid #3B82F6' : '1px solid #E2E8F0',
+              padding: '8px 10px', borderRadius: 6, background: isSel ? '#EAF3FF' : '#fff',
+              border: isSel ? '1.5px solid #007AFF' : '1px solid #E5E5EA',
             }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0, cursor: 'pointer' }}>
                 <input type="checkbox" checked={isSel} onChange={() => toggle(it)}
-                  style={{ width: 18, height: 18, accentColor: '#3B82F6', flexShrink: 0 }} />
+                  style={{ width: 18, height: 18, accentColor: '#007AFF', flexShrink: 0 }} />
                 <span style={{ minWidth: 0 }}>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: '#0F172A' }}>{it.nom}</span>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: '#1C1C1E' }}>{it.nom}</span>
                   {(it.societe && it.societe !== it.nom) || it.role ? (
-                    <span style={{ fontSize: 11, color: '#64748B' }}>
+                    <span style={{ fontSize: 11, color: '#6E6E73' }}>
                       {' '}· {[it.societe && it.societe !== it.nom ? it.societe : '', it.role].filter(Boolean).join(' · ')}
                     </span>
                   ) : null}
-                  {!it.email && <span style={{ fontSize: 10, color: '#B45309' }}> · sans email</span>}
+                  {!it.email && <span style={{ fontSize: 10, color: '#C93400' }}> · sans email</span>}
                 </span>
               </label>
               {isSel && (
@@ -91,16 +91,16 @@ export default function CRIntervenantsPicker({ available = [], value = [], onCha
                           onClick={() => patch(it, { presence: p.v })}
                           style={{
                             minWidth: 30, height: 30, borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer',
-                            fontFamily: 'inherit', border: `1.5px solid ${on ? p.color : '#E2E8F0'}`,
-                            background: on ? p.bg : '#fff', color: on ? p.color : '#94A3B8',
+                            fontFamily: 'inherit', border: `1.5px solid ${on ? p.color : '#E5E5EA'}`,
+                            background: on ? p.bg : '#fff', color: on ? p.color : '#8E8E93',
                           }}>{m ? p.short : p.v}</button>
                       )
                     })}
                   </div>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 600, color: '#1E3A5F', cursor: 'pointer' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 600, color: '#0066CC', cursor: 'pointer' }}>
                     <input type="checkbox" checked={cur.convoque !== false}
                       onChange={e => patch(it, { convoque: e.target.checked })}
-                      style={{ width: 16, height: 16, accentColor: '#1E3A5F' }} />
+                      style={{ width: 16, height: 16, accentColor: '#0071E3' }} />
                     Convoqué
                   </label>
                 </div>

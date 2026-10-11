@@ -7,7 +7,7 @@ import { toneText, toneBg } from '../lib/tone'
  * Statut en texte de sa couleur (teinte foncée, lisible) sur un fond très
  * dilué de la même couleur — jamais en aplat plein (DESIGN.md).
  */
-export default function Badge({ text, color = '#3B82F6' }) {
+export default function Badge({ text, color = '#007AFF' }) {
   return (
     <span
       style={{

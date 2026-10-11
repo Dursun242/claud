@@ -20,28 +20,28 @@ export default function ToastContainer() {
 
   const typeStyles = {
     success: {
-      background: '#D1FAE5',
-      borderColor: '#6EE7B7',
-      textColor: '#065F46',
-      iconColor: '#10B981',
+      background: '#D4F2DD',
+      borderColor: '#8EDBA5',
+      textColor: '#1A5E2C',
+      iconColor: '#34C759',
     },
     error: {
-      background: '#FEE2E2',
-      borderColor: '#FCA5A5',
+      background: '#FFE3E1',
+      borderColor: '#FF9F99',
       textColor: '#7F1D1D',
-      iconColor: '#EF4444',
+      iconColor: '#FF3B30',
     },
     warning: {
-      background: '#FEF3C7',
-      borderColor: '#FCD34D',
-      textColor: '#92400E',
-      iconColor: '#F59E0B',
+      background: '#FFF0D6',
+      borderColor: '#FFCC66',
+      textColor: '#A0390C',
+      iconColor: '#FF9500',
     },
     info: {
-      background: '#DBEAFE',
-      borderColor: '#93C5FD',
-      textColor: '#1E40AF',
-      iconColor: '#3B82F6',
+      background: '#DCEBFF',
+      borderColor: '#99C7FF',
+      textColor: '#0058B0',
+      iconColor: '#007AFF',
     },
   }
 
@@ -84,7 +84,7 @@ export default function ToastContainer() {
               display: 'flex',
               alignItems: 'center',
               gap: 10,
-              boxShadow: '0 4px 16px rgba(15,23,42,0.12)',
+              boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
               animation: ANIMATION.toastIn,
               fontFamily: "var(--font-dm-sans), sans-serif",
             }}

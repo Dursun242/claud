@@ -54,25 +54,25 @@ function RelanceForm({ initial, error, sending, onSubmit, onCancel }) {
       <FF label="Début du message" required>
         <textarea style={area} aria-label="Début du message" value={form.intro} onChange={e => set('intro', e.target.value)} />
       </FF>
-      <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 8, padding: '10px 12px', marginBottom: 12 }}>
-        <div style={{ fontSize: 12, fontWeight: 700, color: '#1E3A5F', marginBottom: 6 }}>
+      <div style={{ background: '#F5F5F7', border: '1px solid #E5E5EA', borderRadius: 8, padding: '10px 12px', marginBottom: 12 }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: '#0066CC', marginBottom: 6 }}>
           Choix proposés au client (boutons dans le mail)
         </div>
-        <ol style={{ margin: 0, paddingLeft: 20, fontSize: 12, color: '#334155', lineHeight: 1.6 }}>
+        <ol style={{ margin: 0, paddingLeft: 20, fontSize: 12, color: '#3A3A3C', lineHeight: 1.6 }}>
           {RAISONS.map(r => <li key={r.code}>{r.code === 'autre' ? 'Autre (le client précise)' : r.label}</li>)}
         </ol>
-        <div style={{ fontSize: 11, color: '#64748B', marginTop: 6 }}>
+        <div style={{ fontSize: 11, color: '#6E6E73', marginTop: 6 }}>
           Le client clique sur sa réponse et confirme : elle s’affiche sur le devis et vous êtes prévenu. Il peut aussi répondre au mail avec le numéro.
         </div>
       </div>
       <FF label="Fin du message">
         <textarea style={area} aria-label="Fin du message" value={form.outro} onChange={e => set('outro', e.target.value)} />
       </FF>
-      <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 12, color: '#334155', marginBottom: 12 }}>
+      <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 12, color: '#3A3A3C', marginBottom: 12 }}>
         <input type="checkbox" checked={form.copyMe} onChange={e => set('copyMe', e.target.checked)} />
         M’envoyer une copie
       </label>
-      {shownError && <div role="alert" style={{ color: '#DC2626', fontSize: 12, marginBottom: 10, fontWeight: 500 }}>⚠ {shownError}</div>}
+      {shownError && <div role="alert" style={{ color: '#D70015', fontSize: 12, marginBottom: 10, fontWeight: 500 }}>⚠ {shownError}</div>}
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
         <button onClick={onCancel} style={btnS}>Annuler</button>
         <button onClick={submit} disabled={sending} style={{ ...btnP, opacity: sending ? 0.6 : 1 }}>

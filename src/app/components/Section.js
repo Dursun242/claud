@@ -19,14 +19,14 @@ export default function Section({ title, count, color, action, children }) {
           minHeight: 32,
         }}
       >
-        <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#0F172A' }}>
+        <h3 style={{ margin: 0, fontSize: 17, fontWeight: 600, color: '#1C1C1E', letterSpacing: '-0.01em' }}>
           {title}
         </h3>
         {count !== undefined && (
           <span
             style={{
-              background: '#E2E8F0',
-              color: '#475569',
+              background: '#E5E5EA',
+              color: '#48484A',
               fontSize: 12,
               fontWeight: 600,
               borderRadius: 999,

@@ -15,7 +15,7 @@ export default function InteractionFormModal({ open, form, setForm, error, savin
               onClick={() => setForm(f => ({ ...f, type: t, sujet: isAutoSujet(f.sujet) ? defaultSujet(t, contactsById.get(f.contact_id)) : f.sujet }))}
               style={{
                 padding: '8px 12px', borderRadius: 999, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-                border: `1px solid ${active ? '#1E3A5F' : '#E2E8F0'}`, background: active ? '#1E3A5F' : '#fff', color: active ? '#fff' : '#334155',
+                border: `1px solid ${active ? '#0071E3' : '#E5E5EA'}`, background: active ? '#0071E3' : '#fff', color: active ? '#fff' : '#3A3A3C',
               }}>{INTERACTION_ICONS[t]} {t}</button>
           )
         })}
@@ -34,13 +34,13 @@ export default function InteractionFormModal({ open, form, setForm, error, savin
         <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', alignItems: 'center' }}>
           <button type="button" onClick={() => setForm({ ...form, prochaine_action_date: '', prochaine_action: '' })}
             aria-pressed={!form.prochaine_action_date}
-            style={chip(!form.prochaine_action_date, '#64748B')}>Pas de relance</button>
+            style={chip(!form.prochaine_action_date, '#6E6E73')}>Pas de relance</button>
           {RELANCE_CHIPS.map(c => {
             const d = c.d(); const active = form.prochaine_action_date === d
             return (
               <button key={c.l} type="button" aria-pressed={active}
                 onClick={() => setForm({ ...form, prochaine_action_date: d, prochaine_action: form.prochaine_action || 'Rappeler' })}
-                style={chip(active, '#F59E0B')}>{c.l}</button>
+                style={chip(active, '#FF9500')}>{c.l}</button>
             )
           })}
           <input type="date" aria-label="Autre date de relance" value={form.prochaine_action_date || ''}
@@ -53,14 +53,14 @@ export default function InteractionFormModal({ open, form, setForm, error, savin
           <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 6 }}>
             {['Rappeler', 'Envoyer le devis', 'Relancer par email', 'Planifier une visite'].map(a => (
               <button key={a} type="button" onClick={() => setForm({ ...form, prochaine_action: a })}
-                style={chip(form.prochaine_action === a, '#3B82F6')}>{a}</button>
+                style={chip(form.prochaine_action === a, '#007AFF')}>{a}</button>
             ))}
           </div>
           <input style={inp} value={form.prochaine_action || ''}
             onChange={e => setForm({ ...form, prochaine_action: e.target.value })} />
         </FF>
       )}
-      {error && <div role="alert" style={{ color: '#DC2626', fontSize: 12, marginBottom: 10, fontWeight: 500 }}>⚠ {error}</div>}
+      {error && <div role="alert" style={{ color: '#D70015', fontSize: 12, marginBottom: 10, fontWeight: 500 }}>⚠ {error}</div>}
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
         <button onClick={onClose} style={btnS}>Annuler</button>
         <button onClick={onSave} disabled={saving} style={{ ...btnP, opacity: saving ? 0.6 : 1 }}>

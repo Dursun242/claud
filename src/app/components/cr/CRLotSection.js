@@ -22,10 +22,10 @@ export default function CRLotSection({
   return (
     <section id={`cr-section-${section.key}`} aria-label={section.lot} style={{ ...card, scrollMarginTop: 120 }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap', marginBottom: 10 }}>
-        <h3 style={{ margin: 0, fontSize: 17, color: '#0F172A' }}>{section.lot}</h3>
-        <span style={{ fontSize: 12, color: '#64748B' }}>
+        <h3 style={{ margin: 0, fontSize: 17, color: '#1C1C1E' }}>{section.lot}</h3>
+        <span style={{ fontSize: 12, color: '#6E6E73' }}>
           {rows.length} point{rows.length > 1 ? 's' : ''}{relances ? ` · ` : ''}
-          {relances ? <b style={{ color: '#B91C1C' }}>{relances} à relancer</b> : null}
+          {relances ? <b style={{ color: '#D70015' }}>{relances} à relancer</b> : null}
         </span>
       </div>
 
@@ -41,16 +41,16 @@ export default function CRLotSection({
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <input type="range" min="0" max="100" step="5" aria-label={`Avancement du lot ${section.lot}`}
                 value={av ?? 0} onChange={e => onSection({ avancement: Number(e.target.value) })}
-                style={{ flex: 1, accentColor: '#1E3A5F', minHeight: 32 }} />
+                style={{ flex: 1, accentColor: '#0071E3', minHeight: 32 }} />
               <input type="number" min="0" max="100" aria-label={`Avancement du lot ${section.lot} en %`}
                 value={av ?? ''} onChange={e => onSection({ avancement: e.target.value === '' ? null : Math.max(0, Math.min(100, Number(e.target.value))) })}
                 style={{ ...field, width: 72, minHeight: 36 }} />
             </div>
-            <div style={{ fontSize: 11, color: '#64748B', marginTop: 3, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <div style={{ fontSize: 11, color: '#6E6E73', marginTop: 3, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
               {section.avancement_prec != null && <span>CR précédent : {section.avancement_prec} %</span>}
               {section.prevu != null && <span>Prévu au planning : {section.prevu} %</span>}
               {ecart != null && ecart !== 0 && (
-                <b style={{ color: ecart < 0 ? '#B91C1C' : '#047857' }}>{ecart > 0 ? '+' : ''}{ecart} pts</b>
+                <b style={{ color: ecart < 0 ? '#D70015' : '#1E7B34' }}>{ecart > 0 ? '+' : ''}{ecart} pts</b>
               )}
             </div>
           </div>
@@ -70,7 +70,7 @@ export default function CRLotSection({
           placeholder={isGeneral ? 'Planning, sécurité, propreté, administratif…' : 'Constats, avancement, remarques…'}
           style={{ ...field, resize: 'vertical' }} />
         {dictation?.target === micId && dictation.interim && (
-          <div style={{ fontSize: 12, color: '#64748B', fontStyle: 'italic', marginTop: 3 }}>{dictation.interim}…</div>
+          <div style={{ fontSize: 12, color: '#6E6E73', fontStyle: 'italic', marginTop: 3 }}>{dictation.interim}…</div>
         )}
       </div>
 
@@ -87,7 +87,7 @@ export default function CRLotSection({
             onChange={(p) => onRow(r.key, p)} onRemove={() => onRemoveRow(r.key)} />
         ))}
       </div>
-      <button type="button" onClick={onAddRow} style={{ ...ghostBtn('#7C3AED'), width: '100%', marginTop: 8, borderStyle: 'dashed' }}>
+      <button type="button" onClick={onAddRow} style={{ ...ghostBtn('#8944AB'), width: '100%', marginTop: 8, borderStyle: 'dashed' }}>
         + Nouveau point {isGeneral ? '' : `— ${section.lot}`}
       </button>
     </section>
