@@ -14,6 +14,8 @@ import ChantierCard from '../components/projects/ChantierCard'
 import Section from '../components/Section'
 import { EMOJI } from '../lib/emoji'
 import ProjectsFilterPills from '../components/projects/ProjectsFilterPills'
+import ChantierGlance from '../components/projects/ChantierGlance'
+import ChantierTabs from '../components/projects/ChantierTabs'
 import ClientAccountField from '../components/projects/ClientAccountField'
 import { useAttachments } from '../hooks/useAttachments'
 import { useComments } from '../hooks/useComments'
@@ -31,6 +33,7 @@ import { useChiffrage } from '../hooks/useChiffrage'
 import { lotOptions, suggestLot } from '../lib/chiffrage'
 import { nextOsNumero } from '../lib/osNumero'
 import { localISO } from '../lib/today'
+import { chantierGlance } from '../lib/chantierGlance'
 import { isNetworkError } from '../lib/offlineStore'
 // Éditeur de CR et envoi : chargés à l'ouverture seulement
 const CREditor = dynamic(() => import('../components/cr/CREditor'), { ssr: false })
@@ -57,7 +60,10 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
   // pour qu'ouvrir une fenêtre OS ou tâche ne les efface pas.
   const [notesDraft,setNotesDraft]=useState(null);
   const [notesSaving,setNotesSaving]=useState(false);
-  useEffect(() => { setNotesDraft(null); }, [selected]);
+  // Onglet de la fiche (Suivi / Entreprises / Documents / Finances) : chaque
+  // chantier ouvert repart sur Suivi.
+  const [tab,setTab]=useState("suivi");
+  useEffect(() => { setNotesDraft(null); setTab("suivi"); }, [selected]);
   const [q,setQ]=useState("");
   const [filterStatut,setFilterStatut]=useState("");
   const [filterPhase,setFilterPhase]=useState("");
@@ -304,6 +310,8 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
 
     // Données dérivées memoizées (voir useMemo plus haut)
     const { chTasks, chOS, chCR, chPlanning, intervenants, clientContact, finances } = selectedRelated;
+    const today = localISO();
+    const glance = chantierGlance({ crs: chCR, tasks: chTasks, finances, today });
 
     return (<div>
       {/* Back button + Header */}
@@ -350,7 +358,7 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
         background:"#fff",borderRadius:12,padding:m?16:24,
         border:"1px solid #E5E5EA",
         boxShadow:"0 1px 3px rgba(0,0,0,0.06)",
-        marginBottom:24
+        marginBottom:16
       }}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:12}}>
           <div>
@@ -385,261 +393,280 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
             }} className="u-btn" style={btnChip}><ChipLabel icon={I.edit}>Modifier</ChipLabel></button>
           </div>}
         </div>
-        {/* Budget + gauge — composant dédié, consomme `finances` calculé via lib/chantierFinances */}
-        <ChantierBudgetCard finances={finances} m={m} />
       </div>
 
-      {/* Chiffrage estimatif (DPGF) ↔ OS par lot — équipe uniquement */}
-      {!readOnly && <ChiffrageSection
-        chantier={ch} os={chOS} allOs={data.ordresService || []} user={user} m={m}
-        onApplyToChantier={async ({ budget, lots }) => { await SB.upsertChantier({ ...ch, budget, lots }); await reload(); }}
-      />}
+      {/* En un coup d'œil + onglets (la fiche s'ouvre sur Suivi) */}
+      <ChantierGlance glance={glance} today={today} m={m} onOpen={setTab} />
+      <ChantierTabs value={tab} onChange={setTab} />
 
-      {/* ATTACHMENTS - Using Phase 3 Hook */}
-      <AttachmentsSection
-        attachments={attachments}
-        onUpload={uploadAttachment}
-        onDelete={deleteAttachment}
-      />
-
-      {/* ORDRES DE SERVICE */}
-      <Section title="Ordres de service" count={chOS.length} emoji={EMOJI.os}>
-        {!readOnly && <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap"}}>
-          <button onClick={()=>{
-            setDetailForm({
-              numero:nextOsNumero(data.ordresService),chantier_id:ch.id,
-              date_emission:localISO(),
-              statut:"Brouillon",montant_ttc:0
-            });setDetailModal("newOS");
-          }} className="u-btn" style={btnAdd}><Icon d={I.plus} size={16}/>Nouvel OS</button>
-          <button onClick={()=>setDetailModal("useTemplate")} className="u-btn" style={btnAdd}>
-            <Icon d={I.copy} size={16}/>Depuis un modèle</button>
-        </div>}
-        {chOS.length===0 ? <p style={{color:"#6E6E73",fontSize:12}}>Aucun OS pour ce chantier</p> :
-          chOS.map(os=>(
-            // Sur mobile : colonne (titre au-dessus, boutons en dessous)
-            // Sur desktop : ligne (titre à gauche, boutons à droite)
-            <div key={os.id} style={{
-              background:"#fff",borderRadius:10,padding:12,marginBottom:8,
-              border:"1px solid #E5E5EA",
-              display:"flex",flexDirection:m?"column":"row",
-              justifyContent:"space-between",
-              alignItems:m?"stretch":"flex-start",
-              gap:8,minWidth:0,overflow:"hidden"
-            }}>
-              <div style={{flex:"1 1 0",minWidth:0}}>
-                <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2,flexWrap:"wrap"}}>
-                  <span style={{fontWeight:700,fontSize:13,color:"#1C1C1E",whiteSpace:"nowrap"}}>{os.numero}</span>
-                  <Badge text={os.statut||"Brouillon"} color={{
-                    "Brouillon":"#8E8E93","Émis":"#007AFF","Signé":"#AF52DE",
-                    "En cours":"#FF9500","Terminé":"#34C759","Annulé":"#FF3B30"
-                  }[os.statut]||"#8E8E93"}/>
+      {tab==="suivi" && <div role="tabpanel" id="chantier-panel-suivi" aria-labelledby="chantier-tab-suivi">
+        {/* COMPTES RENDUS */}
+        <Section title="Comptes rendus" count={chCR.length} emoji={EMOJI.cr}>
+          {!readOnly && <div style={{display:"flex",gap:8,marginBottom:12}}>
+            <button onClick={()=>setCrModal({ initial: { chantierId: ch.id } })} className="u-btn" style={btnAdd}>
+              <Icon d={I.plus} size={16}/>Nouveau CR</button>
+          </div>}
+          {chCR.length===0 ? <p style={{color:"#6E6E73",fontSize:12}}>Aucun CR pour ce chantier</p> :
+            chCR.sort((a,b)=>new Date(b.date)-new Date(a.date)).map(cr=>(
+              <div key={cr.id} style={{
+                background:"#fff",borderRadius:10,padding:12,marginBottom:8,
+                border:"1px solid #E5E5EA",
+                display:"flex",flexDirection:m?"column":"row",
+                justifyContent:"space-between",
+                alignItems:m?"stretch":"flex-start",
+                gap:8,minWidth:0,overflow:"hidden"
+              }}>
+                <div style={{flex:"1 1 0",minWidth:0}}>
+                  <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2,flexWrap:"wrap"}}>
+                    <span style={{fontWeight:700,fontSize:13,color:"#1C1C1E",whiteSpace:"nowrap"}}>CR n°{cr.numero}</span>
+                    <span style={{fontSize:12,color:"#6E6E73"}}>{fmtDate(cr.date)}</span>
+                    {cr.statut === 'Brouillon' && <Badge text="Brouillon" color="#FF9500"/>}
+                  </div>
+                  <div style={{fontSize:12,color:"#3A3A3C",lineHeight:1.5}}>
+                    {(cr.resume||"").substring(0,100)}{(cr.resume||"").length>100?"...":""}
+                  </div>
                 </div>
-                <div style={{
-                  fontSize:12,color:"#6E6E73",overflow:"hidden",
-                  textOverflow:"ellipsis",whiteSpace:"nowrap"
-                }}>
-                  {os.artisan_nom} • {(os.prestations||[]).length} prestation(s) • {fmtDate(os.date_emission)}
-                </div>
-                <div style={{
-                  fontSize:16,fontWeight:700,color:"#1C1C1E",marginTop:4
-                }}>{fmtMoney(os.montant_ttc||0)}</div>
-              </div>
-              <div style={{display:"flex",gap:4,flexShrink:0,flexWrap:"wrap",justifyContent:m?"flex-start":"flex-end"}}>
-                <button title="Télécharger le PDF" className="u-btn" style={btnChip}
-                  onClick={async()=>(await generators()).generateOSPdf({...os,chantier:ch.nom,adresse_chantier:ch.adresse})}><ChipLabel icon={I.download}>PDF</ChipLabel></button>
-                <button title="Télécharger le fichier Excel" className="u-btn" style={btnChip}
-                  onClick={async()=>(await generators()).generateOSExcel({...os,chantier:ch.nom,adresse_chantier:ch.adresse})}><ChipLabel icon={I.sheet}>Excel</ChipLabel></button>
-                {!readOnly && <>
-                  <button onClick={async()=>{
-                    try{
-                      await SB.saveTemplate('os',
-                        `Template ${os.artisan_nom}`,
-                        `Template d'OS pour ${os.artisan_nom}`,{...os});
-                      addToast("Modèle créé","success");
-                    }catch(err){
-                      addToast("Erreur : "+(err?.message||"template"),"error");
-                    }
-                  }} title="Créer un modèle d'OS à partir de celui-ci"
-                  className="u-btn" style={btnChip}><ChipLabel icon={I.copy}>Modèle</ChipLabel></button>
-                  <button onClick={()=>{setDetailForm(os);setDetailModal("editOS");}}
-                    title="Modifier l'OS"
-                    className="u-btn" style={btnChip}><ChipLabel icon={I.edit}>Modifier</ChipLabel></button>
-                </>}
-              </div>
-            </div>
-          ))
-        }
-      </Section>
-
-      {/* COMPTES RENDUS */}
-      <Section title="Comptes rendus" count={chCR.length} emoji={EMOJI.cr}>
-        {!readOnly && <div style={{display:"flex",gap:8,marginBottom:12}}>
-          <button onClick={()=>setCrModal({ initial: { chantierId: ch.id } })} className="u-btn" style={btnAdd}>
-            <Icon d={I.plus} size={16}/>Nouveau CR</button>
-        </div>}
-        {chCR.length===0 ? <p style={{color:"#6E6E73",fontSize:12}}>Aucun CR pour ce chantier</p> :
-          chCR.sort((a,b)=>new Date(b.date)-new Date(a.date)).map(cr=>(
-            <div key={cr.id} style={{
-              background:"#fff",borderRadius:10,padding:12,marginBottom:8,
-              border:"1px solid #E5E5EA",
-              display:"flex",flexDirection:m?"column":"row",
-              justifyContent:"space-between",
-              alignItems:m?"stretch":"flex-start",
-              gap:8,minWidth:0,overflow:"hidden"
-            }}>
-              <div style={{flex:"1 1 0",minWidth:0}}>
-                <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2,flexWrap:"wrap"}}>
-                  <span style={{fontWeight:700,fontSize:13,color:"#1C1C1E",whiteSpace:"nowrap"}}>CR n°{cr.numero}</span>
-                  <span style={{fontSize:12,color:"#6E6E73"}}>{fmtDate(cr.date)}</span>
-                  {cr.statut === 'Brouillon' && <Badge text="Brouillon" color="#FF9500"/>}
-                </div>
-                <div style={{fontSize:12,color:"#3A3A3C",lineHeight:1.5}}>
-                  {(cr.resume||"").substring(0,100)}{(cr.resume||"").length>100?"...":""}
-                </div>
-              </div>
-              <div style={{display:"flex",gap:4,flexShrink:0,flexWrap:"wrap",justifyContent:m?"flex-start":"flex-end"}}>
-                <button onClick={async()=>(await generators()).generateCRPdf(cr,ch,{ images: await loadCrImages(cr) })} title="Télécharger le PDF"
-                  className="u-btn" style={btnChip}><ChipLabel icon={I.download}>PDF</ChipLabel></button>
-                <button onClick={async()=>(await generators()).generateCRExcel(cr,ch)} title="Télécharger le fichier Excel"
-                  className="u-btn" style={btnChip}><ChipLabel icon={I.sheet}>Excel</ChipLabel></button>
-                {!readOnly && (
-                  <button onClick={()=>setSendCr(cr)} title="Envoyer le CR et la convocation par mail"
-                    className="u-btn" style={btnChip}><ChipLabel icon={I.send}>Envoyer</ChipLabel></button>
-                )}
-                {!readOnly && (
-                  <button onClick={()=>setCrModal({ initial: { ...cr, chantierId: ch.id } })}
-                    title="Modifier le CR" className="u-btn" style={btnChip}>
-                    <ChipLabel icon={I.edit}>Modifier</ChipLabel>
-                  </button>
-                )}
-              </div>
-            </div>
-          ))
-        }
-      </Section>
-
-      {/* PROCÈS-VERBAUX DE RÉCEPTION — juste avant les tâches, comme OS/CR */}
-      {selectedChantier && selectedRelated && (
-        <ProcesVerbalReception
-          chantierId={selectedChantier.id}
-          chantier={selectedChantier}
-          ordresService={selectedRelated.chOS || []}
-          intervenants={selectedRelated.intervenants || []}
-          clientContact={selectedRelated.clientContact}
-          onRefresh={reload}
-          readOnly={readOnly}
-        />
-      )}
-
-      {/* TÂCHES — clients autorisés à créer/modifier leurs tâches */}
-      <Section title="Tâches" count={chTasks.length} emoji={EMOJI.taches}>
-        <div style={{display:"flex",gap:8,marginBottom:12}}>
-          <button onClick={()=>{
-            setDetailForm({chantierId:ch.id,titre:"",lot:"",
-              statut:"En attente",priorite:"En attente",
-              echeance:localISO()
-            });setDetailModal("newTask");
-          }} className="u-btn" style={btnAdd}><Icon d={I.plus} size={16}/>Nouvelle tâche</button>
-        </div>
-        {chTasks.length===0 ? <p style={{color:"#6E6E73",fontSize:12}}>Aucune tâche pour ce chantier</p> :
-          chTasks.map(t=>(
-            <div key={t.id} style={{
-              display:"flex",alignItems:"center",gap:10,
-              background:"#fff",borderRadius:10,padding:"10px 12px",
-              marginBottom:6,border:"1px solid #E5E5EA"
-            }}>
-              <button
-                onClick={()=>toggleTask(t)} disabled={taskBusy===t.id}
-                aria-label={t.statut==="Terminé"?`Marquer « ${t.titre} » comme non terminée`:`Marquer « ${t.titre} » comme terminée`}
-                aria-pressed={t.statut==="Terminé"}
-                style={{
-                  width:20,height:20,minWidth:20,minHeight:20,
-                  borderRadius:"50%",
-                  border:`2px solid ${t.statut==="Terminé"?"#34C759":"#8E8E93"}`,
-                  background:t.statut==="Terminé"?"#34C759":"transparent",
-                  display:"flex",alignItems:"center",justifyContent:"center",
-                  flexShrink:0,cursor:"pointer",padding:0,
-                  boxSizing:"border-box",appearance:"none",WebkitAppearance:"none"
-                }}>
-                {t.statut==="Terminé" && <Icon d={I.check} size={10} color="#fff"/>}
-              </button>
-              <div style={{flex:1,opacity:t.statut==="Terminé"?0.5:1}}>
-                <div style={{fontSize:13,fontWeight:600,color:"#1C1C1E"}}>{t.titre}</div>
-                <div style={{fontSize:12,color:"#6E6E73"}}>
-                  {[t.entreprise, t.lot, fmtDate(t.echeance)].filter(Boolean).join(" • ")}
-                  {t.nb_rappels > 0 && t.statut !== "Terminé" && (
-                    <span style={{color:"#D70015",fontWeight:600}}> • {EMOJI.rappel} {t.nb_rappels} rappel{t.nb_rappels>1?"s":""}</span>
+                <div style={{display:"flex",gap:4,flexShrink:0,flexWrap:"wrap",justifyContent:m?"flex-start":"flex-end"}}>
+                  <button onClick={async()=>(await generators()).generateCRPdf(cr,ch,{ images: await loadCrImages(cr) })} title="Télécharger le PDF"
+                    className="u-btn" style={btnChip}><ChipLabel icon={I.download}>PDF</ChipLabel></button>
+                  <button onClick={async()=>(await generators()).generateCRExcel(cr,ch)} title="Télécharger le fichier Excel"
+                    className="u-btn" style={btnChip}><ChipLabel icon={I.sheet}>Excel</ChipLabel></button>
+                  {!readOnly && (
+                    <button onClick={()=>setSendCr(cr)} title="Envoyer le CR et la convocation par mail"
+                      className="u-btn" style={btnChip}><ChipLabel icon={I.send}>Envoyer</ChipLabel></button>
+                  )}
+                  {!readOnly && (
+                    <button onClick={()=>setCrModal({ initial: { ...cr, chantierId: ch.id } })}
+                      title="Modifier le CR" className="u-btn" style={btnChip}>
+                      <ChipLabel icon={I.edit}>Modifier</ChipLabel>
+                    </button>
                   )}
                 </div>
               </div>
-              <Badge text={t.priorite} color={status[t.priorite]||"#6E6E73"}/>
-              <button onClick={()=>{setDetailForm(t);setDetailModal("editTask");}}
-                aria-label={`Modifier la tâche « ${t.titre} »`}
-                className="u-icon-btn"
-                style={{width:36,height:36,borderRadius:8,color:"#48484A",flexShrink:0}}>
-                <Icon d={I.edit} size={16}/></button>
-            </div>
-          ))
-        }
-      </Section>
+            ))
+          }
+        </Section>
 
-      {/* INTERVENANTS + PLANNING — composants dédiés */}
-      <ChantierIntervenants
-        intervenants={intervenants}
-        clientContact={clientContact}
-        chantierId={ch.id}
-        allContacts={data.contacts || []}
-        onChange={reload}
-        readOnly={readOnly}
-        conformite={readOnly || conformite.missingMigration ? null : conformite}
-      />
-      <ChantierPlanning items={chPlanning} />
-
-      {/* NOTES INTERNES — cachées pour les clients (comme le placeholder l'indique) */}
-      {!readOnly && <Section title="Notes internes" emoji={EMOJI.notes}>
-        <div style={{background:"#fff",border:"1px solid #E5E5EA",borderRadius:10,padding:14}}>
-          <textarea
-            value={notesDraft ?? ch.notes_internes ?? ""}
-            onChange={e=>setNotesDraft(e.target.value)}
-            aria-label="Notes internes"
-            placeholder="Notes internes (non visibles par le client)..."
-            style={{
-              width:"100%",minHeight:80,border:"none",
-              background:"transparent",fontSize:13,fontFamily:"inherit",
-              resize:"vertical",outline:"none",
-              color:"#3A3A3C",boxSizing:"border-box"
-            }}
-          />
-          <div style={{display:"flex",justifyContent:"flex-end",marginTop:6}}>
-            <button disabled={notesDraft===null||notesSaving} onClick={async()=>{
-              if (notesDraft===null||notesSaving) return;
-              setNotesSaving(true);
-              try {
-                await SB.upsertChantier({...ch,notes_internes:notesDraft});
-                setNotesDraft(null);
-                reload();
-                addToast("Notes enregistrées","success");
-              } catch (err) {
-                addToast(isNetworkError(err)
-                  ? "Pas de réseau : notes non enregistrées. Elles restent dans le champ, réessayez au retour de la connexion."
-                  : "Notes non enregistrées : "+(err?.message||"erreur inconnue"),"error");
-              } finally { setNotesSaving(false); }
-            }} style={{...btnP,
-              cursor:notesDraft===null||notesSaving?"default":"pointer",
-              opacity:notesDraft===null||notesSaving?0.5:1}}>{notesSaving?"Enregistrement…":"Enregistrer"}</button>
+        {/* TÂCHES — clients autorisés à créer/modifier leurs tâches */}
+        <Section title="Tâches" count={chTasks.length} emoji={EMOJI.taches}>
+          <div style={{display:"flex",gap:8,marginBottom:12}}>
+            <button onClick={()=>{
+              setDetailForm({chantierId:ch.id,titre:"",lot:"",
+                statut:"En attente",priorite:"En attente",
+                echeance:localISO()
+              });setDetailModal("newTask");
+            }} className="u-btn" style={btnAdd}><Icon d={I.plus} size={16}/>Nouvelle tâche</button>
           </div>
-        </div>
-      </Section>}
+          {chTasks.length===0 ? <p style={{color:"#6E6E73",fontSize:12}}>Aucune tâche pour ce chantier</p> :
+            chTasks.map(t=>(
+              <div key={t.id} style={{
+                display:"flex",alignItems:"center",gap:10,
+                background:"#fff",borderRadius:10,padding:"10px 12px",
+                marginBottom:6,border:"1px solid #E5E5EA"
+              }}>
+                <button
+                  onClick={()=>toggleTask(t)} disabled={taskBusy===t.id}
+                  aria-label={t.statut==="Terminé"?`Marquer « ${t.titre} » comme non terminée`:`Marquer « ${t.titre} » comme terminée`}
+                  aria-pressed={t.statut==="Terminé"}
+                  style={{
+                    width:20,height:20,minWidth:20,minHeight:20,
+                    borderRadius:"50%",
+                    border:`2px solid ${t.statut==="Terminé"?"#34C759":"#8E8E93"}`,
+                    background:t.statut==="Terminé"?"#34C759":"transparent",
+                    display:"flex",alignItems:"center",justifyContent:"center",
+                    flexShrink:0,cursor:"pointer",padding:0,
+                    boxSizing:"border-box",appearance:"none",WebkitAppearance:"none"
+                  }}>
+                  {t.statut==="Terminé" && <Icon d={I.check} size={10} color="#fff"/>}
+                </button>
+                <div style={{flex:1,opacity:t.statut==="Terminé"?0.5:1}}>
+                  <div style={{fontSize:13,fontWeight:600,color:"#1C1C1E"}}>{t.titre}</div>
+                  <div style={{fontSize:12,color:"#6E6E73"}}>
+                    {[t.entreprise, t.lot, fmtDate(t.echeance)].filter(Boolean).join(" • ")}
+                    {t.nb_rappels > 0 && t.statut !== "Terminé" && (
+                      <span style={{color:"#D70015",fontWeight:600}}> • {EMOJI.rappel} {t.nb_rappels} rappel{t.nb_rappels>1?"s":""}</span>
+                    )}
+                  </div>
+                </div>
+                <Badge text={t.priorite} color={status[t.priorite]||"#6E6E73"}/>
+                <button onClick={()=>{setDetailForm(t);setDetailModal("editTask");}}
+                  aria-label={`Modifier la tâche « ${t.titre} »`}
+                  className="u-icon-btn"
+                  style={{width:36,height:36,borderRadius:8,color:"#48484A",flexShrink:0}}>
+                  <Icon d={I.edit} size={16}/></button>
+              </div>
+            ))
+          }
+        </Section>
 
-      {/* COMMENTAIRES - Using Phase 2 Component + Phase 3 Hook */}
-      <CommentsSection
-        comments={comments}
-        onAddComment={addComment}
-        onDeleteComment={deleteComment}
-        currentUser={user}
-        userRole={profile?.role}
-      />
+        {/* PROCÈS-VERBAUX DE RÉCEPTION */}
+        {selectedChantier && selectedRelated && (
+          <ProcesVerbalReception
+            chantierId={selectedChantier.id}
+            chantier={selectedChantier}
+            ordresService={selectedRelated.chOS || []}
+            intervenants={selectedRelated.intervenants || []}
+            clientContact={selectedRelated.clientContact}
+            onRefresh={reload}
+            readOnly={readOnly}
+          />
+        )}
+
+        {/* PLANNING */}
+        <ChantierPlanning items={chPlanning} />
+
+        {/* NOTES INTERNES — cachées pour les clients (comme le placeholder l'indique) */}
+        {!readOnly && <Section title="Notes internes" emoji={EMOJI.notes}>
+          <div style={{background:"#fff",border:"1px solid #E5E5EA",borderRadius:10,padding:14}}>
+            <textarea
+              value={notesDraft ?? ch.notes_internes ?? ""}
+              onChange={e=>setNotesDraft(e.target.value)}
+              aria-label="Notes internes"
+              placeholder="Notes internes (non visibles par le client)..."
+              style={{
+                width:"100%",minHeight:80,border:"none",
+                background:"transparent",fontSize:13,fontFamily:"inherit",
+                resize:"vertical",outline:"none",
+                color:"#3A3A3C",boxSizing:"border-box"
+              }}
+            />
+            <div style={{display:"flex",justifyContent:"flex-end",marginTop:6}}>
+              <button disabled={notesDraft===null||notesSaving} onClick={async()=>{
+                if (notesDraft===null||notesSaving) return;
+                setNotesSaving(true);
+                try {
+                  await SB.upsertChantier({...ch,notes_internes:notesDraft});
+                  setNotesDraft(null);
+                  reload();
+                  addToast("Notes enregistrées","success");
+                } catch (err) {
+                  addToast(isNetworkError(err)
+                    ? "Pas de réseau : notes non enregistrées. Elles restent dans le champ, réessayez au retour de la connexion."
+                    : "Notes non enregistrées : "+(err?.message||"erreur inconnue"),"error");
+                } finally { setNotesSaving(false); }
+              }} style={{...btnP,
+                cursor:notesDraft===null||notesSaving?"default":"pointer",
+                opacity:notesDraft===null||notesSaving?0.5:1}}>{notesSaving?"Enregistrement…":"Enregistrer"}</button>
+            </div>
+          </div>
+        </Section>}
+      </div>}
+
+      {tab==="entreprises" && <div role="tabpanel" id="chantier-panel-entreprises" aria-labelledby="chantier-tab-entreprises">
+        {/* INTERVENANTS — composant dédié */}
+        <ChantierIntervenants
+          intervenants={intervenants}
+          clientContact={clientContact}
+          chantierId={ch.id}
+          allContacts={data.contacts || []}
+          onChange={reload}
+          readOnly={readOnly}
+          conformite={readOnly || conformite.missingMigration ? null : conformite}
+        />
+
+        {/* ORDRES DE SERVICE */}
+        <Section title="Ordres de service" count={chOS.length} emoji={EMOJI.os}>
+          {!readOnly && <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap"}}>
+            <button onClick={()=>{
+              setDetailForm({
+                numero:nextOsNumero(data.ordresService),chantier_id:ch.id,
+                date_emission:localISO(),
+                statut:"Brouillon",montant_ttc:0
+              });setDetailModal("newOS");
+            }} className="u-btn" style={btnAdd}><Icon d={I.plus} size={16}/>Nouvel OS</button>
+            <button onClick={()=>setDetailModal("useTemplate")} className="u-btn" style={btnAdd}>
+              <Icon d={I.copy} size={16}/>Depuis un modèle</button>
+          </div>}
+          {chOS.length===0 ? <p style={{color:"#6E6E73",fontSize:12}}>Aucun OS pour ce chantier</p> :
+            chOS.map(os=>(
+              // Sur mobile : colonne (titre au-dessus, boutons en dessous)
+              // Sur desktop : ligne (titre à gauche, boutons à droite)
+              <div key={os.id} style={{
+                background:"#fff",borderRadius:10,padding:12,marginBottom:8,
+                border:"1px solid #E5E5EA",
+                display:"flex",flexDirection:m?"column":"row",
+                justifyContent:"space-between",
+                alignItems:m?"stretch":"flex-start",
+                gap:8,minWidth:0,overflow:"hidden"
+              }}>
+                <div style={{flex:"1 1 0",minWidth:0}}>
+                  <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2,flexWrap:"wrap"}}>
+                    <span style={{fontWeight:700,fontSize:13,color:"#1C1C1E",whiteSpace:"nowrap"}}>{os.numero}</span>
+                    <Badge text={os.statut||"Brouillon"} color={{
+                      "Brouillon":"#8E8E93","Émis":"#007AFF","Signé":"#AF52DE",
+                      "En cours":"#FF9500","Terminé":"#34C759","Annulé":"#FF3B30"
+                    }[os.statut]||"#8E8E93"}/>
+                  </div>
+                  <div style={{
+                    fontSize:12,color:"#6E6E73",overflow:"hidden",
+                    textOverflow:"ellipsis",whiteSpace:"nowrap"
+                  }}>
+                    {os.artisan_nom} • {(os.prestations||[]).length} prestation(s) • {fmtDate(os.date_emission)}
+                  </div>
+                  <div style={{
+                    fontSize:16,fontWeight:700,color:"#1C1C1E",marginTop:4
+                  }}>{fmtMoney(os.montant_ttc||0)}</div>
+                </div>
+                <div style={{display:"flex",gap:4,flexShrink:0,flexWrap:"wrap",justifyContent:m?"flex-start":"flex-end"}}>
+                  <button title="Télécharger le PDF" className="u-btn" style={btnChip}
+                    onClick={async()=>(await generators()).generateOSPdf({...os,chantier:ch.nom,adresse_chantier:ch.adresse})}><ChipLabel icon={I.download}>PDF</ChipLabel></button>
+                  <button title="Télécharger le fichier Excel" className="u-btn" style={btnChip}
+                    onClick={async()=>(await generators()).generateOSExcel({...os,chantier:ch.nom,adresse_chantier:ch.adresse})}><ChipLabel icon={I.sheet}>Excel</ChipLabel></button>
+                  {!readOnly && <>
+                    <button onClick={async()=>{
+                      try{
+                        await SB.saveTemplate('os',
+                          `Template ${os.artisan_nom}`,
+                          `Template d'OS pour ${os.artisan_nom}`,{...os});
+                        addToast("Modèle créé","success");
+                      }catch(err){
+                        addToast("Erreur : "+(err?.message||"template"),"error");
+                      }
+                    }} title="Créer un modèle d'OS à partir de celui-ci"
+                    className="u-btn" style={btnChip}><ChipLabel icon={I.copy}>Modèle</ChipLabel></button>
+                    <button onClick={()=>{setDetailForm(os);setDetailModal("editOS");}}
+                      title="Modifier l'OS"
+                      className="u-btn" style={btnChip}><ChipLabel icon={I.edit}>Modifier</ChipLabel></button>
+                  </>}
+                </div>
+              </div>
+            ))
+          }
+        </Section>
+      </div>}
+
+      {tab==="documents" && <div role="tabpanel" id="chantier-panel-documents" aria-labelledby="chantier-tab-documents">
+        {/* ATTACHMENTS - Using Phase 3 Hook */}
+        <AttachmentsSection
+          attachments={attachments}
+          onUpload={uploadAttachment}
+          onDelete={deleteAttachment}
+        />
+
+        {/* COMMENTAIRES - Using Phase 2 Component + Phase 3 Hook */}
+        <CommentsSection
+          comments={comments}
+          onAddComment={addComment}
+          onDeleteComment={deleteComment}
+          currentUser={user}
+          userRole={profile?.role}
+        />
+      </div>}
+
+      {tab==="finances" && <div role="tabpanel" id="chantier-panel-finances" aria-labelledby="chantier-tab-finances">
+        {/* BUDGET + jauge — composant dédié, consomme `finances` calculé via lib/chantierFinances */}
+        <Section title="Budget" emoji={EMOJI.budget}>
+          <div style={{background:"#fff",border:"1px solid #E5E5EA",borderRadius:12,padding:m?"0 14px 14px":"0 20px 20px"}}>
+            <ChantierBudgetCard finances={finances} m={m} />
+          </div>
+        </Section>
+
+        {/* Chiffrage estimatif (DPGF) ↔ OS par lot — équipe uniquement */}
+        {!readOnly && <ChiffrageSection
+          chantier={ch} os={chOS} allOs={data.ordresService || []} user={user} m={m}
+          onApplyToChantier={async ({ budget, lots }) => { await SB.upsertChantier({ ...ch, budget, lots }); await reload(); }}
+        />}
+      </div>}
 
       {/* MODALES POUR OS/CR/TÂCHES */}
       <Modal

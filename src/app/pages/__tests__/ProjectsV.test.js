@@ -36,6 +36,13 @@ jest.mock('../../components', () => ({
   Badge: ({ text }) => <span>{text}</span>,
   Modal: ({ open, title, children }) => (open ? <div role="dialog" aria-label={title}>{children}</div> : null),
   AddressPicker: () => null,
+  AttachmentsSection: () => <div>Pièces jointes du chantier</div>,
+  CommentsSection: () => <div>Commentaires du chantier</div>,
+  TemplateSelector: () => null,
+  ProcesVerbalReception: () => <div>PV de réception</div>,
+  ChantierIntervenants: () => <div>Intervenants du chantier</div>,
+  ChantierPlanning: () => <div>Planning du chantier</div>,
+  ChantierBudgetCard: () => <div>Jauge budget</div>,
 }))
 jest.mock('../../hooks/useAttachments', () => ({ useAttachments: () => ({ attachments: [] }) }))
 jest.mock('../../hooks/useComments', () => ({ useComments: () => ({ comments: [] }) }))
@@ -146,5 +153,43 @@ describe('ProjectsV — compte client du chantier', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Enregistrer' }))
     await waitFor(() => expect(SB.upsertChantier).toHaveBeenCalled())
     expect(SB.upsertChantier.mock.calls[0][0]).toHaveProperty('client_user_id', 'u1')
+  })
+})
+
+describe('fiche chantier : bandeau et onglets', () => {
+  const late = { id: 't1', chantierId: CHANTIER.id, titre: 'Reprendre enduit', statut: 'En cours', echeance: '2020-01-01', num_point: 1 }
+  function renderDetail() {
+    const data = { chantiers: [{ ...CHANTIER, budget: 1000 }], tasks: [late], ordresService: [], compteRendus: [], planning: [], contacts: [] }
+    return render(<ProjectsV data={data} m={false} reload={jest.fn()} user={null} profile={{ role: 'admin' }} focusId={CHANTIER.id} />)
+  }
+
+  it("s'ouvre sur Suivi avec le bandeau", async () => {
+    renderDetail()
+    expect(await screen.findByRole('tab', { name: 'Suivi' })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByRole('group', { name: "En un coup d'œil" })).toHaveTextContent('1 en retard')
+    expect(screen.getByText('Reprendre enduit')).toBeInTheDocument()
+    expect(screen.getByText('PV de réception')).toBeInTheDocument()
+    expect(screen.queryByText('Intervenants du chantier')).not.toBeInTheDocument()
+    expect(screen.queryByText('Jauge budget')).not.toBeInTheDocument()
+  })
+
+  it('passe aux autres onglets, au clavier aussi', async () => {
+    const user = userEvent.setup()
+    renderDetail()
+    await user.click(await screen.findByRole('tab', { name: 'Entreprises' }))
+    expect(screen.getByText('Intervenants du chantier')).toBeInTheDocument()
+    expect(screen.queryByText('Reprendre enduit')).not.toBeInTheDocument()
+    await user.keyboard('{ArrowRight}')
+    expect(screen.getByRole('tab', { name: 'Documents' })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByText('Pièces jointes du chantier')).toBeInTheDocument()
+    expect(screen.getByText('Commentaires du chantier')).toBeInTheDocument()
+  })
+
+  it('la tuile budget mène aux finances', async () => {
+    const user = userEvent.setup()
+    renderDetail()
+    await user.click(await screen.findByRole('button', { name: /Budget engagé/ }))
+    expect(screen.getByRole('tab', { name: 'Finances' })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByText('Jauge budget')).toBeInTheDocument()
   })
 })
