@@ -534,7 +534,7 @@ export default function AdminDashboard({ user, profile = null }) {
           {visitedTabs.has('planning') && (
             <div style={{ display: tab === 'planning' ? 'block' : 'none' }}>
               <TabErrorBoundary name="planning" resetKey={data}>
-                <PlanningV data={data} m={isMobile}/>
+                <PlanningV data={data} m={isMobile} reload={reload}/>
               </TabErrorBoundary>
             </div>
           )}
