@@ -70,7 +70,7 @@ function RelanceForm({ initial, error, sending, onSubmit, onCancel }) {
       </FF>
       <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 12, color: 'var(--label-2)', marginBottom: 12 }}>
         <input type="checkbox" checked={form.copyMe} onChange={e => set('copyMe', e.target.checked)} />
-        M’envoyer une copie
+        Recevoir une copie dans la boîte ID Maîtrise
       </label>
       {shownError && <div role="alert" style={{ color: 'var(--red-text)', fontSize: 12, marginBottom: 10, fontWeight: 500 }}>⚠ {shownError}</div>}
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>

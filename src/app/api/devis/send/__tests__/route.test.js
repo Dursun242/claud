@@ -44,15 +44,17 @@ beforeEach(() => {
 })
 
 describe('/api/devis/send', () => {
-  it('envoie le mail avec le PDF joint, copie et réponse à l’expéditeur', async () => {
+  it('envoie le mail avec le PDF joint, réponses vers la boîte ID Maîtrise', async () => {
     const res = await POST(req(valid))
     expect(res.status).toBe(200)
     expect(createTransport).toHaveBeenCalledWith(expect.objectContaining({ host: 'smtp.test', port: 587, secure: false }))
     const mail = sendMail.mock.calls[0][0]
     expect(mail).toMatchObject({
       from: 'ID Maîtrise <contact@id-maitrise.com>', to: ['client@exemple.fr'],
-      replyTo: 'moe@id-maitrise.com', subject: 'Devis 26-050', text: 'Bonjour',
+      subject: 'Devis 26-050', text: 'Bonjour',
     })
+    // Le client répond à l'adresse d'envoi, pas à l'adresse du compte connecté
+    expect(mail.replyTo).toBeUndefined()
     expect(mail.bcc).toBeUndefined()
     expect(mail.attachments[0]).toMatchObject({ filename: '26-050.pdf', contentType: 'application/pdf' })
     expect(mail.attachments[0].content.subarray(0, 4).toString()).toBe('%PDF')
@@ -60,11 +62,11 @@ describe('/api/devis/send', () => {
     expect(sendMail).toHaveBeenCalledTimes(1)
   })
 
-  it('copie à l’expéditeur seulement si demandée', async () => {
+  it('copie dans la boîte ID Maîtrise seulement si demandée', async () => {
     await POST(req({ ...valid, copyMe: true }))
     expect(sendMail).toHaveBeenCalledTimes(2)
     const copy = sendMail.mock.calls[1][0]
-    expect(copy).toMatchObject({ to: 'moe@id-maitrise.com', subject: '[Copie] Devis 26-050' })
+    expect(copy).toMatchObject({ to: 'ID Maîtrise <contact@id-maitrise.com>', subject: '[Copie] Devis 26-050' })
     expect(copy.attachments[0].filename).toBe('26-050.pdf')
   })
 

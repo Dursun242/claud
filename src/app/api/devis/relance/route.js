@@ -82,13 +82,14 @@ export async function POST(request) {
     })
     const logo = { filename: 'logo-id-maitrise.png', content: Buffer.from(LOGO_PNG_BASE64, 'base64'), contentType: 'image/png', cid: LOGO_CID, contentDisposition: 'inline' }
 
+    // Pas de replyTo : le client répond à la boîte ID Maîtrise (adresse d'envoi)
     const info = await sendMail(cfg, {
-      to: to.list, cc: cc.list.length ? cc.list : undefined, replyTo: user.email || undefined,
+      to: to.list, cc: cc.list.length ? cc.list : undefined,
       subject, text, html: html(true), attachments: [logo],
     })
-    if (body.copyMe === true && user.email) {
+    if (body.copyMe === true) {
       try {
-        await sendMail(cfg, { to: user.email, subject: `[Copie] ${subject}`, text, html: html(false), attachments: [logo] })
+        await sendMail(cfg, { to: cfg.from, subject: `[Copie] ${subject}`, text, html: html(false), attachments: [logo] })
       } catch (e) { log.warn('copie expéditeur', e?.code || e?.message || e) }
     }
 
