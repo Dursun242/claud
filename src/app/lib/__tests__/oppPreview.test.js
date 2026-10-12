@@ -1,4 +1,4 @@
-import { buildOppPreviews, relDay } from '../oppPreview'
+import { buildOppPreviews, relDay, lastActivityByOpp, sortByActivity } from '../oppPreview'
 
 const today = '2026-10-11'
 const devis = [
@@ -47,5 +47,37 @@ describe('buildOppPreviews', () => {
     expect(p.get('o1').rappel).toEqual({ text: 'Relancer le devis · en retard de 3 j', tone: 'retard' })
     expect(p.get('o2').rappel).toEqual({ text: 'Relancer le devis · demain', tone: 'attente' })
     expect(p.get('o3')).toBeUndefined()
+  })
+})
+
+describe('lastActivityByOpp / sortByActivity', () => {
+  const opportunites = [
+    { id: 'a', created_at: '2026-09-01T08:00:00Z', updated_at: '2026-09-01T08:00:00Z' },
+    { id: 'b', created_at: '2026-09-02T08:00:00Z', updated_at: '2026-09-02T08:00:00Z' },
+    { id: 'c', created_at: '2026-09-03T08:00:00Z', updated_at: '2026-09-03T08:00:00Z' },
+  ]
+  const devis = [{ id: 'd1', opportunite_id: 'a', date_envoi: '2026-09-05' }, { id: 'd2', opportunite_id: 'b' }]
+
+  it('retient la plus récente des actualités : échange, devis, réponse ou consultation du client', () => {
+    const act = lastActivityByOpp({
+      opportunites, devis,
+      interactions: [{ opportunite_id: 'c', date: '2026-10-01T09:00:00Z' }],
+      devisEvents: [
+        { devis_id: 'd1', kind: 'consultation', created_at: '2026-10-11T10:00:00Z' },
+        { devis_id: 'd2', kind: 'reponse', created_at: '2026-10-12T07:00:00Z' },
+      ],
+    })
+    expect(act.get('a')).toBe('2026-10-11T10:00:00Z')
+    expect(act.get('b')).toBe('2026-10-12T07:00:00Z')
+    expect(act.get('c')).toBe('2026-10-01T09:00:00Z')
+    expect(sortByActivity(opportunites, act).map(o => o.id)).toEqual(['b', 'a', 'c'])
+  })
+
+  it('les ouvertures automatiques (antivirus) ne comptent pas', () => {
+    const act = lastActivityByOpp({
+      opportunites, devis,
+      devisEvents: [{ devis_id: 'd2', kind: 'ouverture', created_at: '2026-10-12T07:00:00Z', user_agent: 'Barracuda Sentinel' }],
+    })
+    expect(act.get('b')).toBe('2026-09-02T08:00:00Z')
   })
 })

@@ -32,7 +32,7 @@ import OpportuniteFormModal from '../components/crm/OpportuniteFormModal'
 import InteractionFormModal from '../components/crm/InteractionFormModal'
 import { defaultSujet } from '../components/crm/crmUi'
 import SearchField from '../components/SearchField'
-import { buildOppPreviews } from '../lib/oppPreview'
+import { buildOppPreviews, lastActivityByOpp, sortByActivity } from '../lib/oppPreview'
 import { localISO } from '../lib/today'
 
 // ═══════════════════════════════════════════════════════════════
@@ -105,7 +105,15 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
     })
   }, [opportunites, q, contactsById])
 
-  const grouped = useMemo(() => groupByEtape(filtered), [filtered])
+  // Colonnes du pipeline : l'affaire qui a bougé le plus récemment en tête
+  const activity = useMemo(() => lastActivityByOpp({
+    opportunites, devis: crm.devis || [], devisEvents: crm.devisEvents || [], interactions,
+  }), [opportunites, crm.devis, crm.devisEvents, interactions])
+  const grouped = useMemo(() => {
+    const g = groupByEtape(filtered)
+    for (const e of ETAPES_ACTIVES) g[e] = sortByActivity(g[e], activity)
+    return g
+  }, [filtered, activity])
   const stats = useMemo(() => pipelineStats(opportunites), [opportunites])
   // Relances sans objet (devis accepté / refusé / signé, affaire close) masquées
   const followUps = useMemo(
