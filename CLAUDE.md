@@ -16,7 +16,7 @@ Application de gestion de chantiers BTP pour **ID Maîtrise** (SARL, Le Havre). 
 - **Odoo JSON-RPC** : signatures électroniques via module Sign
 - **Qonto API** : import factures/devis (proxy read-only)
 - **Annuaire des entreprises** (`recherche-entreprises.api.gouv.fr`, État, gratuit, sans clé) : recherche par SIRET / nom / dirigeant pour les contacts (`api/entreprises`, `lib/entreprises.js`)
-- **Jest + @testing-library/react** : ~800 tests, ~20 s d'exécution
+- **Jest + @testing-library/react** : ~1080 tests, ~25 s d'exécution
 
 ## Topologie
 
@@ -121,7 +121,7 @@ Skill **impeccable** (`.claude/skills/impeccable`, repris du dépôt `idm`) : co
 npm install          # deps
 npm run dev          # dev sur :3000
 npm run build        # build prod
-npm test             # Jest (~800 tests, ~20 s)
+npm test             # Jest (~1080 tests, ~25 s)
 npm test -- --ci src/app/api/qonto  # tests filtrés
 npm run lint         # next lint
 ```
