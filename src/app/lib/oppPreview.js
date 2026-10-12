@@ -2,7 +2,7 @@
 // (ouvert, consulté, relancé, réponse du client) et le prochain rappel.
 // Logique pure, testée dans __tests__/oppPreview.test.js.
 
-import { summarizeDevisEvents } from './devisTracking'
+import { summarizeDevisEvents, clientEvents } from './devisTracking'
 import { raisonOf } from './devisRelance'
 
 const DAY = 86_400_000
@@ -98,4 +98,38 @@ export function buildOppPreviews({ devis = [], devisEvents = [], interactions = 
     entry(oppId).rappel = { text: `${it.prochaine_action || 'Rappel'} · ${quand}`, tone }
   }
   return out
+}
+
+/**
+ * Date de la dernière actualité de chaque affaire (AAAA-MM-JJTHH…), pour
+ * remonter en tête de colonne les dossiers qui ont bougé le plus récemment :
+ * création ou modification de l'affaire, échange noté, devis émis ou envoyé,
+ * mail ouvert / devis consulté par le client (ouvertures automatiques des
+ * antivirus exclues), relance envoyée, réponse du client.
+ * @returns {Map<string, string>}
+ */
+export function lastActivityByOpp({ opportunites = [], devis = [], devisEvents = [], interactions = [] }) {
+  const out = new Map()
+  const bump = (id, v) => {
+    if (!id || !v) return
+    const s = String(v)
+    if (!out.has(id) || s > out.get(id)) out.set(id, s)
+  }
+  for (const o of opportunites) { bump(o.id, o.created_at); bump(o.id, o.updated_at) }
+  for (const it of interactions) bump(it?.opportunite_id, it?.date || it?.created_at)
+  const oppOfDevis = new Map()
+  for (const d of devis) {
+    if (!d?.opportunite_id) continue
+    oppOfDevis.set(d.id, d.opportunite_id)
+    bump(d.opportunite_id, d.date_envoi)
+    bump(d.opportunite_id, d.date_emission)
+  }
+  const utiles = [...clientEvents(devisEvents), ...devisEvents.filter(e => e && (e.kind === 'relance' || e.kind === 'reponse'))]
+  for (const e of utiles) bump(oppOfDevis.get(e.devis_id), e.created_at)
+  return out
+}
+
+/** Trie les affaires de la plus récente actualité à la plus ancienne (copie). */
+export function sortByActivity(list = [], activity = new Map()) {
+  return [...list].sort((a, b) => (activity.get(b.id) || '').localeCompare(activity.get(a.id) || ''))
 }
