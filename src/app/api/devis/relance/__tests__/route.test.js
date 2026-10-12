@@ -52,12 +52,20 @@ describe('/api/devis/relance', () => {
     expect(sendMail).not.toHaveBeenCalled()
   })
 
+  it('copie dans la boîte ID Maîtrise si demandée, jamais vers le compte connecté', async () => {
+    await POST(req({ ...valid, copyMe: true }))
+    const tos = sendMail.mock.calls.map(c => c[1].to)
+    expect(tos).toContain('contact@id-maitrise.com')
+    expect(tos).not.toContain('moe@id.fr')
+  })
+
   it('envoie le mail avec les choix, note la relance et la suivante à J+7', async () => {
     const res = await POST(req(valid))
     expect(res.status).toBe(200)
     expect(await res.json()).toMatchObject({ ok: true, suivi: true, to: ['client@exemple.fr'] })
     const mail = sendMail.mock.calls[0][1]
-    expect(mail).toMatchObject({ to: ['client@exemple.fr'], replyTo: 'moe@id.fr', subject: 'Votre devis 26-050' })
+    expect(mail).toMatchObject({ to: ['client@exemple.fr'], subject: 'Votre devis 26-050' })
+    expect(mail.replyTo).toBeUndefined()
     expect(mail.text).toContain(`https://app.test/reponse/${'c'.repeat(64)}`)
     expect(mail.text).toContain('1. Le montant dépasse le budget que j’avais prévu')
     expect(mail.html).toContain(`/reponse/${'c'.repeat(64)}?r=concurrent`)

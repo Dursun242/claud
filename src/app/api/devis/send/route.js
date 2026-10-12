@@ -140,19 +140,20 @@ export async function POST(request) {
     const info = await sendMail(cfg, {
       to: to.list,
       cc: cc.list.length ? cc.list : undefined,
-      replyTo: user.email || undefined,
       subject,
       text,
       html: html(trackUrl),
       // Logo intégré au corps du mail (pas une pièce jointe visible)
       attachments: [...files, logo],
     })
-    // Copie à l'expéditeur seulement si demandée (case « M'envoyer une
-    // copie », décochée par défaut), envoyée à part et sans image de suivi :
-    // ses propres ouvertures ne comptent pas
-    if (body.copyMe === true && user.email) {
+    // Pas de replyTo : le client répond à l'adresse d'envoi (boîte ID
+    // Maîtrise), jamais à l'adresse personnelle du compte connecté.
+    // Copie seulement si demandée (case « Recevoir une copie », décochée par
+    // défaut), envoyée à part dans la boîte ID Maîtrise et sans image de
+    // suivi : ses ouvertures ne comptent pas
+    if (body.copyMe === true) {
       try {
-        await sendMail(cfg, { to: user.email, subject: `[Copie] ${subject}`, text, html: html(null), attachments: [...files, logo] })
+        await sendMail(cfg, { to: cfg.from, subject: `[Copie] ${subject}`, text, html: html(null), attachments: [...files, logo] })
       } catch (e) { log.warn('copie expéditeur', e?.code || e?.message || e) }
     }
     return Response.json({ ok: true, messageId: info?.messageId || null, to: to.list })

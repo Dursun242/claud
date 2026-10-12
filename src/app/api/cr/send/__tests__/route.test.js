@@ -43,18 +43,19 @@ describe('/api/cr/send', () => {
     expect(await res.json()).toEqual({ ok: true, sent: ['martin@ex.fr', 'durand@ex.fr'], failed: [] })
     expect(sendMail).toHaveBeenCalledTimes(2)
     const first = sendMail.mock.calls[0][0]
-    expect(first).toMatchObject({ to: 'martin@ex.fr', replyTo: 'moe@id-maitrise.com', subject: valid.subject })
+    expect(first).toMatchObject({ to: 'martin@ex.fr', subject: valid.subject })
+    expect(first.replyTo).toBeUndefined()
     expect(first.text).toContain('Bonjour Martin')
     expect(first.html).toContain('Bonjour Martin')
     expect(first.attachments[0]).toMatchObject({ filename: 'CR-3-Villa.pdf', contentType: 'application/pdf' })
     expect(sendMail.mock.calls.map(c => c[0].to)).not.toContain('moe@id-maitrise.com')
   })
 
-  it('copie à l’expéditeur seulement si demandée (copyMe: true)', async () => {
+  it('copie dans la boîte ID Maîtrise seulement si demandée (copyMe: true)', async () => {
     const res = await POST(req({ ...valid, copyMe: true }))
     expect(res.status).toBe(200)
     expect(sendMail).toHaveBeenCalledTimes(3)
-    expect(sendMail.mock.calls[2][0]).toMatchObject({ to: 'moe@id-maitrise.com', subject: `[Copie] ${valid.subject}` })
+    expect(sendMail.mock.calls[2][0]).toMatchObject({ to: 'contact@id-maitrise.com', subject: `[Copie] ${valid.subject}` })
     expect(sendMail.mock.calls[2][0].text).toContain('martin@ex.fr, durand@ex.fr')
   })
 

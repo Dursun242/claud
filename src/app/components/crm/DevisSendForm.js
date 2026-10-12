@@ -161,7 +161,7 @@ export default function DevisSendForm({ initial = {}, filename, sending, error, 
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 12, fontSize: 12, color: 'var(--label-2)' }}>
         <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
           <input type="checkbox" checked={form.copyMe} onChange={e => set('copyMe', e.target.checked)} />
-          M’envoyer une copie
+          Recevoir une copie dans la boîte ID Maîtrise
         </label>
         {canSign && (
           <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontWeight: 600, color: 'var(--accent-text)' }}>

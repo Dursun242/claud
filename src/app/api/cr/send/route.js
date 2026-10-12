@@ -85,7 +85,7 @@ export async function POST(request) {
     for (const m of messages) {
       try {
         await sendMail(cfg, {
-          to: m.to, replyTo: user.email || undefined, subject, text: m.text, html: html(m.text),
+          to: m.to, subject, text: m.text, html: html(m.text),
           attachments: [...files, logo],
         })
         sent.push(m.to)
@@ -98,12 +98,13 @@ export async function POST(request) {
     if (!sent.length) {
       return Response.json({ error: smtpErrorMessage(lastErr), code: lastErr?.code || null, failed }, { status: 502 })
     }
-    // Copie à l'expéditeur seulement si demandée (copyMe: true) : liste des
+    // Copie seulement si demandée (copyMe: true), dans la boîte ID Maîtrise
+    // (adresse d'envoi, pas l'adresse du compte connecté) : liste des
     // destinataires + premier message
-    if (body.copyMe === true && user.email) {
+    if (body.copyMe === true) {
       const text = `Compte rendu envoyé à : ${sent.join(', ')}\n\n---\n\n${messages[0].text}`
       try {
-        await sendMail(cfg, { to: user.email, subject: `[Copie] ${subject}`, text, html: html(text), attachments: [...files, logo] })
+        await sendMail(cfg, { to: cfg.from, subject: `[Copie] ${subject}`, text, html: html(text), attachments: [...files, logo] })
       } catch (e) { log.warn('copie expéditeur', e?.code || e?.message || e) }
     }
     return Response.json({ ok: true, sent, failed })
