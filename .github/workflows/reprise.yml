@@ -1,0 +1,29 @@
+# CRM : relance automatique des affaires « En attente ». Tous les matins en
+# semaine (06:50 UTC : 8 h 50 l'été, 7 h 50 l'hiver à Paris), le client dont l'affaire arrive à sa
+# date de reprise reçoit un mail de reprise de contact (voir
+# src/app/api/cron/reprise/route.js). Un seul mail par date de reprise.
+# Secrets GitHub requis : APP_URL et CRON_SECRET (comme le mail du matin).
+name: CRM — reprise des affaires en attente
+
+on:
+  schedule:
+    - cron: '50 6 * * 1-5'
+  workflow_dispatch:
+
+jobs:
+  reprise:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Envoyer les mails de reprise
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$APP_URL" ] || [ -z "$CRON_SECRET" ]; then
+            echo "Secrets APP_URL / CRON_SECRET absents : reprise ignorée."
+            exit 0
+          fi
+          curl --fail-with-body -sS --max-time 90 \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            "${APP_URL%/}/api/cron/reprise"

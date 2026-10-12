@@ -1,5 +1,6 @@
 // Base Supabase en mémoire pour les tests de routes (service role) :
-// tables (select / insert / update / delete, filtres eq / gt / in / is,
+// tables (select / insert / update / delete, filtres eq / gt / in / is /
+// not is / ilike, comptage { count, head },
 // order, limit, single, maybeSingle) et stockage (URL de dépôt signée,
 // download, remove, URL signée). Pas un test : utilitaire.
 
@@ -9,13 +10,16 @@ export function memoryDb(seed = {}, { errors = {} } = {}) {
   let n = 0
 
   function query(table) {
-    const st = { op: 'select', filters: [], order: null, limit: null, values: null }
+    const st = { op: 'select', filters: [], order: null, limit: null, values: null, count: false }
     const rows = () => (tables[table] ||= [])
     const match = (r) => st.filters.every(([op, k, v]) => (
       op === 'eq' ? r[k] === v
         : op === 'gt' ? String(r[k] ?? '') > String(v)
           : op === 'in' ? v.includes(r[k])
-            : op === 'is' ? (r[k] ?? null) === v : true))
+            : op === 'is' ? (r[k] ?? null) === v
+              : op === 'notis' ? (r[k] ?? null) !== v
+                : op === 'ilike' ? new RegExp(`^${String(v).replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/%/g, '.*')}$`, 'i').test(String(r[k] ?? ''))
+                  : true))
     const exec = (single) => {
       if (errors[table]) return { data: null, error: errors[table] }
       let out
@@ -43,10 +47,11 @@ export function memoryDb(seed = {}, { errors = {} } = {}) {
       out = out.map(r => ({ ...r }))
       if (single === 'single') return out.length === 1 ? { data: out[0], error: null } : { data: null, error: { message: `${out.length} lignes` } }
       if (single === 'maybe') return { data: out[0] || null, error: null }
+      if (st.count) return { data: st.count === 'head' ? null : out, count: out.length, error: null }
       return { data: out, error: null }
     }
     const b = {
-      select() { return b },
+      select(_cols, opts = {}) { if (opts.count) st.count = opts.head ? 'head' : true; return b },
       insert(v) { st.op = 'insert'; st.values = v; return b },
       upsert(v, { onConflict = 'id' } = {}) {
         const existing = rows().find(r => r[onConflict] === v[onConflict])
@@ -59,6 +64,8 @@ export function memoryDb(seed = {}, { errors = {} } = {}) {
       gt(k, v) { st.filters.push(['gt', k, v]); return b },
       in(k, v) { st.filters.push(['in', k, v]); return b },
       is(k, v) { st.filters.push(['is', k, v]); return b },
+      not(k, op, v) { if (op === 'is') st.filters.push(['notis', k, v]); return b },
+      ilike(k, v) { st.filters.push(['ilike', k, v]); return b },
       order(k, o = {}) { st.order = [k, o.ascending !== false]; return b },
       limit(x) { st.limit = x; return b },
       single() { return Promise.resolve(exec('single')) },

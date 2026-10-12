@@ -31,9 +31,12 @@ export async function loadCrm(sb = defaultClient) {
 }
 
 // Base sans la migration 043 : message clair au lieu de l'erreur SQL
-const oppError = (prefix, error) => (/etape_check|date_reprise|motif_attente/.test(error?.message || '')
-  ? new Error('La mise en attente demande la migration 043_crm_attente.sql sur la base (voir migrations/APPLY_ORDER.md).')
-  : new Error(prefix + error.message))
+const oppError = (prefix, error) => {
+  const msg = error?.message || ''
+  if (/reprise_auto/.test(msg)) return new Error('La relance automatique demande la migration 044_crm_reprise_auto.sql sur la base (voir migrations/APPLY_ORDER.md).')
+  if (/etape_check|date_reprise|motif_attente/.test(msg)) return new Error('La mise en attente demande la migration 043_crm_attente.sql sur la base (voir migrations/APPLY_ORDER.md).')
+  return new Error(prefix + msg)
+}
 
 /** Crée ou met à jour une opportunité. Retourne la ligne persistée. */
 export async function upsertOpportunite(o, sb = defaultClient) {
@@ -63,6 +66,8 @@ export async function upsertOpportunite(o, sb = defaultClient) {
   if (isAttente(etape)) {
     row.date_reprise = o.date_reprise || null
     row.motif_attente = String(o.motif_attente || '').trim() || null
+    // Mail automatique au client à la date de reprise (migration 044)
+    if (typeof o.reprise_auto === 'boolean') row.reprise_auto = o.reprise_auto
   } else if (o.date_reprise || o.motif_attente) {
     row.date_reprise = null
     row.motif_attente = null
@@ -103,8 +108,8 @@ export const ACTION_REPRISE = 'Reprendre contact (affaire en attente)'
  * apparaîtra dans les relances le jour venu.
  * @returns {{ opp: object, interaction: object|null }}
  */
-export async function mettreEnAttente(opp, { date_reprise, motif_attente }, sb = defaultClient) {
-  const saved = await moveOpportunite(opp, 'En attente', { date_reprise, motif_attente }, sb)
+export async function mettreEnAttente(opp, { date_reprise, motif_attente, reprise_auto }, sb = defaultClient) {
+  const saved = await moveOpportunite(opp, 'En attente', { date_reprise, motif_attente, reprise_auto }, sb)
   await closeFollowUps({ opportuniteId: saved.id }, sb)
   const motif = String(motif_attente || '').trim()
   const interaction = await upsertInteraction({
