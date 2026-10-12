@@ -27,6 +27,9 @@ export const RAISONS = [
   { code: 'autre', label: 'Autre', court: 'Autre', ton: 'chaud', suite: { action: 'Lire la réponse du client', jours: 0 } },
 ]
 
+// Réponses qui mettent l'affaire « En attente » dans le CRM (projet en pause)
+export const METTRE_EN_ATTENTE = ['reporte', 'financement']
+
 export const raisonOf = (code) => RAISONS.find(r => r.code === code) || null
 
 export const TON_COLORS = {

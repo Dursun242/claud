@@ -12,8 +12,8 @@ import { useState, useMemo, useEffect, useRef } from 'react'
 import { COMPANY } from '../dashboards/shared'
 import { useToast } from '../contexts/ToastContext'
 import { useConfirm } from '../contexts/ConfirmContext'
-import { ETAPES_ACTIVES, isClosed } from '../lib/crm'
-import { moveOpportunite, upsertInteraction, upsertDevis, setDevisStatut, deleteDevis } from '../lib/crmDb'
+import { ETAPES_ACTIVES, isClosed, isAttente } from '../lib/crm'
+import { moveOpportunite, reprendreOpportunite, upsertInteraction, upsertDevis, setDevisStatut, deleteDevis } from '../lib/crmDb'
 import {
   devisFromOpportunite, duplicateDevis, validateDevis, computeDevisTotals, numeroProvisoire, isNumeroProvisoire, mergeUnites,
   normalizeLignes, devisMailContent, companySignature,
@@ -187,7 +187,10 @@ export function useCrmDevis({ crm, opportunites, interactions, contactsById, rel
     const o = oppOf(d)
     const sent = await setDevisStatut(d, 'Envoyé')
     const ht = Number(sent?.total_ht ?? d.total_ht) || 0
-    if (o && !isClosed(o.etape)) {
+    if (o && isAttente(o.etape)) {
+      // Nouveau devis pour une affaire en attente : le client est revenu
+      await reprendreOpportunite(o, 'Devis envoyé', { montant_estime: ht })
+    } else if (o && !isClosed(o.etape)) {
       const behind = ETAPES_ACTIVES.indexOf(o.etape) < ETAPES_ACTIVES.indexOf('Devis envoyé')
       await moveOpportunite(o, behind ? 'Devis envoyé' : o.etape, { montant_estime: ht })
     }

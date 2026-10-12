@@ -1,7 +1,8 @@
 import { btnP, btnS, fmtMoney, fmtDate } from '../../dashboards/shared'
 import { Badge, EmptyState } from '../index'
-import { ETAPES_ACTIVES, ETAPE_COLORS, INTERACTION_TYPES, INTERACTION_ICONS, isClosed, nextEtape, isFollowUpObsolete, followUpContext } from '../../lib/crm'
+import { ETAPES_ACTIVES, ETAPE_COLORS, INTERACTION_TYPES, INTERACTION_ICONS, isClosed, isAttente, nextEtape, isFollowUpObsolete, followUpContext } from '../../lib/crm'
 import DevisList from './DevisList'
+import { fmtReprise } from './CrmAttenteList'
 import InteractionRow from './InteractionRow'
 import { NEXT_STEP, todayISO, iconBtn } from './crmUi'
 
@@ -14,6 +15,10 @@ export default function OpportuniteDetail({
 }) {
   const color = ETAPE_COLORS[o.etape]
   const closed = isClosed(o.etape)
+  const attente = isAttente(o.etape)
+  // Le client revient : avec un devis déjà fait, on reprend en négociation
+  const repriseEtape = devis.length ? 'Négociation' : 'Qualifié'
+  const repriseDue = attente && o.date_reprise && String(o.date_reprise).slice(0, 10) <= todayISO()
   const next = nextEtape(o.etape)
   const hint = NEXT_STEP[o.etape]
   const relanceCtx = followUpContext({ opportunites: [o], devis })
@@ -25,7 +30,7 @@ export default function OpportuniteDetail({
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
         <Badge text={o.etape} color={color} />
         {Number(o.montant_estime) > 0 && <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--label)' }}>{fmtMoney(o.montant_estime)}</span>}
-        {!closed && <span style={{ fontSize: 11, color: 'var(--label-secondary)' }} title="Chances de gagner">{o.probabilite} % de chances</span>}
+        {!closed && !attente && <span style={{ fontSize: 11, color: 'var(--label-secondary)' }} title="Chances de gagner">{o.probabilite} % de chances</span>}
         <span style={{ flex: 1 }} />
         <button onClick={onEdit} style={{ ...btnS, fontSize: 12, padding: '6px 10px' }}>Modifier</button>
         <button onClick={onDelete} aria-label="Supprimer l'affaire" title="Supprimer"
@@ -33,7 +38,7 @@ export default function OpportuniteDetail({
       </div>
 
       {/* Frise des étapes */}
-      {!closed && (
+      {!closed && !attente && (
         <div style={{ display: 'flex', gap: 4, marginBottom: 12, flexWrap: 'wrap', alignItems: 'center' }}>
           {ETAPES_ACTIVES.map((e, i) => {
             const idx = ETAPES_ACTIVES.indexOf(o.etape)
@@ -51,7 +56,7 @@ export default function OpportuniteDetail({
       )}
 
       {/* Prochaine étape suggérée + issue */}
-      {!closed && (
+      {!closed && !attente && (
         <div style={{ background: 'var(--row-fill)', border: '1px solid var(--separator)', borderRadius: 10, padding: '10px 12px', marginBottom: 14, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
           <div style={{ flex: 1, minWidth: 180, fontSize: 12, color: 'var(--label-2)' }}>
             {pendingRelance ? (
@@ -78,6 +83,31 @@ export default function OpportuniteDetail({
             ) : hint?.action === 'advance' && next ? (
               <button onClick={() => onChangeEtape(next)} disabled={saving} style={{ ...btnP, fontSize: 12 }}>{hint.cta}</button>
             ) : null}
+            <button onClick={() => onChangeEtape('En attente')} disabled={saving} title="Le client met son projet en pause : à reprendre plus tard"
+              style={{ ...btnS, fontSize: 12, background: 'var(--indigo-tint)', color: 'var(--indigo-text)', border: '1px solid var(--indigo-line)' }}>En attente</button>
+            <button onClick={() => onChangeEtape('Gagné')} disabled={saving} title="Marquer comme gagnée"
+              style={{ ...btnS, fontSize: 12, background: 'var(--green-tint)', color: 'var(--green-text)', border: '1px solid var(--green-line)' }}>Gagnée</button>
+            <button onClick={() => onChangeEtape('Perdu')} disabled={saving} title="Marquer comme perdue"
+              style={{ ...btnS, fontSize: 12, background: 'var(--red-tint)', color: 'var(--red-text)', border: '1px solid var(--red-line)' }}>Perdue</button>
+          </div>
+        </div>
+      )}
+
+      {/* En attente : projet du client en pause, à reprendre à la date prévue */}
+      {attente && (
+        <div style={{ background: 'var(--indigo-tint)', border: '1px solid var(--indigo-line)', borderRadius: 10, padding: '10px 12px', marginBottom: 14, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ flex: 1, minWidth: 180, fontSize: 12, color: 'var(--label-2)' }}>
+            <strong style={{ color: 'var(--indigo-text)' }}>⏸ Projet en pause{o.motif_attente ? ` : ${o.motif_attente}` : ''}</strong>
+            <div style={{ marginTop: 2 }}>
+              {o.date_reprise ? (
+                <>Reprendre contact <span style={{ fontWeight: 600, color: repriseDue ? 'var(--red-text)' : 'var(--indigo-text)' }}>le {fmtReprise(o.date_reprise)}</span>{repriseDue ? ' (c’est le moment)' : ''}</>
+              ) : 'Date de reprise à fixer'}
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            <button onClick={() => onChangeEtape(repriseEtape)} disabled={saving} title={`Le client revient : l'affaire repasse en « ${repriseEtape} »`}
+              style={{ ...btnP, fontSize: 12 }}>Reprendre l&apos;affaire</button>
+            <button onClick={onEdit} disabled={saving} style={{ ...btnS, fontSize: 12 }}>Changer la date</button>
             <button onClick={() => onChangeEtape('Gagné')} disabled={saving} title="Marquer comme gagnée"
               style={{ ...btnS, fontSize: 12, background: 'var(--green-tint)', color: 'var(--green-text)', border: '1px solid var(--green-line)' }}>Gagnée</button>
             <button onClick={() => onChangeEtape('Perdu')} disabled={saving} title="Marquer comme perdue"

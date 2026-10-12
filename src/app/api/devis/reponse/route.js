@@ -10,7 +10,9 @@
 // visités par les antivirus des messageries) : la réponse n'est enregistrée
 // qu'à la confirmation (POST). À l'enregistrement : événement « reponse »
 // sur le devis, relances du devis soldées, prochaine action dans le CRM
-// selon la raison, équipe prévenue (cloche + mail).
+// selon la raison, équipe prévenue (cloche + mail). Projet reporté ou
+// attente du financement : l'affaire passe « En attente » (migration 043)
+// jusqu'à la date de reprise de contact.
 
 import { createLogger } from '@/app/lib/logger'
 import { createRateLimiter } from '@/app/lib/rateLimit'
@@ -18,7 +20,7 @@ import { adminClient } from '@/app/lib/supabaseClients'
 import { isTrackToken, recordDevisEvent } from '@/app/lib/devisTracking'
 import { notifyTeam } from '@/app/lib/devisNotify'
 import { closeDevisFollowUps } from '@/app/lib/devisWon'
-import { RAISONS, raisonOf, parseReponse, reponseInteraction } from '@/app/lib/devisRelance'
+import { RAISONS, raisonOf, parseReponse, reponseInteraction, METTRE_EN_ATTENTE } from '@/app/lib/devisRelance'
 
 const log = createLogger('devis-reponse')
 const checkRate = createRateLimiter({ limit: 30, windowMs: 60_000 })
@@ -77,17 +79,26 @@ export async function POST(request) {
 
     const r = raisonOf(rep.raison)
     let oppTitre = ''
+    let enAttente = null
     try {
       await closeDevisFollowUps(admin, devis, { log })
       if (devis.opportunite_id) {
-        const { data: opp } = await admin.from('crm_opportunites').select('titre, contact_id').eq('id', devis.opportunite_id).maybeSingle()
+        const { data: opp } = await admin.from('crm_opportunites').select('titre, contact_id, etape').eq('id', devis.opportunite_id).maybeSingle()
         oppTitre = opp?.titre || ''
+        const suivi = reponseInteraction({ devis, ...rep, today: todayParis() })
         const { error } = await admin.from('crm_interactions').insert({
           opportunite_id: devis.opportunite_id, contact_id: opp?.contact_id || null,
-          ...reponseInteraction({ devis, ...rep, today: todayParis() }),
+          ...suivi,
           date: new Date().toISOString(), action_faite: false, created_by: null,
         })
         if (error) log.warn('interaction', error.message)
+        if (opp && METTRE_EN_ATTENTE.includes(r.code) && !['Gagné', 'Perdu', 'En attente'].includes(opp.etape)) {
+          const { error: e2 } = await admin.from('crm_opportunites').update({
+            etape: 'En attente', motif_attente: r.court, date_reprise: suivi.prochaine_action_date,
+          }).eq('id', devis.opportunite_id)
+          if (e2) log.warn('mise en attente (migration 043 appliquée ?)', e2.message)
+          else enAttente = suivi.prochaine_action_date
+        }
       }
     } catch (e) { log.warn('suivi CRM de la réponse', e?.message || e) }
 
@@ -102,6 +113,7 @@ export async function POST(request) {
         `Réponse : ${r.label}`,
         rep.commentaire ? `Précision du client : « ${rep.commentaire} »` : null, '',
         `Prochaine action notée dans le CRM : ${r.suite.action}.`,
+        enAttente ? `L'affaire est passée « En attente » dans le CRM, reprise de contact le ${enAttente.split('-').reverse().join('/')}.` : null,
       ],
     }, log)
 

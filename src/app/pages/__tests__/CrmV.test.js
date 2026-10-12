@@ -34,6 +34,8 @@ jest.mock('../../lib/crmDb', () => ({
   loadCrm: jest.fn(),
   upsertOpportunite: jest.fn(),
   moveOpportunite: jest.fn(),
+  mettreEnAttente: jest.fn(),
+  reprendreOpportunite: jest.fn(),
   deleteOpportunite: jest.fn(),
   upsertInteraction: jest.fn(),
   setActionFaite: jest.fn(),
@@ -198,6 +200,51 @@ describe('CrmV — fiche affaire', () => {
     await user.click(screen.getByRole('button', { name: 'Noter Appel' }))
     expect(await screen.findByRole('dialog', { name: 'Noter un échange' })).toBeInTheDocument()
     expect(screen.getByDisplayValue('Appel avec SCI Dupont')).toBeInTheDocument()
+  })
+})
+
+describe('CrmV — affaires en attente', () => {
+  it('« En attente » demande le motif et la date de reprise puis met l’affaire en attente', async () => {
+    const user = userEvent.setup()
+    crmDb.mettreEnAttente.mockResolvedValue({ opp: { id: 'o1', titre: 'Rénovation Dupont', etape: 'En attente' }, interaction: null })
+    renderPage({ focusId: 'o1', focusTs: 10 })
+    await screen.findByRole('dialog', { name: 'Rénovation Dupont' })
+    await user.click(screen.getByRole('button', { name: 'En attente' }))
+    expect(await screen.findByRole('dialog', { name: 'Mettre en attente' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Attente du financement' }))
+    await user.click(screen.getByRole('button', { name: 'dans 1 an' }))
+    await user.click(screen.getByRole('button', { name: 'Enregistrer' }))
+    await waitFor(() => expect(crmDb.mettreEnAttente).toHaveBeenCalled())
+    const [form, extra] = crmDb.mettreEnAttente.mock.calls[0]
+    expect(form).toMatchObject({ id: 'o1', etape: 'En attente', motif_attente: 'Attente du financement' })
+    expect(extra.date_reprise).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+    expect(Number(extra.date_reprise.slice(0, 4))).toBe(new Date().getFullYear() + 1)
+  })
+
+  it('vue « En attente » : affaires en pause, reprise depuis la fiche', async () => {
+    const user = userEvent.setup()
+    crmDb.loadCrm.mockResolvedValue({
+      opportunites: [
+        { id: 'o1', titre: 'Rénovation Dupont', etape: 'Qualifié', montant_estime: 42000, probabilite: 30, contact_id: 'c1' },
+        { id: 'o3', titre: 'Maison Leroy', etape: 'En attente', montant_estime: 250000, probabilite: 20,
+          contact_id: 'c1', motif_attente: 'Projet reporté', date_reprise: '2020-03-01' },
+      ],
+      interactions: [], missingMigration: false,
+    })
+    crmDb.reprendreOpportunite.mockResolvedValue({ id: 'o3', titre: 'Maison Leroy', etape: 'Qualifié' })
+    renderPage()
+    await screen.findByText('Rénovation Dupont')
+    // Hors du pipeline actif
+    expect(screen.queryByText('Maison Leroy')).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /^En attente 1$/ }))
+    expect(await screen.findByText('Maison Leroy')).toBeInTheDocument()
+    expect(screen.getByText(/Dupont · Projet reporté/)).toBeInTheDocument()
+    expect(screen.getByText(/À reprendre depuis/)).toBeInTheDocument()
+    await user.click(screen.getByText('Maison Leroy'))
+    await screen.findByRole('dialog', { name: 'Maison Leroy' })
+    expect(screen.getByText(/Projet en pause : Projet reporté/)).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: "Reprendre l'affaire" }))
+    await waitFor(() => expect(crmDb.reprendreOpportunite).toHaveBeenCalledWith(expect.objectContaining({ id: 'o3' }), 'Qualifié'))
   })
 })
 

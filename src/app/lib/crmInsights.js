@@ -12,7 +12,7 @@
 //  - 💤 affaire active sans échange depuis plus de 21 jours.
 // Un devis n'apparaît qu'une fois (son signal le plus fort).
 
-import { isClosed, daysSinceLastInteraction, pipelineStats } from './crm'
+import { isActive, daysSinceLastInteraction, pipelineStats } from './crm'
 import { clientEvents } from './devisTracking'
 
 const DAY = 86_400_000
@@ -82,7 +82,7 @@ export function buildCrmInsights(crm = {}, { today = new Date(), contactsById = 
 
   for (const d of devis) {
     const o = oppById.get(d.opportunite_id)
-    if (o && isClosed(o.etape)) continue
+    if (o && !isActive(o.etape)) continue
     const base = { devisId: d.id, oppId: o?.id || null, numero: d.numero || '', montant: num(d.total_ht), sub: who(o) || d.objet || '' }
     if (d.statut === 'Envoyé') {
       const ev = lastEvent.get(d.id)
@@ -120,7 +120,7 @@ export function buildCrmInsights(crm = {}, { today = new Date(), contactsById = 
   // Affaires dormantes (sauf si un de leurs devis est déjà signalé)
   const flaggedOpps = new Set(items.map(i => i.oppId).filter(Boolean))
   for (const o of opps) {
-    if (isClosed(o.etape) || flaggedOpps.has(o.id)) continue
+    if (!isActive(o.etape) || flaggedOpps.has(o.id)) continue
     let idle = daysSinceLastInteraction(o, interactions, new Date(`${td}T12:00:00Z`))
     if (idle == null && o.created_at) idle = daysBetween(day(o.created_at), td)
     if (idle != null && idle > DORMANT_DAYS) {

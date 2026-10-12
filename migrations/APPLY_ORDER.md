@@ -48,6 +48,7 @@ Exécuter dans cet ordre exact sur une base vierge (Supabase Dashboard → SQL E
 | 040 | `040_chiffrage_estimatif.sql` | **Chiffrage estimatif (DPGF)** : table `chantier_chiffrages` (lots, postes, aléas, TVA ; staff uniquement) et colonne `ordres_service.lot` pour comparer estimé / engagé par lot. À appliquer après 039. |
 | 041 | `041_crm_devis_reponses.sql` | **Relance des devis avec choix de réponse** : colonne `crm_devis_events.detail` et types `relance` / `reponse` (le client indique pourquoi il n'a pas donné suite, page `/reponse/<jeton>`). À appliquer après 040. |
 | 042 | `042_contacts_email_travaux.sql` | **Second email des contacts** : colonne `contacts.email_travaux` (comptes rendus et convocations ; `email` reste l'email administratif : devis, documents). À appliquer après 041. |
+| 043 | `043_crm_attente.sql` | **Affaires en attente** : étape `En attente` et colonnes `crm_opportunites.date_reprise` / `motif_attente` (projet reporté, attente du financement… : l'affaire sort du pipeline jusqu'à la date de reprise). Reprend les affaires dont le client a répondu « projet reporté » ou « attente du financement ». À appliquer après 042. |
 
 ## Fichiers NON séquentiels (à ne PAS appliquer en séquence)
 
