@@ -99,6 +99,22 @@ export default function OpportuniteFormModal({
             aria-label="Date de reprise de contact"
             onChange={e => setForm({ ...form, date_reprise: e.target.value })} />
         </FF>
+        {'reprise_auto' in form && (() => {
+          const email = contacts.find(c => c.id === form.contact_id)?.email
+          return (
+            <label style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 13, color: 'var(--label-2)', marginBottom: 12, cursor: 'pointer' }}>
+              <input type="checkbox" checked={form.reprise_auto !== false} style={{ width: 18, height: 18, marginTop: 1, flexShrink: 0 }}
+                onChange={e => setForm({ ...form, reprise_auto: e.target.checked })} />
+              <span>
+                Envoyer automatiquement au client un mail de reprise de contact à cette date
+                <span style={{ display: 'block', fontSize: 11, color: email ? 'var(--label-secondary)' : 'var(--orange-text)' }}>
+                  {email ? `À ${email}, avec des boutons de réponse (le projet redémarre, toujours en pause, abandonné…).`
+                    : 'Pas d’email pour ce contact : seul le rappel dans tes relances sera prévu.'}
+                </span>
+              </span>
+            </label>
+          )
+        })()}
       </>)}
 
       <button type="button" onClick={() => setMoreOptions(v => !v)} aria-expanded={moreOptions}

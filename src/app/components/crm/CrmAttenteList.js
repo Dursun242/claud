@@ -2,6 +2,7 @@ import { fmtMoney } from '../../dashboards/shared'
 import { EmptyState } from '../index'
 import { attenteList } from '../../lib/crm'
 import { localISO } from '../../lib/today'
+import { repriseEnvoyee } from '../../lib/crmReprise'
 
 /** Date de reprise avec l'année (la reprise peut être dans un an) : « 12 oct. 2027 ». */
 export const fmtReprise = (iso) => {
@@ -27,7 +28,7 @@ function reprise(n, date) {
 export default function CrmAttenteList({ list, contactsById, onOpen, today = localISO() }) {
   const sorted = attenteList(list, today)
   const total = list.reduce((s, o) => s + (Number(o.montant_estime) || 0), 0)
-  const dues = sorted.filter(o => o.joursAvantReprise != null && o.joursAvantReprise <= 0).length
+  const dues = sorted.filter(o => o.joursAvantReprise != null && o.joursAvantReprise <= 0 && !repriseEnvoyee(o)).length
 
   if (!list.length) {
     return (
@@ -54,7 +55,9 @@ export default function CrmAttenteList({ list, contactsById, onOpen, today = loc
       </div>
       {sorted.map(o => {
         const c = contactsById.get(o.contact_id)
-        const r = reprise(o.joursAvantReprise, o.date_reprise)
+        const r = repriseEnvoyee(o)
+          ? { text: `Mail de reprise envoyé le ${fmtReprise(o.reprise_envoyee_le)}, en attente de réponse`, color: 'var(--orange-text)' }
+          : reprise(o.joursAvantReprise, o.date_reprise)
         return (
           <button type="button" key={o.id} onClick={() => onOpen(o.id)} style={{
             display: 'flex', alignItems: 'center', gap: 10, background: '#fff', borderRadius: 10, textAlign: 'left',

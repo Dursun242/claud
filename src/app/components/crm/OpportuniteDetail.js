@@ -3,6 +3,7 @@ import { Badge, EmptyState } from '../index'
 import { ETAPES_ACTIVES, ETAPE_COLORS, INTERACTION_TYPES, INTERACTION_ICONS, isClosed, isAttente, nextEtape, isFollowUpObsolete, followUpContext } from '../../lib/crm'
 import DevisList from './DevisList'
 import { fmtReprise } from './CrmAttenteList'
+import { repriseEnvoyee } from '../../lib/crmReprise'
 import InteractionRow from './InteractionRow'
 import { NEXT_STEP, todayISO, iconBtn } from './crmUi'
 
@@ -103,6 +104,16 @@ export default function OpportuniteDetail({
                 <>Reprendre contact <span style={{ fontWeight: 600, color: repriseDue ? 'var(--red-text)' : 'var(--indigo-text)' }}>le {fmtReprise(o.date_reprise)}</span>{repriseDue ? ' (c’est le moment)' : ''}</>
               ) : 'Date de reprise à fixer'}
             </div>
+            {/* Relance automatique (migration 044) */}
+            {repriseEnvoyee(o) ? (
+              <div style={{ marginTop: 2, color: 'var(--orange-text)' }}>Mail de reprise envoyé le {fmtReprise(o.reprise_envoyee_le)}, en attente de réponse</div>
+            ) : 'reprise_auto' in o && (
+              <div style={{ marginTop: 2, color: 'var(--label-secondary)' }}>
+                {o.reprise_auto === false ? 'Pas de mail automatique : rappel dans tes relances'
+                  : contact?.email ? `Mail automatique à ${contact.email} à cette date`
+                  : 'Pas d’email pour ce contact : rappel dans tes relances'}
+              </div>
+            )}
           </div>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             <button onClick={() => onChangeEtape(repriseEtape)} disabled={saving} title={`Le client revient : l'affaire repasse en « ${repriseEtape} »`}
