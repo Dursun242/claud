@@ -9,16 +9,20 @@
  * Testé dans __tests__/crm.test.js.
  */
 
-// Étapes du pipeline dans l'ordre de progression. Les deux dernières
-// sont des étapes de clôture (l'opportunité sort du pipeline actif).
-export const ETAPES = ['Prospect', 'Qualifié', 'Devis envoyé', 'Négociation', 'Gagné', 'Perdu']
-export const ETAPES_ACTIVES = ETAPES.filter(e => e !== 'Gagné' && e !== 'Perdu')
+// Étapes du pipeline dans l'ordre de progression. « En attente » : le
+// client a mis son projet en pause (reporté, financement…), l'affaire sort
+// du pipeline actif jusqu'à la date de reprise (migration 043). Les deux
+// dernières sont des étapes de clôture.
+export const ATTENTE = 'En attente'
+export const ETAPES = ['Prospect', 'Qualifié', 'Devis envoyé', 'Négociation', ATTENTE, 'Gagné', 'Perdu']
+export const ETAPES_ACTIVES = ETAPES.filter(e => e !== ATTENTE && e !== 'Gagné' && e !== 'Perdu')
 
 export const ETAPE_COLORS = {
   'Prospect':     '#6E6E73',
   'Qualifié':     '#007AFF',
   'Devis envoyé': '#AF52DE',
   'Négociation':  '#FF9500',
+  'En attente':   '#5856D6',
   'Gagné':        '#34C759',
   'Perdu':        '#FF3B30',
 }
@@ -27,7 +31,7 @@ export const ETAPE_COLORS = {
 // peut la surcharger). Gagné = 100, Perdu = 0 : non modifiable.
 export const ETAPE_PROBA = {
   'Prospect': 10, 'Qualifié': 30, 'Devis envoyé': 50,
-  'Négociation': 70, 'Gagné': 100, 'Perdu': 0,
+  'Négociation': 70, 'En attente': 20, 'Gagné': 100, 'Perdu': 0,
 }
 
 export const INTERACTION_TYPES = ['Appel', 'Email', 'Réunion', 'Visite', 'Note']
@@ -41,6 +45,55 @@ export const SOURCES = [
 ]
 
 export const isClosed = (etape) => etape === 'Gagné' || etape === 'Perdu'
+/** Affaire mise en attente par le client (hors pipeline actif, pas close). */
+export const isAttente = (etape) => etape === ATTENTE
+/** Affaire du pipeline actif (ni en attente, ni close). */
+export const isActive = (etape) => !isClosed(etape) && !isAttente(etape)
+
+// Motifs proposés à la mise en attente, avec la reprise de contact suggérée
+export const MOTIFS_ATTENTE = [
+  { motif: 'Projet reporté', mois: 6 },
+  { motif: 'Attente du financement', mois: 2 },
+  { motif: 'Attente du permis', mois: 3 },
+  { motif: 'Attente du terrain', mois: 6 },
+  { motif: 'Le client reviendra vers nous', mois: 12 },
+]
+// Délais de reprise proposés (en mois)
+export const REPRISES = [
+  { mois: 1, label: '1 mois' }, { mois: 3, label: '3 mois' },
+  { mois: 6, label: '6 mois' }, { mois: 12, label: '1 an' },
+]
+
+/** Date (AAAA-MM-JJ) dans `mois` mois, fin de mois respectée (31 jan + 1 = 28/29 fév). */
+export function addMonthsISO(iso, mois) {
+  const [y, m, d] = String(iso).slice(0, 10).split('-').map(Number)
+  const target = new Date(Date.UTC(y, m - 1 + Number(mois || 0), 1))
+  const last = new Date(Date.UTC(target.getUTCFullYear(), target.getUTCMonth() + 1, 0)).getUTCDate()
+  target.setUTCDate(Math.min(d, last))
+  return target.toISOString().slice(0, 10)
+}
+
+/**
+ * Affaires en attente triées par date de reprise (les plus proches, ou
+ * dépassées, d'abord ; sans date à la fin).
+ * @returns {Array<object & { joursAvantReprise: number|null }>}
+ *   joursAvantReprise < 0 : date de reprise dépassée
+ */
+export function attenteList(opps = [], today) {
+  const td = String(today).slice(0, 10)
+  const toUTC = (iso) => { const [y, m, d] = iso.split('-').map(Number); return Date.UTC(y, m - 1, d) }
+  return opps
+    .filter(o => isAttente(o.etape))
+    .map(o => {
+      const r = o.date_reprise ? String(o.date_reprise).slice(0, 10) : null
+      return { ...o, joursAvantReprise: r ? Math.round((toUTC(r) - toUTC(td)) / 86_400_000) : null }
+    })
+    .sort((a, b) => {
+      if (a.joursAvantReprise == null) return b.joursAvantReprise == null ? 0 : 1
+      if (b.joursAvantReprise == null) return -1
+      return a.joursAvantReprise - b.joursAvantReprise
+    })
+}
 
 /** Probabilité à appliquer quand on passe à `etape`. */
 export function probaForEtape(etape, current) {
@@ -51,7 +104,7 @@ export function probaForEtape(etape, current) {
   return ETAPE_PROBA[etape] ?? 20
 }
 
-/** Étape suivante dans le flux (null si clôturée ou en Négociation). */
+/** Étape suivante dans le flux (null si clôturée, en attente ou en Négociation). */
 export function nextEtape(etape) {
   const i = ETAPES_ACTIVES.indexOf(etape)
   if (i < 0 || i >= ETAPES_ACTIVES.length - 1) return null
@@ -81,6 +134,7 @@ export function groupByEtape(opps = []) {
  * @param {Date|string} [today]
  * @returns {{
  *   actives: number, montantPipeline: number, montantPondere: number,
+ *   enAttente: number, montantAttente: number (affaires en attente, hors pipeline),
  *   gagneesMois: number, montantGagneMois: number,
  *   trimestre: number (1-4), annee: number,
  *   gagneesTrimestre: number, montantGagneTrimestre: number,
@@ -96,11 +150,15 @@ export function pipelineStats(opps = [], today = new Date()) {
   const debutT = `${annee}-${String((trimestre - 1) * 3 + 1).padStart(2, '0')}-01`
   const finT = trimestre === 4 ? `${annee + 1}-01-01` : `${annee}-${String(trimestre * 3 + 1).padStart(2, '0')}-01`
   let actives = 0, montantPipeline = 0, montantPondere = 0
+  let enAttente = 0, montantAttente = 0
   let gagneesMois = 0, montantGagneMois = 0, gagnees = 0, perdues = 0
   let gagneesTrimestre = 0, montantGagneTrimestre = 0
   for (const o of opps) {
     const m = num(o.montant_estime)
-    if (!isClosed(o.etape)) {
+    if (isAttente(o.etape)) {
+      enAttente++
+      montantAttente += m
+    } else if (!isClosed(o.etape)) {
       actives++
       montantPipeline += m
       montantPondere += m * (num(o.probabilite) / 100)
@@ -117,6 +175,7 @@ export function pipelineStats(opps = [], today = new Date()) {
   const closed = gagnees + perdues
   return {
     actives, montantPipeline,
+    enAttente, montantAttente,
     montantPondere: Math.round(montantPondere),
     gagneesMois, montantGagneMois,
     trimestre, annee, gagneesTrimestre, montantGagneTrimestre,
@@ -210,6 +269,8 @@ export function validateOpportunite(form = {}) {
     return 'La probabilité doit être comprise entre 0 et 100.'
   if (form.etape === 'Perdu' && !(form.motif_perte || '').trim())
     return 'Indique le motif de la perte.'
+  if (isAttente(form.etape) && !/^\d{4}-\d{2}-\d{2}/.test(String(form.date_reprise || '')))
+    return 'Indique quand reprendre contact avec le client.'
   return ''
 }
 

@@ -9,11 +9,11 @@ import { useCrmData } from '../hooks/useCrmData'
 import { useCrmDevis } from '../hooks/useCrmDevis'
 import { useNavReturn } from '../hooks/useNavReturn'
 import {
-  ETAPES_ACTIVES, ETAPE_PROBA, isClosed, groupByEtape,
+  ETAPES_ACTIVES, ETAPE_PROBA, isClosed, isAttente, isActive, addMonthsISO, groupByEtape,
   pipelineStats, classifyFollowUps, validateOpportunite, validateInteraction, opportuniteToChantier,
 } from '../lib/crm'
 import {
-  upsertOpportunite, moveOpportunite, deleteOpportunite,
+  upsertOpportunite, moveOpportunite, deleteOpportunite, mettreEnAttente, reprendreOpportunite,
   upsertInteraction, setActionFaite, deleteInteraction, linkOpportuniteToChantier,
 } from '../lib/crmDb'
 import { isNumeroProvisoire } from '../lib/devis'
@@ -25,6 +25,7 @@ import Kpi from '../components/crm/Kpi'
 import CrmFirstUseGuide from '../components/crm/CrmFirstUseGuide'
 import CrmPipeline from '../components/crm/CrmPipeline'
 import CrmClosedList from '../components/crm/CrmClosedList'
+import CrmAttenteList from '../components/crm/CrmAttenteList'
 import FollowUpList from '../components/crm/FollowUpList'
 import OpportuniteDetail from '../components/crm/OpportuniteDetail'
 import OpportuniteFormModal from '../components/crm/OpportuniteFormModal'
@@ -56,7 +57,7 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
   }
   const { opportunites, interactions, missingMigration } = crm
 
-  const [view, setView] = useState('pipeline')       // pipeline | relances | won | lost
+  const [view, setView] = useState('pipeline')       // pipeline | relances | attente | won | lost
   const [q, setQ] = useState('')
   const [quick, setQuick] = useState('')              // ajout rapide (barre en haut)
   const [mobileStage, setMobileStage] = useState(null)
@@ -118,7 +119,7 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
     pendingIds: new Set([...followUps.overdue, ...followUps.today, ...followUps.upcoming].map(i => i.id)),
     today: localISO(),
   }), [crm.devis, crm.devisEvents, interactions, followUps])
-  const nbActifsFiltres = filtered.filter(o => !isClosed(o.etape)).length
+  const nbActifsFiltres = filtered.filter(o => isActive(o.etape)).length
   const isFirstUse = opportunites.length === 0 && !q
 
   // Mobile : une colonne à la fois. Par défaut, la première non vide.
@@ -135,8 +136,11 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
     setOppModal('new')
   }, [])
   const openEdit = (o) => {
-    setOppForm({ ...o, montant_estime: o.montant_estime ?? '', contact_id: o.contact_id || '' })
-    setOppError(''); setMoreOptions(true)
+    setOppForm({
+      ...o, montant_estime: o.montant_estime ?? '', contact_id: o.contact_id || '',
+      etape_initiale: o.etape, date_reprise_initiale: o.date_reprise || null,
+    })
+    setOppError(''); setMoreOptions(!isAttente(o.etape))
     setOppModal('edit')
   }
   const closeOppModal = () => { setOppModal(null); setOppError('') }
@@ -207,10 +211,23 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
     if (err) { setOppError(err); return }
     setSaving(true)
     try {
-      const saved = await upsertOpportunite(oppForm)
-      await applyOpp(saved)
+      const wasAttente = isAttente(oppForm.etape_initiale)
+      let saved
+      if (isAttente(oppForm.etape) && (!wasAttente || oppForm.date_reprise !== oppForm.date_reprise_initiale)) {
+        // Mise en attente (ou nouvelle date de reprise) : rappel à la date
+        saved = (await mettreEnAttente(oppForm, oppForm)).opp
+        await reload()
+        addToast(`Affaire en attente · reprise de contact le ${fmtDate(oppForm.date_reprise)}`, 'success')
+      } else if (wasAttente && isActive(oppForm.etape)) {
+        saved = await reprendreOpportunite(oppForm, oppForm.etape)
+        await reload()
+        addToast(`« ${saved.titre} » reprend en ${saved.etape}`, 'success')
+      } else {
+        saved = await upsertOpportunite(oppForm)
+        await applyOpp(saved)
+        addToast(oppModal === 'edit' ? 'Affaire mise à jour' : 'Affaire créée', 'success')
+      }
       closeOppModal()
-      addToast(oppModal === 'edit' ? 'Affaire mise à jour' : 'Affaire créée', 'success')
       if (oppModal === 'new') setSelectedId(saved.id)
     } catch (e) {
       setOppError(e?.message || "Erreur lors de l'enregistrement.")
@@ -232,17 +249,33 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
     } catch (e) { addToast(e?.message || 'Suppression impossible', 'error') }
   }
 
-  // Changement d'étape. Perdu demande un motif ; Gagné propose le chantier.
+  // Changement d'étape. Perdu demande un motif ; En attente, le motif et la
+  // date de reprise ; Gagné propose le chantier.
   const changeEtape = async (o, etape) => {
     if (o.etape === etape) return
     if (etape === 'Perdu') {
-      setOppForm({ ...o, etape: 'Perdu', motif_perte: o.motif_perte || '', contact_id: o.contact_id || '' })
+      setOppForm({ ...o, etape: 'Perdu', motif_perte: o.motif_perte || '', contact_id: o.contact_id || '', etape_initiale: o.etape })
+      setOppError(''); setMoreOptions(false)
+      setOppModal('edit')
+      return
+    }
+    if (isAttente(etape)) {
+      setOppForm({
+        ...o, etape, contact_id: o.contact_id || '', etape_initiale: o.etape, date_reprise_initiale: null,
+        motif_attente: '', date_reprise: addMonthsISO(localISO(), 6),
+      })
       setOppError(''); setMoreOptions(false)
       setOppModal('edit')
       return
     }
     try {
-      await applyOpp(await moveOpportunite(o, etape))
+      if (isAttente(o.etape) && !isClosed(etape)) {
+        // Le client revient : l'affaire repart, le rappel de reprise est soldé
+        await reprendreOpportunite(o, etape)
+        await reload()
+      } else {
+        await applyOpp(await moveOpportunite(o, etape))
+      }
       addToast(`« ${o.titre} » → ${etape}`, 'success')
       if (etape === 'Gagné' && !o.chantier_id) {
         const ok = await confirm({
@@ -322,7 +355,7 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
           <h1 style={{margin:0,fontSize:m?28:32,fontWeight:700,letterSpacing:"-0.02em",color:"var(--label)"}}>CRM</h1>
           <div style={{ fontSize: 13, color: 'var(--label-secondary)', marginTop: 2 }}>
             {stats.actives === 0 ? 'Tes affaires en cours, du premier appel au chantier.' :
-              `${stats.actives} affaire${stats.actives > 1 ? 's' : ''} en cours · ${fmtMoney(stats.montantPipeline)}`}
+              `${stats.actives} affaire${stats.actives > 1 ? 's' : ''} en cours · ${fmtMoney(stats.montantPipeline)}${stats.enAttente ? ` · ${stats.enAttente} en attente` : ''}`}
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -389,6 +422,7 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
           {[
             { k: 'pipeline', l: 'Pipeline', c: '#007AFF', n: stats.actives },
             { k: 'relances', l: 'Relances', c: '#FF9500', n: nbRelances },
+            { k: 'attente',  l: 'En attente', c: '#5856D6', n: grouped['En attente'].length },
             { k: 'won',      l: 'Gagnées',  c: '#34C759', n: grouped['Gagné'].length },
             { k: 'lost',     l: 'Perdues',  c: '#FF3B30', n: grouped['Perdu'].length },
           ].map(p => {
@@ -426,6 +460,11 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
       {view === 'relances' && (
         <FollowUpList followUps={followUps} opportunites={opportunites} contactsById={contactsById}
           onToggle={toggleAction} onOpen={(id) => setSelectedId(id)} />
+      )}
+
+      {/* ─── EN ATTENTE (projet du client en pause) ─── */}
+      {view === 'attente' && (
+        <CrmAttenteList list={grouped['En attente']} contactsById={contactsById} onOpen={setSelectedId} />
       )}
 
       {/* ─── GAGNÉES / PERDUES ─── */}

@@ -11,7 +11,7 @@ jest.mock('../../lib/crmApi', () => ({
   apiPost: jest.fn(), saveBase64Pdf: jest.fn(), openBase64Pdf: jest.fn(),
 }))
 jest.mock('../../lib/crmDb', () => ({
-  moveOpportunite: jest.fn(), upsertInteraction: jest.fn(), upsertDevis: jest.fn(),
+  moveOpportunite: jest.fn(), reprendreOpportunite: jest.fn(), upsertInteraction: jest.fn(), upsertDevis: jest.fn(),
   setDevisStatut: jest.fn(), deleteDevis: jest.fn(),
 }))
 

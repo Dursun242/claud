@@ -11,7 +11,7 @@
  */
 import { supabase as defaultClient } from '../supabaseClient'
 import { writeActivityLog } from './activityLog'
-import { isClosed, probaForEtape } from './crm'
+import { isClosed, isAttente, probaForEtape } from './crm'
 import { computeDevisTotals, normalizeLignes } from './devis'
 import { loadCrmWith } from './crmLoad'
 
@@ -29,6 +29,11 @@ const log = (sb, action, entityType, id, label) =>
 export async function loadCrm(sb = defaultClient) {
   return loadCrmWith(sb)
 }
+
+// Base sans la migration 043 : message clair au lieu de l'erreur SQL
+const oppError = (prefix, error) => (/etape_check|date_reprise|motif_attente/.test(error?.message || '')
+  ? new Error('La mise en attente demande la migration 043_crm_attente.sql sur la base (voir migrations/APPLY_ORDER.md).')
+  : new Error(prefix + error.message))
 
 /** Crée ou met à jour une opportunité. Retourne la ligne persistée. */
 export async function upsertOpportunite(o, sb = defaultClient) {
@@ -52,6 +57,16 @@ export async function upsertOpportunite(o, sb = defaultClient) {
     motif_perte: etape === 'Perdu' ? (o.motif_perte || null) : null,
     notes: o.notes || null,
   }
+  // Affaire en attente (migration 043) : date de reprise et motif. Colonnes
+  // envoyées seulement si l'affaire est ou a été en attente, pour rester
+  // compatible avec une base sans la 043.
+  if (isAttente(etape)) {
+    row.date_reprise = o.date_reprise || null
+    row.motif_attente = String(o.motif_attente || '').trim() || null
+  } else if (o.date_reprise || o.motif_attente) {
+    row.date_reprise = null
+    row.motif_attente = null
+  }
   // Lien devis Qonto (migration 026) : n'envoie les colonnes que si
   // renseignées, pour rester compatible avec une base sans la 026.
   if (o.qonto_quote_id) {
@@ -61,7 +76,7 @@ export async function upsertOpportunite(o, sb = defaultClient) {
   if (o.id) {
     const { data, error } = await sb.from('crm_opportunites')
       .update(row).eq('id', o.id).select().single()
-    if (error) throw new Error('Erreur mise à jour opportunité : ' + error.message)
+    if (error) throw oppError('Erreur mise à jour opportunité : ', error)
     log(sb, 'update', 'crm_opportunite', data.id, data.titre)
     // Affaire gagnée / perdue : les relances en attente n'ont plus d'objet
     if (isClosed(etape)) await closeFollowUps({ opportuniteId: data.id }, sb)
@@ -70,7 +85,7 @@ export async function upsertOpportunite(o, sb = defaultClient) {
   const { data: { user } = {} } = await sb.auth.getUser()
   const { data, error } = await sb.from('crm_opportunites')
     .insert({ ...row, created_by: user?.email || null }).select().single()
-  if (error) throw new Error('Erreur création opportunité : ' + error.message)
+  if (error) throw oppError('Erreur création opportunité : ', error)
   log(sb, 'create', 'crm_opportunite', data.id, data.titre)
   return data
 }
@@ -78,6 +93,36 @@ export async function upsertOpportunite(o, sb = defaultClient) {
 /** Change uniquement l'étape (drag & drop / bouton « avancer »). */
 export async function moveOpportunite(opp, etape, extra = {}, sb = defaultClient) {
   return upsertOpportunite({ ...opp, ...extra, etape }, sb)
+}
+
+export const ACTION_REPRISE = 'Reprendre contact (affaire en attente)'
+
+/**
+ * Met l'affaire en attente : relances en cours soldées (elles n'ont plus
+ * d'objet) et rappel « Reprendre contact » à la date de reprise, qui
+ * apparaîtra dans les relances le jour venu.
+ * @returns {{ opp: object, interaction: object|null }}
+ */
+export async function mettreEnAttente(opp, { date_reprise, motif_attente }, sb = defaultClient) {
+  const saved = await moveOpportunite(opp, 'En attente', { date_reprise, motif_attente }, sb)
+  await closeFollowUps({ opportuniteId: saved.id }, sb)
+  const motif = String(motif_attente || '').trim()
+  const interaction = await upsertInteraction({
+    opportunite_id: saved.id, contact_id: saved.contact_id || null, type: 'Note',
+    sujet: `Affaire mise en attente${motif ? ` : ${motif}` : ''}`,
+    prochaine_action: ACTION_REPRISE, prochaine_action_date: date_reprise,
+  }, sb)
+  return { opp: saved, interaction }
+}
+
+/**
+ * Sortie d'attente (le client revient) : l'affaire repasse à `etape` et
+ * les rappels de reprise de contact encore ouverts sont soldés.
+ */
+export async function reprendreOpportunite(opp, etape, extra = {}, sb = defaultClient) {
+  const saved = await moveOpportunite(opp, etape, extra, sb)
+  await closeFollowUps({ opportuniteId: saved.id, actionPrefix: 'Reprendre contact' }, sb)
+  return saved
 }
 
 export async function deleteOpportunite(id, sb = defaultClient) {
@@ -120,12 +165,13 @@ export async function upsertInteraction(i, sb = defaultClient) {
  * l'affaire (affaire gagnée / perdue) ou celles d'un devis précis (devis
  * accepté / refusé). Jamais bloquant ; renvoie le nombre de relances soldées.
  */
-export async function closeFollowUps({ opportuniteId, devisNumero = null }, sb = defaultClient) {
+export async function closeFollowUps({ opportuniteId, devisNumero = null, actionPrefix = null }, sb = defaultClient) {
   if (!opportuniteId) return 0
   try {
     let q = sb.from('crm_interactions').update({ action_faite: true })
       .eq('opportunite_id', opportuniteId).eq('action_faite', false).not('prochaine_action_date', 'is', null)
     if (devisNumero) q = q.ilike('sujet', `Devis ${devisNumero} %`)
+    if (actionPrefix) q = q.ilike('prochaine_action', `${actionPrefix}%`)
     const { data, error } = await q.select('id')
     return error ? 0 : (data || []).length
   } catch {

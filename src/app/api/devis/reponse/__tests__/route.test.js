@@ -1,7 +1,7 @@
 /**
  * @jest-environment node
  */
-let GET, POST, db, inserts, notifyTeam, closeDevisFollowUps
+let GET, POST, db, inserts, updates, notifyTeam, closeDevisFollowUps
 
 const TOKEN = 'd'.repeat(64)
 
@@ -15,6 +15,7 @@ function fakeAdmin() {
         gte: () => b,
         limit: async () => ({ data: table === 'crm_devis_events' ? db.events : [] }),
         insert: async (row) => { inserts.push({ table, row }); return { error: null } },
+        update: (row) => { updates.push({ table, row, filters: q.filters }); return b },
         maybeSingle: async () => ({
           data: table === 'crm_devis' ? (q.filters.some(([k, v]) => k === 'track_token' && v === TOKEN) ? db.devis : null) : db[table] || null,
           error: null,
@@ -39,9 +40,10 @@ beforeEach(() => {
   closeDevisFollowUps = jest.fn().mockResolvedValue(1)
   jest.doMock('@/app/lib/devisWon', () => ({ closeDevisFollowUps }))
   inserts = []
+  updates = []
   db = {
     devis: { id: 'd1', numero: '26-050', objet: 'Extension', statut: 'Envoyé', opportunite_id: 'o1' },
-    crm_opportunites: { titre: 'Extension Martin', contact_id: 'ct1' },
+    crm_opportunites: { titre: 'Extension Martin', contact_id: 'ct1', etape: 'Devis envoyé' },
     events: [],
   }
   ;({ GET, POST } = require('../route'))
@@ -83,6 +85,26 @@ describe('/api/devis/reponse (page publique)', () => {
     expect(n.title).toBe('💬 Devis 26-050 : Budget dépassé')
     expect(n.body).toBe('Extension Martin · « Plutôt 4 000 € »')
     expect(n.mailLines).toContain('Réponse : Le montant dépasse le budget que j’avais prévu')
+    // Budget : l'affaire reste dans le pipeline
+    expect(updates).toEqual([])
+  })
+
+  it('POST : projet reporté → affaire « En attente » jusqu’à la reprise de contact', async () => {
+    const res = await POST(req({ body: { t: TOKEN, raison: 'reporte', commentaire: '' } }))
+    expect(res.status).toBe(200)
+    const it = inserts.find(i => i.table === 'crm_interactions').row
+    expect(updates).toHaveLength(1)
+    expect(updates[0]).toMatchObject({
+      table: 'crm_opportunites',
+      row: { etape: 'En attente', motif_attente: 'Projet reporté', date_reprise: it.prochaine_action_date },
+    })
+    expect(notifyTeam.mock.calls[0][1].mailLines.some(l => l && l.includes('« En attente »'))).toBe(true)
+  })
+
+  it('POST : affaire déjà close, pas de mise en attente', async () => {
+    db.crm_opportunites.etape = 'Gagné'
+    await POST(req({ body: { t: TOKEN, raison: 'financement', commentaire: '' } }))
+    expect(updates).toEqual([])
   })
 
   it('POST : « Autre » sans précision refusé', async () => {

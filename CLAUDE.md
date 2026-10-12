@@ -83,7 +83,7 @@ Stage 2 = **secondaires** (contacts, planning, rdv, counts PJ via RPC `chantier_
 
 Cf. `SB.loadCritical()` / `SB.loadSecondary()` dans `dashboards/shared.js`.
 
-Stage 3 = **CRM** (`crm_opportunites`, `crm_interactions`, `crm_devis`, `crm_devis_events`, migrations 025→030, 041) via `useCrmData({ enabled })` dans `AdminDashboard` : lancé seulement après le stage 1, partagé (React Query) par CrmV, DashboardV (widget relances), ContactsV (badge affaires), QontoV (→ CRM), AIV (actions IA) et la recherche globale.
+Stage 3 = **CRM** (`crm_opportunites`, `crm_interactions`, `crm_devis`, `crm_devis_events`, migrations 025→030, 041, 043) via `useCrmData({ enabled })` dans `AdminDashboard` : lancé seulement après le stage 1, partagé (React Query) par CrmV, DashboardV (widget relances), ContactsV (badge affaires), QontoV (→ CRM), AIV (actions IA) et la recherche globale.
 
 ## Hors ligne (usage sur chantier)
 
@@ -132,7 +132,7 @@ Voir `.env.example` à la racine. Minimum requis pour dev :
 
 ## Migrations DB
 
-**Ordre critique** : voir `migrations/APPLY_ORDER.md`. Les migrations numérotées 001→042 s'appliquent dans l'ordre via le SQL Editor Supabase. Chaque migration ayant un impact non-trivial a un `<num>_README.md` dédié.
+**Ordre critique** : voir `migrations/APPLY_ORDER.md`. Les migrations numérotées 001→043 s'appliquent dans l'ordre via le SQL Editor Supabase. Chaque migration ayant un impact non-trivial a un `<num>_README.md` dédié.
 
 ## Dette technique assumée
 

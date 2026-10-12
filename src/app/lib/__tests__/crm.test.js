@@ -1,14 +1,16 @@
 import {
   ETAPES, ETAPES_ACTIVES, probaForEtape, nextEtape, groupByEtape,
+  isClosed, isAttente, isActive, addMonthsISO, attenteList,
   pipelineStats, classifyFollowUps, daysSinceLastInteraction,
   validateOpportunite, validateInteraction, opportuniteToChantier,
   oppsByContact, quoteToOpportunite, prepareCrmForAI, devisNumeroOf, isFollowUpObsolete, followUpContext,
 } from '../crm'
 
 describe('crm — étapes', () => {
-  it('ETAPES_ACTIVES exclut Gagné et Perdu', () => {
+  it('ETAPES_ACTIVES exclut En attente, Gagné et Perdu', () => {
     expect(ETAPES_ACTIVES).toEqual(['Prospect', 'Qualifié', 'Devis envoyé', 'Négociation'])
-    expect(ETAPES).toHaveLength(6)
+    expect(ETAPES).toHaveLength(7)
+    expect(ETAPES).toContain('En attente')
   })
 
   it('probaForEtape force 100/0 sur clôture, garde la valeur saisie sinon', () => {
@@ -221,5 +223,47 @@ describe('crm — intégrations', () => {
     }, today)
     expect(r.opportunites[0]).toMatchObject({ id: 'o1', montant_estime: 10, derniere_interaction_jours: 1 })
     expect(r.relances).toEqual({ en_retard: ['i1'], aujourdhui: ['i2'] })
+  })
+})
+
+describe('crm — affaires en attente', () => {
+  it('ni active ni close, sans étape suivante', () => {
+    expect(isAttente('En attente')).toBe(true)
+    expect(isClosed('En attente')).toBe(false)
+    expect(isActive('En attente')).toBe(false)
+    expect(isActive('Négociation')).toBe(true)
+    expect(nextEtape('En attente')).toBeNull()
+  })
+
+  it('hors du pipeline actif, comptées à part', () => {
+    const s = pipelineStats([
+      { etape: 'Négociation', montant_estime: 10000, probabilite: 50 },
+      { etape: 'En attente', montant_estime: 30000, probabilite: 20 },
+    ], new Date('2026-10-12T10:00:00Z'))
+    expect(s).toMatchObject({ actives: 1, montantPipeline: 10000, montantPondere: 5000, enAttente: 1, montantAttente: 30000 })
+  })
+
+  it('validation : la date de reprise est obligatoire', () => {
+    const base = { titre: 'Maison', etape: 'En attente', montant_estime: '' }
+    expect(validateOpportunite(base)).toMatch(/reprendre contact/)
+    expect(validateOpportunite({ ...base, date_reprise: '2027-04-12' })).toBe('')
+  })
+
+  it('addMonthsISO respecte la fin de mois', () => {
+    expect(addMonthsISO('2026-10-12', 6)).toBe('2027-04-12')
+    expect(addMonthsISO('2026-08-31', 6)).toBe('2027-02-28')
+    expect(addMonthsISO('2026-10-12', 12)).toBe('2027-10-12')
+  })
+
+  it('attenteList : reprises dépassées d’abord, sans date à la fin', () => {
+    const list = attenteList([
+      { id: 'a', etape: 'En attente', date_reprise: '2027-04-01' },
+      { id: 'b', etape: 'En attente', date_reprise: null },
+      { id: 'c', etape: 'En attente', date_reprise: '2026-10-01' },
+      { id: 'd', etape: 'Négociation', date_reprise: '2026-01-01' },
+    ], '2026-10-12')
+    expect(list.map(o => o.id)).toEqual(['c', 'a', 'b'])
+    expect(list[0].joursAvantReprise).toBe(-11)
+    expect(list[2].joursAvantReprise).toBeNull()
   })
 })

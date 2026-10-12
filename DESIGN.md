@@ -35,6 +35,10 @@ colors:
   blue-line: "#C6DDF7"
   purple-tint: "#F7F0FC"
   purple-line: "#E7D4F5"
+  indigo: "#5856D6"
+  indigo-text: "#3634A3"
+  indigo-tint: "#EEEEFC"
+  indigo-line: "#CFCEF5"
 typography:
   large-title:
     fontFamily: "-apple-system, BlinkMacSystemFont, SF Pro Text, Segoe UI, Roboto, sans-serif"
@@ -198,6 +202,7 @@ Une palette iOS claire : gris système pour la structure, bleu pour l'action, co
 - **Orange** (`orange`, texte `orange-text`) : en attente, échéance proche, à vérifier.
 - **Rouge** (`red`, texte `red-text`) : urgent, en retard, dépassement, suppression, erreur.
 - **Violet** (`purple`, texte `purple-text`) : planifié ; Qonto (données de la banque).
+- **Indigo** (`indigo`, texte `indigo-text`) : affaire du CRM en attente (projet du client en pause, à reprendre plus tard).
 - **Encadrés d'alerte** : fond `green-tint` / `orange-tint` / `red-tint`, trait `green-line` / `orange-line` / `red-line` (`blue-line` pour l'information), texte de la teinte lisible (`orange-deep` pour un texte long sur fond orange).
 
 ### Variables CSS
