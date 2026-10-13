@@ -13,6 +13,8 @@ jest.mock('../../../lib/offlineStore', () => ({
 jest.mock('../../../lib/crPhotos', () => ({ signedUrls: async () => ({}), loadCrImages: async () => ({}), photoFromFile: async () => ({ dataUrl: 'data:x' }) }))
 const apiPost = jest.fn()
 jest.mock('../../../lib/crmApi', () => ({ apiPost: (...a) => apiPost(...a) }))
+const generateCRPdf = jest.fn()
+jest.mock('../../../generators', () => ({ generateCRPdf: (...a) => generateCRPdf(...a) }))
 
 // eslint-disable-next-line import/first
 import CREditor from '../CREditor'
@@ -159,4 +161,23 @@ it('refuse une prochaine réunion antérieure au CR', async () => {
   await user.click(screen.getByRole('button', { name: 'Enregistrer' }))
   expect(screen.getByRole('alert')).toHaveTextContent('La prochaine réunion doit être après la date du CR.')
   expect(saveCr).not.toHaveBeenCalled()
+})
+
+it('aperçu à côté : le PDF se refait après les modifications', async () => {
+  generateCRPdf.mockResolvedValue({ url: 'blob:apercu', filename: 'CR.pdf' })
+  window.localStorage.removeItem('cr-apercu-a-cote')
+  const { user } = setup()
+  await user.click(screen.getByRole('button', { name: 'Aperçu à côté' }))
+  const panel = screen.getByRole('complementary', { name: 'Aperçu du PDF' })
+  await waitFor(() => expect(generateCRPdf).toHaveBeenCalled(), { timeout: 3000 })
+  const [cr, , opts] = generateCRPdf.mock.calls.at(-1)
+  expect(cr.numero).toBeTruthy()
+  expect(opts.returnBlobUrl).toBe(true)
+  expect(await within(panel).findByTitle('Aperçu du compte rendu')).toHaveAttribute('src', 'blob:apercu#view=FitH')
+  // Choix gardé sur l'appareil, sommaire masqué pour laisser la place
+  expect(window.localStorage.getItem('cr-apercu-a-cote')).toBe('1')
+  expect(screen.queryByRole('navigation', { name: 'Sommaire du compte rendu' })).not.toBeInTheDocument()
+  await user.click(within(panel).getByRole('button', { name: "Fermer l'aperçu" }))
+  expect(screen.queryByRole('complementary', { name: 'Aperçu du PDF' })).not.toBeInTheDocument()
+  expect(window.localStorage.getItem('cr-apercu-a-cote')).toBe('0')
 })
