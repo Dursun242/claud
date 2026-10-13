@@ -1039,46 +1039,37 @@ export async function generateCRPdf(cr, chantier, opts = {}) {
     y += 2
   }
 
-  if (cr.resume) {
-    heading('En résumé')
-    paragraph(cr.resume)
-  }
-
-  // Avancement par lot : une barre par lot
-  const avRows = crSections.filter(s => lotKey(s.lot) !== lotKey(GENERAL) && (s.avancement != null || s.prevu != null))
-  if (avRows.length) {
-    heading('Avancement')
-    const barX = margin + usable * 0.42
-    const barW = usable * 0.3
-    for (const s of avRows) {
-      ensure(9)
-      font(10.5, 'normal', NOIR)
-      doc.text(lines(s.lot, usable * 0.4)[0], margin, y + 4)
-      const pct = Math.max(0, Math.min(100, Number(s.avancement) || 0))
-      doc.setFillColor(...GRIS_CLAIR); doc.roundedRect(barX, y + 1, barW, 3.6, 1.5, 1.5, 'F')
-      if (pct > 0) { doc.setFillColor(...BLEU); doc.roundedRect(barX, y + 1, Math.max(3, barW * pct / 100), 3.6, 1.5, 1.5, 'F') }
-      font(10, 'bold', NOIR)
-      doc.text(s.avancement != null ? `${s.avancement} %` : '-', barX + barW + 3, y + 4)
-      const ecart = s.avancement != null && s.prevu != null ? s.avancement - s.prevu : null
-      if (ecart != null && ecart !== 0) {
-        font(9, 'normal', ecart < 0 ? ROUGE : VERT)
-        doc.text(ecart < 0 ? `retard ${-ecart} pts` : `avance ${ecart} pts`, w - margin, y + 4, { align: 'right' })
-      }
-      y += 8
+  // Avancement d'un lot : barre + écart avec le prévu (dans la partie du lot)
+  const progressBar = (sec) => {
+    if (sec.avancement == null && sec.prevu == null) return
+    ensure(9)
+    const barW = usable * 0.4
+    const pct = Math.max(0, Math.min(100, Number(sec.avancement) || 0))
+    doc.setFillColor(...GRIS_CLAIR); doc.roundedRect(margin, y + 1, barW, 3.6, 1.5, 1.5, 'F')
+    if (pct > 0) { doc.setFillColor(...BLEU); doc.roundedRect(margin, y + 1, Math.max(3, barW * pct / 100), 3.6, 1.5, 1.5, 'F') }
+    font(10, 'bold', NOIR)
+    doc.text(sec.avancement != null ? `${sec.avancement} %` : '-', margin + barW + 3, y + 4)
+    const ecart = sec.avancement != null && sec.prevu != null ? sec.avancement - sec.prevu : null
+    if (ecart != null && ecart !== 0) {
+      font(9, 'normal', ecart < 0 ? ROUGE : VERT)
+      doc.text(`${ecart < 0 ? `retard ${-ecart} pts` : `avance ${ecart} pts`} sur le prévu (${sec.prevu} %)`, margin + barW + 18, y + 4)
     }
+    y += 8
   }
 
-  // Une partie par lot (Généralités d'abord)
+  // Même ordre que l'éditeur : Généralités, les lots dans l'ordre affiché,
+  // puis la synthèse et les décisions, enfin la prochaine réunion
   for (const s of crSections) {
     const rows = pointsOf(s.lot)
     const photos = [
       ...(s.photos || []),
       ...rows.flatMap(r => (r.photos || []).map(photo => ({ photo, num: r.num }))),
     ]
-    if (!rows.length && !s.observations && !photos.some(p => imageOf(p.photo || p))) continue
+    const hasProgress = s.avancement != null || s.prevu != null
+    if (!rows.length && !s.observations && !hasProgress && !photos.some(p => imageOf(p.photo || p))) continue
     heading(String(s.lot))
-    const sub = [s.entreprise, s.avancement != null ? `avancement ${s.avancement} %` : ''].filter(Boolean).join(' · ')
-    if (sub) { y -= 2; paragraph(sub, { size: 9.5, color: GRIS }); y += 1.5 }
+    if (s.entreprise) { y -= 2; paragraph(s.entreprise, { size: 9.5, color: GRIS }); y += 1.5 }
+    progressBar(s)
     if (s.observations) { paragraph(s.observations); y += 3 }
     rows.forEach(pointItem)
     photoGrid(photos)
@@ -1086,6 +1077,11 @@ export async function generateCRPdf(cr, chantier, opts = {}) {
   if (suivi.length > 0) {
     y += 1
     paragraph('Chaque point garde son numéro d’un compte rendu à l’autre jusqu’à ce qu’il soit fait. Un point en retard est relancé au compte rendu suivant.', { size: 8.5, color: GRIS, lh: 4 })
+  }
+
+  if (cr.resume) {
+    heading('Synthèse de la réunion')
+    paragraph(cr.resume)
   }
 
   if (cr.decisions) {
