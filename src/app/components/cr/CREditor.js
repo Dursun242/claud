@@ -5,7 +5,7 @@ import { useCrEditor } from '../../hooks/useCrEditor'
 import { useDictation } from '../../hooks/useDictation'
 import { useLeaveGuard } from '../../hooks/useLeaveGuard'
 import {
-  chantierIntervenants, entrepriseOf, lotKey, crTaskStats, aiContext, globalProgress,
+  chantierIntervenants, entrepriseOf, lotKey, crTaskStats, aiContext, globalProgress, rowAiId,
 } from '../../lib/crSuivi'
 import { pointsBySection } from '../../lib/crEditor'
 import { loadCrImages } from '../../lib/crPhotos'
@@ -80,7 +80,8 @@ export default function CREditor({ open, initial, data, onClose, onSaved, lockCh
   ].map(e => String(e || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'fr')), [available, form.intervenants, sections, rows])
   const counts = useMemo(() => pointsBySection(rows, sections), [rows, sections])
   const lots = useMemo(() => sections.map(s => ({ key: s.key, lot: s.lot })), [sections])
-  const rowsById = useMemo(() => new Map(rows.filter(r => r.id).map(r => [r.id, r])), [rows])
+  // Points par identifiant pour l'IA (« new:… » pour ceux pas encore enregistrés)
+  const rowsById = useMemo(() => new Map(rows.filter(r => r.id || r.key).map(r => [rowAiId(r), r])), [rows])
   const stats = crTaskStats(rows)
   const progress = globalProgress(sections)
 

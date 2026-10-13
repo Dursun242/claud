@@ -336,20 +336,82 @@ export const sectionsForDb = (sections = []) => sections.map(s => ({
 /** Contexte compact envoyé à l'IA : lots (entreprise) et points ouverts. */
 export function aiContext({ sections = [], rows = [] }) {
   return {
-    lots: sections.map(s => ({ lot: s.lot, entreprise: s.entreprise || '' })),
-    points: rows.filter(r => !r.isNew && r.id).map(r => ({
-      id: r.id, num: r.num ?? null, lot: lotOf(r), titre: r.titre, entreprise: r.entreprise || '', echeance: r.echeance || null, etat: r.suivi,
+    // Observations déjà écrites : l'IA n'ajoute que ce qui est nouveau
+    lots: sections.map(s => ({ lot: s.lot, entreprise: s.entreprise || '', observations: String(s.observations || '').slice(0, 800) })),
+    // Tous les points, y compris ceux ajoutés pendant cette saisie (id « new:… »)
+    points: rows.filter(r => r.id || r.key).filter(r => String(r.titre || '').trim()).map(r => ({
+      id: rowAiId(r), num: r.num ?? null, lot: lotOf(r), titre: r.titre, entreprise: r.entreprise || '', echeance: r.echeance || null, etat: r.suivi,
     })),
   }
 }
 
+/** Identifiant d'un point pour l'IA : id en base, ou « new:<clé> » pour un point pas encore enregistré. */
+export const rowAiId = (r) => (r?.id ? r.id : `new:${r?.key}`)
+
+// ─── Points et textes semblables (dictée : compléter plutôt que doubler) ───
+const STOP = new Set(['le', 'la', 'les', 'de', 'des', 'du', 'un', 'une', 'et', 'a', 'au', 'aux', 'pour', 'sur', 'en', 'd', 'l', 'par', 'avec', 'dans', 'ou', 'son', 'sa', 'ses', 'leur', 'leurs', 'ce', 'cette', 'il', 'elle', 'doit', 'faut', 'bien'])
+const normWords = (t) => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+  .replace(/[^a-z0-9]+/g, ' ').trim()
+const tokens = (t) => normWords(t).split(' ').filter(w => w.length > 1 && !STOP.has(w))
+
+/** Deux intitulés parlent de la même chose (mots importants en commun). */
+export function similarText(a, b) {
+  const na = normWords(a), nb = normWords(b)
+  if (!na || !nb) return false
+  if (na === nb || (na.length > 8 && nb.includes(na)) || (nb.length > 8 && na.includes(nb))) return true
+  const A = new Set(tokens(a)), B = new Set(tokens(b))
+  if (A.size < 2 || B.size < 2) return false
+  let common = 0
+  for (const w of A) if (B.has(w)) common += 1
+  return common / Math.min(A.size, B.size) >= 0.6
+}
+
+/** Point déjà présent qui ressemble à un nouveau point proposé (même lot ou même entreprise). */
+export function findSimilarRow(rows = [], p = {}) {
+  const k = lotKey(p.lot || GENERAL)
+  const ent = normWords(p.entreprise)
+  return rows.find(r => !r.missing && similarText(r.titre, p.titre)
+    && (lotKey(lotOf(r)) === k || (ent && normWords(r.entreprise) === ent))) || null
+}
+
+/** Ajoute une précision à un intitulé, sans répéter ce qui y est déjà. */
+export function withComplement(titre, complement) {
+  const t = String(titre || '').trim()
+  const c = String(complement || '').trim()
+  if (!c) return t
+  if (!t) return c
+  const nt = normWords(t), nc = normWords(c)
+  const known = new Set(tokens(t))
+  if (nt.includes(nc) || tokens(c).every(w => known.has(w))) return t
+  // Même début, version plus complète : on garde la plus complète
+  if (nc.startsWith(nt)) return c
+  return `${t} — ${c}`
+}
+
+/** Ajoute à un texte les phrases nouvelles seulement (pas de doublon). */
+export function mergeText(a, b) {
+  const base = String(a || '').trim()
+  const add = String(b || '').trim()
+  if (!add) return base
+  if (!base) return add
+  const have = normWords(base)
+  const haveTokens = new Set(tokens(base))
+  const fresh = add.split(/\n+|(?<=[.!?])\s+/).map(x => x.trim()).filter(Boolean).filter(ph => {
+    const n = normWords(ph)
+    const tk = tokens(ph)
+    return n && !have.includes(n) && !(tk.length && tk.every(w => haveTokens.has(w)))
+  })
+  return fresh.length ? `${base}\n${fresh.join(' ')}` : base
+}
+
 const SUIVI_KEYS = ['fait', 'en_cours', 'relance']
-const appendText = (a, b) => [String(a || '').trim(), String(b || '').trim()].filter(Boolean).join('\n')
 
 /**
  * Applique la proposition de l'IA (déjà validée par l'utilisateur) :
  * états des points existants, nouveaux points, observations / avancement
- * par lot, résumé et décisions (ajoutés au texte existant).
+ * par lot, résumé et décisions (ajoutés au texte existant). Ce qui existe
+ * déjà est complété plutôt que doublé : point semblable complété, phrases
+ * déjà présentes non répétées.
  */
 export function applyAiResult({ sections = [], rows = [], resume = '', decisions = '' }, result = {}, { crDate, nextDate } = {}) {
   let outSections = sections.map(s => ({ ...s }))
@@ -363,22 +425,37 @@ export function applyAiResult({ sections = [], rows = [], resume = '', decisions
   for (const l of result.lots || []) {
     if (!l || !l.lot) continue
     const s = sectionFor(l.lot)
-    if (l.observations) s.observations = appendText(s.observations, l.observations)
+    if (l.observations) s.observations = mergeText(s.observations, l.observations)
     const av = Number(l.avancement)
     if (l.avancement != null && Number.isFinite(av) && s.key !== lotKey(GENERAL)) s.avancement = Math.max(0, Math.min(100, Math.round(av)))
   }
   let outRows = rows.map(r => {
-    const u = (result.points_existants || []).find(p => p && p.id === r.id)
+    const u = (result.points_existants || []).find(p => p && p.id === rowAiId(r))
     if (!u || r.missing) return r
+    // Un point ajouté pendant cette saisie reste « nouveau » sauf s'il est déjà fait
+    const etat = SUIVI_KEYS.includes(u.etat) && (!r.isNew || u.etat === 'fait') ? u.etat : r.suivi
     return {
       ...r,
-      suivi: SUIVI_KEYS.includes(u.etat) ? u.etat : r.suivi,
+      titre: withComplement(r.titre, u.complement),
+      suivi: etat,
       echeance: day(u.echeance) || r.echeance,
     }
   })
   for (const p of result.nouveaux_points || []) {
     if (!p || !String(p.titre || '').trim()) continue
     const s = sectionFor(p.lot || GENERAL)
+    // Un point semblable existe déjà : on le complète au lieu d'en créer un autre
+    const same = findSimilarRow(outRows, { ...p, lot: s.lot })
+    if (same) {
+      outRows = outRows.map(r => (r !== same ? r : {
+        ...r,
+        titre: withComplement(r.titre, p.titre),
+        entreprise: r.entreprise || p.entreprise || '',
+        echeance: r.echeance || day(p.echeance) || r.echeance,
+        priorite: priorityLevel(p.priorite) > priorityLevel(r.priorite) ? p.priorite : r.priorite,
+      }))
+      continue
+    }
     outRows = [...outRows, newRow({
       crDate, nextDate, lot: s.lot, titre: String(p.titre).trim(),
       entreprise: p.entreprise || s.entreprise || '', echeance: p.echeance,
@@ -387,8 +464,8 @@ export function applyAiResult({ sections = [], rows = [], resume = '', decisions
   }
   return {
     sections: outSections, rows: outRows,
-    resume: appendText(resume, result.resume),
-    decisions: appendText(decisions, result.decisions),
+    resume: mergeText(resume, result.resume),
+    decisions: mergeText(decisions, result.decisions),
   }
 }
 
