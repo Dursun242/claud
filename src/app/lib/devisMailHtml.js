@@ -101,7 +101,7 @@ ${textToHtml(bodyAfter)}
     company.nom && `<strong style="color:${NAVY};">${escapeHtml(company.nom)}</strong>${company.activite ? ` · ${escapeHtml(company.activite)}` : ''}`,
     [company.adresse, company.cpVille].filter(Boolean).map(escapeHtml).join(', '),
     company.email && `<a href="mailto:${escapeHtml(company.email)}" style="color:${MUTED};">${escapeHtml(company.email)}</a>`,
-    [company.siret && `SIRET ${escapeHtml(company.siret)}`, company.assurance && escapeHtml(company.assurance)].filter(Boolean).join(' · '),
+    company.siret && `SIRET ${escapeHtml(company.siret)}`,
   ].filter(Boolean).join('<br>')
 
   return `<!doctype html>

@@ -55,10 +55,10 @@ it('CR par lot avec photos et avancement', async () => {
   // Un point dont le lot n'a pas de section est quand même imprimé
   const pdfText = Buffer.from(out.base64.split(',')[1], 'base64').toString('latin1')
   expect(pdfText).toContain('Point hors section')
-  expect(pdfText).toContain('LOT INCONNU')
+  expect(pdfText).toContain('Lot inconnu')
 })
 
-it('ancien CR (sans convocation ni actions)', async () => {
+it('ancien CR (sans convocation ni actions) : page de garde + une page', async () => {
   const out = await generateCRPdf({ numero: 1, date: '2025-01-10', resume: 'RAS', participants: 'Martin, Durand' }, chantier, { returnBase64: true })
   expect(pages(out.base64)).toBe(2)
 })
