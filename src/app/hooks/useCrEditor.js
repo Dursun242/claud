@@ -1,7 +1,7 @@
 'use client'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { cacheGet, cacheSet, cacheDelete } from '../lib/offlineStore'
-import { buildEditorState, draftKey, toDraft, fromDraft, previewCr } from '../lib/crEditor'
+import { buildEditorState, draftKey, toDraft, fromDraft, previewCr, draftIsNewer } from '../lib/crEditor'
 import {
   initialRows, newRow, nextPointNumber, applyAiResult, defaultNextMeeting, lotKey, GENERAL, buildSections,
 } from '../lib/crSuivi'
@@ -12,12 +12,15 @@ const AUTOSAVE_MS = 1200
 /**
  * État et actions de l'éditeur de compte rendu.
  * - brouillon gardé sur l'appareil pendant la saisie (hors ligne compris),
- *   proposé à la réouverture, effacé après enregistrement ;
+ *   repris automatiquement à la réouverture s'il est plus récent que le CR
+ *   enregistré (sinon proposé), effacé après enregistrement ;
+ * - notes de dictée enregistrées avec le CR, avec la part déjà rangée par l'IA ;
  * - points, sections par lot, photos, dictée IA, enregistrement.
  */
 export function useCrEditor({ open, initial, data }) {
   const [state, setState] = useState(null)
-  const [draft, setDraft] = useState(null)        // brouillon local trouvé à l'ouverture
+  const [draft, setDraft] = useState(null)        // brouillon local trouvé à l'ouverture (plus ancien que le CR)
+  const [restoredAt, setRestoredAt] = useState(null) // brouillon local repris automatiquement
   const [localSavedAt, setLocalSavedAt] = useState(null)
   const dirty = useRef(false)
   const keyRef = useRef(null)
@@ -26,21 +29,29 @@ export function useCrEditor({ open, initial, data }) {
 
   const chantierIdOf = (s) => s?.form?.chantierId || ''
 
-  const lookForDraft = useCallback(async (key) => {
+  const lookForDraft = useCallback(async (key, initialCr) => {
     keyRef.current = key
     setDraft(null)
+    setRestoredAt(null)
     const d = await cacheGet(key)
-    if (keyRef.current === key && d?.form) setDraft(d)
+    if (keyRef.current !== key || !d?.form) return
+    if (draftIsNewer(d, initialCr) && !dirty.current) {
+      // Travail non enregistré sur cet appareil : on le reprend tel quel
+      setState(s => fromDraft(d, { data: dataRef.current, previous: s?.previous || null }))
+      setRestoredAt(d.savedAt || Date.now())
+    } else {
+      setDraft(d)
+    }
   }, [])
 
   // Initialisation à l'ouverture uniquement (les rechargements de données
   // pendant la saisie ne doivent pas effacer ce qui est tapé).
   useEffect(() => {
-    if (!open) { setState(null); setDraft(null); setLocalSavedAt(null); dirty.current = false; return }
+    if (!open) { setState(null); setDraft(null); setRestoredAt(null); setLocalSavedAt(null); dirty.current = false; return }
     const chId = initial?.chantierId || initial?.chantier_id || ''
     setState(buildEditorState({ data: dataRef.current, initial, chantierId: chId }))
     dirty.current = false
-    lookForDraft(draftKey(initial, chId))
+    lookForDraft(draftKey(initial, chId), initial)
   }, [open, initial, lookForDraft])
 
   // Brouillon local (debounce)
@@ -71,8 +82,19 @@ export function useCrEditor({ open, initial, data }) {
     setDraft(null)
   }, [])
 
+  // Brouillon repris automatiquement : revenir à la version enregistrée
+  const discardRestored = useCallback(() => {
+    if (keyRef.current) cacheDelete(keyRef.current)
+    const chId = initial?.chantierId || initial?.chantier_id || ''
+    setState(buildEditorState({ data: dataRef.current, initial, chantierId: chId }))
+    setRestoredAt(null)
+    dirty.current = false
+  }, [initial])
+
   const setForm = useCallback((p) => mutate(s => ({ ...s, form: { ...s.form, ...p } })), [mutate])
   const setNotes = useCallback((notes) => mutate(s => ({ ...s, notes: typeof notes === 'function' ? notes(s.notes) : notes })), [mutate])
+  // Notes rangées par l'IA jusqu'à ce caractère (les suivantes restent « nouvelles »)
+  const setNotesRangees = useCallback((n) => mutate(s => ({ ...s, notesRangees: Math.max(0, Number(n) || 0) })), [mutate])
   const updateRow = useCallback((key, p) => mutate(s => ({ ...s, rows: s.rows.map(r => (r.key === key ? { ...r, ...(typeof p === 'function' ? p(r) : p) } : r)) })), [mutate])
   const removeRow = useCallback((key) => mutate(s => ({ ...s, rows: s.rows.filter(r => r.key !== key) })), [mutate])
   const addRow = useCallback((lot) => mutate(s => {
@@ -140,6 +162,7 @@ export function useCrEditor({ open, initial, data }) {
       form: { ...state.form, statut: statut || state.form.statut || 'Brouillon' },
       rows: state.rows, sections: state.sections, nextNum,
       previousNext: initial?.prochaine_reunion || null,
+      notes: state.notes || '', notesRangees: state.notesRangees || 0,
     })
     // Photos non envoyées : on garde le brouillon local pour ne pas les perdre
     if (!res.photoFailures.length) await cacheDelete(draftKey(initial, state.form.chantierId))
@@ -150,8 +173,8 @@ export function useCrEditor({ open, initial, data }) {
   const preview = useCallback(() => (state ? previewCr({ ...state, nextNum }) : null), [state, nextNum])
 
   return {
-    state, draft, localSavedAt, nextNum, isEdit: !!initial?.id,
-    setForm, setNotes, updateRow, removeRow, addRow, updateSection, addSection,
+    state, draft, restoredAt, localSavedAt, nextNum, isEdit: !!initial?.id,
+    setForm, setNotes, setNotesRangees, discardRestored, updateRow, removeRow, addRow, updateSection, addSection,
     changeChantier, changeDate, applyAi, restoreDraft, discardDraft, save, preview, GENERAL,
   }
 }

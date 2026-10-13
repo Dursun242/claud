@@ -85,10 +85,12 @@ async function uploadPending({ rows, sections, chantierId, upload }) {
  * @param {Array}  p.sections  sections par lot (lib/crSuivi.buildSections)
  * @param {number} [p.nextNum] numéro du prochain point du chantier
  * @param {object} [p.previousNext] prochaine_reunion enregistrée avant modification
- * @returns {Promise<{cr, snapshot, migrationMissing, failures: string[], photoFailures: string[], rows, sections}>}
+ * @param {string} [p.notes]        notes de dictée de la réunion (migration 045)
+ * @param {number} [p.notesRangees] caractères des notes déjà rangés par l'IA
+ * @returns {Promise<{cr, snapshot, migrationMissing, notesMissing, failures: string[], photoFailures: string[], rows, sections}>}
  */
 export async function saveCr({
-  form, rows = [], sections = [], nextNum = 1, previousNext = null,
+  form, rows = [], sections = [], nextNum = 1, previousNext = null, notes, notesRangees = 0,
   sb = defaultClient, newId = uuid, upload = uploadPhoto,
 }) {
   const isNew = !(form.id && String(form.id).length > 10)
@@ -121,8 +123,20 @@ export async function saveCr({
     ? sb.from('compte_rendus').insert({ id: crId, ...row }).select().single()
     : sb.from('compte_rendus').update(row).eq('id', crId).select().single())
 
+  // Notes de dictée gardées avec le CR (migration 045) : sans la migration,
+  // le CR s'enregistre quand même, sans elles
+  const dictee = notes === undefined ? {} : {
+    notes_dictee: notes || null,
+    notes_rangees: Math.max(0, Math.min(Number(notesRangees) || 0, String(notes || '').length)),
+    enregistre_le: new Date().toISOString(),
+  }
   let migrationMissing = false
-  let { data, error } = await write(full)
+  let notesMissing = false
+  let { data, error } = await write({ ...full, ...dictee })
+  if (error && Object.keys(dictee).length && /notes_dictee|notes_rangees|enregistre_le/.test(error.message || '')) {
+    notesMissing = true
+    ;({ data, error } = await write(full))
+  }
   if (error && isMissingColumn(error)) {
     migrationMissing = true
     ;({ data, error } = await write(base))
@@ -166,6 +180,7 @@ export async function saveCr({
     },
     snapshot: plan.snapshot,
     migrationMissing,
+    notesMissing,
     failures,
     photoFailures: uploaded.failures,
     rows: uploaded.rows,

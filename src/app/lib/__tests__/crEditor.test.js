@@ -1,4 +1,4 @@
-import { buildEditorState, draftKey, toDraft, fromDraft, previewCr, pointsBySection } from '../crEditor'
+import { buildEditorState, draftKey, toDraft, fromDraft, previewCr, pointsBySection, draftIsNewer, splitNotes, joinNotes } from '../crEditor'
 import { GENERAL, newRow } from '../crSuivi'
 
 const CH = 'ch-1'
@@ -67,5 +67,31 @@ describe('aperçu', () => {
   it('compte des points par lot', () => {
     const st = buildEditorState({ data, chantierId: CH, today: '2026-09-29' })
     expect(pointsBySection(st.rows, st.sections)).toEqual({ generalites: { total: 0, relance: 0 }, electricite: { total: 1, relance: 1 } })
+  })
+})
+
+describe('reprise et notes de dictée', () => {
+  it('draftIsNewer : nouveau CR, CR sans date d’enregistrement, ou enregistré avant le brouillon', () => {
+    const d = { form: {}, savedAt: Date.UTC(2026, 9, 13, 10) }
+    expect(draftIsNewer(d, null)).toBe(true)
+    expect(draftIsNewer(d, { id: 'x' })).toBe(true)
+    expect(draftIsNewer(d, { id: 'x', enregistre_le: '2026-10-13T09:00:00Z' })).toBe(true)
+    expect(draftIsNewer(d, { id: 'x', enregistre_le: '2026-10-13T11:00:00Z' })).toBe(false)
+    expect(draftIsNewer(null, null)).toBe(false)
+  })
+
+  it('splitNotes / joinNotes : notes déjà rangées et nouvelles', () => {
+    expect(splitNotes('abc def', 3)).toEqual({ ranges: 'abc', nouvelles: 'def' })
+    expect(splitNotes('abc', 0)).toEqual({ ranges: '', nouvelles: 'abc' })
+    expect(splitNotes('abc', 99)).toEqual({ ranges: 'abc', nouvelles: '' })
+    expect(joinNotes('abc', 'def')).toBe('abc\ndef')
+    expect(joinNotes('', 'def')).toBe('def')
+    expect(joinNotes('abc', '')).toBe('abc')
+  })
+
+  it('CR existant : notes et part rangée reprises de la base', () => {
+    const st = buildEditorState({ data: { chantiers: [{ id: 'c' }] }, initial: { id: 'cr-1', chantierId: 'c', date: '2026-10-13', notes_dictee: 'abc', notes_rangees: 3 }, chantierId: 'c' })
+    expect(st).toMatchObject({ notes: 'abc', notesRangees: 3 })
+    expect(toDraft(st).notesRangees).toBe(3)
   })
 })
