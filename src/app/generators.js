@@ -98,7 +98,7 @@ export async function generatePVPdf(pvData) {
   doc.setFont("helvetica", "normal")
   doc.setTextColor(...GRIS)
   doc.text(`${ENT.adresse}, ${ENT.cpVille} — SIRET: ${ENT.siret}`, margin, y)
-  doc.text(`${ENT.email} — ${ENT.assurance}`, margin, y + 3.5)
+  doc.text(ENT.email, margin, y + 3.5)
 
   // Séparateur
   y = 31
@@ -334,7 +334,7 @@ function pied(doc, w, margin, y) {
   doc.setFontSize(6)
   doc.setTextColor(148, 163, 184)
   doc.text(
-    `${ENT.nom} — ${ENT.adresse}, ${ENT.cpVille} — SIRET ${ENT.siret} — ${ENT.assurance}`,
+    `${ENT.nom} — ${ENT.adresse}, ${ENT.cpVille} — SIRET ${ENT.siret}`,
     w / 2, y, { align: "center" }
   )
 }
@@ -368,7 +368,7 @@ export async function generateOSPdf(data) {
   doc.setFont("helvetica", "normal")
   doc.setTextColor(...GRIS)
   doc.text(`${ENT.adresse}, ${ENT.cpVille} — SIRET: ${ENT.siret}`, margin, y)
-  doc.text(`${ENT.email} — ${ENT.assurance}`, margin, y + 3.5)
+  doc.text(ENT.email, margin, y + 3.5)
 
   // Ligne séparatrice
   y = 31
@@ -560,7 +560,7 @@ export async function generateDevisPdf(devis, opts = {}) {
   y = 24
   doc.setFontSize(7); doc.setFont("helvetica", "normal"); doc.setTextColor(...GRIS)
   doc.text(sanitize(`${ENT.adresse}, ${ENT.cpVille} — SIRET: ${ENT.siret}`), margin, y)
-  doc.text(sanitize(`${ENT.email} — ${ENT.assurance}`), margin, y + 3.5)
+  doc.text(sanitize(ENT.email), margin, y + 3.5)
 
   y = 31
   doc.setDrawColor(...BLEU); doc.setLineWidth(0.7)
