@@ -2,7 +2,8 @@
 // nettoyage (ids connus, valeurs bornées). Utilisé par /api/cr/ia.
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
-const ETATS = ['fait', 'en_cours', 'relance']
+// « inchange » : le point est seulement complété (précision), sans changer d'état
+const ETATS = ['fait', 'en_cours', 'relance', 'inchange']
 const PRIORITES = ['En attente', 'En cours', 'Urgent']
 
 export const CR_AI_SCHEMA = {
@@ -31,8 +32,9 @@ export const CR_AI_SCHEMA = {
           id: { type: 'string' },
           etat: { type: 'string', enum: ETATS },
           echeance: { type: ['string', 'null'] },
+          complement: { type: 'string' },
         },
-        required: ['id', 'etat', 'echeance'],
+        required: ['id', 'etat', 'echeance', 'complement'],
         additionalProperties: false,
       },
     },
@@ -77,7 +79,7 @@ export function normalizeCrAi(json, ids) {
       .filter(l => l.lot && (l.observations || l.avancement != null)),
     points_existants: (Array.isArray(json?.points_existants) ? json.points_existants : []).slice(0, 200)
       .filter(p => p && known.has(p.id) && ETATS.includes(p.etat))
-      .map(p => ({ id: p.id, etat: p.etat, echeance: isoDateOrNull(p.echeance) })),
+      .map(p => ({ id: p.id, etat: p.etat, echeance: isoDateOrNull(p.echeance), complement: str(p.complement, 300) })),
     nouveaux_points: (Array.isArray(json?.nouveaux_points) ? json.nouveaux_points : []).slice(0, 60)
       .map(p => ({
         lot: str(p?.lot, 120), titre: str(p?.titre, 300), entreprise: str(p?.entreprise, 120),

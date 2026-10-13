@@ -1,7 +1,7 @@
 import {
   nextCrNumero, previousCr, daysLate, initialRows, newRow, planCrTasks, effectivePriority,
   nextPointNumber, plannedProgress, buildSections, globalProgress, sectionsForDb, aiContext, applyAiResult,
-  guessEntreprise, GENERAL, lotOf,
+  guessEntreprise, GENERAL, lotOf, lotKey, rowAiId, similarText, withComplement, mergeText,
   escalatePriority, priorityLabel, crTaskStats, chantierIntervenants, carryIntervenants,
   actionsFor, crMailText, crMailSubject, defaultNextMeeting, defaultCrDate, isoWeek, fmtLongDate,
 } from '../crSuivi'
@@ -291,7 +291,7 @@ describe('dictée + IA', () => {
   const rows = initialRows({ tasks, chantierId: CH, crDate: '2026-09-30' })
   it('contexte envoyé : lots et points existants', () => {
     const ctx = aiContext({ sections, rows })
-    expect(ctx.lots).toEqual([{ lot: GENERAL, entreprise: '' }, { lot: 'Électricité', entreprise: 'Martin Élec' }])
+    expect(ctx.lots).toEqual([{ lot: GENERAL, entreprise: '', observations: '' }, { lot: 'Électricité', entreprise: 'Martin Élec', observations: 'Déjà noté.' }])
     expect(ctx.points.map(p => p.id)).toEqual(['t-late', 't-ok'])
   })
   it('applique la proposition validée', () => {
@@ -312,5 +312,59 @@ describe('dictée + IA', () => {
     const added = out.rows.find(r => r.isNew)
     expect(added).toMatchObject({ titre: 'Fournir le schéma', lot: 'Électricité', entreprise: 'Martin Élec', echeance: '2026-10-07', priorite: 'Urgent' })
     expect(lotOf(added)).toBe('Électricité')
+  })
+})
+
+describe('dictée en plusieurs fois : compléter plutôt que doubler', () => {
+  const base = () => {
+    const extra = { ...newRow({ crDate: '2026-10-13', lot: 'Plomberie' }), titre: 'Poser le ballon d’eau chaude', entreprise: 'LCM' }
+    return {
+      sections: [{ key: lotKey('Plomberie'), lot: 'Plomberie', observations: 'Réseaux posés. Attente du ballon.', photos: [] }],
+      rows: [extra],
+    }
+  }
+
+  it('aiContext : les points ajoutés pendant la saisie sont envoyés (id new:…)', () => {
+    const { sections, rows } = base()
+    const ctx = aiContext({ sections, rows })
+    expect(ctx.points).toHaveLength(1)
+    expect(ctx.points[0].id).toBe(rowAiId(rows[0]))
+    expect(ctx.points[0].id).toMatch(/^new:/)
+  })
+
+  it('nouveau point semblable : le point existant est complété, pas doublé', () => {
+    const { sections, rows } = base()
+    const out = applyAiResult({ sections, rows }, {
+      nouveaux_points: [{ lot: 'Plomberie', titre: 'Poser le ballon d’eau chaude de 200 L', entreprise: 'LCM', echeance: '2026-10-20', priorite: 'Urgent' }],
+    }, { crDate: '2026-10-13' })
+    expect(out.rows).toHaveLength(1)
+    expect(out.rows[0].titre).toBe('Poser le ballon d’eau chaude de 200 L')
+    expect(out.rows[0].priorite).toBe('Urgent')
+  })
+
+  it('point repéré par l’IA : précision ajoutée, état « nouveau » gardé', () => {
+    const { sections, rows } = base()
+    const out = applyAiResult({ sections, rows }, {
+      points_existants: [{ id: rowAiId(rows[0]), etat: 'en_cours', echeance: null, complement: 'dans le cellier' }],
+    }, { crDate: '2026-10-13' })
+    expect(out.rows[0].titre).toBe('Poser le ballon d’eau chaude — dans le cellier')
+    expect(out.rows[0].suivi).toBe('nouveau')
+  })
+
+  it('observations et résumé : seules les phrases nouvelles sont ajoutées', () => {
+    const { sections, rows } = base()
+    const out = applyAiResult({ sections, rows, resume: 'Chantier propre.' }, {
+      lots: [{ lot: 'Plomberie', observations: 'Réseaux posés. Le ballon arrive vendredi.', avancement: null }],
+      resume: 'Chantier propre. Bonne coordination.',
+    }, { crDate: '2026-10-13' })
+    expect(out.sections[0].observations).toBe('Réseaux posés. Attente du ballon.\nLe ballon arrive vendredi.')
+    expect(out.resume).toBe('Chantier propre.\nBonne coordination.')
+  })
+
+  it('points différents : pas fusionnés', () => {
+    expect(similarText('Poser le ballon d’eau chaude', 'Reprendre l’enduit de façade')).toBe(false)
+    expect(similarText('Nettoyer le chantier', 'Nettoyer le chantier avant vendredi')).toBe(true)
+    expect(withComplement('Nettoyer le chantier', 'nettoyer le chantier')).toBe('Nettoyer le chantier')
+    expect(mergeText('', 'Texte')).toBe('Texte')
   })
 })

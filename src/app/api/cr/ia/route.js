@@ -24,23 +24,34 @@ orales, fautes de reconnaissance vocale) en compte rendu structuré, en françai
 professionnel, concis et factuel.
 
 Tu reçois le contexte (date de la réunion, lots du chantier avec leur
-entreprise, points ouverts avec leur id) puis les notes. Réponds en JSON :
+entreprise et les observations déjà écrites, points déjà présents dans le
+compte rendu avec leur id) puis les notes. Les notes peuvent compléter un
+compte rendu déjà commencé : ne répète jamais ce qui est déjà dans le
+contexte, complète-le. Réponds en JSON :
 - "resume" : synthèse générale de la réunion en 2 à 5 phrases ("" si rien).
 - "lots" : pour chaque lot évoqué, "observations" (constats, état d'avancement,
-  remarques, sans répéter les actions) et "avancement" (pourcentage entier si
-  un chiffre est donné, sinon null). Utilise le nom de lot du contexte le plus
+  remarques, sans répéter les actions ni les observations déjà écrites du
+  contexte : uniquement ce qui est nouveau, "" sinon) et "avancement"
+  (pourcentage entier si un chiffre est donné, sinon null). Utilise le nom de lot du contexte le plus
   proche ; "Généralités" pour planning, sécurité, administratif, propreté.
 - "points_existants" : uniquement les points du contexte dont les notes
   parlent : "fait" (terminé, levé, réalisé), "en_cours" (en cours, dans les
-  temps), "relance" (pas fait, en retard, à relancer). "echeance" : nouvelle
-  date AAAA-MM-JJ si un report est annoncé, sinon null. Ne devine pas.
+  temps), "relance" (pas fait, en retard, à relancer), "inchange" (les notes
+  ne font que préciser le point). "echeance" : nouvelle date AAAA-MM-JJ si un
+  report est annoncé, sinon null. Ne devine pas. "complement" : précision
+  courte à ajouter à l'intitulé du point si les notes apportent un détail
+  nouveau (quantité, lieu, condition…), sinon "".
+  Si les notes évoquent une action qui ressemble à un point du contexte
+  (même sujet, même lot ou même entreprise), c'est ce point : mets-le ici
+  (avec un complément si besoin), ne crée pas de nouveau point.
 - "nouveaux_points" : actions nouvelles à mener, une par ligne, formulées à
   l'infinitif ("Fournir…", "Reprendre…"), avec le lot, l'entreprise
   responsable (nom du contexte si possible, sinon tel que dit, ou ""),
   l'échéance AAAA-MM-JJ (déduite de « vendredi », « semaine prochaine »… par
   rapport à la date de réunion, sinon null) et la priorité ("Urgent" si
   urgent / sécurité / bloquant, "En attente" si secondaire, sinon "En cours").
-  Ne recrée pas un point déjà présent dans le contexte.
+  Ne recrée jamais un point déjà présent dans le contexte, même formulé
+  autrement : complète-le dans "points_existants".
 - "decisions" : décisions prises, une par ligne ("" si aucune).
 N'invente rien qui ne soit pas dans les notes.`
 
@@ -63,7 +74,7 @@ export async function POST(request) {
     const notes = str(body.notes, 20_000)
     if (notes.length < 10) return Response.json({ error: 'Dicte ou écris d’abord les notes de la réunion.' }, { status: 400 })
     const lots = (Array.isArray(body.context?.lots) ? body.context.lots : []).slice(0, 40)
-      .map(l => ({ lot: str(l?.lot, 120), entreprise: str(l?.entreprise, 120) })).filter(l => l.lot)
+      .map(l => ({ lot: str(l?.lot, 120), entreprise: str(l?.entreprise, 120), observations: str(l?.observations, 800) })).filter(l => l.lot)
     const points = (Array.isArray(body.context?.points) ? body.context.points : []).slice(0, 200)
       .map(p => ({
         id: str(p?.id, 64), num: Number(p?.num) || null, lot: str(p?.lot, 120), titre: str(p?.titre, 300),

@@ -47,7 +47,7 @@ describe('/api/cr/ia', () => {
     expect(res.status).toBe(200)
     const { data } = await res.json()
     expect(data.lots).toEqual([{ lot: 'Électricité', observations: 'Tableau absent.', avancement: 100 }])
-    expect(data.points_existants).toEqual([{ id: 't1', etat: 'relance', echeance: '2026-10-09' }])
+    expect(data.points_existants).toEqual([{ id: 't1', etat: 'relance', echeance: '2026-10-09', complement: '' }])
     expect(data.nouveaux_points).toEqual([{ lot: 'Électricité', titre: 'Fournir le schéma', entreprise: 'Martin Élec', echeance: null, priorite: 'En cours' }])
     const call = generate.mock.calls[0][0]
     expect(call.json).toEqual(expect.objectContaining({ type: 'object' }))

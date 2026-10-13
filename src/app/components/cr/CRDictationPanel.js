@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { apiPost } from '../../lib/crmApi'
 import { useToast } from '../../contexts/ToastContext'
-import { SUIVI } from '../../lib/crSuivi'
+import { SUIVI, findSimilarRow } from '../../lib/crSuivi'
 import { splitNotes, joinNotes } from '../../lib/crEditor'
 import { card, field, label, ghostBtn, NAVY } from './crStyles'
 import MicButton from './MicButton'
@@ -126,15 +126,21 @@ export default function CRDictationPanel({ notes, notesRangees = 0, setNotes, se
             const r = rowsById.get(p.id)
             return (
               item(`pe${i}`, <>
-                {r?.num ? `n°${r.num} ` : ''}{r?.titre || 'Point'} → <b>{SUIVI[p.etat]}</b>{p.echeance ? `, échéance reportée au ${fmt(p.echeance)}` : ''}
+                {r?.num ? `n°${r.num} ` : ''}{r?.titre || 'Point'}
+                {p.etat !== 'inchange' && SUIVI[p.etat] ? <> → <b>{SUIVI[p.etat]}</b></> : null}
+                {p.complement ? <> · complété : « {p.complement} »</> : null}
+                {p.echeance ? `, échéance reportée au ${fmt(p.echeance)}` : ''}
               </>)
             )
           }))}
-          {group('Nouveaux points', proposal.nouveaux_points.map((p, i) => (
-            item(`np${i}`, <>
+          {group('Nouveaux points', proposal.nouveaux_points.map((p, i) => {
+            // Point semblable déjà présent : il sera complété, pas recréé
+            const same = findSimilarRow([...rowsById.values()], p)
+            return item(`np${i}`, <>
               <b>{p.titre}</b> — {p.lot}{p.entreprise ? ` · ${p.entreprise}` : ''}{p.echeance ? ` · pour le ${fmt(p.echeance)}` : ''}{p.priorite === 'Urgent' ? ' · URGENT' : ''}
+              {same && <span style={{ display: 'block', fontSize: 12, color: 'var(--accent-text)' }}>Complète le point {same.num ? `n°${same.num} ` : ''}« {same.titre} » (pas de doublon)</span>}
             </>)
-          )))}
+          }))}
           {group('Décisions', proposal.decisions ? [item("decisions", <>{proposal.decisions}</>)] : [])}
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
             <button type="button" onClick={() => setProposal(null)} style={ghostBtn('#6E6E73')}>Annuler</button>
