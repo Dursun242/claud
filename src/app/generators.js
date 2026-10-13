@@ -1126,6 +1126,8 @@ export async function generateCRPdf(cr, chantier, opts = {}) {
   }
 
   const filename = `CR-${cr.numero || "X"}-${(chantier?.nom || "chantier").replace(/[^\w-]+/g, "_")}.pdf`
+  // Aperçu en direct dans l'éditeur : fichier en mémoire, sans journal
+  if (opts.returnBlobUrl) return { url: URL.createObjectURL(doc.output('blob')), filename }
   SB.log('generate_pdf', 'cr', cr.id || null,
     `CR n°${cr.numero || 'X'}`, { format: 'pdf', chantier_id: chantier?.id || null })
   if (opts.returnBase64) return { base64: doc.output('datauristring'), filename }

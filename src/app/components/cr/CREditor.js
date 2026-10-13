@@ -1,5 +1,5 @@
 'use client'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useToast } from '../../contexts/ToastContext'
 import { useCrEditor } from '../../hooks/useCrEditor'
 import { useDictation } from '../../hooks/useDictation'
@@ -14,16 +14,21 @@ import CRIntervenantsPicker from './CRIntervenantsPicker'
 import CRLotSection from './CRLotSection'
 import CRDictationPanel from './CRDictationPanel'
 import MicButton from './MicButton'
+import CRLivePreview from './CRLivePreview'
 
 const fmtDate = (iso) => (iso ? String(iso).slice(0, 10).split('-').reverse().join('/') : '')
 const fmtTime = (ts) => new Date(ts).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
 const ENTREPRISES_LIST = 'cr-entreprises'
+const SPLIT_KEY = 'cr-apercu-a-cote'
+const readSplit = () => { try { return localStorage.getItem(SPLIT_KEY) === '1' } catch { return false } }
 
 /**
  * Éditeur plein écran d'un compte rendu de chantier.
  * - Mode « Réunion » (sur chantier, téléphone / tablette) : une étape à la
  *   fois — présences, dictée, Généralités, chaque lot, synthèse.
  * - Mode « Rédaction » (bureau) : tout sur une page, sommaire à gauche.
+ * - Aperçu du PDF à côté de la saisie (écran partagé), mis à jour pendant
+ *   la dictée ; sur téléphone, bascule entre la saisie et l'aperçu.
  * Le brouillon est gardé sur l'appareil pendant la saisie (hors ligne
  * compris). `onSaved(cr, { send })` après enregistrement.
  */
@@ -40,6 +45,26 @@ export default function CREditor({ open, initial, data, onClose, onSaved, lockCh
   const [previewing, setPreviewing] = useState(false)
   const [error, setError] = useState('')
   const [newLot, setNewLot] = useState('')
+  // Aperçu du PDF à côté (choix gardé sur l'appareil)
+  const [split, setSplitState] = useState(readSplit)
+  const setSplit = (v) => {
+    setSplitState(v)
+    try { localStorage.setItem(SPLIT_KEY, v ? '1' : '0') } catch { /* stockage indisponible */ }
+  }
+  // Hauteur de l'en-tête (l'aperçu se cale juste dessous)
+  const headerRef = useRef(null)
+  const [headerH, setHeaderH] = useState(64)
+  const ready = !!(open && ed.state)
+  useEffect(() => {
+    const el = headerRef.current
+    if (!ready || !el) return undefined
+    const measure = () => setHeaderH(el.offsetHeight || 64)
+    measure()
+    if (typeof ResizeObserver === 'undefined') return undefined
+    const ro = new ResizeObserver(measure)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [ready])
 
   const st = ed.state
   const form = st?.form || {}
@@ -206,6 +231,8 @@ export default function CREditor({ open, initial, data, onClose, onSaved, lockCh
     </form>
   )
 
+  const showPreview = split && !!form.chantierId
+
   const statusBadge = form.statut === 'Diffusé'
     ? { text: 'Diffusé', color: '#1E7B34', bg: '#EAF8EE' }
     : { text: 'Brouillon', color: '#A0390C', bg: '#FFF7E8' }
@@ -216,7 +243,7 @@ export default function CREditor({ open, initial, data, onClose, onSaved, lockCh
       <datalist id={ENTREPRISES_LIST}>{entreprises.map(e => <option key={e} value={e} />)}</datalist>
 
       {/* En-tête */}
-      <header style={{ position: 'sticky', top: 0, zIndex: 2, background: '#fff', borderBottom: '1px solid var(--separator)', padding: m ? '8px 12px' : '10px 20px' }}>
+      <header ref={headerRef} style={{ position: 'sticky', top: 0, zIndex: 2, background: '#fff', borderBottom: '1px solid var(--separator)', padding: m ? '8px 12px' : '10px 20px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           <button type="button" onClick={close} aria-label="Fermer" disabled={saving}
             style={{ border: 'none', background: 'var(--grouped-bg)', borderRadius: 8, width: 38, height: 38, cursor: 'pointer', fontSize: 16 }}>✕</button>
@@ -239,8 +266,10 @@ export default function CREditor({ open, initial, data, onClose, onSaved, lockCh
             ))}
           </div>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', width: m ? '100%' : 'auto' }}>
-            <button type="button" onClick={preview} disabled={previewing || !form.chantierId} style={{ ...ghostBtn(), flex: m ? 1 : 'none' }}>
-              {previewing ? 'PDF…' : 'Aperçu PDF'}
+            <button type="button" onClick={() => setSplit(!split)} disabled={!form.chantierId} aria-pressed={split}
+              title={m ? 'Voir le PDF' : 'Voir le PDF à côté de la saisie, mis à jour pendant que tu écris ou dictes'}
+              style={{ ...ghostBtn(split ? '#fff' : undefined), flex: m ? 1 : 'none', ...(split ? { background: NAVY, border: 'none' } : {}) }}>
+              {m ? (split ? 'Retour à la saisie' : 'Aperçu PDF') : (split ? 'Masquer l’aperçu' : 'Aperçu à côté')}
             </button>
             <button type="button" onClick={() => submit(false)} disabled={saving} style={{ ...ghostBtn(), flex: m ? 1 : 'none' }}>
               {saving ? 'Enregistrement…' : 'Enregistrer'}
@@ -256,7 +285,14 @@ export default function CREditor({ open, initial, data, onClose, onSaved, lockCh
         )}
       </header>
 
-      <div style={{ maxWidth: 1180, margin: '0 auto', padding: m ? 12 : 20 }}>
+      {showPreview && m ? (
+        <div style={{ padding: 12 }}>
+          <CRLivePreview getPreview={ed.preview} chantier={chantier} onOpenFull={preview}
+            style={{ height: `calc(100dvh - ${headerH + 24}px)` }} />
+        </div>
+      ) : (
+      <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', padding: m ? 12 : 20, ...(showPreview ? {} : { maxWidth: 1180, margin: '0 auto' }) }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
         {ed.draft && (
           <div role="status" style={{ ...card, background: 'var(--orange-tint)', borderColor: 'var(--orange-line)', marginBottom: 12, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
             <span style={{ flex: 1, fontSize: 13, color: 'var(--orange-deep)' }}>
@@ -301,8 +337,8 @@ export default function CREditor({ open, initial, data, onClose, onSaved, lockCh
         {!form.chantierId ? (
           <div style={{ ...card, textAlign: 'center', color: 'var(--label-secondary)', fontSize: 14 }}>Choisis le chantier pour commencer.</div>
         ) : mode === 'redaction' ? (
-          <div style={{ display: 'grid', gridTemplateColumns: m ? '1fr' : '220px 1fr', gap: 16, alignItems: 'start' }}>
-            {!m && (
+          <div style={{ display: 'grid', gridTemplateColumns: m || showPreview ? '1fr' : '220px 1fr', gap: 16, alignItems: 'start' }}>
+            {!m && !showPreview && (
               <nav aria-label="Sommaire du compte rendu" style={{ position: 'sticky', top: 90, ...card, padding: 10 }}>
                 {steps.map((s, i) => {
                   const c = s.section ? counts[s.section.key] : null
@@ -319,7 +355,7 @@ export default function CREditor({ open, initial, data, onClose, onSaved, lockCh
             )}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               {steps.map(renderStep)}
-              {m && <div style={card}>{addLotForm}</div>}
+              {(m || showPreview) && <div style={card}>{addLotForm}</div>}
             </div>
           </div>
         ) : (
@@ -357,6 +393,12 @@ export default function CREditor({ open, initial, data, onClose, onSaved, lockCh
           </div>
         )}
       </div>
+      {showPreview && (
+        <CRLivePreview getPreview={ed.preview} chantier={chantier} onOpenFull={preview} onClose={() => setSplit(false)}
+          style={{ position: 'sticky', top: headerH + 12, width: 'min(48vw, 760px)', flexShrink: 0, height: `calc(100vh - ${headerH + 32}px)` }} />
+      )}
+      </div>
+      )}
     </div>
   )
 }
