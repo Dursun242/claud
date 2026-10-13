@@ -58,7 +58,7 @@ it('CR par lot avec photos et avancement', async () => {
   expect(pdfText).toContain('Lot inconnu')
 })
 
-it('ancien CR (sans convocation ni actions) : tient sur une page', async () => {
+it('ancien CR (sans convocation ni actions) : page de garde + une page', async () => {
   const out = await generateCRPdf({ numero: 1, date: '2025-01-10', resume: 'RAS', participants: 'Martin, Durand' }, chantier, { returnBase64: true })
-  expect(pages(out.base64)).toBe(1)
+  expect(pages(out.base64)).toBe(2)
 })

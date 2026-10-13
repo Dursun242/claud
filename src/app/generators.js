@@ -742,12 +742,13 @@ export async function generateDevisPdf(devis, opts = {}) {
 const PRESENCE_COLORS = { 'Présent': [4, 120, 87], 'Absent': [185, 28, 28], 'Excusé': [180, 83, 9] }
 const SUIVI_PDF = { relance: 'RELANCE', en_cours: 'En cours', fait: 'FAIT', nouveau: 'NOUVEAU' }
 
-// Mise en page pensée pour la lecture sur téléphone (artisans, client) :
+// Page de garde (opération, convocation, intervenants, bilan, diffusion),
+// puis contenu pensé pour la lecture sur téléphone (artisans, client) :
 // texte plus gros, pas de tableaux à colonnes, une liste de points lisible,
 // peu de couleur (seulement pour ce qui demande une action : urgent,
-// relancé, en retard). Le contenu s'enchaîne sans page blanche.
+// relancé, en retard).
 export async function generateCRPdf(cr, chantier, opts = {}) {
-  const { jsPDF } = await loadJsPdf()
+  const { jsPDF, autoTable } = await loadJsPdf()
   const doc = new jsPDF('p', 'mm', 'a4')
   const w = doc.internal.pageSize.getWidth()
   const h = doc.internal.pageSize.getHeight()
@@ -792,105 +793,165 @@ export async function generateCRPdf(cr, chantier, opts = {}) {
     y += 11
   }
 
-  // ── EN-TÊTE DE LA PREMIÈRE PAGE ─────────────────────────────
-  try { doc.addImage(LOGO_B64, 'JPEG', margin, 10, 42, 12) } catch (e) { /* logo absent */ }
-  font(7.5, 'normal', GRIS)
-  doc.text(sanitize(`${ENT.nom} · ${ENT.email}`), w - margin, 15, { align: 'right' })
+  // ── PAGE DE GARDE (mise en page d'origine) ─────────────────
+  const cm = 18
+  const cu = w - cm * 2
+  const withPresence = crIntervenants.some(it => it.presence || it.convoque !== undefined)
+  try { doc.addImage(LOGO_B64, 'JPEG', cm, 10, 52, 15) } catch(e) {}
+  doc.setFontSize(8); doc.setFont("helvetica", "bold"); doc.setTextColor(...BLEU)
+  doc.text(sanitize(ENT.nom), w - cm, 13, { align: "right" })
+  doc.setFont("helvetica", "normal"); doc.setTextColor(...GRIS); doc.setFontSize(7)
+  doc.text(sanitize(ENT.activite || ""), w - cm, 16.5, { align: "right" })
+  doc.text(`${ENT.adresse}, ${ENT.cpVille}`, w - cm, 20, { align: "right" })
+  doc.text(ENT.email, w - cm, 23.5, { align: "right" })
 
+  // Bandeau titre
   y = 32
-  font(22, 'bold', BLEU)
-  doc.text(`Compte rendu n° ${cr.numero || '-'}`, margin, y + 7)
-  y += 13
+  doc.setFillColor(...BLEU); doc.rect(0, y, w, 40, 'F')
+  doc.setFillColor(...OR); doc.rect(0, y + 40, w, 1.5, 'F')
+  doc.setTextColor(255, 255, 255)
+  doc.setFontSize(10); doc.setFont("helvetica", "bold")
+  doc.text("COMPTE RENDU DE RÉUNION DE CHANTIER", cm, y + 11)
+  doc.setFontSize(30)
+  doc.text(`N° ${cr.numero || "—"}`, cm, y + 29)
+  doc.setFontSize(9); doc.setFont("helvetica", "normal")
+  doc.text("Réunion du", w - cm, y + 11, { align: "right" })
+  doc.setFontSize(13); doc.setFont("helvetica", "bold")
+  doc.text(sanitize(fmtLongDate(cr.date) || fmtD(cr.date)), w - cm, y + 19, { align: "right" })
   const week = isoWeek(cr.date)
-  font(11, 'normal', GRIS)
-  doc.text(sanitize(`Réunion du ${fmtLongDate(cr.date) || fmtD(cr.date)}${week ? ` · semaine ${week}` : ''}`), margin, y)
-  y += 9
-
-  font(14, 'bold', NOIR)
-  for (const l of lines(chantier?.nom || '-')) { doc.text(l, margin, y); y += 6 }
-  font(10, 'normal', GRIS)
-  if (chantier?.adresse) { doc.text(lines(chantier.adresse)[0], margin, y); y += 5 }
-  if (chantier?.client) { doc.text(sanitize(`Client : ${chantier.client}`), margin, y); y += 5 }
-  y += 2
-
-  // En bref : l'essentiel en une ligne
-  if (stats.total > 0 || progress != null) {
-    const parts = [
-      progress != null ? `avancement ${progress} %` : null,
-      stats.total ? `${stats.total} point${stats.total > 1 ? 's' : ''} suivi${stats.total > 1 ? 's' : ''}` : null,
-      stats.nouveau ? `${stats.nouveau} nouveau${stats.nouveau > 1 ? 'x' : ''}` : null,
-      stats.fait ? `${stats.fait} fait${stats.fait > 1 ? 's' : ''}` : null,
-    ].filter(Boolean)
-    const alertes = [
-      stats.urgent ? `${stats.urgent} urgent${stats.urgent > 1 ? 's' : ''}` : null,
-      stats.relance ? `${stats.relance} relancé${stats.relance > 1 ? 's' : ''}` : null,
-    ].filter(Boolean)
-    font(10, 'normal', NOIR)
-    const txt = sanitize(parts.join(' · ').replace(/^./, c => c.toUpperCase()))
-    doc.text(txt, margin, y + 4)
-    if (alertes.length) {
-      const x = margin + doc.getTextWidth(txt + (txt ? ' · ' : ''))
-      if (txt) doc.text(' · ', margin + doc.getTextWidth(txt), y + 4)
-      font(10, 'bold', ROUGE)
-      doc.text(sanitize(alertes.join(' · ')), txt ? x : margin, y + 4)
-    }
-    y += 9
+  if (week) {
+    doc.setFontSize(9); doc.setFont("helvetica", "normal")
+    doc.text(`Semaine ${week}`, w - cm, y + 26, { align: "right" })
   }
 
-  // Prochaine réunion
+  // Opération
+  y = 84
+  doc.setFontSize(7.5); doc.setFont("helvetica", "bold"); doc.setTextColor(...OR)
+  doc.text("OPÉRATION", cm, y)
+  doc.setFontSize(15); doc.setTextColor(...NOIR)
+  const nomLines = doc.splitTextToSize(sanitize(chantier?.nom || "—"), cu)
+  doc.text(nomLines, cm, y + 7); y += 7 + nomLines.length * 6
+  doc.setFontSize(8.5); doc.setFont("helvetica", "normal"); doc.setTextColor(...GRIS)
+  if (chantier?.adresse) { doc.text(sanitize(chantier.adresse), cm, y); y += 5 }
+  y += 1
+  const infoLine = (label, value) => {
+    doc.setFont("helvetica", "bold"); doc.setTextColor(...GRIS); doc.text(label, cm, y)
+    doc.setFont("helvetica", "normal"); doc.setTextColor(...NOIR); doc.text(sanitize(value || "—"), cm + 34, y)
+    y += 5
+  }
+  infoLine("Maître d'ouvrage", chantier?.client)
+  infoLine("Maître d'oeuvre", ENT.nom)
+  if (chantier?.phase) infoLine("Phase", chantier.phase)
+  y += 3
+
+  // Convocation
   if (next) {
-    const lieu = next.lieu ? lines(`Lieu : ${next.lieu}`, usable - 10) : []
-    const boxH = 22 + lieu.length * 4.6
-    doc.setFillColor(239, 246, 255)
-    doc.roundedRect(margin, y, usable, boxH, 2.5, 2.5, 'F')
-    font(9, 'bold', BLEU)
-    doc.text('PROCHAINE RÉUNION', margin + 5, y + 6.5)
-    font(13, 'bold', NOIR)
-    doc.text(sanitize(`${fmtLongDate(next.date)}${heureOf(next)}`), margin + 5, y + 13)
-    font(10, 'normal', NOIR)
-    lieu.forEach((l, i) => doc.text(l, margin + 5, y + 18.5 + i * 4.6))
-    font(8.5, 'italic', GRIS)
-    doc.text("Merci d'être présent ou de vous faire représenter.", margin + 5, y + boxH - 3)
-    y += boxH + 4
+    const boxH = 27
+    doc.setFillColor(239, 246, 255); doc.setDrawColor(...BLEU); doc.setLineWidth(0.6)
+    doc.roundedRect(cm, y, cu, boxH, 2, 2, 'FD')
+    doc.setFontSize(8); doc.setFont("helvetica", "bold"); doc.setTextColor(...BLEU)
+    doc.text("CONVOCATION — PROCHAINE RÉUNION DE CHANTIER", cm + 5, y + 6.5)
+    doc.setFontSize(13); doc.setTextColor(...NOIR)
+    const heure = next.heure ? ` à ${String(next.heure).slice(0, 5).replace(':', 'h')}` : ''
+    doc.text(sanitize(`${fmtLongDate(next.date)}${heure}`), cm + 5, y + 14)
+    doc.setFontSize(8.5); doc.setFont("helvetica", "normal")
+    if (next.lieu) doc.text(sanitize(`Lieu : ${next.lieu}`), cm + 5, y + 19.5)
+    doc.setFontSize(7.5); doc.setFont("helvetica", "italic"); doc.setTextColor(...GRIS)
+    doc.text("Les intervenants convoqués sont tenus d'être présents ou représentés.", cm + 5, y + 24)
+    doc.setFont("helvetica", "normal")
+    y += boxH + 7
   }
 
-  // Présents
+  // Intervenants
+  doc.setFontSize(9); doc.setFont("helvetica", "bold"); doc.setTextColor(...BLEU)
+  doc.text("INTERVENANTS", cm, y); y += 3
   if (crIntervenants.length > 0) {
-    heading('Présents et convoqués')
-    for (const it of crIntervenants) {
-      const qui = [it.societe && it.societe !== it.nom ? it.societe : '', it.role].filter(Boolean).join(' · ')
-      const contact = [it.tel, it.email].filter(Boolean).join('  ·  ')
-      ensure(contact ? 11 : 7)
-      font(10.5, 'bold', NOIR)
-      const nom = lines(it.nom || '-', usable - 30)[0]
-      doc.text(nom, margin, y + 4)
-      const nx = margin + doc.getTextWidth(nom)
-      if (qui) {
-        font(10, 'normal', GRIS)
-        doc.text(lines(` · ${qui}`, usable - 30 - (nx - margin))[0] || '', nx, y + 4)
-      }
-      if (it.presence) {
-        font(10, 'bold', PRESENCE_COLORS[it.presence] || GRIS)
-        doc.text(sanitize(it.presence), w - margin, y + 4, { align: 'right' })
-      }
-      y += 5.5
-      if (contact) {
-        font(9, 'normal', GRIS)
-        doc.text(lines(contact)[0], margin, y + 3.5)
-        y += 5
-      }
-      if (it.convoque === false) {
-        font(8.5, 'italic', GRIS)
-        doc.text('Pas convoqué à la prochaine réunion', margin, y + 3.2)
-        y += 4.5
-      }
-      y += 1.5
+    const head = withPresence
+      ? [["Intervenant", "Entreprise / rôle", "Contact", "Présence", "Convoqué"]]
+      : [["Intervenant", "Entreprise / rôle", "Contact"]]
+    const body = crIntervenants.map(it => {
+      const row = [
+        sanitize(it.nom || "—"),
+        sanitize([it.societe && it.societe !== it.nom ? it.societe : "", it.role].filter(Boolean).join("\n") || "—"),
+        sanitize([it.tel, it.email].filter(Boolean).join("\n") || "—"),
+      ]
+      if (withPresence) row.push(it.presence || "—", it.convoque === false ? "—" : "OUI")
+      return row
+    })
+    autoTable(doc, {
+      startY: y, head, body,
+      cm: { left: cm, right: cm, top: 26, bottom: 20 },
+      headStyles: { fillColor: BLEU, textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 7.5 },
+      bodyStyles: { fontSize: 7.5, textColor: NOIR, valign: 'middle' },
+      alternateRowStyles: { fillColor: GRIS_CLAIR },
+      columnStyles: withPresence ? {
+        0: { cellWidth: cu * 0.22, fontStyle: 'bold' },
+        1: { cellWidth: cu * 0.25 },
+        2: { cellWidth: cu * 0.29 },
+        3: { cellWidth: cu * 0.12, halign: 'center' },
+        4: { cellWidth: cu * 0.12, halign: 'center' },
+      } : { 0: { cellWidth: cu * 0.3, fontStyle: 'bold' }, 1: { cellWidth: cu * 0.32 } },
+      styles: { lineWidth: 0.2, lineColor: [226, 232, 240], cellPadding: 1.8 },
+      didParseCell: (d) => {
+        if (d.section !== 'body' || !withPresence) return
+        if (d.column.index === 3 && PRESENCE_COLORS[d.cell.raw]) {
+          d.cell.styles.textColor = PRESENCE_COLORS[d.cell.raw]; d.cell.styles.fontStyle = 'bold'
+        }
+        if (d.column.index === 4 && d.cell.raw === 'OUI') { d.cell.styles.textColor = BLEU; d.cell.styles.fontStyle = 'bold' }
+      },
+    })
+    y = doc.lastAutoTable.finalY + 4
+    if (cr.participants) {
+      doc.setFontSize(7.5); doc.setFont("helvetica", "italic"); doc.setTextColor(...GRIS)
+      const noteLines = doc.splitTextToSize(sanitize(`Également présents : ${cr.participants}`), cu)
+      doc.text(noteLines, cm, y); y += noteLines.length * 3.5 + 3
+      doc.setFont("helvetica", "normal")
     }
-    if (cr.participants) paragraph(`Également présents : ${cr.participants}`, { size: 9.5, color: GRIS })
-  } else if (cr.participants) {
-    heading('Présents')
-    paragraph(cr.participants)
+  } else {
+    y += 2
+    doc.setFontSize(8.5); doc.setFont("helvetica", "normal"); doc.setTextColor(...NOIR)
+    const pLines = doc.splitTextToSize(sanitize(cr.participants) || "—", cu)
+    doc.text(pLines, cm, y); y += pLines.length * 3.8 + 3
   }
+
+  // Bilan des points
+  if (stats.total > 0 || progress != null) {
+    if (y > h - 45) { doc.addPage(); y = 26 }
+    y += 2
+    const items = [
+      ...(progress != null ? [["Avancement", `${progress} %`, BLEU]] : []),
+      ["Points suivis", stats.total, NOIR],
+      ["Nouveaux", stats.nouveau, BLEU_CLAIR],
+      ["Soldés", stats.fait, [4, 120, 87]],
+      ["Relancés", stats.relance, [185, 28, 28]],
+      ["Urgents", stats.urgent, [185, 28, 28]],
+    ]
+    const cw = cu / items.length
+    items.forEach(([label, n, color], i) => {
+      const x = cm + i * cw
+      doc.setFillColor(...GRIS_CLAIR); doc.roundedRect(x + 1, y, cw - 2, 15, 1.5, 1.5, 'F')
+      doc.setFontSize(14); doc.setFont("helvetica", "bold"); doc.setTextColor(...color)
+      doc.text(String(n), x + cw / 2, y + 7.5, { align: "center" })
+      doc.setFontSize(6.5); doc.setFont("helvetica", "normal"); doc.setTextColor(...GRIS)
+      doc.text(label.toUpperCase(), x + cw / 2, y + 12, { align: "center" })
+    })
+    y += 19
+  }
+
+  // Diffusion (bas de la page de garde)
+  const diffY = Math.max(y + 4, h - 34)
+  if (diffY < h - 22) {
+    doc.setDrawColor(...OR); doc.setLineWidth(0.4); doc.line(cm, diffY, cm + 30, diffY)
+    doc.setFontSize(7.5); doc.setFont("helvetica", "bold"); doc.setTextColor(...BLEU)
+    doc.text("DIFFUSION", cm, diffY + 5)
+    doc.setFont("helvetica", "normal"); doc.setTextColor(...GRIS)
+    doc.text("Intervenants listés ci-dessus et maître d'ouvrage.", cm, diffY + 9)
+    doc.text("Sans observation écrite sous 8 jours, le présent compte rendu est réputé approuvé.", cm, diffY + 12.5)
+  }
+
+
+  // La suite commence sur une nouvelle page
+  doc.addPage(); y = TOP
 
   // ── CONTENU ─────────────────────────────────────────────────
   // Sections : celles du CR (par lot) ou, pour un ancien CR, regroupement
@@ -1047,7 +1108,7 @@ export async function generateCRPdf(cr, chantier, opts = {}) {
     }
     y += 1
   }
-  paragraph(`Établi par ${ENT.nom}, maître d'oeuvre, le ${fmtD(cr.date)}. Sans remarque écrite sous 8 jours, ce compte rendu est considéré comme accepté.`, { size: 8.5, color: GRIS, lh: 4 })
+  paragraph(`Établi par ${ENT.nom}, maître d'oeuvre, le ${fmtD(cr.date)}.`, { size: 8.5, color: GRIS, lh: 4 })
 
   // En-têtes (pages 2+) et pieds de page
   const total = doc.getNumberOfPages()
