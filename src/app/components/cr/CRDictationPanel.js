@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { apiPost } from '../../lib/crmApi'
 import { useToast } from '../../contexts/ToastContext'
 import { SUIVI } from '../../lib/crSuivi'
+import { splitNotes, joinNotes } from '../../lib/crEditor'
 import { card, field, label, ghostBtn, NAVY } from './crStyles'
 import MicButton from './MicButton'
 
@@ -12,20 +13,27 @@ const fmt = (iso) => (iso ? iso.split('-').reverse().join('/') : '')
  * Dictée de la réunion + IA : les notes (dictées ou tapées) sont analysées,
  * l'IA propose observations, avancements, états des points, nouveaux points,
  * résumé et décisions. Rien n'est appliqué sans validation.
+ * Les notes sont gardées avec le CR : à la reprise d'un brouillon, la
+ * nouvelle dictée s'ajoute à la suite, et seules les notes ajoutées depuis
+ * le dernier rangement sont analysées (rien n'est ajouté deux fois).
  */
-export default function CRDictationPanel({ notes, setNotes, dictation, context, date, rowsById, onApply }) {
+export default function CRDictationPanel({ notes, notesRangees = 0, setNotes, setNotesRangees, dictation, context, date, rowsById, onApply }) {
   const { addToast } = useToast()
   const [busy, setBusy] = useState(false)
   const [proposal, setProposal] = useState(null)
   const [keep, setKeep] = useState({})
+  const [analysedLen, setAnalysedLen] = useState(0)
   const micId = 'notes'
+  const { ranges, nouvelles } = splitNotes(notes, notesRangees)
 
   const analyse = async () => {
     if (busy) return
     if (dictation?.target === micId) dictation.stop()
     setBusy(true)
+    // Partie analysée : tout jusqu'ici (la dictée peut continuer pendant l'analyse)
+    const upTo = String(notes || '').trimEnd().length
     try {
-      const res = await apiPost('/api/cr/ia', { notes, context, date })
+      const res = await apiPost('/api/cr/ia', { notes: nouvelles, context, date })
       const d = res.data
       const k = {}
       if (d.resume) k.resume = true
@@ -36,6 +44,7 @@ export default function CRDictationPanel({ notes, setNotes, dictation, context, 
       if (!Object.keys(k).length) { addToast('L’IA n’a rien trouvé à reporter dans ces notes.', 'info'); return }
       setProposal(d)
       setKeep(k)
+      setAnalysedLen(upTo)
     } catch (e) {
       addToast(e?.message || 'Analyse impossible', 'error')
     } finally {
@@ -52,6 +61,7 @@ export default function CRDictationPanel({ notes, setNotes, dictation, context, 
       points_existants: d.points_existants.filter((_, i) => keep[`pe${i}`]),
       nouveaux_points: d.nouveaux_points.filter((_, i) => keep[`np${i}`]),
     })
+    setNotesRangees?.(analysedLen)
     const n = Object.values(keep).filter(Boolean).length
     addToast(`${n} élément${n > 1 ? 's' : ''} ajouté${n > 1 ? 's' : ''} au compte rendu — vérifie les lots avant d’enregistrer.`, 'success')
     setProposal(null)
@@ -83,18 +93,26 @@ export default function CRDictationPanel({ notes, setNotes, dictation, context, 
       <p style={{ fontSize: 12, color: 'var(--label-secondary)', margin: '0 0 8px' }}>
         Dicte ou tape tout ce qui se dit, lot par lot. L&apos;IA range ensuite les observations, l&apos;avancement, les points faits ou à relancer et les nouvelles actions — tu valides avant que ce soit ajouté.
       </p>
-      <textarea aria-label="Notes de réunion" value={notes} onChange={e => setNotes(e.target.value)} rows={6}
+      {ranges && (
+        <details style={{ marginBottom: 8, background: 'var(--row-fill)', border: '1px solid var(--separator)', borderRadius: 8, padding: '6px 10px' }}>
+          <summary style={{ fontSize: 12, fontWeight: 600, color: 'var(--label-2)', cursor: 'pointer' }}>
+            Notes déjà rangées dans le compte rendu ({ranges.trim().split(/\s+/).length} mots)
+          </summary>
+          <div style={{ fontSize: 12, color: 'var(--label-secondary)', whiteSpace: 'pre-wrap', marginTop: 6, maxHeight: 180, overflowY: 'auto' }}>{ranges}</div>
+        </details>
+      )}
+      <textarea aria-label={ranges ? 'Nouvelles notes de réunion' : 'Notes de réunion'} value={nouvelles} onChange={e => setNotes(joinNotes(ranges, e.target.value))} rows={6}
         placeholder="Ex : Électricité, Martin absent, le tableau n'est toujours pas posé, à relancer. Plomberie : réseaux sous dallage terminés, avancement 60 %. Carreleur doit fournir les échantillons pour vendredi…"
         style={{ ...field, resize: 'vertical' }} />
       {dictation?.target === micId && dictation.interim && (
         <div style={{ fontSize: 12, color: 'var(--label-secondary)', fontStyle: 'italic', marginTop: 3 }}>{dictation.interim}…</div>
       )}
       <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
-        <button type="button" onClick={analyse} disabled={busy || notes.trim().length < 10}
-          style={{ ...ghostBtn('#fff'), background: NAVY, border: 'none', color: '#fff', opacity: busy || notes.trim().length < 10 ? 0.6 : 1 }}>
-          {busy ? 'Analyse en cours…' : 'Ranger avec l’IA'}
+        <button type="button" onClick={analyse} disabled={busy || nouvelles.trim().length < 10}
+          style={{ ...ghostBtn('#fff'), background: NAVY, border: 'none', color: '#fff', opacity: busy || nouvelles.trim().length < 10 ? 0.6 : 1 }}>
+          {busy ? 'Analyse en cours…' : ranges ? 'Ranger les nouvelles notes avec l’IA' : 'Ranger avec l’IA'}
         </button>
-        {notes && <button type="button" onClick={() => setNotes('')} style={ghostBtn('#6E6E73')}>Effacer les notes</button>}
+        {nouvelles && <button type="button" onClick={() => setNotes(ranges)} style={ghostBtn('#6E6E73')}>{ranges ? 'Effacer les nouvelles notes' : 'Effacer les notes'}</button>}
       </div>
 
       {proposal && (

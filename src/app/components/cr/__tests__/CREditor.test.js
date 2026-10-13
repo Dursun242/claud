@@ -129,13 +129,45 @@ it('dictée + IA : proposition validée puis ajoutée', async () => {
   expect(screen.getByLabelText('Synthèse de la réunion')).toHaveValue('Réunion tenue.')
 })
 
-it('brouillon local proposé à la réouverture', async () => {
+it('nouveau CR : brouillon de l’appareil repris automatiquement', async () => {
   store.get.mockResolvedValue({ savedAt: Date.UTC(2026, 8, 30, 10, 0), form: { chantierId: CH, numero: 3, date: '2026-09-30', intervenants: [], prochaine_reunion: {} }, rows: [], sections: [{ key: 'generalites', lot: 'Généralités', observations: 'Repris du brouillon', photos: [] }], notes: 'notes dictées' })
-  const { user } = setup()
+  setup()
   expect(store.get).toHaveBeenCalledWith('cr-draft:new:ch-1')
-  await user.click(await screen.findByRole('button', { name: 'Reprendre' }))
+  expect(await screen.findByText(/Ton travail non enregistré sur cet appareil a été repris/)).toBeInTheDocument()
   expect(screen.getByLabelText('Notes de réunion')).toHaveValue('notes dictées')
   expect(screen.getByLabelText('Observations Généralités')).toHaveValue('Repris du brouillon')
+})
+
+it('CR enregistré plus récent que le brouillon : brouillon seulement proposé', async () => {
+  const cr = { id: 'cr-3-0000000000', chantierId: CH, numero: 3, date: '2026-09-30', sections: [], taches_suivi: [], enregistre_le: '2026-09-30T12:00:00Z' }
+  store.get.mockResolvedValue({ savedAt: Date.UTC(2026, 8, 30, 10, 0), form: { ...cr }, rows: [], sections: [{ key: 'generalites', lot: 'Généralités', observations: 'Ancien brouillon', photos: [] }], notes: 'vieux' })
+  const user = userEvent.setup()
+  render(<CREditor open initial={cr} data={data} onClose={jest.fn()} onSaved={jest.fn()} m={false} lockChantier />)
+  await user.click(await screen.findByRole('button', { name: 'Reprendre' }))
+  expect(screen.getByLabelText('Observations Généralités')).toHaveValue('Ancien brouillon')
+})
+
+it('reprise d’un CR : les notes déjà rangées restent, seules les nouvelles sont analysées puis enregistrées', async () => {
+  const cr = { id: 'cr-3-0000000000', chantierId: CH, numero: 3, date: '2026-09-30', sections: [], taches_suivi: [],
+    notes_dictee: 'Électricité : tableau posé, rien à signaler.', notes_rangees: 44 }
+  apiPost.mockResolvedValue({ data: { resume: 'Plomberie en retard', decisions: '', lots: [], points_existants: [], nouveaux_points: [] } })
+  saveCr.mockResolvedValue({ cr: { ...cr }, snapshot: [], failures: [], photoFailures: [], migrationMissing: false })
+  const user = userEvent.setup()
+  render(<CREditor open initial={cr} data={data} onClose={jest.fn()} onSaved={jest.fn()} m={false} lockChantier />)
+  expect(screen.getByText(/Notes déjà rangées dans le compte rendu/)).toBeInTheDocument()
+  const nouvelles = screen.getByLabelText('Nouvelles notes de réunion')
+  expect(nouvelles).toHaveValue('')
+  await user.type(nouvelles, 'Plomberie : le réseau a pris du retard.')
+  await user.click(screen.getByRole('button', { name: 'Ranger les nouvelles notes avec l’IA' }))
+  expect(apiPost).toHaveBeenCalledWith('/api/cr/ia', expect.objectContaining({ notes: 'Plomberie : le réseau a pris du retard.' }))
+  await user.click(await screen.findByRole('button', { name: 'Ajouter au compte rendu' }))
+  // Tout est rangé : la zone des nouvelles notes est vide, l'historique reste
+  expect(screen.getByLabelText('Nouvelles notes de réunion')).toHaveValue('')
+  await user.click(screen.getByRole('button', { name: 'Enregistrer' }))
+  await waitFor(() => expect(saveCr).toHaveBeenCalled())
+  const arg = saveCr.mock.calls[0][0]
+  expect(arg.notes).toBe('Électricité : tableau posé, rien à signaler.\nPlomberie : le réseau a pris du retard.')
+  expect(arg.notesRangees).toBe(arg.notes.length)
 })
 
 it('brouillon enregistré sur l’appareil pendant la saisie', async () => {

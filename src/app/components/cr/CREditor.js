@@ -115,6 +115,7 @@ export default function CREditor({ open, initial, data, onClose, onSaved, lockCh
     setSaving(true)
     try {
       const res = await ed.save({ statut: form.statut === 'Diffusé' ? 'Diffusé' : 'Brouillon' })
+      if (res.notesMissing) addToast('CR enregistré, mais les notes de dictée demandent la migration 045 (Supabase) pour être gardées.', 'warning')
       if (res.migrationMissing) addToast('CR enregistré, mais le suivi des points, les lots et la convocation demandent la migration 033 (Supabase).', 'warning')
       if (res.failures.length) addToast(`Points non enregistrés : ${res.failures.join(' ; ')}`, 'error')
       if (res.photoFailures.length) addToast(`${res.photoFailures.length} photo(s) non envoyée(s) — elles restent sur l’appareil : ${res.photoFailures[0]}`, 'error')
@@ -168,7 +169,8 @@ export default function CREditor({ open, initial, data, onClose, onSaved, lockCh
     }
     if (s.id === 'dictee') {
       return (
-        <CRDictationPanel key="dictee" notes={st.notes} setNotes={ed.setNotes} dictation={dictation}
+        <CRDictationPanel key="dictee" notes={st.notes} notesRangees={st.notesRangees} setNotes={ed.setNotes}
+          setNotesRangees={ed.setNotesRangees} dictation={dictation}
           context={aiContext({ sections, rows })} date={form.date} rowsById={rowsById} onApply={ed.applyAi} />
       )
     }
@@ -293,6 +295,14 @@ export default function CREditor({ open, initial, data, onClose, onSaved, lockCh
       ) : (
       <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', padding: m ? 12 : 20, ...(showPreview ? {} : { maxWidth: 1180, margin: '0 auto' }) }}>
       <div style={{ flex: 1, minWidth: 0 }}>
+        {ed.restoredAt && (
+          <div role="status" style={{ ...card, background: 'var(--accent-tint)', borderColor: 'var(--blue-line)', marginBottom: 12, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+            <span style={{ flex: 1, fontSize: 13, color: 'var(--accent-text)' }}>
+              Ton travail non enregistré sur cet appareil a été repris ({new Date(ed.restoredAt).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })}). Continue la dictée : elle s&apos;ajoute à la suite.
+            </span>
+            <button type="button" onClick={ed.discardRestored} style={ghostBtn('#6E6E73')}>Revenir à la version enregistrée</button>
+          </div>
+        )}
         {ed.draft && (
           <div role="status" style={{ ...card, background: 'var(--orange-tint)', borderColor: 'var(--orange-line)', marginBottom: 12, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
             <span style={{ flex: 1, fontSize: 13, color: 'var(--orange-deep)' }}>

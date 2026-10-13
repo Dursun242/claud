@@ -6,7 +6,7 @@ import { saveCr, isMissingColumn, markDiffused } from '../crDb'
 import { initialRows, newRow } from '../crSuivi'
 
 // Faux client Supabase : enregistre les écritures, erreurs programmables
-function fakeSb({ missing033 = false } = {}) {
+function fakeSb({ missing033 = false, missing045 = false } = {}) {
   const calls = []
   const sb = {
     calls,
@@ -17,6 +17,7 @@ function fakeSb({ missing033 = false } = {}) {
         const has033 = q.payload && ['taches_suivi', 'prochaine_reunion', 'sections', 'diffuse_le', 'entreprise', 'nb_rappels', 'cr_origine_id', 'num_point', 'photos']
           .some(k => k in q.payload)
         if (missing033 && has033) return { data: null, error: { code: 'PGRST204', message: "Could not find the 'x' column in the schema cache" } }
+        if (missing045 && q.payload && 'notes_dictee' in q.payload) return { data: null, error: { code: 'PGRST204', message: "Could not find the 'notes_dictee' column of 'compte_rendus' in the schema cache" } }
         if (table === 'rdv') return { data: { id: 'rdv-1' }, error: null }
         return { data: { id: q.payload?.id || q.filters[0]?.[1], ...q.payload }, error: null }
       }
@@ -132,6 +133,24 @@ describe('saveCr', () => {
     const sb = fakeSb()
     expect(await markDiffused('cr-9', sb)).toBe(true)
     expect(sb.calls[0]).toMatchObject({ table: 'compte_rendus', op: 'update', filters: [['id', 'cr-9']], payload: expect.objectContaining({ statut: 'Diffusé' }) })
+  })
+
+  it('notes de dictée enregistrées avec le CR (migration 045)', async () => {
+    const sb = fakeSb()
+    const res = await saveCr({ form, rows: [], sections: [], sb, newId: () => 'cr-x', notes: 'Notes de la réunion', notesRangees: 99 })
+    const cr = sb.calls.find(c => c.table === 'compte_rendus')
+    expect(cr.payload).toMatchObject({ notes_dictee: 'Notes de la réunion', notes_rangees: 19 })
+    expect(cr.payload.enregistre_le).toMatch(/^\d{4}-\d{2}-\d{2}T/)
+    expect(res.notesMissing).toBe(false)
+  })
+
+  it('sans migration 045 : CR enregistré sans les notes, signalé', async () => {
+    const sb = fakeSb({ missing045: true })
+    const res = await saveCr({ form, rows: [], sections: [], sb, newId: () => 'cr-x', notes: 'Notes' })
+    const writes = sb.calls.filter(c => c.table === 'compte_rendus')
+    expect(writes.at(-1).payload).not.toHaveProperty('notes_dictee')
+    expect(writes.at(-1).payload).toHaveProperty('sections')
+    expect(res).toMatchObject({ notesMissing: true, migrationMissing: false })
   })
 
   it('reconnaît une colonne absente', () => {

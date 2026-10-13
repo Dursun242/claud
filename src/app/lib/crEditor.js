@@ -25,7 +25,9 @@ export function buildEditorState({ data = {}, initial = null, chantierId, today 
       },
       rows,
       sections: buildSections({ ...ctx, previous, cr: initial, rows, crDate: initial.date }),
-      notes: '',
+      // Notes de dictée enregistrées avec le CR (migration 045)
+      notes: initial.notes_dictee || '',
+      notesRangees: Number(initial.notes_rangees) || 0,
       previous,
     }
   }
@@ -42,6 +44,7 @@ export function buildEditorState({ data = {}, initial = null, chantierId, today 
     rows,
     sections: chantierId ? buildSections({ ...ctx, previous, rows, crDate: date }) : [],
     notes: '',
+    notesRangees: 0,
     previous,
   }
 }
@@ -58,8 +61,35 @@ export function toDraft(state, now = Date.now()) {
     rows: state.rows.map(({ orig, ...r }) => r), // eslint-disable-line no-unused-vars
     sections: state.sections,
     notes: state.notes || '',
+    notesRangees: state.notesRangees || 0,
   }
 }
+
+/**
+ * Brouillon de l'appareil à reprendre automatiquement : nouveau CR, ou CR
+ * enregistré avant le brouillon (ou sans date d'enregistrement connue :
+ * le brouillon est effacé à chaque enregistrement fait sur cet appareil).
+ */
+export function draftIsNewer(draft, initial) {
+  if (!draft?.form) return false
+  if (!initial?.id) return true
+  const saved = Date.parse(initial.enregistre_le || '')
+  return !Number.isFinite(saved) || Number(draft.savedAt) > saved
+}
+
+/**
+ * Notes de dictée : partie déjà rangée par l'IA et nouvelles notes (seules
+ * analysées au rangement suivant).
+ */
+export function splitNotes(notes = '', rangees = 0) {
+  const all = String(notes || '')
+  const n = Math.max(0, Math.min(Number(rangees) || 0, all.length))
+  return { ranges: all.slice(0, n), nouvelles: all.slice(n).replace(/^\s+/, '') }
+}
+
+/** Notes complètes après modification des nouvelles notes. */
+export const joinNotes = (ranges = '', nouvelles = '') =>
+  (ranges && nouvelles ? `${ranges}\n${nouvelles}` : `${ranges}${nouvelles}`)
 
 /** Reprise d'un brouillon : tâches d'origine relues depuis les données à jour. */
 export function fromDraft(draft, { data = {}, previous = null }) {
@@ -73,6 +103,7 @@ export function fromDraft(draft, { data = {}, previous = null }) {
     }),
     sections: draft.sections || [],
     notes: draft.notes || '',
+    notesRangees: draft.notesRangees || 0,
     previous,
   }
 }
