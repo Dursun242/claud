@@ -79,7 +79,7 @@ async function uploadPending({ rows, sections, chantierId, upload }) {
 /**
  * @param {object} p
  * @param {object} p.form   CR saisi (id si modification, chantierId, date, numero,
- *                          resume, participants, decisions, intervenants,
+ *                          resume, participants, decisions, alertes, intervenants,
  *                          prochaine_reunion, statut)
  * @param {Array}  p.rows      points (lib/crSuivi.initialRows / newRow)
  * @param {Array}  p.sections  sections par lot (lib/crSuivi.buildSections)
@@ -87,7 +87,7 @@ async function uploadPending({ rows, sections, chantierId, upload }) {
  * @param {object} [p.previousNext] prochaine_reunion enregistrée avant modification
  * @param {string} [p.notes]        notes de dictée de la réunion (migration 045)
  * @param {number} [p.notesRangees] caractères des notes déjà rangés par l'IA
- * @returns {Promise<{cr, snapshot, migrationMissing, notesMissing, failures: string[], photoFailures: string[], rows, sections}>}
+ * @returns {Promise<{cr, snapshot, migrationMissing, notesMissing, alertesMissing, failures: string[], photoFailures: string[], rows, sections}>}
  */
 export async function saveCr({
   form, rows = [], sections = [], nextNum = 1, previousNext = null, notes, notesRangees = 0,
@@ -130,12 +130,22 @@ export async function saveCr({
     notes_rangees: Math.max(0, Math.min(Number(notesRangees) || 0, String(notes || '').length)),
     enregistre_le: new Date().toISOString(),
   }
+  // Alertes (retards, non-conformités, risques : migration 046), même repli
+  const extra046 = form.alertes === undefined ? {} : { alertes: form.alertes || '' }
   let migrationMissing = false
   let notesMissing = false
-  let { data, error } = await write({ ...full, ...dictee })
+  let alertesMissing = false
+  let row = { ...full, ...dictee, ...extra046 }
+  let { data, error } = await write(row)
+  if (error && 'alertes' in row && /alertes/.test(error.message || '')) {
+    alertesMissing = true
+    row = without(row, ['alertes'])
+    ;({ data, error } = await write(row))
+  }
   if (error && Object.keys(dictee).length && /notes_dictee|notes_rangees|enregistre_le/.test(error.message || '')) {
     notesMissing = true
-    ;({ data, error } = await write(full))
+    row = without(row, Object.keys(dictee))
+    ;({ data, error } = await write(row))
   }
   if (error && isMissingColumn(error)) {
     migrationMissing = true
@@ -181,6 +191,7 @@ export async function saveCr({
     snapshot: plan.snapshot,
     migrationMissing,
     notesMissing,
+    alertesMissing,
     failures,
     photoFailures: uploaded.failures,
     rows: uploaded.rows,

@@ -409,11 +409,11 @@ const SUIVI_KEYS = ['fait', 'en_cours', 'relance']
 /**
  * Applique la proposition de l'IA (déjà validée par l'utilisateur) :
  * états des points existants, nouveaux points, observations / avancement
- * par lot, résumé et décisions (ajoutés au texte existant). Ce qui existe
+ * par lot, résumé, alertes et décisions (ajoutés au texte existant). Ce qui existe
  * déjà est complété plutôt que doublé : point semblable complété, phrases
  * déjà présentes non répétées.
  */
-export function applyAiResult({ sections = [], rows = [], resume = '', decisions = '' }, result = {}, { crDate, nextDate } = {}) {
+export function applyAiResult({ sections = [], rows = [], resume = '', decisions = '', alertes = '' }, result = {}, { crDate, nextDate } = {}) {
   let outSections = sections.map(s => ({ ...s }))
   const sectionFor = (lot) => {
     const k = lotKey(lot)
@@ -466,6 +466,7 @@ export function applyAiResult({ sections = [], rows = [], resume = '', decisions
     sections: outSections, rows: outRows,
     resume: mergeText(resume, result.resume),
     decisions: mergeText(decisions, result.decisions),
+    alertes: mergeText(alertes, result.alertes),
   }
 }
 
@@ -517,10 +518,107 @@ export function carryIntervenants(previous) {
     .map(it => ({ ...toCrIntervenant(it, it), presence: 'Présent', convoque: true }))
 }
 
+/**
+ * Marque les intervenants qui étaient convoqués à cette réunion (convoqués
+ * au CR précédent) : une absence est alors notée « absent bien que
+ * convoqué » dans le PDF et le mail.
+ */
+export function markConvoques(intervenants = [], previous = null) {
+  const keys = new Set((previous?.intervenants || []).filter(it => it && it.convoque !== false)
+    .flatMap(it => [norm(it.nom), norm(it.societe)]).filter(Boolean))
+  return (intervenants || []).map(it => ({ ...it, convoque_prec: keys.has(norm(it.nom)) || keys.has(norm(it.societe)) }))
+}
+
+/** Absents et excusés de la réunion (PDF, contrôle avant diffusion). */
+export function absences(intervenants = []) {
+  return (intervenants || []).filter(it => it && (it.presence === 'Absent' || it.presence === 'Excusé'))
+    .map(it => ({
+      nom: entrepriseOf(it) && entrepriseOf(it) !== it.nom && it.nom ? `${it.nom} (${entrepriseOf(it)})` : (it.nom || entrepriseOf(it)),
+      presence: it.presence,
+      convoque: !!it.convoque_prec,
+    }))
+}
+
+/** Phrase d'une absence : « Leroy (Leroy Plâtrerie) : absent bien que convoqué ». */
+export const absenceText = (a) => `${a.nom} : ${a.presence === 'Excusé' ? 'excusé' : a.convoque ? 'absent bien que convoqué' : 'absent'}`
+
 /** Actions encore ouvertes d'un intervenant (rapprochement par entreprise / nom). */
 export function actionsFor(snapshot = [], it) {
   const keys = new Set([norm(it?.societe), norm(it?.nom)].filter(Boolean))
   return (snapshot || []).filter(r => r.suivi !== 'fait' && keys.has(norm(r.entreprise)))
+}
+
+// ─── Rédaction : ton qui se durcit avec les relances ─────────────────────
+// 1re relance : « Il est rappelé à l'entreprise X de… » ; à partir de la
+// 2e : « Dernier rappel avant mise en demeure » ; à la 3e, le courrier de
+// mise en demeure est proposé (MISE_EN_DEMEURE_RAPPELS).
+export const DERNIER_RAPPEL = 2
+export const MISE_EN_DEMEURE_RAPPELS = 3
+
+const lcFirst = (t) => (/^[A-ZÀ-Ý][a-zà-ÿ]/.test(t) ? t.charAt(0).toLowerCase() + t.slice(1) : t)
+const deVerbe = (t) => (/^[aeiouyhàâäéèêëîïôöùûü]/i.test(t) ? `d'${t}` : `de ${t}`)
+const lEntreprise = (e) => (/^(l'|l’|la |le |les |sarl|sas|eurl|sa |ets|entreprise)/i.test(e) ? e : `l'entreprise ${e}`)
+
+/** Niveau de relance d'un point : 0 (pas relancé), 1 (rappel), 2 (dernier rappel). */
+export function relanceLevel(r) {
+  if (!r || r.suivi !== 'relance') return 0
+  return (Number(r.rappels) || 0) >= DERNIER_RAPPEL ? 2 : 1
+}
+
+/**
+ * Intitulé d'un point tel qu'il est écrit dans le CR et le mail : inchangé,
+ * sauf pour un point relancé dont le ton se durcit à chaque relance.
+ */
+export function formalTitle(r) {
+  const t = String(r?.titre || '').trim().replace(/[.\s]+$/, '')
+  const level = relanceLevel(r)
+  if (!t || !level) return t
+  const ent = String(r.entreprise || '').trim()
+  const head = level === 1 ? 'Rappel' : 'Dernier rappel avant mise en demeure'
+  // Intitulé à l'infinitif (« Reprendre… ») : phrase complète ; sinon le point tel quel
+  const infinitif = /^[a-zà-ÿ'’-]+(er|ir|re)$/i.test(t.split(/\s+/)[0])
+  if (!ent) return `${head} : ${t}.`
+  if (!infinitif) return `${head} à ${lEntreprise(ent)} : ${t}.`
+  return level === 1
+    ? `Il est rappelé à ${lEntreprise(ent)} ${deVerbe(lcFirst(t))}.`
+    : `${head} : ${lEntreprise(ent)} doit ${lcFirst(t)}.`
+}
+
+// ─── Contrôle avant diffusion ────────────────────────────────────────────
+/**
+ * Ce qui manque au CR avant de le diffuser, sous forme de questions :
+ * action sans entreprise ou sans date, échéance dépassée non relancée, lot
+ * dont l'avancement n'est pas renseigné, présences, convocation.
+ * `type` : « question » (à compléter) ou « info » (noté, rien à faire).
+ * `anchor` : partie de l'éditeur où corriger.
+ */
+export function crChecks({ form = {}, rows = [], sections = [] } = {}) {
+  const out = []
+  const name = (r) => `${r.num ? `n°${r.num} ` : ''}« ${String(r.titre).trim()} »`
+  for (const r of rows) {
+    if (r.missing || r.suivi === 'fait' || !String(r.titre || '').trim()) continue
+    const anchor = lotKey(lotOf(r))
+    const missing = [!String(r.entreprise || '').trim() && 'quelle entreprise', !day(r.echeance) && 'pour quand'].filter(Boolean)
+    if (missing.length) out.push({ key: `q:${r.key}`, type: 'question', anchor, text: `Point ${name(r)} : ${missing.join(', ')} ?` })
+    else if (r.suivi === 'en_cours' && daysLate(r.echeance, form.date) > 0) {
+      out.push({ key: `late:${r.key}`, type: 'question', anchor, text: `Point ${name(r)} : échéance dépassée (${fmtShort(r.echeance)}), à relancer ?` })
+    }
+  }
+  for (const s of sections) {
+    if (s.key === lotKey(GENERAL) || s.prevu == null) continue
+    if (s.avancement == null || s.avancement === '') {
+      out.push({ key: `av:${s.key}`, type: 'question', anchor: s.key, text: `${s.lot} : prévu à ${s.prevu} % au planning, quel avancement ?` })
+    }
+  }
+  const its = form.intervenants || []
+  if (!its.length) out.push({ key: 'presences', type: 'question', anchor: 'presences', text: 'Aucun intervenant : coche les présents et les absents.' })
+  for (const a of absences(its)) {
+    out.push({ key: `abs:${a.nom}`, type: 'info', anchor: 'presences', text: `${absenceText(a)} (noté au compte rendu).` })
+  }
+  if (!day(form.prochaine_reunion?.date)) {
+    out.push({ key: 'next', type: 'info', anchor: 'cloture', text: 'Pas de prochaine réunion : aucune convocation ne sera envoyée.' })
+  }
+  return out
 }
 
 // ─── Prochaine réunion ───────────────────────────────────────────────────
@@ -580,6 +678,9 @@ export function crMailIntro(cr, chantier) {
 /** Corps complet du mail d'un destinataire : message + convocation + ses actions. */
 export function crMailText({ intro, cr, it, company = {} }) {
   const parts = [`Bonjour${it?.nom ? ` ${it.nom}` : ''},`, String(intro || '').trim()]
+  if (it?.presence === 'Absent' && it?.convoque_prec) {
+    parts.push('Vous étiez convoqué(e) à cette réunion et n’étiez ni présent(e) ni représenté(e).')
+  }
   const next = cr?.prochaine_reunion
   if (next?.date && it?.convoque !== false) {
     parts.push([
@@ -592,9 +693,9 @@ export function crMailText({ intro, cr, it, company = {} }) {
   const actions = actionsFor(cr?.taches_suivi, it)
   if (actions.length) {
     const lines = actions.map(a => {
-      const late = a.suivi === 'relance'
-      return `  • ${a.titre}${a.echeance ? ` — échéance ${fmtShort(a.echeance)}` : ''}`
-        + (late ? ` — RELANCE${a.rappels > 1 ? ` n°${a.rappels}` : ''}` : '')
+      const level = relanceLevel(a)
+      const tag = level === 2 ? ' — DERNIER RAPPEL AVANT MISE EN DEMEURE' : level === 1 ? ` — RELANCE${a.rappels > 1 ? ` n°${a.rappels}` : ''}` : ''
+      return `  • ${a.titre}${a.echeance ? ` — échéance ${fmtShort(a.echeance)}` : ''}${tag}`
         + (priorityLevel(a.priorite) === 2 ? ' — URGENT' : '')
     })
     parts.push(['Actions à votre charge :', ...lines].join('\n'))

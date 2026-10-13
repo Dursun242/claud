@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { cacheGet, cacheSet, cacheDelete } from '../lib/offlineStore'
 import { buildEditorState, draftKey, toDraft, fromDraft, previewCr, draftIsNewer } from '../lib/crEditor'
 import {
-  initialRows, newRow, nextPointNumber, applyAiResult, defaultNextMeeting, lotKey, GENERAL, buildSections,
+  initialRows, newRow, nextPointNumber, applyAiResult, defaultNextMeeting, lotKey, GENERAL, buildSections, markConvoques,
 } from '../lib/crSuivi'
 import { saveCr } from '../lib/crDb'
 
@@ -148,10 +148,10 @@ export function useCrEditor({ open, initial, data }) {
 
   const applyAi = useCallback((result) => mutate(s => {
     const out = applyAiResult(
-      { sections: s.sections, rows: s.rows, resume: s.form.resume, decisions: s.form.decisions },
+      { sections: s.sections, rows: s.rows, resume: s.form.resume, decisions: s.form.decisions, alertes: s.form.alertes },
       result, { crDate: s.form.date, nextDate: s.form.prochaine_reunion?.date },
     )
-    return { ...s, sections: out.sections, rows: out.rows, form: { ...s.form, resume: out.resume, decisions: out.decisions } }
+    return { ...s, sections: out.sections, rows: out.rows, form: { ...s.form, resume: out.resume, decisions: out.decisions, alertes: out.alertes } }
   }), [mutate])
 
   const nextNum = useMemo(() => nextPointNumber(data?.tasks || [], state?.form?.chantierId), [data?.tasks, state?.form?.chantierId])
@@ -159,7 +159,11 @@ export function useCrEditor({ open, initial, data }) {
   const save = useCallback(async ({ statut } = {}) => {
     if (!state) return null
     const res = await saveCr({
-      form: { ...state.form, statut: statut || state.form.statut || 'Brouillon' },
+      form: {
+        ...state.form, statut: statut || state.form.statut || 'Brouillon',
+        // Absent alors que convoqué au CR précédent : noté dans le PDF et le mail
+        intervenants: markConvoques(state.form.intervenants, state.previous),
+      },
       rows: state.rows, sections: state.sections, nextNum,
       previousNext: initial?.prochaine_reunion || null,
       notes: state.notes || '', notesRangees: state.notesRangees || 0,

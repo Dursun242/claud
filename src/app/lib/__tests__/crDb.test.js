@@ -6,7 +6,7 @@ import { saveCr, isMissingColumn, markDiffused } from '../crDb'
 import { initialRows, newRow } from '../crSuivi'
 
 // Faux client Supabase : enregistre les écritures, erreurs programmables
-function fakeSb({ missing033 = false, missing045 = false } = {}) {
+function fakeSb({ missing033 = false, missing045 = false, missing046 = false } = {}) {
   const calls = []
   const sb = {
     calls,
@@ -17,6 +17,7 @@ function fakeSb({ missing033 = false, missing045 = false } = {}) {
         const has033 = q.payload && ['taches_suivi', 'prochaine_reunion', 'sections', 'diffuse_le', 'entreprise', 'nb_rappels', 'cr_origine_id', 'num_point', 'photos']
           .some(k => k in q.payload)
         if (missing033 && has033) return { data: null, error: { code: 'PGRST204', message: "Could not find the 'x' column in the schema cache" } }
+        if (missing046 && q.payload && 'alertes' in q.payload) return { data: null, error: { code: 'PGRST204', message: "Could not find the 'alertes' column of 'compte_rendus' in the schema cache" } }
         if (missing045 && q.payload && 'notes_dictee' in q.payload) return { data: null, error: { code: 'PGRST204', message: "Could not find the 'notes_dictee' column of 'compte_rendus' in the schema cache" } }
         if (table === 'rdv') return { data: { id: 'rdv-1' }, error: null }
         return { data: { id: q.payload?.id || q.filters[0]?.[1], ...q.payload }, error: null }
@@ -151,6 +152,20 @@ describe('saveCr', () => {
     expect(writes.at(-1).payload).not.toHaveProperty('notes_dictee')
     expect(writes.at(-1).payload).toHaveProperty('sections')
     expect(res).toMatchObject({ notesMissing: true, migrationMissing: false })
+  })
+
+  it('alertes enregistrées ; sans migration 046 : CR enregistré sans elles, signalé', async () => {
+    let sb = fakeSb()
+    let res = await saveCr({ form: { ...form, alertes: 'Retard plâtrerie.' }, rows: [], sections: [], sb, newId: () => 'cr-x' })
+    expect(sb.calls.find(c => c.table === 'compte_rendus').payload.alertes).toBe('Retard plâtrerie.')
+    expect(res.alertesMissing).toBe(false)
+    sb = fakeSb({ missing046: true, missing045: true })
+    res = await saveCr({ form: { ...form, alertes: 'Retard.' }, rows: [], sections: [], sb, newId: () => 'cr-x', notes: 'Notes' })
+    const last = sb.calls.filter(c => c.table === 'compte_rendus').at(-1).payload
+    expect(last).not.toHaveProperty('alertes')
+    expect(last).not.toHaveProperty('notes_dictee')
+    expect(last).toHaveProperty('sections')
+    expect(res).toMatchObject({ alertesMissing: true, notesMissing: true, migrationMissing: false })
   })
 
   it('reconnaît une colonne absente', () => {

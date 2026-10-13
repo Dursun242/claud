@@ -4,6 +4,8 @@ import userEvent from '@testing-library/user-event'
 const addToast = jest.fn()
 jest.mock('../../../contexts/ToastContext', () => ({ useToast: () => ({ addToast }) }))
 jest.mock('../../../lib/today', () => ({ ...jest.requireActual('../../../lib/today'), localISO: () => '2026-09-30' }))
+let confirmFn = null
+jest.mock('../../../contexts/ConfirmContext', () => ({ useOptionalConfirm: () => confirmFn }))
 const saveCr = jest.fn()
 jest.mock('../../../lib/crDb', () => ({ saveCr: (...a) => saveCr(...a) }))
 const store = { get: jest.fn(), set: jest.fn(), del: jest.fn() }
@@ -36,6 +38,7 @@ const data = {
 
 beforeEach(() => {
   jest.clearAllMocks()
+  confirmFn = null
   store.get.mockResolvedValue(undefined)
   store.set.mockResolvedValue(undefined)
 })
@@ -212,4 +215,33 @@ it('aperçu à côté : le PDF se refait après les modifications', async () => 
   await user.click(within(panel).getByRole('button', { name: "Fermer l'aperçu" }))
   expect(screen.queryByRole('complementary', { name: 'Aperçu du PDF' })).not.toBeInTheDocument()
   expect(window.localStorage.getItem('cr-apercu-a-cote')).toBe('0')
+})
+
+it('contrôle avant diffusion : questions listées, diffusion confirmée', async () => {
+  saveCr.mockResolvedValue({ cr: { id: 'cr-3', numero: 3 }, snapshot: [], migrationMissing: false, failures: [], photoFailures: [] })
+  confirmFn = jest.fn().mockResolvedValueOnce(false).mockResolvedValueOnce(true)
+  const { onSaved, user } = setup()
+  const panel = screen.getByRole('region', { name: 'À vérifier avant diffusion' })
+  expect(within(panel).getByText('Point n°2 « Réseaux sous dallage » : quelle entreprise ?')).toBeInTheDocument()
+  expect(screen.getByRole('button', { name: '1 à vérifier' })).toBeInTheDocument()
+  await user.click(screen.getByRole('button', { name: 'Diffuser' }))
+  expect(confirmFn).toHaveBeenCalledWith(expect.objectContaining({ title: '1 point à vérifier', confirmLabel: 'Diffuser quand même' }))
+  expect(saveCr).not.toHaveBeenCalled()
+  await user.click(screen.getByRole('button', { name: 'Diffuser' }))
+  await waitFor(() => expect(onSaved).toHaveBeenCalledWith({ id: 'cr-3', numero: 3 }, { send: true }))
+  // L'enregistrement simple ne demande rien
+  await user.click(screen.getByRole('button', { name: 'Enregistrer' }))
+  expect(confirmFn).toHaveBeenCalledTimes(2)
+})
+
+it('alertes : champ dans la synthèse, proposées par l’IA', async () => {
+  apiPost.mockResolvedValue({ ok: true, data: {
+    resume: '', alertes: 'Retard de 2 semaines du lot électricité.', decisions: '', lots: [], points_existants: [], nouveaux_points: [],
+  } })
+  const { user } = setup()
+  await user.type(screen.getByLabelText('Notes de réunion'), 'Électricité deux semaines de retard.')
+  await user.click(screen.getByRole('button', { name: /Ranger avec l’IA/ }))
+  const proposal = await screen.findByRole('region', { name: "Proposition de l'IA" })
+  await user.click(within(proposal).getByRole('button', { name: 'Ajouter au compte rendu' }))
+  expect(screen.getByLabelText('Alertes : retards, non-conformités, risques')).toHaveValue('Retard de 2 semaines du lot électricité.')
 })

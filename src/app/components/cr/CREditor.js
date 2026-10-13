@@ -1,11 +1,12 @@
 'use client'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useToast } from '../../contexts/ToastContext'
+import { useOptionalConfirm } from '../../contexts/ConfirmContext'
 import { useCrEditor } from '../../hooks/useCrEditor'
 import { useDictation } from '../../hooks/useDictation'
 import { useLeaveGuard } from '../../hooks/useLeaveGuard'
 import {
-  chantierIntervenants, entrepriseOf, lotKey, crTaskStats, aiContext, globalProgress, rowAiId,
+  chantierIntervenants, entrepriseOf, lotKey, crTaskStats, aiContext, globalProgress, rowAiId, crChecks,
 } from '../../lib/crSuivi'
 import { pointsBySection } from '../../lib/crEditor'
 import { loadCrImages } from '../../lib/crPhotos'
@@ -15,6 +16,7 @@ import CRLotSection from './CRLotSection'
 import CRDictationPanel from './CRDictationPanel'
 import MicButton from './MicButton'
 import CRLivePreview from './CRLivePreview'
+import CRChecksPanel from './CRChecksPanel'
 
 const fmtDate = (iso) => (iso ? String(iso).slice(0, 10).split('-').reverse().join('/') : '')
 const fmtTime = (ts) => new Date(ts).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
@@ -34,6 +36,7 @@ const readSplit = () => { try { return localStorage.getItem(SPLIT_KEY) === '1' }
  */
 export default function CREditor({ open, initial, data, onClose, onSaved, lockChantier = false, m }) {
   const { addToast } = useToast()
+  const confirm = useOptionalConfirm()
   const ed = useCrEditor({ open, initial, data })
   const dictation = useDictation({ onError: (msg) => addToast(msg, 'warning') })
   useLeaveGuard(open)
@@ -84,6 +87,9 @@ export default function CREditor({ open, initial, data, onClose, onSaved, lockCh
   const rowsById = useMemo(() => new Map(rows.filter(r => r.id || r.key).map(r => [rowAiId(r), r])), [rows])
   const stats = crTaskStats(rows)
   const progress = globalProgress(sections)
+  // Ce qui manque avant diffusion (questions) et ce qui sera noté (infos)
+  const checks = useMemo(() => crChecks({ form: st?.form || {}, rows, sections }), [st?.form, rows, sections])
+  const questions = checks.filter(c => c.type === 'question').length
 
   const steps = useMemo(() => [
     { id: 'presences', label: 'Présences', anchor: 'presences' },
@@ -94,6 +100,11 @@ export default function CREditor({ open, initial, data, onClose, onSaved, lockCh
   const current = steps[Math.min(step, steps.length - 1)]
 
   if (!open || !st) return null
+
+  const goToAnchor = (anchor) => {
+    const i = steps.findIndex(s => s.anchor === anchor)
+    if (i >= 0) goTo(i)
+  }
 
   const goTo = (i) => {
     if (mode === 'reunion') { setStep(i); window.scrollTo?.({ top: 0 }) }
@@ -112,10 +123,21 @@ export default function CREditor({ open, initial, data, onClose, onSaved, lockCh
     const err = validate()
     setError(err)
     if (err) return
+    if (send && questions && confirm) {
+      const ok = await confirm({
+        title: `${questions} point${questions > 1 ? 's' : ''} à vérifier`,
+        message: checks.filter(c => c.type === 'question').slice(0, 6).map(c => `• ${c.text}`).join('\n')
+          + '\n\nUn compte rendu complet (qui, quoi, pour quand) protège en cas de retard ou de litige.',
+        confirmLabel: 'Diffuser quand même',
+        cancelLabel: 'Compléter',
+      })
+      if (!ok) { goToAnchor(checks.find(c => c.type === 'question')?.anchor); return }
+    }
     dictation.stop()
     setSaving(true)
     try {
       const res = await ed.save({ statut: form.statut === 'Diffusé' ? 'Diffusé' : 'Brouillon' })
+      if (res.alertesMissing) addToast('CR enregistré, mais les alertes demandent la migration 046 (Supabase) pour être gardées.', 'warning')
       if (res.notesMissing) addToast('CR enregistré, mais les notes de dictée demandent la migration 045 (Supabase) pour être gardées.', 'warning')
       if (res.migrationMissing) addToast('CR enregistré, mais le suivi des points, les lots et la convocation demandent la migration 033 (Supabase).', 'warning')
       if (res.failures.length) addToast(`Points non enregistrés : ${res.failures.join(' ; ')}`, 'error')
@@ -188,7 +210,12 @@ export default function CREditor({ open, initial, data, onClose, onSaved, lockCh
     return (
       <section key="cloture" id="cr-section-cloture" aria-label="Synthèse et convocation" style={{ ...card, scrollMarginTop: 120 }}>
         <h3 style={{ margin: '0 0 10px', fontSize: 17 }}>Synthèse et convocation</h3>
-        {[['resume', 'Synthèse de la réunion', 'Points marquants, état général du chantier…'], ['decisions', 'Décisions', 'Décisions prises pendant la réunion…']].map(([k, title, ph]) => (
+        <div style={{ marginBottom: 12 }}><CRChecksPanel checks={checks} onGo={goToAnchor} /></div>
+        {[
+          ['resume', 'Synthèse de la réunion', 'Points marquants, état général du chantier…'],
+          ['alertes', 'Alertes : retards, non-conformités, risques', 'Ex : Retard de 2 semaines du lot plâtrerie, imputable à l’entreprise X : décale la pose du carrelage.'],
+          ['decisions', 'Décisions', 'Décisions prises pendant la réunion, par qui, avec leur impact (coût, délai)…'],
+        ].map(([k, title, ph]) => (
           <div key={k} style={{ marginBottom: 12 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
               <span style={label}>{title}</span>
@@ -257,6 +284,12 @@ export default function CREditor({ open, initial, data, onClose, onSaved, lockCh
             <div style={{ fontSize: 11, color: 'var(--label-secondary)', display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
               <span style={{ fontWeight: 700, color: statusBadge.color, background: statusBadge.bg, borderRadius: 4, padding: '0 6px' }}>{statusBadge.text}</span>
               {stats.total > 0 && <span>{stats.total} points · {stats.relance} à relancer · {stats.fait} faits</span>}
+              {questions > 0 && (
+                <button type="button" onClick={() => goToAnchor('cloture')}
+                  style={{ border: 'none', background: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 11, fontWeight: 700, color: 'var(--orange-deep)' }}>
+                  {questions} à vérifier
+                </button>
+              )}
               {progress != null && <span>avancement global {progress} %</span>}
               {ed.localSavedAt && <span title="Brouillon enregistré sur cet appareil (utilisable hors ligne)">✓ sur l&apos;appareil à {fmtTime(ed.localSavedAt)}</span>}
             </div>

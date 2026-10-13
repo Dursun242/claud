@@ -2,7 +2,7 @@
 import { LOGO_B64 } from './logo'
 import { COMPANY as ENT, SB } from './dashboards/shared'
 import { chiffrageTotals, posteTotal, lotTotal, lotNumero, posteNumero } from './lib/chiffrage'
-import { crTaskStats, daysLate, fmtLongDate, isoWeek, priorityLabel, globalProgress, lotOf, lotKey, GENERAL } from './lib/crSuivi'
+import { crTaskStats, daysLate, fmtLongDate, isoWeek, priorityLabel, globalProgress, lotOf, lotKey, GENERAL, formalTitle, absences, absenceText } from './lib/crSuivi'
 
 // Lazy-load jsPDF + plugin autotable : évite de charger ~180 KB au démarrage
 // de l'app. La promesse est mise en cache pour éviter les imports répétés.
@@ -731,10 +731,11 @@ export async function generateDevisPdf(devis, opts = {}) {
 // Page 1 — page de garde : n° du CR, date et semaine de la réunion,
 // opération (chantier, MOA, MOE), convocation à la prochaine réunion,
 // intervenants avec présence et convocation, bilan (avancement, points).
-// Pages suivantes : synthèse, avancement par lot (réel / prévu / écart),
-// puis une section par lot (Généralités d'abord) : observations, tableau
-// des points (relances en rouge, soldés en vert, nouveaux en bleu), photos.
-// Décisions, prochaine réunion. En-tête et « Page x / n » sur chaque page.
+// Pages suivantes, dans l'ordre de l'éditeur : absents, une partie par lot
+// (Généralités d'abord) avec avancement, observations, points (le ton se
+// durcit à chaque relance) et photos ; synthèse, alertes, décisions,
+// prochaine réunion, mention d'acceptation sous 8 jours. En-tête et
+// « x / n » sur chaque page.
 //
 // opts.images        : { [path]: dataUrl } photos à imprimer (lib/crPhotos.loadCrImages)
 // opts.returnBase64  : renvoie { base64, filename } au lieu de télécharger (mail)
@@ -1003,7 +1004,8 @@ export async function generateCRPdf(cr, chantier, opts = {}) {
   const pointItem = (r) => {
     const late = r.suivi === 'relance' ? daysLate(r.echeance, cr.date) : 0
     const urgent = r.suivi !== 'fait' && priorityLabel(r.priorite) === 'Urgente'
-    const titre = lines(r.titre || '-', usable - 10)
+    // Point relancé : le ton se durcit (« Il est rappelé à… », « Dernier rappel… »)
+    const titre = lines(formalTitle(r) || '-', usable - 10)
     const meta = [
       r.entreprise ? sanitize(r.entreprise) : null,
       r.echeance ? `avant le ${fmtD(r.echeance)}` : null,
@@ -1057,8 +1059,17 @@ export async function generateCRPdf(cr, chantier, opts = {}) {
     y += 8
   }
 
-  // Même ordre que l'éditeur : Généralités, les lots dans l'ordre affiché,
-  // puis la synthèse et les décisions, enfin la prochaine réunion
+  // Même ordre que l'éditeur : présences (absents), Généralités, les lots
+  // dans l'ordre affiché, puis la synthèse, les alertes et les décisions,
+  // enfin la prochaine réunion
+  const absents = absences(crIntervenants)
+  if (absents.length) {
+    font(10, 'bold', NOIR)
+    doc.text('Absents à la réunion', margin, y + 4)
+    y += 6
+    for (const a of absents) paragraph(`- ${absenceText(a)}`, { size: 10, color: a.convoque && a.presence === 'Absent' ? ROUGE : NOIR, indent: 2 })
+    y += 2
+  }
   for (const s of crSections) {
     const rows = pointsOf(s.lot)
     const photos = [
@@ -1084,6 +1095,17 @@ export async function generateCRPdf(cr, chantier, opts = {}) {
     paragraph(cr.resume)
   }
 
+  // Alertes : retards, non-conformités, risques (trait rouge)
+  if (cr.alertes) {
+    heading('Alertes')
+    const start = y
+    const startPage = doc.getNumberOfPages()
+    paragraph(cr.alertes, { indent: 4 })
+    if (doc.getNumberOfPages() === startPage) {
+      doc.setDrawColor(...ROUGE); doc.setLineWidth(0.9); doc.line(margin, start + 0.5, margin, y)
+    }
+  }
+
   if (cr.decisions) {
     heading('Décisions')
     const start = y
@@ -1105,6 +1127,7 @@ export async function generateCRPdf(cr, chantier, opts = {}) {
     y += 1
   }
   paragraph(`Établi par ${ENT.nom}, maître d'oeuvre, le ${fmtD(cr.date)}.`, { size: 8.5, color: GRIS, lh: 4 })
+  paragraph('Sans observation écrite adressée au maître d’oeuvre sous 8 jours à réception, le présent compte rendu est réputé accepté par tous les intervenants.', { size: 8.5, color: GRIS, lh: 4 })
 
   // En-têtes (pages 2+) et pieds de page
   const total = doc.getNumberOfPages()

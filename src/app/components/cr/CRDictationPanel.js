@@ -12,7 +12,7 @@ const fmt = (iso) => (iso ? iso.split('-').reverse().join('/') : '')
 /**
  * Dictée de la réunion + IA : les notes (dictées ou tapées) sont analysées,
  * l'IA propose observations, avancements, états des points, nouveaux points,
- * résumé et décisions. Rien n'est appliqué sans validation.
+ * résumé, alertes et décisions. Rien n'est appliqué sans validation.
  * Les notes sont gardées avec le CR : à la reprise d'un brouillon, la
  * nouvelle dictée s'ajoute à la suite, et seules les notes ajoutées depuis
  * le dernier rangement sont analysées (rien n'est ajouté deux fois).
@@ -37,6 +37,7 @@ export default function CRDictationPanel({ notes, notesRangees = 0, setNotes, se
       const d = res.data
       const k = {}
       if (d.resume) k.resume = true
+      if (d.alertes) k.alertes = true
       if (d.decisions) k.decisions = true
       d.lots.forEach((_, i) => { k[`lot${i}`] = true })
       d.points_existants.forEach((_, i) => { k[`pe${i}`] = true })
@@ -56,6 +57,7 @@ export default function CRDictationPanel({ notes, notesRangees = 0, setNotes, se
     const d = proposal
     onApply({
       resume: keep.resume ? d.resume : '',
+      alertes: keep.alertes ? d.alertes : '',
       decisions: keep.decisions ? d.decisions : '',
       lots: d.lots.filter((_, i) => keep[`lot${i}`]),
       points_existants: d.points_existants.filter((_, i) => keep[`pe${i}`]),
@@ -141,6 +143,7 @@ export default function CRDictationPanel({ notes, notesRangees = 0, setNotes, se
               {same && <span style={{ display: 'block', fontSize: 12, color: 'var(--accent-text)' }}>Complète le point {same.num ? `n°${same.num} ` : ''}« {same.titre} » (pas de doublon)</span>}
             </>)
           }))}
+          {group('Alertes (retards, non-conformités, risques)', proposal.alertes ? [item('alertes', <>{proposal.alertes}</>)] : [])}
           {group('Décisions', proposal.decisions ? [item("decisions", <>{proposal.decisions}</>)] : [])}
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
             <button type="button" onClick={() => setProposal(null)} style={ghostBtn('#6E6E73')}>Annuler</button>

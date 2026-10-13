@@ -4,7 +4,8 @@
 // du CR (lots + entreprises, points ouverts), l'IA propose : un résumé, les
 // observations et l'avancement de chaque lot, l'état des points existants
 // (fait / en cours / à relancer), les nouveaux points (lot, entreprise,
-// échéance, priorité) et les décisions. L'utilisateur valide avant que
+// échéance, priorité), les alertes (retards, non-conformités, risques) et
+// les décisions. L'utilisateur valide avant que
 // quoi que ce soit ne soit appliqué au CR. Réservée au staff.
 
 import { verifyStaff } from '@/app/lib/auth'
@@ -20,8 +21,21 @@ const checkRate = createRateLimiter({ limit: 10, windowMs: 60_000 })
 
 const SYSTEM = `Tu es l'assistant de SARL ID MAÎTRISE, maître d'œuvre au Havre. Tu
 transformes les notes d'une réunion de chantier (souvent dictées : phrases
-orales, fautes de reconnaissance vocale) en compte rendu structuré, en français
-professionnel, concis et factuel.
+orales, fautes de reconnaissance vocale) en compte rendu structuré. Le compte
+rendu est un registre d'engagements qui pourra servir de preuve (retards,
+litiges, pénalités) : il dit qui doit faire quoi et pour quand.
+
+Règles d'écriture :
+- une phrase = un fait ; présent de l'indicatif, troisième personne ;
+- factuel : pas d'adjectif de jugement (« mauvais », « catastrophique »,
+  « négligent »…), pas d'opinion, pas de formule de politesse ;
+- précis : quantités, niveaux, pièces, zones, références tels qu'ils sont
+  dits ; garde les mots de l'utilisateur quand ils sont précis ;
+- termes techniques du bâtiment corrects (corrige la reconnaissance vocale :
+  « placo » → plaque de plâtre, « BA13 », « ragréage », « DTU »…) ;
+- chaque information va dans une seule case : constat (observations d'un
+  lot), demande (point d'action), décision ou alerte. Ne la répète pas
+  ailleurs.
 
 Tu reçois le contexte (date de la réunion, lots du chantier avec leur
 entreprise et les observations déjà écrites, points déjà présents dans le
@@ -52,7 +66,13 @@ contexte, complète-le. Réponds en JSON :
   urgent / sécurité / bloquant, "En attente" si secondaire, sinon "En cours").
   Ne recrée jamais un point déjà présent dans le contexte, même formulé
   autrement : complète-le dans "points_existants".
-- "decisions" : décisions prises, une par ligne ("" si aucune).
+- "alertes" : retards, non-conformités, malfaçons, risques (sécurité,
+  planning, coût), une par ligne, avec la cause et la conséquence quand elles
+  sont dites (« Retard de 2 semaines du lot plâtrerie, imputable à
+  l'entreprise X : décale la pose du carrelage. ») ; "" si aucune. N'impute
+  un retard à une entreprise que si les notes le disent.
+- "decisions" : décisions prises, une par ligne, avec qui a décidé et
+  l'impact (coût, délai) s'il est dit ("" si aucune).
 N'invente rien qui ne soit pas dans les notes.`
 
 export async function POST(request) {
