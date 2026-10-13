@@ -6,8 +6,9 @@ import { useCrEditor } from '../../hooks/useCrEditor'
 import { useDictation } from '../../hooks/useDictation'
 import { useLeaveGuard } from '../../hooks/useLeaveGuard'
 import {
-  chantierIntervenants, entrepriseOf, lotKey, crTaskStats, aiContext, globalProgress, rowAiId, crChecks,
+  chantierIntervenants, entrepriseOf, lotKey, crTaskStats, aiContext, globalProgress, rowAiId, crChecks, crAgenda,
 } from '../../lib/crSuivi'
+import { conformiteItems } from '../../lib/conformite'
 import { pointsBySection } from '../../lib/crEditor'
 import { loadCrImages } from '../../lib/crPhotos'
 import { card, field, label, ghostBtn, NAVY } from './crStyles'
@@ -17,6 +18,7 @@ import CRDictationPanel from './CRDictationPanel'
 import MicButton from './MicButton'
 import CRLivePreview from './CRLivePreview'
 import CRChecksPanel from './CRChecksPanel'
+import CRAgenda from './CRAgenda'
 
 const fmtDate = (iso) => (iso ? String(iso).slice(0, 10).split('-').reverse().join('/') : '')
 const fmtTime = (ts) => new Date(ts).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
@@ -31,10 +33,14 @@ const readSplit = () => { try { return localStorage.getItem(SPLIT_KEY) === '1' }
  * - Mode « Rédaction » (bureau) : tout sur une page, sommaire à gauche.
  * - Aperçu du PDF à côté de la saisie (écran partagé), mis à jour pendant
  *   la dictée ; sur téléphone, bascule entre la saisie et l'aperçu.
+ * - Ordre du jour préparé automatiquement ; avant diffusion, ce qui manque
+ *   (points non évoqués, action sans entreprise ou sans date…).
  * Le brouillon est gardé sur l'appareil pendant la saisie (hors ligne
  * compris). `onSaved(cr, { send })` après enregistrement.
+ * `conformite` (facultatif, useConformite) : documents des entreprises à
+ * l'ordre du jour.
  */
-export default function CREditor({ open, initial, data, onClose, onSaved, lockChantier = false, m }) {
+export default function CREditor({ open, initial, data, onClose, onSaved, lockChantier = false, m, conformite = null }) {
   const { addToast } = useToast()
   const confirm = useOptionalConfirm()
   const ed = useCrEditor({ open, initial, data })
@@ -90,9 +96,20 @@ export default function CREditor({ open, initial, data, onClose, onSaved, lockCh
   // Ce qui manque avant diffusion (questions) et ce qui sera noté (infos)
   const checks = useMemo(() => crChecks({ form: st?.form || {}, rows, sections }), [st?.form, rows, sections])
   const questions = checks.filter(c => c.type === 'question').length
+  // Ordre du jour : retards, planning, OS, documents des entreprises du chantier
+  const documents = useMemo(() => {
+    if (!conformite?.docs || conformite.missingMigration) return []
+    const ids = new Set(available.map(a => a.id).filter(Boolean))
+    return conformiteItems({ contacts: data.contacts || [], docs: conformite.docs, activeIds: ids, today: conformite.today || form.date, legalChecks: conformite.legal || [] })
+  }, [conformite, available, data.contacts, form.date])
+  const agenda = useMemo(() => crAgenda({
+    rows, sections, chantierId: form.chantierId, crDate: form.date, nextDate: next.date,
+    previous: st?.previous, ordresService: data.ordresService || [], documents,
+  }), [rows, sections, form.chantierId, form.date, next.date, st?.previous, data.ordresService, documents])
 
   const steps = useMemo(() => [
     { id: 'presences', label: 'Présences', anchor: 'presences' },
+    { id: 'agenda', label: 'Ordre du jour', anchor: 'agenda' },
     { id: 'dictee', label: 'Dictée + IA', anchor: 'dictee' },
     ...sections.map(s => ({ id: `lot:${s.key}`, label: s.lot, anchor: s.key, section: s })),
     { id: 'cloture', label: 'Synthèse et convocation', anchor: 'cloture' },
@@ -190,6 +207,7 @@ export default function CREditor({ open, initial, data, onClose, onSaved, lockCh
         </section>
       )
     }
+    if (s.id === 'agenda') return <CRAgenda key="agenda" groups={agenda} onGo={goToAnchor} />
     if (s.id === 'dictee') {
       return (
         <CRDictationPanel key="dictee" notes={st.notes} notesRangees={st.notesRangees} setNotes={ed.setNotes}
@@ -210,7 +228,7 @@ export default function CREditor({ open, initial, data, onClose, onSaved, lockCh
     return (
       <section key="cloture" id="cr-section-cloture" aria-label="Synthèse et convocation" style={{ ...card, scrollMarginTop: 120 }}>
         <h3 style={{ margin: '0 0 10px', fontSize: 17 }}>Synthèse et convocation</h3>
-        <div style={{ marginBottom: 12 }}><CRChecksPanel checks={checks} onGo={goToAnchor} /></div>
+        <div style={{ marginBottom: 12 }}><CRChecksPanel checks={checks} onGo={goToAnchor} onRow={ed.updateRow} /></div>
         {[
           ['resume', 'Synthèse de la réunion', 'Points marquants, état général du chantier…'],
           ['alertes', 'Alertes : retards, non-conformités, risques', 'Ex : Retard de 2 semaines du lot plâtrerie, imputable à l’entreprise X : décale la pose du carrelage.'],

@@ -95,7 +95,8 @@ export function useCrEditor({ open, initial, data }) {
   const setNotes = useCallback((notes) => mutate(s => ({ ...s, notes: typeof notes === 'function' ? notes(s.notes) : notes })), [mutate])
   // Notes rangées par l'IA jusqu'à ce caractère (les suivantes restent « nouvelles »)
   const setNotesRangees = useCallback((n) => mutate(s => ({ ...s, notesRangees: Math.max(0, Number(n) || 0) })), [mutate])
-  const updateRow = useCallback((key, p) => mutate(s => ({ ...s, rows: s.rows.map(r => (r.key === key ? { ...r, ...(typeof p === 'function' ? p(r) : p) } : r)) })), [mutate])
+  // Toute modification d'un point vaut « évoqué pendant la réunion »
+  const updateRow = useCallback((key, p) => mutate(s => ({ ...s, rows: s.rows.map(r => (r.key === key ? { ...r, ...(typeof p === 'function' ? p(r) : p), vu: true } : r)) })), [mutate])
   const removeRow = useCallback((key) => mutate(s => ({ ...s, rows: s.rows.filter(r => r.key !== key) })), [mutate])
   const addRow = useCallback((lot) => mutate(s => {
     const section = s.sections.find(x => x.key === lotKey(lot))

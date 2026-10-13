@@ -87,6 +87,8 @@ const rowFromTask = (t, suivi) => ({
   rappels: Number(t.nb_rappels) || 0, origineNumero: t.cr_origine_numero ?? null,
   num: t.num_point ?? null, photos: Array.isArray(t.photos) ? t.photos : [],
   suivi, initialSuivi: suivi,
+  // Évoqué pendant la réunion (modifié à la main ou repris par l'IA)
+  vu: false,
 })
 
 export const sortRows = (rows) => [...rows].sort((a, b) =>
@@ -114,14 +116,14 @@ export function initialRows({ tasks = [], chantierId, crDate, cr = null, previou
   if (cr?.id && snap.length) {
     return snap.map((s, i) => {
       const t = s.id && byId.get(s.id)
-      if (t) return { ...rowFromTask(t, s.suivi || 'en_cours'), origineNumero: t.cr_origine_numero ?? s.origine ?? null, num: t.num_point ?? s.num ?? null }
+      if (t) return { ...rowFromTask(t, s.suivi || 'en_cours'), origineNumero: t.cr_origine_numero ?? s.origine ?? null, num: t.num_point ?? s.num ?? null, vu: s.vu !== false }
       return {
         key: s.id || `snap-${i}`, id: s.id || null, orig: null, missing: true,
         titre: s.titre || '', entreprise: s.entreprise || '', lot: lotOf(s),
         echeance: day(s.echeance), priorite: s.priorite || 'En cours',
         rappels: Number(s.rappels) || 0, origineNumero: s.origine ?? null, num: s.num ?? null,
         photos: Array.isArray(s.photos) ? s.photos : [],
-        suivi: s.suivi || 'en_cours', initialSuivi: s.suivi || 'en_cours',
+        suivi: s.suivi || 'en_cours', initialSuivi: s.suivi || 'en_cours', vu: s.vu !== false,
       }
     })
   }
@@ -143,7 +145,7 @@ export function newRow({ crDate, nextDate, entreprise = '', lot = GENERAL, titre
     key: `new-${newSeq}`, id: null, orig: null, isNew: true,
     titre, entreprise, lot: String(lot || '').trim() || GENERAL,
     echeance: day(echeance) || day(nextDate) || (base ? addDaysISO(base, 7) : ''),
-    priorite, rappels: 0, origineNumero: null, num: null, photos: [], suivi: 'nouveau',
+    priorite, rappels: 0, origineNumero: null, num: null, photos: [], suivi: 'nouveau', vu: true,
   }
 }
 
@@ -190,7 +192,7 @@ export function planCrTasks({ rows = [], crId, crNumero, chantierId, newId, next
       snapshot.push({
         id: row.id || null, num: row.num ?? null, titre, entreprise: row.entreprise || '', lot: lotOf(row),
         echeance: day(row.echeance) || null, priorite: row.priorite, statut: null,
-        suivi: row.suivi, rappels: row.rappels || 0, origine: row.origineNumero ?? null, photos,
+        suivi: row.suivi, rappels: row.rappels || 0, origine: row.origineNumero ?? null, photos, vu: row.vu !== false,
       })
       continue
     }
@@ -224,6 +226,7 @@ export function planCrTasks({ rows = [], crId, crNumero, chantierId, newId, next
       lot: lotOf(patch.lot !== undefined ? { lot: patch.lot } : t),
       echeance: (patch.echeance !== undefined ? patch.echeance : day(t.echeance)) || null,
       priorite, statut, suivi: row.suivi, rappels, origine: t.cr_origine_numero ?? row.origineNumero ?? null, photos,
+      vu: row.vu !== false,
     })
   }
   return { updates, inserts, snapshot: sortRows(snapshot) }
@@ -439,6 +442,7 @@ export function applyAiResult({ sections = [], rows = [], resume = '', decisions
       titre: withComplement(r.titre, u.complement),
       suivi: etat,
       echeance: day(u.echeance) || r.echeance,
+      vu: true,
     }
   })
   for (const p of result.nouveaux_points || []) {
@@ -453,6 +457,7 @@ export function applyAiResult({ sections = [], rows = [], resume = '', decisions
         entreprise: r.entreprise || p.entreprise || '',
         echeance: r.echeance || day(p.echeance) || r.echeance,
         priorite: priorityLevel(p.priorite) > priorityLevel(r.priorite) ? p.priorite : r.priorite,
+        vu: true,
       }))
       continue
     }
@@ -587,8 +592,10 @@ export function formalTitle(r) {
 // ─── Contrôle avant diffusion ────────────────────────────────────────────
 /**
  * Ce qui manque au CR avant de le diffuser, sous forme de questions :
+ * point repris dont personne n'a parlé (réponses rapides dans `actions`),
  * action sans entreprise ou sans date, échéance dépassée non relancée, lot
- * dont l'avancement n'est pas renseigné, présences, convocation.
+ * dont l'avancement n'est pas renseigné ou sans nouvelle, présences,
+ * convocation.
  * `type` : « question » (à compléter) ou « info » (noté, rien à faire).
  * `anchor` : partie de l'éditeur où corriger.
  */
@@ -598,6 +605,15 @@ export function crChecks({ form = {}, rows = [], sections = [] } = {}) {
   for (const r of rows) {
     if (r.missing || r.suivi === 'fait' || !String(r.titre || '').trim()) continue
     const anchor = lotKey(lotOf(r))
+    // Point repris du CR précédent dont personne n'a parlé : où en est-il ?
+    if (r.vu === false && !r.isNew && r.suivi === r.initialSuivi) {
+      out.push({
+        key: `nv:${r.key}`, type: 'question', anchor, rowKey: r.key,
+        text: `Point ${name(r)}${r.entreprise ? ` (${r.entreprise})` : ''} n'a pas été évoqué : où en est-il ?`,
+        actions: [['fait', 'Fait'], ['en_cours', 'En cours'], ['relance', 'À relancer']],
+      })
+      continue
+    }
     const missing = [!String(r.entreprise || '').trim() && 'quelle entreprise', !day(r.echeance) && 'pour quand'].filter(Boolean)
     if (missing.length) out.push({ key: `q:${r.key}`, type: 'question', anchor, text: `Point ${name(r)} : ${missing.join(', ')} ?` })
     else if (r.suivi === 'en_cours' && daysLate(r.echeance, form.date) > 0) {
@@ -608,6 +624,9 @@ export function crChecks({ form = {}, rows = [], sections = [] } = {}) {
     if (s.key === lotKey(GENERAL) || s.prevu == null) continue
     if (s.avancement == null || s.avancement === '') {
       out.push({ key: `av:${s.key}`, type: 'question', anchor: s.key, text: `${s.lot} : prévu à ${s.prevu} % au planning, quel avancement ?` })
+    } else if (s.prevu > 0 && Number(s.avancement) < 100 && s.avancement === s.avancement_prec && !String(s.observations || '').trim()
+      && !rows.some(r => r.vu !== false && lotKey(lotOf(r)) === s.key)) {
+      out.push({ key: `nv-lot:${s.key}`, type: 'question', anchor: s.key, text: `${s.lot} : rien de noté (avancement inchangé à ${s.avancement} %, prévu ${s.prevu} %).` })
     }
   }
   const its = form.intervenants || []
@@ -619,6 +638,68 @@ export function crChecks({ form = {}, rows = [], sections = [] } = {}) {
     out.push({ key: 'next', type: 'info', anchor: 'cloture', text: 'Pas de prochaine réunion : aucune convocation ne sera envoyée.' })
   }
   return out
+}
+
+// ─── Ordre du jour ───────────────────────────────────────────────────────
+/**
+ * Ordre du jour préparé automatiquement pour la réunion, par ordre
+ * d'importance : points en retard (les plus relancés d'abord), lots en
+ * retard sur le planning, ordres de service émis depuis le CR précédent et
+ * interventions prévues d'ici la prochaine réunion, documents des
+ * entreprises (lib/conformite.conformiteItems, passés dans `documents`).
+ * @returns {Array<{ key, title, items: Array<{ key, text, anchor, tone? }> }>}
+ */
+export function crAgenda({ rows = [], sections = [], chantierId, crDate, nextDate, previous = null, ordresService = [], documents = [] } = {}) {
+  const groups = []
+  const sectionFor = (lot) => {
+    const k = lotKey(lot)
+    return sections.find(s => s.key === k)
+      || sections.find(s => s.key !== lotKey(GENERAL) && k && (s.key.includes(k) || k.includes(s.key)))
+  }
+  const late = rows.filter(r => !r.missing && r.suivi !== 'fait' && !r.isNew && (r.suivi === 'relance' || daysLate(r.echeance, crDate) > 0))
+    .sort((a, b) => (b.rappels || 0) - (a.rappels || 0) || daysLate(b.echeance, crDate) - daysLate(a.echeance, crDate))
+  if (late.length) {
+    groups.push({
+      key: 'retards', title: 'Points en retard',
+      items: late.map(r => {
+        const j = daysLate(r.echeance, crDate)
+        return {
+          key: `r:${r.key}`, anchor: lotKey(lotOf(r)), tone: (r.rappels || 0) >= DERNIER_RAPPEL ? 'danger' : 'warning',
+          text: [`${r.num ? `n°${r.num} ` : ''}${r.titre}`, r.entreprise, j ? `${j} j de retard` : null,
+            r.rappels ? `déjà relancé ${r.rappels} fois` : null].filter(Boolean).join(' · '),
+        }
+      }),
+    })
+  }
+  const planning = sections.filter(s => s.key !== lotKey(GENERAL) && s.prevu != null && Number(s.avancement_prec ?? s.avancement ?? 0) < 100
+    && s.prevu - Number(s.avancement_prec ?? s.avancement ?? 0) >= 10)
+  if (planning.length) {
+    groups.push({
+      key: 'planning', title: 'Lots en retard sur le planning',
+      items: planning.map(s => ({
+        key: `p:${s.key}`, anchor: s.key, tone: 'warning',
+        text: `${s.lot}${s.entreprise ? ` (${s.entreprise})` : ''} : prévu ${s.prevu} %, ${Number(s.avancement_prec ?? s.avancement ?? 0)} % au dernier CR`,
+      })),
+    })
+  }
+  const since = day(previous?.date) || (day(crDate) ? addDaysISO(day(crDate), -30) : '')
+  const until = day(nextDate) || (day(crDate) ? addDaysISO(day(crDate), 14) : '')
+  const os = ordresService.filter(o => o.chantier_id === chantierId && o.statut !== 'Annulé')
+  const fmtOs = (o) => [o.numero, o.artisan_nom, o.artisan_specialite].filter(Boolean).join(' · ')
+  const osItems = [
+    ...os.filter(o => day(o.date_emission) && day(o.date_emission) > since && day(o.date_emission) <= (day(crDate) || '9999'))
+      .map(o => ({ key: `os:${o.id || o.numero}`, anchor: sectionFor(o.artisan_specialite)?.key || lotKey(GENERAL), text: `Émis le ${fmtShort(o.date_emission)} : ${fmtOs(o)}` })),
+    ...os.filter(o => day(o.date_intervention) && day(o.date_intervention) >= day(crDate) && day(o.date_intervention) <= until)
+      .map(o => ({ key: `int:${o.id || o.numero}`, anchor: sectionFor(o.artisan_specialite)?.key || lotKey(GENERAL), text: `Intervention prévue le ${fmtShort(o.date_intervention)} : ${fmtOs(o)}` })),
+  ]
+  if (osItems.length) groups.push({ key: 'os', title: 'Ordres de service', items: osItems })
+  if (documents.length) {
+    groups.push({
+      key: 'documents', title: 'Documents des entreprises',
+      items: documents.map(d => ({ key: d.id, anchor: 'presences', tone: d.score >= 58 ? 'danger' : 'warning', text: `${d.title.replace(/^(Documents|Entreprise) — /, '')} : ${d.reason}` })),
+    })
+  }
+  return groups
 }
 
 // ─── Prochaine réunion ───────────────────────────────────────────────────

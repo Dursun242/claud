@@ -21,6 +21,7 @@ jest.mock('../../components/cr/CRSendModal', () => function CRSendModal({ cr, on
   return cr ? <button onClick={() => onSent(cr)}>Simuler l&apos;envoi</button> : null
 })
 jest.mock('../../lib/crDb', () => ({ markDiffused: jest.fn() }))
+jest.mock('../../hooks/useConformite', () => ({ useConformite: () => ({ docs: [] }) }))
 
 // eslint-disable-next-line import/first
 import { markDiffused } from '../../lib/crDb'

@@ -222,6 +222,12 @@ it('contrôle avant diffusion : questions listées, diffusion confirmée', async
   confirmFn = jest.fn().mockResolvedValueOnce(false).mockResolvedValueOnce(true)
   const { onSaved, user } = setup()
   const panel = screen.getByRole('region', { name: 'À vérifier avant diffusion' })
+  // Points repris dont personne n'a parlé : réponse rapide
+  expect(within(panel).getByText('Point n°1 « Poser le tableau » (Martin Élec) n\'a pas été évoqué : où en est-il ?')).toBeInTheDocument()
+  await user.click(within(panel).getByRole('button', { name: /^À relancer : Point n°1/ }))
+  await user.click(within(panel).getByRole('button', { name: /^En cours : Point n°2/ }))
+  expect(within(panel).queryByText(/n'a pas été évoqué/)).not.toBeInTheDocument()
+  expect(within(section('Électricité')).getByRole('radio', { name: /À relancer/ })).toHaveAttribute('aria-checked', 'true')
   expect(within(panel).getByText('Point n°2 « Réseaux sous dallage » : quelle entreprise ?')).toBeInTheDocument()
   expect(screen.getByRole('button', { name: '1 à vérifier' })).toBeInTheDocument()
   await user.click(screen.getByRole('button', { name: 'Diffuser' }))
@@ -244,4 +250,20 @@ it('alertes : champ dans la synthèse, proposées par l’IA', async () => {
   const proposal = await screen.findByRole('region', { name: "Proposition de l'IA" })
   await user.click(within(proposal).getByRole('button', { name: 'Ajouter au compte rendu' }))
   expect(screen.getByLabelText('Alertes : retards, non-conformités, risques')).toHaveValue('Retard de 2 semaines du lot électricité.')
+})
+
+it('ordre du jour : retards, planning, OS récents, documents', async () => {
+  const d = {
+    ...data,
+    planning: [{ chantier_id: CH, lot: 'Électricité', debut: '2026-09-01', fin: '2026-10-01' }],
+    ordresService: [...data.ordresService, { id: 'os-9', chantier_id: CH, numero: 'OS-009', artisan_nom: 'Durand', artisan_specialite: 'Plomberie', date_emission: '2026-09-26' }],
+    contacts: [...data.contacts, { id: 'c3', nom: 'Durand', type: 'Artisan', societe: 'Durand Plomberie' }],
+  }
+  const conformite = { docs: [], today: '2026-09-30', legal: [] }
+  render(<CREditor open initial={{ chantierId: CH }} data={d} onClose={jest.fn()} onSaved={jest.fn()} m={false} lockChantier conformite={conformite} />)
+  const agenda = screen.getByRole('region', { name: 'Ordre du jour' })
+  expect(within(agenda).getByText('n°1 Poser le tableau · Martin Élec · 5 j de retard · déjà relancé 1 fois')).toBeInTheDocument()
+  expect(within(agenda).getByText('Électricité (Martin Élec) : prévu 97 %, 30 % au dernier CR')).toBeInTheDocument()
+  expect(within(agenda).getByText('Émis le 26/09/2026 : OS-009 · Durand · Plomberie')).toBeInTheDocument()
+  expect(within(agenda).getByText(/^Durand : À fournir/)).toBeInTheDocument()
 })

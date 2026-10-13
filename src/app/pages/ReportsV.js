@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo, useRef } from 'react'
 import { SB, fmtDate, btnP, btnChip, Icon, I } from '../dashboards/shared'
 import { EmptyState } from '../components'
 import CREditor from '../components/cr/CREditor'
+import { useConformite } from '../hooks/useConformite'
 import CRSendModal from '../components/cr/CRSendModal'
 import { crTaskStats, globalProgress } from '../lib/crSuivi'
 import { markDiffused } from '../lib/crDb'
@@ -23,6 +24,8 @@ const Spinner = () => (
 export default function ReportsV({ data, save: _save, m, reload, focusId, focusTs, readOnly, active }) {
   const { addToast } = useToast()
   const confirm = useConfirm()
+  // Documents des entreprises : ordre du jour de la réunion (équipe seulement)
+  const conformite = useConformite({ enabled: !readOnly && active !== false })
   // Fenêtre CR : { initial } (nouveau : { chantierId } ; modification : le CR)
   const [modal, setModal] = useState(null)
   const [sendCr, setSendCr] = useState(null)
@@ -254,7 +257,7 @@ export default function ReportsV({ data, save: _save, m, reload, focusId, focusT
       })
     )}
 
-    <CREditor open={!!modal} initial={modal?.initial} data={data} m={m}
+    <CREditor open={!!modal} initial={modal?.initial} data={data} m={m} conformite={conformite}
       onClose={closeModal} onSaved={handleSaved} />
     <CRSendModal cr={sendCr} chantier={chantierOf(sendCr)} onClose={() => setSendCr(null)}
       onSent={async (cr) => {

@@ -4,7 +4,7 @@ import {
   guessEntreprise, GENERAL, lotOf, lotKey, rowAiId, similarText, withComplement, mergeText,
   escalatePriority, priorityLabel, crTaskStats, chantierIntervenants, carryIntervenants,
   actionsFor, crMailText, crMailSubject, defaultNextMeeting, defaultCrDate, isoWeek, fmtLongDate,
-  formalTitle, relanceLevel, crChecks, markConvoques, absences, absenceText,
+  formalTitle, relanceLevel, crChecks, markConvoques, absences, absenceText, crAgenda,
 } from '../crSuivi'
 
 const CH = 'ch-1'
@@ -431,5 +431,36 @@ describe('contrôle avant diffusion', () => {
   it('les alertes de l’IA s’ajoutent sans doublon', () => {
     const out = applyAiResult({ sections: [], rows: [], alertes: 'Retard plâtrerie.' }, { alertes: 'Retard plâtrerie. Fissure en façade nord.' })
     expect(out.alertes).toBe('Retard plâtrerie.\nFissure en façade nord.')
+  })
+})
+
+describe('points évoqués et ordre du jour', () => {
+  it('un point repris n’est pas évoqué tant que personne n’en parle ; l’état est gardé avec le CR', () => {
+    const rows = initialRows({ tasks, chantierId: CH, crDate: '2026-09-30', previous: crs[1] })
+    expect(rows.find(r => r.id === 't-ok').vu).toBe(false)
+    expect(newRow({ crDate: '2026-09-30' }).vu).toBe(true)
+    const out = applyAiResult({ sections: [], rows }, { points_existants: [{ id: 't-ok', etat: 'en_cours', echeance: null, complement: '' }] })
+    expect(out.rows.find(r => r.id === 't-ok').vu).toBe(true)
+    const plan = planCrTasks({ rows: out.rows, crId: 'cr-c', crNumero: 3, chantierId: CH, newId: () => 'n', nextNum: 4 })
+    expect(plan.snapshot.find(r => r.id === 't-late').vu).toBe(false)
+    const again = initialRows({ tasks, chantierId: CH, crDate: '2026-09-30', cr: { id: 'cr-c', taches_suivi: plan.snapshot } })
+    expect(again.find(r => r.id === 't-ok').vu).toBe(true)
+    expect(again.find(r => r.id === 't-late').vu).toBe(false)
+    // Ancien CR sans l'information : considéré comme évoqué
+    expect(initialRows({ tasks, chantierId: CH, crDate: '2026-09-30', cr: { id: 'x', taches_suivi: [{ id: 't-ok', suivi: 'en_cours' }] } })[0].vu).toBe(true)
+  })
+  it('ordre du jour : interventions prévues avant la prochaine réunion, OS annulés ignorés', () => {
+    const groups = crAgenda({
+      rows: [], sections: [{ key: 'plomberie', lot: 'Plomberie' }], chantierId: CH, crDate: '2026-09-30', nextDate: '2026-10-07',
+      previous: { date: '2026-09-23' },
+      ordresService: [
+        { id: 'a', chantier_id: CH, numero: 'OS-1', artisan_nom: 'Durand', artisan_specialite: 'Plomberie', date_intervention: '2026-10-05' },
+        { id: 'b', chantier_id: CH, numero: 'OS-2', artisan_nom: 'X', date_emission: '2026-09-25', statut: 'Annulé' },
+        { id: 'c', chantier_id: CH, numero: 'OS-3', artisan_nom: 'Y', date_intervention: '2026-10-20' },
+      ],
+    })
+    expect(groups).toEqual([{ key: 'os', title: 'Ordres de service', items: [
+      { key: 'int:a', anchor: 'plomberie', text: 'Intervention prévue le 05/10/2026 : OS-1 · Durand · Plomberie' },
+    ] }])
   })
 })
