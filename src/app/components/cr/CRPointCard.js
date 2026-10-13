@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
-import { SUIVI, PRIORITY_LADDER, daysLate, effectivePriority, lotKey } from '../../lib/crSuivi'
+import { SUIVI, PRIORITY_LADDER, daysLate, effectivePriority, lotKey, rappelsApres } from '../../lib/crSuivi'
+import { needsMiseEnDemeure } from '../../lib/miseEnDemeure'
 import { reponseText } from '../../lib/crReponse'
 import { SUIVI_STYLE, PRIO_COLOR, field } from './crStyles'
 import CRPhotoStrip from './CRPhotoStrip'
@@ -14,7 +15,7 @@ const small = { ...field, minHeight: 36, fontSize: 14, padding: '6px 8px' }
  * et monte d'un cran de priorité à l'enregistrement. La réponse de
  * l'entreprise (lien du CR) s'affiche sous le point.
  */
-export default function CRPointCard({ row, crId, crDate, lots = [], entreprisesListId, onChange, onRemove, m }) {
+export default function CRPointCard({ row, crId, crDate, lots = [], entreprisesListId, onChange, onRemove, onMiseEnDemeure, m }) {
   const [showPhotos, setShowPhotos] = useState(false)
   const st = SUIVI_STYLE[row.suivi] || SUIVI_STYLE.en_cours
   const late = row.isNew ? 0 : daysLate(row.echeance, crDate)
@@ -96,6 +97,19 @@ export default function CRPointCard({ row, crId, crDate, lots = [], entreprisesL
           {row.reponse.type === 'delai' && row.reponse.date && row.echeance !== row.reponse.date && !disabled && (
             <button type="button" onClick={() => onChange({ echeance: row.reponse.date, suivi: 'en_cours' })} style={{ border: '1px solid var(--separator-opaque)', background: '#fff', borderRadius: 6, padding: '2px 8px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Accepter la nouvelle date</button>
           )}
+        </div>
+      )}
+      {onMiseEnDemeure && needsMiseEnDemeure({ ...row, rappels: rappelsApres(row, crId) }) && (
+        <div style={{ marginTop: 8, fontSize: 12, color: 'var(--red-text)', display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          <span style={{ flex: 1, minWidth: 0 }}>
+            {row.orig?.mise_en_demeure_le
+              ? `Mise en demeure préparée le ${String(row.orig.mise_en_demeure_le).slice(0, 10).split('-').reverse().join('/')}.`
+              : `Relancé ${rappelsApres(row, crId)} fois sans effet : place à la mise en demeure.`}
+          </span>
+          <button type="button" onClick={() => onMiseEnDemeure(row.entreprise)}
+            style={{ border: '1px solid var(--red-line)', background: '#fff', color: 'var(--red-text)', borderRadius: 6, padding: '3px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+            {row.orig?.mise_en_demeure_le ? 'Refaire le courrier' : 'Préparer la mise en demeure'}
+          </button>
         </div>
       )}
       {willRemind && nextPrio !== row.priorite && (

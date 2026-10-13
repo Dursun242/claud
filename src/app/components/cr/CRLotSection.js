@@ -11,7 +11,7 @@ import MicButton from './MicButton'
  */
 export default function CRLotSection({
   section, rows, crId, crDate, lots, entreprisesListId, dictation, m,
-  onSection, onRow, onRemoveRow, onAddRow,
+  onSection, onRow, onRemoveRow, onAddRow, onMiseEnDemeure,
 }) {
   const isGeneral = section.lot === GENERAL
   const av = section.avancement === '' || section.avancement == null ? null : Number(section.avancement)
@@ -84,7 +84,7 @@ export default function CRLotSection({
         {rows.map(r => (
           <CRPointCard key={r.key} row={r} crId={crId} crDate={crDate} lots={lots} m={m}
             entreprisesListId={entreprisesListId}
-            onChange={(p) => onRow(r.key, p)} onRemove={() => onRemoveRow(r.key)} />
+            onChange={(p) => onRow(r.key, p)} onRemove={() => onRemoveRow(r.key)} onMiseEnDemeure={onMiseEnDemeure} />
         ))}
       </div>
       <button type="button" onClick={onAddRow} style={{ ...ghostBtn('#8944AB'), width: '100%', marginTop: 8, borderStyle: 'dashed' }}>

@@ -159,6 +159,13 @@ export function newRow({ crDate, nextDate, entreprise = '', lot = GENERAL, titre
   }
 }
 
+/** Nombre de rappels du point une fois ce CR enregistré (relance comptée une fois par CR). */
+export function rappelsApres(row, crId) {
+  const n = Number(row?.rappels) || 0
+  if (row?.suivi !== 'relance' || row.isNew || !row.orig) return n
+  return crId && row.orig.dernier_rappel_cr_id === crId ? n : n + 1
+}
+
 /** Priorité après enregistrement (relance → un cran au-dessus, une seule fois par CR). */
 export function effectivePriority(row, crId) {
   if (row.suivi !== 'relance' || row.isNew || !row.orig) return row.priorite
@@ -237,6 +244,7 @@ export function planCrTasks({ rows = [], crId, crNumero, chantierId, newId, next
       echeance: (patch.echeance !== undefined ? patch.echeance : day(t.echeance)) || null,
       priorite, statut, suivi: row.suivi, rappels, origine: t.cr_origine_numero ?? row.origineNumero ?? null, photos,
       vu: row.vu !== false,
+      ...(t.mise_en_demeure_le ? { mise_en_demeure: day(t.mise_en_demeure_le) } : {}),
     })
   }
   return { updates, inserts, snapshot: sortRows(snapshot) }

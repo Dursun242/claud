@@ -1010,6 +1010,7 @@ export async function generateCRPdf(cr, chantier, opts = {}) {
       r.entreprise ? sanitize(r.entreprise) : null,
       r.echeance ? `avant le ${fmtD(r.echeance)}` : null,
       r.origine && Number(r.origine) !== Number(cr.numero) ? `depuis le CR n° ${r.origine}` : null,
+      r.mise_en_demeure && r.suivi !== 'fait' ? `mise en demeure le ${fmtD(r.mise_en_demeure)}` : null,
     ].filter(Boolean).join(' · ')
     const etat = r.suivi === 'fait' ? { t: 'Fait', c: VERT }
       : r.suivi === 'relance' ? { t: `Relancé${r.rappels > 1 ? ` (${r.rappels}e fois)` : ''}${late ? `, ${late} j de retard` : ''}`, c: ROUGE }
@@ -1154,6 +1155,75 @@ export async function generateCRPdf(cr, chantier, opts = {}) {
     const url = doc.output('bloburl')
     if (window.open(url, '_blank')) return { filename }
   }
+  doc.save(filename)
+  return { filename }
+}
+
+// ══════════════════════════════════════
+// GÉNÉRATEUR PDF — MISE EN DEMEURE D'UNE ENTREPRISE
+// ══════════════════════════════════════
+// Courrier sur une page (lib/miseEnDemeure.miseEnDemeureText) : en-tête ID
+// Maîtrise, destinataire, lieu et date, mention « recommandé avec accusé de
+// réception », objet, texte, points en souffrance, signature, copie au
+// maître d'ouvrage.
+// opts.returnBase64 : renvoie { base64, filename } (mail) au lieu de télécharger
+export async function generateMiseEnDemeurePdf({ text, dest = {}, chantier = {} }, opts = {}) {
+  const { jsPDF } = await loadJsPdf()
+  const doc = new jsPDF('p', 'mm', 'a4')
+  const w = doc.internal.pageSize.getWidth()
+  const h = doc.internal.pageSize.getHeight()
+  const margin = 22
+  const usable = w - margin * 2
+  let y = 0
+  const font = (size, style = 'normal', color = NOIR) => { doc.setFontSize(size); doc.setFont('helvetica', style); doc.setTextColor(...color) }
+  const ensure = (need) => { if (y + need > h - 22) { doc.addPage(); y = 24 } }
+  const para = (t, { size = 10.5, style = 'normal', indent = 0, after = 3.5 } = {}) => {
+    font(size, style)
+    for (const l of doc.splitTextToSize(sanitize(t), usable - indent)) { ensure(5.2); doc.text(l, margin + indent, y); y += 5.2 }
+    y += after
+  }
+
+  try { doc.addImage(LOGO_B64, 'JPEG', margin, 12, 52, 15) } catch (e) { /* logo absent */ }
+  font(8, 'normal', GRIS)
+  ;[ENT.nom, `${ENT.adresse}, ${ENT.cpVille}`, ENT.email, `SIRET ${ENT.siret}`].forEach((l, i) => doc.text(sanitize(l), margin, 33 + i * 3.8))
+
+  // Destinataire (fenêtre d'enveloppe à droite)
+  y = 52
+  const dx = w / 2 + 6
+  font(10.5, 'bold')
+  doc.text(sanitize(dest.nom || ''), dx, y); y += 5
+  font(10.5)
+  if (dest.attention) { doc.text(sanitize(`À l'attention de ${dest.attention}`), dx, y); y += 5 }
+  for (const l of dest.lignes || []) { doc.text(sanitize(l), dx, y); y += 5 }
+
+  y = Math.max(y + 10, 86)
+  font(10.5)
+  doc.text(sanitize(`Le Havre, le ${text.date}`), w - margin, y, { align: 'right' }); y += 10
+  font(9.5, 'bold', BLEU)
+  doc.text('LETTRE RECOMMANDÉE AVEC ACCUSÉ DE RÉCEPTION', margin, y); y += 7
+  para(`Objet : ${text.objet}`, { style: 'bold', after: 6 })
+
+  for (const p of text.paragraphes) {
+    if (p === '__POINTS__') {
+      for (const l of text.points) para(`-  ${l}`, { indent: 4, after: 1.5 })
+      y += 2.5
+      continue
+    }
+    para(p)
+  }
+  y += 4
+  ensure(20)
+  font(10.5, 'bold')
+  String(text.signature || '').split('\n').forEach((l, i) => doc.text(sanitize(l), w - margin, y + i * 5, { align: 'right' }))
+  y += 16
+  if (text.copie) { ensure(8); font(9, 'italic', GRIS); doc.text(sanitize(text.copie), margin, y) }
+
+  const pages = doc.getNumberOfPages()
+  for (let p = 1; p <= pages; p++) { doc.setPage(p); pied(doc, w, margin, h - 12) }
+
+  const filename = `Mise-en-demeure-${String(dest.nom || 'entreprise').replace(/[^\w-]+/g, '_')}-${String(chantier.nom || 'chantier').replace(/[^\w-]+/g, '_')}.pdf`
+  SB.log('generate_pdf', 'chantier', chantier.id || null, `Mise en demeure ${dest.nom || ''}`.trim(), { format: 'pdf' })
+  if (opts.returnBase64) return { base64: doc.output('datauristring'), filename }
   doc.save(filename)
   return { filename }
 }

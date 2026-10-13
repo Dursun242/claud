@@ -209,3 +209,23 @@ export async function markDiffused(crId, sb = defaultClient) {
     return false
   }
 }
+
+/**
+ * Courrier de mise en demeure préparé : date notée sur les tâches
+ * (taches.mise_en_demeure_le, migration 046) et dans le journal.
+ * Jamais bloquant : false si la colonne manque.
+ */
+export async function markMiseEnDemeure(taskIds = [], { date, entreprise = '', chantierId = null } = {}, sb = defaultClient) {
+  const ids = taskIds.filter(Boolean)
+  if (!ids.length) return false
+  try {
+    const { error } = await sb.from('taches').update({ mise_en_demeure_le: date }).in('id', ids)
+    writeActivityLog(sb, {
+      action: 'update', entity_type: 'chantier', entity_id: chantierId, entity_label: `Mise en demeure ${entreprise}`.trim(),
+      metadata: { mise_en_demeure: true, taches: ids.length },
+    })
+    return !error
+  } catch {
+    return false
+  }
+}

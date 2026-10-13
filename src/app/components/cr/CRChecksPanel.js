@@ -8,7 +8,7 @@ import { card } from './crStyles'
  * lib/crSuivi.crChecks. Un clic mène à la partie à compléter ; un point non
  * évoqué se règle directement (Fait / En cours / À relancer).
  */
-export default function CRChecksPanel({ checks = [], onGo, onRow }) {
+export default function CRChecksPanel({ checks = [], onGo, onRow, onMiseEnDemeure }) {
   const questions = checks.filter(c => c.type === 'question')
   const infos = checks.filter(c => c.type !== 'question')
   const ok = !questions.length
@@ -18,6 +18,12 @@ export default function CRChecksPanel({ checks = [], onGo, onRow }) {
         style={{ background: 'none', border: 'none', padding: '3px 0', textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, lineHeight: 1.45, color: c.type === 'question' ? 'var(--label)' : 'var(--label-secondary)' }}>
         {c.text}
       </button>
+      {c.med && onMiseEnDemeure && (
+        <button type="button" onClick={() => onMiseEnDemeure(c.med)}
+          style={{ marginLeft: 6, border: '1px solid var(--red-line)', background: '#fff', color: 'var(--red-text)', borderRadius: 6, padding: '2px 8px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+          Préparer le courrier
+        </button>
+      )}
       {/* Réponse rapide pour un point non évoqué */}
       {c.actions && onRow && (
         <span style={{ display: 'inline-flex', gap: 4, marginLeft: 6, flexWrap: 'wrap' }}>

@@ -7,7 +7,8 @@ jest.mock('../../../lib/today', () => ({ ...jest.requireActual('../../../lib/tod
 let confirmFn = null
 jest.mock('../../../contexts/ConfirmContext', () => ({ useOptionalConfirm: () => confirmFn }))
 const saveCr = jest.fn()
-jest.mock('../../../lib/crDb', () => ({ saveCr: (...a) => saveCr(...a) }))
+const markMiseEnDemeure = jest.fn()
+jest.mock('../../../lib/crDb', () => ({ saveCr: (...a) => saveCr(...a), markMiseEnDemeure: (...a) => markMiseEnDemeure(...a) }))
 const store = { get: jest.fn(), set: jest.fn(), del: jest.fn() }
 jest.mock('../../../lib/offlineStore', () => ({
   cacheGet: (...a) => store.get(...a), cacheSet: (...a) => store.set(...a), cacheDelete: (...a) => store.del(...a),
@@ -16,7 +17,8 @@ jest.mock('../../../lib/crPhotos', () => ({ signedUrls: async () => ({}), loadCr
 const apiPost = jest.fn()
 jest.mock('../../../lib/crmApi', () => ({ apiPost: (...a) => apiPost(...a) }))
 const generateCRPdf = jest.fn()
-jest.mock('../../../generators', () => ({ generateCRPdf: (...a) => generateCRPdf(...a) }))
+const generateMiseEnDemeurePdf = jest.fn()
+jest.mock('../../../generators', () => ({ generateCRPdf: (...a) => generateCRPdf(...a), generateMiseEnDemeurePdf: (...a) => generateMiseEnDemeurePdf(...a) }))
 
 // eslint-disable-next-line import/first
 import CREditor from '../CREditor'
@@ -275,4 +277,26 @@ it('réponse de l’entreprise par son lien : affichée sous le point, point pr�
   expect(within(point).getByRole('note')).toHaveTextContent('Réponse de l\'entreprise le 28/09/2026 : Fait — « Tableau posé »')
   expect(within(point).getByRole('radio', { name: /Fait/ })).toHaveAttribute('aria-checked', 'true')
   expect(within(screen.getByRole('region', { name: 'Ordre du jour' })).getByText('n°1 Poser le tableau · Martin Élec : Fait — « Tableau posé »')).toBeInTheDocument()
+})
+
+it('3e relance sans effet : courrier de mise en demeure proposé et préparé', async () => {
+  markMiseEnDemeure.mockResolvedValue(true)
+  generateMiseEnDemeurePdf.mockResolvedValue({ filename: 'x.pdf' })
+  const d = { ...data, tasks: data.tasks.map(t => (t.id === 't-late' ? { ...t, nb_rappels: 2 } : t)),
+    contacts: [...data.contacts.map(c => ({ ...c, adresse: '2 rue Neuve', code_postal: '76600', ville: 'Le Havre' }))] }
+  const user = userEvent.setup()
+  render(<CREditor open initial={{ chantierId: CH }} data={d} onClose={jest.fn()} onSaved={jest.fn()} m={false} lockChantier />)
+  const point = within(section('Électricité')).getByTestId('cr-point')
+  expect(within(point).getByText('Relancé 3 fois sans effet : place à la mise en demeure.')).toBeInTheDocument()
+  expect(within(screen.getByRole('region', { name: 'À vérifier avant diffusion' })).getByText('Martin Élec : relancé 3 fois sans effet, place au courrier de mise en demeure.')).toBeInTheDocument()
+  await user.click(within(point).getByRole('button', { name: 'Préparer la mise en demeure' }))
+  const dialog = screen.getByRole('dialog', { name: 'Mise en demeure — Martin Élec' })
+  expect(within(dialog).getByRole('checkbox', { name: /Poser le tableau/ })).toBeChecked()
+  expect(within(dialog).getByLabelText('Email de l’entreprise')).toHaveValue('martin@ex.fr')
+  await user.click(within(dialog).getByRole('button', { name: 'Télécharger le courrier (PDF)' }))
+  await waitFor(() => expect(markMiseEnDemeure).toHaveBeenCalledWith(['t-late'], expect.objectContaining({ entreprise: 'Martin Élec' })))
+  const arg = generateMiseEnDemeurePdf.mock.calls[0][0]
+  expect(arg.dest).toMatchObject({ nom: 'Martin Élec', lignes: ['2 rue Neuve', '76600 Le Havre'] })
+  expect(arg.text.points[0]).toMatch(/^Point n°1 : Poser le tableau, attendu pour le 25\/09\/2026, relancé 3 fois\.$/)
+  expect(await screen.findByRole('button', { name: 'Refaire le courrier' })).toBeInTheDocument()
 })

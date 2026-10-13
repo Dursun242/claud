@@ -6,8 +6,9 @@ import { useCrEditor } from '../../hooks/useCrEditor'
 import { useDictation } from '../../hooks/useDictation'
 import { useLeaveGuard } from '../../hooks/useLeaveGuard'
 import {
-  chantierIntervenants, entrepriseOf, lotKey, crTaskStats, aiContext, globalProgress, rowAiId, crChecks, crAgenda,
+  chantierIntervenants, entrepriseOf, lotKey, crTaskStats, aiContext, globalProgress, rowAiId, crChecks, crAgenda, rappelsApres, lotOf,
 } from '../../lib/crSuivi'
+import { miseEnDemeureCandidates, pointsEnSouffrance } from '../../lib/miseEnDemeure'
 import { conformiteItems } from '../../lib/conformite'
 import { pointsBySection } from '../../lib/crEditor'
 import { loadCrImages } from '../../lib/crPhotos'
@@ -19,6 +20,7 @@ import MicButton from './MicButton'
 import CRLivePreview from './CRLivePreview'
 import CRChecksPanel from './CRChecksPanel'
 import CRAgenda from './CRAgenda'
+import CRMiseEnDemeureModal from './CRMiseEnDemeureModal'
 
 const fmtDate = (iso) => (iso ? String(iso).slice(0, 10).split('-').reverse().join('/') : '')
 const fmtTime = (ts) => new Date(ts).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
@@ -35,6 +37,7 @@ const readSplit = () => { try { return localStorage.getItem(SPLIT_KEY) === '1' }
  *   la dictée ; sur téléphone, bascule entre la saisie et l'aperçu.
  * - Ordre du jour préparé automatiquement ; avant diffusion, ce qui manque
  *   (points non évoqués, action sans entreprise ou sans date…).
+ * - Point relancé 3 fois sans effet : courrier de mise en demeure proposé.
  * Le brouillon est gardé sur l'appareil pendant la saisie (hors ligne
  * compris). `onSaved(cr, { send })` après enregistrement.
  * `conformite` (facultatif, useConformite) : documents des entreprises à
@@ -54,6 +57,8 @@ export default function CREditor({ open, initial, data, onClose, onSaved, lockCh
   const [previewing, setPreviewing] = useState(false)
   const [error, setError] = useState('')
   const [newLot, setNewLot] = useState('')
+  // Courrier de mise en demeure ouvert pour cette entreprise
+  const [medFor, setMedFor] = useState(null)
   // Aperçu du PDF à côté (choix gardé sur l'appareil)
   const [split, setSplitState] = useState(readSplit)
   const setSplit = (v) => {
@@ -93,8 +98,19 @@ export default function CREditor({ open, initial, data, onClose, onSaved, lockCh
   const rowsById = useMemo(() => new Map(rows.filter(r => r.id || r.key).map(r => [rowAiId(r), r])), [rows])
   const stats = crTaskStats(rows)
   const progress = globalProgress(sections)
+  // Rappels comptés comme après l'enregistrement : 3e relance → mise en demeure proposée
+  const rowsApres = useMemo(() => rows.map(r => ({ ...r, rappels: rappelsApres(r, initial?.id || null) })), [rows, initial?.id])
+  const medCandidates = useMemo(() => miseEnDemeureCandidates(rowsApres)
+    .filter(c => c.points.some(p => !p.orig?.mise_en_demeure_le)), [rowsApres])
+  const medPoints = useMemo(() => (medFor ? pointsEnSouffrance(rowsApres, medFor).filter(p => p.id) : []), [medFor, rowsApres])
   // Ce qui manque avant diffusion (questions) et ce qui sera noté (infos)
-  const checks = useMemo(() => crChecks({ form: st?.form || {}, rows, sections }), [st?.form, rows, sections])
+  const checks = useMemo(() => [
+    ...crChecks({ form: st?.form || {}, rows, sections }),
+    ...medCandidates.map(c => ({
+      key: `med:${c.entreprise}`, type: 'info', anchor: lotKey(lotOf(c.points[0] || {})), med: c.entreprise,
+      text: `${c.entreprise} : relancé 3 fois sans effet, place au courrier de mise en demeure.`,
+    })),
+  ], [st?.form, rows, sections, medCandidates])
   const questions = checks.filter(c => c.type === 'question').length
   // Ordre du jour : retards, planning, OS, documents des entreprises du chantier
   const documents = useMemo(() => {
@@ -222,13 +238,13 @@ export default function CREditor({ open, initial, data, onClose, onSaved, lockCh
           crId={initial?.id || null} crDate={form.date} lots={lots} entreprisesListId={ENTREPRISES_LIST}
           dictation={dictation} m={m}
           onSection={(p) => ed.updateSection(sec.key, p)} onRow={ed.updateRow} onRemoveRow={ed.removeRow}
-          onAddRow={() => ed.addRow(sec.lot)} />
+          onAddRow={() => ed.addRow(sec.lot)} onMiseEnDemeure={setMedFor} />
       )
     }
     return (
       <section key="cloture" id="cr-section-cloture" aria-label="Synthèse et convocation" style={{ ...card, scrollMarginTop: 120 }}>
         <h3 style={{ margin: '0 0 10px', fontSize: 17 }}>Synthèse et convocation</h3>
-        <div style={{ marginBottom: 12 }}><CRChecksPanel checks={checks} onGo={goToAnchor} onRow={ed.updateRow} /></div>
+        <div style={{ marginBottom: 12 }}><CRChecksPanel checks={checks} onGo={goToAnchor} onRow={ed.updateRow} onMiseEnDemeure={setMedFor} /></div>
         {[
           ['resume', 'Synthèse de la réunion', 'Points marquants, état général du chantier…'],
           ['alertes', 'Alertes : retards, non-conformités, risques', 'Ex : Retard de 2 semaines du lot plâtrerie, imputable à l’entreprise X : décale la pose du carrelage.'],
@@ -289,6 +305,13 @@ export default function CREditor({ open, initial, data, onClose, onSaved, lockCh
     <div role="dialog" aria-modal="true" aria-label={ed.isEdit ? `Compte rendu n°${form.numero}` : 'Nouveau compte rendu'}
       style={{ position: 'fixed', inset: 0, zIndex: 1200, background: 'var(--grouped-bg)', overflowY: 'auto', overscrollBehavior: 'contain' }}>
       <datalist id={ENTREPRISES_LIST}>{entreprises.map(e => <option key={e} value={e} />)}</datalist>
+      <CRMiseEnDemeureModal open={!!medFor} entreprise={medFor || ''} chantier={chantier} contacts={data.contacts || []}
+        points={medPoints}
+        onClose={() => setMedFor(null)}
+        onDone={(ids, date) => ids.forEach(id => {
+          const r = rows.find(x => x.id === id)
+          if (r) ed.updateRow(r.key, (x) => ({ orig: x.orig ? { ...x.orig, mise_en_demeure_le: date } : x.orig }))
+        })} />
 
       {/* En-tête */}
       <header ref={headerRef} style={{ position: 'sticky', top: 0, zIndex: 2, background: '#fff', borderBottom: '1px solid var(--separator)', padding: m ? '8px 12px' : '10px 20px' }}>
