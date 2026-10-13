@@ -218,6 +218,12 @@ describe('mails', () => {
     expect(text).toContain('Les points relancés étaient attendus')
     expect(actionsFor(cr.taches_suivi, { nom: 'Durand' })).toHaveLength(1)
   })
+  it('lien de réponse sous les actions', () => {
+    const link = 'https://app.test/actions/abc'
+    const text = crMailText({ intro: 'Ci-joint.', cr, it: { nom: 'Martin', societe: 'Martin Élec' }, link })
+    expect(text).toContain(`sans créer de compte :\n${link}`)
+    expect(crMailText({ intro: 'Ci-joint.', cr, it: { nom: 'BET' }, link })).not.toContain(link)
+  })
   it('non convoqué et sans action : ni convocation ni liste', () => {
     const text = crMailText({ intro: 'Ci-joint.', cr, it: { nom: 'BET', convoque: false } })
     expect(text).not.toContain('convoqué')
@@ -462,5 +468,23 @@ describe('points évoqués et ordre du jour', () => {
     expect(groups).toEqual([{ key: 'os', title: 'Ordres de service', items: [
       { key: 'int:a', anchor: 'plomberie', text: 'Intervention prévue le 05/10/2026 : OS-1 · Durand · Plomberie' },
     ] }])
+  })
+})
+
+describe('réponses des entreprises dans le CR', () => {
+  const t = (rep) => [{ id: 'r1', chantier_id: CH, titre: 'Reprendre l’enduit', entreprise: 'Leroy', statut: 'En cours', echeance: '2026-09-25', num_point: 9, reponse_entreprise: rep }]
+  it('nouveau CR : réponse arrivée depuis le CR précédent appliquée, à l’ordre du jour', () => {
+    const rows = initialRows({ tasks: t({ type: 'fait', le: '2026-09-28T10:00:00Z', photo: 'chantier/ch/r.jpg' }), chantierId: CH, crDate: '2026-09-30', previous: crs[1] })
+    expect(rows[0]).toMatchObject({ suivi: 'fait', initialSuivi: 'relance', reponseRecente: true, photos: [{ path: 'chantier/ch/r.jpg' }] })
+    const agenda = crAgenda({ rows, sections: [], chantierId: CH, crDate: '2026-09-30' })
+    expect(agenda[0]).toMatchObject({ key: 'reponses', items: [{ text: 'n°9 Reprendre l’enduit · Leroy : Fait' }] })
+    // Réponse plus ancienne que le CR précédent : déjà traitée
+    expect(initialRows({ tasks: t({ type: 'fait', le: '2026-09-20T10:00:00Z' }), chantierId: CH, crDate: '2026-09-30', previous: crs[1] })[0].suivi).toBe('relance')
+  })
+  it('désaccord : point inchangé, question avant diffusion', () => {
+    const rows = initialRows({ tasks: t({ type: 'desaccord', commentaire: 'Pas notre lot', le: '2026-09-28T10:00:00Z' }), chantierId: CH, crDate: '2026-09-30', previous: crs[1] })
+    expect(rows[0].suivi).toBe('relance')
+    const q = crChecks({ form: { date: '2026-09-30', intervenants: [{ nom: 'X' }] }, rows }).map(c => c.text)
+    expect(q[0]).toBe('Leroy conteste le point n°9 « Reprendre l’enduit » : Désaccord — « Pas notre lot ». À trancher.')
   })
 })

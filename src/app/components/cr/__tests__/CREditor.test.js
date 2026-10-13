@@ -267,3 +267,12 @@ it('ordre du jour : retards, planning, OS récents, documents', async () => {
   expect(within(agenda).getByText('Émis le 26/09/2026 : OS-009 · Durand · Plomberie')).toBeInTheDocument()
   expect(within(agenda).getByText(/^Durand : À fournir/)).toBeInTheDocument()
 })
+
+it('réponse de l’entreprise par son lien : affichée sous le point, point pré-rempli', async () => {
+  const d = { ...data, tasks: data.tasks.map(t => (t.id === 't-late' ? { ...t, reponse_entreprise: { type: 'fait', commentaire: 'Tableau posé', le: '2026-09-28T09:00:00Z' } } : t)) }
+  render(<CREditor open initial={{ chantierId: CH }} data={d} onClose={jest.fn()} onSaved={jest.fn()} m={false} lockChantier />)
+  const point = within(section('Électricité')).getByTestId('cr-point')
+  expect(within(point).getByRole('note')).toHaveTextContent('Réponse de l\'entreprise le 28/09/2026 : Fait — « Tableau posé »')
+  expect(within(point).getByRole('radio', { name: /Fait/ })).toHaveAttribute('aria-checked', 'true')
+  expect(within(screen.getByRole('region', { name: 'Ordre du jour' })).getByText('n°1 Poser le tableau · Martin Élec : Fait — « Tableau posé »')).toBeInTheDocument()
+})

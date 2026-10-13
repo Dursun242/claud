@@ -16,7 +16,7 @@ export function buildEditorState({ data = {}, initial = null, chantierId, today 
   const ctx = { chantier, planning: data.planning || [], ordresService: data.ordresService || [], contacts: data.contacts || [] }
   if (initial?.id) {
     const previous = previousCr(crs, chantierId, { numero: initial.numero, excludeId: initial.id })
-    const rows = initialRows({ tasks: data.tasks || [], chantierId, crDate: initial.date, cr: initial })
+    const rows = initialRows({ tasks: data.tasks || [], chantierId, crDate: initial.date, cr: initial, previous })
     return {
       form: {
         ...initial, chantierId,

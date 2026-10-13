@@ -51,6 +51,7 @@ Exécuter dans cet ordre exact sur une base vierge (Supabase Dashboard → SQL E
 | 043 | `043_crm_attente.sql` | **Affaires en attente** : étape `En attente` et colonnes `crm_opportunites.date_reprise` / `motif_attente` (projet reporté, attente du financement… : l'affaire sort du pipeline jusqu'à la date de reprise). Reprend les affaires dont le client a répondu « projet reporté » ou « attente du financement ». À appliquer après 042. |
 | 044 | `044_crm_reprise_auto.sql` | **Relance automatique des affaires en attente** : colonnes `crm_opportunites.reprise_auto` / `reprise_token` / `reprise_envoyee_le`. À la date de reprise, le client reçoit un mail avec des choix de réponse (page `/reprise/<jeton>`). À appliquer après 043. |
 | 045 | `045_cr_notes_dictee.sql` | **Notes de dictée des comptes rendus** : colonnes `compte_rendus.notes_dictee`, `notes_rangees`, `enregistre_le` (les notes dictées sont gardées avec le CR, seules les nouvelles sont rangées par l'IA, brouillon de l'appareil repris s'il est plus récent). À appliquer après 044. |
+| 046 | `046_cr_suivi_entreprises.sql` | **Comptes rendus : rédaction et suivi des entreprises** : `compte_rendus.alertes` (partie Alertes du CR), table `cr_liens` (lien de réponse sans compte /actions/<jeton>, service role, lecture staff), `taches.reponse_entreprise` (fait / plus de temps / désaccord, pré-remplit le CR suivant), `taches.rappel_echeance` (rappel J-2 envoyé une fois par échéance), `taches.mise_en_demeure_le`. À appliquer après 045. |
 
 ## Fichiers NON séquentiels (à ne PAS appliquer en séquence)
 

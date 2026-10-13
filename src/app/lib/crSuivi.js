@@ -9,6 +9,7 @@
 // - texte des mails (CR + convocation + actions de chaque entreprise).
 
 import { addDaysISO } from './today'
+import { applyReponse, isRecentReponse, reponseText, linkParagraph } from './crReponse'
 
 const day = (v) => (v ? String(v).slice(0, 10) : '')
 const chOf = (x) => x?.chantierId || x?.chantier_id || null
@@ -89,6 +90,8 @@ const rowFromTask = (t, suivi) => ({
   suivi, initialSuivi: suivi,
   // Évoqué pendant la réunion (modifié à la main ou repris par l'IA)
   vu: false,
+  // Réponse de l'entreprise par son lien (migration 046)
+  reponse: t.reponse_entreprise || null,
 })
 
 export const sortRows = (rows) => [...rows].sort((a, b) =>
@@ -109,14 +112,20 @@ export function nextPointNumber(tasks = [], chantierId) {
  *   tâche si elle existe encore, état de la photo).
  * - Nouveau CR : points ouverts du chantier (en retard → « À relancer »,
  *   sinon « En cours ») + points soldés depuis le CR précédent (« Fait »).
+ *   Une réponse de l'entreprise arrivée depuis le CR précédent pré-remplit
+ *   le point (fait, nouvelle échéance) : lib/crReponse.applyReponse.
  */
 export function initialRows({ tasks = [], chantierId, crDate, cr = null, previous = null }) {
   const byId = new Map(tasks.map(t => [t.id, t]))
   const snap = Array.isArray(cr?.taches_suivi) ? cr.taches_suivi : []
+  const since = previous?.date || null
   if (cr?.id && snap.length) {
     return snap.map((s, i) => {
       const t = s.id && byId.get(s.id)
-      if (t) return { ...rowFromTask(t, s.suivi || 'en_cours'), origineNumero: t.cr_origine_numero ?? s.origine ?? null, num: t.num_point ?? s.num ?? null, vu: s.vu !== false }
+      if (t) {
+        const row = { ...rowFromTask(t, s.suivi || 'en_cours'), origineNumero: t.cr_origine_numero ?? s.origine ?? null, num: t.num_point ?? s.num ?? null, vu: s.vu !== false }
+        return { ...row, reponseRecente: isRecentReponse(row.reponse, since) }
+      }
       return {
         key: s.id || `snap-${i}`, id: s.id || null, orig: null, missing: true,
         titre: s.titre || '', entreprise: s.entreprise || '', lot: lotOf(s),
@@ -129,8 +138,9 @@ export function initialRows({ tasks = [], chantierId, crDate, cr = null, previou
   }
   if (cr?.id) return []
   const chTasks = tasks.filter(t => chOf(t) === chantierId)
+  // Réponse de l'entreprise arrivée depuis le CR précédent : point pré-rempli
   const open = chTasks.filter(t => t.statut !== 'Terminé')
-    .map(t => rowFromTask(t, daysLate(t.echeance, crDate) > 0 ? 'relance' : 'en_cours'))
+    .map(t => applyReponse(rowFromTask(t, daysLate(t.echeance, crDate) > 0 ? 'relance' : 'en_cours'), since))
   const prevOpen = new Set((previous?.taches_suivi || []).filter(s => s.suivi !== 'fait' && s.id).map(s => s.id))
   const doneSince = chTasks.filter(t => t.statut === 'Terminé' && prevOpen.has(t.id)).map(t => rowFromTask(t, 'fait'))
   return sortRows([...open, ...doneSince])
@@ -605,6 +615,10 @@ export function crChecks({ form = {}, rows = [], sections = [] } = {}) {
   for (const r of rows) {
     if (r.missing || r.suivi === 'fait' || !String(r.titre || '').trim()) continue
     const anchor = lotKey(lotOf(r))
+    // L'entreprise conteste le point : à trancher en réunion
+    if (r.reponseRecente && r.reponse?.type === 'desaccord') {
+      out.push({ key: `rep:${r.key}`, type: 'question', anchor, text: `${r.entreprise || 'L’entreprise'} conteste le point ${name(r)} : ${reponseText(r.reponse)}. À trancher.` })
+    }
     // Point repris du CR précédent dont personne n'a parlé : où en est-il ?
     if (r.vu === false && !r.isNew && r.suivi === r.initialSuivi) {
       out.push({
@@ -643,7 +657,8 @@ export function crChecks({ form = {}, rows = [], sections = [] } = {}) {
 // ─── Ordre du jour ───────────────────────────────────────────────────────
 /**
  * Ordre du jour préparé automatiquement pour la réunion, par ordre
- * d'importance : points en retard (les plus relancés d'abord), lots en
+ * d'importance : réponses des entreprises reçues depuis le CR précédent
+ * (lien de réponse), points en retard (les plus relancés d'abord), lots en
  * retard sur le planning, ordres de service émis depuis le CR précédent et
  * interventions prévues d'ici la prochaine réunion, documents des
  * entreprises (lib/conformite.conformiteItems, passés dans `documents`).
@@ -651,6 +666,16 @@ export function crChecks({ form = {}, rows = [], sections = [] } = {}) {
  */
 export function crAgenda({ rows = [], sections = [], chantierId, crDate, nextDate, previous = null, ordresService = [], documents = [] } = {}) {
   const groups = []
+  const answered = rows.filter(r => r.reponseRecente && r.reponse)
+  if (answered.length) {
+    groups.push({
+      key: 'reponses', title: 'Réponses des entreprises',
+      items: answered.map(r => ({
+        key: `rep:${r.key}`, anchor: lotKey(lotOf(r)), tone: r.reponse.type === 'desaccord' ? 'danger' : undefined,
+        text: `${r.num ? `n°${r.num} ` : ''}${r.titre} · ${r.entreprise || r.reponse.entreprise || ''} : ${reponseText(r.reponse)}`,
+      })),
+    })
+  }
   const sectionFor = (lot) => {
     const k = lotKey(lot)
     return sections.find(s => s.key === k)
@@ -756,8 +781,11 @@ export function crMailIntro(cr, chantier) {
   return `Veuillez trouver ci-joint le compte rendu n°${cr?.numero || ''} de la réunion de chantier du ${fmtShort(cr?.date)} (${chantier?.nom || 'chantier'}).`
 }
 
-/** Corps complet du mail d'un destinataire : message + convocation + ses actions. */
-export function crMailText({ intro, cr, it, company = {} }) {
+/**
+ * Corps complet du mail d'un destinataire : message + convocation + ses
+ * actions, avec le lien pour y répondre (`link`, page /actions/<jeton>).
+ */
+export function crMailText({ intro, cr, it, company = {}, link = '' }) {
   const parts = [`Bonjour${it?.nom ? ` ${it.nom}` : ''},`, String(intro || '').trim()]
   if (it?.presence === 'Absent' && it?.convoque_prec) {
     parts.push('Vous étiez convoqué(e) à cette réunion et n’étiez ni présent(e) ni représenté(e).')
@@ -783,6 +811,7 @@ export function crMailText({ intro, cr, it, company = {} }) {
     if (actions.some(a => a.suivi === 'relance')) {
       parts.push('Les points relancés étaient attendus : merci de les traiter avant la prochaine réunion.')
     }
+    parts.push(linkParagraph(link))
   }
   parts.push('Sans remarque de votre part sous 8 jours, ce compte rendu est réputé approuvé.')
   parts.push(`Cordialement,\n${company.nom || ''}`.trim())

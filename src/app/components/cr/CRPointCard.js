@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { SUIVI, PRIORITY_LADDER, daysLate, effectivePriority, lotKey } from '../../lib/crSuivi'
+import { reponseText } from '../../lib/crReponse'
 import { SUIVI_STYLE, PRIO_COLOR, field } from './crStyles'
 import CRPhotoStrip from './CRPhotoStrip'
 
@@ -10,7 +11,8 @@ const small = { ...field, minHeight: 36, fontSize: 14, padding: '6px 8px' }
 /**
  * Un point du CR : état (Fait / En cours / À relancer), libellé, entreprise,
  * échéance, priorité, lot, photos. Un point « À relancer » prend un rappel
- * et monte d'un cran de priorité à l'enregistrement.
+ * et monte d'un cran de priorité à l'enregistrement. La réponse de
+ * l'entreprise (lien du CR) s'affiche sous le point.
  */
 export default function CRPointCard({ row, crId, crDate, lots = [], entreprisesListId, onChange, onRemove, m }) {
   const [showPhotos, setShowPhotos] = useState(false)
@@ -81,6 +83,21 @@ export default function CRPointCard({ row, crId, crDate, lots = [], entreprisesL
           {lots.map(l => <option key={l.key} value={l.key}>{l.lot}</option>)}
         </select>
       </div>
+      {row.reponseRecente && row.reponse && (
+        <div role="note" style={{ marginTop: 8, fontSize: 12, borderRadius: 8, padding: '6px 8px', display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap',
+          background: '#fff', border: `1px solid ${row.reponse.type === 'desaccord' ? 'var(--red-line)' : 'var(--separator)'}`,
+          color: row.reponse.type === 'desaccord' ? 'var(--red-text)' : 'var(--label-2)' }}>
+          <span style={{ flex: 1, minWidth: 0 }}>
+            <b>Réponse de l&apos;entreprise</b> le {String(row.reponse.le || '').slice(0, 10).split('-').reverse().join('/')} : {reponseText(row.reponse)}
+          </span>
+          {row.reponse.type === 'fait' && row.suivi !== 'fait' && !disabled && (
+            <button type="button" onClick={() => onChange({ suivi: 'fait' })} style={{ border: '1px solid var(--separator-opaque)', background: '#fff', borderRadius: 6, padding: '2px 8px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Marquer fait</button>
+          )}
+          {row.reponse.type === 'delai' && row.reponse.date && row.echeance !== row.reponse.date && !disabled && (
+            <button type="button" onClick={() => onChange({ echeance: row.reponse.date, suivi: 'en_cours' })} style={{ border: '1px solid var(--separator-opaque)', background: '#fff', borderRadius: 6, padding: '2px 8px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Accepter la nouvelle date</button>
+          )}
+        </div>
+      )}
       {willRemind && nextPrio !== row.priorite && (
         <div style={{ fontSize: 11, color: 'var(--red-text)', marginTop: 6 }}>
           Relance : priorité relevée à « {PRIO_LABEL[nextPrio]} » à l&apos;enregistrement.

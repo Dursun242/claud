@@ -1,7 +1,8 @@
 // Route /api/cr/send — envoi d'un compte rendu de chantier par email :
 // PDF (page de garde + convocation) en pièce jointe, un mail par
 // destinataire avec ses propres actions et relances (texte préparé par
-// lib/crSuivi.crMailText côté écran).
+// lib/crSuivi.crMailText côté écran) et, s'il a des actions, un bouton vers
+// sa page de réponse (/actions/<jeton>, lien préparé par /api/cr/liens).
 //
 // Réservée au staff (verifyStaff). SMTP non configuré → 503
 // { code: 'EMAIL_NOT_CONFIGURED' } : l'écran retombe sur le PDF téléchargé
@@ -15,6 +16,7 @@ import { smtpConfig, smtpErrorMessage, sendMail } from '@/app/lib/mailer'
 import { devisMailHtml } from '@/app/lib/devisMailHtml'
 import { COMPANY } from '@/app/lib/company'
 import { LOGO_CID, LOGO_PNG_BASE64 } from '@/app/lib/companyLogo'
+import { withoutLinkParagraph } from '@/app/lib/crReponse'
 
 export const maxDuration = 60
 
@@ -61,7 +63,10 @@ export async function POST(request) {
       }
       const text = String(m?.text || '').slice(0, 20_000)
       if (!text.trim()) return Response.json({ error: 'Message vide' }, { status: 400 })
-      messages.push({ to: to.list[0], text })
+      // Lien de réponse aux actions : page /actions/<jeton> de cette application uniquement
+      const actionUrl = typeof m?.actionUrl === 'string' && m.actionUrl.startsWith(`${new URL(request.url).origin}/actions/`)
+        && /\/actions\/[a-f0-9]{64}$/.test(m.actionUrl) ? m.actionUrl : null
+      messages.push({ to: to.list[0], text, actionUrl })
     }
     const unique = new Set(messages.map(m => m.to.toLowerCase()))
     if (unique.size !== messages.length) return Response.json({ error: 'Destinataire en double' }, { status: 400 })
@@ -76,8 +81,9 @@ export async function POST(request) {
 
     const logo = { filename: 'logo-id-maitrise.png', content: Buffer.from(LOGO_PNG_BASE64, 'base64'), contentType: 'image/png', cid: LOGO_CID, contentDisposition: 'inline' }
     const files = [{ filename, content: pdf, contentType: 'application/pdf' }]
-    const html = (text) => devisMailHtml({
-      body: text, company: COMPANY, title: subject, logoSrc: `cid:${LOGO_CID}`, attachments: [filename],
+    const html = (text, actionUrl = null) => devisMailHtml({
+      body: actionUrl ? withoutLinkParagraph(text) : text, company: COMPANY, title: subject, logoSrc: `cid:${LOGO_CID}`, attachments: [filename],
+      action: actionUrl ? { url: actionUrl, label: 'Répondre sur mes actions', hint: 'C’est fait, besoin de plus de temps ou désaccord : sans créer de compte.' } : null,
     })
 
     const sent = [], failed = []
@@ -85,7 +91,7 @@ export async function POST(request) {
     for (const m of messages) {
       try {
         await sendMail(cfg, {
-          to: m.to, subject, text: m.text, html: html(m.text),
+          to: m.to, subject, text: m.text, html: html(m.text, m.actionUrl),
           attachments: [...files, logo],
         })
         sent.push(m.to)
