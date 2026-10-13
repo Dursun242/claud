@@ -188,3 +188,29 @@ describe('SB.upsertContact — email travaux (migration 042)', () => {
     await expect(SB.upsertContact({ nom: 'Martin', email_travaux: 'chantier@m.fr' })).rejects.toThrow(/migration 042/)
   })
 })
+
+describe('SB.upsertOS — artisan rattaché au chantier', () => {
+  const os = { numero: 'OS-1', chantier_id: 'ch1', artisan_nom: 'COSTA PLOMBERIE' }
+  beforeEach(() => {
+    results.ordres_service = { data: { id: 'os1', ...os }, error: null }
+    results.contacts = { data: [{ id: 'c1', nom: 'Jean Costa', societe: 'Costa Plomberie' }], error: null }
+  })
+
+  it('ajoute l’artisan aux intervenants du chantier s’il n’y est pas', async () => {
+    results.contact_chantiers = { data: [], error: null }
+    await SB.upsertOS(os)
+    expect(calls).toContainEqual(['contact_chantiers', 'insert', { contact_id: 'c1', chantier_id: 'ch1' }])
+  })
+
+  it('déjà intervenant : pas de doublon', async () => {
+    results.contact_chantiers = { data: [{ id: 'l1' }], error: null }
+    await SB.upsertOS(os)
+    expect(calls.some(c => c[0] === 'contact_chantiers' && c[1] === 'insert')).toBe(false)
+  })
+
+  it('artisan absent de l’annuaire : OS enregistré quand même', async () => {
+    results.contacts = { data: [], error: null }
+    await expect(SB.upsertOS(os)).resolves.toMatchObject({ id: 'os1' })
+    expect(calls.some(c => c[0] === 'contact_chantiers')).toBe(false)
+  })
+})

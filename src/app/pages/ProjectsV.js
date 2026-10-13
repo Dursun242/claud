@@ -1,5 +1,6 @@
 'use client'
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
+import { findArtisanContact } from '../lib/osArtisan';
 import Image from 'next/image'
 import dynamic from 'next/dynamic'
 import {
@@ -131,17 +132,17 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
     const chOS = (data.ordresService || []).filter(o => o.chantier_id === ch.id);
     const chCR = (data.compteRendus || []).filter(c => (c.chantierId || c.chantier_id) === ch.id && !(readOnly && c.statut === 'Brouillon'));
     const chPlanning = (data.planning || []).filter(p => (p.chantierId || p.chantier_id) === ch.id);
-    const artisanNames = [...new Set(chOS.map(o => o.artisan_nom).filter(Boolean))];
     const contactMap = new Map((data.contacts || []).map(c => [c.nom, c]));
     const contactById = new Map((data.contacts || []).map(c => [c.id, c]));
     const clientContact = contactMap.get(ch.client);
 
-    // Intervenants = déduits des OS (artisan_nom) + rattachés manuellement
+    // Intervenants = déduits des OS (artisan retrouvé par SIRET, email ou nom :
+    // lib/osArtisan) + rattachés manuellement
     // via contact_chantiers (bouton "Ajouter un intervenant"). Les deux
     // sources sont fusionnées et dédupliquées par id de contact ; seuls
     // les rattachements manuels portent un _linkId (permet de les retirer,
     // contrairement aux intervenants auto-déduits des OS).
-    const osContacts = artisanNames.map(name => contactMap.get(name)).filter(Boolean);
+    const osContacts = chOS.map(o => findArtisanContact(o, data.contacts || [])).filter(Boolean);
     const manualLinks = (data.contactChantiers || []).filter(cc => cc.chantier_id === ch.id);
     const seenIntervenantIds = new Set();
     const intervenants = [];

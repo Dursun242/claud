@@ -4,6 +4,7 @@ import { supabase } from '../supabaseClient'
 import { ProgressBar } from '../components'
 import { writeActivityLog, setLogContext, clearLogContext } from '../lib/activityLog'
 import { mapCriticalData, mapSecondaryData, NOT_DEMO_FILTER } from '../lib/dashboardData'
+import { findArtisanContact } from '../lib/osArtisan'
 // Note : la création de notifications se fait désormais côté Postgres
 // via des triggers SQL (migration 011). On n'appelle plus createNotifications
 // depuis le JS — c'est plus robuste (marche pour l'IA, les imports, etc.)
@@ -285,6 +286,27 @@ export const SB = {
     this.log('create', 'contact_chantier', data.id, null);
     return data;
   },
+  /**
+   * Rattache l'artisan d'un OS aux intervenants de son chantier s'il n'y
+   * est pas encore (contact retrouvé par SIRET, email ou nom : lib/osArtisan).
+   * Jamais bloquant : renvoie true si un rattachement a été ajouté.
+   */
+  async linkOsArtisan(os) {
+    if (!os?.chantier_id || !os.artisan_nom) return false;
+    try {
+      const { data: contacts, error } = await supabase.from('contacts').select('*');
+      if (error) return false;
+      const contact = findArtisanContact(os, contacts || []);
+      if (!contact) return false;
+      const { data: links } = await supabase.from('contact_chantiers').select('id')
+        .eq('contact_id', contact.id).eq('chantier_id', os.chantier_id);
+      if (links?.length) return false;
+      await this.addContactChantier(contact.id, os.chantier_id);
+      return true;
+    } catch {
+      return false;
+    }
+  },
   async removeContactChantier(linkId) {
     await supabase.from('contact_chantiers').delete().eq('id', linkId);
     this.log('delete', 'contact_chantier', linkId, null);
@@ -393,15 +415,11 @@ export const SB = {
       delete row.lot;
       ({ data, error } = await write(row));
     }
-    if (isEdit) {
-      if (error) throw new Error("Erreur mise à jour OS : " + error.message);
-      this.log('update', 'os', data.id, data.numero);
-      return data;
-    } else {
-      if (error) throw new Error("Erreur création OS : " + error.message);
-      this.log('create', 'os', data.id, data.numero);
-      return data;
-    }
+    if (error) throw new Error((isEdit ? "Erreur mise à jour OS : " : "Erreur création OS : ") + error.message);
+    this.log(isEdit ? 'update' : 'create', 'os', data.id, data.numero);
+    // L'artisan devient intervenant du chantier (s'il ne l'est pas déjà)
+    await this.linkOsArtisan(data);
+    return data;
   },
   async deleteOS(id) {
     const { data: prev } = await supabase.from('ordres_service')
