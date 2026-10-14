@@ -202,29 +202,31 @@ describe('ordre des chantiers', () => {
   ]
   const names = () => screen.getAllByTestId('chantier-row').map(r => r.textContent.match(/Alpha|Bravo|Charlie/)[0])
 
-  it('suit l’ordre enregistré (nouveau chantier en tête) et se range au clavier', async () => {
+  it('cartes dans l’ordre enregistré, sans poignée ; « Ranger » ouvre la liste à faire glisser', async () => {
     SB.reorderChantiers.mockResolvedValue()
     renderPage(chs)
+    expect(screen.queryByRole('button', { name: /^Déplacer/ })).not.toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: /^Modifier le chantier/ }).map(b => b.getAttribute('aria-label')))
+      .toEqual(['Modifier le chantier Charlie', 'Modifier le chantier Bravo', 'Modifier le chantier Alpha'])
+    await userEvent.click(screen.getByRole('button', { name: 'Ranger' }))
+    expect(screen.queryByLabelText('Rechercher un chantier')).not.toBeInTheDocument()
     expect(names()).toEqual(['Charlie', 'Bravo', 'Alpha'])
-    const handle = screen.getByRole('button', { name: 'Déplacer Alpha (flèches haut et bas)' })
-    handle.focus()
+    screen.getByRole('button', { name: 'Déplacer Alpha (flèches haut et bas)' }).focus()
     await userEvent.keyboard('{ArrowUp}')
     expect(names()).toEqual(['Charlie', 'Alpha', 'Bravo'])
     expect(SB.reorderChantiers).toHaveBeenCalledWith([{ id: 'c', ordre: 1 }, { id: 'b', ordre: 3 }])
+    await userEvent.click(screen.getByRole('button', { name: 'Terminé' }))
+    expect(screen.queryByTestId('chantier-row')).not.toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: /^Modifier le chantier/ })[1]).toHaveAttribute('aria-label', 'Modifier le chantier Alpha')
   })
 
   it('échec de l’enregistrement : ordre précédent rétabli, message', async () => {
     SB.reorderChantiers.mockRejectedValue(new Error("L'ordre des chantiers demande la migration 047 (Supabase)."))
     renderPage(chs)
+    await userEvent.click(screen.getByRole('button', { name: 'Ranger' }))
     screen.getByRole('button', { name: 'Déplacer Bravo (flèches haut et bas)' }).focus()
     await userEvent.keyboard('{ArrowDown}')
     await waitFor(() => expect(addToast).toHaveBeenCalledWith("L'ordre des chantiers demande la migration 047 (Supabase).", 'error'))
     expect(names()).toEqual(['Charlie', 'Bravo', 'Alpha'])
-  })
-
-  it('pas de rangement pendant une recherche', async () => {
-    renderPage(chs)
-    await userEvent.type(screen.getByLabelText('Rechercher un chantier'), 'a')
-    expect(screen.queryByRole('button', { name: /^Déplacer/ })).not.toBeInTheDocument()
   })
 })

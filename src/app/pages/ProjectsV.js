@@ -170,6 +170,9 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
 
   // Ordre choisi à la main (glisser-déposer), enregistré pour toute l'équipe
   const [ordres, setOrdres] = useState(() => new Map());
+  // Mode « Ranger » : liste compacte de tous les chantiers, à faire glisser
+  const [ranging, setRanging] = useState(false);
+  const chantiersRanges = useMemo(() => sortChantiers(data.chantiers, ordres), [data.chantiers, ordres]);
   const chantiersFiltered = useMemo(() => {
     const search = q.toLowerCase().trim();
     return sortChantiers(data.chantiers, ordres).filter(ch => {
@@ -187,14 +190,14 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
   // Déplacement d'un chantier : affiché tout de suite, puis enregistré
   // (retour à l'ordre précédent si l'enregistrement échoue)
   const moveChantier = useCallback(async (from, to) => {
-    const next = moveItem(chantiersFiltered, from, to);
+    const next = moveItem(chantiersRanges, from, to);
     const patches = orderPatches(next, ordres);
     if (!patches.length) return;
     const prev = ordres;
     setOrdres(o => { const n = new Map(o); patches.forEach(p => n.set(p.id, p.ordre)); return n; });
     try { await SB.reorderChantiers(patches); }
     catch (err) { setOrdres(prev); addToast(err?.message || "Ordre non enregistré", "error"); }
-  }, [chantiersFiltered, ordres, addToast]);
+  }, [chantiersRanges, ordres, addToast]);
 
   // Compteurs (OS/CR/tâches/PJ) pré-calculés par chantier.
   // Avant, chaque carte faisait 4 .filter() O(N) → O(N²) au total.
@@ -844,9 +847,12 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
         </div>
       </div>
       <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
-        <SearchField inputRef={searchInputRef} value={q} onChange={e=>setQ(e.target.value)} m={m} width={260}
-          label="Rechercher un chantier" placeholder={m?"Rechercher nom, client, adresse…":"Rechercher nom, client, adresse… (tape /)"}/>
-        {!readOnly && <button onClick={openNew}
+        {!ranging && <SearchField inputRef={searchInputRef} value={q} onChange={e=>setQ(e.target.value)} m={m} width={260}
+          label="Rechercher un chantier" placeholder={m?"Rechercher nom, client, adresse…":"Rechercher nom, client, adresse… (tape /)"}/>}
+        {!readOnly && data.chantiers.length > 1 && (ranging
+          ? <button onClick={()=>setRanging(false)} style={{...btnP,fontSize:12}}>Terminé</button>
+          : <button onClick={()=>setRanging(true)} title="Changer l'ordre des chantiers" style={{...btnS,fontSize:12}}>Ranger</button>)}
+        {!readOnly && !ranging && <button onClick={openNew}
           title="Nouveau chantier (raccourci : n)"
           style={{...btnP,fontSize:12,display:"inline-flex",alignItems:"center",gap:4}}>
           <Icon d={I.plus} size={14} color="#fff"/> Nouveau
@@ -854,7 +860,12 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
       </div>
     </div>
     {/* Pills de filtre (statut + phase). Masqué en vue client. */}
-    {!readOnly && (
+    {ranging && (
+      <div style={{fontSize:13,color:"var(--label-secondary)",margin:"0 0 10px"}}>
+        Fais glisser ≡ pour changer l&apos;ordre. Il est le même pour toute l&apos;équipe.
+      </div>
+    )}
+    {!readOnly && !ranging && (
       <ProjectsFilterPills
         filterStatut={filterStatut}
         filterPhase={filterPhase}
@@ -863,7 +874,9 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
         m={m}
       />
     )}
-    {chantiersFiltered.length === 0 ? (
+    {ranging ? (
+    <SortableChantierList ranging chantiers={chantiersRanges} m={m} onMove={moveChantier} />
+    ) : chantiersFiltered.length === 0 ? (
       <div style={{
         background:"#fff",borderRadius:12,padding:"40px 24px",
         textAlign:"center",boxShadow:"0 1px 3px rgba(0,0,0,0.06)"
@@ -889,7 +902,6 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
       </div>
     ) : (
     <SortableChantierList chantiers={chantiersFiltered} countsByChantier={countsByChantier} m={m} readOnly={readOnly}
-      sortable={!readOnly && !hasFilters} onMove={moveChantier}
       onOpen={handleOpenChantier} onEdit={handleEditChantier} onDelete={handleDelete} />
     )}
     <Modal open={!!modal} onClose={()=>setModal(null)} title={modal==="new"?"Nouveau chantier":"Modifier"}>
