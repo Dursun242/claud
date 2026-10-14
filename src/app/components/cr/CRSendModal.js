@@ -11,7 +11,8 @@ import { crMailSubject, crMailIntro, crMailText, actionsFor } from '../../lib/cr
 
 /**
  * Envoi d'un CR par mail : PDF (page de garde + convocation) joint, un mail
- * par destinataire avec la convocation et ses propres actions / relances.
+ * par destinataire avec la convocation et ses propres actions / relances,
+ * et un lien pour y répondre sans compte (/actions/<jeton>, migration 046).
  * Sans SMTP configuré : PDF téléchargé + mail pré-rempli.
  */
 export default function CRSendModal({ cr, chantier, onClose, onSent }) {
@@ -50,7 +51,21 @@ export default function CRSendModal({ cr, chantier, onClose, onSent }) {
     try {
       const { generateCRPdf } = await import('../../generators')
       const pdf = await generateCRPdf(cr, chantier, { returnBase64: true, images: await loadCrImages(cr) })
-      const messages = recipients.map(it => ({ to: it.email, text: crMailText({ intro, cr, it, company: COMPANY }) }))
+      // Lien de réponse (fait / plus de temps / désaccord) pour chaque entreprise qui a des actions
+      let liens = {}
+      const dest = recipients.map(it => ({ it, acts: actionsFor(cr.taches_suivi, it) })).filter(d => d.acts.length)
+        .map(({ it, acts }) => ({ email: it.email, entreprise: acts[0].entreprise, nom: it.nom || '' }))
+      if (dest.length && chantier?.id) {
+        try {
+          liens = (await apiPost('/api/cr/liens', { chantierId: chantier.id, crId: cr.id, destinataires: dest })).liens || {}
+        } catch (e) {
+          if (e?.code === 'MIGRATION_046') addToast('CR envoyé sans lien de réponse : appliquer la migration 046 (Supabase).', 'warning')
+        }
+      }
+      const messages = recipients.map(it => ({
+        to: it.email, text: crMailText({ intro, cr, it, company: COMPANY, link: liens[it.email] }),
+        ...(liens[it.email] ? { actionUrl: liens[it.email] } : {}),
+      }))
       try {
         const res = await apiPost('/api/cr/send', { subject, messages, pdfBase64: pdf.base64, filename: pdf.filename })
         const failed = res.failed || []

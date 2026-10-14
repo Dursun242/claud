@@ -4,7 +4,7 @@
 import { localISO } from './today'
 import {
   previousCr, nextCrNumero, initialRows, buildSections, carryIntervenants,
-  defaultNextMeeting, defaultCrDate, planCrTasks, sectionsForDb, lotKey,
+  defaultNextMeeting, defaultCrDate, planCrTasks, sectionsForDb, lotKey, markConvoques,
 } from './crSuivi'
 
 const chOf = (x) => x?.chantierId || x?.chantier_id || null
@@ -16,7 +16,7 @@ export function buildEditorState({ data = {}, initial = null, chantierId, today 
   const ctx = { chantier, planning: data.planning || [], ordresService: data.ordresService || [], contacts: data.contacts || [] }
   if (initial?.id) {
     const previous = previousCr(crs, chantierId, { numero: initial.numero, excludeId: initial.id })
-    const rows = initialRows({ tasks: data.tasks || [], chantierId, crDate: initial.date, cr: initial })
+    const rows = initialRows({ tasks: data.tasks || [], chantierId, crDate: initial.date, cr: initial, previous })
     return {
       form: {
         ...initial, chantierId,
@@ -37,7 +37,7 @@ export function buildEditorState({ data = {}, initial = null, chantierId, today 
   return {
     form: {
       chantierId: chantierId || '', date, numero: chantierId ? nextCrNumero(crs, chantierId) : 1,
-      resume: '', participants: '', decisions: '', statut: 'Brouillon',
+      resume: '', participants: '', decisions: '', alertes: '', statut: 'Brouillon',
       intervenants: carryIntervenants(previous),
       prochaine_reunion: defaultNextMeeting({ crDate: date, previous, chantier }),
     },
@@ -132,7 +132,10 @@ export function previewCr(state) {
   })
   const next = state.form.prochaine_reunion?.date ? state.form.prochaine_reunion : null
   return {
-    cr: { ...state.form, taches_suivi: plan.snapshot, sections: sectionsForDb(sections), prochaine_reunion: next },
+    cr: {
+      ...state.form, intervenants: markConvoques(state.form.intervenants, state.previous),
+      taches_suivi: plan.snapshot, sections: sectionsForDb(sections), prochaine_reunion: next,
+    },
     images,
   }
 }

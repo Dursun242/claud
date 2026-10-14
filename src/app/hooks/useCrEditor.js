@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { cacheGet, cacheSet, cacheDelete } from '../lib/offlineStore'
 import { buildEditorState, draftKey, toDraft, fromDraft, previewCr, draftIsNewer } from '../lib/crEditor'
 import {
-  initialRows, newRow, nextPointNumber, applyAiResult, defaultNextMeeting, lotKey, GENERAL, buildSections,
+  initialRows, newRow, nextPointNumber, applyAiResult, defaultNextMeeting, lotKey, GENERAL, buildSections, markConvoques,
 } from '../lib/crSuivi'
 import { saveCr } from '../lib/crDb'
 
@@ -95,7 +95,8 @@ export function useCrEditor({ open, initial, data }) {
   const setNotes = useCallback((notes) => mutate(s => ({ ...s, notes: typeof notes === 'function' ? notes(s.notes) : notes })), [mutate])
   // Notes rangées par l'IA jusqu'à ce caractère (les suivantes restent « nouvelles »)
   const setNotesRangees = useCallback((n) => mutate(s => ({ ...s, notesRangees: Math.max(0, Number(n) || 0) })), [mutate])
-  const updateRow = useCallback((key, p) => mutate(s => ({ ...s, rows: s.rows.map(r => (r.key === key ? { ...r, ...(typeof p === 'function' ? p(r) : p) } : r)) })), [mutate])
+  // Toute modification d'un point vaut « évoqué pendant la réunion »
+  const updateRow = useCallback((key, p) => mutate(s => ({ ...s, rows: s.rows.map(r => (r.key === key ? { ...r, ...(typeof p === 'function' ? p(r) : p), vu: true } : r)) })), [mutate])
   const removeRow = useCallback((key) => mutate(s => ({ ...s, rows: s.rows.filter(r => r.key !== key) })), [mutate])
   const addRow = useCallback((lot) => mutate(s => {
     const section = s.sections.find(x => x.key === lotKey(lot))
@@ -148,10 +149,10 @@ export function useCrEditor({ open, initial, data }) {
 
   const applyAi = useCallback((result) => mutate(s => {
     const out = applyAiResult(
-      { sections: s.sections, rows: s.rows, resume: s.form.resume, decisions: s.form.decisions },
+      { sections: s.sections, rows: s.rows, resume: s.form.resume, decisions: s.form.decisions, alertes: s.form.alertes },
       result, { crDate: s.form.date, nextDate: s.form.prochaine_reunion?.date },
     )
-    return { ...s, sections: out.sections, rows: out.rows, form: { ...s.form, resume: out.resume, decisions: out.decisions } }
+    return { ...s, sections: out.sections, rows: out.rows, form: { ...s.form, resume: out.resume, decisions: out.decisions, alertes: out.alertes } }
   }), [mutate])
 
   const nextNum = useMemo(() => nextPointNumber(data?.tasks || [], state?.form?.chantierId), [data?.tasks, state?.form?.chantierId])
@@ -159,7 +160,11 @@ export function useCrEditor({ open, initial, data }) {
   const save = useCallback(async ({ statut } = {}) => {
     if (!state) return null
     const res = await saveCr({
-      form: { ...state.form, statut: statut || state.form.statut || 'Brouillon' },
+      form: {
+        ...state.form, statut: statut || state.form.statut || 'Brouillon',
+        // Absent alors que convoqué au CR précédent : noté dans le PDF et le mail
+        intervenants: markConvoques(state.form.intervenants, state.previous),
+      },
       rows: state.rows, sections: state.sections, nextNum,
       previousNext: initial?.prochaine_reunion || null,
       notes: state.notes || '', notesRangees: state.notesRangees || 0,

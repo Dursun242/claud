@@ -4,8 +4,11 @@ import userEvent from '@testing-library/user-event'
 const addToast = jest.fn()
 jest.mock('../../../contexts/ToastContext', () => ({ useToast: () => ({ addToast }) }))
 jest.mock('../../../lib/today', () => ({ ...jest.requireActual('../../../lib/today'), localISO: () => '2026-09-30' }))
+let confirmFn = null
+jest.mock('../../../contexts/ConfirmContext', () => ({ useOptionalConfirm: () => confirmFn }))
 const saveCr = jest.fn()
-jest.mock('../../../lib/crDb', () => ({ saveCr: (...a) => saveCr(...a) }))
+const markMiseEnDemeure = jest.fn()
+jest.mock('../../../lib/crDb', () => ({ saveCr: (...a) => saveCr(...a), markMiseEnDemeure: (...a) => markMiseEnDemeure(...a) }))
 const store = { get: jest.fn(), set: jest.fn(), del: jest.fn() }
 jest.mock('../../../lib/offlineStore', () => ({
   cacheGet: (...a) => store.get(...a), cacheSet: (...a) => store.set(...a), cacheDelete: (...a) => store.del(...a),
@@ -14,7 +17,8 @@ jest.mock('../../../lib/crPhotos', () => ({ signedUrls: async () => ({}), loadCr
 const apiPost = jest.fn()
 jest.mock('../../../lib/crmApi', () => ({ apiPost: (...a) => apiPost(...a) }))
 const generateCRPdf = jest.fn()
-jest.mock('../../../generators', () => ({ generateCRPdf: (...a) => generateCRPdf(...a) }))
+const generateMiseEnDemeurePdf = jest.fn()
+jest.mock('../../../generators', () => ({ generateCRPdf: (...a) => generateCRPdf(...a), generateMiseEnDemeurePdf: (...a) => generateMiseEnDemeurePdf(...a) }))
 
 // eslint-disable-next-line import/first
 import CREditor from '../CREditor'
@@ -36,6 +40,7 @@ const data = {
 
 beforeEach(() => {
   jest.clearAllMocks()
+  confirmFn = null
   store.get.mockResolvedValue(undefined)
   store.set.mockResolvedValue(undefined)
 })
@@ -212,4 +217,86 @@ it('aperçu à côté : le PDF se refait après les modifications', async () => 
   await user.click(within(panel).getByRole('button', { name: "Fermer l'aperçu" }))
   expect(screen.queryByRole('complementary', { name: 'Aperçu du PDF' })).not.toBeInTheDocument()
   expect(window.localStorage.getItem('cr-apercu-a-cote')).toBe('0')
+})
+
+it('contrôle avant diffusion : questions listées, diffusion confirmée', async () => {
+  saveCr.mockResolvedValue({ cr: { id: 'cr-3', numero: 3 }, snapshot: [], migrationMissing: false, failures: [], photoFailures: [] })
+  confirmFn = jest.fn().mockResolvedValueOnce(false).mockResolvedValueOnce(true)
+  const { onSaved, user } = setup()
+  const panel = screen.getByRole('region', { name: 'À vérifier avant diffusion' })
+  // Points repris dont personne n'a parlé : réponse rapide
+  expect(within(panel).getByText('Point n°1 « Poser le tableau » (Martin Élec) n\'a pas été évoqué : où en est-il ?')).toBeInTheDocument()
+  await user.click(within(panel).getByRole('button', { name: /^À relancer : Point n°1/ }))
+  await user.click(within(panel).getByRole('button', { name: /^En cours : Point n°2/ }))
+  expect(within(panel).queryByText(/n'a pas été évoqué/)).not.toBeInTheDocument()
+  expect(within(section('Électricité')).getByRole('radio', { name: /À relancer/ })).toHaveAttribute('aria-checked', 'true')
+  expect(within(panel).getByText('Point n°2 « Réseaux sous dallage » : quelle entreprise ?')).toBeInTheDocument()
+  expect(screen.getByRole('button', { name: '1 à vérifier' })).toBeInTheDocument()
+  await user.click(screen.getByRole('button', { name: 'Diffuser' }))
+  expect(confirmFn).toHaveBeenCalledWith(expect.objectContaining({ title: '1 point à vérifier', confirmLabel: 'Diffuser quand même' }))
+  expect(saveCr).not.toHaveBeenCalled()
+  await user.click(screen.getByRole('button', { name: 'Diffuser' }))
+  await waitFor(() => expect(onSaved).toHaveBeenCalledWith({ id: 'cr-3', numero: 3 }, { send: true }))
+  // L'enregistrement simple ne demande rien
+  await user.click(screen.getByRole('button', { name: 'Enregistrer' }))
+  expect(confirmFn).toHaveBeenCalledTimes(2)
+})
+
+it('alertes : champ dans la synthèse, proposées par l’IA', async () => {
+  apiPost.mockResolvedValue({ ok: true, data: {
+    resume: '', alertes: 'Retard de 2 semaines du lot électricité.', decisions: '', lots: [], points_existants: [], nouveaux_points: [],
+  } })
+  const { user } = setup()
+  await user.type(screen.getByLabelText('Notes de réunion'), 'Électricité deux semaines de retard.')
+  await user.click(screen.getByRole('button', { name: /Ranger avec l’IA/ }))
+  const proposal = await screen.findByRole('region', { name: "Proposition de l'IA" })
+  await user.click(within(proposal).getByRole('button', { name: 'Ajouter au compte rendu' }))
+  expect(screen.getByLabelText('Alertes : retards, non-conformités, risques')).toHaveValue('Retard de 2 semaines du lot électricité.')
+})
+
+it('ordre du jour : retards, planning, OS récents, documents', async () => {
+  const d = {
+    ...data,
+    planning: [{ chantier_id: CH, lot: 'Électricité', debut: '2026-09-01', fin: '2026-10-01' }],
+    ordresService: [...data.ordresService, { id: 'os-9', chantier_id: CH, numero: 'OS-009', artisan_nom: 'Durand', artisan_specialite: 'Plomberie', date_emission: '2026-09-26' }],
+    contacts: [...data.contacts, { id: 'c3', nom: 'Durand', type: 'Artisan', societe: 'Durand Plomberie' }],
+  }
+  const conformite = { docs: [], today: '2026-09-30', legal: [] }
+  render(<CREditor open initial={{ chantierId: CH }} data={d} onClose={jest.fn()} onSaved={jest.fn()} m={false} lockChantier conformite={conformite} />)
+  const agenda = screen.getByRole('region', { name: 'Ordre du jour' })
+  expect(within(agenda).getByText('n°1 Poser le tableau · Martin Élec · 5 j de retard · déjà relancé 1 fois')).toBeInTheDocument()
+  expect(within(agenda).getByText('Électricité (Martin Élec) : prévu 97 %, 30 % au dernier CR')).toBeInTheDocument()
+  expect(within(agenda).getByText('Émis le 26/09/2026 : OS-009 · Durand · Plomberie')).toBeInTheDocument()
+  expect(within(agenda).getByText(/^Durand : À fournir/)).toBeInTheDocument()
+})
+
+it('réponse de l’entreprise par son lien : affichée sous le point, point pré-rempli', async () => {
+  const d = { ...data, tasks: data.tasks.map(t => (t.id === 't-late' ? { ...t, reponse_entreprise: { type: 'fait', commentaire: 'Tableau posé', le: '2026-09-28T09:00:00Z' } } : t)) }
+  render(<CREditor open initial={{ chantierId: CH }} data={d} onClose={jest.fn()} onSaved={jest.fn()} m={false} lockChantier />)
+  const point = within(section('Électricité')).getByTestId('cr-point')
+  expect(within(point).getByRole('note')).toHaveTextContent('Réponse de l\'entreprise le 28/09/2026 : Fait — « Tableau posé »')
+  expect(within(point).getByRole('radio', { name: /Fait/ })).toHaveAttribute('aria-checked', 'true')
+  expect(within(screen.getByRole('region', { name: 'Ordre du jour' })).getByText('n°1 Poser le tableau · Martin Élec : Fait — « Tableau posé »')).toBeInTheDocument()
+})
+
+it('3e relance sans effet : courrier de mise en demeure proposé et préparé', async () => {
+  markMiseEnDemeure.mockResolvedValue(true)
+  generateMiseEnDemeurePdf.mockResolvedValue({ filename: 'x.pdf' })
+  const d = { ...data, tasks: data.tasks.map(t => (t.id === 't-late' ? { ...t, nb_rappels: 2 } : t)),
+    contacts: [...data.contacts.map(c => ({ ...c, adresse: '2 rue Neuve', code_postal: '76600', ville: 'Le Havre' }))] }
+  const user = userEvent.setup()
+  render(<CREditor open initial={{ chantierId: CH }} data={d} onClose={jest.fn()} onSaved={jest.fn()} m={false} lockChantier />)
+  const point = within(section('Électricité')).getByTestId('cr-point')
+  expect(within(point).getByText('Relancé 3 fois sans effet : place à la mise en demeure.')).toBeInTheDocument()
+  expect(within(screen.getByRole('region', { name: 'À vérifier avant diffusion' })).getByText('Martin Élec : relancé 3 fois sans effet, place au courrier de mise en demeure.')).toBeInTheDocument()
+  await user.click(within(point).getByRole('button', { name: 'Préparer la mise en demeure' }))
+  const dialog = screen.getByRole('dialog', { name: 'Mise en demeure — Martin Élec' })
+  expect(within(dialog).getByRole('checkbox', { name: /Poser le tableau/ })).toBeChecked()
+  expect(within(dialog).getByLabelText('Email de l’entreprise')).toHaveValue('martin@ex.fr')
+  await user.click(within(dialog).getByRole('button', { name: 'Télécharger le courrier (PDF)' }))
+  await waitFor(() => expect(markMiseEnDemeure).toHaveBeenCalledWith(['t-late'], expect.objectContaining({ entreprise: 'Martin Élec' })))
+  const arg = generateMiseEnDemeurePdf.mock.calls[0][0]
+  expect(arg.dest).toMatchObject({ nom: 'Martin Élec', lignes: ['2 rue Neuve', '76600 Le Havre'] })
+  expect(arg.text.points[0]).toMatch(/^Point n°1 : Poser le tableau, attendu pour le 25\/09\/2026, relancé 3 fois\.$/)
+  expect(await screen.findByRole('button', { name: 'Refaire le courrier' })).toBeInTheDocument()
 })

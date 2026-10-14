@@ -51,6 +51,22 @@ describe('/api/cr/send', () => {
     expect(sendMail.mock.calls.map(c => c[0].to)).not.toContain('moe@id-maitrise.com')
   })
 
+  it('lien de réponse aux actions : bouton dans le mail, seulement vers /actions/ de l’application', async () => {
+    const link = `https://app.test/actions/${'a'.repeat(64)}`
+    const intro = 'Merci de nous indiquer où vous en êtes (c’est fait, besoin de plus de temps, désaccord), sans créer de compte :'
+    await POST(req({ ...valid, messages: [
+      { to: 'martin@ex.fr', text: `Bonjour Martin,\n\n${intro}\n${link}`, actionUrl: link },
+      { to: 'durand@ex.fr', text: 'Bonjour Durand,', actionUrl: 'https://pirate.example/actions/x' },
+    ] }))
+    const [first, second] = sendMail.mock.calls.map(c => c[0])
+    expect(first.text).toContain(link)
+    expect(first.html).toContain('Répondre sur mes actions')
+    expect(first.html).toContain(link)
+    expect(first.html).not.toContain(intro)
+    expect(second.html).not.toContain('Répondre sur mes actions')
+    expect(second.html).not.toContain('pirate.example')
+  })
+
   it('copie dans la boîte ID Maîtrise seulement si demandée (copyMe: true)', async () => {
     const res = await POST(req({ ...valid, copyMe: true }))
     expect(res.status).toBe(200)

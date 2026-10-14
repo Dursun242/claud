@@ -1,5 +1,5 @@
 // Base Supabase en mémoire pour les tests de routes (service role) :
-// tables (select / insert / update / delete, filtres eq / gt / in / is /
+// tables (select / insert / update / delete, filtres eq / neq / gt / gte / lte / in / is /
 // not is / ilike, comptage { count, head },
 // order, limit, single, maybeSingle) et stockage (URL de dépôt signée,
 // download, remove, URL signée). Pas un test : utilitaire.
@@ -14,7 +14,10 @@ export function memoryDb(seed = {}, { errors = {} } = {}) {
     const rows = () => (tables[table] ||= [])
     const match = (r) => st.filters.every(([op, k, v]) => (
       op === 'eq' ? r[k] === v
+        : op === 'neq' ? r[k] !== v
         : op === 'gt' ? String(r[k] ?? '') > String(v)
+        : op === 'gte' ? String(r[k] ?? '') >= String(v)
+        : op === 'lte' ? String(r[k] ?? '') <= String(v)
           : op === 'in' ? v.includes(r[k])
             : op === 'is' ? (r[k] ?? null) === v
               : op === 'notis' ? (r[k] ?? null) !== v
@@ -61,7 +64,10 @@ export function memoryDb(seed = {}, { errors = {} } = {}) {
       update(v) { st.op = 'update'; st.values = v; return b },
       delete() { st.op = 'delete'; return b },
       eq(k, v) { st.filters.push(['eq', k, v]); return b },
+      neq(k, v) { st.filters.push(['neq', k, v]); return b },
       gt(k, v) { st.filters.push(['gt', k, v]); return b },
+      gte(k, v) { st.filters.push(['gte', k, v]); return b },
+      lte(k, v) { st.filters.push(['lte', k, v]); return b },
       in(k, v) { st.filters.push(['in', k, v]); return b },
       is(k, v) { st.filters.push(['is', k, v]); return b },
       not(k, op, v) { if (op === 'is') st.filters.push(['notis', k, v]); return b },

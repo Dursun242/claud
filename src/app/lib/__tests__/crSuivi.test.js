@@ -4,6 +4,7 @@ import {
   guessEntreprise, GENERAL, lotOf, lotKey, rowAiId, similarText, withComplement, mergeText,
   escalatePriority, priorityLabel, crTaskStats, chantierIntervenants, carryIntervenants,
   actionsFor, crMailText, crMailSubject, defaultNextMeeting, defaultCrDate, isoWeek, fmtLongDate,
+  formalTitle, relanceLevel, crChecks, markConvoques, absences, absenceText, crAgenda,
 } from '../crSuivi'
 
 const CH = 'ch-1'
@@ -210,12 +211,18 @@ describe('mails', () => {
     expect(text).toContain('Bonjour Martin,')
     expect(text).toContain('mercredi 7 octobre 2026 à 14h00')
     expect(text).toContain('lieu : Base vie')
-    expect(text).toContain('Reprise enduit — échéance 25/09/2026 — RELANCE n°2 — URGENT')
+    expect(text).toContain('Reprise enduit — échéance 25/09/2026 — DERNIER RAPPEL AVANT MISE EN DEMEURE — URGENT')
     expect(text).toContain('Pose tableau — échéance 10/10/2026')
     expect(text).not.toContain('Soldé')
     expect(text).not.toContain('Autre')
     expect(text).toContain('Les points relancés étaient attendus')
     expect(actionsFor(cr.taches_suivi, { nom: 'Durand' })).toHaveLength(1)
+  })
+  it('lien de réponse sous les actions', () => {
+    const link = 'https://app.test/actions/abc'
+    const text = crMailText({ intro: 'Ci-joint.', cr, it: { nom: 'Martin', societe: 'Martin Élec' }, link })
+    expect(text).toContain(`sans créer de compte :\n${link}`)
+    expect(crMailText({ intro: 'Ci-joint.', cr, it: { nom: 'BET' }, link })).not.toContain(link)
   })
   it('non convoqué et sans action : ni convocation ni liste', () => {
     const text = crMailText({ intro: 'Ci-joint.', cr, it: { nom: 'BET', convoque: false } })
@@ -366,5 +373,118 @@ describe('dictée en plusieurs fois : compléter plutôt que doubler', () => {
     expect(similarText('Nettoyer le chantier', 'Nettoyer le chantier avant vendredi')).toBe(true)
     expect(withComplement('Nettoyer le chantier', 'nettoyer le chantier')).toBe('Nettoyer le chantier')
     expect(mergeText('', 'Texte')).toBe('Texte')
+  })
+})
+
+describe('rédaction : ton des relances', () => {
+  it('le ton se durcit à chaque relance', () => {
+    const r = { titre: 'Reprendre l’enduit du séjour', entreprise: 'Leroy', suivi: 'relance', rappels: 1 }
+    expect(relanceLevel(r)).toBe(1)
+    expect(formalTitle(r)).toBe('Il est rappelé à l\'entreprise Leroy de reprendre l’enduit du séjour.')
+    expect(formalTitle({ ...r, titre: 'Évacuer les gravats', rappels: 1 })).toBe('Il est rappelé à l\'entreprise Leroy d\'évacuer les gravats.')
+    expect(formalTitle({ ...r, rappels: 2 })).toBe('Dernier rappel avant mise en demeure : l\'entreprise Leroy doit reprendre l’enduit du séjour.')
+    expect(formalTitle({ ...r, entreprise: 'SARL Durand', rappels: 3 })).toBe('Dernier rappel avant mise en demeure : SARL Durand doit reprendre l’enduit du séjour.')
+  })
+  it('point non relancé ou sans entreprise', () => {
+    expect(formalTitle({ titre: 'Fournir les échantillons', suivi: 'nouveau', entreprise: 'X' })).toBe('Fournir les échantillons')
+    expect(formalTitle({ titre: 'Fournir les DOE', suivi: 'relance', rappels: 1 })).toBe('Rappel : Fournir les DOE.')
+    expect(formalTitle({ titre: 'VMC à raccorder', suivi: 'relance', rappels: 1, entreprise: 'Air' })).toBe('Rappel à l\'entreprise Air : VMC à raccorder.')
+  })
+})
+
+describe('contrôle avant diffusion', () => {
+  const form = {
+    date: '2026-10-13', prochaine_reunion: { date: '' },
+    intervenants: [{ nom: 'Leroy', societe: 'Leroy Plâtrerie', presence: 'Absent', convoque_prec: true }, { nom: 'Bet', presence: 'Excusé' }],
+  }
+  const rows = [
+    { key: 'a', num: 4, titre: 'Fournir les échantillons', entreprise: '', echeance: '', suivi: 'nouveau', lot: 'Carrelage' },
+    { key: 'b', num: 5, titre: 'Poser le tableau', entreprise: 'Martin', echeance: '2026-10-01', suivi: 'en_cours', lot: 'Électricité' },
+    { key: 'c', num: 6, titre: 'Soldé', entreprise: '', echeance: '', suivi: 'fait', lot: 'Électricité' },
+    { key: 'd', num: 7, titre: 'Relancé', entreprise: 'Martin', echeance: '2026-10-01', suivi: 'relance', lot: 'Électricité' },
+  ]
+  const sections = [
+    { key: lotKey(GENERAL), lot: GENERAL, prevu: null },
+    { key: 'electricite', lot: 'Électricité', prevu: 60, avancement: null },
+    { key: 'carrelage', lot: 'Carrelage', prevu: 20, avancement: 10 },
+  ]
+  it('pose les questions qui manquent', () => {
+    const out = crChecks({ form, rows, sections })
+    const q = out.filter(c => c.type === 'question').map(c => c.text)
+    expect(q).toEqual([
+      'Point n°4 « Fournir les échantillons » : quelle entreprise, pour quand ?',
+      'Point n°5 « Poser le tableau » : échéance dépassée (01/10/2026), à relancer ?',
+      'Électricité : prévu à 60 % au planning, quel avancement ?',
+    ])
+    expect(out.find(c => c.key === 'q:a').anchor).toBe('carrelage')
+  })
+  it('note les absences et l’absence de convocation', () => {
+    const infos = crChecks({ form, rows: [], sections: [] }).filter(c => c.type === 'info').map(c => c.text)
+    expect(infos).toEqual([
+      'Leroy (Leroy Plâtrerie) : absent bien que convoqué (noté au compte rendu).',
+      'Bet : excusé (noté au compte rendu).',
+      'Pas de prochaine réunion : aucune convocation ne sera envoyée.',
+    ])
+    expect(crChecks({ form: { date: '2026-10-13' } }).map(c => c.key)).toContain('presences')
+  })
+  it('absents convoqués au CR précédent', () => {
+    const its = markConvoques([{ nom: 'Martin', societe: 'Martin Élec', presence: 'Absent' }, { nom: 'Durand', presence: 'Absent' }], crs[1])
+    expect(its.map(i => i.convoque_prec)).toEqual([true, false])
+    expect(absences(its).map(absenceText)).toEqual(['Martin (Martin Élec) : absent bien que convoqué', 'Durand : absent'])
+    const text = crMailText({ intro: 'Ci-joint.', cr: {}, it: its[0] })
+    expect(text).toContain('Vous étiez convoqué(e) à cette réunion et n’étiez ni présent(e) ni représenté(e).')
+  })
+  it('les alertes de l’IA s’ajoutent sans doublon', () => {
+    const out = applyAiResult({ sections: [], rows: [], alertes: 'Retard plâtrerie.' }, { alertes: 'Retard plâtrerie. Fissure en façade nord.' })
+    expect(out.alertes).toBe('Retard plâtrerie.\nFissure en façade nord.')
+  })
+})
+
+describe('points évoqués et ordre du jour', () => {
+  it('un point repris n’est pas évoqué tant que personne n’en parle ; l’état est gardé avec le CR', () => {
+    const rows = initialRows({ tasks, chantierId: CH, crDate: '2026-09-30', previous: crs[1] })
+    expect(rows.find(r => r.id === 't-ok').vu).toBe(false)
+    expect(newRow({ crDate: '2026-09-30' }).vu).toBe(true)
+    const out = applyAiResult({ sections: [], rows }, { points_existants: [{ id: 't-ok', etat: 'en_cours', echeance: null, complement: '' }] })
+    expect(out.rows.find(r => r.id === 't-ok').vu).toBe(true)
+    const plan = planCrTasks({ rows: out.rows, crId: 'cr-c', crNumero: 3, chantierId: CH, newId: () => 'n', nextNum: 4 })
+    expect(plan.snapshot.find(r => r.id === 't-late').vu).toBe(false)
+    const again = initialRows({ tasks, chantierId: CH, crDate: '2026-09-30', cr: { id: 'cr-c', taches_suivi: plan.snapshot } })
+    expect(again.find(r => r.id === 't-ok').vu).toBe(true)
+    expect(again.find(r => r.id === 't-late').vu).toBe(false)
+    // Ancien CR sans l'information : considéré comme évoqué
+    expect(initialRows({ tasks, chantierId: CH, crDate: '2026-09-30', cr: { id: 'x', taches_suivi: [{ id: 't-ok', suivi: 'en_cours' }] } })[0].vu).toBe(true)
+  })
+  it('ordre du jour : interventions prévues avant la prochaine réunion, OS annulés ignorés', () => {
+    const groups = crAgenda({
+      rows: [], sections: [{ key: 'plomberie', lot: 'Plomberie' }], chantierId: CH, crDate: '2026-09-30', nextDate: '2026-10-07',
+      previous: { date: '2026-09-23' },
+      ordresService: [
+        { id: 'a', chantier_id: CH, numero: 'OS-1', artisan_nom: 'Durand', artisan_specialite: 'Plomberie', date_intervention: '2026-10-05' },
+        { id: 'b', chantier_id: CH, numero: 'OS-2', artisan_nom: 'X', date_emission: '2026-09-25', statut: 'Annulé' },
+        { id: 'c', chantier_id: CH, numero: 'OS-3', artisan_nom: 'Y', date_intervention: '2026-10-20' },
+      ],
+    })
+    expect(groups).toEqual([{ key: 'os', title: 'Ordres de service', items: [
+      { key: 'int:a', anchor: 'plomberie', text: 'Intervention prévue le 05/10/2026 : OS-1 · Durand · Plomberie' },
+    ] }])
+  })
+})
+
+describe('réponses des entreprises dans le CR', () => {
+  const t = (rep) => [{ id: 'r1', chantier_id: CH, titre: 'Reprendre l’enduit', entreprise: 'Leroy', statut: 'En cours', echeance: '2026-09-25', num_point: 9, reponse_entreprise: rep }]
+  it('nouveau CR : réponse arrivée depuis le CR précédent appliquée, à l’ordre du jour', () => {
+    const rows = initialRows({ tasks: t({ type: 'fait', le: '2026-09-28T10:00:00Z', photo: 'chantier/ch/r.jpg' }), chantierId: CH, crDate: '2026-09-30', previous: crs[1] })
+    expect(rows[0]).toMatchObject({ suivi: 'fait', initialSuivi: 'relance', reponseRecente: true, photos: [{ path: 'chantier/ch/r.jpg' }] })
+    const agenda = crAgenda({ rows, sections: [], chantierId: CH, crDate: '2026-09-30' })
+    expect(agenda[0]).toMatchObject({ key: 'reponses', items: [{ text: 'n°9 Reprendre l’enduit · Leroy : Fait' }] })
+    // Réponse plus ancienne que le CR précédent : déjà traitée
+    expect(initialRows({ tasks: t({ type: 'fait', le: '2026-09-20T10:00:00Z' }), chantierId: CH, crDate: '2026-09-30', previous: crs[1] })[0].suivi).toBe('relance')
+  })
+  it('désaccord : point inchangé, question avant diffusion', () => {
+    const rows = initialRows({ tasks: t({ type: 'desaccord', commentaire: 'Pas notre lot', le: '2026-09-28T10:00:00Z' }), chantierId: CH, crDate: '2026-09-30', previous: crs[1] })
+    expect(rows[0].suivi).toBe('relance')
+    const q = crChecks({ form: { date: '2026-09-30', intervenants: [{ nom: 'X' }] }, rows }).map(c => c.text)
+    expect(q[0]).toBe('Leroy conteste le point n°9 « Reprendre l’enduit » : Désaccord — « Pas notre lot ». À trancher.')
   })
 })

@@ -9,6 +9,7 @@
 // - texte des mails (CR + convocation + actions de chaque entreprise).
 
 import { addDaysISO } from './today'
+import { applyReponse, isRecentReponse, reponseText, linkParagraph } from './crReponse'
 
 const day = (v) => (v ? String(v).slice(0, 10) : '')
 const chOf = (x) => x?.chantierId || x?.chantier_id || null
@@ -87,6 +88,10 @@ const rowFromTask = (t, suivi) => ({
   rappels: Number(t.nb_rappels) || 0, origineNumero: t.cr_origine_numero ?? null,
   num: t.num_point ?? null, photos: Array.isArray(t.photos) ? t.photos : [],
   suivi, initialSuivi: suivi,
+  // Évoqué pendant la réunion (modifié à la main ou repris par l'IA)
+  vu: false,
+  // Réponse de l'entreprise par son lien (migration 046)
+  reponse: t.reponse_entreprise || null,
 })
 
 export const sortRows = (rows) => [...rows].sort((a, b) =>
@@ -107,28 +112,35 @@ export function nextPointNumber(tasks = [], chantierId) {
  *   tâche si elle existe encore, état de la photo).
  * - Nouveau CR : points ouverts du chantier (en retard → « À relancer »,
  *   sinon « En cours ») + points soldés depuis le CR précédent (« Fait »).
+ *   Une réponse de l'entreprise arrivée depuis le CR précédent pré-remplit
+ *   le point (fait, nouvelle échéance) : lib/crReponse.applyReponse.
  */
 export function initialRows({ tasks = [], chantierId, crDate, cr = null, previous = null }) {
   const byId = new Map(tasks.map(t => [t.id, t]))
   const snap = Array.isArray(cr?.taches_suivi) ? cr.taches_suivi : []
+  const since = previous?.date || null
   if (cr?.id && snap.length) {
     return snap.map((s, i) => {
       const t = s.id && byId.get(s.id)
-      if (t) return { ...rowFromTask(t, s.suivi || 'en_cours'), origineNumero: t.cr_origine_numero ?? s.origine ?? null, num: t.num_point ?? s.num ?? null }
+      if (t) {
+        const row = { ...rowFromTask(t, s.suivi || 'en_cours'), origineNumero: t.cr_origine_numero ?? s.origine ?? null, num: t.num_point ?? s.num ?? null, vu: s.vu !== false }
+        return { ...row, reponseRecente: isRecentReponse(row.reponse, since) }
+      }
       return {
         key: s.id || `snap-${i}`, id: s.id || null, orig: null, missing: true,
         titre: s.titre || '', entreprise: s.entreprise || '', lot: lotOf(s),
         echeance: day(s.echeance), priorite: s.priorite || 'En cours',
         rappels: Number(s.rappels) || 0, origineNumero: s.origine ?? null, num: s.num ?? null,
         photos: Array.isArray(s.photos) ? s.photos : [],
-        suivi: s.suivi || 'en_cours', initialSuivi: s.suivi || 'en_cours',
+        suivi: s.suivi || 'en_cours', initialSuivi: s.suivi || 'en_cours', vu: s.vu !== false,
       }
     })
   }
   if (cr?.id) return []
   const chTasks = tasks.filter(t => chOf(t) === chantierId)
+  // Réponse de l'entreprise arrivée depuis le CR précédent : point pré-rempli
   const open = chTasks.filter(t => t.statut !== 'Terminé')
-    .map(t => rowFromTask(t, daysLate(t.echeance, crDate) > 0 ? 'relance' : 'en_cours'))
+    .map(t => applyReponse(rowFromTask(t, daysLate(t.echeance, crDate) > 0 ? 'relance' : 'en_cours'), since))
   const prevOpen = new Set((previous?.taches_suivi || []).filter(s => s.suivi !== 'fait' && s.id).map(s => s.id))
   const doneSince = chTasks.filter(t => t.statut === 'Terminé' && prevOpen.has(t.id)).map(t => rowFromTask(t, 'fait'))
   return sortRows([...open, ...doneSince])
@@ -143,8 +155,15 @@ export function newRow({ crDate, nextDate, entreprise = '', lot = GENERAL, titre
     key: `new-${newSeq}`, id: null, orig: null, isNew: true,
     titre, entreprise, lot: String(lot || '').trim() || GENERAL,
     echeance: day(echeance) || day(nextDate) || (base ? addDaysISO(base, 7) : ''),
-    priorite, rappels: 0, origineNumero: null, num: null, photos: [], suivi: 'nouveau',
+    priorite, rappels: 0, origineNumero: null, num: null, photos: [], suivi: 'nouveau', vu: true,
   }
+}
+
+/** Nombre de rappels du point une fois ce CR enregistré (relance comptée une fois par CR). */
+export function rappelsApres(row, crId) {
+  const n = Number(row?.rappels) || 0
+  if (row?.suivi !== 'relance' || row.isNew || !row.orig) return n
+  return crId && row.orig.dernier_rappel_cr_id === crId ? n : n + 1
 }
 
 /** Priorité après enregistrement (relance → un cran au-dessus, une seule fois par CR). */
@@ -190,7 +209,7 @@ export function planCrTasks({ rows = [], crId, crNumero, chantierId, newId, next
       snapshot.push({
         id: row.id || null, num: row.num ?? null, titre, entreprise: row.entreprise || '', lot: lotOf(row),
         echeance: day(row.echeance) || null, priorite: row.priorite, statut: null,
-        suivi: row.suivi, rappels: row.rappels || 0, origine: row.origineNumero ?? null, photos,
+        suivi: row.suivi, rappels: row.rappels || 0, origine: row.origineNumero ?? null, photos, vu: row.vu !== false,
       })
       continue
     }
@@ -224,6 +243,8 @@ export function planCrTasks({ rows = [], crId, crNumero, chantierId, newId, next
       lot: lotOf(patch.lot !== undefined ? { lot: patch.lot } : t),
       echeance: (patch.echeance !== undefined ? patch.echeance : day(t.echeance)) || null,
       priorite, statut, suivi: row.suivi, rappels, origine: t.cr_origine_numero ?? row.origineNumero ?? null, photos,
+      vu: row.vu !== false,
+      ...(t.mise_en_demeure_le ? { mise_en_demeure: day(t.mise_en_demeure_le) } : {}),
     })
   }
   return { updates, inserts, snapshot: sortRows(snapshot) }
@@ -409,11 +430,11 @@ const SUIVI_KEYS = ['fait', 'en_cours', 'relance']
 /**
  * Applique la proposition de l'IA (déjà validée par l'utilisateur) :
  * états des points existants, nouveaux points, observations / avancement
- * par lot, résumé et décisions (ajoutés au texte existant). Ce qui existe
+ * par lot, résumé, alertes et décisions (ajoutés au texte existant). Ce qui existe
  * déjà est complété plutôt que doublé : point semblable complété, phrases
  * déjà présentes non répétées.
  */
-export function applyAiResult({ sections = [], rows = [], resume = '', decisions = '' }, result = {}, { crDate, nextDate } = {}) {
+export function applyAiResult({ sections = [], rows = [], resume = '', decisions = '', alertes = '' }, result = {}, { crDate, nextDate } = {}) {
   let outSections = sections.map(s => ({ ...s }))
   const sectionFor = (lot) => {
     const k = lotKey(lot)
@@ -439,6 +460,7 @@ export function applyAiResult({ sections = [], rows = [], resume = '', decisions
       titre: withComplement(r.titre, u.complement),
       suivi: etat,
       echeance: day(u.echeance) || r.echeance,
+      vu: true,
     }
   })
   for (const p of result.nouveaux_points || []) {
@@ -453,6 +475,7 @@ export function applyAiResult({ sections = [], rows = [], resume = '', decisions
         entreprise: r.entreprise || p.entreprise || '',
         echeance: r.echeance || day(p.echeance) || r.echeance,
         priorite: priorityLevel(p.priorite) > priorityLevel(r.priorite) ? p.priorite : r.priorite,
+        vu: true,
       }))
       continue
     }
@@ -466,6 +489,7 @@ export function applyAiResult({ sections = [], rows = [], resume = '', decisions
     sections: outSections, rows: outRows,
     resume: mergeText(resume, result.resume),
     decisions: mergeText(decisions, result.decisions),
+    alertes: mergeText(alertes, result.alertes),
   }
 }
 
@@ -517,10 +541,198 @@ export function carryIntervenants(previous) {
     .map(it => ({ ...toCrIntervenant(it, it), presence: 'Présent', convoque: true }))
 }
 
+/**
+ * Marque les intervenants qui étaient convoqués à cette réunion (convoqués
+ * au CR précédent) : une absence est alors notée « absent bien que
+ * convoqué » dans le PDF et le mail.
+ */
+export function markConvoques(intervenants = [], previous = null) {
+  const keys = new Set((previous?.intervenants || []).filter(it => it && it.convoque !== false)
+    .flatMap(it => [norm(it.nom), norm(it.societe)]).filter(Boolean))
+  return (intervenants || []).map(it => ({ ...it, convoque_prec: keys.has(norm(it.nom)) || keys.has(norm(it.societe)) }))
+}
+
+/** Absents et excusés de la réunion (PDF, contrôle avant diffusion). */
+export function absences(intervenants = []) {
+  return (intervenants || []).filter(it => it && (it.presence === 'Absent' || it.presence === 'Excusé'))
+    .map(it => ({
+      nom: entrepriseOf(it) && entrepriseOf(it) !== it.nom && it.nom ? `${it.nom} (${entrepriseOf(it)})` : (it.nom || entrepriseOf(it)),
+      presence: it.presence,
+      convoque: !!it.convoque_prec,
+    }))
+}
+
+/** Phrase d'une absence : « Leroy (Leroy Plâtrerie) : absent bien que convoqué ». */
+export const absenceText = (a) => `${a.nom} : ${a.presence === 'Excusé' ? 'excusé' : a.convoque ? 'absent bien que convoqué' : 'absent'}`
+
 /** Actions encore ouvertes d'un intervenant (rapprochement par entreprise / nom). */
 export function actionsFor(snapshot = [], it) {
   const keys = new Set([norm(it?.societe), norm(it?.nom)].filter(Boolean))
   return (snapshot || []).filter(r => r.suivi !== 'fait' && keys.has(norm(r.entreprise)))
+}
+
+// ─── Rédaction : ton qui se durcit avec les relances ─────────────────────
+// 1re relance : « Il est rappelé à l'entreprise X de… » ; à partir de la
+// 2e : « Dernier rappel avant mise en demeure » ; à la 3e, le courrier de
+// mise en demeure est proposé (MISE_EN_DEMEURE_RAPPELS).
+export const DERNIER_RAPPEL = 2
+export const MISE_EN_DEMEURE_RAPPELS = 3
+
+const lcFirst = (t) => (/^[A-ZÀ-Ý][a-zà-ÿ]/.test(t) ? t.charAt(0).toLowerCase() + t.slice(1) : t)
+const deVerbe = (t) => (/^[aeiouyhàâäéèêëîïôöùûü]/i.test(t) ? `d'${t}` : `de ${t}`)
+const lEntreprise = (e) => (/^(l'|l’|la |le |les |sarl|sas|eurl|sa |ets|entreprise)/i.test(e) ? e : `l'entreprise ${e}`)
+
+/** Niveau de relance d'un point : 0 (pas relancé), 1 (rappel), 2 (dernier rappel). */
+export function relanceLevel(r) {
+  if (!r || r.suivi !== 'relance') return 0
+  return (Number(r.rappels) || 0) >= DERNIER_RAPPEL ? 2 : 1
+}
+
+/**
+ * Intitulé d'un point tel qu'il est écrit dans le CR et le mail : inchangé,
+ * sauf pour un point relancé dont le ton se durcit à chaque relance.
+ */
+export function formalTitle(r) {
+  const t = String(r?.titre || '').trim().replace(/[.\s]+$/, '')
+  const level = relanceLevel(r)
+  if (!t || !level) return t
+  const ent = String(r.entreprise || '').trim()
+  const head = level === 1 ? 'Rappel' : 'Dernier rappel avant mise en demeure'
+  // Intitulé à l'infinitif (« Reprendre… ») : phrase complète ; sinon le point tel quel
+  const infinitif = /^[a-zà-ÿ'’-]+(er|ir|re)$/i.test(t.split(/\s+/)[0])
+  if (!ent) return `${head} : ${t}.`
+  if (!infinitif) return `${head} à ${lEntreprise(ent)} : ${t}.`
+  return level === 1
+    ? `Il est rappelé à ${lEntreprise(ent)} ${deVerbe(lcFirst(t))}.`
+    : `${head} : ${lEntreprise(ent)} doit ${lcFirst(t)}.`
+}
+
+// ─── Contrôle avant diffusion ────────────────────────────────────────────
+/**
+ * Ce qui manque au CR avant de le diffuser, sous forme de questions :
+ * point repris dont personne n'a parlé (réponses rapides dans `actions`),
+ * action sans entreprise ou sans date, échéance dépassée non relancée, lot
+ * dont l'avancement n'est pas renseigné ou sans nouvelle, présences,
+ * convocation.
+ * `type` : « question » (à compléter) ou « info » (noté, rien à faire).
+ * `anchor` : partie de l'éditeur où corriger.
+ */
+export function crChecks({ form = {}, rows = [], sections = [] } = {}) {
+  const out = []
+  const name = (r) => `${r.num ? `n°${r.num} ` : ''}« ${String(r.titre).trim()} »`
+  for (const r of rows) {
+    if (r.missing || r.suivi === 'fait' || !String(r.titre || '').trim()) continue
+    const anchor = lotKey(lotOf(r))
+    // L'entreprise conteste le point : à trancher en réunion
+    if (r.reponseRecente && r.reponse?.type === 'desaccord') {
+      out.push({ key: `rep:${r.key}`, type: 'question', anchor, text: `${r.entreprise || 'L’entreprise'} conteste le point ${name(r)} : ${reponseText(r.reponse)}. À trancher.` })
+    }
+    // Point repris du CR précédent dont personne n'a parlé : où en est-il ?
+    if (r.vu === false && !r.isNew && r.suivi === r.initialSuivi) {
+      out.push({
+        key: `nv:${r.key}`, type: 'question', anchor, rowKey: r.key,
+        text: `Point ${name(r)}${r.entreprise ? ` (${r.entreprise})` : ''} n'a pas été évoqué : où en est-il ?`,
+        actions: [['fait', 'Fait'], ['en_cours', 'En cours'], ['relance', 'À relancer']],
+      })
+      continue
+    }
+    const missing = [!String(r.entreprise || '').trim() && 'quelle entreprise', !day(r.echeance) && 'pour quand'].filter(Boolean)
+    if (missing.length) out.push({ key: `q:${r.key}`, type: 'question', anchor, text: `Point ${name(r)} : ${missing.join(', ')} ?` })
+    else if (r.suivi === 'en_cours' && daysLate(r.echeance, form.date) > 0) {
+      out.push({ key: `late:${r.key}`, type: 'question', anchor, text: `Point ${name(r)} : échéance dépassée (${fmtShort(r.echeance)}), à relancer ?` })
+    }
+  }
+  for (const s of sections) {
+    if (s.key === lotKey(GENERAL) || s.prevu == null) continue
+    if (s.avancement == null || s.avancement === '') {
+      out.push({ key: `av:${s.key}`, type: 'question', anchor: s.key, text: `${s.lot} : prévu à ${s.prevu} % au planning, quel avancement ?` })
+    } else if (s.prevu > 0 && Number(s.avancement) < 100 && s.avancement === s.avancement_prec && !String(s.observations || '').trim()
+      && !rows.some(r => r.vu !== false && lotKey(lotOf(r)) === s.key)) {
+      out.push({ key: `nv-lot:${s.key}`, type: 'question', anchor: s.key, text: `${s.lot} : rien de noté (avancement inchangé à ${s.avancement} %, prévu ${s.prevu} %).` })
+    }
+  }
+  const its = form.intervenants || []
+  if (!its.length) out.push({ key: 'presences', type: 'question', anchor: 'presences', text: 'Aucun intervenant : coche les présents et les absents.' })
+  for (const a of absences(its)) {
+    out.push({ key: `abs:${a.nom}`, type: 'info', anchor: 'presences', text: `${absenceText(a)} (noté au compte rendu).` })
+  }
+  if (!day(form.prochaine_reunion?.date)) {
+    out.push({ key: 'next', type: 'info', anchor: 'cloture', text: 'Pas de prochaine réunion : aucune convocation ne sera envoyée.' })
+  }
+  return out
+}
+
+// ─── Ordre du jour ───────────────────────────────────────────────────────
+/**
+ * Ordre du jour préparé automatiquement pour la réunion, par ordre
+ * d'importance : réponses des entreprises reçues depuis le CR précédent
+ * (lien de réponse), points en retard (les plus relancés d'abord), lots en
+ * retard sur le planning, ordres de service émis depuis le CR précédent et
+ * interventions prévues d'ici la prochaine réunion, documents des
+ * entreprises (lib/conformite.conformiteItems, passés dans `documents`).
+ * @returns {Array<{ key, title, items: Array<{ key, text, anchor, tone? }> }>}
+ */
+export function crAgenda({ rows = [], sections = [], chantierId, crDate, nextDate, previous = null, ordresService = [], documents = [] } = {}) {
+  const groups = []
+  const answered = rows.filter(r => r.reponseRecente && r.reponse)
+  if (answered.length) {
+    groups.push({
+      key: 'reponses', title: 'Réponses des entreprises',
+      items: answered.map(r => ({
+        key: `rep:${r.key}`, anchor: lotKey(lotOf(r)), tone: r.reponse.type === 'desaccord' ? 'danger' : undefined,
+        text: `${r.num ? `n°${r.num} ` : ''}${r.titre} · ${r.entreprise || r.reponse.entreprise || ''} : ${reponseText(r.reponse)}`,
+      })),
+    })
+  }
+  const sectionFor = (lot) => {
+    const k = lotKey(lot)
+    return sections.find(s => s.key === k)
+      || sections.find(s => s.key !== lotKey(GENERAL) && k && (s.key.includes(k) || k.includes(s.key)))
+  }
+  const late = rows.filter(r => !r.missing && r.suivi !== 'fait' && !r.isNew && (r.suivi === 'relance' || daysLate(r.echeance, crDate) > 0))
+    .sort((a, b) => (b.rappels || 0) - (a.rappels || 0) || daysLate(b.echeance, crDate) - daysLate(a.echeance, crDate))
+  if (late.length) {
+    groups.push({
+      key: 'retards', title: 'Points en retard',
+      items: late.map(r => {
+        const j = daysLate(r.echeance, crDate)
+        return {
+          key: `r:${r.key}`, anchor: lotKey(lotOf(r)), tone: (r.rappels || 0) >= DERNIER_RAPPEL ? 'danger' : 'warning',
+          text: [`${r.num ? `n°${r.num} ` : ''}${r.titre}`, r.entreprise, j ? `${j} j de retard` : null,
+            r.rappels ? `déjà relancé ${r.rappels} fois` : null].filter(Boolean).join(' · '),
+        }
+      }),
+    })
+  }
+  const planning = sections.filter(s => s.key !== lotKey(GENERAL) && s.prevu != null && Number(s.avancement_prec ?? s.avancement ?? 0) < 100
+    && s.prevu - Number(s.avancement_prec ?? s.avancement ?? 0) >= 10)
+  if (planning.length) {
+    groups.push({
+      key: 'planning', title: 'Lots en retard sur le planning',
+      items: planning.map(s => ({
+        key: `p:${s.key}`, anchor: s.key, tone: 'warning',
+        text: `${s.lot}${s.entreprise ? ` (${s.entreprise})` : ''} : prévu ${s.prevu} %, ${Number(s.avancement_prec ?? s.avancement ?? 0)} % au dernier CR`,
+      })),
+    })
+  }
+  const since = day(previous?.date) || (day(crDate) ? addDaysISO(day(crDate), -30) : '')
+  const until = day(nextDate) || (day(crDate) ? addDaysISO(day(crDate), 14) : '')
+  const os = ordresService.filter(o => o.chantier_id === chantierId && o.statut !== 'Annulé')
+  const fmtOs = (o) => [o.numero, o.artisan_nom, o.artisan_specialite].filter(Boolean).join(' · ')
+  const osItems = [
+    ...os.filter(o => day(o.date_emission) && day(o.date_emission) > since && day(o.date_emission) <= (day(crDate) || '9999'))
+      .map(o => ({ key: `os:${o.id || o.numero}`, anchor: sectionFor(o.artisan_specialite)?.key || lotKey(GENERAL), text: `Émis le ${fmtShort(o.date_emission)} : ${fmtOs(o)}` })),
+    ...os.filter(o => day(o.date_intervention) && day(o.date_intervention) >= day(crDate) && day(o.date_intervention) <= until)
+      .map(o => ({ key: `int:${o.id || o.numero}`, anchor: sectionFor(o.artisan_specialite)?.key || lotKey(GENERAL), text: `Intervention prévue le ${fmtShort(o.date_intervention)} : ${fmtOs(o)}` })),
+  ]
+  if (osItems.length) groups.push({ key: 'os', title: 'Ordres de service', items: osItems })
+  if (documents.length) {
+    groups.push({
+      key: 'documents', title: 'Documents des entreprises',
+      items: documents.map(d => ({ key: d.id, anchor: 'presences', tone: d.score >= 58 ? 'danger' : 'warning', text: `${d.title.replace(/^(Documents|Entreprise) — /, '')} : ${d.reason}` })),
+    })
+  }
+  return groups
 }
 
 // ─── Prochaine réunion ───────────────────────────────────────────────────
@@ -577,9 +789,15 @@ export function crMailIntro(cr, chantier) {
   return `Veuillez trouver ci-joint le compte rendu n°${cr?.numero || ''} de la réunion de chantier du ${fmtShort(cr?.date)} (${chantier?.nom || 'chantier'}).`
 }
 
-/** Corps complet du mail d'un destinataire : message + convocation + ses actions. */
-export function crMailText({ intro, cr, it, company = {} }) {
+/**
+ * Corps complet du mail d'un destinataire : message + convocation + ses
+ * actions, avec le lien pour y répondre (`link`, page /actions/<jeton>).
+ */
+export function crMailText({ intro, cr, it, company = {}, link = '' }) {
   const parts = [`Bonjour${it?.nom ? ` ${it.nom}` : ''},`, String(intro || '').trim()]
+  if (it?.presence === 'Absent' && it?.convoque_prec) {
+    parts.push('Vous étiez convoqué(e) à cette réunion et n’étiez ni présent(e) ni représenté(e).')
+  }
   const next = cr?.prochaine_reunion
   if (next?.date && it?.convoque !== false) {
     parts.push([
@@ -592,15 +810,16 @@ export function crMailText({ intro, cr, it, company = {} }) {
   const actions = actionsFor(cr?.taches_suivi, it)
   if (actions.length) {
     const lines = actions.map(a => {
-      const late = a.suivi === 'relance'
-      return `  • ${a.titre}${a.echeance ? ` — échéance ${fmtShort(a.echeance)}` : ''}`
-        + (late ? ` — RELANCE${a.rappels > 1 ? ` n°${a.rappels}` : ''}` : '')
+      const level = relanceLevel(a)
+      const tag = level === 2 ? ' — DERNIER RAPPEL AVANT MISE EN DEMEURE' : level === 1 ? ` — RELANCE${a.rappels > 1 ? ` n°${a.rappels}` : ''}` : ''
+      return `  • ${a.titre}${a.echeance ? ` — échéance ${fmtShort(a.echeance)}` : ''}${tag}`
         + (priorityLevel(a.priorite) === 2 ? ' — URGENT' : '')
     })
     parts.push(['Actions à votre charge :', ...lines].join('\n'))
     if (actions.some(a => a.suivi === 'relance')) {
       parts.push('Les points relancés étaient attendus : merci de les traiter avant la prochaine réunion.')
     }
+    parts.push(linkParagraph(link))
   }
   parts.push('Sans remarque de votre part sous 8 jours, ce compte rendu est réputé approuvé.')
   parts.push(`Cordialement,\n${company.nom || ''}`.trim())

@@ -163,7 +163,7 @@ function ConfirmDialog({ state, onResolve }) {
               {title}
             </h3>
             {message && (
-              <p id="confirm-message" style={{ margin: '6px 0 0', fontSize: 13, color: 'var(--label-secondary)', lineHeight: 1.5 }}>
+              <p id="confirm-message" style={{ margin: '6px 0 0', fontSize: 13, color: 'var(--label-secondary)', lineHeight: 1.5, whiteSpace: 'pre-line' }}>
                 {message}
               </p>
             )}

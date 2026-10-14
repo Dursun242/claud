@@ -740,7 +740,7 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
         </div>
       </Modal>
 
-      {crModal && <CREditor open={!!crModal} initial={crModal?.initial} data={data} m={m} lockChantier
+      {crModal && <CREditor open={!!crModal} initial={crModal?.initial} data={data} m={m} lockChantier conformite={conformite}
         onClose={()=>setCrModal(null)}
         onSaved={async (cr, { send }) => { setCrModal(null); await reload(); if (send) setSendCr(cr); }} />}
       {sendCr && <CRSendModal cr={sendCr} chantier={ch} onClose={()=>setSendCr(null)}

@@ -1,12 +1,15 @@
 'use client'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useToast } from '../../contexts/ToastContext'
+import { useOptionalConfirm } from '../../contexts/ConfirmContext'
 import { useCrEditor } from '../../hooks/useCrEditor'
 import { useDictation } from '../../hooks/useDictation'
 import { useLeaveGuard } from '../../hooks/useLeaveGuard'
 import {
-  chantierIntervenants, entrepriseOf, lotKey, crTaskStats, aiContext, globalProgress, rowAiId,
+  chantierIntervenants, entrepriseOf, lotKey, crTaskStats, aiContext, globalProgress, rowAiId, crChecks, crAgenda, rappelsApres, lotOf,
 } from '../../lib/crSuivi'
+import { miseEnDemeureCandidates, pointsEnSouffrance } from '../../lib/miseEnDemeure'
+import { conformiteItems } from '../../lib/conformite'
 import { pointsBySection } from '../../lib/crEditor'
 import { loadCrImages } from '../../lib/crPhotos'
 import { card, field, label, ghostBtn, NAVY } from './crStyles'
@@ -15,6 +18,9 @@ import CRLotSection from './CRLotSection'
 import CRDictationPanel from './CRDictationPanel'
 import MicButton from './MicButton'
 import CRLivePreview from './CRLivePreview'
+import CRChecksPanel from './CRChecksPanel'
+import CRAgenda from './CRAgenda'
+import CRMiseEnDemeureModal from './CRMiseEnDemeureModal'
 
 const fmtDate = (iso) => (iso ? String(iso).slice(0, 10).split('-').reverse().join('/') : '')
 const fmtTime = (ts) => new Date(ts).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
@@ -29,11 +35,17 @@ const readSplit = () => { try { return localStorage.getItem(SPLIT_KEY) === '1' }
  * - Mode « Rédaction » (bureau) : tout sur une page, sommaire à gauche.
  * - Aperçu du PDF à côté de la saisie (écran partagé), mis à jour pendant
  *   la dictée ; sur téléphone, bascule entre la saisie et l'aperçu.
+ * - Ordre du jour préparé automatiquement ; avant diffusion, ce qui manque
+ *   (points non évoqués, action sans entreprise ou sans date…).
+ * - Point relancé 3 fois sans effet : courrier de mise en demeure proposé.
  * Le brouillon est gardé sur l'appareil pendant la saisie (hors ligne
  * compris). `onSaved(cr, { send })` après enregistrement.
+ * `conformite` (facultatif, useConformite) : documents des entreprises à
+ * l'ordre du jour.
  */
-export default function CREditor({ open, initial, data, onClose, onSaved, lockChantier = false, m }) {
+export default function CREditor({ open, initial, data, onClose, onSaved, lockChantier = false, m, conformite = null }) {
   const { addToast } = useToast()
+  const confirm = useOptionalConfirm()
   const ed = useCrEditor({ open, initial, data })
   const dictation = useDictation({ onError: (msg) => addToast(msg, 'warning') })
   useLeaveGuard(open)
@@ -45,6 +57,8 @@ export default function CREditor({ open, initial, data, onClose, onSaved, lockCh
   const [previewing, setPreviewing] = useState(false)
   const [error, setError] = useState('')
   const [newLot, setNewLot] = useState('')
+  // Courrier de mise en demeure ouvert pour cette entreprise
+  const [medFor, setMedFor] = useState(null)
   // Aperçu du PDF à côté (choix gardé sur l'appareil)
   const [split, setSplitState] = useState(readSplit)
   const setSplit = (v) => {
@@ -84,9 +98,34 @@ export default function CREditor({ open, initial, data, onClose, onSaved, lockCh
   const rowsById = useMemo(() => new Map(rows.filter(r => r.id || r.key).map(r => [rowAiId(r), r])), [rows])
   const stats = crTaskStats(rows)
   const progress = globalProgress(sections)
+  // Rappels comptés comme après l'enregistrement : 3e relance → mise en demeure proposée
+  const rowsApres = useMemo(() => rows.map(r => ({ ...r, rappels: rappelsApres(r, initial?.id || null) })), [rows, initial?.id])
+  const medCandidates = useMemo(() => miseEnDemeureCandidates(rowsApres)
+    .filter(c => c.points.some(p => !p.orig?.mise_en_demeure_le)), [rowsApres])
+  const medPoints = useMemo(() => (medFor ? pointsEnSouffrance(rowsApres, medFor).filter(p => p.id) : []), [medFor, rowsApres])
+  // Ce qui manque avant diffusion (questions) et ce qui sera noté (infos)
+  const checks = useMemo(() => [
+    ...crChecks({ form: st?.form || {}, rows, sections }),
+    ...medCandidates.map(c => ({
+      key: `med:${c.entreprise}`, type: 'info', anchor: lotKey(lotOf(c.points[0] || {})), med: c.entreprise,
+      text: `${c.entreprise} : relancé 3 fois sans effet, place au courrier de mise en demeure.`,
+    })),
+  ], [st?.form, rows, sections, medCandidates])
+  const questions = checks.filter(c => c.type === 'question').length
+  // Ordre du jour : retards, planning, OS, documents des entreprises du chantier
+  const documents = useMemo(() => {
+    if (!conformite?.docs || conformite.missingMigration) return []
+    const ids = new Set(available.map(a => a.id).filter(Boolean))
+    return conformiteItems({ contacts: data.contacts || [], docs: conformite.docs, activeIds: ids, today: conformite.today || form.date, legalChecks: conformite.legal || [] })
+  }, [conformite, available, data.contacts, form.date])
+  const agenda = useMemo(() => crAgenda({
+    rows, sections, chantierId: form.chantierId, crDate: form.date, nextDate: next.date,
+    previous: st?.previous, ordresService: data.ordresService || [], documents,
+  }), [rows, sections, form.chantierId, form.date, next.date, st?.previous, data.ordresService, documents])
 
   const steps = useMemo(() => [
     { id: 'presences', label: 'Présences', anchor: 'presences' },
+    { id: 'agenda', label: 'Ordre du jour', anchor: 'agenda' },
     { id: 'dictee', label: 'Dictée + IA', anchor: 'dictee' },
     ...sections.map(s => ({ id: `lot:${s.key}`, label: s.lot, anchor: s.key, section: s })),
     { id: 'cloture', label: 'Synthèse et convocation', anchor: 'cloture' },
@@ -94,6 +133,11 @@ export default function CREditor({ open, initial, data, onClose, onSaved, lockCh
   const current = steps[Math.min(step, steps.length - 1)]
 
   if (!open || !st) return null
+
+  const goToAnchor = (anchor) => {
+    const i = steps.findIndex(s => s.anchor === anchor)
+    if (i >= 0) goTo(i)
+  }
 
   const goTo = (i) => {
     if (mode === 'reunion') { setStep(i); window.scrollTo?.({ top: 0 }) }
@@ -112,10 +156,21 @@ export default function CREditor({ open, initial, data, onClose, onSaved, lockCh
     const err = validate()
     setError(err)
     if (err) return
+    if (send && questions && confirm) {
+      const ok = await confirm({
+        title: `${questions} point${questions > 1 ? 's' : ''} à vérifier`,
+        message: checks.filter(c => c.type === 'question').slice(0, 6).map(c => `• ${c.text}`).join('\n')
+          + '\n\nUn compte rendu complet (qui, quoi, pour quand) protège en cas de retard ou de litige.',
+        confirmLabel: 'Diffuser quand même',
+        cancelLabel: 'Compléter',
+      })
+      if (!ok) { goToAnchor(checks.find(c => c.type === 'question')?.anchor); return }
+    }
     dictation.stop()
     setSaving(true)
     try {
       const res = await ed.save({ statut: form.statut === 'Diffusé' ? 'Diffusé' : 'Brouillon' })
+      if (res.alertesMissing) addToast('CR enregistré, mais les alertes demandent la migration 046 (Supabase) pour être gardées.', 'warning')
       if (res.notesMissing) addToast('CR enregistré, mais les notes de dictée demandent la migration 045 (Supabase) pour être gardées.', 'warning')
       if (res.migrationMissing) addToast('CR enregistré, mais le suivi des points, les lots et la convocation demandent la migration 033 (Supabase).', 'warning')
       if (res.failures.length) addToast(`Points non enregistrés : ${res.failures.join(' ; ')}`, 'error')
@@ -168,6 +223,7 @@ export default function CREditor({ open, initial, data, onClose, onSaved, lockCh
         </section>
       )
     }
+    if (s.id === 'agenda') return <CRAgenda key="agenda" groups={agenda} onGo={goToAnchor} />
     if (s.id === 'dictee') {
       return (
         <CRDictationPanel key="dictee" notes={st.notes} notesRangees={st.notesRangees} setNotes={ed.setNotes}
@@ -182,13 +238,18 @@ export default function CREditor({ open, initial, data, onClose, onSaved, lockCh
           crId={initial?.id || null} crDate={form.date} lots={lots} entreprisesListId={ENTREPRISES_LIST}
           dictation={dictation} m={m}
           onSection={(p) => ed.updateSection(sec.key, p)} onRow={ed.updateRow} onRemoveRow={ed.removeRow}
-          onAddRow={() => ed.addRow(sec.lot)} />
+          onAddRow={() => ed.addRow(sec.lot)} onMiseEnDemeure={setMedFor} />
       )
     }
     return (
       <section key="cloture" id="cr-section-cloture" aria-label="Synthèse et convocation" style={{ ...card, scrollMarginTop: 120 }}>
         <h3 style={{ margin: '0 0 10px', fontSize: 17 }}>Synthèse et convocation</h3>
-        {[['resume', 'Synthèse de la réunion', 'Points marquants, état général du chantier…'], ['decisions', 'Décisions', 'Décisions prises pendant la réunion…']].map(([k, title, ph]) => (
+        <div style={{ marginBottom: 12 }}><CRChecksPanel checks={checks} onGo={goToAnchor} onRow={ed.updateRow} onMiseEnDemeure={setMedFor} /></div>
+        {[
+          ['resume', 'Synthèse de la réunion', 'Points marquants, état général du chantier…'],
+          ['alertes', 'Alertes : retards, non-conformités, risques', 'Ex : Retard de 2 semaines du lot plâtrerie, imputable à l’entreprise X : décale la pose du carrelage.'],
+          ['decisions', 'Décisions', 'Décisions prises pendant la réunion, par qui, avec leur impact (coût, délai)…'],
+        ].map(([k, title, ph]) => (
           <div key={k} style={{ marginBottom: 12 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
               <span style={label}>{title}</span>
@@ -244,6 +305,13 @@ export default function CREditor({ open, initial, data, onClose, onSaved, lockCh
     <div role="dialog" aria-modal="true" aria-label={ed.isEdit ? `Compte rendu n°${form.numero}` : 'Nouveau compte rendu'}
       style={{ position: 'fixed', inset: 0, zIndex: 1200, background: 'var(--grouped-bg)', overflowY: 'auto', overscrollBehavior: 'contain' }}>
       <datalist id={ENTREPRISES_LIST}>{entreprises.map(e => <option key={e} value={e} />)}</datalist>
+      <CRMiseEnDemeureModal open={!!medFor} entreprise={medFor || ''} chantier={chantier} contacts={data.contacts || []}
+        points={medPoints}
+        onClose={() => setMedFor(null)}
+        onDone={(ids, date) => ids.forEach(id => {
+          const r = rows.find(x => x.id === id)
+          if (r) ed.updateRow(r.key, (x) => ({ orig: x.orig ? { ...x.orig, mise_en_demeure_le: date } : x.orig }))
+        })} />
 
       {/* En-tête */}
       <header ref={headerRef} style={{ position: 'sticky', top: 0, zIndex: 2, background: '#fff', borderBottom: '1px solid var(--separator)', padding: m ? '8px 12px' : '10px 20px' }}>
@@ -257,6 +325,12 @@ export default function CREditor({ open, initial, data, onClose, onSaved, lockCh
             <div style={{ fontSize: 11, color: 'var(--label-secondary)', display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
               <span style={{ fontWeight: 700, color: statusBadge.color, background: statusBadge.bg, borderRadius: 4, padding: '0 6px' }}>{statusBadge.text}</span>
               {stats.total > 0 && <span>{stats.total} points · {stats.relance} à relancer · {stats.fait} faits</span>}
+              {questions > 0 && (
+                <button type="button" onClick={() => goToAnchor('cloture')}
+                  style={{ border: 'none', background: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 11, fontWeight: 700, color: 'var(--orange-deep)' }}>
+                  {questions} à vérifier
+                </button>
+              )}
               {progress != null && <span>avancement global {progress} %</span>}
               {ed.localSavedAt && <span title="Brouillon enregistré sur cet appareil (utilisable hors ligne)">✓ sur l&apos;appareil à {fmtTime(ed.localSavedAt)}</span>}
             </div>

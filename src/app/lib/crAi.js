@@ -10,6 +10,7 @@ export const CR_AI_SCHEMA = {
   type: 'object',
   properties: {
     resume: { type: 'string' },
+    alertes: { type: 'string' },
     decisions: { type: 'string' },
     lots: {
       type: 'array',
@@ -54,7 +55,7 @@ export const CR_AI_SCHEMA = {
       },
     },
   },
-  required: ['resume', 'decisions', 'lots', 'points_existants', 'nouveaux_points'],
+  required: ['resume', 'alertes', 'decisions', 'lots', 'points_existants', 'nouveaux_points'],
   additionalProperties: false,
 }
 
@@ -66,6 +67,7 @@ export function normalizeCrAi(json, ids) {
   const known = new Set(ids)
   return {
     resume: str(json?.resume, 3000),
+    alertes: str(json?.alertes, 3000),
     decisions: str(json?.decisions, 3000),
     lots: (Array.isArray(json?.lots) ? json.lots : []).slice(0, 40)
       .map(l => {

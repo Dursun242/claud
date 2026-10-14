@@ -8,7 +8,7 @@ import { smtpConfig, sendMail } from './mailer'
 
 export const fmtEur = (n) => `${(Number(n) || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`
 
-export async function notifyTeam(admin, { devisId, title, body, mailLines = [], attachments }, log) {
+export async function notifyTeam(admin, { devisId, title, body, mailLines = [], attachments, entityType = 'devis', chantierId = null, targetTab = 'crm' }, log) {
   try {
     const { data: staff } = await admin.from('authorized_users').select('email, role, actif')
     const emails = [...new Set((staff || [])
@@ -16,8 +16,8 @@ export async function notifyTeam(admin, { devisId, title, body, mailLines = [], 
       .map(u => String(u.email).trim().toLowerCase()))]
     if (emails.length) {
       const { error } = await admin.from('notifications').insert(emails.map(recipient_email => ({
-        recipient_email, actor_email: null, kind: 'update', entity_type: 'devis', entity_id: devisId,
-        chantier_id: null, title, body, target_tab: 'crm',
+        recipient_email, actor_email: null, kind: 'update', entity_type: entityType, entity_id: devisId,
+        chantier_id: chantierId, title, body, target_tab: targetTab,
       })))
       if (error) log?.warn('notification devis', error.message)
     }
