@@ -15,7 +15,9 @@ function ChantierCardImpl({ ch, counts, m, readOnly, onOpen, onEdit, onDelete })
   const now = Date.now()
   const start = new Date(ch.date_debut || ch.dateDebut)
   const end = new Date(ch.date_fin || ch.dateFin)
-  const total = end.getTime() - start.getTime()
+  // Dates manquantes : « Dates à renseigner » au lieu de « Invalid Date »
+  const hasDates = !Number.isNaN(start.getTime()) && !Number.isNaN(end.getTime())
+  const total = hasDates ? end.getTime() - start.getTime() : 0
   const elapsed = Math.max(0, Math.min(total, now - start.getTime()))
   const progress = total > 0 ? Math.round((elapsed / total) * 100) : 0
   const isDone = ch.statut === 'Terminé'
@@ -58,7 +60,7 @@ function ChantierCardImpl({ ch, counts, m, readOnly, onOpen, onEdit, onDelete })
       }}>
         <div style={{ flex: 1, minWidth: 200 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: m ? 14 : 16, fontWeight: 700 }}>{ch.nom}</span>
+            <span style={{ fontSize: m ? 14 : 16, fontWeight: 700, color: ch.nom ? undefined : 'var(--label-secondary)' }}>{ch.nom || 'Chantier sans nom'}</span>
             <Badge text={ch.phase} color="#6E6E73"/>
             <Badge text={ch.statut} color={statusColors[ch.statut] || '#6E6E73'}/>
           </div>
@@ -101,9 +103,9 @@ function ChantierCardImpl({ ch, counts, m, readOnly, onOpen, onEdit, onDelete })
       <div style={{ padding: `0 ${m ? 14 : 18}px ${m ? 14 : 18}px`, marginTop: -4 }}>
         <PBar value={isDone ? 100 : Math.min(progress, 100)} max={100} color={progressColor}/>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4, fontSize: 12, color: 'var(--label-secondary)' }}>
-          <span>{fmtDate(start)} → {fmtDate(end)}</span>
+          <span>{hasDates ? `${fmtDate(start)} → ${fmtDate(end)}` : 'Dates à renseigner'}</span>
           <span style={{ color: progressText, fontWeight: 600 }}>
-            {isDone ? 'Terminé' : progress + '%'}
+            {isDone ? 'Terminé' : hasDates ? progress + '%' : ''}
           </span>
         </div>
       </div>

@@ -11,7 +11,7 @@ jest.mock('../../generators', () => ({}))
 jest.mock('../../dashboards/shared', () => {
   const { cloneElement, isValidElement } = require('react')
   return {
-    SB: { upsertChantier: jest.fn(), log: jest.fn() },
+    SB: { upsertChantier: jest.fn(), log: jest.fn(), reorderChantiers: jest.fn() },
     Icon: () => null,
     I: {},
     phase: {}, status: {},
@@ -191,5 +191,40 @@ describe('fiche chantier : bandeau et onglets', () => {
     await user.click(await screen.findByRole('button', { name: /Budget engagé/ }))
     expect(screen.getByRole('tab', { name: 'Finances' })).toHaveAttribute('aria-selected', 'true')
     expect(screen.getByText('Jauge budget')).toBeInTheDocument()
+  })
+})
+
+describe('ordre des chantiers', () => {
+  const chs = [
+    { ...CHANTIER, id: 'a', nom: 'Alpha', ordre: 2, client_user_id: 'u1' },
+    { ...CHANTIER, id: 'b', nom: 'Bravo', ordre: 1, client_user_id: 'u1' },
+    { ...CHANTIER, id: 'c', nom: 'Charlie', ordre: null, created_at: '2026-10-10', client_user_id: 'u1' },
+  ]
+  const names = () => screen.getAllByTestId('chantier-row').map(r => r.textContent.match(/Alpha|Bravo|Charlie/)[0])
+
+  it('suit l’ordre enregistré (nouveau chantier en tête) et se range au clavier', async () => {
+    SB.reorderChantiers.mockResolvedValue()
+    renderPage(chs)
+    expect(names()).toEqual(['Charlie', 'Bravo', 'Alpha'])
+    const handle = screen.getByRole('button', { name: 'Déplacer Alpha (flèches haut et bas)' })
+    handle.focus()
+    await userEvent.keyboard('{ArrowUp}')
+    expect(names()).toEqual(['Charlie', 'Alpha', 'Bravo'])
+    expect(SB.reorderChantiers).toHaveBeenCalledWith([{ id: 'c', ordre: 1 }, { id: 'b', ordre: 3 }])
+  })
+
+  it('échec de l’enregistrement : ordre précédent rétabli, message', async () => {
+    SB.reorderChantiers.mockRejectedValue(new Error("L'ordre des chantiers demande la migration 047 (Supabase)."))
+    renderPage(chs)
+    screen.getByRole('button', { name: 'Déplacer Bravo (flèches haut et bas)' }).focus()
+    await userEvent.keyboard('{ArrowDown}')
+    await waitFor(() => expect(addToast).toHaveBeenCalledWith("L'ordre des chantiers demande la migration 047 (Supabase).", 'error'))
+    expect(names()).toEqual(['Charlie', 'Bravo', 'Alpha'])
+  })
+
+  it('pas de rangement pendant une recherche', async () => {
+    renderPage(chs)
+    await userEvent.type(screen.getByLabelText('Rechercher un chantier'), 'a')
+    expect(screen.queryByRole('button', { name: /^Déplacer/ })).not.toBeInTheDocument()
   })
 })
