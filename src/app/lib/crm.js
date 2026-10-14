@@ -136,23 +136,24 @@ export function groupByEtape(opps = []) {
  *   actives: number, montantPipeline: number, montantPondere: number,
  *   enAttente: number, montantAttente: number (affaires en attente, hors pipeline),
  *   gagneesMois: number, montantGagneMois: number,
- *   trimestre: number (1-4), annee: number,
- *   gagneesTrimestre: number, montantGagneTrimestre: number,
+ *   depuis3Mois: string (AAAA-MM-JJ), gagnees3Mois: number, montantGagne3Mois: number
+ *     (affaires gagnées sur les 3 derniers mois glissants, aujourd'hui compris),
  *   tauxConversion: number|null
  * }}
  */
 export function pipelineStats(opps = [], today = new Date()) {
   const t = today instanceof Date ? today : new Date(today)
   const ym = `${t.getUTCFullYear()}-${String(t.getUTCMonth() + 1).padStart(2, '0')}`
-  // Trimestre civil en cours (T1 = janvier-mars…)
-  const annee = t.getUTCFullYear()
-  const trimestre = Math.floor(t.getUTCMonth() / 3) + 1
-  const debutT = `${annee}-${String((trimestre - 1) * 3 + 1).padStart(2, '0')}-01`
-  const finT = trimestre === 4 ? `${annee + 1}-01-01` : `${annee}-${String(trimestre * 3 + 1).padStart(2, '0')}-01`
+  // 3 derniers mois glissants : du même jour il y a 3 mois à aujourd'hui
+  const todayISO = t.toISOString().slice(0, 10)
+  const d3 = new Date(Date.UTC(t.getUTCFullYear(), t.getUTCMonth() - 3, t.getUTCDate()))
+  // 31 mai → 28/29 février (pas de débordement sur mars)
+  if (d3.getUTCDate() !== t.getUTCDate()) d3.setUTCDate(0)
+  const depuis3Mois = d3.toISOString().slice(0, 10)
   let actives = 0, montantPipeline = 0, montantPondere = 0
   let enAttente = 0, montantAttente = 0
   let gagneesMois = 0, montantGagneMois = 0, gagnees = 0, perdues = 0
-  let gagneesTrimestre = 0, montantGagneTrimestre = 0
+  let gagnees3Mois = 0, montantGagne3Mois = 0
   for (const o of opps) {
     const m = num(o.montant_estime)
     if (isAttente(o.etape)) {
@@ -167,7 +168,7 @@ export function pipelineStats(opps = [], today = new Date()) {
       const d = o.date_cloture || (o.updated_at ? isoDay(o.updated_at) : null)
       if (d && String(d).startsWith(ym)) { gagneesMois++; montantGagneMois += m }
       const jour = d ? String(d).slice(0, 10) : ''
-      if (jour >= debutT && jour < finT) { gagneesTrimestre++; montantGagneTrimestre += m }
+      if (jour >= depuis3Mois && jour <= todayISO) { gagnees3Mois++; montantGagne3Mois += m }
     } else {
       perdues++
     }
@@ -178,7 +179,7 @@ export function pipelineStats(opps = [], today = new Date()) {
     enAttente, montantAttente,
     montantPondere: Math.round(montantPondere),
     gagneesMois, montantGagneMois,
-    trimestre, annee, gagneesTrimestre, montantGagneTrimestre,
+    depuis3Mois, gagnees3Mois, montantGagne3Mois,
     tauxConversion: closed ? Math.round((gagnees / closed) * 100) : null,
   }
 }
