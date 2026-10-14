@@ -229,6 +229,17 @@ export const SB = {
       return data;
     }
   },
+  // Ordre choisi à la main dans la liste (migration 047) : [{ id, ordre }]
+  async reorderChantiers(patches = []) {
+    const results = await Promise.all(patches.map(p =>
+      supabase.from('chantiers').update({ ordre: p.ordre }).eq('id', p.id)))
+    const err = results.find(r => r.error)?.error
+    if (err) {
+      const missing = /ordre/.test(err.message || '') && /column|schema cache/i.test(err.message || '')
+      throw new Error(missing ? "L'ordre des chantiers demande la migration 047 (Supabase)." : 'Ordre non enregistré : ' + err.message)
+    }
+    this.log('update', 'chantier', null, 'Ordre des chantiers', { ordre: patches.length });
+  },
   async deleteChantier(id) {
     const { data: prev } = await supabase.from('chantiers')
       .select('nom').eq('id', id).maybeSingle();

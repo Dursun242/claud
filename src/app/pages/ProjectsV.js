@@ -11,7 +11,8 @@ import {
   Badge, Modal, AttachmentsSection, CommentsSection, TemplateSelector,
   ProcesVerbalReception, ChantierIntervenants, ChantierPlanning, ChantierBudgetCard, AddressPicker,
 } from '../components'
-import ChantierCard from '../components/projects/ChantierCard'
+import SortableChantierList from '../components/projects/SortableChantierList'
+import { sortChantiers, moveItem, orderPatches } from '../lib/chantierOrder'
 import Section from '../components/Section'
 import { EMOJI } from '../lib/emoji'
 import ProjectsFilterPills from '../components/projects/ProjectsFilterPills'
@@ -167,9 +168,11 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
     return { chTasks, chOS, chCR, chPlanning, intervenants, clientContact, finances };
   }, [selectedChantier, data.tasks, data.ordresService, data.compteRendus, data.planning, data.contacts, data.contactChantiers, readOnly]);
 
+  // Ordre choisi à la main (glisser-déposer), enregistré pour toute l'équipe
+  const [ordres, setOrdres] = useState(() => new Map());
   const chantiersFiltered = useMemo(() => {
     const search = q.toLowerCase().trim();
-    return data.chantiers.filter(ch => {
+    return sortChantiers(data.chantiers, ordres).filter(ch => {
       if (filterStatut && ch.statut !== filterStatut) return false;
       if (filterPhase && ch.phase !== filterPhase) return false;
       if (!search) return true;
@@ -179,7 +182,19 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
         (ch.adresse || "").toLowerCase().includes(search)
       );
     });
-  }, [data.chantiers, filterStatut, filterPhase, q]);
+  }, [data.chantiers, ordres, filterStatut, filterPhase, q]);
+
+  // Déplacement d'un chantier : affiché tout de suite, puis enregistré
+  // (retour à l'ordre précédent si l'enregistrement échoue)
+  const moveChantier = useCallback(async (from, to) => {
+    const next = moveItem(chantiersFiltered, from, to);
+    const patches = orderPatches(next, ordres);
+    if (!patches.length) return;
+    const prev = ordres;
+    setOrdres(o => { const n = new Map(o); patches.forEach(p => n.set(p.id, p.ordre)); return n; });
+    try { await SB.reorderChantiers(patches); }
+    catch (err) { setOrdres(prev); addToast(err?.message || "Ordre non enregistré", "error"); }
+  }, [chantiersFiltered, ordres, addToast]);
 
   // Compteurs (OS/CR/tâches/PJ) pré-calculés par chantier.
   // Avant, chaque carte faisait 4 .filter() O(N) → O(N²) au total.
@@ -873,20 +888,9 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
         )}
       </div>
     ) : (
-    <div style={{display:"grid",gap:12}}>
-      {chantiersFiltered.map(ch => (
-        <ChantierCard
-          key={ch.id}
-          ch={ch}
-          counts={countsByChantier.get(ch.id) || { os: 0, cr: 0, tasks: 0, attachments: 0 }}
-          m={m}
-          readOnly={readOnly}
-          onOpen={handleOpenChantier}
-          onEdit={handleEditChantier}
-          onDelete={handleDelete}
-        />
-      ))}
-    </div>
+    <SortableChantierList chantiers={chantiersFiltered} countsByChantier={countsByChantier} m={m} readOnly={readOnly}
+      sortable={!readOnly && !hasFilters} onMove={moveChantier}
+      onOpen={handleOpenChantier} onEdit={handleEditChantier} onDelete={handleDelete} />
     )}
     <Modal open={!!modal} onClose={()=>setModal(null)} title={modal==="new"?"Nouveau chantier":"Modifier"}>
       <div style={{display:"grid",gridTemplateColumns:m?"1fr":"1fr 1fr",gap:"0 14px"}}>

@@ -88,10 +88,12 @@ describe('ChantierCard', () => {
     expect(screen.queryByRole('button', { name: /supprimer le chantier/i })).toBeNull()
   })
 
-  it('gère des dates absentes sans planter (progression 0%)', () => {
-    renderCard({ ch: { ...baseChantier, date_debut: null, date_fin: null } })
-    // Pas de crash : le composant s'affiche toujours.
-    expect(screen.getByText('Villa Dupont')).toBeInTheDocument()
+  it('dates absentes : « Dates à renseigner » au lieu de « Invalid Date »', () => {
+    renderCard({ ch: { ...baseChantier, date_debut: null, date_fin: null, nom: '' } })
+    expect(screen.getByText('Chantier sans nom')).toBeInTheDocument()
+    expect(screen.getByText('Dates à renseigner')).toBeInTheDocument()
+    expect(screen.queryByText(/Invalid Date/)).not.toBeInTheDocument()
+    expect(screen.queryByText('0%')).not.toBeInTheDocument()
   })
   it('signale un client non rattaché à un compte (équipe seulement)', () => {
     renderCard()
