@@ -14,9 +14,10 @@ const accountLabel = (a) => {
 // Liste chargée au montage (= ouverture du formulaire) via la RPC
 // client_accounts. '' ↔ null = rattachement automatique d'après le nom.
 // Client sans compte : son adresse Gmail (`email` / `onEmail`) le rattache
-// à sa première connexion Google, avec une invitation par mail si `invite`
-// (envoi fait à l'enregistrement du chantier, api/clients/invite).
-export default function ClientAccountField({ value, onChange, email = '', onEmail, invite = true, onInvite }) {
+// à sa première connexion Google (à l'enregistrement du chantier,
+// api/clients/invite). L'invitation par mail n'est jamais automatique :
+// bouton `onSendInvite`, proposé une fois l'adresse enregistrée (`canSend`).
+export default function ClientAccountField({ value, onChange, email = '', onEmail, canSend = false, sending = false, onSendInvite }) {
   const [accounts, setAccounts] = useState(null)
   const [failed, setFailed] = useState(false)
   // Valeur à l'ouverture : reste proposée même absente de la liste (compte
@@ -41,13 +42,16 @@ export default function ClientAccountField({ value, onChange, email = '', onEmai
     <FF label="Adresse Gmail du client" hint="Il verra ce chantier en se connectant avec ce compte Google.">
       <input style={inp} type="email" inputMode="email" autoComplete="off" value={email}
         onChange={e=>onEmail(e.target.value)} placeholder="client@gmail.com" aria-label="Adresse Gmail du client"/>
-      {onInvite && email.trim() && (
-        <label style={{display:"flex",alignItems:"center",gap:8,marginTop:6,fontSize:13,color:"var(--label-2)",cursor:"pointer"}}>
-          <input type="checkbox" checked={invite} onChange={e=>onInvite(e.target.checked)}
-            style={{width:17,height:17,accentColor:"var(--system-blue)"}}/>
-          Lui envoyer une invitation par mail
-        </label>
-      )}
+      {onSendInvite && email.trim() && (canSend ? (
+        <button type="button" onClick={onSendInvite} disabled={sending}
+          style={{marginTop:8,border:"1px solid var(--separator-opaque)",background:"#fff",borderRadius:8,padding:"8px 12px",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit",color:"var(--accent-text)",opacity:sending?0.6:1}}>
+          {sending ? "Envoi…" : "Envoyer l'invitation au client"}
+        </button>
+      ) : (
+        <div style={{fontSize:12,color:"var(--label-secondary)",marginTop:6}}>
+          Enregistre le chantier : tu pourras ensuite lui envoyer l&apos;invitation quand tu veux.
+        </div>
+      ))}
     </FF>
   ) : null
 
