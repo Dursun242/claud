@@ -25,7 +25,10 @@ export function computeOsTotals(prestations = []) {
   return { montant_ht: ht, montant_tva: tva, montant_ttc: ht + tva }
 }
 
-export async function executeAiAction(action, { SB, crmDb, clientMode = false } = {}) {
+/** Actions qui suppriment : exécutées seulement après confirmation de l'utilisateur. */
+export const DELETE_ACTIONS = new Set(['delete_task'])
+
+export async function executeAiAction(action, { SB, crmDb, clientMode = false, tasks = [] } = {}) {
   const type = action?.type
   const d = action?.data || {}
   if (clientMode && !CLIENT_ALLOWED.has(type)) {
@@ -34,6 +37,18 @@ export async function executeAiAction(action, { SB, crmDb, clientMode = false } 
   switch (type) {
     case 'add_chantier':  await SB.upsertChantier(d); return 'Chantier créé'
     case 'add_task':      await SB.upsertTask(d);     return 'Tâche créée'
+    case 'update_task': {
+      // Champs non fournis : ceux de la tâche existante (pas d'effacement)
+      const cur = tasks.find(t => t.id === d.id)
+      if (!d.id || !cur) throw new Error('update_task : tâche introuvable.')
+      await SB.upsertTask({ ...cur, chantier_id: cur.chantier_id || cur.chantierId, ...d })
+      return 'Tâche mise à jour'
+    }
+    case 'delete_task': {
+      if (!d.id || !tasks.some(t => t.id === d.id)) throw new Error('delete_task : tâche introuvable.')
+      await SB.deleteTask(d.id)
+      return 'Tâche supprimée'
+    }
     case 'add_contact':   await SB.upsertContact(d);  return 'Contact créé'
     case 'update_contact':await SB.upsertContact(d);  return 'Contact mis à jour'
     case 'add_cr':        await SB.upsertCR(d);       return 'Compte rendu créé'
@@ -137,7 +152,7 @@ export function parseAiActions(reply = '') {
 }
 
 const PLURIELS = {
-  'Tâche créée': 'tâches créées', 'Chantier créé': 'chantiers créés', 'Contact créé': 'contacts créés',
+  'Tâche créée': 'tâches créées', 'Tâche mise à jour': 'tâches mises à jour', 'Tâche supprimée': 'tâches supprimées', 'Chantier créé': 'chantiers créés', 'Contact créé': 'contacts créés',
   'Contact mis à jour': 'contacts mis à jour', 'Compte rendu créé': 'comptes rendus créés',
   'Ordre de Service créé': 'ordres de service créés', 'Opportunité créée': 'opportunités créées',
   'Interaction enregistrée': 'interactions enregistrées', 'Relance marquée comme faite': 'relances marquées comme faites',

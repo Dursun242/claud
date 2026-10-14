@@ -6,7 +6,8 @@ import { MicButtonInline } from '../components'
 import { useToast } from '../contexts/ToastContext'
 import { supabase } from '../supabaseClient'
 import * as crmDb from '../lib/crmDb'
-import { executeAiAction, parseAiActions, summarizeLabels, CRM_PROMPT, CRM_ACTIONS } from '../lib/aiActions'
+import { executeAiAction, parseAiActions, summarizeLabels, CRM_PROMPT, CRM_ACTIONS, DELETE_ACTIONS } from '../lib/aiActions'
+import { useOptionalConfirm } from '../contexts/ConfirmContext'
 import { prepareCrmForAI } from '../lib/crm'
 
 // react-markdown (~25 kB gz) n'est utilisé que pour afficher les réponses IA :
@@ -79,10 +80,13 @@ function prepareDataForAI(data) {
       id: c.id, nom: c.nom, type: c.type, specialite: c.specialite,
       tel: c.tel, email: c.email, siret: c.siret,
     })),
-    tasks: (data.tasks || []).slice(0, 50).map(t => ({
-      id: t.id, chantier_id: t.chantier_id, titre: t.titre,
-      priorite: t.priorite, statut: t.statut, echeance: t.echeance, lot: t.lot,
-    })),
+    // Tâches ouvertes d'abord (doublons, relances…), puis les terminées récentes
+    tasks: [...(data.tasks || [])].sort((a, b) => (a.statut === 'Terminé') - (b.statut === 'Terminé'))
+      .slice(0, 150).map(t => ({
+        id: t.id, chantier_id: t.chantier_id, titre: t.titre,
+        priorite: t.priorite, statut: t.statut, echeance: t.echeance, lot: t.lot,
+        cree_le: t.created_at ? String(t.created_at).slice(0, 10) : undefined,
+      })),
     compteRendus: (data.compteRendus || []).slice(0, 20).map(cr => ({
       id: cr.id, chantier_id: cr.chantier_id, date: cr.date, numero: cr.numero,
       resume: cr.resume?.slice(0, 200),
@@ -96,6 +100,7 @@ function prepareDataForAI(data) {
 
 export default function AIV({ data, save: _save, m, externalTranscript, clearExternal, reload, user, profile, clientMode = false, crm = null, reloadCrm = null, active }) {
   const { addToast } = useToast();
+  const confirm = useOptionalConfirm();
   // Nom à afficher dans le message d'accueil
   const displayName = profile?.prenom
     || user?.user_metadata?.full_name?.split(' ')[0]
@@ -228,6 +233,13 @@ add_task: {"type":"add_task","data":{
   "chantier_id":"UUID-DU-CHANTIER","titre":"...",
   "priorite":"Urgent","statut":"Planifié","echeance":"YYYY-MM-DD","lot":"..."}}
 
+update_task: {"type":"update_task","data":{
+  "id":"UUID-TACHE-EXISTANTE","titre":"...","statut":"En cours","priorite":"...","echeance":"YYYY-MM-DD","lot":"..."}}
+  (seuls les champs donnés changent)
+
+delete_task: {"type":"delete_task","data":{"id":"UUID-TACHE-EXISTANTE"}}
+  (une action par tâche ; l'utilisateur confirme avant la suppression)
+
 add_contact: {"type":"add_contact","data":{
   "nom":"...","type":"Artisan","specialite":"...",
   "tel":"...","email":"...","adresse":"...","siret":"...","notes":"..."}}
@@ -271,6 +283,9 @@ RÈGLES :
   — pas de commentaires ni de texte dans le JSON
 - Plusieurs éléments à créer (ex. 5 tâches) : UN bloc <<<ACTION>>> par élément, chacun
   fermé par <<<END_ACTION>>>, ou une liste JSON [ {...}, {...} ] dans un seul bloc
+- N'écris JAMAIS qu'une action est faite (« supprimé », « créé », « mis à jour ») : écris
+  ce que tu proposes de faire ; l'application affiche ensuite ce qui a vraiment été enregistré
+- Doublons : supprime (delete_task) la copie la plus récente et garde la plus ancienne
 - Quand on te demande un résumé/avancement, analyse les données et donne un point clair sans bloc action`;
 
       const sysClient = `Tu es l'assistant IA d'ID Maîtrise, maîtrise d'œuvre BTP au Havre.
@@ -346,13 +361,27 @@ RÈGLES :
       const parsed = parseAiActions(text);
       if (parsed.actions.length || parsed.invalid) {
         const done = [], failed = [];
+        // Suppressions : jamais sans ta confirmation (liste des tâches visées)
+        const deletes = parsed.actions.filter(a => DELETE_ACTIONS.has(a.type));
+        if (deletes.length) {
+          const titre = (id) => (data.tasks || []).find(t => t.id === id)?.titre || "tâche introuvable";
+          const ok = confirm ? await confirm({
+            title: `Supprimer ${deletes.length} tâche${deletes.length > 1 ? "s" : ""} ?`,
+            message: deletes.slice(0, 12).map(a => `• ${titre(a.data?.id)}`).join("\n") + (deletes.length > 12 ? `\n… et ${deletes.length - 12} autres` : ""),
+            confirmLabel: "Supprimer", danger: true,
+          }) : false;
+          if (!ok) {
+            parsed.actions = parsed.actions.filter(a => !DELETE_ACTIONS.has(a.type));
+            failed.push("suppression annulée, aucune tâche supprimée");
+          }
+        }
         SB.setLogContext({ source: 'ai' });
         try {
           for (const a of parsed.actions) {
             try {
               // Dispatch centralisé (lib/aiActions.js) : entités historiques
               // via SB, CRM via crmDb. En mode client, seule add_task passe.
-              done.push(await executeAiAction(a, { SB, crmDb, clientMode }));
+              done.push(await executeAiAction(a, { SB, crmDb, clientMode, tasks: data.tasks || [] }));
             } catch (err) {
               console.error("Action IA :", err);
               failed.push(err?.message || "erreur inconnue");

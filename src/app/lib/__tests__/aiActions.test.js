@@ -77,3 +77,21 @@ describe('parseAiActions : lecture des blocs de l’IA', () => {
     expect(summarizeLabels(['Tâche créée', 'Tâche créée', 'Contact créé'])).toBe('2 tâches créées, Contact créé')
   })
 })
+
+describe('tâches : modifier, supprimer', () => {
+  const tasks = [{ id: 't1', chantier_id: 'c1', titre: 'PCI 14 - Déposer le permis', statut: 'Planifié', priorite: 'Urgent', echeance: '2026-11-01', lot: 'Permis' }]
+  const deps = () => ({ SB: { upsertTask: jest.fn(), deleteTask: jest.fn() }, crmDb: {}, tasks })
+  it('update_task garde les champs non fournis', async () => {
+    const d = deps()
+    expect(await executeAiAction({ type: 'update_task', data: { id: 't1', statut: 'En cours' } }, d)).toBe('Tâche mise à jour')
+    expect(d.SB.upsertTask).toHaveBeenCalledWith(expect.objectContaining({ id: 't1', titre: 'PCI 14 - Déposer le permis', statut: 'En cours', chantier_id: 'c1', lot: 'Permis' }))
+  })
+  it('delete_task : tâche connue seulement, jamais en mode client', async () => {
+    const d = deps()
+    expect(await executeAiAction({ type: 'delete_task', data: { id: 't1' } }, d)).toBe('Tâche supprimée')
+    expect(d.SB.deleteTask).toHaveBeenCalledWith('t1')
+    await expect(executeAiAction({ type: 'delete_task', data: { id: 'x' } }, d)).rejects.toThrow('tâche introuvable')
+    await expect(executeAiAction({ type: 'delete_task', data: { id: 't1' } }, { ...d, clientMode: true })).rejects.toThrow('réservée')
+    expect(summarizeLabels(['Tâche supprimée', 'Tâche supprimée'])).toBe('2 tâches supprimées')
+  })
+})
