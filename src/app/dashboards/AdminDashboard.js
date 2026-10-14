@@ -348,7 +348,8 @@ export default function AdminDashboard({ user, profile = null }) {
           <div style={{fontSize:12,color:"var(--label-secondary)",marginTop:2}}>Maîtrise d&apos;œuvre · Le Havre</div>
         </div>
         <GlobalSearch data={data} crm={crm} onNavigate={jumpTo} />
-        <div style={{padding:"4px 8px 8px"}}>
+        {/* Sur téléphone, « Créer » est le + de la barre du bas : pas de doublon dans le menu */}
+        {!isMobile && <div style={{padding:"4px 8px 8px"}}>
           <button onClick={()=>setCreateOpen(true)} title="Créer (raccourci : c)" className="u-btn" style={{
             width:"100%",display:"flex",alignItems:"center",justifyContent:"center",gap:6,
             padding:"9px 10px",minHeight:38,borderRadius:10,border:"none",cursor:"pointer",
@@ -356,7 +357,7 @@ export default function AdminDashboard({ user, profile = null }) {
           }}>
             <Icon d={I.plus} size={16} color="#fff"/> Créer…
           </button>
-        </div>
+        </div>}
         <div style={{flex:1,padding:"4px 8px",display:"flex",flexDirection:"column",gap:2,overflow:"auto"}}>
           {tabs.map(t=>{
             const active = tab===t.key;
