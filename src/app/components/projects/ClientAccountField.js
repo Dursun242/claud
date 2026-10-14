@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { supabase } from '../../supabaseClient'
-import { FF, sel } from '../../dashboards/shared'
+import { FF, sel, inp } from '../../dashboards/shared'
 
 const HINT = "Le client ne voit le chantier que s'il est rattaché à son compte."
 
@@ -13,7 +13,10 @@ const accountLabel = (a) => {
 // Compte client rattaché au chantier (chantiers.client_user_id), côté équipe.
 // Liste chargée au montage (= ouverture du formulaire) via la RPC
 // client_accounts. '' ↔ null = rattachement automatique d'après le nom.
-export default function ClientAccountField({ value, onChange }) {
+// Client sans compte : son adresse Gmail (`email` / `onEmail`) le rattache
+// à sa première connexion Google, avec une invitation par mail si `invite`
+// (envoi fait à l'enregistrement du chantier, api/clients/invite).
+export default function ClientAccountField({ value, onChange, email = '', onEmail, invite = true, onInvite }) {
   const [accounts, setAccounts] = useState(null)
   const [failed, setFailed] = useState(false)
   // Valeur à l'ouverture : reste proposée même absente de la liste (compte
@@ -33,14 +36,30 @@ export default function ClientAccountField({ value, onChange }) {
     return () => { alive = false }
   }, [])
 
+  // Adresse Gmail d'un client sans compte (affichée tant qu'aucun compte n'est choisi)
+  const emailField = !value && onEmail ? (
+    <FF label="Adresse Gmail du client" hint="Il verra ce chantier en se connectant avec ce compte Google.">
+      <input style={inp} type="email" inputMode="email" autoComplete="off" value={email}
+        onChange={e=>onEmail(e.target.value)} placeholder="client@gmail.com" aria-label="Adresse Gmail du client"/>
+      {onInvite && email.trim() && (
+        <label style={{display:"flex",alignItems:"center",gap:8,marginTop:6,fontSize:13,color:"var(--label-2)",cursor:"pointer"}}>
+          <input type="checkbox" checked={invite} onChange={e=>onInvite(e.target.checked)}
+            style={{width:17,height:17,accentColor:"var(--system-blue)"}}/>
+          Lui envoyer une invitation par mail
+        </label>
+      )}
+    </FF>
+  ) : null
+
   if (failed) {
-    return (
+    return (<>
       <FF label="Compte client (accès au suivi)">
         <div style={{fontSize:12,color:"var(--label-secondary)"}}>
           Liste des comptes indisponible : rattachement automatique d&apos;après le nom du client.
         </div>
       </FF>
-    )
+      {emailField}
+    </>)
   }
 
   if (!accounts) {
@@ -52,16 +71,17 @@ export default function ClientAccountField({ value, onChange }) {
   }
 
   const showInitial = initial && !accounts.some(a => a.user_id === initial)
-  return (
+  return (<>
     <FF label="Compte client (accès au suivi)" hint={HINT}>
       <select style={sel} value={value || ""}
         onChange={e=>onChange(e.target.value || null)}>
-        <option value="">Automatique (d&apos;après le nom du client)</option>
+        <option value="">{email ? `Invité par son adresse (${email})` : "Automatique (d'après le nom du client)"}</option>
         {showInitial && <option value={initial}>Compte actuel (inactif ou introuvable)</option>}
         {accounts.map(a => (
           <option key={a.user_id} value={a.user_id}>{accountLabel(a)}</option>
         ))}
       </select>
     </FF>
-  )
+    {emailField}
+  </>)
 }

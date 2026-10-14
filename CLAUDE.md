@@ -79,6 +79,7 @@ src/app/
     ├─ pv-reception/*         → flux PV métier
     ├─ extract-*/             → Claude Vision (devis + contacts)
     ├─ entreprises, qonto     → proxies tiers (annuaire des entreprises de l'État ; qonto : lecture seule)
+    ├─ clients/invite         → client invité par son adresse (Gmail) depuis la fiche chantier : compte client autorisé, chantier rattaché (tout de suite s'il s'est déjà connecté, sinon à sa première connexion via chantiers.client_email), mail d'invitation facultatif (staff only)
     ├─ qonto/token            → connexion Qonto (état staff, enregistrement/suppression admin) — le jeton n'est jamais renvoyé au navigateur
     └─ metrics/               → ingest Web Vitals (sendBeacon)
 ```
@@ -139,7 +140,7 @@ Voir `.env.example` à la racine. Minimum requis pour dev :
 
 ## Migrations DB
 
-**Ordre critique** : voir `migrations/APPLY_ORDER.md`. Les migrations numérotées 001→047 s'appliquent dans l'ordre via le SQL Editor Supabase. Chaque migration ayant un impact non-trivial a un `<num>_README.md` dédié.
+**Ordre critique** : voir `migrations/APPLY_ORDER.md`. Les migrations numérotées 001→048 s'appliquent dans l'ordre via le SQL Editor Supabase. Chaque migration ayant un impact non-trivial a un `<num>_README.md` dédié.
 
 ## Dette technique assumée
 

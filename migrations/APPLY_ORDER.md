@@ -53,6 +53,7 @@ Exécuter dans cet ordre exact sur une base vierge (Supabase Dashboard → SQL E
 | 045 | `045_cr_notes_dictee.sql` | **Notes de dictée des comptes rendus** : colonnes `compte_rendus.notes_dictee`, `notes_rangees`, `enregistre_le` (les notes dictées sont gardées avec le CR, seules les nouvelles sont rangées par l'IA, brouillon de l'appareil repris s'il est plus récent). À appliquer après 044. |
 | 046 | `046_cr_suivi_entreprises.sql` | **Comptes rendus : rédaction et suivi des entreprises** : `compte_rendus.alertes` (partie Alertes du CR), table `cr_liens` (lien de réponse sans compte /actions/<jeton>, service role, lecture staff), `taches.reponse_entreprise` (fait / plus de temps / désaccord, pré-remplit le CR suivant), `taches.rappel_echeance` (rappel J-2 envoyé une fois par échéance), `taches.mise_en_demeure_le`. À appliquer après 045. |
 | 047 | `047_chantiers_ordre.sql` | **Ordre des chantiers** : colonne `chantiers.ordre` (liste des chantiers rangée par glisser-déposer, ordre partagé par l'équipe ; sans ordre → en tête). À appliquer après 046. |
+| 048 | `048_chantiers_client_email.sql` | **Client rattaché par son adresse Gmail** : colonne `chantiers.client_email` ; `link_my_chantiers()` rattache aussi le chantier au client dont l'adresse correspond, à sa première connexion Google. À appliquer après 047. |
 
 ## Fichiers NON séquentiels (à ne PAS appliquer en séquence)
 
