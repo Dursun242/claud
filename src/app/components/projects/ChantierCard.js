@@ -65,7 +65,10 @@ function ChantierCardImpl({ ch, counts, m, readOnly, onOpen, onEdit, onDelete })
             <Badge text={ch.statut} color={statusColors[ch.statut] || '#6E6E73'}/>
           </div>
           <div style={{ fontSize: 12, color: 'var(--label-secondary)' }}>{ch.client} — {ch.adresse}</div>
-          {!readOnly && ch.client && !ch.client_user_id && (
+          {!readOnly && !ch.client_user_id && ch.client_email && (
+            <div style={{ fontSize: 12, color: 'var(--accent-text)', marginTop: 2 }}>Client invité : {ch.client_email} (en attente de sa première connexion)</div>
+          )}
+          {!readOnly && ch.client && !ch.client_user_id && !ch.client_email && (
             <div style={{ fontSize: 12, color: 'var(--orange-text)', marginTop: 2 }}>Non rattaché à un compte client</div>
           )}
           <div style={{ display: 'flex', gap: 12, marginTop: 4, fontSize: 12, color: 'var(--label-secondary)' }}>

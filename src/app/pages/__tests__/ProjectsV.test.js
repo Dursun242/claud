@@ -55,6 +55,8 @@ jest.mock('../../components/chiffrage/ChiffrageSection', () => () => null)
 jest.mock('../../components/cr/CREditor', () => () => null)
 jest.mock('../../components/cr/CRSendModal', () => () => null)
 jest.mock('../../lib/crDb', () => ({ markDiffused: jest.fn() }))
+const apiPost = jest.fn()
+jest.mock('../../lib/crmApi', () => ({ apiPost: (...a) => apiPost(...a) }))
 jest.mock('../../lib/crPhotos', () => ({ loadCrImages: jest.fn() }))
 
 // eslint-disable-next-line import/first
@@ -153,6 +155,39 @@ describe('ProjectsV — compte client du chantier', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Enregistrer' }))
     await waitFor(() => expect(SB.upsertChantier).toHaveBeenCalled())
     expect(SB.upsertChantier.mock.calls[0][0]).toHaveProperty('client_user_id', 'u1')
+  })
+})
+
+describe('client invité par son adresse Gmail', () => {
+  const sansCompte = { ...CHANTIER, client_user_id: null, client: 'Havre De Savoir' }
+
+  it('adresse saisie : chantier enregistré puis client invité', async () => {
+    SB.upsertChantier.mockResolvedValue({ id: CHANTIER.id })
+    apiPost.mockResolvedValue({ ok: true, linked: false, invited: true })
+    renderPage([sansCompte])
+    await userEvent.click(screen.getByRole('button', { name: 'Modifier le chantier Villa Dupont' }))
+    await screen.findByRole('option', { name: 'Jean Dupont — jean@client.fr' })
+    await userEvent.type(screen.getByLabelText('Adresse Gmail du client'), 'Havre.Savoir@Gmail.com')
+    expect(screen.getByRole('checkbox', { name: 'Lui envoyer une invitation par mail' })).toBeChecked()
+    await userEvent.click(screen.getByRole('button', { name: 'Enregistrer' }))
+    await waitFor(() => expect(apiPost).toHaveBeenCalledWith('/api/clients/invite', { chantierId: CHANTIER.id, email: 'havre.savoir@gmail.com', envoyer: true }))
+    expect(addToast).toHaveBeenCalledWith('Chantier enregistré : havre.savoir@gmail.com le verra à sa première connexion avec Google (invitation envoyée)', 'success')
+  })
+
+  it('adresse déjà invitée et inchangée : pas de nouvelle invitation ; compte choisi : champ masqué', async () => {
+    SB.upsertChantier.mockResolvedValue({ id: CHANTIER.id })
+    renderPage([{ ...sansCompte, client_email: 'havre@gmail.com' }])
+    expect(screen.getByText('Client invité : havre@gmail.com (en attente de sa première connexion)')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Modifier le chantier Villa Dupont' }))
+    await screen.findByRole('option', { name: 'Invité par son adresse (havre@gmail.com)' })
+    expect(screen.getByRole('checkbox', { name: 'Lui envoyer une invitation par mail' })).not.toBeChecked()
+    await userEvent.click(screen.getByRole('button', { name: 'Enregistrer' }))
+    await waitFor(() => expect(SB.upsertChantier).toHaveBeenCalled())
+    expect(apiPost).not.toHaveBeenCalled()
+    await userEvent.click(screen.getByRole('button', { name: 'Modifier le chantier Villa Dupont' }))
+    await screen.findByRole('option', { name: 'Jean Dupont — jean@client.fr' })
+    await userEvent.selectOptions(accountSelect(), 'u1')
+    expect(screen.queryByLabelText('Adresse Gmail du client')).not.toBeInTheDocument()
   })
 })
 

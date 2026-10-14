@@ -13,6 +13,7 @@ import {
 } from '../components'
 import SortableChantierList from '../components/projects/SortableChantierList'
 import { sortChantiers, moveItem, orderPatches } from '../lib/chantierOrder'
+import { apiPost } from '../lib/crmApi'
 import Section from '../components/Section'
 import { EMOJI } from '../lib/emoji'
 import ProjectsFilterPills from '../components/projects/ProjectsFilterPills'
@@ -241,7 +242,8 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
   const openNew=()=>{
     setForm({nom:"",client:"",adresse:"",phase:"Hors d'air",
       statut:"Planifié",budget:"",dateDebut:"",dateFin:"",
-      lots:"",photo_couverture:"",notes_internes:"",client_user_id:null});
+      lots:"",photo_couverture:"",notes_internes:"",client_user_id:null,
+      client_email:"",_client_email_initial:"",_invite:true});
     setModal("new");
   };
   const [saving,setSaving]=useState(false);
@@ -277,10 +279,26 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
         ? (form.lots||"").split(",").map(l=>l.trim()).filter(Boolean)
         : form.lots||[];
       const e = {...form, budget:Number(form.budget)||0, lots};
-      await SB.upsertChantier(e);
+      const saved = await SB.upsertChantier(e);
+      // Client invité par son adresse Gmail (sans compte choisi dans la liste)
+      const email = String(form.client_email||"").trim().toLowerCase();
+      const initialEmail = String(form._client_email_initial||"").trim().toLowerCase();
+      let msg = "Chantier enregistré";
+      if (email && !form.client_user_id && saved?.id && (email !== initialEmail || form._invite)) {
+        try {
+          const res = await apiPost('/api/clients/invite', { chantierId: saved.id, email, envoyer: !!form._invite });
+          msg = res.linked ? `Chantier enregistré et rattaché au compte de ${email}`
+            : `Chantier enregistré : ${email} le verra à sa première connexion avec Google`;
+          if (res.invited) msg += " (invitation envoyée)";
+          else if (res.mailError) addToast("Invitation non envoyée : "+res.mailError,"warning");
+        } catch (err) {
+          addToast("Chantier enregistré, mais client non rattaché : "+(err?.message||"erreur"),"warning");
+          msg = null;
+        }
+      }
       setModal(null);
       reload();
-      addToast("Chantier enregistré","success");
+      if (msg) addToast(msg,"success");
     } catch(err) {
       addToast("Erreur : "+err.message,"error");
     } finally { setSaving(false); }
@@ -317,6 +335,9 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
       dateFin: ch.date_fin || ch.dateFin || "",
       photo_couverture: ch.photo_couverture || "",
       notes_internes: ch.notes_internes || "",
+      client_email: ch.client_email || "",
+      _client_email_initial: ch.client_email || "",
+      _invite: !ch.client_email,
     });
     setModal("edit");
   }, []);
@@ -916,7 +937,9 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
               ...(accountTouchedRef.current ? {} : {client_user_id:null})})}/>
         </FF>
         {!readOnly && <ClientAccountField value={form.client_user_id}
-          onChange={v=>{accountTouchedRef.current=true;setForm(f=>({...f,client_user_id:v}));}}/>}
+          onChange={v=>{accountTouchedRef.current=true;setForm(f=>({...f,client_user_id:v}));}}
+          email={form.client_email||""} onEmail={v=>setForm(f=>({...f,client_email:v}))}
+          invite={form._invite!==false} onInvite={v=>setForm(f=>({...f,_invite:v}))}/>}
         <FF label="Adresse">
           <AddressPicker value={form.adresse||""}
             onChange={v=>setForm(f=>({...f,adresse:v}))}/>
