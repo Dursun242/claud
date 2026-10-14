@@ -63,14 +63,16 @@ describe('crm — pipelineStats', () => {
     expect(s.tauxConversion).toBe(67)
   })
 
-  it('signé au trimestre civil en cours (T3 : juillet-septembre)', () => {
+  it('signé sur les 3 derniers mois glissants', () => {
     const s = pipelineStats([
       ...opps,
-      { etape: 'Gagné', montant_estime: 5000, date_cloture: '2026-06-30' },
-      { etape: 'Gagné', montant_estime: 7000, date_cloture: '2026-07-01' },
+      { etape: 'Gagné', montant_estime: 5000, date_cloture: '2026-06-20' },
+      { etape: 'Gagné', montant_estime: 7000, date_cloture: '2026-06-21' },
+      { etape: 'Gagné', montant_estime: 9000, date_cloture: '2026-09-22' },
     ], today)
-    expect(s).toMatchObject({ trimestre: 3, annee: 2026, gagneesTrimestre: 3, montantGagneTrimestre: 107000 })
-    expect(pipelineStats(opps, new Date('2026-12-31T10:00:00Z'))).toMatchObject({ trimestre: 4, gagneesTrimestre: 0 })
+    expect(s).toMatchObject({ depuis3Mois: '2026-06-21', gagnees3Mois: 3, montantGagne3Mois: 107000 })
+    // 31 mai → depuis le 28 février (pas de 31 février)
+    expect(pipelineStats([], new Date('2026-05-31T10:00:00Z')).depuis3Mois).toBe('2026-02-28')
   })
 
   it('taux de conversion null sans clôture, tolère les montants absents', () => {
