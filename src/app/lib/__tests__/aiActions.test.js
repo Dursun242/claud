@@ -1,4 +1,4 @@
-import { executeAiAction, computeOsTotals } from '../aiActions'
+import { parseAiActions, summarizeLabels, executeAiAction, computeOsTotals } from '../aiActions'
 
 const mk = () => ({
   SB: {
@@ -48,5 +48,32 @@ describe('aiActions', () => {
 
   it('action inconnue → erreur', async () => {
     await expect(executeAiAction({ type: 'nope' }, mk())).rejects.toThrow(/inconnue/)
+  })
+})
+
+describe('parseAiActions : lecture des blocs de l’IA', () => {
+  const t = (titre) => ({ type: 'add_task', data: { chantier_id: 'c1', titre } })
+  it('un bloc, plusieurs blocs, une liste, une action dont data est une liste', () => {
+    const one = parseAiActions(`Voici.\n<<<ACTION>>>\n${JSON.stringify(t('A'))}\n<<<END_ACTION>>>`)
+    expect(one).toEqual({ actions: [t('A')], invalid: 0, text: 'Voici.' })
+    const many = parseAiActions(`<<<ACTION>>>${JSON.stringify(t('A'))}<<<END_ACTION>>> et <<<ACTION>>>${JSON.stringify(t('B'))}<<<END_ACTION>>>`)
+    expect(many.actions.map(a => a.data.titre)).toEqual(['A', 'B'])
+    expect(parseAiActions(`<<<ACTION>>>${JSON.stringify([t('A'), t('B')])}<<<END_ACTION>>>`).actions).toHaveLength(2)
+    const data = parseAiActions('<<<ACTION>>>{"type":"add_task","data":[{"titre":"A"},{"titre":"B"}]}<<<END_ACTION>>>')
+    expect(data.actions).toEqual([{ type: 'add_task', data: { titre: 'A' } }, { type: 'add_task', data: { titre: 'B' } }])
+  })
+  it('objets à la suite, bloc ```json, virgules en trop, commentaires, bloc non fermé', () => {
+    const body = '```json\n{"type":"add_task","data":{"titre":"A {x}",}}\n// suivante\n{"type":"add_task","data":{"titre":"B"}}\n```'
+    expect(parseAiActions(`<<<ACTION>>>${body}<<<END_ACTION>>>`).actions.map(a => a.data.titre)).toEqual(['A {x}', 'B'])
+    expect(parseAiActions(`<<<ACTION>>>${JSON.stringify(t('C'))}`).actions).toHaveLength(1)
+  })
+  it('morceau illisible compté, sans bloquer les autres', () => {
+    const r = parseAiActions(`<<<ACTION>>>{"type":"add_task","data":{"titre":"A"}} {"type": oups}<<<END_ACTION>>>`)
+    expect(r.actions).toHaveLength(1)
+    expect(r.invalid).toBe(1)
+    expect(parseAiActions('rien à faire').actions).toEqual([])
+  })
+  it('résumé des actions faites', () => {
+    expect(summarizeLabels(['Tâche créée', 'Tâche créée', 'Contact créé'])).toBe('2 tâches créées, Contact créé')
   })
 })

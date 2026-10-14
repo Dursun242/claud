@@ -6,7 +6,7 @@ import { MicButtonInline } from '../components'
 import { useToast } from '../contexts/ToastContext'
 import { supabase } from '../supabaseClient'
 import * as crmDb from '../lib/crmDb'
-import { executeAiAction, CRM_PROMPT, CRM_ACTIONS } from '../lib/aiActions'
+import { executeAiAction, parseAiActions, summarizeLabels, CRM_PROMPT, CRM_ACTIONS } from '../lib/aiActions'
 import { prepareCrmForAI } from '../lib/crm'
 
 // react-markdown (~25 kB gz) n'est utilisé que pour afficher les réponses IA :
@@ -269,6 +269,8 @@ RÈGLES :
 - Si le chantier demandé n'existe pas dans les données, indique-le clairement
 - Le bloc <<<ACTION>>> doit contenir un JSON valide sur une seule ligne ou multiligne
   — pas de commentaires ni de texte dans le JSON
+- Plusieurs éléments à créer (ex. 5 tâches) : UN bloc <<<ACTION>>> par élément, chacun
+  fermé par <<<END_ACTION>>>, ou une liste JSON [ {...}, {...} ] dans un seul bloc
 - Quand on te demande un résumé/avancement, analyse les données et donne un point clair sans bloc action`;
 
       const sysClient = `Tu es l'assistant IA d'ID Maîtrise, maîtrise d'œuvre BTP au Havre.
@@ -307,7 +309,8 @@ RÈGLES :
 - Utilise TOUJOURS le vrai UUID du chantier présent dans les données
 - Si le client n'a qu'un seul chantier, utilise-le automatiquement pour la tâche
 - Pour les questions/résumés, analyse et réponds clairement sans bloc action
-- Le bloc <<<ACTION>>> doit contenir un JSON valide — pas de commentaires`;
+- Le bloc <<<ACTION>>> doit contenir un JSON valide — pas de commentaires
+- Plusieurs tâches : UN bloc <<<ACTION>>> par tâche, chacun fermé par <<<END_ACTION>>>`;
 
       const sys = clientMode ? sysClient : sysAdmin;
 
@@ -338,34 +341,37 @@ RÈGLES :
       const result = await response.json();
       let text = result.content?.map(c=>c.text||"").join("\n") || "Désolé, erreur.";
 
-      const act = text.match(/<<<ACTION>>>([\s\S]*?)<<<END_ACTION>>>/);
-      if (act) {
+      // Actions demandées (un ou plusieurs blocs, une ou plusieurs actions
+      // par bloc) : exécutées une à une, chaque échec signalé à part
+      const parsed = parseAiActions(text);
+      if (parsed.actions.length || parsed.invalid) {
+        const done = [], failed = [];
+        SB.setLogContext({ source: 'ai' });
         try {
-          const a=JSON.parse(act[1].trim());
-          let actionLabel = "";
-
-          // Tague le prochain log SB.upsert avec source=ai : évite
-          // de créer 2 entrées (le log métier + un "ai_action") et
-          // permet de filtrer après coup dans LogsV via metadata.
-          SB.setLogContext({ source: 'ai', action_type: a.type });
-          try {
-            // Dispatch centralisé (lib/aiActions.js) : entités historiques
-            // via SB, CRM via crmDb. En mode client, seule add_task passe.
-            actionLabel = await executeAiAction(a, { SB, crmDb, clientMode });
-          } finally {
-            SB.clearLogContext();
+          for (const a of parsed.actions) {
+            try {
+              // Dispatch centralisé (lib/aiActions.js) : entités historiques
+              // via SB, CRM via crmDb. En mode client, seule add_task passe.
+              done.push(await executeAiAction(a, { SB, crmDb, clientMode }));
+            } catch (err) {
+              console.error("Action IA :", err);
+              failed.push(err?.message || "erreur inconnue");
+            }
           }
-          if (CRM_ACTIONS.has(a.type)) { if (reloadCrm) await reloadCrm(); }
-          else if (reload) await reload();
-          text=text.replace(/<<<ACTION>>>[\s\S]*?<<<END_ACTION>>>/,"").trim()
-            +`\n\n✅ **${actionLabel} dans Supabase !**`;
-          if (actionLabel) addToast(actionLabel, "success");
-        } catch(err) {
-          console.error("❌ Action error:", err);
-          text=text.replace(/<<<ACTION>>>[\s\S]*?<<<END_ACTION>>>/,"").trim()
-            +`\n\n❌ **Erreur Supabase :** ${err.message}`;
-          addToast("Erreur : " + err.message, "error");
+        } finally {
+          SB.clearLogContext();
         }
+        if (done.length) {
+          if (parsed.actions.some(a => CRM_ACTIONS.has(a.type)) && reloadCrm) await reloadCrm();
+          if (parsed.actions.some(a => !CRM_ACTIONS.has(a.type)) && reload) await reload();
+        }
+        const lines = [];
+        if (done.length) lines.push(`✅ **${summarizeLabels(done)}.**`);
+        for (const f of failed) lines.push(`❌ **Non enregistré :** ${f}`);
+        if (parsed.invalid) lines.push(`❌ **${parsed.invalid > 1 ? `${parsed.invalid} actions illisibles` : "Une action illisible"}** : rien n'a été enregistré pour ${parsed.invalid > 1 ? "elles" : "elle"}. Redemande en une phrase plus courte.`);
+        text = `${parsed.text}\n\n${lines.join("\n")}`;
+        if (done.length) addToast(summarizeLabels(done), failed.length || parsed.invalid ? "warning" : "success");
+        else addToast("Rien n'a été enregistré", "error");
       }
       // provider : fournisseur qui a réellement répondu (renvoyé par le serveur)
       setMessages(prev=>[...prev,{role:"assistant",content:text,provider:result.provider,

@@ -70,6 +70,86 @@ export async function executeAiAction(action, { SB, crmDb, clientMode = false } 
   }
 }
 
+// ─── Lecture des blocs <<<ACTION>>> ──────────────────────────────────────
+const BLOCK_RE = /<<<ACTION>>>([\s\S]*?)(?:<<<END_ACTION>>>|$)/g
+
+// JSON tel que l'écrivent les modèles : bloc ```json, commentaires, virgules
+// en trop avant } ou ]
+function cleanJson(raw) {
+  return String(raw || '')
+    .replace(/```(?:json)?/gi, '')
+    .replace(/^\s*\/\/.*$/gm, '')
+    .replace(/,\s*([}\]])/g, '$1')
+    .trim()
+}
+
+// Objets { … } de premier niveau mis bout à bout (plusieurs actions sans liste)
+function splitObjects(str) {
+  const out = []
+  let depth = 0, start = -1, inStr = false, esc = false
+  for (let i = 0; i < str.length; i++) {
+    const c = str[i]
+    if (inStr) {
+      if (esc) esc = false
+      else if (c === '\\') esc = true
+      else if (c === '"') inStr = false
+      continue
+    }
+    if (c === '"') inStr = true
+    else if (c === '{') { if (depth === 0) start = i; depth += 1 }
+    else if (c === '}' && depth > 0) { depth -= 1; if (depth === 0 && start >= 0) { out.push(str.slice(start, i + 1)); start = -1 } }
+  }
+  return out
+}
+
+// Une action, une liste d'actions, ou une action dont `data` est une liste
+function flatten(v) {
+  if (Array.isArray(v)) return v.flatMap(flatten)
+  if (!v || typeof v !== 'object' || !v.type) return []
+  if (Array.isArray(v.data)) return v.data.map(data => ({ type: v.type, data }))
+  return [v]
+}
+
+/**
+ * Actions contenues dans la réponse de l'IA : tous les blocs <<<ACTION>>>,
+ * chacun pouvant contenir une action, une liste d'actions ou plusieurs
+ * objets à la suite. `invalid` : nombre de morceaux illisibles.
+ * `text` : la réponse sans les blocs.
+ * @returns {{ actions: object[], invalid: number, text: string }}
+ */
+export function parseAiActions(reply = '') {
+  const actions = []
+  let invalid = 0
+  for (const m of String(reply).matchAll(BLOCK_RE)) {
+    const body = cleanJson(m[1])
+    if (!body) continue
+    try {
+      actions.push(...flatten(JSON.parse(body)))
+      continue
+    } catch { /* plusieurs objets à la suite ou JSON abîmé */ }
+    const parts = splitObjects(body)
+    if (!parts.length) { invalid += 1; continue }
+    for (const part of parts) {
+      try { actions.push(...flatten(JSON.parse(part))) } catch { invalid += 1 }
+    }
+  }
+  return { actions, invalid, text: String(reply).replace(BLOCK_RE, '').trim() }
+}
+
+const PLURIELS = {
+  'Tâche créée': 'tâches créées', 'Chantier créé': 'chantiers créés', 'Contact créé': 'contacts créés',
+  'Contact mis à jour': 'contacts mis à jour', 'Compte rendu créé': 'comptes rendus créés',
+  'Ordre de Service créé': 'ordres de service créés', 'Opportunité créée': 'opportunités créées',
+  'Interaction enregistrée': 'interactions enregistrées', 'Relance marquée comme faite': 'relances marquées comme faites',
+}
+
+/** « 3 tâches créées », « Tâche créée » : résumé des libellés d'actions réussies. */
+export function summarizeLabels(labels = []) {
+  const counts = new Map()
+  for (const l of labels) counts.set(l, (counts.get(l) || 0) + 1)
+  return [...counts].map(([l, n]) => (n > 1 ? `${n} ${PLURIELS[l] || `× ${l.toLowerCase()}`}` : l)).join(', ')
+}
+
 /** Fragment de prompt système décrivant les actions CRM (admin uniquement). */
 export const CRM_PROMPT = `
 CRM (pipeline commercial) — données dans "crm" ci-dessus (opportunites, interactions_recentes, relances) :
