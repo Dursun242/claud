@@ -7,7 +7,9 @@
 //     - adresse gardée sur le chantier (chantiers.client_email) ; si le
 //       client s'est déjà connecté une fois, chantier rattaché tout de suite
 //       (client_user_id), sinon à sa première connexion (link_my_chantiers) ;
-//     - mail d'invitation si `envoyer` (SMTP configuré).
+//     - mail d'invitation seulement si `envoyer` : jamais à l'enregistrement
+//       du chantier, uniquement par le bouton « Envoyer l'invitation »
+//       (SMTP configuré).
 //   → { ok, linked, invited }
 
 import { verifyStaff } from '@/app/lib/auth'

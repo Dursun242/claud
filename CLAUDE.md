@@ -79,7 +79,7 @@ src/app/
     ├─ pv-reception/*         → flux PV métier
     ├─ extract-*/             → Claude Vision (devis + contacts)
     ├─ entreprises, qonto     → proxies tiers (annuaire des entreprises de l'État ; qonto : lecture seule)
-    ├─ clients/invite         → client invité par son adresse (Gmail) depuis la fiche chantier : compte client autorisé, chantier rattaché (tout de suite s'il s'est déjà connecté, sinon à sa première connexion via chantiers.client_email), mail d'invitation facultatif (staff only)
+    ├─ clients/invite         → client invité par son adresse (Gmail) depuis la fiche chantier : compte client autorisé, chantier rattaché (tout de suite s'il s'est déjà connecté, sinon à sa première connexion via chantiers.client_email) ; mail d'invitation jamais automatique, envoyé par le bouton « Envoyer l'invitation » (staff only)
     ├─ qonto/token            → connexion Qonto (état staff, enregistrement/suppression admin) — le jeton n'est jamais renvoyé au navigateur
     └─ metrics/               → ingest Web Vitals (sendBeacon)
 ```

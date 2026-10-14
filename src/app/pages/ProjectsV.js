@@ -243,7 +243,7 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
     setForm({nom:"",client:"",adresse:"",phase:"Hors d'air",
       statut:"Planifié",budget:"",dateDebut:"",dateFin:"",
       lots:"",photo_couverture:"",notes_internes:"",client_user_id:null,
-      client_email:"",_client_email_initial:"",_invite:true});
+      client_email:"",_client_email_initial:""});
     setModal("new");
   };
   const [saving,setSaving]=useState(false);
@@ -284,13 +284,12 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
       const email = String(form.client_email||"").trim().toLowerCase();
       const initialEmail = String(form._client_email_initial||"").trim().toLowerCase();
       let msg = "Chantier enregistré";
-      if (email && !form.client_user_id && saved?.id && (email !== initialEmail || form._invite)) {
+      // Rattachement seulement : l'invitation se fait à la main (bouton dans la fiche)
+      if (email && !form.client_user_id && saved?.id && email !== initialEmail) {
         try {
-          const res = await apiPost('/api/clients/invite', { chantierId: saved.id, email, envoyer: !!form._invite });
+          const res = await apiPost('/api/clients/invite', { chantierId: saved.id, email, envoyer: false });
           msg = res.linked ? `Chantier enregistré et rattaché au compte de ${email}`
             : `Chantier enregistré : ${email} le verra à sa première connexion avec Google`;
-          if (res.invited) msg += " (invitation envoyée)";
-          else if (res.mailError) addToast("Invitation non envoyée : "+res.mailError,"warning");
         } catch (err) {
           addToast("Chantier enregistré, mais client non rattaché : "+(err?.message||"erreur"),"warning");
           msg = null;
@@ -302,6 +301,20 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
     } catch(err) {
       addToast("Erreur : "+err.message,"error");
     } finally { setSaving(false); }
+  };
+  // Invitation du client par mail : envoyée seulement à la demande
+  const [inviting,setInviting]=useState(false);
+  const sendInvite=async()=>{
+    const email = String(form.client_email||"").trim().toLowerCase();
+    if (inviting || !form.id || !email) return;
+    setInviting(true);
+    try {
+      const res = await apiPost('/api/clients/invite', { chantierId: form.id, email, envoyer: true });
+      if (res.invited) addToast(`Invitation envoyée à ${email}`,"success");
+      else addToast(res.mailError ? "Invitation non envoyée : "+res.mailError : "Envoi par mail non configuré (SMTP) : invitation non envoyée.","warning");
+    } catch (err) {
+      addToast("Invitation non envoyée : "+(err?.message||"erreur"),"error");
+    } finally { setInviting(false); }
   };
   const handleDelete = useCallback(async (ch) => {
     const ok = await confirm({
@@ -337,7 +350,6 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
       notes_internes: ch.notes_internes || "",
       client_email: ch.client_email || "",
       _client_email_initial: ch.client_email || "",
-      _invite: !ch.client_email,
     });
     setModal("edit");
   }, []);
@@ -939,7 +951,8 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
         {!readOnly && <ClientAccountField value={form.client_user_id}
           onChange={v=>{accountTouchedRef.current=true;setForm(f=>({...f,client_user_id:v}));}}
           email={form.client_email||""} onEmail={v=>setForm(f=>({...f,client_email:v}))}
-          invite={form._invite!==false} onInvite={v=>setForm(f=>({...f,_invite:v}))}/>}
+          canSend={!!form.id && !!form.client_email && String(form.client_email).trim().toLowerCase()===String(form._client_email_initial||"").trim().toLowerCase()}
+          sending={inviting} onSendInvite={sendInvite}/>}
         <FF label="Adresse">
           <AddressPicker value={form.adresse||""}
             onChange={v=>setForm(f=>({...f,adresse:v}))}/>
