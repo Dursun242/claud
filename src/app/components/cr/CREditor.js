@@ -10,18 +10,19 @@ import {
 } from '../../lib/crSuivi'
 import { miseEnDemeureCandidates, pointsEnSouffrance } from '../../lib/miseEnDemeure'
 import { conformiteItems } from '../../lib/conformite'
-import { pointsBySection } from '../../lib/crEditor'
+import { pointsBySection, splitNotes } from '../../lib/crEditor'
 import { loadCrImages } from '../../lib/crPhotos'
 import { card, field, label, ghostBtn, NAVY } from './crStyles'
 import CRIntervenantsPicker from './CRIntervenantsPicker'
 import CRLotSection from './CRLotSection'
 import CRDictationPanel from './CRDictationPanel'
-import MicButton from './MicButton'
 import CRLivePreview from './CRLivePreview'
 import CRChecksPanel from './CRChecksPanel'
 import CRAgenda from './CRAgenda'
 import CRMiseEnDemeureModal from './CRMiseEnDemeureModal'
 import CRLotsManager from './CRLotsManager'
+import CRLotPanel from './CRLotPanel'
+import CRClosing from './CRClosing'
 
 const fmtDate = (iso) => (iso ? String(iso).slice(0, 10).split('-').reverse().join('/') : '')
 const fmtTime = (ts) => new Date(ts).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
@@ -31,9 +32,11 @@ const readSplit = () => { try { return localStorage.getItem(SPLIT_KEY) === '1' }
 
 /**
  * Éditeur plein écran d'un compte rendu de chantier.
- * - Mode « Réunion » (sur chantier, téléphone / tablette) : une étape à la
- *   fois — présences, dictée, Généralités, chaque lot, synthèse.
- * - Mode « Rédaction » (bureau) : tout sur une page, sommaire à gauche.
+ * - Tablette et ordinateur : trois étapes (Présences, Réunion, Clôture).
+ *   Réunion : lots repliés sur une ligne, points en lignes simples (état en
+ *   trois boutons, détail au clic), micro de dictée dans la barre du bas.
+ * - Téléphone : mode « Réunion » (une étape à la fois — présences, dictée,
+ *   Généralités, chaque lot, synthèse) ou « Rédaction » (tout sur une page).
  * - Aperçu du PDF à côté de la saisie (écran partagé), mis à jour pendant
  *   la dictée ; sur téléphone, bascule entre la saisie et l'aperçu.
  * - Ordre du jour préparé automatiquement ; avant diffusion, ce qui manque
@@ -54,6 +57,17 @@ export default function CREditor({ open, initial, data, onClose, onSaved, lockCh
   const [modeChoice, setMode] = useState(null)
   const mode = modeChoice || (m ? 'reunion' : 'redaction')
   const [step, setStep] = useState(0)
+  // Tablette / ordinateur : étape affichée et lots dépliés
+  const desk = !m
+  const [deskStep, setDeskStep] = useState('presences')
+  const [openLots, setOpenLots] = useState({})
+  const scrollRef = useRef(null)
+  const dictRef = useRef(null)
+  useEffect(() => {
+    if (!open) return
+    setDeskStep('presences')
+    setOpenLots({})
+  }, [open])
   const [saving, setSaving] = useState(false)
   const [previewing, setPreviewing] = useState(false)
   const [error, setError] = useState('')
@@ -137,13 +151,25 @@ export default function CREditor({ open, initial, data, onClose, onSaved, lockCh
 
   if (!open || !st) return null
 
+  const showStep = (k) => {
+    setDeskStep(k)
+    scrollRef.current?.scrollTo?.({ top: 0 })
+  }
+
   const goToAnchor = (anchor) => {
+    if (desk) {
+      if (anchor === 'presences' || anchor === 'cloture') { showStep(anchor); return }
+      setDeskStep('reunion')
+      if (sections.some(sc => sc.key === anchor)) setOpenLots(o => ({ ...o, [anchor]: true }))
+      setTimeout(() => document.getElementById(`cr-section-${anchor}`)?.scrollIntoView?.({ behavior: 'smooth', block: 'start' }), 0)
+      return
+    }
     const i = steps.findIndex(s => s.anchor === anchor)
     if (i >= 0) goTo(i)
   }
 
   const goTo = (i) => {
-    if (mode === 'reunion') { setStep(i); window.scrollTo?.({ top: 0 }) }
+    if (mode === 'reunion') { setStep(i); scrollRef.current?.scrollTo?.({ top: 0 }) }
     else document.getElementById(`cr-section-${steps[i].anchor}`)?.scrollIntoView?.({ behavior: 'smooth', block: 'start' })
   }
 
@@ -248,43 +274,7 @@ export default function CREditor({ open, initial, data, onClose, onSaved, lockCh
       <section key="cloture" id="cr-section-cloture" aria-label="Synthèse et convocation" style={{ ...card, scrollMarginTop: 120 }}>
         <h3 style={{ margin: '0 0 10px', fontSize: 17 }}>Synthèse et convocation</h3>
         <div style={{ marginBottom: 12 }}><CRChecksPanel checks={checks} onGo={goToAnchor} onRow={ed.updateRow} onMiseEnDemeure={setMedFor} /></div>
-        {[
-          ['resume', 'Synthèse de la réunion', 'Points marquants, état général du chantier…'],
-          ['alertes', 'Alertes : retards, non-conformités, risques', 'Ex : Retard de 2 semaines du lot plâtrerie, imputable à l’entreprise X : décale la pose du carrelage.'],
-          ['decisions', 'Décisions', 'Décisions prises pendant la réunion, par qui, avec leur impact (coût, délai)…'],
-        ].map(([k, title, ph]) => (
-          <div key={k} style={{ marginBottom: 12 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-              <span style={label}>{title}</span>
-              <MicButton active={dictation.target === k}
-                onClick={() => dictation.toggle(k, (t) => ed.setForm({ [k]: form[k] ? `${String(form[k]).trimEnd()} ${t}` : t }))} />
-            </div>
-            <textarea aria-label={title} value={form[k] || ''} onChange={e => ed.setForm({ [k]: e.target.value })}
-              rows={4} placeholder={ph} style={{ ...field, resize: 'vertical' }} />
-            {dictation.target === k && dictation.interim && <div style={{ fontSize: 12, color: 'var(--label-secondary)', fontStyle: 'italic' }}>{dictation.interim}…</div>}
-          </div>
-        ))}
-        <span style={{ ...label, color: NAVY, marginTop: 6 }}>Prochaine réunion — convocation</span>
-        <div style={{ display: 'grid', gridTemplateColumns: m ? '1fr 1fr' : '1fr 0.7fr 2fr', gap: 10 }}>
-          <div>
-            <span style={label}>Date</span>
-            <input type="date" aria-label="Date de la prochaine réunion" value={next.date || ''} style={field}
-              onChange={e => ed.setForm({ prochaine_reunion: { ...next, date: e.target.value } })} />
-          </div>
-          <div>
-            <span style={label}>Heure</span>
-            <input type="time" aria-label="Heure de la prochaine réunion" value={next.heure || ''} style={field}
-              onChange={e => ed.setForm({ prochaine_reunion: { ...next, heure: e.target.value } })} />
-          </div>
-          <div style={{ gridColumn: m ? '1 / -1' : 'auto' }}>
-            <span style={label}>Lieu</span>
-            <input aria-label="Lieu de la prochaine réunion" value={next.lieu || ''} placeholder="Sur le chantier" style={field}
-              onChange={e => ed.setForm({ prochaine_reunion: { ...next, lieu: e.target.value } })} />
-          </div>
-        </div>
-        <p style={{ fontSize: 12, color: 'var(--label-secondary)', margin: '6px 0 0' }}>
-          Imprimée en page de garde, ajoutée à l&apos;agenda et envoyée aux intervenants convoqués. Laisse la date vide s&apos;il n&apos;y a pas de réunion suivante.
-        </p>
+        <CRClosing form={form} setForm={ed.setForm} dictation={dictation} m={m} />
       </section>
     )
   }
@@ -326,14 +316,14 @@ export default function CREditor({ open, initial, data, onClose, onSaved, lockCh
   )
   // Ajout + gestion des lots (téléphone, aperçu à côté, mode Réunion)
   const lotsCard = (
-    <div style={card}>
+    <section aria-label="Lots du compte rendu" style={card}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--label)' }}>Lots</span>
+        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--label)' }}>Gérer les lots</span>
         {editableLots.length > 0 && manageToggle}
       </div>
       {manageLots && <div style={{ marginTop: 8 }}>{lotsManager}</div>}
       {addLotForm}
-    </div>
+    </section>
   )
 
   const showPreview = split && !!form.chantierId
@@ -342,8 +332,197 @@ export default function CREditor({ open, initial, data, onClose, onSaved, lockCh
     ? { text: 'Diffusé', color: '#1E7B34', bg: '#EAF8EE' }
     : { text: 'Brouillon', color: '#A0390C', bg: '#FFF7E8' }
 
+  const primaryBtn = { ...ghostBtn('#fff'), background: NAVY, border: 'none', color: '#fff', minHeight: 44, padding: '0 18px', fontSize: 14 }
+
+  const banners = (
+    <>
+      {ed.restoredAt && (
+        <div role="status" style={{ ...card, background: 'var(--accent-tint)', borderColor: 'var(--blue-line)', marginBottom: 12, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+          <span style={{ flex: 1, fontSize: 13, color: 'var(--accent-text)' }}>
+            Ton travail non enregistré sur cet appareil a été repris ({new Date(ed.restoredAt).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })}). Continue la dictée : elle s&apos;ajoute à la suite.
+          </span>
+          <button type="button" onClick={ed.discardRestored} style={ghostBtn('#6E6E73')}>Revenir à la version enregistrée</button>
+        </div>
+      )}
+      {ed.draft && (
+        <div role="status" style={{ ...card, background: 'var(--orange-tint)', borderColor: 'var(--orange-line)', marginBottom: 12, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+          <span style={{ flex: 1, fontSize: 13, color: 'var(--orange-deep)' }}>
+            Un brouillon non enregistré de ce compte rendu existe sur cet appareil ({new Date(ed.draft.savedAt).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })}).
+          </span>
+          <button type="button" onClick={ed.restoreDraft} style={{ ...ghostBtn('#fff'), background: 'var(--orange-text)', border: 'none', color: '#fff' }}>Reprendre</button>
+          <button type="button" onClick={ed.discardDraft} style={ghostBtn('#A0390C')}>Ignorer</button>
+        </div>
+      )}
+    </>
+  )
+
+  // Réunion : date, numéro, chantier
+  const meetingCard = (
+    <div style={{ ...card, marginBottom: m ? 12 : 0, display: 'grid', gridTemplateColumns: m ? '1fr 1fr' : (lockChantier || ed.isEdit ? '1fr 1fr 2fr' : '2fr 1fr 1fr'), gap: 10 }}>
+      {!lockChantier && !ed.isEdit && (
+        <div style={{ gridColumn: m ? '1 / -1' : 'auto' }}>
+          <span style={label}>Chantier *</span>
+          <select aria-label="Chantier" value={form.chantierId || ''} onChange={e => ed.changeChantier(e.target.value)} style={field}>
+            <option value="">— Sélectionner —</option>
+            {(data.chantiers || []).map(c => <option key={c.id} value={c.id}>{c.nom}</option>)}
+          </select>
+        </div>
+      )}
+      <div>
+        <span style={label}>Date de la réunion *</span>
+        <input type="date" aria-label="Date de la réunion" value={form.date || ''} onChange={e => ed.changeDate(e.target.value)} style={field} />
+      </div>
+      <div>
+        <span style={label}>N°</span>
+        <input type="number" min="1" aria-label="Numéro du CR" value={form.numero || ''} onChange={e => ed.setForm({ numero: e.target.value })} style={field} />
+      </div>
+      {(lockChantier || ed.isEdit) && !m && (
+        <div style={{ fontSize: 12, color: 'var(--label-secondary)', alignSelf: 'end', paddingBottom: 10 }}>
+          {st.previous ? `Fait suite au CR n°${st.previous.numero} du ${fmtDate(st.previous.date)}` : 'Premier compte rendu du chantier'}
+        </div>
+      )}
+      {!lockChantier && !ed.isEdit && st.previous && (
+        <div style={{ gridColumn: '1 / -1', fontSize: 12, color: 'var(--label-secondary)' }}>
+          Fait suite au CR n°{st.previous.numero} du {fmtDate(st.previous.date)} — points ouverts, lots et convoqués repris.
+        </div>
+      )}
+    </div>
+  )
+
+  // ─── Tablette / ordinateur : Présences → Réunion → Clôture ───────────────
+  const deskSteps = [
+    { k: 'presences', label: 'Présences' },
+    { k: 'reunion', label: 'Réunion', extra: stats.total ? `${stats.total} point${stats.total > 1 ? 's' : ''}` : '' },
+    { k: 'cloture', label: 'Clôture', extra: questions ? `${questions} à vérifier` : '', warn: questions > 0 },
+  ]
+  const nouvelles = splitNotes(st.notes, st.notesRangees).nouvelles.trim()
+  const dictating = dictation.target === 'notes'
+  const toggleMic = () => dictation.toggle('notes', (t) => ed.setNotes(n => (n ? `${n.trimEnd()} ${t}` : t)))
+  const ranger = () => {
+    document.getElementById('cr-section-dictee')?.scrollIntoView?.({ behavior: 'smooth', block: 'start' })
+    dictRef.current?.analyse()
+  }
+  const allOpen = sections.length > 0 && sections.every(sc => openLots[sc.key])
+  const nextStep = (k, text) => (
+    <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+      <button type="button" onClick={() => showStep(k)} style={primaryBtn}>Continuer : {text} →</button>
+    </div>
+  )
+
+  const deskBody = !form.chantierId ? (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      {meetingCard}
+      <div style={{ ...card, textAlign: 'center', color: 'var(--label-secondary)', fontSize: 14 }}>Choisis le chantier pour commencer.</div>
+    </div>
+  ) : deskStep === 'presences' ? (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      {meetingCard}
+      {renderStep({ id: 'presences' })}
+      {nextStep('reunion', 'Réunion')}
+    </div>
+  ) : deskStep === 'reunion' ? (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <CRAgenda collapsible groups={agenda} onGo={goToAnchor} />
+      <CRDictationPanel ref={dictRef} compact notes={st.notes} notesRangees={st.notesRangees} setNotes={ed.setNotes}
+        setNotesRangees={ed.setNotesRangees} dictation={dictation}
+        context={aiContext({ sections, rows })} date={form.date} rowsById={rowsById} onApply={ed.applyAi} />
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, padding: '4px 4px 0' }}>
+        <h3 style={{ margin: 0, fontSize: 17, color: 'var(--label)' }}>
+          Lots{progress != null ? <span style={{ fontSize: 13, fontWeight: 400, color: 'var(--label-secondary)' }}> · avancement global {progress} %</span> : null}
+        </h3>
+        <button type="button" onClick={() => setOpenLots(allOpen ? {} : Object.fromEntries(sections.map(sc => [sc.key, true])))}
+          style={{ border: 'none', background: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: 700, color: 'var(--accent-text)' }}>
+          {allOpen ? 'Tout replier' : 'Tout déplier'}
+        </button>
+      </div>
+      {sections.map(sec => (
+        <CRLotPanel key={sec.key} section={sec} rows={rows.filter(r => lotKey(r.lot) === sec.key)}
+          open={!!openLots[sec.key]} onToggle={() => setOpenLots(o => ({ ...o, [sec.key]: !o[sec.key] }))}
+          crId={initial?.id || null} crDate={form.date} lots={lots} entreprisesListId={ENTREPRISES_LIST} dictation={dictation}
+          onSection={(p) => ed.updateSection(sec.key, p)} onRow={ed.updateRow} onRemoveRow={ed.removeRow}
+          onAddRow={() => ed.addRow(sec.lot)} onMiseEnDemeure={setMedFor} />
+      ))}
+      {lotsCard}
+      <div style={{ position: 'sticky', bottom: 12, zIndex: 1, marginTop: 4, display: 'flex', gap: 10, alignItems: 'center', padding: '10px 12px',
+        background: 'rgba(255,255,255,0.96)', border: '1px solid var(--separator)', borderRadius: 14, boxShadow: '0 6px 20px rgba(0,0,0,.10)' }}>
+        <button type="button" onClick={toggleMic} aria-pressed={dictating}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 8, minHeight: 44, padding: '0 16px', borderRadius: 999, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
+            border: 'none', background: dictating ? 'var(--red-text)' : NAVY, color: '#fff' }}>
+          <span aria-hidden="true" style={{ width: 9, height: 9, borderRadius: '50%', background: '#fff', animation: dictating ? 'heartbeat 0.8s ease-in-out infinite' : 'none' }} />
+          {dictating ? 'Arrêter la dictée' : 'Dicter la réunion'}
+        </button>
+        <span style={{ flex: 1, minWidth: 0, fontSize: 13, color: 'var(--label-secondary)', fontStyle: dictating ? 'italic' : 'normal', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {dictating ? (dictation.interim || 'J’écoute…') : nouvelles ? `${nouvelles.split(/\s+/).length} mots à ranger dans le compte rendu` : 'Dicte ce qui se dit, lot par lot : l’IA range tout.'}
+        </span>
+        {nouvelles.length >= 10 && (
+          <button type="button" onClick={ranger} style={{ ...ghostBtn(), minHeight: 44, flexShrink: 0 }}>Ranger avec l’IA</button>
+        )}
+        <button type="button" onClick={() => showStep('cloture')} style={{ ...ghostBtn(), minHeight: 44, flexShrink: 0 }}>Clôture →</button>
+      </div>
+    </div>
+  ) : (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <CRChecksPanel checks={checks} onGo={goToAnchor} onRow={ed.updateRow} onMiseEnDemeure={setMedFor} />
+      <section id="cr-section-cloture" aria-label="Synthèse et convocation" style={card}>
+        <h3 style={{ margin: '0 0 10px', fontSize: 17 }}>Synthèse et convocation</h3>
+        <CRClosing form={form} setForm={ed.setForm} dictation={dictation} m={false} />
+      </section>
+      <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+        <button type="button" onClick={() => submit(false)} disabled={saving} style={{ ...ghostBtn(), minHeight: 44, padding: '0 18px', fontSize: 14 }}>
+          {saving ? 'Enregistrement…' : 'Enregistrer le brouillon'}
+        </button>
+        <button type="button" onClick={() => submit(true)} disabled={saving} style={{ ...primaryBtn, background: 'var(--green-text)' }}>
+          Diffuser le compte rendu
+        </button>
+      </div>
+    </div>
+  )
+
+  // ─── Téléphone : modes Réunion (étapes) et Rédaction ─────────────────────
+  const phoneBody = !form.chantierId ? (
+    <div style={{ ...card, textAlign: 'center', color: 'var(--label-secondary)', fontSize: 14 }}>Choisis le chantier pour commencer.</div>
+  ) : mode === 'redaction' ? (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      {steps.map(renderStep)}
+      {lotsCard}
+    </div>
+  ) : (
+    <div>
+      <div role="tablist" aria-label="Étapes de la réunion" style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 8, marginBottom: 8 }}>
+        {steps.map((s, i) => {
+          const c = s.section ? counts[s.section.key] : null
+          const on = s.id === current.id
+          return (
+            <button key={s.id} type="button" role="tab" aria-selected={on} onClick={() => goTo(i)}
+              style={{ flexShrink: 0, borderRadius: 999, padding: '7px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+                border: on ? `1.5px solid ${NAVY}` : '1px solid var(--separator-opaque)', background: on ? NAVY : '#fff', color: on ? '#fff' : 'var(--label-2)' }}>
+              {s.label}{c?.relance ? ` · ${c.relance}🔔` : c?.total ? ` · ${c.total}` : ''}
+            </button>
+          )
+        })}
+      </div>
+      {renderStep(current)}
+      {current.id === 'cloture' && <div style={{ marginTop: 12 }}>{lotsCard}</div>}
+      <div style={{ display: 'flex', gap: 8, marginTop: 14, position: 'sticky', bottom: 0, background: 'var(--grouped-bg)', padding: '10px 0' }}>
+        <button type="button" disabled={step === 0} onClick={() => goTo(step - 1)}
+          style={{ ...ghostBtn(), flex: 1, minHeight: 48, opacity: step === 0 ? 0.5 : 1 }}>Précédent</button>
+        {step < steps.length - 1 ? (
+          <button type="button" onClick={() => goTo(step + 1)}
+            style={{ ...ghostBtn('#fff'), flex: 2, minHeight: 48, background: NAVY, border: 'none', color: '#fff' }}>
+            {steps[step + 1].label} →
+          </button>
+        ) : (
+          <button type="button" onClick={() => submit(true)} disabled={saving}
+            style={{ ...ghostBtn('#fff'), flex: 2, minHeight: 48, background: 'var(--green-text)', border: 'none', color: '#fff' }}>
+            Enregistrer et diffuser
+          </button>
+        )}
+      </div>
+    </div>
+  )
+
   return (
-    <div role="dialog" aria-modal="true" aria-label={ed.isEdit ? `Compte rendu n°${form.numero}` : 'Nouveau compte rendu'}
+    <div ref={scrollRef} role="dialog" aria-modal="true" aria-label={ed.isEdit ? `Compte rendu n°${form.numero}` : 'Nouveau compte rendu'}
       style={{ position: 'fixed', inset: 0, zIndex: 1200, background: 'var(--grouped-bg)', overflowY: 'auto', overscrollBehavior: 'contain' }}>
       <datalist id={ENTREPRISES_LIST}>{entreprises.map(e => <option key={e} value={e} />)}</datalist>
       <CRMiseEnDemeureModal open={!!medFor} entreprise={medFor || ''} chantier={chantier} contacts={data.contacts || []}
@@ -365,24 +544,32 @@ export default function CREditor({ open, initial, data, onClose, onSaved, lockCh
             </div>
             <div style={{ fontSize: 11, color: 'var(--label-secondary)', display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
               <span style={{ fontWeight: 700, color: statusBadge.color, background: statusBadge.bg, borderRadius: 4, padding: '0 6px' }}>{statusBadge.text}</span>
-              {stats.total > 0 && <span>{stats.total} points · {stats.relance} à relancer · {stats.fait} faits</span>}
-              {questions > 0 && (
-                <button type="button" onClick={() => goToAnchor('cloture')}
-                  style={{ border: 'none', background: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 11, fontWeight: 700, color: 'var(--orange-deep)' }}>
-                  {questions} à vérifier
-                </button>
+              {desk ? (
+                form.date ? <span>Réunion du {fmtDate(form.date)}</span> : null
+              ) : (
+                <>
+                  {stats.total > 0 && <span>{stats.total} points · {stats.relance} à relancer · {stats.fait} faits</span>}
+                  {questions > 0 && (
+                    <button type="button" onClick={() => goToAnchor('cloture')}
+                      style={{ border: 'none', background: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 11, fontWeight: 700, color: 'var(--orange-deep)' }}>
+                      {questions} à vérifier
+                    </button>
+                  )}
+                  {progress != null && <span>avancement global {progress} %</span>}
+                </>
               )}
-              {progress != null && <span>avancement global {progress} %</span>}
               {ed.localSavedAt && <span title="Brouillon enregistré sur cet appareil (utilisable hors ligne)">✓ sur l&apos;appareil à {fmtTime(ed.localSavedAt)}</span>}
             </div>
           </div>
-          <div role="radiogroup" aria-label="Mode de saisie" style={{ display: 'flex', background: 'var(--grouped-bg)', borderRadius: 8, padding: 3 }}>
-            {[['reunion', 'Réunion'], ['redaction', 'Rédaction']].map(([k, l]) => (
-              <button key={k} type="button" role="radio" aria-checked={mode === k} onClick={() => setMode(k)}
-                style={{ border: 'none', borderRadius: 6, padding: '6px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
-                  background: mode === k ? '#fff' : 'transparent', color: mode === k ? NAVY : 'var(--label-secondary)', boxShadow: mode === k ? '0 1px 2px rgba(0,0,0,.08)' : 'none' }}>{l}</button>
-            ))}
-          </div>
+          {m && (
+            <div role="radiogroup" aria-label="Mode de saisie" style={{ display: 'flex', background: 'var(--grouped-bg)', borderRadius: 8, padding: 3 }}>
+              {[['reunion', 'Réunion'], ['redaction', 'Rédaction']].map(([k, l]) => (
+                <button key={k} type="button" role="radio" aria-checked={mode === k} onClick={() => setMode(k)}
+                  style={{ border: 'none', borderRadius: 6, padding: '6px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+                    background: mode === k ? '#fff' : 'transparent', color: mode === k ? NAVY : 'var(--label-secondary)', boxShadow: mode === k ? '0 1px 2px rgba(0,0,0,.08)' : 'none' }}>{l}</button>
+              ))}
+            </div>
+          )}
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', width: m ? '100%' : 'auto' }}>
             <button type="button" onClick={() => setSplit(!split)} disabled={!form.chantierId} aria-pressed={split}
               title={m ? 'Voir le PDF' : 'Voir le PDF à côté de la saisie, mis à jour pendant que tu écris ou dictes'}
@@ -398,6 +585,24 @@ export default function CREditor({ open, initial, data, onClose, onSaved, lockCh
             </button>
           </div>
         </div>
+        {desk && form.chantierId && (
+          <div role="tablist" aria-label="Étapes du compte rendu" style={{ display: 'flex', gap: 4, marginTop: 10, background: 'var(--grouped-bg)', borderRadius: 10, padding: 3, maxWidth: 720 }}>
+            {deskSteps.map((s, i) => {
+              const on = deskStep === s.k
+              return (
+                <button key={s.k} type="button" role="tab" aria-selected={on} onClick={() => showStep(s.k)}
+                  style={{ flex: 1, minHeight: 40, border: 'none', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit', fontSize: 14, fontWeight: 700,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                    background: on ? '#fff' : 'transparent', color: on ? NAVY : 'var(--label-2)', boxShadow: on ? '0 1px 3px rgba(0,0,0,.10)' : 'none' }}>
+                  <span aria-hidden="true" style={{ width: 22, height: 22, borderRadius: '50%', display: 'inline-grid', placeItems: 'center', fontSize: 12,
+                    background: on ? NAVY : 'var(--separator-opaque)', color: on ? '#fff' : 'var(--label-2)' }}>{i + 1}</span>
+                  {s.label}
+                  {s.extra ? <span style={{ whiteSpace: 'nowrap', fontSize: 12, fontWeight: 600, color: s.warn ? 'var(--orange-deep)' : 'var(--label-secondary)' }}>{s.extra}</span> : null}
+                </button>
+              )
+            })}
+          </div>
+        )}
         {error && (
           <div role="alert" style={{ marginTop: 8, background: 'var(--red-tint)', border: '1px solid var(--red-line)', borderRadius: 8, padding: '6px 10px', fontSize: 12, color: 'var(--red-text)' }}>⚠ {error}</div>
         )}
@@ -409,124 +614,17 @@ export default function CREditor({ open, initial, data, onClose, onSaved, lockCh
             style={{ height: `calc(100dvh - ${headerH + 24}px)` }} />
         </div>
       ) : (
-      <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', padding: m ? 12 : 20, ...(showPreview ? {} : { maxWidth: 1180, margin: '0 auto' }) }}>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        {ed.restoredAt && (
-          <div role="status" style={{ ...card, background: 'var(--accent-tint)', borderColor: 'var(--blue-line)', marginBottom: 12, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-            <span style={{ flex: 1, fontSize: 13, color: 'var(--accent-text)' }}>
-              Ton travail non enregistré sur cet appareil a été repris ({new Date(ed.restoredAt).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })}). Continue la dictée : elle s&apos;ajoute à la suite.
-            </span>
-            <button type="button" onClick={ed.discardRestored} style={ghostBtn('#6E6E73')}>Revenir à la version enregistrée</button>
+        <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', padding: m ? 12 : 20, ...(showPreview ? {} : { maxWidth: m ? 1180 : 940, margin: '0 auto' }) }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            {banners}
+            {m && meetingCard}
+            {m ? phoneBody : deskBody}
           </div>
-        )}
-        {ed.draft && (
-          <div role="status" style={{ ...card, background: 'var(--orange-tint)', borderColor: 'var(--orange-line)', marginBottom: 12, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-            <span style={{ flex: 1, fontSize: 13, color: 'var(--orange-deep)' }}>
-              Un brouillon non enregistré de ce compte rendu existe sur cet appareil ({new Date(ed.draft.savedAt).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })}).
-            </span>
-            <button type="button" onClick={ed.restoreDraft} style={{ ...ghostBtn('#fff'), background: 'var(--orange-text)', border: 'none', color: '#fff' }}>Reprendre</button>
-            <button type="button" onClick={ed.discardDraft} style={ghostBtn('#A0390C')}>Ignorer</button>
-          </div>
-        )}
-
-        {/* Réunion : date, numéro, chantier */}
-        <div style={{ ...card, marginBottom: 12, display: 'grid', gridTemplateColumns: m ? '1fr 1fr' : (lockChantier || ed.isEdit ? '1fr 1fr 2fr' : '2fr 1fr 1fr'), gap: 10 }}>
-          {!lockChantier && !ed.isEdit && (
-            <div style={{ gridColumn: m ? '1 / -1' : 'auto' }}>
-              <span style={label}>Chantier *</span>
-              <select aria-label="Chantier" value={form.chantierId || ''} onChange={e => ed.changeChantier(e.target.value)} style={field}>
-                <option value="">— Sélectionner —</option>
-                {(data.chantiers || []).map(c => <option key={c.id} value={c.id}>{c.nom}</option>)}
-              </select>
-            </div>
-          )}
-          <div>
-            <span style={label}>Date de la réunion *</span>
-            <input type="date" aria-label="Date de la réunion" value={form.date || ''} onChange={e => ed.changeDate(e.target.value)} style={field} />
-          </div>
-          <div>
-            <span style={label}>N°</span>
-            <input type="number" min="1" aria-label="Numéro du CR" value={form.numero || ''} onChange={e => ed.setForm({ numero: e.target.value })} style={field} />
-          </div>
-          {(lockChantier || ed.isEdit) && !m && (
-            <div style={{ fontSize: 12, color: 'var(--label-secondary)', alignSelf: 'end', paddingBottom: 10 }}>
-              {st.previous ? `Fait suite au CR n°${st.previous.numero} du ${fmtDate(st.previous.date)}` : 'Premier compte rendu du chantier'}
-            </div>
-          )}
-          {!lockChantier && !ed.isEdit && st.previous && (
-            <div style={{ gridColumn: '1 / -1', fontSize: 12, color: 'var(--label-secondary)' }}>
-              Fait suite au CR n°{st.previous.numero} du {fmtDate(st.previous.date)} — points ouverts, lots et convoqués repris.
-            </div>
+          {showPreview && (
+            <CRLivePreview getPreview={ed.preview} chantier={chantier} onOpenFull={preview} onClose={() => setSplit(false)}
+              style={{ position: 'sticky', top: headerH + 12, width: 'min(48vw, 760px)', flexShrink: 0, height: `calc(100vh - ${headerH + 32}px)` }} />
           )}
         </div>
-
-        {!form.chantierId ? (
-          <div style={{ ...card, textAlign: 'center', color: 'var(--label-secondary)', fontSize: 14 }}>Choisis le chantier pour commencer.</div>
-        ) : mode === 'redaction' ? (
-          <div style={{ display: 'grid', gridTemplateColumns: m || showPreview ? '1fr' : '220px 1fr', gap: 16, alignItems: 'start' }}>
-            {!m && !showPreview && (
-              <nav aria-label="Sommaire du compte rendu" style={{ position: 'sticky', top: 90, ...card, padding: 10 }}>
-                {editableLots.length > 0 && (
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 8px' }}>{manageToggle}</div>
-                )}
-                {manageLots ? lotsManager : steps.map((s, i) => {
-                  const c = s.section ? counts[s.section.key] : null
-                  return (
-                    <button key={s.id} type="button" onClick={() => goTo(i)}
-                      style={{ display: 'flex', width: '100%', justifyContent: 'space-between', gap: 6, border: 'none', background: 'none', padding: '7px 8px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontFamily: 'inherit', color: 'var(--label)', textAlign: 'left' }}>
-                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.label}</span>
-                      {c?.total ? <span style={{ fontSize: 11, fontWeight: 700, color: c.relance ? 'var(--red-text)' : 'var(--label-secondary)' }}>{c.total}</span> : null}
-                    </button>
-                  )
-                })}
-                {addLotForm}
-              </nav>
-            )}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              {steps.map(renderStep)}
-              {(m || showPreview) && lotsCard}
-            </div>
-          </div>
-        ) : (
-          <div>
-            <div role="tablist" aria-label="Étapes de la réunion" style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 8, marginBottom: 8 }}>
-              {steps.map((s, i) => {
-                const c = s.section ? counts[s.section.key] : null
-                const on = s.id === current.id
-                return (
-                  <button key={s.id} type="button" role="tab" aria-selected={on} onClick={() => goTo(i)}
-                    style={{ flexShrink: 0, borderRadius: 999, padding: '7px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
-                      border: on ? `1.5px solid ${NAVY}` : '1px solid var(--separator-opaque)', background: on ? NAVY : '#fff', color: on ? '#fff' : 'var(--label-2)' }}>
-                    {s.label}{c?.relance ? ` · ${c.relance}🔔` : c?.total ? ` · ${c.total}` : ''}
-                  </button>
-                )
-              })}
-            </div>
-            {renderStep(current)}
-            {current.id === 'cloture' && <div style={{ marginTop: 12 }}>{lotsCard}</div>}
-            <div style={{ display: 'flex', gap: 8, marginTop: 14, position: 'sticky', bottom: 0, background: 'var(--grouped-bg)', padding: '10px 0' }}>
-              <button type="button" disabled={step === 0} onClick={() => goTo(step - 1)}
-                style={{ ...ghostBtn(), flex: 1, minHeight: 48, opacity: step === 0 ? 0.5 : 1 }}>Précédent</button>
-              {step < steps.length - 1 ? (
-                <button type="button" onClick={() => goTo(step + 1)}
-                  style={{ ...ghostBtn('#fff'), flex: 2, minHeight: 48, background: NAVY, border: 'none', color: '#fff' }}>
-                  {steps[step + 1].label} →
-                </button>
-              ) : (
-                <button type="button" onClick={() => submit(true)} disabled={saving}
-                  style={{ ...ghostBtn('#fff'), flex: 2, minHeight: 48, background: 'var(--green-text)', border: 'none', color: '#fff' }}>
-                  Enregistrer et diffuser
-                </button>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-      {showPreview && (
-        <CRLivePreview getPreview={ed.preview} chantier={chantier} onOpenFull={preview} onClose={() => setSplit(false)}
-          style={{ position: 'sticky', top: headerH + 12, width: 'min(48vw, 760px)', flexShrink: 0, height: `calc(100vh - ${headerH + 32}px)` }} />
-      )}
-      </div>
       )}
     </div>
   )

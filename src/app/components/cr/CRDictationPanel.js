@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { forwardRef, useImperativeHandle, useState } from 'react'
 import { apiPost } from '../../lib/crmApi'
 import { useToast } from '../../contexts/ToastContext'
 import { SUIVI, findSimilarRow } from '../../lib/crSuivi'
@@ -16,8 +16,10 @@ const fmt = (iso) => (iso ? iso.split('-').reverse().join('/') : '')
  * Les notes sont gardées avec le CR : à la reprise d'un brouillon, la
  * nouvelle dictée s'ajoute à la suite, et seules les notes ajoutées depuis
  * le dernier rangement sont analysées (rien n'est ajouté deux fois).
+ * `compact` (tablette, ordinateur) : le micro est dans la barre du bas de
+ * l'éditeur, qui lance aussi le rangement (ref.analyse()).
  */
-export default function CRDictationPanel({ notes, notesRangees = 0, setNotes, setNotesRangees, dictation, context, date, rowsById, onApply }) {
+const CRDictationPanel = forwardRef(function CRDictationPanel({ notes, notesRangees = 0, setNotes, setNotesRangees, dictation, context, date, rowsById, onApply, compact = false }, ref) {
   const { addToast } = useToast()
   const [busy, setBusy] = useState(false)
   const [proposal, setProposal] = useState(null)
@@ -53,6 +55,8 @@ export default function CRDictationPanel({ notes, notesRangees = 0, setNotes, se
     }
   }
 
+  useImperativeHandle(ref, () => ({ analyse }))
+
   const apply = () => {
     const d = proposal
     onApply({
@@ -87,13 +91,15 @@ export default function CRDictationPanel({ notes, notesRangees = 0, setNotes, se
     <section id="cr-section-dictee" aria-label="Dictée de la réunion" style={{ ...card, scrollMarginTop: 120 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap', marginBottom: 6 }}>
         <h3 style={{ margin: 0, fontSize: 17 }}>Dictée de la réunion</h3>
-        {dictation && (
+        {dictation && !compact && (
           <MicButton active={dictation.target === micId} label="Dicter la réunion"
             onClick={() => dictation.toggle(micId, (t) => setNotes(n => (n ? `${n.trimEnd()} ${t}` : t)))} />
         )}
       </div>
       <p style={{ fontSize: 12, color: 'var(--label-secondary)', margin: '0 0 8px' }}>
-        Dicte ou tape tout ce qui se dit, lot par lot. L&apos;IA range ensuite les observations, l&apos;avancement, les points faits ou à relancer et les nouvelles actions — tu valides avant que ce soit ajouté.
+        {compact
+          ? <>Dicte avec le micro en bas de l&apos;écran, ou tape tes notes ici. L&apos;IA les range dans les lots ; tu valides avant que ce soit ajouté.</>
+          : <>Dicte ou tape tout ce qui se dit, lot par lot. L&apos;IA range ensuite les observations, l&apos;avancement, les points faits ou à relancer et les nouvelles actions — tu valides avant que ce soit ajouté.</>}
       </p>
       {ranges && (
         <details style={{ marginBottom: 8, background: 'var(--row-fill)', border: '1px solid var(--separator)', borderRadius: 8, padding: '6px 10px' }}>
@@ -103,7 +109,7 @@ export default function CRDictationPanel({ notes, notesRangees = 0, setNotes, se
           <div style={{ fontSize: 12, color: 'var(--label-secondary)', whiteSpace: 'pre-wrap', marginTop: 6, maxHeight: 180, overflowY: 'auto' }}>{ranges}</div>
         </details>
       )}
-      <textarea aria-label={ranges ? 'Nouvelles notes de réunion' : 'Notes de réunion'} value={nouvelles} onChange={e => setNotes(joinNotes(ranges, e.target.value))} rows={6}
+      <textarea aria-label={ranges ? 'Nouvelles notes de réunion' : 'Notes de réunion'} value={nouvelles} onChange={e => setNotes(joinNotes(ranges, e.target.value))} rows={compact && !nouvelles ? 2 : 6}
         placeholder="Ex : Électricité, Martin absent, le tableau n'est toujours pas posé, à relancer. Plomberie : réseaux sous dallage terminés, avancement 60 %. Carreleur doit fournir les échantillons pour vendredi…"
         style={{ ...field, resize: 'vertical' }} />
       {dictation?.target === micId && dictation.interim && (
@@ -155,4 +161,6 @@ export default function CRDictationPanel({ notes, notesRangees = 0, setNotes, se
       )}
     </section>
   )
-}
+})
+
+export default CRDictationPanel

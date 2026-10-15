@@ -1,10 +1,9 @@
 'use client'
 import { useState } from 'react'
-import { SUIVI, PRIORITY_LADDER, daysLate, effectivePriority, lotKey, rappelsApres } from '../../lib/crSuivi'
-import { needsMiseEnDemeure } from '../../lib/miseEnDemeure'
-import { reponseText } from '../../lib/crReponse'
+import { SUIVI, PRIORITY_LADDER, daysLate, effectivePriority, lotKey } from '../../lib/crSuivi'
 import { SUIVI_STYLE, PRIO_COLOR, field } from './crStyles'
 import CRPhotoStrip from './CRPhotoStrip'
+import CRPointNotices from './CRPointNotices'
 
 const PRIO_LABEL = { 'En attente': 'Basse', 'En cours': 'Normale', Urgent: 'Urgente' }
 const small = { ...field, minHeight: 36, fontSize: 14, padding: '6px 8px' }
@@ -84,34 +83,7 @@ export default function CRPointCard({ row, crId, crDate, lots = [], entreprisesL
           {lots.map(l => <option key={l.key} value={l.key}>{l.lot}</option>)}
         </select>
       </div>
-      {row.reponseRecente && row.reponse && (
-        <div role="note" style={{ marginTop: 8, fontSize: 12, borderRadius: 8, padding: '6px 8px', display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap',
-          background: '#fff', border: `1px solid ${row.reponse.type === 'desaccord' ? 'var(--red-line)' : 'var(--separator)'}`,
-          color: row.reponse.type === 'desaccord' ? 'var(--red-text)' : 'var(--label-2)' }}>
-          <span style={{ flex: 1, minWidth: 0 }}>
-            <b>Réponse de l&apos;entreprise</b> le {String(row.reponse.le || '').slice(0, 10).split('-').reverse().join('/')} : {reponseText(row.reponse)}
-          </span>
-          {row.reponse.type === 'fait' && row.suivi !== 'fait' && !disabled && (
-            <button type="button" onClick={() => onChange({ suivi: 'fait' })} style={{ border: '1px solid var(--separator-opaque)', background: '#fff', borderRadius: 6, padding: '2px 8px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Marquer fait</button>
-          )}
-          {row.reponse.type === 'delai' && row.reponse.date && row.echeance !== row.reponse.date && !disabled && (
-            <button type="button" onClick={() => onChange({ echeance: row.reponse.date, suivi: 'en_cours' })} style={{ border: '1px solid var(--separator-opaque)', background: '#fff', borderRadius: 6, padding: '2px 8px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Accepter la nouvelle date</button>
-          )}
-        </div>
-      )}
-      {onMiseEnDemeure && needsMiseEnDemeure({ ...row, rappels: rappelsApres(row, crId) }) && (
-        <div style={{ marginTop: 8, fontSize: 12, color: 'var(--red-text)', display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-          <span style={{ flex: 1, minWidth: 0 }}>
-            {row.orig?.mise_en_demeure_le
-              ? `Mise en demeure préparée le ${String(row.orig.mise_en_demeure_le).slice(0, 10).split('-').reverse().join('/')}.`
-              : `Relancé ${rappelsApres(row, crId)} fois sans effet : place à la mise en demeure.`}
-          </span>
-          <button type="button" onClick={() => onMiseEnDemeure(row.entreprise)}
-            style={{ border: '1px solid var(--red-line)', background: '#fff', color: 'var(--red-text)', borderRadius: 6, padding: '3px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-            {row.orig?.mise_en_demeure_le ? 'Refaire le courrier' : 'Préparer la mise en demeure'}
-          </button>
-        </div>
-      )}
+      <CRPointNotices row={row} crId={crId} disabled={disabled} onChange={onChange} onMiseEnDemeure={onMiseEnDemeure} />
       {willRemind && nextPrio !== row.priorite && (
         <div style={{ fontSize: 11, color: 'var(--red-text)', marginTop: 6 }}>
           Relance : priorité relevée à « {PRIO_LABEL[nextPrio]} » à l&apos;enregistrement.
