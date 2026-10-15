@@ -448,3 +448,29 @@ export function depositMailText({ contact = {}, kind, doc = {}, compliance, appU
     action: appUrl ? { url: appUrl, label: 'Ouvrir l’application', hint: 'Contacts → Documents de l’entreprise' } : null,
   }
 }
+
+/** Tous les documents de l'entreprise sont à jour (rien à fournir ni à revoir). */
+export const isComplete = (compliance) => !!compliance && DOC_KINDS.every(k => ['ok', 'bientot'].includes(compliance.kinds?.[k]?.status))
+
+/**
+ * Mail « dossier complet » : envoyé une seule fois, quand le dépôt d'une
+ * entreprise rend son dossier complet. Texte simple, sans le code [IDMDOC]
+ * des mails de dépôt (filtrés par Gmail) ni image : il arrive dans la boîte
+ * de réception principale.
+ */
+export function completeMailText({ contact = {}, compliance, appUrl = '' } = {}) {
+  const nom = contact.societe || contact.nom || 'Une entreprise'
+  const lignes = DOC_KINDS.map(k => {
+    const c = compliance?.kinds?.[k] || {}
+    return `- ${DOC_META[k].long}${c.valideAu ? ` : valable jusqu’au ${fmtD(c.valideAu)}` : ''}`
+  })
+  return {
+    subject: `Dossier complet : ${nom}`,
+    text: [
+      'Bonjour,',
+      `${nom} a déposé tous ses documents : son dossier est complet et à jour.`,
+      lignes.join('\n'),
+      appUrl ? `Pour les consulter : ${appUrl} (Contacts, puis Documents de l’entreprise).` : null,
+    ].filter(Boolean).join('\n\n'),
+  }
+}

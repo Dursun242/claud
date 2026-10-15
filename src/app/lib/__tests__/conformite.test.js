@@ -301,3 +301,18 @@ describe('mail à l’équipe à chaque dépôt', () => {
     expect(full.text).toContain('Avancement : 5/5 documents à jour. Dossier complet.')
   })
 })
+
+describe('dossier complet', () => {
+  it('complet seulement si tous les documents sont à jour ; mail en texte simple sans code de filtre', () => {
+    const { isComplete, completeMailText, DOC_KINDS } = require('../conformite')
+    const all = { kinds: Object.fromEntries(DOC_KINDS.map(k => [k, { status: 'ok', valideAu: '2027-03-20' }])) }
+    expect(isComplete(all)).toBe(true)
+    expect(isComplete({ kinds: { ...all.kinds, rib: { status: 'a_verifier' } } })).toBe(false)
+    expect(isComplete(null)).toBe(false)
+    const m = completeMailText({ contact: { societe: 'Costa Plomberie' }, compliance: all, appUrl: 'https://app.test' })
+    expect(m.subject).toBe('Dossier complet : Costa Plomberie')
+    expect(m.subject).not.toMatch(/IDMDOC|📄/)
+    expect(m.text).toContain('valable jusqu’au 20/03/2027')
+    expect(m.text).toContain('https://app.test')
+  })
+})

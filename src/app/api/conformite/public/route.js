@@ -10,9 +10,9 @@
 import { createLogger } from '@/app/lib/logger'
 import { createRateLimiter } from '@/app/lib/rateLimit'
 import { adminClient } from '@/app/lib/supabaseClients'
-import { DOC_KINDS, DOC_META, contactCompliance, companyAnomalies } from '@/app/lib/conformite'
+import { DOC_KINDS, DOC_META, contactCompliance, companyAnomalies, isComplete } from '@/app/lib/conformite'
 import {
-  isRequestToken, prepareUpload, registerDocument, loadContactDocs, notifyDeposit, todayParis, MIGRATION_MSG,
+  isRequestToken, prepareUpload, registerDocument, loadContactDocs, notifyDeposit, notifyComplete, todayParis, MIGRATION_MSG,
 } from '@/app/lib/conformiteServer'
 
 export const maxDuration = 60
@@ -83,14 +83,18 @@ export async function POST(request) {
       return r.error ? fail(r.error, r.status) : Response.json({ ok: true, data: r.data })
     }
     if (body.action === 'register') {
+      const { data: before } = await loadContactDocs(admin, contact.id)
       const r = await registerDocument(admin, { contact, kind: body.kind, path: body.path, name: body.name, by: 'entreprise', log })
       if (r.error) return fail(r.error, r.status)
       const { data: docs } = await loadContactDocs(admin, contact.id)
+      const compliance = contactCompliance(docs || [], todayParis())
+      const appUrl = new URL(request.url).origin
       // Mail à l'équipe à chaque dépôt (avec l'avancement de l'entreprise)
-      await notifyDeposit(admin, {
-        contact, kind: body.kind, doc: r.data,
-        compliance: contactCompliance(docs || [], todayParis()), appUrl: new URL(request.url).origin,
-      }, log)
+      await notifyDeposit(admin, { contact, kind: body.kind, doc: r.data, compliance, appUrl }, log)
+      // Ce dépôt complète le dossier : mail à part, dans la boîte principale
+      if (isComplete(compliance) && !isComplete(contactCompliance(before || [], todayParis()))) {
+        await notifyComplete(admin, { contact, compliance, appUrl }, log)
+      }
       return Response.json({ ok: true, data: publicState(contact, docs || []) })
     }
     return fail('Action inconnue')

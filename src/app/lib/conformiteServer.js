@@ -5,7 +5,7 @@
 
 import crypto from 'node:crypto'
 import { generate, stripJsonFence } from './ai'
-import { DOC_KINDS, DOC_META, computeValidUntil, identityAnomalies, contactCompliance, requestMailText, isIsoDate, normIban, PAUSE_KEY, depositMailText } from './conformite'
+import { DOC_KINDS, DOC_META, computeValidUntil, identityAnomalies, contactCompliance, requestMailText, isIsoDate, normIban, PAUSE_KEY, depositMailText, completeMailText } from './conformite'
 import { validateIban } from './validators'
 import { DOC_READ_SCHEMA, DOC_READ_SYSTEM, docReadPrompt, cleanDocRead } from './conformiteAi'
 import { safeFileName, storageName } from './devisDocuments'
@@ -307,6 +307,33 @@ export async function notifyDeposit(admin, { contact, kind, doc, compliance = nu
       attachments,
     })
   } catch (e) { log?.warn('mail de dépôt', e?.code || e?.message || e) }
+}
+
+/**
+ * Dossier d'une entreprise devenu complet après son dépôt : cloche + mail
+ * en texte simple (boîte de réception principale, voir completeMailText),
+ * marqué important. Jamais bloquant.
+ */
+export async function notifyComplete(admin, { contact, compliance, appUrl = '' }, log) {
+  const m = completeMailText({ contact, compliance, appUrl })
+  try {
+    const { data: staff } = await admin.from('authorized_users').select('email, role, actif')
+    const emails = [...new Set((staff || [])
+      .filter(u => u.actif === true && ['admin', 'salarie', 'salarié'].includes(u.role) && u.email)
+      .map(u => String(u.email).trim().toLowerCase()))]
+    if (emails.length) {
+      const { error } = await admin.from('notifications').insert(emails.map(recipient_email => ({
+        recipient_email, actor_email: null, kind: 'update', entity_type: 'contact', entity_id: contact.id,
+        chantier_id: null, title: `✅ ${m.subject}`, body: 'Tous les documents sont à jour.', target_tab: 'contacts',
+      })))
+      if (error) log?.warn('notification dossier complet', error.message)
+    }
+  } catch (e) { log?.warn('notification dossier complet', e?.message || e) }
+  try {
+    const cfg = smtpConfig()
+    if (!cfg) return
+    await sendMail(cfg, { to: cfg.notify, subject: m.subject, text: m.text, priority: 'high' })
+  } catch (e) { log?.warn('mail dossier complet', e?.code || e?.message || e) }
 }
 
 // ─── Suspension des relances automatiques ───
