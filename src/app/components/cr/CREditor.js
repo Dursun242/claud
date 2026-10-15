@@ -6,7 +6,7 @@ import { useCrEditor } from '../../hooks/useCrEditor'
 import { useDictation } from '../../hooks/useDictation'
 import { useLeaveGuard } from '../../hooks/useLeaveGuard'
 import {
-  chantierIntervenants, entrepriseOf, lotKey, crTaskStats, aiContext, globalProgress, rowAiId, crChecks, crAgenda, rappelsApres, lotOf,
+  chantierIntervenants, entrepriseOf, lotKey, crTaskStats, aiContext, globalProgress, rowAiId, crChecks, crAgenda, rappelsApres, lotOf, GENERAL,
 } from '../../lib/crSuivi'
 import { miseEnDemeureCandidates, pointsEnSouffrance } from '../../lib/miseEnDemeure'
 import { conformiteItems } from '../../lib/conformite'
@@ -21,6 +21,7 @@ import CRLivePreview from './CRLivePreview'
 import CRChecksPanel from './CRChecksPanel'
 import CRAgenda from './CRAgenda'
 import CRMiseEnDemeureModal from './CRMiseEnDemeureModal'
+import CRLotsManager from './CRLotsManager'
 
 const fmtDate = (iso) => (iso ? String(iso).slice(0, 10).split('-').reverse().join('/') : '')
 const fmtTime = (ts) => new Date(ts).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
@@ -57,6 +58,8 @@ export default function CREditor({ open, initial, data, onClose, onSaved, lockCh
   const [previewing, setPreviewing] = useState(false)
   const [error, setError] = useState('')
   const [newLot, setNewLot] = useState('')
+  // Gestion des lots (ordre, nom, suppression) ouverte
+  const [manageLots, setManageLots] = useState(false)
   // Courrier de mise en demeure ouvert pour cette entreprise
   const [medFor, setMedFor] = useState(null)
   // Aperçu du PDF à côté (choix gardé sur l'appareil)
@@ -295,6 +298,44 @@ export default function CREditor({ open, initial, data, onClose, onSaved, lockCh
     </form>
   )
 
+  // Lots modifiables : tous sauf Généralités (toujours en tête)
+  const editableLots = sections.filter(sc => sc.key !== lotKey(GENERAL))
+  const removeLot = async (l) => {
+    const sec = sections.find(x => x.key === l.key)
+    const n = counts[l.key]?.total || 0
+    const hasContent = n || String(sec?.observations || '').trim() || (sec?.photos || []).length
+    if (hasContent && confirm) {
+      const ok = await confirm({
+        title: `Supprimer le lot « ${l.lot} » ?`,
+        message: [n ? `Ses ${n} point${n > 1 ? 's' : ''} passe${n > 1 ? 'nt' : ''} dans Généralités.` : null,
+          String(sec?.observations || '').trim() || (sec?.photos || []).length ? 'Ses observations et ses photos sont supprimées.' : null].filter(Boolean).join('\n'),
+        confirmLabel: 'Supprimer', danger: true,
+      })
+      if (!ok) return
+    }
+    ed.removeSection(l.key)
+  }
+  const lotsManager = (
+    <CRLotsManager lots={editableLots} counts={counts} onMove={ed.moveSection} onRename={ed.renameSection} onRemove={removeLot} />
+  )
+  const manageToggle = (
+    <button type="button" onClick={() => setManageLots(v => !v)} aria-pressed={manageLots}
+      style={{ border: 'none', background: 'none', padding: '4px 0', cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, fontWeight: 700, color: 'var(--accent-text)' }}>
+      {manageLots ? 'Terminé' : 'Modifier les lots'}
+    </button>
+  )
+  // Ajout + gestion des lots (téléphone, aperçu à côté, mode Réunion)
+  const lotsCard = (
+    <div style={card}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--label)' }}>Lots</span>
+        {editableLots.length > 0 && manageToggle}
+      </div>
+      {manageLots && <div style={{ marginTop: 8 }}>{lotsManager}</div>}
+      {addLotForm}
+    </div>
+  )
+
   const showPreview = split && !!form.chantierId
 
   const statusBadge = form.statut === 'Diffusé'
@@ -425,7 +466,10 @@ export default function CREditor({ open, initial, data, onClose, onSaved, lockCh
           <div style={{ display: 'grid', gridTemplateColumns: m || showPreview ? '1fr' : '220px 1fr', gap: 16, alignItems: 'start' }}>
             {!m && !showPreview && (
               <nav aria-label="Sommaire du compte rendu" style={{ position: 'sticky', top: 90, ...card, padding: 10 }}>
-                {steps.map((s, i) => {
+                {editableLots.length > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 8px' }}>{manageToggle}</div>
+                )}
+                {manageLots ? lotsManager : steps.map((s, i) => {
                   const c = s.section ? counts[s.section.key] : null
                   return (
                     <button key={s.id} type="button" onClick={() => goTo(i)}
@@ -440,7 +484,7 @@ export default function CREditor({ open, initial, data, onClose, onSaved, lockCh
             )}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               {steps.map(renderStep)}
-              {(m || showPreview) && <div style={card}>{addLotForm}</div>}
+              {(m || showPreview) && lotsCard}
             </div>
           </div>
         ) : (
@@ -459,7 +503,7 @@ export default function CREditor({ open, initial, data, onClose, onSaved, lockCh
               })}
             </div>
             {renderStep(current)}
-            {current.id === 'cloture' && <div style={{ ...card, marginTop: 12 }}>{addLotForm}</div>}
+            {current.id === 'cloture' && <div style={{ marginTop: 12 }}>{lotsCard}</div>}
             <div style={{ display: 'flex', gap: 8, marginTop: 14, position: 'sticky', bottom: 0, background: 'var(--grouped-bg)', padding: '10px 0' }}>
               <button type="button" disabled={step === 0} onClick={() => goTo(step - 1)}
                 style={{ ...ghostBtn(), flex: 1, minHeight: 48, opacity: step === 0 ? 0.5 : 1 }}>Précédent</button>

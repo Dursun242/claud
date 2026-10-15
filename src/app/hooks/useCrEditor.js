@@ -1,7 +1,7 @@
 'use client'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { cacheGet, cacheSet, cacheDelete } from '../lib/offlineStore'
-import { buildEditorState, draftKey, toDraft, fromDraft, previewCr, draftIsNewer } from '../lib/crEditor'
+import { buildEditorState, draftKey, toDraft, fromDraft, previewCr, draftIsNewer, moveSection as moveSectionIn, renameSection as renameSectionIn, removeSection as removeSectionIn } from '../lib/crEditor'
 import {
   initialRows, newRow, nextPointNumber, applyAiResult, defaultNextMeeting, lotKey, GENERAL, buildSections, markConvoques,
 } from '../lib/crSuivi'
@@ -117,6 +117,21 @@ export function useCrEditor({ open, initial, data }) {
     }))
   }, [mutate])
 
+  // Lots : ordre (c'est celui du PDF), nom, suppression (points → Généralités)
+  const moveSection = useCallback((key, dir) => mutate(s => ({ ...s, sections: moveSectionIn(s.sections, key, dir) })), [mutate])
+  // Renvoie un message d'erreur (nom vide, lot déjà existant) ou null
+  const renameSection = useCallback((key, name) => {
+    if (!state) return null
+    const check = renameSectionIn(state, key, name)
+    if (check.error) return check.error
+    mutate(s => {
+      const out = renameSectionIn(s, key, name)
+      return out.error ? s : { ...s, sections: out.sections, rows: out.rows }
+    })
+    return null
+  }, [state, mutate])
+  const removeSection = useCallback((key) => mutate(s => ({ ...s, ...removeSectionIn(s, key) })), [mutate])
+
   const changeChantier = useCallback((chId) => {
     dirty.current = false
     setState(buildEditorState({ data: dataRef.current, initial: null, chantierId: chId }))
@@ -180,6 +195,7 @@ export function useCrEditor({ open, initial, data }) {
   return {
     state, draft, restoredAt, localSavedAt, nextNum, isEdit: !!initial?.id,
     setForm, setNotes, setNotesRangees, discardRestored, updateRow, removeRow, addRow, updateSection, addSection,
+    moveSection, renameSection, removeSection,
     changeChantier, changeDate, applyAi, restoreDraft, discardDraft, save, preview, GENERAL,
   }
 }

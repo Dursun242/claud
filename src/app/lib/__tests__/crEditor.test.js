@@ -95,3 +95,33 @@ describe('reprise et notes de dictée', () => {
     expect(toDraft(st).notesRangees).toBe(3)
   })
 })
+
+describe('lots du CR : ordre, nom, suppression', () => {
+  const { moveSection, renameSection, removeSection } = require('../crEditor')
+  const sections = [
+    { key: 'generalites', lot: 'Généralités' }, { key: 'gros oeuvre', lot: 'Gros œuvre' },
+    { key: 'electricite', lot: 'Électricité' }, { key: 'plomberie', lot: 'Plomberie' },
+  ]
+  const rows = [{ key: 'r1', lot: 'Électricité' }, { key: 'r2', lot: 'Plomberie' }]
+  it('monter / descendre sans passer avant Généralités', () => {
+    expect(moveSection(sections, 'electricite', -1).map(s => s.key)).toEqual(['generalites', 'electricite', 'gros oeuvre', 'plomberie'])
+    expect(moveSection(sections, 'gros oeuvre', -1)).toBe(sections)
+    expect(moveSection(sections, 'plomberie', 1)).toBe(sections)
+    expect(moveSection(sections, 'generalites', 1)).toBe(sections)
+  })
+  it('renommer un lot et ses points ; nom vide ou déjà pris refusé', () => {
+    const out = renameSection({ sections, rows }, 'electricite', 'Électricité / VMC')
+    expect(out.sections[2]).toEqual({ key: 'electricite / vmc', lot: 'Électricité / VMC' })
+    expect(out.rows[0].lot).toBe('Électricité / VMC')
+    expect(out.rows[1].lot).toBe('Plomberie')
+    expect(renameSection({ sections, rows }, 'electricite', 'plomberie').error).toBe('Le lot « plomberie » existe déjà.')
+    expect(renameSection({ sections, rows }, 'electricite', ' ').error).toBe('Donne un nom au lot.')
+    expect(renameSection({ sections, rows }, 'generalites', 'X').error).toMatch(/Généralités/)
+  })
+  it('supprimer un lot : ses points passent dans Généralités', () => {
+    const out = removeSection({ sections, rows }, 'electricite')
+    expect(out.sections.map(s => s.key)).toEqual(['generalites', 'gros oeuvre', 'plomberie'])
+    expect(out.rows[0].lot).toBe('Généralités')
+    expect(removeSection({ sections, rows }, 'generalites').sections).toHaveLength(4)
+  })
+})
