@@ -4,7 +4,7 @@
 import { localISO } from './today'
 import {
   previousCr, nextCrNumero, initialRows, buildSections, carryIntervenants,
-  defaultNextMeeting, defaultCrDate, planCrTasks, sectionsForDb, lotKey, markConvoques,
+  defaultNextMeeting, defaultCrDate, planCrTasks, sectionsForDb, lotKey, markConvoques, GENERAL,
 } from './crSuivi'
 
 const chOf = (x) => x?.chantierId || x?.chantier_id || null
@@ -150,4 +150,42 @@ export function pointsBySection(rows = [], sections = []) {
     if (r.suivi === 'relance') out[k].relance += 1
   }
   return out
+}
+
+// ─── Lots du CR : ordre, nom, suppression (Généralités reste en tête) ───
+const GENERAL_KEY = lotKey(GENERAL)
+
+/** Monte (dir = -1) ou descend (dir = 1) un lot ; Généralités ne bouge pas. */
+export function moveSection(sections = [], key, dir) {
+  const i = sections.findIndex(s => s.key === key)
+  const j = i + dir
+  if (i < 0 || key === GENERAL_KEY || j < 0 || j >= sections.length || sections[j].key === GENERAL_KEY) return sections
+  const out = [...sections]
+  ;[out[i], out[j]] = [out[j], out[i]]
+  return out
+}
+
+/**
+ * Renomme un lot (et les points qui lui appartiennent).
+ * @returns {{ sections, rows } | { error }}
+ */
+export function renameSection({ sections = [], rows = [] }, key, name) {
+  const lot = String(name || '').trim()
+  if (!lot) return { error: 'Donne un nom au lot.' }
+  if (key === GENERAL_KEY) return { error: 'Généralités ne peut pas être renommé.' }
+  const newKey = lotKey(lot)
+  if (newKey !== key && sections.some(s => s.key === newKey)) return { error: `Le lot « ${lot} » existe déjà.` }
+  return {
+    sections: sections.map(s => (s.key === key ? { ...s, key: newKey, lot } : s)),
+    rows: rows.map(r => (lotKey(r.lot) === key ? { ...r, lot } : r)),
+  }
+}
+
+/** Supprime un lot : ses points passent dans Généralités. */
+export function removeSection({ sections = [], rows = [] }, key) {
+  if (key === GENERAL_KEY) return { sections, rows }
+  return {
+    sections: sections.filter(s => s.key !== key),
+    rows: rows.map(r => (lotKey(r.lot) === key ? { ...r, lot: GENERAL } : r)),
+  }
 }
