@@ -106,6 +106,36 @@ describe('/api/conformite/public (sans compte, par jeton)', () => {
     smtpConfig.mockReturnValue(null)
   })
 
+  it('POST : le dépôt qui complète le dossier envoie aussi « Dossier complet » (texte simple, une seule fois)', async () => {
+    smtpConfig.mockReturnValue({ from: 'moe@id.fr', notify: 'moe@id.fr', transport: {} })
+    sendMail.mockResolvedValue({})
+    for (const kind of ['decennale', 'urssaf', 'rib']) {
+      db.tables.contact_documents.push({ id: `d-${kind}`, contact_id: 'c1', kind, file_path: `conformite/c1/${kind}/0__x.pdf`, valide_au: '2099-01-01', iban: 'FR7612345678901234567890123', anomalies: [], created_at: '2026-09-02' })
+    }
+    const deposer = async () => {
+      const prep = await (await post({ token: TOKEN, action: 'prepare', kind: 'fiscale', name: 'fiscale.pdf', type: 'application/pdf', size: 1000 })).json()
+      db.putFile(prep.data.path, '%PDF-1.4 fiscale')
+      generate.mockResolvedValue({ ok: true, text: JSON.stringify({
+        type_document: 'fiscale', raison_sociale: '', siret: '', date_document: '2026-09-20', valide_du: '', valide_au: '',
+        assureur: '', numero_police: '', activites: '', activite_couverte: 'inconnu', code_securite: '', iban: '', bic: '', anomalies: [],
+      }) })
+      await post({ token: TOKEN, action: 'register', kind: 'fiscale', path: prep.data.path, name: 'fiscale.pdf' })
+    }
+    await deposer()
+    expect(sendMail).toHaveBeenCalledTimes(2)
+    const complet = sendMail.mock.calls[1][1]
+    expect(complet).toMatchObject({ to: 'moe@id.fr', subject: 'Dossier complet : Costa Plomberie', priority: 'high' })
+    expect(complet.html).toBeUndefined()
+    expect(complet.attachments).toBeUndefined()
+    expect(complet.text).toContain('Costa Plomberie a déposé tous ses documents : son dossier est complet et à jour.')
+    expect(db.tables.notifications.some(n => n.title === '✅ Dossier complet : Costa Plomberie')).toBe(true)
+    // Nouveau dépôt alors que le dossier était déjà complet : pas de second mail « complet »
+    sendMail.mockClear()
+    await deposer()
+    expect(sendMail).toHaveBeenCalledTimes(1)
+    smtpConfig.mockReturnValue(null)
+  })
+
   it('POST : jeton requis, pas d’accès à une autre entreprise', async () => {
     expect((await post({ action: 'prepare', kind: 'kbis', name: 'a.pdf', size: 1 })).status).toBe(404)
     expect((await post({ token: TOKEN, action: 'register', kind: 'kbis', path: 'conformite/c2/kbis/1__a.pdf' })).status).toBe(400)
