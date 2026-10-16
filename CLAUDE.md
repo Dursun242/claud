@@ -16,7 +16,7 @@ Application de gestion de chantiers BTP pour **ID Maîtrise** (SARL, Le Havre). 
 - **Odoo JSON-RPC** : signatures électroniques via module Sign
 - **Qonto API** : import factures/devis (proxy read-only)
 - **Annuaire des entreprises** (`recherche-entreprises.api.gouv.fr`, État, gratuit, sans clé) : recherche par SIRET / nom / dirigeant pour les contacts (`api/entreprises`, `lib/entreprises.js`)
-- **Jest + @testing-library/react** : ~1150 tests, ~25 s d'exécution
+- **Jest + @testing-library/react** : ~1200 tests, ~25 s d'exécution
 
 ## Topologie
 
@@ -48,6 +48,7 @@ src/app/
 ├─ lib/                       → auth, fetchWithRetry, odoo, validators, notifications, activityLog, chantierFinances
 │                               mailer.js (SMTP serveur) · notifications.js (serveur, service role) · crm.js (logique pure pipeline) + devis.js / devisAi.js / qontoDevis.js (calculs, prix habituels, vérifs devis, format Qonto) + crmDb.js (accès Supabase CRM, hors shared.js) + crmApi.js (appels /api/* du CRM avec JWT, PDF base64)
 │                               conformite.js (documents des entreprises : règles de validité, état par entreprise, entreprises actives, priorités, relances, texte du mail) · conformiteAi.js (lecture IA des documents) · conformiteServer.js (dépôt signé, lecture, enregistrement, demandes) · conformiteClient.js (dépôt depuis le navigateur) · legalCheck.js / legalCheckServer.js (contrôle légal : annuaire des entreprises + BODACC, entreprise fermée / procédure collective) · dossierVigilance.js (dossier de vigilance PDF, pdf-lib, documents en annexe)
+│                               entrepriseScore.js (score des entreprises sur 100 : documents 25, actions des CR 35 — relances, retards, mises en demeure —, présence aux réunions 15, avis étoiles 25 ; critères sans donnée non comptés, plafond si procédure collective / entreprise fermée ; classement par spécialité) → pastille ScoreBadge + EntrepriseScoreModal (components/contacts/) dans Contacts
 │                               chiffrage.js (DPGF : totaux travaux / honoraires / TTC, ratio TTC/m² MOE comprise, calage sur un objectif TTC hors prix verrouillés, comparaison estimé / OS par lot via ordres_service.lot, contrôles de bon sens, lot suggéré d'après la spécialité, prix de référence des OS, import JSON) · chiffrageBareme.js (barème de prix et habitudes ID Maîtrise donnés à l'IA) · chiffrageXlsx.js (export .xlsx à la charte ID Maîtrise, exceljs chargé à la demande, montants en formules) · hooks/useChiffrage.js (table chantier_chiffrages, migration 040)
 │                               crSuivi.js (CR : numéro par chantier, points numérotés repris d'un CR à l'autre, relances + montée de priorité + ton qui se durcit, sections par lot / avancement prévu, application de la proposition IA, ordre du jour, contrôle avant diffusion, absents, textes des mails) · crReponse.js / crReponseServer.js (réponses des entreprises par lien, pré-remplissage du CR suivant, rappel J-2) · miseEnDemeure.js (courrier après 3 relances, PDF generators.generateMiseEnDemeurePdf) · crEditor.js (état de l'éditeur, brouillon, aperçu) · crDb.js (enregistrement CR + tâches + rdv, statut Brouillon / Diffusé) · crPhotos.js (photos : réduction, dépôt, lecture pour le PDF) · crAi.js (schéma + nettoyage de la réponse IA)
 │
@@ -126,7 +127,7 @@ Skill **impeccable** (`.claude/skills/impeccable`, repris du dépôt `idm`) : co
 npm install          # deps
 npm run dev          # dev sur :3000
 npm run build        # build prod
-npm test             # Jest (~1150 tests, ~25 s)
+npm test             # Jest (~1200 tests, ~25 s)
 npm test -- --ci src/app/api/qonto  # tests filtrés
 npm run lint         # next lint
 ```

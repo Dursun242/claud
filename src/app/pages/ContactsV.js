@@ -25,6 +25,9 @@ import LegalBadge from '../components/conformite/LegalBadge'
 import { useConformite } from '../hooks/useConformite'
 import { isSubject, complianceOf, activeCompanyIds, buildSuivi, trackedReason } from '../lib/conformite'
 import SearchField from '../components/SearchField'
+import ScoreBadge from '../components/contacts/ScoreBadge'
+import EntrepriseScoreModal from '../components/contacts/EntrepriseScoreModal'
+import { scoreCompanies } from '../lib/entrepriseScore'
 
 // Paires marquées « pas un doublon » (sur cet appareil)
 const IGNORED_KEY = 'idm_contacts_not_duplicates'
@@ -60,6 +63,16 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
     contacts: data.contacts || [], byContact: conf.byContact, lastRequest: conf.lastRequest,
     activeIds, today: conf.today, globalPause: conf.globalPause,
   }).stats : null), [conf.ready, conf.missingMigration, conf.byContact, conf.lastRequest, conf.today, conf.globalPause, data.contacts, activeIds]);
+  // Score des entreprises (documents, actions des CR, réunions, avis) : lib/entrepriseScore.js
+  const scores = useMemo(() => scoreCompanies({
+    contacts: data.contacts || [], tasks: data.tasks || [], compteRendus: data.compteRendus || [],
+    ordresService: data.ordresService || [],
+    byContact: conf.ready && !conf.missingMigration ? conf.byContact : null,
+    legalByContact: conf.ready && !conf.missingMigration ? conf.legalByContact : null,
+    today: conf.today,
+  }), [data.contacts, data.tasks, data.compteRendus, data.ordresService, conf.ready, conf.missingMigration, conf.byContact, conf.legalByContact, conf.today]);
+  // null : fermé · "all" : classement · id : détail d'une entreprise
+  const [scoreFor, setScoreFor] = useState(null);
   const [q,setQ]=useState("");
   const [formError, setFormError] = useState("");
   // Recherche entreprise (annuaire de l'État : entreprises + dirigeants) — voir hooks/useEntrepriseSearch.js
@@ -133,6 +146,7 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
       { label: 'IBAN',           key: 'iban' },
       { label: 'Qualifications', key: 'qualifications' },
       { label: 'Note',           get: (c) => c.note ? `${c.note}/5` : '' },
+      { label: 'Score',          get: (c) => scores.get(c.id)?.score ?? '' },
       { label: 'Actif',          get: (c) => c.actif === false ? 'Non' : 'Oui' },
     ];
     const csv = buildCSV(list, columns);
@@ -512,6 +526,11 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
             Doublons ({dupGroups.length})
           </button>
         )}
+        {scores.size > 0 && (
+          <button onClick={() => setScoreFor("all")}
+            title="Classement des entreprises par score (documents, actions de chantier, réunions, avis)"
+            style={{ ...btnS, fontSize: 12 }}>Classement</button>
+        )}
         <button
           onClick={handleExportCSV}
           title="Exporter la liste filtrée au format CSV (Excel)"
@@ -744,12 +763,20 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
                   🏅 {c.qualifications}
                 </div>
               )}
-              {(isSubject(c) || conf.lastRequest.has(c.id)) && conf.ready && !conf.missingMigration && (
-                <div style={{marginTop:6,display:"flex",gap:6,flexWrap:"wrap"}}>
-                  <LegalBadge check={conf.legalByContact?.get(c.id)} onClick={()=>setDocsFor(c.id)}/>
-                  <ConformiteBadge compliance={complianceOf(conf.byContact, c.id, conf.today)} onClick={()=>setDocsFor(c.id)}/>
-                </div>
-              )}
+              {(() => {
+                const docs = (isSubject(c) || conf.lastRequest.has(c.id)) && conf.ready && !conf.missingMigration;
+                const sc = scores.get(c.id);
+                if (!docs && sc?.score == null) return null;
+                return (
+                  <div style={{marginTop:6,display:"flex",gap:6,flexWrap:"wrap"}}>
+                    <ScoreBadge score={sc} onClick={()=>setScoreFor(c.id)}/>
+                    {docs && <>
+                      <LegalBadge check={conf.legalByContact?.get(c.id)} onClick={()=>setDocsFor(c.id)}/>
+                      <ConformiteBadge compliance={complianceOf(conf.byContact, c.id, conf.today)} onClick={()=>setDocsFor(c.id)}/>
+                    </>}
+                  </div>
+                );
+              })()}
               {setTab && (() => {
                 const k = crmByContact.get(c.id);
                 return (
@@ -810,6 +837,11 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
       missingMigration={conf.missingMigration}
       legal={conf.legalByContact?.get(docsFor) || null}
       onChanged={() => { conf.reload(); reload?.(); }} />
+
+    <EntrepriseScoreModal open={!!scoreFor} onClose={() => setScoreFor(null)}
+      contacts={data.contacts || []} scores={scores} focusId={scoreFor === "all" ? null : scoreFor}
+      onOpenDocs={conf.ready && !conf.missingMigration ? (id) => { setScoreFor(null); setDocsFor(id); } : null}
+      onEdit={(c) => { setScoreFor(null); openEdit(c); }} />
 
     <DuplicatesModal open={dupOpen} groups={dupGroups} usage={usage} merging={merging}
       onClose={() => setDupOpen(false)} onIgnore={ignoreGroup} onMerge={handleMerge} />
