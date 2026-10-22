@@ -76,7 +76,7 @@ src/app/
     ├─ cron/reprise           → relance automatique des affaires « En attente » (GitHub Actions, CRON_SECRET, du lundi au vendredi) : à la date de reprise, mail de reprise au client avec choix de réponse (lib/crmReprise.js, lib/crmRepriseServer.js), un seul par date de reprise, rappel à J+14 sans réponse ; désactivable par affaire (reprise_auto) ; ?dry=1 liste sans envoyer
     ├─ cron/echeances         → rappel aux entreprises deux jours avant l'échéance de leurs actions (le vendredi : lundi et mardi), un mail par entreprise avec le lien de réponse, une fois par échéance (taches.rappel_echeance) ; GitHub Actions, CRON_SECRET, ?dry=1
     ├─ cron/daily-digest      → mail du matin : priorités du jour (lib/dailyPriorities.js, même liste que le tableau de bord) + mot du jour IA, à l'équipe à 7 h (Paris) du lundi au vendredi, un envoi par jour (settings.daily_digest_last_sent) ; GitHub Actions, secret CRON_SECRET, ?force=1 pour un envoi manuel
-    ├─ contacts/vcard         → contact enregistré dans le téléphone : POST (staff) → lien signé HMAC 10 min ; GET → fiche .vcf (lib/vcard.js), ouverte par l'iPhone (« Créer un contact »)
+    ├─ contacts/vcard         → contact enregistré dans le téléphone : POST (staff) → clé signée HMAC 2 h demandée à l'ouverture de Contacts (hooks/useVcardLinks.js) ; GET → fiche .vcf (lib/vcard.js) ouverte par un vrai lien target=_blank (dans l'app iPhone installée, seul Safari affiche « Créer un contact » ; une navigation après un appel réseau donne un fichier téléchargé)
     ├─ odoo/*                 → signatures
     ├─ pv-reception/*         → flux PV métier
     ├─ extract-*/             → Claude Vision (devis + contacts)
