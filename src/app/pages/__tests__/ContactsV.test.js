@@ -28,6 +28,8 @@ jest.mock('../../hooks/useConformite', () => ({
 // eslint-disable-next-line import/first
 import ContactsV from '../ContactsV'
 // eslint-disable-next-line import/first
+import { supabase } from '../../supabaseClient'
+// eslint-disable-next-line import/first
 import { complianceByContact } from '../../lib/conformite'
 // eslint-disable-next-line import/first
 import { localISO } from '../../lib/today'
@@ -74,5 +76,17 @@ describe('ContactsV', () => {
     mockConf = { ...mockConf, missingMigration: true }
     render(<ContactsV data={data} m reload={jest.fn()} active />)
     expect(screen.getByRole('button', { name: /Suivi des documents des entreprises/ })).toHaveTextContent('À activer')
+  })
+
+  it('« Enregistrer dans les contacts du téléphone » demande le lien de la fiche .vcf', async () => {
+    supabase.auth.getSession.mockResolvedValue({ data: { session: { access_token: 'jwt' } } })
+    global.fetch = jest.fn().mockResolvedValue({ ok: false, json: async () => ({ error: 'Réservé à l’équipe' }) })
+    render(<ContactsV data={data} m reload={jest.fn()} active />)
+    await userEvent.click(screen.getByRole('button', { name: 'Enregistrer M. Dupont dans les contacts du téléphone' }))
+    expect(global.fetch).toHaveBeenCalledWith('/api/contacts/vcard', expect.objectContaining({
+      method: 'POST', body: JSON.stringify({ contactId: 'c2' }),
+      headers: expect.objectContaining({ Authorization: 'Bearer jwt' }),
+    }))
+    expect(addToast).toHaveBeenCalledWith('Réservé à l’équipe', 'error')
   })
 })

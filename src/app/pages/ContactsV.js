@@ -330,6 +330,30 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
       setFormError(err?.message || "Erreur lors de l'enregistrement.");
     }
   };
+  // Enregistrer le contact dans le téléphone : lien signé vers la fiche
+  // .vcf (/api/contacts/vcard), ouverte par l'iPhone (« Créer un contact »)
+  const [phoneSaving, setPhoneSaving] = useState(null);
+  const saveToPhone = async (c) => {
+    if (phoneSaving) return;
+    setPhoneSaving(c.id);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) { addToast("Session expirée, reconnecte-toi.", "error"); return; }
+      const res = await fetch('/api/contacts/vcard', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+        body: JSON.stringify({ contactId: c.id }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || !json.url) { addToast(json.error || "Fiche contact indisponible", "error"); return; }
+      try { SB.log('export_vcard', 'contact', c.id, `Contact enregistré dans le téléphone — ${c.nom}`) } catch (_) {}
+      window.location.href = json.url;
+    } catch {
+      addToast("Pas de connexion : réessaie quand le réseau revient.", "error");
+    } finally {
+      setPhoneSaving(null);
+    }
+  };
   const handleDelete = async (c) => {
     const ok = await confirm({
       title: `Supprimer ${c.nom} ?`,
@@ -817,6 +841,15 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
                 display:"flex",alignItems:"center",justifyContent:"center"
               }}>
                 <Icon d={I.trash} size={13} color="#D70015"/>
+              </button>
+              <button onClick={()=>saveToPhone(c)} disabled={phoneSaving===c.id}
+                title="Enregistrer dans les contacts du téléphone"
+                aria-label={`Enregistrer ${c.nom} dans les contacts du téléphone`} style={{
+                background:"#F0F8FC",border:"1px solid var(--blue-line)",borderRadius:6,
+                cursor:phoneSaving===c.id?"wait":"pointer",padding:"5px 7px",opacity:phoneSaving===c.id?0.6:1,
+                display:"flex",alignItems:"center",justifyContent:"center"
+              }}>
+                <Icon d={I.userPlus} size={13} color="var(--accent-text)"/>
               </button>
             </div>
           </div>
