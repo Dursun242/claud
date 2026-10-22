@@ -1,6 +1,6 @@
 // Fiche contact au format vCard 3.0 (.vcf), pour l'enregistrer dans les
-// contacts du téléphone (iPhone : « Créer un contact »). Logique pure, servie
-// par /api/contacts/vcard. Tests : __tests__/vcard.test.js.
+// contacts du téléphone (iPhone : « Créer un contact »). Logique pure,
+// utilisée par shareVCard.js. Tests : __tests__/vcard.test.js.
 
 const COMPANY_TYPES = ['Artisan', 'Sous-traitant', 'Prestataire', 'Fournisseur', 'BET', 'Architecte']
 const CIVILITE = /^(m\.?|mr\.?|mme\.?|mlle\.?|monsieur|madame|mademoiselle|me\.?|dr\.?)$/i

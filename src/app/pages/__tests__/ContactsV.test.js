@@ -20,6 +20,8 @@ jest.mock('../../components', () => ({
 jest.mock('../../components/contacts/DuplicatesModal', () => () => null)
 jest.mock('../../hooks/useEntrepriseSearch', () => ({ useEntrepriseSearch: () => ({ resetEntrepriseSearch: jest.fn(), fetchEntreprise: jest.fn() }) }))
 jest.mock('../../hooks/useUndoableDelete', () => ({ useUndoableDelete: () => ({ pendingIds: new Set(), scheduleDelete: jest.fn() }) }))
+const mockShare = jest.fn()
+jest.mock('../../lib/shareVCard', () => ({ shareContactCard: (...a) => mockShare(...a) }))
 jest.mock('../../hooks/useConformite', () => ({
   useConformite: () => mockConf,
   conformitePost: jest.fn(),
@@ -27,8 +29,6 @@ jest.mock('../../hooks/useConformite', () => ({
 
 // eslint-disable-next-line import/first
 import ContactsV from '../ContactsV'
-// eslint-disable-next-line import/first
-import { supabase } from '../../supabaseClient'
 // eslint-disable-next-line import/first
 import { complianceByContact } from '../../lib/conformite'
 // eslint-disable-next-line import/first
@@ -47,6 +47,8 @@ const data = {
 }
 
 beforeEach(() => {
+  addToast.mockReset()
+  mockShare.mockReset()
   mockConf = {
     ready: true, missingMigration: false, globalPause: false, today,
     byContact: complianceByContact([], today), lastRequest: new Map(), docs: [], reload: jest.fn(),
@@ -78,24 +80,18 @@ describe('ContactsV', () => {
     expect(screen.getByRole('button', { name: /Suivi des documents des entreprises/ })).toHaveTextContent('À activer')
   })
 
-  it('« Enregistrer dans les contacts du téléphone » : vrai lien vers la fiche .vcf, ouvert dans Safari', async () => {
-    supabase.auth.getSession.mockResolvedValue({ data: { session: { access_token: 'jwt' } } })
-    const exp = Math.floor(Date.now() / 1000) + 7200
-    global.fetch = jest.fn().mockResolvedValue({ ok: true, json: async () => ({ exp, sig: 'abc' }) })
+  it('« Enregistrer dans les contacts du téléphone » : fiche confiée au partage du téléphone', async () => {
+    mockShare.mockResolvedValue('shared')
     render(<ContactsV data={data} m reload={jest.fn()} active />)
-    const a = await screen.findByRole('link', { name: 'Enregistrer M. Dupont dans les contacts du téléphone' })
-    expect(a).toHaveAttribute('href', `/api/contacts/vcard?id=c2&exp=${exp}&sig=abc`)
-    expect(a).toHaveAttribute('target', '_blank')
-    expect(global.fetch).toHaveBeenCalledWith('/api/contacts/vcard', expect.objectContaining({
-      method: 'POST', headers: { Authorization: 'Bearer jwt' },
-    }))
+    await userEvent.click(screen.getByRole('button', { name: 'Enregistrer M. Dupont dans les contacts du téléphone' }))
+    expect(mockShare).toHaveBeenCalledWith(data.contacts[1])
+    expect(addToast).not.toHaveBeenCalled()
   })
 
-  it('sans clé (hors ligne, hors équipe) : pas de bouton', async () => {
-    supabase.auth.getSession.mockResolvedValue({ data: { session: { access_token: 'jwt' } } })
-    global.fetch = jest.fn().mockResolvedValue({ ok: false, json: async () => ({ error: 'Réservé à l’équipe' }) })
+  it('sans partage de fichiers : fiche téléchargée, message', async () => {
+    mockShare.mockResolvedValue('downloaded')
     render(<ContactsV data={data} m reload={jest.fn()} active />)
-    await waitFor(() => expect(global.fetch).toHaveBeenCalled())
-    expect(screen.queryByRole('link', { name: /contacts du téléphone/ })).toBeNull()
+    await userEvent.click(screen.getByRole('button', { name: 'Enregistrer M. Dupont dans les contacts du téléphone' }))
+    await waitFor(() => expect(addToast).toHaveBeenCalledWith(expect.stringMatching(/téléchargée/), 'info'))
   })
 })
