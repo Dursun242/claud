@@ -23,7 +23,7 @@ import ConformiteModal from '../components/conformite/ConformiteModal'
 import ConformiteSuiviModal from '../components/conformite/ConformiteSuiviModal'
 import LegalBadge from '../components/conformite/LegalBadge'
 import { useConformite } from '../hooks/useConformite'
-import { useVcardLinks } from '../hooks/useVcardLinks'
+import { shareContactCard } from '../lib/shareVCard'
 import { isSubject, complianceOf, activeCompanyIds, buildSuivi, trackedReason } from '../lib/conformite'
 import SearchField from '../components/SearchField'
 import ScoreBadge from '../components/contacts/ScoreBadge'
@@ -331,9 +331,14 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
       setFormError(err?.message || "Erreur lors de l'enregistrement.");
     }
   };
-  // Enregistrer le contact dans le téléphone : vrai lien vers la fiche .vcf
-  // (ouverte dans Safari, l'iPhone propose « Créer un contact »)
-  const vcardLink = useVcardLinks({ enabled: active !== false });
+  // Enregistrer le contact dans le téléphone : fiche .vcf préparée ici et
+  // confiée au menu de partage (iPhone : « Contacts » → « Créer un contact »)
+  const saveToPhone = (c) => {
+    try { SB.log('export_vcard', 'contact', c.id, `Contact enregistré dans le téléphone — ${c.nom}`) } catch (_) {}
+    shareContactCard(c).then((r) => {
+      if (r === 'downloaded') addToast("Fiche contact téléchargée (.vcf) : ouvre-la pour l'ajouter à tes contacts", "info");
+    }).catch(() => addToast("Impossible de préparer la fiche contact", "error"));
+  };
   const handleDelete = async (c) => {
     const ok = await confirm({
       title: `Supprimer ${c.nom} ?`,
@@ -822,17 +827,15 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
               }}>
                 <Icon d={I.trash} size={13} color="#D70015"/>
               </button>
-              {vcardLink(c.id) && (
-                <a href={vcardLink(c.id)} target="_blank" rel="noopener noreferrer"
-                  onClick={()=>{ try { SB.log('export_vcard', 'contact', c.id, `Contact enregistré dans le téléphone — ${c.nom}`) } catch(_) {} }}
-                  title="Enregistrer dans les contacts du téléphone"
-                  aria-label={`Enregistrer ${c.nom} dans les contacts du téléphone`} style={{
-                  background:"#F0F8FC",border:"1px solid var(--blue-line)",borderRadius:6,
-                  padding:"5px 7px",display:"flex",alignItems:"center",justifyContent:"center"
-                }}>
-                  <Icon d={I.userPlus} size={13} color="var(--accent-text)"/>
-                </a>
-              )}
+              <button type="button" onClick={()=>saveToPhone(c)}
+                title="Enregistrer dans les contacts du téléphone"
+                aria-label={`Enregistrer ${c.nom} dans les contacts du téléphone`} style={{
+                background:"#F0F8FC",border:"1px solid var(--blue-line)",borderRadius:6,
+                cursor:"pointer",padding:"5px 7px",
+                display:"flex",alignItems:"center",justifyContent:"center"
+              }}>
+                <Icon d={I.userPlus} size={13} color="var(--accent-text)"/>
+              </button>
             </div>
           </div>
         </div>
