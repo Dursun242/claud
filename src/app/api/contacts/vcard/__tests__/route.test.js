@@ -27,10 +27,14 @@ beforeEach(() => {
   }).client)
 })
 
+const link = async () => {
+  const { exp, sig } = await (await POST(post({}))).json()
+  return (id = ID) => `/api/contacts/vcard?${new URLSearchParams({ id, exp: String(exp), sig })}`
+}
+
 describe('/api/contacts/vcard', () => {
-  it('lien signé (équipe) puis fiche vCard', async () => {
-    const { url } = await (await POST(post({ contactId: ID }))).json()
-    expect(url).toMatch(/^\/api\/contacts\/vcard\?id=/)
+  it('clé signée (équipe) puis fiche vCard', async () => {
+    const url = (await link())()
     const res = await GET(get(url))
     expect(res.status).toBe(200)
     expect(res.headers.get('Content-Type')).toBe('text/vcard; charset=utf-8')
@@ -40,26 +44,24 @@ describe('/api/contacts/vcard', () => {
     expect(text).toContain('TEL;TYPE=CELL,VOICE:06 13 33 55 75')
   })
 
-  it('refuse une signature fausse, un autre contact, un lien expiré', async () => {
-    const { url } = await (await POST(post({ contactId: ID }))).json()
+  it('refuse une signature fausse, une date modifiée, un lien expiré', async () => {
+    const url = (await link())()
     expect((await GET(get(url.replace(/sig=[^&]+/, 'sig=abc')))).status).toBe(403)
-    expect((await GET(get(url.replace(ID, '22222222-2222-4222-8222-222222222222')))).status).toBe(403)
+    expect((await GET(get(url.replace(/exp=(\d+)/, (_, e) => `exp=${Number(e) + 3600}`)))).status).toBe(403)
     const now = Date.now()
-    const spy = jest.spyOn(Date, 'now').mockReturnValue(now + 11 * 60 * 1000)
+    const spy = jest.spyOn(Date, 'now').mockReturnValue(now + 3 * 3600 * 1000)
     expect((await GET(get(url))).status).toBe(410)
     spy.mockRestore()
     expect((await GET(get('/api/contacts/vcard?id=x'))).status).toBe(400)
   })
 
-  it('POST réservé à l’équipe, contact requis', async () => {
-    expect((await POST(post({ contactId: 'x' }))).status).toBe(400)
+  it('clé réservée à l’équipe', async () => {
     verifyStaff.mockResolvedValue({ user: null, status: 403 })
-    expect((await POST(post({ contactId: ID }))).status).toBe(403)
+    expect((await POST(post({}))).status).toBe(403)
   })
 
-  it('contact supprimé entre-temps : 404', async () => {
-    const { url } = await (await POST(post({ contactId: ID }))).json()
-    adminClient.mockReturnValue(memoryDb({ contacts: [] }).client)
-    expect((await GET(get(url))).status).toBe(404)
+  it('contact inconnu ou supprimé : 404', async () => {
+    const url = await link()
+    expect((await GET(get(url('22222222-2222-4222-8222-222222222222')))).status).toBe(404)
   })
 })

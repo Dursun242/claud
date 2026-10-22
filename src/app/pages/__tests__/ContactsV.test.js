@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
 const addToast = jest.fn()
@@ -78,15 +78,24 @@ describe('ContactsV', () => {
     expect(screen.getByRole('button', { name: /Suivi des documents des entreprises/ })).toHaveTextContent('À activer')
   })
 
-  it('« Enregistrer dans les contacts du téléphone » demande le lien de la fiche .vcf', async () => {
+  it('« Enregistrer dans les contacts du téléphone » : vrai lien vers la fiche .vcf, ouvert dans Safari', async () => {
+    supabase.auth.getSession.mockResolvedValue({ data: { session: { access_token: 'jwt' } } })
+    const exp = Math.floor(Date.now() / 1000) + 7200
+    global.fetch = jest.fn().mockResolvedValue({ ok: true, json: async () => ({ exp, sig: 'abc' }) })
+    render(<ContactsV data={data} m reload={jest.fn()} active />)
+    const a = await screen.findByRole('link', { name: 'Enregistrer M. Dupont dans les contacts du téléphone' })
+    expect(a).toHaveAttribute('href', `/api/contacts/vcard?id=c2&exp=${exp}&sig=abc`)
+    expect(a).toHaveAttribute('target', '_blank')
+    expect(global.fetch).toHaveBeenCalledWith('/api/contacts/vcard', expect.objectContaining({
+      method: 'POST', headers: { Authorization: 'Bearer jwt' },
+    }))
+  })
+
+  it('sans clé (hors ligne, hors équipe) : pas de bouton', async () => {
     supabase.auth.getSession.mockResolvedValue({ data: { session: { access_token: 'jwt' } } })
     global.fetch = jest.fn().mockResolvedValue({ ok: false, json: async () => ({ error: 'Réservé à l’équipe' }) })
     render(<ContactsV data={data} m reload={jest.fn()} active />)
-    await userEvent.click(screen.getByRole('button', { name: 'Enregistrer M. Dupont dans les contacts du téléphone' }))
-    expect(global.fetch).toHaveBeenCalledWith('/api/contacts/vcard', expect.objectContaining({
-      method: 'POST', body: JSON.stringify({ contactId: 'c2' }),
-      headers: expect.objectContaining({ Authorization: 'Bearer jwt' }),
-    }))
-    expect(addToast).toHaveBeenCalledWith('Réservé à l’équipe', 'error')
+    await waitFor(() => expect(global.fetch).toHaveBeenCalled())
+    expect(screen.queryByRole('link', { name: /contacts du téléphone/ })).toBeNull()
   })
 })
