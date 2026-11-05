@@ -3,7 +3,6 @@ import { useState } from 'react'
 import { useAIQonto } from '../useAIQonto'
 import { useToast } from '../contexts/ToastContext'
 import { btnP } from '../dashboards/shared'
-import Emoji from '../components/Emoji'
 
 const card = {
   background: '#fff', border: '1px solid #E5E5EA', borderRadius: 12, padding: 16,
@@ -35,8 +34,8 @@ export default function AIQontoV({ m }) {
   const a = analysis?.analysis
   return (
     <div style={{ animation: 'fadeIn .3s ease' }}>
-      <h2 style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 12px', fontSize: 20, fontWeight: 700, color: 'var(--label)' }}>
-        <Emoji e="🤖" tile="#fff" />Analyse IA
+      <h2 style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 12px', fontSize: 20, fontWeight: 600, color: 'var(--label)' }}>
+        Analyse IA
       </h2>
 
       <button onClick={handleAnalyze} disabled={loading}
@@ -55,19 +54,19 @@ export default function AIQontoV({ m }) {
         <div style={{ display: 'grid', gridTemplateColumns: m ? '1fr' : 'repeat(auto-fit, minmax(250px, 1fr))', gap: 12 }}>
           {a?.summary && (
             <div style={card}>
-              <h3 style={title}><Emoji e="📊" size={24} />Résumé financier</h3>
+              <h3 style={title}>Résumé financier</h3>
               <p style={text}>{a.summary}</p>
             </div>
           )}
           {a?.paymentRate && (
             <div style={card}>
-              <h3 style={title}><Emoji e="💳" size={24} />Taux de paiement</h3>
+              <h3 style={title}>Taux de paiement</h3>
               <p style={text}>{a.paymentRate}</p>
             </div>
           )}
           {a?.topClients && (
             <div style={card}>
-              <h3 style={title}><Emoji e="👥" size={24} />Principaux clients</h3>
+              <h3 style={title}>Principaux clients</h3>
               <ul style={list}>{asList(a.topClients).map((c, i) => <li key={i}>{c}</li>)}</ul>
             </div>
           )}
@@ -75,7 +74,7 @@ export default function AIQontoV({ m }) {
             <div style={{ ...card, gridColumn: m ? '1' : '1 / -1' }}>
               <button type="button" onClick={() => setExpanded(!expanded)} aria-expanded={expanded}
                 style={{ ...title, margin: expanded ? '0 0 10px' : 0, background: 'none', border: 'none', padding: 0, minHeight: 32, cursor: 'pointer', fontFamily: 'inherit', width: '100%', textAlign: 'left' }}>
-                <Emoji e="💡" size={24} />Recommandations
+                Recommandations
                 <span aria-hidden="true" style={{ marginLeft: 'auto', color: 'var(--label-secondary)', fontWeight: 400 }}>{expanded ? '⌃' : '⌄'}</span>
               </button>
               {expanded && <ul style={list}>{asList(a.recommendations).map((r, i) => <li key={i}>{r}</li>)}</ul>}

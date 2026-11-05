@@ -1,4 +1,5 @@
 'use client'
+import { Icon, I } from '../icons'
 import { useEffect, useRef, useState } from 'react'
 import { FF, inp, btnP, btnS } from '../../dashboards/shared'
 import { parseEmails } from '../../lib/devisAi'
@@ -112,11 +113,11 @@ export default function DevisSendForm({ initial = {}, filename, sending, error, 
         <textarea style={{ ...inp, minHeight: 180, resize: 'vertical', fontSize: 14 }} value={form.body}
           onChange={e => set('body', e.target.value)} />
       </FF>
-      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--label-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 6 }}>
+      <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--label-secondary)', letterSpacing: '0.04em', marginBottom: 6 }}>
         Pièces jointes
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 12, fontSize: 12, color: 'var(--label-2)' }}>
-        <span style={chip}>📎 {filename} · Qonto</span>
+        <span style={{ ...chip, display: 'inline-flex', alignItems: 'center', gap: 4 }}><Icon d={I.paperclip} size={12} stroke={1.5} />{filename} · Qonto</span>
         {onPreviewPdf && (
           <button type="button" onClick={onPreviewPdf} style={smallBtn}>Vérifier le PDF Qonto</button>
         )}
@@ -129,15 +130,15 @@ export default function DevisSendForm({ initial = {}, filename, sending, error, 
                 {d.name}
               </label>
               <button type="button" onClick={() => removeDoc(d)} aria-label={`Retirer ${d.name} des documents permanents`}
-                title="Retirer des documents permanents" style={chipX}>×</button>
+                title="Retirer des documents permanents" style={chipX}><Icon d={I.x} size={14} stroke={1.75} /></button>
             </span>
           )
         })}
         {extras.map(d => (
           <span key={d.path} style={{ ...chip, background: 'var(--accent-tint)', borderColor: 'var(--blue-line)', color: 'var(--accent-text)' }}>
-            📎 {d.name}
+            <Icon d={I.paperclip} size={12} stroke={1.5} /> {d.name}
             <button type="button" onClick={() => setExtras(x => x.filter(e => e.path !== d.path))}
-              aria-label={`Enlever ${d.name}`} style={chipX}>×</button>
+              aria-label={`Enlever ${d.name}`} style={chipX}><Icon d={I.x} size={14} stroke={1.75} /></button>
           </span>
         ))}
         {docsApi && (
@@ -157,7 +158,7 @@ export default function DevisSendForm({ initial = {}, filename, sending, error, 
           </>
         )}
       </div>
-      {docsError && <div role="alert" style={{ color: 'var(--orange-text)', fontSize: 12, margin: '-6px 0 10px' }}>⚠ {docsError}</div>}
+      {docsError && <div role="alert" style={{ color: 'var(--orange-text)', fontSize: 12, margin: '-4px 0 12px', display: 'flex', gap: 8, alignItems: 'center' }}><Icon d={I.alert} size={14} stroke={1.75} />{docsError}</div>}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 12, fontSize: 12, color: 'var(--label-2)' }}>
         <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
           <input type="checkbox" checked={form.copyMe} onChange={e => set('copyMe', e.target.checked)} />
@@ -166,7 +167,7 @@ export default function DevisSendForm({ initial = {}, filename, sending, error, 
         {canSign && (
           <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontWeight: 600, color: 'var(--accent-text)' }}>
             <input type="checkbox" checked={form.sign} onChange={e => set('sign', e.target.checked)} />
-            ✍️ Signature électronique
+            Signature électronique
           </label>
         )}
         {onDraftAi && (
@@ -177,11 +178,11 @@ export default function DevisSendForm({ initial = {}, filename, sending, error, 
         )}
       </div>
       {canSign && form.sign && (
-        <div style={{ fontSize: 11, color: 'var(--label-secondary)', marginBottom: 10 }}>
+        <div style={{ fontSize: 12, color: 'var(--label-secondary)', marginBottom: 10 }}>
           Un lien sécurisé est ajouté au mail : le client consulte le devis et le signe en ligne.
         </div>
       )}
-      {shownError && <div role="alert" style={{ color: 'var(--red-text)', fontSize: 12, marginBottom: 10, fontWeight: 500 }}>⚠ {shownError}</div>}
+      {shownError && <div role="alert" style={{ color: 'var(--red-text)', fontSize: 12, marginBottom: 12, fontWeight: 500, display: 'flex', gap: 8, alignItems: 'center' }}><Icon d={I.alert} size={14} stroke={1.75} />{shownError}</div>}
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
         <button onClick={onCancel} style={btnS}>Annuler</button>
         <button onClick={submit} disabled={sending} style={{ ...btnP, opacity: sending ? 0.6 : 1 }}>

@@ -31,7 +31,7 @@ export default function CrmPipeline({
               <button key={e} onClick={() => onSelectStage(e)} style={{
                 flexShrink: 0, padding: '6px 11px', borderRadius: 999, fontSize: 12, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer',
                 border: `1px solid ${active ? c : 'var(--separator)'}`, background: active ? c : '#fff', color: active ? '#fff' : 'var(--label-2)',
-              }}>{e} <span style={{ opacity: 0.75, fontSize: 11 }}>{grouped[e].length}</span></button>
+              }}>{e} <span style={{ opacity: 0.75, fontSize: 12 }}>{grouped[e].length}</span></button>
             )
           })}
         </div>
@@ -74,8 +74,8 @@ export default function CrmPipeline({
               }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                 <span style={{ width: 8, height: 8, borderRadius: '50%', background: color }} />
-                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--label)', flex: 1 }}>{etape}</span>
-                <span style={{ fontSize: 11, color: 'var(--label-secondary)', fontWeight: 600 }}>{list.length}{total ? ` · ${fmtMoney(total)}` : ''}</span>
+                <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--label)', flex: 1 }}>{etape}</span>
+                <span style={{ fontSize: 12, color: 'var(--label-secondary)', fontWeight: 600 }}>{list.length}{total ? ` · ${fmtMoney(total)}` : ''}</span>
               </div>
               <div style={{ display: 'grid', gap: 8, gridTemplateColumns: 'minmax(0,1fr)' }}>
                 {list.map(o => (
@@ -89,7 +89,7 @@ export default function CrmPipeline({
                     onAdvance={nextEtape(o.etape) ? () => onMove(o, nextEtape(o.etape)) : null} />
                 ))}
                 <button onClick={() => onNew(etape)} title={`Nouvelle affaire directement en « ${etape} »`} style={{
-                  background: 'transparent', border: '1px dashed var(--separator-opaque)', borderRadius: 10, padding: '8px', fontSize: 11,
+                  background: 'transparent', border: '1px dashed var(--separator-opaque)', borderRadius: 10, padding: '8px', fontSize: 12,
                   color: 'var(--label-secondary)', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600,
                 }}>+ Ajouter ici</button>
               </div>
@@ -97,8 +97,8 @@ export default function CrmPipeline({
           )
         })}
       </div>
-      <div style={{ fontSize: 11, color: 'var(--label-secondary)', marginTop: 6 }}>
-        💡 Glisse une carte vers une autre colonne pour la faire avancer. Clique dessus pour voir la fiche.
+      <div style={{ fontSize: 12, color: 'var(--label-secondary)', marginTop: 6 }}>
+        Glisse une carte vers une autre colonne pour la faire avancer, clique dessus pour voir la fiche
       </div>
     </div>
   )

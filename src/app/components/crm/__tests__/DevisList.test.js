@@ -14,8 +14,8 @@ describe('DevisList — suivi', () => {
     }
     render(<DevisList devis={[{ ...base, _suivi }]} {...props} />)
     const line = screen.getByText(/ouvert 3×/).parentElement
-    expect(line).toHaveTextContent('👁 ouvert 3× · dernier le 29/09 10:12')
-    expect(line).toHaveTextContent('🔗 consulté en ligne 1×')
+    expect(line).toHaveTextContent('ouvert 3× · dernier le 29/09 10:12')
+    expect(line).toHaveTextContent('consulté en ligne 1×')
     expect(line.getAttribute('title')).toMatch(/29\/09 10:15 — devis consulté en ligne\n29\/09 10:12 — mail ouvert/)
   })
 
@@ -61,9 +61,9 @@ describe('DevisList — relance avec choix de réponse', () => {
       events: [],
     }
     render(<DevisList devis={[{ ...base, _suivi }]} {...props} />)
-    expect(screen.getByText(/relancé 2×/)).toHaveTextContent('✉ relancé 2× · dernière le 01/10 10:00')
+    expect(screen.getByText(/relancé 2×/)).toHaveTextContent('relancé 2× · dernière le 01/10 10:00')
     expect(screen.getByText(/relance pas encore ouverte/)).toBeInTheDocument()
-    expect(screen.getByText(/Réponse du client/).parentElement).toHaveTextContent('💬 Réponse du client le 02/10 11:30 : Projet reporté — « au printemps »')
+    expect(screen.getByText(/Réponse du client/).parentElement).toHaveTextContent('Réponse du client le 02/10 11:30 : Projet reporté — « au printemps »')
   })
 })
 
@@ -71,7 +71,7 @@ describe('DevisList — ouverture de la relance', () => {
   const sv = (extra) => ({ ouvertures: 1, consultations: 0, derniereOuverture: '2026-10-01T08:00:00Z', relances: 1, derniereRelance: '2026-10-05T19:50:00Z', relanceOuvertures: 0, reponses: [], events: [], ...extra })
   it('relance ouverte : nombre et date', () => {
     render(<DevisList devis={[{ ...base, _suivi: sv({ relanceOuvertures: 2, derniereRelanceOuverture: '2026-10-06T06:12:00Z' }) }]} {...props} />)
-    expect(screen.getByText(/relance ouverte/)).toHaveTextContent('📬 relance ouverte 2× · dernière le 06/10 08:12')
+    expect(screen.getByText(/relance ouverte/)).toHaveTextContent('relance ouverte 2× · dernière le 06/10 08:12')
     expect(screen.queryByText(/pas encore ouverte/)).not.toBeInTheDocument()
   })
   it('relance envoyée avant le marquage, mail rouvert ensuite : pas de « pas encore ouverte »', () => {

@@ -1,11 +1,12 @@
+import { Icon, I } from '../icons'
 import { btnP, btnS, fmtMoney, fmtDate } from '../../dashboards/shared'
 import { Badge, EmptyState } from '../index'
-import { ETAPES_ACTIVES, ETAPE_COLORS, INTERACTION_TYPES, INTERACTION_ICONS, isClosed, isAttente, nextEtape, isFollowUpObsolete, followUpContext } from '../../lib/crm'
+import { ETAPES_ACTIVES, ETAPE_COLORS, INTERACTION_TYPES, isClosed, isAttente, nextEtape, isFollowUpObsolete, followUpContext } from '../../lib/crm'
 import DevisList from './DevisList'
 import { fmtReprise } from './CrmAttenteList'
 import { repriseEnvoyee } from '../../lib/crmReprise'
 import InteractionRow from './InteractionRow'
-import { NEXT_STEP, todayISO, iconBtn } from './crmUi'
+import { NEXT_STEP, todayISO, iconBtn, INTERACTION_LINE_ICONS } from './crmUi'
 
 // Fiche d'une affaire : étapes, prochaine action, infos, devis, échanges
 export default function OpportuniteDetail({
@@ -30,12 +31,12 @@ export default function OpportuniteDetail({
       {/* Bandeau étape + actions */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
         <Badge text={o.etape} color={color} />
-        {Number(o.montant_estime) > 0 && <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--label)' }}>{fmtMoney(o.montant_estime)}</span>}
-        {!closed && !attente && <span style={{ fontSize: 11, color: 'var(--label-secondary)' }} title="Chances de gagner">{o.probabilite} % de chances</span>}
+        {Number(o.montant_estime) > 0 && <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--label)' }}>{fmtMoney(o.montant_estime)}</span>}
+        {!closed && !attente && <span style={{ fontSize: 12, color: 'var(--label-secondary)' }} title="Chances de gagner">{o.probabilite} % de chances</span>}
         <span style={{ flex: 1 }} />
         <button onClick={onEdit} style={{ ...btnS, fontSize: 12, padding: '6px 10px' }}>Modifier</button>
         <button onClick={onDelete} aria-label="Supprimer l'affaire" title="Supprimer"
-          style={{ ...btnS, fontSize: 12, padding: '6px 10px', color: 'var(--red-text)', background: 'var(--red-tint)' }}>🗑</button>
+          style={{ ...btnS, fontSize: 12, padding: '6px 10px', color: 'var(--red-text)', background: 'var(--red-tint)' }}><Icon d={I.trash} size={16} stroke={1.75} /></button>
       </div>
 
       {/* Frise des étapes */}
@@ -48,9 +49,9 @@ export default function OpportuniteDetail({
             return (
               <button key={e} onClick={() => onChangeEtape(e)} disabled={active || saving} title={active ? 'Étape actuelle' : `Passer à « ${e} »`}
                 style={{
-                  padding: '5px 10px', borderRadius: 999, fontSize: 11, fontWeight: 600, cursor: active ? 'default' : 'pointer', fontFamily: 'inherit',
+                  padding: '0 10px', minHeight: 28, borderRadius: 6, fontSize: 12, fontWeight: 500, cursor: active ? 'default' : 'pointer', fontFamily: 'inherit',
                   border: `1px solid ${active || done ? c : 'var(--separator)'}`, background: active ? c : done ? c + '22' : '#fff', color: active ? '#fff' : done ? c : 'var(--label-secondary)',
-                }}>{done ? '✓ ' : ''}{e}</button>
+                }}>{e}</button>
             )
           })}
         </div>
@@ -175,16 +176,16 @@ export default function OpportuniteDetail({
 
       {/* Échanges */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, flexWrap: 'wrap' }}>
-        <h3 style={{ margin: 0, fontSize: 13, fontWeight: 700, color: 'var(--label)', flex: 1 }}>
+        <h3 style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--label)', flex: 1 }}>
           Échanges <span style={{ color: 'var(--label-secondary)', fontWeight: 500 }}>({interactions.length})</span>
         </h3>
         {INTERACTION_TYPES.map(t => (
           <button key={t} onClick={() => onAddInteraction({ type: t })} title={`Noter : ${t}`} aria-label={`Noter ${t}`}
-            style={{ ...iconBtn, fontSize: 13, padding: '4px 8px' }}>{INTERACTION_ICONS[t]}</button>
+            style={{ ...iconBtn, width: 32, height: 32, padding: 0 }}><Icon d={I[INTERACTION_LINE_ICONS[t]]} size={16} stroke={1.5} /></button>
         ))}
       </div>
       {interactions.length === 0 ? (
-        <EmptyState compact icon="💬" title="Aucun échange. Clique sur 📞 ✉️ 🤝 🏠 📝 pour en noter un." />
+        <EmptyState compact title="Aucun échange. Utilise les boutons ci-dessus (appel, mail, réunion, visite, note) pour en noter un." />
       ) : (
         <div style={{ display: 'grid', gap: 6, gridTemplateColumns: 'minmax(0,1fr)' }}>
           {interactions.map(it => <InteractionRow key={it.id} it={it} onToggle={() => onToggleAction(it)} onDelete={() => onDeleteInteraction(it)} />)}
@@ -197,7 +198,7 @@ export default function OpportuniteDetail({
 function Info({ label, value }) {
   return (
     <div style={{ minWidth: 0 }}>
-      <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--label-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</span>
+      <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--label-secondary)'}}>{label}</span>
       <div style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{value}</div>
     </div>
   )

@@ -1,4 +1,5 @@
 'use client'
+import { Icon, I } from '../components/icons'
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { SB, btnP, btnS, inp, fmtMoney, fmtDate } from '../dashboards/shared'
 import { Modal, EmptyState } from '../components'
@@ -287,7 +288,7 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
       addToast(`« ${o.titre} » → ${etape}`, 'success')
       if (etape === 'Gagné' && !o.chantier_id) {
         const ok = await confirm({
-          title: 'Affaire gagnée 🎉',
+          title: 'Affaire gagnée',
           message: 'Créer le chantier correspondant maintenant ? Le budget et le client seront repris.',
           confirmLabel: 'Créer le chantier', cancelLabel: 'Plus tard',
         })
@@ -360,7 +361,7 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
       {/* ─── En-tête ─── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
         <div>
-          <h1 style={{margin:0,fontSize:m?28:32,fontWeight:700,letterSpacing:"-0.02em",color:"var(--label)"}}>CRM</h1>
+          <h1 style={{margin:0,fontSize:m?28:32,fontWeight:600,letterSpacing:"-0.02em",color:"var(--label)"}}>CRM</h1>
           <div style={{ fontSize: 13, color: 'var(--label-secondary)', marginTop: 2 }}>
             {stats.actives === 0 ? 'Tes affaires en cours, du premier appel au chantier.' :
               `${stats.actives} affaire${stats.actives > 1 ? 's' : ''} en cours · ${fmtMoney(stats.montantPipeline)}${stats.enAttente ? ` · ${stats.enAttente} en attente` : ''}`}
@@ -398,7 +399,7 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
       <form onSubmit={(e) => { e.preventDefault(); quickAdd() }}
         style={{ display: 'flex', gap: 8, marginBottom: 14, alignItems: 'center' }}>
         <div style={{ position: 'relative', flex: 1, minWidth: 0 }}>
-          <span aria-hidden="true" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 16 }}>🎯</span>
+          <span aria-hidden="true" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', display: 'inline-flex', color: 'var(--label-tertiary)' }}><Icon d={I.search} size={16} stroke={1.5} /></span>
           <input ref={quickRef} value={quick} onChange={e => setQuick(e.target.value)}
             aria-label="Ajouter une affaire rapidement"
             placeholder={m ? 'Nouvelle affaire… puis Entrée' : 'Ajouter une affaire : ex. « Rénovation maison Dupont » puis Entrée  (raccourci : n)'}
@@ -441,7 +442,7 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
                 fontSize: 12, fontWeight: 600, border: `1px solid ${active ? p.c : 'var(--separator)'}`,
                 background: active ? p.c : '#fff', color: active ? '#fff' : 'var(--label-2)', cursor: 'pointer', fontFamily: 'inherit',
               }}>
-                {p.l} <span style={{ fontSize: 11, opacity: 0.75, fontWeight: 500 }}>{p.n}</span>
+                {p.l} <span style={{ fontSize: 12, opacity: 0.75, fontWeight: 500 }}>{p.n}</span>
               </button>
             )
           })}
@@ -451,7 +452,7 @@ export default function CrmV({ data, m, reload: reloadDashboard, setTab, focusId
       {/* ─── PIPELINE ─── */}
       {view === 'pipeline' && !isFirstUse && (
         nbActifsFiltres === 0 ? (
-          <EmptyState icon="🎯" title={q ? 'Aucun résultat' : 'Aucune affaire en cours'}
+          <EmptyState title={q ? 'Aucun résultat' : 'Aucune affaire en cours'}
             description={q ? 'Essaie un autre mot-clé.' : 'Ajoute une affaire dans la barre ci-dessus.'}
             action={q ? { label: 'Effacer la recherche', onClick: () => setQ('') } : { label: '+ Nouvelle affaire', onClick: () => openNew() }} />
         ) : (

@@ -11,9 +11,9 @@ export const nextWeekday = (dow) => { // 1 = lundi … 5 = vendredi
 // Ce que l'app suggère de faire ensuite, par étape. Une seule phrase,
 // un seul bouton : l'utilisateur n'a pas à réfléchir à « quoi faire ».
 export const NEXT_STEP = {
-  'Prospect':     { text: 'Appelle le client pour comprendre son projet.', cta: '📞 Noter un appel', action: 'call' },
-  'Qualifié':     { text: 'Le besoin est clair : prépare et envoie le devis.', cta: '📄 Créer le devis', action: 'devis' },
-  'Devis envoyé': { text: 'Relance le client si tu n’as pas de réponse.', cta: '📞 Noter une relance', action: 'call' },
+  'Prospect':     { text: 'Appelle le client pour comprendre son projet.', cta: 'Noter un appel', action: 'call' },
+  'Qualifié':     { text: 'Le besoin est clair : prépare et envoie le devis.', cta: 'Créer le devis', action: 'devis' },
+  'Devis envoyé': { text: 'Relance le client si tu n’as pas de réponse.', cta: 'Noter une relance', action: 'call' },
   'Négociation':  { text: 'Conclus : gagné ou perdu ?',                   cta: null },
 }
 
@@ -38,11 +38,17 @@ export function defaultSujet(type, contact) {
 }
 
 export const chip = (active, color) => ({
-  padding: '5px 10px', borderRadius: 999, fontSize: 11, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer',
+  padding: '0 12px', minHeight: 32, borderRadius: 8, fontSize: 13, fontWeight: 500, fontFamily: 'inherit', cursor: 'pointer',
   border: `1px solid ${active ? color : '#E5E5EA'}`, background: active ? color : '#fff', color: active ? '#fff' : '#3A3A3C',
 })
 
 export const iconBtn = {
-  background: '#F2F2F7', border: '1px solid #E5E5EA', borderRadius: 6, cursor: 'pointer',
-  padding: '3px 7px', fontSize: 12, fontFamily: 'inherit', color: '#48484A', lineHeight: 1.2,
+  background: '#fff', border: '1px solid var(--separator)', borderRadius: 8, cursor: 'pointer',
+  padding: '4px 8px', fontSize: 12, fontFamily: 'inherit', color: 'var(--label-secondary)', lineHeight: 1.2,
+  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+}
+
+// Icône au trait de chaque type d'échange (boutons et lignes du CRM)
+export const INTERACTION_LINE_ICONS = {
+  'Appel': 'phone', 'Email': 'mail', 'Réunion': 'contacts', 'Visite': 'mappin', 'Note': 'reports',
 }
