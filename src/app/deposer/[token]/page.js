@@ -62,7 +62,7 @@ export default function DeposerDocumentsPage() {
     <main style={{ minHeight: '100vh', background: C.bg, padding: '24px 16px', fontFamily: 'var(--font-dm-sans), system-ui, sans-serif', color: C.text }}>
       <div style={{ maxWidth: 560, margin: '0 auto' }}>
         <div style={{ textAlign: 'center', marginBottom: 18 }}>
-          <div style={{ fontSize: 20, fontWeight: 800, color: C.navy }}>ID Maîtrise</div>
+          <div style={{ fontSize: 20, fontWeight: 600, color: C.navy }}>ID Maîtrise</div>
           <div style={{ fontSize: 12, color: C.muted }}>Ingénierie de la construction · Le Havre</div>
         </div>
         {children}
@@ -88,7 +88,7 @@ export default function DeposerDocumentsPage() {
 
       {lastSent && (
         <div role="status" style={{ ...card, background: '#ECFDF5', borderColor: '#A7F3D0', color: '#065F46', fontSize: 14 }}>
-          ✓ {lastSent} bien reçu, merci.{remaining === 0 ? ' Tous vos documents sont à jour.' : ''}
+          {lastSent} bien reçu, merci.{remaining === 0 ? ' Tous vos documents sont à jour.' : ''}
         </div>
       )}
       {error && <div role="alert" style={{ ...card, background: '#FEF2F2', borderColor: '#FECACA', color: '#B91C1C', fontSize: 14 }}>{error}</div>}
@@ -97,15 +97,15 @@ export default function DeposerDocumentsPage() {
         const st = STATE[d.status] || STATE.manquant
         return (
           <div key={d.kind} style={card}>
-            <div style={{ fontSize: 15, fontWeight: 700 }}>{d.label}</div>
+            <div style={{ fontSize: 15, fontWeight: 600 }}>{d.label}</div>
             <div style={{ fontSize: 12, color: C.muted, margin: '2px 0 8px', lineHeight: 1.4 }}>{d.aide}</div>
-            <div style={{ display: 'inline-block', fontSize: 12, fontWeight: 700, color: st.color, background: st.bg, borderRadius: 999, padding: '3px 10px', marginBottom: 10 }}>
+            <div style={{ display: 'inline-block', fontSize: 12, fontWeight: 600, color: st.color, background: st.bg, borderRadius: 999, padding: '3px 10px', marginBottom: 10 }}>
               {st.label}{d.valideAu && (d.status === 'ok' || d.status === 'bientot') ? ` (jusqu’au ${fmtD(d.valideAu)})` : ''}
             </div>
             {d.motif && <div style={{ fontSize: 13, color: '#B91C1C', marginBottom: 10 }}>{d.motif}</div>}
             <button type="button" onClick={() => pick(d.kind)} disabled={!!busy}
               style={{
-                width: '100%', minHeight: 46, borderRadius: 10, border: 'none', fontSize: 15, fontWeight: 700,
+                width: '100%', minHeight: 46, borderRadius: 10, border: 'none', fontSize: 15, fontWeight: 600,
                 fontFamily: 'inherit', cursor: busy ? 'wait' : 'pointer',
                 background: d.status === 'ok' || d.status === 'a_verifier' ? '#EEF2F7' : C.navy,
                 color: d.status === 'ok' || d.status === 'a_verifier' ? C.navy : '#fff',
@@ -116,7 +116,7 @@ export default function DeposerDocumentsPage() {
           </div>
         )
       })}
-      <div style={{ fontSize: 11, color: C.muted, textAlign: 'center', marginTop: 4 }}>
+      <div style={{ fontSize: 12, color: C.muted, textAlign: 'center', marginTop: 4 }}>
         Vos documents sont transmis uniquement à ID Maîtrise.
       </div>
     </>

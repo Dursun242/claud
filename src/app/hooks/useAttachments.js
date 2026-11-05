@@ -62,7 +62,7 @@ export function useAttachments(type, itemId) {
       const data = await res.json()
       if (!data.ok) throw new Error(data.error || 'Erreur upload')
       await loadAttachments()
-      addToast('Fichier uploadé ✓', 'success')
+      addToast('Fichier ajouté', 'success')
     } catch (err) {
       console.error('Upload failed:', err)
       addToast('Erreur upload: ' + err.message, 'error')
@@ -84,7 +84,7 @@ export function useAttachments(type, itemId) {
       await supabase.from('attachments').delete().eq('id', id)
 
       await loadAttachments()
-      addToast('Fichier supprimé ✓', 'success')
+      addToast('Fichier supprimé', 'success')
     } catch (err) {
       console.error('Erreur suppression:', err)
       addToast('Erreur suppression: ' + err.message, 'error')

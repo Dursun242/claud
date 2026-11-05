@@ -1,4 +1,5 @@
 'use client'
+import { Icon, I } from '../components/icons'
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { btnP, SB } from '../dashboards/shared'
 import { supabase } from '../supabaseClient'
@@ -24,9 +25,9 @@ async function apiUsers(method, body) {
 
 // Couleur + label par rôle (utilisé partout : pills, cartes, fallback)
 const ROLE_META = {
-  admin:   { label: "🔑 Admin",             color: "#D70015", bg: "#FFF0EF", border: "#FFC9C6" },
-  salarie: { label: "👷 Salarié",           color: "#0071E3", bg: "#EAF3FF", border: "#C6DDF7" },
-  client:  { label: "🏗 Maître d'ouvrage",  color: "#1E7B34", bg: "#EAF8EE", border: "#BFE9CA" },
+  admin:   { label: "Admin",             color: "#D70015", bg: "#FFF0EF", border: "#FFC9C6" },
+  salarie: { label: "Salarié",           color: "#0071E3", bg: "#EAF3FF", border: "#C6DDF7" },
+  client:  { label: "Maître d'ouvrage",  color: "#1E7B34", bg: "#EAF8EE", border: "#BFE9CA" },
 }
 
 export default function AdminV({ m, reload, profile }) {
@@ -173,8 +174,8 @@ export default function AdminV({ m, reload, profile }) {
         background: "var(--red-tint)", borderRadius: 14, padding: 40,
         textAlign: "center", border: "1.5px solid var(--red-line)"
       }}>
-        <div style={{ fontSize: 36, marginBottom: 10 }}>🔒</div>
-        <h1 style={{ margin: "0 0 10px", fontSize: 20, fontWeight: 700, color: "var(--red-text)" }}>Accès refusé</h1>
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: 12, color: "var(--label-tertiary)" }}><Icon d={I.lock} size={28} stroke={1.5} /></div>
+        <h1 style={{ margin: "0 0 10px", fontSize: 20, fontWeight: 600, color: "var(--red-text)" }}>Accès refusé</h1>
         <p style={{ margin: 0, color: "var(--label-secondary)", fontSize: 14 }}>
           Seuls les administrateurs peuvent accéder à cette section.
         </p>
@@ -238,15 +239,15 @@ export default function AdminV({ m, reload, profile }) {
       })
       const data = await res.json()
       if (data.ok) {
-        setSetupMsg("✅ " + data.message)
+        setSetupMsg(data.message)
         SB.log('create', 'storage', 'attachments-bucket', 'Bucket Storage créé', { message: data.message })
         addToast("Bucket Storage créé", "success")
       } else {
-        setSetupMsg("❌ " + data.error)
+        setSetupMsg("Échec : " + data.error)
         addToast("Erreur : " + data.error, "error")
       }
     } catch (e) {
-      setSetupMsg("❌ " + e.message)
+      setSetupMsg("Échec : " + e.message)
       addToast("Erreur : " + e.message, "error")
     } finally {
       setSetupLoading(false)
@@ -273,10 +274,10 @@ export default function AdminV({ m, reload, profile }) {
 
   return (
     <div>
-      <h1 style={{margin:"0 0 4px",fontSize:m?28:32,fontWeight:700,letterSpacing:"-0.02em",color:"var(--label)"}}>
+      <h1 style={{margin:"0 0 4px",fontSize:m?28:32,fontWeight:600,letterSpacing:"-0.02em",color:"var(--label)"}}>
         Administration
       </h1>
-      <div style={{ fontSize: 11, color: "var(--label-secondary)", marginBottom: 14 }}>
+      <div style={{ fontSize: 12, color: "var(--label-secondary)", marginBottom: 14 }}>
         Gestion des accès et journal d&apos;activité — admin uniquement.
       </div>
 
@@ -294,15 +295,14 @@ export default function AdminV({ m, reload, profile }) {
 
       {/* CONFIGURATION STORAGE */}
       <div style={{
-        background: "#fff", borderRadius: 14, padding: m ? 14 : 18,
-        boxShadow: "0 1px 3px rgba(0,0,0,0.06)", marginBottom: 18,
+        background: "#fff", borderRadius: 14, padding: m ? 14 : 18, marginBottom: 18,
         border: "1.5px solid #E3F4FC"
       }}>
-        <h2 style={{ margin: "0 0 8px", fontSize: 15, fontWeight: 700 }}>🗂 Configuration pièces jointes</h2>
+        <h2 style={{ margin: "0 0 8px", fontSize: 15, fontWeight: 600 }}>Configuration des pièces jointes</h2>
         <p style={{ margin: "0 0 12px", fontSize: 13, color: "var(--label-secondary)", lineHeight: 1.6 }}>
           Si vous obtenez <strong>&quot;Bucket not found&quot;</strong>{' '}
           lors d&apos;un upload, cliquez sur ce bouton.<br />
-          <span style={{ fontSize: 11, color: "var(--label-secondary)" }}>
+          <span style={{ fontSize: 12, color: "var(--label-secondary)" }}>
             Nécessite <code>SUPABASE_SERVICE_ROLE_KEY</code> dans les variables Vercel.
           </span>
         </p>
@@ -313,10 +313,10 @@ export default function AdminV({ m, reload, profile }) {
         {setupMsg && (
           <div style={{
             marginTop: 10, fontSize: 13,
-            color: setupMsg.startsWith("✅") ? "var(--green)" : "var(--red)"
+            color: setupMsg.startsWith("Échec") ? "var(--red-text)" : "var(--green-text)"
           }}>{setupMsg}</div>
         )}
-        {!setupMsg && <div style={{ marginTop: 10, fontSize: 11, color: "var(--label-secondary)" }}>
+        {!setupMsg && <div style={{ marginTop: 10, fontSize: 12, color: "var(--label-secondary)" }}>
           Si l&apos;erreur persiste : Supabase Dashboard → Storage →{' '}
           New bucket → nom : <strong>attachments</strong>
         </div>}
@@ -324,9 +324,8 @@ export default function AdminV({ m, reload, profile }) {
 
       {/* MODE DÉMO */}
       <div style={{
-        background: demoMode ? "linear-gradient(135deg, var(--green-tint) 0%, var(--green-tint) 100%)" : "#fff",
-        borderRadius: 14, padding: m ? 14 : 18,
-        boxShadow: "0 1px 3px rgba(0,0,0,0.06)", marginBottom: 18,
+        background: demoMode ? "var(--green-tint)" : "#fff",
+        borderRadius: 14, padding: m ? 14 : 18, marginBottom: 18,
         border: `1.5px solid ${demoMode ? "var(--green)" : "var(--separator)"}`,
         transition: "border-color .2s, background .2s",
       }}>
@@ -334,11 +333,11 @@ export default function AdminV({ m, reload, profile }) {
           display: "flex", alignItems: "center", justifyContent: "space-between",
           gap: 12, flexWrap: "wrap", marginBottom: 10
         }}>
-          <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, display: "flex", alignItems: "center", gap: 8 }}>
-            🎯 Accès démo public
+          <h2 style={{ margin: 0, fontSize: 15, fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}>
+            Accès démo public
             <span style={{
-              background: demoMode ? "var(--green)" : "var(--label-tertiary)", color: "#fff", fontSize: 11, fontWeight: 700,
-              padding: "3px 8px", borderRadius: 999, letterSpacing: "0.05em",
+              background: demoMode ? "var(--green)" : "var(--label-tertiary)", color: "#fff", fontSize: 12, fontWeight: 600,
+              padding: "3px 8px", borderRadius: 999,
             }}>{demoMode ? "OUVERT" : "FERMÉ"}</span>
           </h2>
           <button
@@ -398,7 +397,7 @@ export default function AdminV({ m, reload, profile }) {
             {demoResetBusy ? "⏳ Reset…" : "Réinitialiser les données démo"}
           </button>
           <div style={{
-            fontSize: 11, color: "var(--label-secondary)", alignSelf: "center",
+            fontSize: 12, color: "var(--label-secondary)", alignSelf: "center",
             flex: "1 1 200px", minWidth: 180, lineHeight: 1.4
           }}>
             Recrée le chantier Villa Moreau + 3 OS + 2 CR + 4 tâches. Utile entre deux rendez-vous.
@@ -406,20 +405,19 @@ export default function AdminV({ m, reload, profile }) {
         </div>
         <div style={{
           marginTop: 12, padding: 10, background: "rgba(0,0,0,0.03)",
-          borderRadius: 8, fontSize: 11, color: "var(--label-secondary)"
+          borderRadius: 8, fontSize: 12, color: "var(--label-secondary)"
         }}>
           <strong>Compte démo partagé</strong> (pour les prospects sans Google) :<br/>
-          <code style={{ fontSize: 11 }}>demo-moa@id-maitrise.com</code> — à créer manuellement dans{" "}
+          <code style={{ fontSize: 12 }}>demo-moa@id-maitrise.com</code> — à créer manuellement dans{" "}
           <em>Supabase → Authentication → Users</em> avec un mot de passe simple.
         </div>
       </div>
 
       {/* AJOUTER UN UTILISATEUR */}
       <div style={{
-        background: "#fff", borderRadius: 14, padding: m ? 14 : 18,
-        boxShadow: "0 1px 3px rgba(0,0,0,0.06)", marginBottom: 18
+        background: "#fff", borderRadius: 14, padding: m ? 14 : 18, marginBottom: 18
       }}>
-        <h2 style={{ margin: "0 0 12px", fontSize: 15, fontWeight: 700 }}>Ajouter un utilisateur</h2>
+        <h2 style={{ margin: "0 0 12px", fontSize: 15, fontWeight: 600 }}>Ajouter un utilisateur</h2>
         <div style={{ display: "grid", gridTemplateColumns: m ? "1fr" : "repeat(3,1fr)", gap: 10, marginBottom: 10 }}>
           <input aria-label="Email" type="email" placeholder="email@exemple.com"
             value={newEmail} onChange={e => setNewEmail(e.target.value)}
@@ -440,20 +438,20 @@ export default function AdminV({ m, reload, profile }) {
         </div>
         <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
           {[
-            { value: "salarie", label: "👷 Salarié", desc: "Accès complet sauf Admin" },
-            { value: "client",  label: "🏗 Maître d'ouvrage", desc: "Chantiers, CR, OS, Planning" },
+            { value: "salarie", label: "Salarié", desc: "Accès complet sauf Admin" },
+            { value: "client",  label: "Maître d'ouvrage", desc: "Chantiers, CR, OS, Planning" },
           ].map(r => {
             const active = newRole === r.value
             return (
               <button key={r.value} onClick={() => setNewRole(r.value)} style={{
-                padding: "8px 14px", border: `2px solid ${active ? "var(--accent)" : "var(--separator)"}`,
+                padding: "8px 12px", border: `1px solid ${active ? "var(--accent)" : "var(--separator)"}`,
                 borderRadius: 8, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 600,
                 background: active ? "var(--accent)" : "#fff",
                 color: active ? "#fff" : "var(--label-2)", transition: "background .15s, border-color .15s, color .15s",
                 display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 1,
               }}>
                 <span>{r.label}</span>
-                <span style={{ fontSize: 11, fontWeight: 400, opacity: .7 }}>{r.desc}</span>
+                <span style={{ fontSize: 12, fontWeight: 400, opacity: .7 }}>{r.desc}</span>
               </button>
             )
           })}
@@ -464,12 +462,12 @@ export default function AdminV({ m, reload, profile }) {
             padding:"8px 12px",marginBottom:10,fontSize:12,color:"var(--red-text)",
             display:"flex",alignItems:"center",gap:8,
           }}>
-            <span style={{fontSize:14}}>⚠</span>
+            <Icon d={I.alert} size={16} stroke={1.75} />
             <span style={{flex:1}}>{addError}</span>
             <button onClick={()=>setAddError("")} aria-label="Fermer" style={{
               background:"none",border:"none",cursor:"pointer",
               color:"var(--red-text)",fontSize:14,padding:0,lineHeight:1
-            }}>✕</button>
+            }}><Icon d={I.x} size={14} stroke={1.75} /></button>
           </div>
         )}
         <button onClick={handleAdd} disabled={loading} style={{ ...btnP, fontSize: 12, opacity: loading ? 0.7 : 1 }}>
@@ -479,14 +477,12 @@ export default function AdminV({ m, reload, profile }) {
 
       {/* LISTE DES UTILISATEURS */}
       <div style={{
-        background: "#fff", borderRadius: 14, padding: m ? 14 : 18,
-        boxShadow: "0 1px 3px rgba(0,0,0,0.06)"
-      }}>
+        background: "#fff", borderRadius: 14, padding: m ? 14 : 18}}>
         <div style={{
           display:"flex",justifyContent:"space-between",alignItems:"center",
           marginBottom:14,flexWrap:"wrap",gap:10
         }}>
-          <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700 }}>Utilisateurs autorisés ({users.length})</h2>
+          <h2 style={{ margin: 0, fontSize: 15, fontWeight: 600 }}>Utilisateurs autorisés ({users.length})</h2>
           <SearchField inputRef={searchInputRef} value={q} onChange={e => setQ(e.target.value)} m={m} width={240}
             label="Rechercher un utilisateur" placeholder="Rechercher nom, email…"/>
         </div>
@@ -504,7 +500,7 @@ export default function AdminV({ m, reload, profile }) {
             return (
               <button key={p.k} onClick={() => setRoleFilter(p.k)} style={{
                 display:"inline-flex",alignItems:"center",gap:6,
-                padding:"5px 11px",borderRadius:999,fontSize:11,fontWeight:600,
+                padding:"5px 11px",borderRadius:999,fontSize:12,fontWeight:600,
                 border:`1px solid ${active ? p.c : "var(--separator)"}`,
                 background:active ? p.c : "#fff",
                 color:active ? "#fff" : "var(--label-2)",
@@ -512,7 +508,7 @@ export default function AdminV({ m, reload, profile }) {
                 transition:"background .15s, color .15s, border-color .15s",whiteSpace:"nowrap",
               }}>
                 <span style={{width:7,height:7,borderRadius:"50%",background:active?"#fff":p.c,opacity:active?0.8:1}}/>
-                {p.l} <span style={{fontSize:11,opacity:0.75,fontWeight:500}}>{count}</span>
+                {p.l} <span style={{fontSize:12,opacity:0.75,fontWeight:500}}>{count}</span>
               </button>
             )
           })}
@@ -521,11 +517,11 @@ export default function AdminV({ m, reload, profile }) {
         <div style={{ display: "grid", gap: 8 }}>
           {filteredUsers.length === 0 ? (
             <div style={{textAlign:"center",padding:"30px 16px"}}>
-              <div style={{fontSize:32,marginBottom:6,opacity:0.5}}>👥</div>
+              <div style={{display:"flex",justifyContent:"center",marginBottom:8,color:"var(--label-tertiary)"}}><Icon d={I.contacts} size={28} stroke={1.5}/></div>
               <div style={{fontSize:13,fontWeight:600,color:"var(--label-2)",marginBottom:4}}>
                 {hasFilters ? "Aucun résultat" : "Aucun utilisateur"}
               </div>
-              <div style={{fontSize:11,color:"var(--label-secondary)"}}>
+              <div style={{fontSize:12,color:"var(--label-secondary)"}}>
                 {hasFilters ? "Essaie d'élargir ta recherche." : "Ajoute le premier utilisateur ci-dessus."}
               </div>
             </div>
@@ -544,29 +540,29 @@ export default function AdminV({ m, reload, profile }) {
                     background: meta.bg, color: meta.color,
                     border: `1.5px solid ${meta.border}`,
                     display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: 13, fontWeight: 700, flexShrink: 0,
+                    fontSize: 13, fontWeight: 600, flexShrink: 0,
                   }}>{getInitials(u)}</div>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{
-                      fontWeight: 700, fontSize: 13, color: "var(--label)",
+                      fontWeight: 600, fontSize: 13, color: "var(--label)",
                       overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"
                     }}>
                       {u.prenom} {u.nom || ""}
                     </div>
                     <div style={{
-                      fontSize: 11, color: "var(--label-secondary)",
+                      fontSize: 12, color: "var(--label-secondary)",
                       overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"
                     }}>
                       {u.email}
                     </div>
-                    <div style={{ fontSize: 11, color: meta.color, marginTop: 2, fontWeight:600 }}>
+                    <div style={{ fontSize: 12, color: meta.color, marginTop: 2, fontWeight:600 }}>
                       {meta.label}
                       {u.actif === false && <span style={{ color: "var(--red)", marginLeft: 8 }}>— Désactivé</span>}
                     </div>
                   </div>
                   <button onClick={() => handleRemove(u)} title="Retirer l'accès" style={{
                     background: "#fff", border: "1px solid var(--red-line)", borderRadius: 6,
-                    padding: "6px 12px", color: "var(--red-text)", fontSize: 11, cursor: "pointer",
+                    padding: "6px 12px", color: "var(--red-text)", fontSize: 12, cursor: "pointer",
                     fontWeight: 600, flexShrink: 0, fontFamily: "inherit",
                   }}>
                     Retirer

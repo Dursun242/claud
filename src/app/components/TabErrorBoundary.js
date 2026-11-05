@@ -59,7 +59,7 @@ export default class TabErrorBoundary extends Component {
         </div>
         <details style={{ marginTop: 14, textAlign: 'left' }}>
           <summary style={{ cursor: 'pointer', fontSize: 12, color: 'var(--label-secondary)' }}>Détails techniques</summary>
-          <pre style={{ marginTop: 6, padding: 10, background: 'var(--row-fill)', borderRadius: 8, fontSize: 11, color: '#48484A', whiteSpace: 'pre-wrap' }}>
+          <pre style={{ marginTop: 6, padding: 10, background: 'var(--row-fill)', borderRadius: 8, fontSize: 12, color: '#48484A', whiteSpace: 'pre-wrap' }}>
             {String(this.state.error?.message || this.state.error)}
           </pre>
         </details>

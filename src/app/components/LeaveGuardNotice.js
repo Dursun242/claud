@@ -16,7 +16,7 @@ export default function LeaveGuardNotice() {
       const now = Date.now()
       if (now - last.current < 2500) return
       last.current = now
-      addToast('Fenêtre en cours : ferme-la avec ✕ ou Annuler pour quitter (rien n’est perdu).', 'info')
+      addToast('Fenêtre en cours : ferme-la avec la croix ou Annuler pour quitter (rien n’est perdu).', 'info')
     }
     window.addEventListener(BACK_BLOCKED_EVENT, onBlocked)
     return () => window.removeEventListener(BACK_BLOCKED_EVENT, onBlocked)

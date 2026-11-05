@@ -2,6 +2,7 @@
 import { cloneElement, isValidElement, useId } from 'react'
 import { supabase } from '../supabaseClient'
 import { ProgressBar } from '../components'
+import { Icon, I } from '../components/icons'
 import { writeActivityLog, setLogContext, clearLogContext } from '../lib/activityLog'
 import { mapCriticalData, mapSecondaryData, NOT_DEMO_FILTER } from '../lib/dashboardData'
 import { findArtisanContact } from '../lib/osArtisan'
@@ -629,7 +630,7 @@ export const SB = {
 // ─── ICONS ───
 // Icônes au trait : components/icons.js (sans dépendance, utilisable par les
 // composants de base sans boucle d'import)
-export { Icon, I } from '../components/icons'
+export { Icon, I }
 
 // ─── COLORS ───
 export const phase = { "Hors d'air": "#FF9500", "Technique": "#007AFF", "Finitions": "#34C759" };
@@ -796,23 +797,22 @@ export function FF({label, hint, error, required, children}) {
   return (
     <div style={{marginBottom:12}}>
       <label htmlFor={fieldId} style={{
-        display:"block", fontSize:11, fontWeight:600, color:"var(--label-secondary)",
-        marginBottom:3, textTransform:"uppercase", letterSpacing:"0.05em"
-      }}>
+        display:"block", fontSize:12, fontWeight:600, color:"var(--label-secondary)",
+        marginBottom:3}}>
         {label}
         {required && <span aria-hidden="true" style={{color:"var(--red-text)", marginLeft:3}}>*</span>}
       </label>
       {control}
       {error && (
         <div role="alert" id={errorId} style={{
-          fontSize:11, color:"var(--red-text)", marginTop:4, fontWeight:500,
+          fontSize:12, color:"var(--red-text)", marginTop:4, fontWeight:500,
           display:"flex", alignItems:"center", gap:4,
         }}>
-          <span aria-hidden="true">⚠</span>{error}
+          <Icon d={I.alert} size={14} stroke={1.75} />{error}
         </div>
       )}
       {hint && !error && (
-        <div style={{fontSize:11,color:"var(--label-secondary)",marginTop:4,fontStyle:"italic"}}>
+        <div style={{fontSize:12,color:"var(--label-secondary)",marginTop:4}}>
           {hint}
         </div>
       )}
@@ -902,7 +902,7 @@ export function ApiBadge() {
       display:"inline-flex", alignItems:"center", gap:3,
       padding:"2px 6px", borderRadius:4,
       background:"var(--grouped-bg)", border:"1px solid var(--separator)",
-      color:"var(--label-secondary)", fontSize:11, fontWeight:500
+      color:"var(--label-secondary)", fontSize:12, fontWeight:500
     }}>API</span>
   );
 }

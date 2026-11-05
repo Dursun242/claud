@@ -448,7 +448,7 @@ export function useCrmDevis({ crm, opportunites, interactions, contactsById, rel
       await reload()
     } catch (e) { addToast(e?.message || 'Mise à jour impossible', 'error'); setSaving(false); return }
     setSaving(false)
-    addToast(`Devis ${d.numero} accepté 🎉`, 'success')
+    addToast(`Devis ${d.numero} accepté`, 'success')
     await pushQontoStatus(d, 'Accepté')
     if (o && o.etape !== 'Gagné') await changeEtape({ ...o, montant_estime: Number(d.total_ht) || o.montant_estime }, 'Gagné')
   }

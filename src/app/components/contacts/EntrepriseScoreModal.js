@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import Modal from '../Modal'
 import { CRITERIA, GRADES, LEGAL_CAP, ranking, specialites } from '../../lib/entrepriseScore'
 
-const small = { fontSize: 11, color: 'var(--label-secondary)' }
+const small = { fontSize: 12, color: 'var(--label-secondary)' }
 const fmtD = (iso) => (iso ? String(iso).slice(0, 10).split('-').reverse().join('/') : '')
 const euros = (n) => `${Number(n || 0).toLocaleString('fr-FR')} € HT`
 const chip = {
@@ -22,7 +22,7 @@ function GradeBox({ s, size = 34 }) {
       display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
       width: size, height: size, borderRadius: size / 4,
       background: g ? g.color : 'var(--grouped-bg)', color: g ? '#fff' : 'var(--label-secondary)',
-      fontSize: size * 0.48, fontWeight: 800,
+      fontSize: size * 0.48, fontWeight: 600,
     }}>{g ? g.grade : '–'}</span>
   )
 }
@@ -33,8 +33,8 @@ function CriterionRow({ c }) {
   return (
     <div style={{ padding: '10px 0', borderTop: '1px solid var(--separator)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'baseline' }}>
-        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--label)' }}>{c.label}</span>
-        <span style={{ fontSize: 12, fontWeight: 700, color: c.known ? 'var(--label)' : 'var(--label-secondary)' }}>
+        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--label)' }}>{c.label}</span>
+        <span style={{ fontSize: 12, fontWeight: 600, color: c.known ? 'var(--label)' : 'var(--label-secondary)' }}>
           {c.known ? `${Math.round(c.points)} / ${c.max}` : `– / ${c.max}`}
         </span>
       </div>
@@ -55,11 +55,11 @@ function Detail({ contact, s, onBack, onOpenDocs, onEdit }) {
       <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 12 }}>
         <GradeBox s={s} size={52} />
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--label)' }}>{contact.nom}</div>
+          <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--label)' }}>{contact.nom}</div>
           {(contact.societe || contact.specialite) && (
             <div style={small}>{[contact.societe !== contact.nom && contact.societe, contact.specialite].filter(Boolean).join(' · ')}</div>
           )}
-          <div style={{ fontSize: 13, fontWeight: 700, color: s?.grade?.color || 'var(--label-secondary)', marginTop: 3 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: s?.grade?.color || 'var(--label-secondary)', marginTop: 3 }}>
             {s?.score != null ? `${s.score}/100 — ${s.grade.label}` : 'Pas encore de score'}
           </div>
         </div>
@@ -87,8 +87,8 @@ function Detail({ contact, s, onBack, onOpenDocs, onEdit }) {
         </div>
       )}
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 14 }}>
-        {onOpenDocs && <button type="button" onClick={() => onOpenDocs(contact.id)} style={chip}>📄 Documents</button>}
-        {onEdit && <button type="button" onClick={() => onEdit(contact)} style={chip}>★ Donner mon avis (étoiles)</button>}
+        {onOpenDocs && <button type="button" onClick={() => onOpenDocs(contact.id)} style={chip}>Documents</button>}
+        {onEdit && <button type="button" onClick={() => onEdit(contact)} style={chip}>Donner mon avis (étoiles)</button>}
       </div>
     </div>
   )
@@ -154,12 +154,12 @@ export default function EntrepriseScoreModal({ open, onClose, contacts = [], sco
                     <span style={{ ...small, width: 22, textAlign: 'right', flexShrink: 0 }}>{r.score != null ? i + 1 : ''}</span>
                     <GradeBox s={r} size={30} />
                     <span style={{ flex: 1, minWidth: 0 }}>
-                      <span style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--label)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.contact.nom}</span>
+                      <span style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--label)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.contact.nom}</span>
                       <span style={{ display: 'block', ...small, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {[r.contact.specialite, r.historique?.os ? `${r.historique.os} OS` : null, r.peuDeDonnees ? 'peu de données' : null].filter(Boolean).join(' · ') || r.contact.type}
                       </span>
                     </span>
-                    <span style={{ fontSize: 15, fontWeight: 800, color: r.grade?.color || 'var(--label-secondary)', flexShrink: 0 }}>
+                    <span style={{ fontSize: 15, fontWeight: 600, color: r.grade?.color || 'var(--label-secondary)', flexShrink: 0 }}>
                       {r.score != null ? r.score : '–'}
                     </span>
                   </button>

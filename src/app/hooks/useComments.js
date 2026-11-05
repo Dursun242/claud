@@ -75,7 +75,7 @@ export function useComments(type, itemId, currentUserEmail) {
       if (error) throw error
 
       await loadComments()
-      addToast('Commentaire ajouté ✓', 'success')
+      addToast('Commentaire ajouté', 'success')
     } catch (err) {
       console.error('Erreur ajout commentaire:', err)
       addToast('Erreur: ' + err.message, 'error')
@@ -93,7 +93,7 @@ export function useComments(type, itemId, currentUserEmail) {
       await supabase.from('comments').delete().eq('id', id)
 
       await loadComments()
-      addToast('Commentaire supprimé ✓', 'success')
+      addToast('Commentaire supprimé', 'success')
     } catch (err) {
       console.error('Erreur suppression commentaire:', err)
       addToast('Erreur: ' + err.message, 'error')

@@ -50,7 +50,7 @@ export default function GlobalError({ error, reset }) {
                 </summary>
                 <pre style={{
                   marginTop: 8, padding: 12, background: '#F2F2F7', borderRadius: 8,
-                  fontSize: 11, overflowX: 'auto', color: '#48484A', whiteSpace: 'pre-wrap',
+                  fontSize: 12, overflowX: 'auto', color: '#48484A', whiteSpace: 'pre-wrap',
                 }}>
                   {error.message}
                 </pre>

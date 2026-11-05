@@ -96,6 +96,6 @@ const KBD = {
   display: "inline-flex", alignItems: "center", justifyContent: "center",
   minWidth: 22, height: 22, padding: "0 6px",
   background: "#F2F2F7", border: "1px solid #D1D1D6", borderBottomWidth: 2,
-  borderRadius: 5, fontSize: 11, fontWeight: 600, color: "#3A3A3C",
+  borderRadius: 5, fontSize: 12, fontWeight: 600, color: "#3A3A3C",
   fontFamily: "var(--font-dm-sans), sans-serif",
 }

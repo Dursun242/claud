@@ -220,7 +220,6 @@ export default function NotificationBell({ userEmail, onNavigate, isMobile = fal
             color: unreadCount > 0 ? 'var(--accent-text)' : 'var(--label-2)',
             fontFamily: 'inherit',
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
             transition: 'background .15s, border-color .15s, color .15s',
           }}
         >
@@ -234,7 +233,7 @@ export default function NotificationBell({ userEmail, onNavigate, isMobile = fal
               background: 'var(--red)', color: '#fff',
               borderRadius: 999,
               minWidth: 16, height: 16,
-              padding: '0 4px', fontSize: 11, fontWeight: 600, fontVariantNumeric: 'tabular-nums',
+              padding: '0 4px', fontSize: 12, fontWeight: 600, fontVariantNumeric: 'tabular-nums',
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
               border: '2px solid #fff', boxSizing: 'content-box', lineHeight: 1,
             }}>{badge}</span>

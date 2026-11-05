@@ -4,6 +4,7 @@
 // Le client (sans compte) consulte le devis Qonto, saisit son nom, signe au
 // doigt ou à la souris et coche « Bon pour accord ». Voir /api/devis/public.
 
+import { Icon, I } from '../../components/icons'
 import { useEffect, useRef, useState } from 'react'
 import { useParams } from 'next/navigation'
 
@@ -12,7 +13,7 @@ const fmtEur = (n) => `${(Number(n) || 0).toLocaleString('fr-FR', { minimumFract
 const fmtD = (d) => (d ? String(d).slice(0, 10).split('-').reverse().join('/') : '')
 const card = { background: '#fff', border: `1px solid ${C.border}`, borderRadius: 14, padding: 18, marginBottom: 14 }
 const btn = {
-  width: '100%', minHeight: 48, borderRadius: 10, border: 'none', fontSize: 16, fontWeight: 700,
+  width: '100%', minHeight: 48, borderRadius: 10, border: 'none', fontSize: 16, fontWeight: 600,
   fontFamily: 'inherit', cursor: 'pointer',
 }
 
@@ -127,7 +128,7 @@ export default function SignerDevisPage() {
     <main style={{ minHeight: '100vh', background: C.bg, padding: '24px 16px', fontFamily: 'var(--font-dm-sans), system-ui, sans-serif', color: C.text }}>
       <div style={{ maxWidth: 560, margin: '0 auto' }}>
         <div style={{ textAlign: 'center', marginBottom: 18 }}>
-          <div style={{ fontSize: 20, fontWeight: 800, color: C.navy }}>ID Maîtrise</div>
+          <div style={{ fontSize: 20, fontWeight: 600, color: C.navy }}>ID Maîtrise</div>
           <div style={{ fontSize: 12, color: C.muted }}>Ingénierie de la construction · Le Havre</div>
         </div>
         {children}
@@ -153,13 +154,13 @@ export default function SignerDevisPage() {
         {info.date_validite && <div style={{ fontSize: 12, color: C.muted, marginBottom: 12 }}>Valable jusqu’au {fmtD(info.date_validite)}</div>}
         <a href={pdfUrl} target="_blank" rel="noopener noreferrer"
           style={{ ...btn, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#EEF2F7', color: C.navy, textDecoration: 'none' }}>
-          📄 {signed ? 'Voir le devis signé' : 'Lire le devis (PDF)'}
+          <Icon d={I.file} size={16} stroke={1.5} /> {signed ? 'Voir le devis signé' : 'Lire le devis (PDF)'}
         </a>
       </div>
 
       {signed ? (
         <div style={{ ...card, borderColor: '#A7F3D0', background: '#ECFDF5' }} role="status">
-          <div style={{ fontSize: 18, fontWeight: 700, color: '#047857', marginBottom: 6 }}>✓ Devis signé</div>
+          <div style={{ fontSize: 18, fontWeight: 600, color: '#047857', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}><Icon d={I.check} size={18} stroke={2} />Devis signé</div>
           <div style={{ fontSize: 14 }}>
             Signé par {done?.signed_name || info.signed_name}
             {(done?.signed_at || info.signed_at) && ` le ${new Date(done?.signed_at || info.signed_at).toLocaleString('fr-FR', { timeZone: 'Europe/Paris' })}`}.
@@ -181,11 +182,11 @@ export default function SignerDevisPage() {
             <input type="checkbox" checked={accept} onChange={e => setAccept(e.target.checked)} style={{ width: 20, height: 20, marginTop: 1 }} />
             <span>Bon pour accord : j’ai lu et j’accepte ce devis ({fmtEur(info.total_ttc)} TTC).</span>
           </label>
-          {error && <div role="alert" style={{ color: '#DC2626', fontSize: 13, marginBottom: 10, fontWeight: 500 }}>⚠ {error}</div>}
+          {error && <div role="alert" style={{ color: '#DC2626', fontSize: 13, marginBottom: 12, fontWeight: 500, display: 'flex', gap: 8, alignItems: 'center' }}><Icon d={I.alert} size={14} stroke={1.75} />{error}</div>}
           <button onClick={submit} disabled={sending} style={{ ...btn, background: C.navy, color: '#fff', opacity: sending ? 0.6 : 1 }}>
-            {sending ? 'Signature…' : '✍️ Signer le devis'}
+            {sending ? 'Signature…' : 'Signer le devis'}
           </button>
-          <p style={{ fontSize: 11, color: C.muted, marginTop: 12, lineHeight: 1.5 }}>
+          <p style={{ fontSize: 12, color: C.muted, marginTop: 12, lineHeight: 1.5 }}>
             Signature électronique : votre nom, la date, l’heure et votre adresse IP sont enregistrés et apposés sur le devis
             avec l’empreinte du document, à titre de preuve.
           </p>

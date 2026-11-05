@@ -291,6 +291,8 @@ Choix de l'équipe (octobre 2026, confirmé en novembre 2026 lors du passage uns
 - **Où :** devant un titre de section, devant une ligne dont le type compte (agenda, signaux commerciaux), dans une alerte.
 
 ### Named Rules
+**The No Glyph Rule.** Aucun emoji ni caractère (✓ ✕ ⚠ ← → ▾ 📎 🔔…) à la place d'une icône, d'un statut ou dans un message, un bouton, un badge, un état vide, une page publique : icône dessinée (`components/icons.js`) ou texte seul. Seuls restent les repères de la liste fixe ci-dessous (passage unslop, novembre 2026).
+
 **The Emoji Marker Rule.** Un emoji = un type de chose, toujours le même, pris dans `lib/emoji.js`, posé dans sa tuile. Jamais dans un bouton, un badge, la navigation ni un état vide ; jamais deux repères sur la même ligne.
 
 ### Chips / Badges
