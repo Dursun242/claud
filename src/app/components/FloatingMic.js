@@ -115,11 +115,9 @@ export default function FloatingMic({
           >
             <div
               style={{
-                fontSize: 11,
-                fontWeight: 600,
+                fontSize: 12,
+                fontWeight: 500,
                 color: 'var(--red-text)',
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em',
                 marginBottom: 4,
                 display: 'flex',
                 alignItems: 'center',

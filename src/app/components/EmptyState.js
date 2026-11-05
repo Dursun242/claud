@@ -74,12 +74,12 @@ export default function EmptyState({
         borderRadius: 12,
         padding: '40px 24px',
         textAlign: 'center',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+        border: '1px solid var(--separator)',
       }}
     >
       {icon && <div aria-hidden="true" style={{ display: 'flex', justifyContent: 'center', color: 'var(--label-secondary)', marginBottom: 10 }}>{icon}</div>}
       <div style={{
-        fontSize: 14, fontWeight: 700, color: 'var(--label-2)',
+        fontSize: 15, fontWeight: 600, color: 'var(--label)',
         marginBottom: description ? 6 : 0,
       }}>
         {title}
@@ -98,7 +98,7 @@ export default function EmptyState({
           className="u-press u-press--row"
           style={{
             marginTop: 16,
-            padding: '10px 18px',
+            padding: '0 16px',
             minHeight: 40,
             background: 'var(--accent)',
             color: '#fff',

@@ -49,8 +49,8 @@ const toolBtn = {
 }
 const chip = (active) => ({
   display:"inline-flex",alignItems:"center",gap:8,height:32,padding:"0 12px",borderRadius:8,
-  border:`1px solid ${active?"var(--label)":"var(--separator)"}`,
-  background:active?"var(--label)":"#fff",color:active?"#fff":"var(--label-2)",
+  border:`1px solid ${active?"var(--accent)":"var(--separator)"}`,
+  background:active?"var(--accent)":"#fff",color:active?"#fff":"var(--label)",
   fontSize:13,fontWeight:500,fontFamily:"inherit",cursor:"pointer",whiteSpace:"nowrap",flexShrink:0,
   transition:"background-color var(--motion-fast) var(--ease-emphasized), color var(--motion-fast) var(--ease-emphasized), border-color var(--motion-fast) var(--ease-emphasized)",
 })

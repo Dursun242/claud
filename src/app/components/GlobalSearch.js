@@ -1,13 +1,14 @@
 'use client'
+import { Icon, I } from './icons'
 import { useState, useRef, useEffect, useCallback } from 'react'
 
 const CATEGORIES = [
-  { key: 'chantiers', label: 'Chantiers',  tab: 'projects',  color: '#0066CC', icon: '🏗️' },
-  { key: 'os',        label: 'OS',          tab: 'os',        color: '#AF52DE', icon: '📋' },
-  { key: 'contacts',  label: 'Contacts',    tab: 'contacts',  color: '#34C759', icon: '👤' },
-  { key: 'tasks',     label: 'Tâches',      tab: 'tasks',     color: '#FF9500', icon: '✓'  },
-  { key: 'crs',       label: 'Comptes Rendus', tab: 'reports', color: '#FF2D55', icon: '📝' },
-  { key: 'crm',       label: 'CRM',         tab: 'crm',       color: '#32ADE6', icon: '🎯' },
+  { key: 'chantiers', label: 'Chantiers',  tab: 'projects' },
+  { key: 'os',        label: 'OS',          tab: 'os' },
+  { key: 'contacts',  label: 'Contacts',    tab: 'contacts' },
+  { key: 'tasks',     label: 'Tâches',      tab: 'tasks' },
+  { key: 'crs',       label: 'Comptes rendus', tab: 'reports' },
+  { key: 'crm',       label: 'CRM',         tab: 'crm' },
 ]
 
 // Historique des derniers éléments ouverts via la recherche (localStorage)
@@ -163,7 +164,7 @@ export default function GlobalSearch({ data, crm = null, onNavigate }) {
           onChange={e => { setQuery(e.target.value); setOpen(true); setActive(-1) }}
           onFocus={() => setOpen(true)}
           onKeyDown={handleKey}
-          placeholder="Rechercher…  ⌘K"
+          placeholder="Rechercher (⌘K)"
           aria-label="Recherche globale"
           style={{
             width: '100%', boxSizing: 'border-box',
@@ -178,8 +179,8 @@ export default function GlobalSearch({ data, crm = null, onNavigate }) {
           <button onClick={() => { setQuery(''); setOpen(false) }} aria-label="Effacer la recherche" style={{
             position: 'absolute', right: 8, top: '50%',
             transform: 'translateY(-50%)', background: 'none', border: 'none',
-            color: 'var(--label-secondary)', cursor: 'pointer', fontSize: 14, padding: 0, lineHeight: 1
-          }}>✕</button>
+            color: 'var(--label-tertiary)', cursor: 'pointer', padding: 0, display: 'inline-flex'
+          }}><Icon d={I.x} size={14} stroke={1.75} /></button>
         )}
       </div>
 
@@ -195,14 +196,12 @@ export default function GlobalSearch({ data, crm = null, onNavigate }) {
           {showRecents && (
             <div>
               <div style={{
-                padding: '8px 14px 4px', fontSize: 11, fontWeight: 600, color: 'var(--label-secondary)',
-                letterSpacing: '0.05em', textTransform: 'uppercase',
+                padding: '8px 16px 4px', fontSize: 12, fontWeight: 500, color: 'var(--label-secondary)',
                 display:'flex', alignItems:'center', justifyContent:'space-between'
               }}>
                 <span>Récents</span>
                 <span style={{
-                  fontSize: 11, color:'var(--label-secondary)', fontWeight:400,
-                  textTransform:'none', letterSpacing:0
+                  fontSize: 12, color:'var(--label-tertiary)', fontWeight:400
                 }}>Tape 2 lettres pour chercher</span>
               </div>
               {recents.map((r) => {
@@ -212,7 +211,7 @@ export default function GlobalSearch({ data, crm = null, onNavigate }) {
                     className="u-menu-item"
                     style={{
                       display:'block', width:'100%', textAlign:'left',
-                      padding:'8px 14px', background:'transparent',
+                      padding:'8px 16px', background:'transparent',
                       border:'none', fontFamily:'inherit',
                     }}
                   >
@@ -243,8 +242,8 @@ export default function GlobalSearch({ data, crm = null, onNavigate }) {
                 return (
                   <div key={cat.key}>
                     <div style={{
-                      padding: '8px 14px 4px', fontSize: 11, fontWeight: 600,
-                      color: 'var(--label-secondary)', letterSpacing: '0.05em', textTransform: 'uppercase'
+                      padding: '8px 16px 4px', fontSize: 12, fontWeight: 500,
+                      color: 'var(--label-secondary)'
                     }}>
                       {cat.label}
                     </div>
@@ -258,7 +257,7 @@ export default function GlobalSearch({ data, crm = null, onNavigate }) {
                           onMouseEnter={() => setActive(globalIdx)}
                           style={{
                             display: 'block', width: '100%', textAlign: 'left',
-                            padding: '8px 14px', background: isActive ? 'var(--accent-tint)' : 'transparent',
+                            padding: '8px 16px', background: isActive ? 'var(--accent-tint)' : 'transparent',
                             border: 'none', cursor: 'pointer', fontFamily: 'inherit',
                           }}>
                           <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--label)' }}>{item.primary}</div>
@@ -276,10 +275,10 @@ export default function GlobalSearch({ data, crm = null, onNavigate }) {
           )}
           {query.length >= 2 && totalCount > 0 && (
             <div style={{
-              padding: '6px 14px 8px', fontSize: 11, color: 'var(--label-secondary)',
+              padding: '8px 16px', fontSize: 12, color: 'var(--label-tertiary)',
               borderTop: '1px solid var(--separator)', marginTop: 4
             }}>
-              {totalCount} résultat{totalCount > 1 ? 's' : ''} — ↑↓ naviguer · Entrée sélectionner
+              {totalCount} résultat{totalCount > 1 ? 's' : ''} · ↑ ↓ pour choisir, Entrée pour ouvrir
             </div>
           )}
         </div>

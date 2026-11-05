@@ -13,8 +13,8 @@ export default function TemplateSelector({
 }) {
   if (templates.length === 0) {
     return (
-      <p style={{ color: 'var(--label-secondary)', fontSize: 12 }}>
-        Aucun template. Créez-en un en cliquant sur 💾 sur un {templateType}.
+      <p style={{ color: 'var(--label-secondary)', fontSize: 13 }}>
+        Aucun modèle. Enregistrez un {templateType} comme modèle pour le retrouver ici.
       </p>
     )
   }
@@ -37,7 +37,7 @@ export default function TemplateSelector({
             opacity: loading ? 0.6 : 1,
           }}
         >
-          <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--label)' }}>
+          <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--label)' }}>
             {tpl.name}
           </div>
           <div style={{ fontSize: 11, color: 'var(--label-secondary)' }}>

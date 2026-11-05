@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
 import { ANIMATION } from '../lib/motion'
+import { Icon, I } from './icons'
 import { useLeaveGuard } from '../hooks/useLeaveGuard'
 import { useOptionalConfirm } from '../contexts/ConfirmContext'
 
@@ -165,12 +166,11 @@ export default function Modal({ open, onClose, title, children, wide = false }) 
                 borderRadius: 8,
                 width: 32,
                 height: 32,
-                fontSize: 18,
-                color: '#48484A',
+                color: 'var(--label-secondary)',
                 flexShrink: 0,
               }}
             >
-              ←
+              <Icon d={I.chevronLeft} size={18} stroke={1.75} />
             </button>
           )}
           <h3
@@ -178,7 +178,7 @@ export default function Modal({ open, onClose, title, children, wide = false }) 
             style={{
               margin: 0,
               fontSize: 17,
-              fontWeight: 700,
+              fontWeight: 600,
               color: 'var(--label)',
               flex: 1,
               minWidth: 0,
@@ -198,12 +198,11 @@ export default function Modal({ open, onClose, title, children, wide = false }) 
               borderRadius: 8,
               width: 32,
               height: 32,
-              fontSize: 16,
-              color: '#48484A',
+              color: 'var(--label-secondary)',
               flexShrink: 0,
             }}
           >
-            ✕
+            <Icon d={I.x} size={16} stroke={1.75} />
           </button>
         </div>
         {children}
