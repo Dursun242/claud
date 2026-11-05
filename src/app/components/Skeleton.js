@@ -251,7 +251,6 @@ export function PageSkeleton() {
               background: '#fff',
               borderRadius: 10,
               padding: 14,
-              boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
               display: 'flex',
               gap: 12,
               alignItems: 'center',

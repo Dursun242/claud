@@ -65,7 +65,7 @@ export default function Error({ error, reset }) {
                 padding: 10,
                 background: 'var(--grouped-bg)',
                 borderRadius: 8,
-                fontSize: 11,
+                fontSize: 12,
                 overflowX: 'auto',
                 color: '#48484A',
                 whiteSpace: 'pre-wrap',

@@ -5,7 +5,7 @@ import { Modal } from '../index'
 import { bestContact, planMerge } from '../../lib/contactDuplicates'
 
 const chip = (text, color = '#48484A', bg = '#F2F2F7') => (
-  <span key={text} style={{ fontSize: 11, fontWeight: 700, color, background: bg, borderRadius: 5, padding: '2px 7px', whiteSpace: 'nowrap' }}>{text}</span>
+  <span key={text} style={{ fontSize: 12, fontWeight: 600, color, background: bg, borderRadius: 5, padding: '2px 7px', whiteSpace: 'nowrap' }}>{text}</span>
 )
 
 const line = (c) => [c.societe && c.societe !== c.nom ? c.societe : '', c.type, c.email, c.tel || c.tel_fixe, c.ville].filter(Boolean).join(' · ')
@@ -41,7 +41,7 @@ export default function DuplicatesModal({ open, groups, usage, onClose, onIgnore
       {!current && (
         groups.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '20px 0', color: 'var(--label-secondary)', fontSize: 14 }}>
-            ✅ Aucun doublon détecté.
+            Aucun doublon détecté
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -57,7 +57,7 @@ export default function DuplicatesModal({ open, groups, usage, onClose, onIgnore
                   const u = usage(c)
                   return (
                     <div key={c.id} style={{ padding: '6px 0', borderTop: '1px solid var(--grouped-bg)' }}>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--label)' }}>{c.nom}</div>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--label)' }}>{c.nom}</div>
                       <div style={{ fontSize: 12, color: 'var(--label-secondary)' }}>{line(c) || '—'}</div>
                       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 3 }}>
                         {u.affaires > 0 && chip(`${u.affaires} affaire${u.affaires > 1 ? 's' : ''}`)}
@@ -79,7 +79,7 @@ export default function DuplicatesModal({ open, groups, usage, onClose, onIgnore
 
       {current && keep && fields && (
         <div>
-          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--label-secondary)', textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 6 }}>Fiche à conserver</div>
+          <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--label-secondary)', letterSpacing: '.04em', marginBottom: 6 }}>Fiche à conserver</div>
           <div role="radiogroup" aria-label="Fiche à conserver" style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
             {current.contacts.map(c => (
               <label key={c.id} style={{
@@ -88,7 +88,7 @@ export default function DuplicatesModal({ open, groups, usage, onClose, onIgnore
               }}>
                 <input type="radio" name="keep" checked={c.id === keepId} onChange={() => { setKeepId(c.id); setChoices({}) }} style={{ marginTop: 3 }} />
                 <span>
-                  <span style={{ display: 'block', fontSize: 14, fontWeight: 700 }}>{c.nom}</span>
+                  <span style={{ display: 'block', fontSize: 14, fontWeight: 600 }}>{c.nom}</span>
                   <span style={{ display: 'block', fontSize: 12, color: 'var(--label-secondary)' }}>{line(c) || '—'}</span>
                 </span>
               </label>
@@ -97,13 +97,13 @@ export default function DuplicatesModal({ open, groups, usage, onClose, onIgnore
 
           {plan.conflicts.length > 0 && (
             <>
-              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--label-secondary)', textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 6 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--label-secondary)', letterSpacing: '.04em', marginBottom: 6 }}>
                 Valeurs différentes — choisis celle à garder
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
                 {plan.conflicts.map(cf => (
                   <fieldset key={cf.key} style={{ border: '1px solid var(--separator)', borderRadius: 8, padding: '6px 10px', margin: 0 }}>
-                    <legend style={{ fontSize: 12, fontWeight: 700, color: 'var(--label)', padding: '0 4px' }}>{cf.label}</legend>
+                    <legend style={{ fontSize: 12, fontWeight: 600, color: 'var(--label)', padding: '0 4px' }}>{cf.label}</legend>
                     {cf.values.map(v => (
                       <label key={v} style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 13, padding: '3px 0', cursor: 'pointer' }}>
                         <input type="radio" name={`f-${cf.key}`} checked={fields[cf.key] === v}

@@ -1,4 +1,5 @@
 'use client'
+import { Icon, I } from '../icons'
 import { useEffect, useRef, useState } from 'react'
 import Modal from '../Modal'
 import { useToast } from '../../contexts/ToastContext'
@@ -13,10 +14,10 @@ import { conformitePost } from '../../hooks/useConformite'
 
 const fmtD = (iso) => (iso ? String(iso).slice(0, 10).split('-').reverse().join('/') : '')
 const fmtDT = (iso) => (iso ? new Date(iso).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' }) : '')
-const small = { fontSize: 11, color: '#6E6E73' }
+const small = { fontSize: 12, color: '#6E6E73' }
 const btn = (color, bg, border) => ({
   background: bg, color, border: `1px solid ${border}`, borderRadius: 6, padding: '5px 10px',
-  fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+  fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
 })
 const input = { padding: '6px 8px', border: '1px solid #D1D1D6', borderRadius: 6, fontSize: 12, fontFamily: 'inherit' }
 
@@ -194,7 +195,7 @@ export default function ConformiteModal({ open, onClose, contact, compliance, la
           <div style={{ border: `1px solid ${(LEGAL_META[legal?.statut] || LEGAL_META.inconnu).border}`, background: (LEGAL_META[legal?.statut] || LEGAL_META.inconnu).bg, borderRadius: 8, padding: 10, marginBottom: 10 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: (LEGAL_META[legal?.statut] || LEGAL_META.inconnu).color }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: (LEGAL_META[legal?.statut] || LEGAL_META.inconnu).color }}>
                   {legal ? (LEGAL_META[legal.statut] || LEGAL_META.inconnu).label : 'Situation de l’entreprise non vérifiée'}
                 </div>
                 <div style={{ ...small, marginTop: 2 }}>
@@ -220,8 +221,8 @@ export default function ConformiteModal({ open, onClose, contact, compliance, la
                 <div key={kind} role="group" aria-label={DOC_META[kind].long} style={{ border: `1px solid ${meta.border}`, borderRadius: 10, padding: 10, background: '#fff' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
                     <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--label)' }}>{DOC_META[kind].long}</div>
-                      <div style={{ fontSize: 11, color: meta.color, fontWeight: 600 }}>{meta.label} · {validity(k, kind)}</div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--label)' }}>{DOC_META[kind].long}</div>
+                      <div style={{ fontSize: 12, color: meta.color, fontWeight: 600 }}>{meta.label} · {validity(k, kind)}</div>
                     </div>
                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                       <button type="button" onClick={() => pick(kind)} disabled={!!busy}
@@ -233,7 +234,7 @@ export default function ConformiteModal({ open, onClose, contact, compliance, la
                       {doc && DOC_META[kind].sansExpiration && doc.anomalies?.length > 0 && (
                         <button type="button" onClick={() => confirmRib(doc)} style={btn('#1E7B34', '#fff', '#BFE9CA')}>J’ai vérifié</button>
                       )}
-                      {doc && <button type="button" onClick={() => remove(doc)} aria-label={`Supprimer ${DOC_META[kind].long}`} style={btn('#D70015', '#fff', '#FFC9C6')}>✕</button>}
+                      {doc && <button type="button" onClick={() => remove(doc)} aria-label={`Supprimer ${DOC_META[kind].long}`} style={btn('#D70015', '#fff', '#FFC9C6')}><Icon d={I.x} size={14} stroke={1.75} /></button>}
                     </div>
                   </div>
                   {doc && (
@@ -256,7 +257,7 @@ export default function ConformiteModal({ open, onClose, contact, compliance, la
                     </div>
                   )}
                   {doc?.anomalies?.length > 0 && (
-                    <ul style={{ margin: '6px 0 0', paddingLeft: 18, fontSize: 11, color: 'var(--orange-text)' }}>
+                    <ul style={{ margin: '6px 0 0', paddingLeft: 18, fontSize: 12, color: 'var(--orange-text)' }}>
                       {doc.anomalies.map((a, i) => <li key={i}>{a}</li>)}
                     </ul>
                   )}
@@ -267,7 +268,7 @@ export default function ConformiteModal({ open, onClose, contact, compliance, la
           </div>
 
           <div style={{ marginTop: 14, background: '#F0F8FC', border: '1px solid var(--blue-line)', borderRadius: 8, padding: 12 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--accent-text)', marginBottom: 4 }}>Demander les documents à l’entreprise</div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--accent-text)', marginBottom: 4 }}>Demander les documents à l’entreprise</div>
             <div style={{ ...small, marginBottom: 8 }}>
               Un mail lui envoie un lien (valable 30 jours) pour déposer elle-même ses documents, sans compte. Ensuite, elle est relancée automatiquement chaque semaine tant qu’un document manque, est erroné ou expire (sauf si vous suspendez ses relances).
             </div>
@@ -291,7 +292,7 @@ export default function ConformiteModal({ open, onClose, contact, compliance, la
             </div>
             {link && (
               <div style={{ display: 'flex', gap: 6, marginTop: 8, alignItems: 'center' }}>
-                <input readOnly value={link} aria-label="Lien de dépôt" style={{ ...input, flex: 1, fontSize: 11 }} onFocus={e => e.target.select()} />
+                <input readOnly value={link} aria-label="Lien de dépôt" style={{ ...input, flex: 1, fontSize: 12 }} onFocus={e => e.target.select()} />
                 <button type="button" onClick={copyLink} style={btn('#3A3A3C', '#fff', '#D1D1D6')}>Copier</button>
               </div>
             )}

@@ -1,4 +1,5 @@
 'use client'
+import { Icon, I } from '../components/icons'
 import { createContext, useContext, useState, useCallback, useMemo, useRef, useEffect } from 'react'
 import { ANIMATION } from '../lib/motion'
 
@@ -154,12 +155,12 @@ function ConfirmDialog({ state, onResolve }) {
             width: 40, height: 40, borderRadius: '50%',
             background: accentBg, color: accentColor,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 20, flexShrink: 0,
+            flexShrink: 0,
           }}>
-            {danger ? '⚠' : '?'}
+            <Icon d={danger ? I.alert : I.info} size={20} stroke={1.75} />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <h3 id="confirm-title" style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--label)', lineHeight: 1.3 }}>
+            <h3 id="confirm-title" style={{ margin: 0, fontSize: 16, fontWeight: 600, color: 'var(--label)', lineHeight: 1.3 }}>
               {title}
             </h3>
             {message && (
@@ -196,7 +197,7 @@ function ConfirmDialog({ state, onResolve }) {
               background: danger ? 'var(--red-text)' : 'var(--accent)',
               color: '#fff',
               fontSize: 13,
-              fontWeight: 700,
+              fontWeight: 600,
               cursor: 'pointer',
               fontFamily: 'inherit',
               boxShadow: `0 2px 8px ${danger ? 'rgba(215,0,21,0.3)' : 'rgba(0,113,227,0.3)'}`,

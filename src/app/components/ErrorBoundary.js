@@ -52,7 +52,7 @@ export default class ErrorBoundary extends Component {
                 </summary>
                 <pre style={{
                   marginTop: 8, padding: 12, background: 'var(--grouped-bg)', borderRadius: 8,
-                  fontSize: 11, overflowX: 'auto', color: '#48484A', whiteSpace: 'pre-wrap',
+                  fontSize: 12, overflowX: 'auto', color: '#48484A', whiteSpace: 'pre-wrap',
                 }}>
                   {this.state.error.message}
                 </pre>

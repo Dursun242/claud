@@ -12,6 +12,7 @@
 // (avec rendu des résultats entreprises + dirigeants), identité,
 // coordonnées, administratif, évaluation, erreurs, boutons.
 
+import { Icon, I } from './icons'
 import Modal from './Modal'
 import AddressPicker from './AddressPicker'
 import { inpTel, inpEmail, inpNumeric } from '../dashboards/shared'
@@ -58,11 +59,11 @@ export default function ContactFormModal({
           borderRadius: 10, padding: '12px 14px', marginBottom: 12,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 15 }}>📸</span>
-            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--purple-text)' }}>
+            <Icon d={I.camera} size={16} stroke={1.5} />
+            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--purple-text)' }}>
               Import par photo ou capture d&apos;écran
             </span>
-            <span style={{ fontSize: 11, color: 'var(--purple-text)', width: '100%' }}>
+            <span style={{ fontSize: 12, color: 'var(--purple-text)', width: '100%' }}>
               Carte de visite, signature email, contact iOS, SMS, WhatsApp…
             </span>
           </div>
@@ -90,7 +91,7 @@ export default function ContactFormModal({
             ) : <>Choisir une photo ou une capture d&apos;écran</>}
           </button>
           {importError && (
-            <div style={{ marginTop: 8, fontSize: 11, color: 'var(--red-text)' }}>{importError}</div>
+            <div style={{ marginTop: 8, fontSize: 12, color: 'var(--red-text)' }}>{importError}</div>
           )}
         </div>
       )}
@@ -105,8 +106,8 @@ export default function ContactFormModal({
             <circle cx="11" cy="11" r="8" />
             <path d="M21 21l-4.35-4.35" />
           </svg>
-          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent-text)' }}>Recherche entreprise</span>
-          <span style={{ fontSize: 11, color: 'var(--accent-text)', width: '100%' }}>
+          <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--accent-text)' }}>Recherche entreprise</span>
+          <span style={{ fontSize: 12, color: 'var(--accent-text)', width: '100%' }}>
             SIRET (14 chiffres), nom d&apos;entreprise ou nom d&apos;un dirigeant — annuaire officiel, gratuit
           </span>
         </div>
@@ -130,7 +131,7 @@ export default function ContactFormModal({
             {pLoading ? 'Recherche...' : 'Rechercher'}
           </button>
         </div>
-        {pError && <div style={{ marginTop: 8, fontSize: 11, color: 'var(--red)' }}>{pError}</div>}
+        {pError && <div style={{ marginTop: 8, fontSize: 12, color: 'var(--red)' }}>{pError}</div>}
         {pResults && (
           <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 10 }}>
 
@@ -138,10 +139,9 @@ export default function ContactFormModal({
             {pResults.companies?.length > 0 && (
               <div>
                 <div style={{
-                  fontSize: 11, color: 'var(--label-secondary)', fontWeight: 700,
-                  textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: 6,
+                  fontSize: 12, color: 'var(--label-secondary)', fontWeight: 600, letterSpacing: '0.03em', marginBottom: 6,
                 }}>
-                  🏢 Entreprises ({pResults.companies.length})
+                  Entreprises ({pResults.companies.length})
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {pResults.companies.map((r, i) => {
@@ -157,19 +157,19 @@ export default function ContactFormModal({
                           opacity: pLoading ? 0.6 : 1,
                         }}>
                         <div>
-                          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--label)' }}>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--label)' }}>
                             {r.denomination || r.nom_entreprise}
                           </div>
-                          <div style={{ fontSize: 11, color: 'var(--label-secondary)' }}>
+                          <div style={{ fontSize: 12, color: 'var(--label-secondary)' }}>
                             {siege.code_postal} {siege.ville} — SIRET {r.siret}
                           </div>
                           {r.libelle_activite_principale && (
-                            <div style={{ fontSize: 11, color: 'var(--label-secondary)' }}>
+                            <div style={{ fontSize: 12, color: 'var(--label-secondary)' }}>
                               {r.libelle_activite_principale}
                             </div>
                           )}
                         </div>
-                        <span style={{ fontSize: 11, color: 'var(--accent-text)', fontWeight: 600, flexShrink: 0 }}>
+                        <span style={{ fontSize: 12, color: 'var(--accent-text)', fontWeight: 600, flexShrink: 0 }}>
                           Importer →
                         </span>
                       </button>
@@ -183,10 +183,9 @@ export default function ContactFormModal({
             {pResults.dirigeants?.length > 0 && (
               <div>
                 <div style={{
-                  fontSize: 11, color: 'var(--label-secondary)', fontWeight: 700,
-                  textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: 6,
+                  fontSize: 12, color: 'var(--label-secondary)', fontWeight: 600, letterSpacing: '0.03em', marginBottom: 6,
                 }}>
-                  👤 Dirigeants ({pResults.dirigeants.length})
+                  Dirigeants ({pResults.dirigeants.length})
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {pResults.dirigeants.flatMap((d, i) => {
@@ -217,19 +216,19 @@ export default function ContactFormModal({
                           }}
                         >
                           <div>
-                            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--label)' }}>
+                            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--label)' }}>
                               {fullName}
                               {dirigeantInfo.qualite && (
                                 <span style={{
-                                  fontSize: 11, color: 'var(--purple-text)',
+                                  fontSize: 12, color: 'var(--purple-text)',
                                   fontWeight: 600, marginLeft: 6,
                                 }}>({dirigeantInfo.qualite})</span>
                               )}
                             </div>
-                            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--purple-text)' }}>
+                            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--purple-text)' }}>
                               {ent.denomination || ent.nom_entreprise}
                             </div>
-                            <div style={{ fontSize: 11, color: 'var(--label-secondary)' }}>
+                            <div style={{ fontSize: 12, color: 'var(--label-secondary)' }}>
                               {[
                                 siege.code_postal || ent.code_postal,
                                 siege.ville || ent.ville,
@@ -237,7 +236,7 @@ export default function ContactFormModal({
                               {ent.siret && <> — SIRET {ent.siret}</>}
                             </div>
                           </div>
-                          <span style={{ fontSize: 11, color: 'var(--purple-text)', fontWeight: 600, flexShrink: 0 }}>
+                          <span style={{ fontSize: 12, color: 'var(--purple-text)', fontWeight: 600, flexShrink: 0 }}>
                             Importer →
                           </span>
                         </button>
@@ -254,8 +253,7 @@ export default function ContactFormModal({
 
       {/* Identité */}
       <div style={{
-        fontSize: 11, fontWeight: 700, color: 'var(--accent-text)',
-        textTransform: 'uppercase', marginBottom: 8, marginTop: 4,
+        fontSize: 12, fontWeight: 600, color: 'var(--accent-text)', marginBottom: 8, marginTop: 4,
       }}>Identité</div>
       <div style={{ display: 'grid', gridTemplateColumns: m ? '1fr' : '1fr 1fr 1fr', gap: '0 12px' }}>
         <FF label="Nom / Prénom *">
@@ -287,8 +285,7 @@ export default function ContactFormModal({
 
       {/* Coordonnées */}
       <div style={{
-        fontSize: 11, fontWeight: 700, color: 'var(--accent-text)',
-        textTransform: 'uppercase', marginBottom: 8, marginTop: 12,
+        fontSize: 12, fontWeight: 600, color: 'var(--accent-text)', marginBottom: 8, marginTop: 12,
       }}>Coordonnées</div>
       <div style={{ display: 'grid', gridTemplateColumns: m ? '1fr' : '1fr 1fr 1fr', gap: '0 12px' }}>
         <FF label="Tél. mobile">
@@ -337,8 +334,7 @@ export default function ContactFormModal({
 
       {/* Administratif */}
       <div style={{
-        fontSize: 11, fontWeight: 700, color: 'var(--accent-text)',
-        textTransform: 'uppercase', marginBottom: 8, marginTop: 12,
+        fontSize: 12, fontWeight: 600, color: 'var(--accent-text)', marginBottom: 8, marginTop: 12,
       }}>Administratif</div>
       <div style={{ display: 'grid', gridTemplateColumns: m ? '1fr' : '1fr 1fr', gap: '0 12px' }}>
         <FF label="SIRET">
@@ -377,8 +373,7 @@ export default function ContactFormModal({
 
       {/* Évaluation */}
       <div style={{
-        fontSize: 11, fontWeight: 700, color: 'var(--accent-text)',
-        textTransform: 'uppercase', marginBottom: 8, marginTop: 12,
+        fontSize: 12, fontWeight: 600, color: 'var(--accent-text)', marginBottom: 8, marginTop: 12,
       }}>Évaluation</div>
       <div style={{ display: 'grid', gridTemplateColumns: m ? '1fr' : '1fr 1fr 1fr', gap: '0 12px' }}>
         <FF label="Note (étoiles)">
@@ -415,13 +410,13 @@ export default function ContactFormModal({
           padding: '8px 12px', marginTop: 10, marginBottom: 4, fontSize: 12, color: 'var(--red-text)',
           display: 'flex', alignItems: 'center', gap: 8,
         }}>
-          <span style={{ fontSize: 14 }}>⚠</span>
+          <Icon d={I.alert} size={16} stroke={1.75} />
           <span style={{ flex: 1 }}>{formError}</span>
           <button onClick={() => setFormError('')} aria-label="Fermer"
             style={{
               background: 'none', border: 'none', cursor: 'pointer',
               color: 'var(--red-text)', fontSize: 14, padding: 0, lineHeight: 1,
-            }}>✕</button>
+            }}><Icon d={I.x} size={14} stroke={1.75} /></button>
         </div>
       )}
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 14 }}>

@@ -30,7 +30,7 @@ export default function RelanceControls({ contact, pause, onChanged, compact = f
       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', ...font }}>
         {!compact && <span style={{ color: 'var(--orange-text)', fontWeight: 600 }}>⏸ Relances suspendues{pause.jusquau ? ` jusqu’au ${fmtD(pause.jusquau)}` : ''}</span>}
         <button type="button" onClick={() => set(false)} disabled={busy}
-          style={{ ...font, background: 'var(--green-tint)', color: 'var(--green-text)', border: '1px solid var(--green-line)', borderRadius: 6, padding: '3px 8px', fontWeight: 700, cursor: 'pointer' }}>
+          style={{ ...font, background: 'var(--green-tint)', color: 'var(--green-text)', border: '1px solid var(--green-line)', borderRadius: 6, padding: '3px 8px', fontWeight: 600, cursor: 'pointer' }}>
           ▶ Reprendre
         </button>
       </span>

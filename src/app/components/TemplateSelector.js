@@ -40,7 +40,7 @@ export default function TemplateSelector({
           <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--label)' }}>
             {tpl.name}
           </div>
-          <div style={{ fontSize: 11, color: 'var(--label-secondary)' }}>
+          <div style={{ fontSize: 12, color: 'var(--label-secondary)' }}>
             {tpl.description}
           </div>
         </button>

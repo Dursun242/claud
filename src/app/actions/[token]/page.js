@@ -7,6 +7,7 @@
 // possible), « J'ai besoin de plus de temps » (nouvelle date) ou « Je ne suis
 // pas d'accord » (explication). Voir /api/cr/actions.
 
+import { Icon, I } from '../../components/icons'
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { resizeImageForAI } from '../../lib/imageForAI'
@@ -53,7 +54,7 @@ function ActionCard({ token, action, choix, today, onDone }) {
 
   return (
     <div style={card}>
-      <div style={{ fontSize: 16, fontWeight: 700, lineHeight: 1.4 }}>{action.num ? `${action.num}. ` : ''}{action.titre}</div>
+      <div style={{ fontSize: 16, fontWeight: 600, lineHeight: 1.4 }}>{action.num ? `${action.num}. ` : ''}{action.titre}</div>
       <div style={{ fontSize: 13, color: late ? C.red : C.muted, marginTop: 3 }}>
         {[action.lot, action.echeance ? `${late ? 'attendu depuis le' : 'pour le'} ${fmt(action.echeance)}` : null].filter(Boolean).join(' · ')}
       </div>
@@ -93,9 +94,9 @@ function ActionCard({ token, action, choix, today, onDone }) {
               placeholder={type === 'desaccord' ? 'Expliquez pourquoi cette action ne vous revient pas, ou ce qui bloque…' : 'Par exemple : ce qui a été fait, ce qui reste…'}
               style={{ ...input, marginTop: 4, resize: 'vertical' }} />
           </label>
-          {error && <div role="alert" style={{ color: C.red, fontSize: 13, fontWeight: 500 }}>⚠ {error}</div>}
+          {error && <div role="alert" style={{ color: C.red, fontSize: 13, fontWeight: 500, display: 'flex', gap: 8, alignItems: 'center' }}><Icon d={I.alert} size={14} stroke={1.75} />{error}</div>}
           <button type="button" onClick={submit} disabled={sending}
-            style={{ minHeight: 46, borderRadius: 10, border: 'none', fontSize: 16, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', background: C.navy, color: '#fff', opacity: sending ? 0.6 : 1 }}>
+            style={{ minHeight: 46, borderRadius: 10, border: 'none', fontSize: 16, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer', background: C.navy, color: '#fff', opacity: sending ? 0.6 : 1 }}>
             {sending ? 'Envoi…' : 'Envoyer ma réponse'}
           </button>
         </div>
@@ -124,7 +125,7 @@ export default function ActionsEntreprisePage() {
     <main style={{ minHeight: '100vh', background: C.bg, padding: '24px 16px', fontFamily: 'var(--font-ui, system-ui), sans-serif', color: C.text }}>
       <div style={{ maxWidth: 600, margin: '0 auto' }}>
         <div style={{ textAlign: 'center', marginBottom: 18 }}>
-          <div style={{ fontSize: 20, fontWeight: 800, color: C.navy }}>ID Maîtrise</div>
+          <div style={{ fontSize: 20, fontWeight: 600, color: C.navy }}>ID Maîtrise</div>
           <div style={{ fontSize: 12, color: C.muted }}>Maîtrise d’œuvre · Le Havre</div>
         </div>
         {children}
@@ -153,9 +154,9 @@ export default function ActionsEntreprisePage() {
     ))}
     {done.map(a => (
       <div key={a.id} role="status" style={{ ...card, borderColor: '#A7F3D0', background: '#ECFDF5' }}>
-        <div style={{ fontSize: 15, fontWeight: 700 }}>{a.num ? `${a.num}. ` : ''}{a.titre}</div>
+        <div style={{ fontSize: 15, fontWeight: 600 }}>{a.num ? `${a.num}. ` : ''}{a.titre}</div>
         <div style={{ fontSize: 14, color: C.green, marginTop: 4 }}>
-          ✓ Réponse envoyée : {DONE[answered[a.id].type]}{answered[a.id].date ? ` (nouvelle date le ${fmt(answered[a.id].date)})` : ''}. Merci.
+          Réponse envoyée : {DONE[answered[a.id].type]}{answered[a.id].date ? ` (nouvelle date le ${fmt(answered[a.id].date)})` : ''}. Merci.
         </div>
       </div>
     ))}

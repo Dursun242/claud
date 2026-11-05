@@ -17,7 +17,7 @@ export default function ScoreBadge({ score, onClick }) {
     <>
       <span aria-hidden="true" style={{
         display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 16, height: 16,
-        borderRadius: 4, background: g.color, color: '#fff', fontSize: 11, fontWeight: 600,
+        borderRadius: 4, background: g.color, color: '#fff', fontSize: 12, fontWeight: 600,
       }}>{g.grade}</span>
       <span style={{ fontVariantNumeric: 'tabular-nums' }}>Score {score.score}{score.peuDeDonnees ? ' ?' : ''}</span>
     </>

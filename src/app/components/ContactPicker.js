@@ -1,4 +1,5 @@
 'use client'
+import { Icon, I } from './icons'
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { inp } from '../dashboards/shared'
 
@@ -81,11 +82,11 @@ export default function ContactPicker({ contacts = [], value, onChange, onCreate
         <div style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 14 }}>
           <strong style={{ color: 'var(--label)' }}>{selected.nom}</strong>
           {selected.societe && <span style={{ color: 'var(--label-secondary)' }}> · {selected.societe}</span>}
-          {selected.type && <span style={{ color: 'var(--label-secondary)', fontSize: 11 }}> · {selected.type}</span>}
+          {selected.type && <span style={{ color: 'var(--label-secondary)', fontSize: 12 }}> · {selected.type}</span>}
         </div>
         <button type="button" onClick={() => { onChange(''); setTimeout(() => inputRef.current?.focus(), 0) }}
           aria-label="Retirer le contact" title="Changer de contact"
-          style={{ background: 'var(--separator)', border: 'none', borderRadius: 6, width: 28, height: 28, cursor: 'pointer', fontSize: 14, color: '#48484A', flexShrink: 0 }}>✕</button>
+          style={{ background: 'var(--separator)', border: 'none', borderRadius: 6, width: 28, height: 28, cursor: 'pointer', fontSize: 14, color: '#48484A', flexShrink: 0 }}><Icon d={I.x} size={14} stroke={1.75} /></button>
       </div>
     )
   }
@@ -97,7 +98,7 @@ export default function ContactPicker({ contacts = [], value, onChange, onCreate
         onChange={e => { setQ(e.target.value); setOpen(true) }}
         onFocus={() => setOpen(true)} onKeyDown={onKey}
         placeholder={placeholder} style={{ ...inp, paddingLeft: 34 }} />
-      <span aria-hidden="true" style={{ position: 'absolute', left: 11, top: 12, fontSize: 15, opacity: 0.6 }}>🔍</span>
+      <span aria-hidden="true" style={{ position: 'absolute', left: 12, top: 14, display: 'inline-flex', color: 'var(--label-tertiary)' }}><Icon d={I.search} size={16} stroke={1.5} /></span>
       {open && (
         <div role="listbox" id={listId.current} style={{
           position: 'absolute', zIndex: 20, top: '100%', left: 0, right: 0, marginTop: 4,
@@ -121,7 +122,7 @@ export default function ContactPicker({ contacts = [], value, onChange, onCreate
               style={{ ...row, background: active === i ? 'var(--grouped-bg)' : '#fff' }}>
               <span style={{ fontWeight: 600, color: 'var(--label)' }}>{c.nom}</span>
               {c.societe && <span style={{ color: 'var(--label-secondary)' }}> · {c.societe}</span>}
-              <span style={{ float: 'right', fontSize: 11, color: 'var(--label-secondary)' }}>{c.type}{c.ville ? ` · ${c.ville}` : ''}</span>
+              <span style={{ float: 'right', fontSize: 12, color: 'var(--label-secondary)' }}>{c.type}{c.ville ? ` · ${c.ville}` : ''}</span>
             </button>
           ))}
         </div>
