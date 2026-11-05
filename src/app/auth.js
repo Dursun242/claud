@@ -4,6 +4,7 @@ import Image from 'next/image'
 import { supabase } from './supabaseClient'
 import { writeActivityLog } from './lib/activityLog'
 import { clearOfflineData } from './lib/offlineStore'
+import { Icon, I } from './components/icons'
 
 const SESSION_LABELS = {
   login:            'Connexion',
@@ -222,86 +223,54 @@ export function LoginPage() {
     }
   }
 
+  // Connexion : page calme, fond gris de l'app, une carte et une action
+  const notice = (tone, icon, title, body) => (
+    <div role={tone === 'red' ? 'alert' : 'status'} style={{
+      display: 'flex', gap: 12, alignItems: 'flex-start', textAlign: 'left',
+      background: `var(--${tone}-tint)`, border: `1px solid var(--${tone}-line)`, borderRadius: 10,
+      padding: '12px 16px', marginBottom: 20, fontSize: 13,
+      color: tone === 'red' ? 'var(--red-text)' : 'var(--orange-deep)',
+    }}>
+      <span style={{ display: 'inline-flex', flexShrink: 0, marginTop: 1 }}><Icon d={icon} size={16} stroke={1.75} /></span>
+      <div style={{ lineHeight: 1.5 }}>
+        {title && <div style={{ fontWeight: 600, marginBottom: 4 }}>{title}</div>}
+        {body}
+      </div>
+    </div>
+  )
+
   return (
     <div style={{
       minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: 'linear-gradient(135deg, var(--label) 0%, var(--accent) 50%, var(--label) 100%)',
-      fontFamily: "var(--font-dm-sans), sans-serif", padding: 20, position: 'relative', overflow: 'hidden',
+      background: 'var(--grouped-bg)', fontFamily: 'inherit', padding: 16,
     }}>
-      {/* Halos décoratifs en arrière-plan (très subtils) */}
-      <div aria-hidden style={{
-        position: 'absolute', top: '-10%', left: '-10%',
-        width: 400, height: 400, borderRadius: '50%',
-        background: 'radial-gradient(circle, rgba(64,156,255,0.15) 0%, transparent 70%)',
-        animation: 'floatBg1 12s ease-in-out infinite', pointerEvents: 'none',
-      }}/>
-      <div aria-hidden style={{
-        position: 'absolute', bottom: '-10%', right: '-10%',
-        width: 500, height: 500, borderRadius: '50%',
-        background: 'radial-gradient(circle, rgba(137,68,171,0.12) 0%, transparent 70%)',
-        animation: 'floatBg2 15s ease-in-out infinite', pointerEvents: 'none',
-      }}/>
-
       <div style={{
-        background: '#fff', borderRadius: 24, padding: '48px 40px', maxWidth: 420, width: '100%',
-        boxShadow: '0 25px 80px rgba(0,0,0,0.4)', animation: 'fadeInUp 0.5s cubic-bezier(.22, 1, .36, 1)', textAlign: 'center',
-        position: 'relative', zIndex: 1,
+        background: '#fff', borderRadius: 16, padding: '40px 32px', maxWidth: 400, width: '100%',
+        border: '1px solid var(--separator)', boxShadow: '0 8px 24px rgba(0,0,0,0.06)',
+        animation: 'fadeInUp 0.4s cubic-bezier(.22, 1, .36, 1)', boxSizing: 'border-box',
       }}>
-        <div style={{
-          width: 80, height: 80, borderRadius: 20, background: 'var(--row-fill)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          margin: '0 auto 20px', boxShadow: '0 4px 16px rgba(0,0,0,0.08)', overflow: 'hidden',
-        }}>
-          <Image src="/icon-192.png" alt="ID Maîtrise"
-            width={60} height={60} priority
-            style={{ objectFit: 'contain' }} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 32 }}>
+          <div style={{
+            width: 48, height: 48, borderRadius: 12, background: 'var(--grouped-bg)', flexShrink: 0,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
+          }}>
+            <Image src="/icon-192.png" alt="" width={36} height={36} priority style={{ objectFit: 'contain' }} />
+          </div>
+          <div style={{ textAlign: 'left' }}>
+            <h1 style={{ margin: 0, fontSize: 20, fontWeight: 600, color: 'var(--label)' }}>ID Maîtrise</h1>
+            <p style={{ margin: '2px 0 0', fontSize: 13, color: 'var(--label-secondary)' }}>Suivi des chantiers de maîtrise d&apos;œuvre</p>
+          </div>
         </div>
 
-        <h1 style={{ margin: '0 0 4px', fontSize: 26, fontWeight: 700, color: 'var(--label)' }}>ID Maîtrise</h1>
-        <p style={{ margin: '0 0 8px', fontSize: 13, color: 'var(--label-secondary)' }}>Ingénierie de la construction</p>
-        <p style={{ margin: '0 0 32px', fontSize: 12, color: 'var(--label-secondary)' }}>Tableau de bord de gestion de chantiers</p>
-
-        {denied && (
-          <div style={{
-            background: 'var(--red-tint)', border: '1px solid var(--red-line)', borderRadius: 10,
-            padding: '14px 16px', marginBottom: 20, fontSize: 13, color: 'var(--red-text)',
-            textAlign: 'left',
-          }}>
-            <div style={{ fontWeight: 700, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span>🔒</span> Accès refusé
-            </div>
-            <div style={{ fontSize: 12, color: 'var(--red-text)', lineHeight: 1.5 }}>
-              Votre compte Google n&apos;est pas autorisé pour le moment.<br/>
-              Contactez-nous à{' '}
-              <a href="mailto:contact@id-maitrise.com"
-                style={{ color: 'var(--orange-deep)', fontWeight: 600 }}>
-                contact@id-maitrise.com</a>.
-            </div>
-          </div>
-        )}
-        {expired && !denied && (
-          <div style={{
-            background: 'var(--orange-tint)', border: '1px solid var(--orange-line)', borderRadius: 10,
-            padding: '14px 16px', marginBottom: 20, fontSize: 13, color: 'var(--orange-deep)',
-            textAlign: 'left',
-          }}>
-            <div style={{ fontWeight: 700, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span>⏱</span> Session expirée
-            </div>
-            <div style={{ fontSize: 12, color: 'var(--orange-deep)', lineHeight: 1.5 }}>
-              Votre session a expiré par mesure de sécurité.{' '}
-              Reconnectez-vous avec votre compte Google pour continuer.
-            </div>
-          </div>
-        )}
-        {error && !denied && (
-          <div style={{
-            background: 'var(--red-tint)', border: '1px solid var(--red-line)', borderRadius: 10,
-            padding: '12px 16px', marginBottom: 20, fontSize: 13, color: 'var(--red-text)',
-          }}>
-            ⚠ {error}
-          </div>
-        )}
+        {denied && notice('red', I.alert, 'Accès refusé', <>
+          Votre compte Google n&apos;est pas autorisé pour le moment.
+          Contactez-nous à{' '}
+          <a href="mailto:contact@id-maitrise.com" style={{ color: 'inherit', fontWeight: 600 }}>contact@id-maitrise.com</a>
+        </>)}
+        {expired && !denied && notice('orange', I.clock, 'Session expirée', <>
+          Votre session a expiré par mesure de sécurité. Reconnectez-vous avec votre compte Google pour continuer.
+        </>)}
+        {error && !denied && notice('red', I.alert, null, error)}
 
         <button
           onClick={handleGoogleLogin}
@@ -309,19 +278,18 @@ export function LoginPage() {
           aria-label="Se connecter avec Google"
           className="login-btn"
           style={{
-            width: '100%', padding: '14px 24px', borderRadius: 12,
-            border: '1.5px solid var(--separator)', background: '#fff',
+            width: '100%', minHeight: 48, padding: '0 24px', borderRadius: 12,
+            border: '1px solid var(--separator-opaque)', background: '#fff',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12,
-            cursor: loggingIn ? 'wait' : 'pointer', fontSize: 15, fontWeight: 600,
-            color: 'var(--label-2)', fontFamily: 'inherit',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+            cursor: loggingIn ? 'wait' : 'pointer', fontSize: 15, fontWeight: 500,
+            color: 'var(--label)', fontFamily: 'inherit',
           }}
         >
           {loggingIn ? (
             <>
-              <span style={{
-                width: 18, height: 18, border: '2px solid var(--separator)',
-                borderTopColor: 'var(--system-blue)', borderRadius: '50%',
+              <span aria-hidden="true" style={{
+                width: 16, height: 16, border: '2px solid var(--separator)',
+                borderTopColor: 'var(--label-secondary)', borderRadius: '50%',
                 display: 'inline-block', animation: 'spin .8s linear infinite'
               }}/>
               Connexion en cours…
@@ -339,34 +307,22 @@ export function LoginPage() {
           )}
         </button>
 
-        <p style={{ margin: '24px 0 0', fontSize: 11, color: 'var(--label-secondary)' }}>
-          Accès réservé aux collaborateurs et maîtres d&apos;ouvrage ID Maîtrise
+        <p style={{ margin: '16px 0 0', fontSize: 13, color: 'var(--label-secondary)', lineHeight: 1.5 }}>
+          Accès réservé aux collaborateurs et aux maîtres d&apos;ouvrage d&apos;ID Maîtrise
         </p>
 
         <div style={{
-          margin: '16px 0 0',
-          background: 'linear-gradient(135deg, var(--accent-tint) 0%, var(--green-tint) 100%)',
-          border: '1.5px solid var(--blue-line)',
-          borderRadius: 10,
-          padding: '12px 14px',
-          textAlign: 'left',
+          marginTop: 24, padding: '12px 16px', borderRadius: 10,
+          background: 'var(--grouped-bg)', fontSize: 13, color: 'var(--label-2)', lineHeight: 1.5,
         }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--accent-text)', marginBottom: 4 }}>
-            🎯 Pas encore client ID Maîtrise ?
-          </div>
-          <div style={{ fontSize: 12, color: 'var(--label-2)', lineHeight: 1.6 }}>
-            Découvrez l&apos;outil <strong>gratuitement en mode démo</strong>
-            {' '}— cliquez sur <strong>Se connecter avec Google</strong>
-            {' '}avec n&apos;importe quel compte Gmail.
-          </div>
+          <div style={{ fontWeight: 600, color: 'var(--label)', marginBottom: 4 }}>Pas encore client ?</div>
+          Essayez l&apos;outil gratuitement en mode démo : connectez-vous avec n&apos;importe quel compte Gmail
         </div>
 
-        <div style={{ marginTop: 32, paddingTop: 20, borderTop: '1px solid var(--grouped-bg)' }}>
-          <p style={{ margin: 0, fontSize: 11, color: 'var(--label-secondary)' }}>
-            SARL ID MAÎTRISE — 9 Rue Henry Genestal, 76600 Le Havre<br />
-            SIRET 921 536 181 00024
-          </p>
-        </div>
+        <p style={{ margin: '32px 0 0', paddingTop: 16, borderTop: '1px solid var(--separator)', fontSize: 12, color: 'var(--label-tertiary)', lineHeight: 1.5 }}>
+          SARL ID Maîtrise · SIRET 921 536 181 00024<br />
+          9 rue Henry Genestal, 76600 Le Havre
+        </p>
       </div>
     </div>
   )

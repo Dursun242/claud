@@ -18,13 +18,13 @@
 export default function GlobalError({ error, reset }) {
   return (
     <html lang="fr">
-      <body style={{ margin: 0, fontFamily: "var(--font-dm-sans), sans-serif" }}>
+      <body style={{ margin: 0, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
         <div style={{
           minHeight: '100vh',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          background: 'linear-gradient(135deg, var(--label) 0%, var(--accent) 50%, var(--label) 100%)',
+          background: '#F2F2F7',
           padding: 24,
         }}>
           <div style={{
@@ -33,23 +33,23 @@ export default function GlobalError({ error, reset }) {
             padding: '40px 32px',
             maxWidth: 440,
             textAlign: 'center',
-            boxShadow: '0 25px 60px rgba(0,0,0,0.3)',
+            border: '1px solid #E5E5EA',
           }}>
-            <div style={{ fontSize: 40, marginBottom: 16 }}>💥</div>
-            <h2 style={{ margin: '0 0 8px', color: 'var(--label)', fontSize: 20, fontWeight: 700 }}>
+            <svg aria-hidden="true" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#D70015" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 16 }}><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z M12 9v4 M12 17h.01" /></svg>
+            <h2 style={{ margin: '0 0 8px', color: '#1C1C1E', fontSize: 20, fontWeight: 600 }}>
               Erreur critique
             </h2>
-            <p style={{ margin: '0 0 24px', color: 'var(--label-secondary)', fontSize: 14, lineHeight: 1.6 }}>
+            <p style={{ margin: '0 0 24px', color: '#6E6E73', fontSize: 14, lineHeight: 1.6 }}>
               L&apos;application a rencontré un problème et n&apos;a pas pu se charger.<br />
               Recharge la page pour reprendre.
             </p>
             {error?.message && (
               <details style={{ textAlign: 'left', marginBottom: 20 }}>
-                <summary style={{ cursor: 'pointer', fontSize: 12, color: 'var(--label-secondary)' }}>
+                <summary style={{ cursor: 'pointer', fontSize: 12, color: '#6E6E73' }}>
                   Détails techniques
                 </summary>
                 <pre style={{
-                  marginTop: 8, padding: 12, background: 'var(--grouped-bg)', borderRadius: 8,
+                  marginTop: 8, padding: 12, background: '#F2F2F7', borderRadius: 8,
                   fontSize: 11, overflowX: 'auto', color: '#48484A', whiteSpace: 'pre-wrap',
                 }}>
                   {error.message}
@@ -59,13 +59,14 @@ export default function GlobalError({ error, reset }) {
             <button
               onClick={() => (reset ? reset() : window.location.reload())}
               style={{
-                padding: '10px 24px',
-                background: 'var(--accent)',
+                padding: '0 20px',
+                minHeight: 44,
+                background: '#0071E3',
                 color: '#fff',
                 border: 'none',
-                borderRadius: 8,
+                borderRadius: 10,
                 fontSize: 14,
-                fontWeight: 600,
+                fontWeight: 500,
                 cursor: 'pointer',
                 fontFamily: 'inherit',
               }}
