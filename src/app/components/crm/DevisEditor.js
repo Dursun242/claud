@@ -1,4 +1,5 @@
 'use client'
+import { Icon, I } from '../icons'
 import { useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { FF, inp, sel, btnP, btnS } from '../../dashboards/shared'
 import {
@@ -27,7 +28,7 @@ function AutoTextarea({ value, style, ...props }) {
 
 const miniBtn = {
   background: 'none', border: '1px solid #E5E5EA', borderRadius: 6, cursor: 'pointer',
-  padding: '2px 6px', fontSize: 11, color: '#6E6E73', fontFamily: 'inherit', lineHeight: 1.4,
+  padding: '2px 6px', fontSize: 12, color: '#6E6E73', fontFamily: 'inherit', lineHeight: 1.4,
 }
 
 /**
@@ -117,10 +118,10 @@ export default function DevisEditor({
 
       {/* ─── Assistant IA ─── */}
       {onAiGenerate && (
-        <div style={{ background: 'linear-gradient(135deg,var(--accent-tint),var(--purple-tint))', border: '1px solid #DCEBFF', borderRadius: 10, padding: aiOpen ? 12 : '8px 12px', marginBottom: 12 }}>
+        <div style={{ background: 'var(--accent-tint)', border: '1px solid var(--blue-line)', borderRadius: 10, padding: aiOpen ? 12 : '8px 12px', marginBottom: 12 }}>
           <button type="button" onClick={() => setAiOpen(o => !o)} aria-expanded={aiOpen}
-            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: 700, color: 'var(--accent-text)', width: '100%', textAlign: 'left' }}>
-            Rédiger avec l’IA {aiOpen ? '▾' : '▸'}
+            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: 600, color: 'var(--accent-text)', width: '100%', textAlign: 'left' }}>
+            Rédiger avec l’IA <Icon d={aiOpen ? I.chevronDown : I.chevronRight} size={14} stroke={1.75} />
             {!aiOpen && <span style={{ fontWeight: 400, color: 'var(--label-secondary)', fontSize: 12 }}> — décris le besoin, l’IA propose les lignes chiffrées</span>}
           </button>
           {aiOpen && (
@@ -137,9 +138,9 @@ export default function DevisEditor({
                   <button type="button" onClick={() => runAi('append')} disabled={aiBusy}
                     style={{ ...btnS, fontSize: 12, padding: '6px 12px', minHeight: 32, background: '#fff' }}>Ajouter à la suite</button>
                 )}
-                <span style={{ fontSize: 11, color: 'var(--label-secondary)' }}>Tes prix habituels sont repris en priorité. Relis toujours avant d’envoyer.</span>
+                <span style={{ fontSize: 12, color: 'var(--label-secondary)' }}>Tes prix habituels sont repris en priorité. Relis toujours avant d’envoyer.</span>
               </div>
-              {aiError && <div role="alert" style={{ color: 'var(--red-text)', fontSize: 12, marginTop: 6 }}>⚠ {aiError}</div>}
+              {aiError && <div role="alert" style={{ color: 'var(--red-text)', fontSize: 12, marginTop: 8, display: 'flex', gap: 8, alignItems: 'center' }}><Icon d={I.alert} size={14} stroke={1.75} />{aiError}</div>}
               {aiConseils.length > 0 && (
                 <ul aria-label="Conseils de l'IA" style={{ margin: '8px 0 0', paddingLeft: 18, fontSize: 12, color: 'var(--label-2)' }}>
                   {aiConseils.map((c, k) => <li key={k}>{c}</li>)}
@@ -151,9 +152,9 @@ export default function DevisEditor({
       )}
 
       {/* ─── Lignes ─── */}
-      <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--label)', margin: '4px 0 6px' }}>Détail</div>
+      <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--label)', margin: '4px 0 6px' }}>Détail</div>
       {!m && (
-        <div style={{ display: 'grid', gridTemplateColumns: cols, gap: 6, fontSize: 11, fontWeight: 700, color: 'var(--label-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em', padding: '0 2px 4px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: cols, gap: 6, fontSize: 12, fontWeight: 600, color: 'var(--label-secondary)', letterSpacing: '0.04em', padding: '0 2px 4px' }}>
           <span>Désignation</span><span>Unité</span><span>Qté</span><span>PU HT</span><span>TVA</span><span style={{ textAlign: 'right' }}>Total HT</span><span />
         </div>
       )}
@@ -161,14 +162,14 @@ export default function DevisEditor({
         {lignes.map((l, i) => {
           const tools = (
             <div style={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
-              <button type="button" onClick={() => move(i, -1)} disabled={i === 0} aria-label={`Monter la ligne ${i + 1}`} style={miniBtn}>↑</button>
-              <button type="button" onClick={() => removeLigne(i)} aria-label={`Supprimer la ligne ${i + 1}`} style={{ ...miniBtn, color: 'var(--red-text)' }}>×</button>
+              <button type="button" onClick={() => move(i, -1)} disabled={i === 0} aria-label={`Monter la ligne ${i + 1}`} style={miniBtn}><Icon d={I.arrowUp} size={16} stroke={1.75} /></button>
+              <button type="button" onClick={() => removeLigne(i)} aria-label={`Supprimer la ligne ${i + 1}`} style={{ ...miniBtn, color: 'var(--red-text)' }}><Icon d={I.x} size={14} stroke={1.75} /></button>
             </div>
           )
           if (l.type === 'titre') {
             return (
               <div key={i} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                <input style={{ ...small, fontWeight: 700, background: 'var(--grouped-bg)', flex: 1 }} value={l.designation || ''}
+                <input style={{ ...small, fontWeight: 600, background: 'var(--grouped-bg)', flex: 1 }} value={l.designation || ''}
                   aria-label={`Titre de section ${i + 1}`} placeholder="Titre de section (ex : Phase conception)"
                   onChange={e => setLigne(i, 'designation', e.target.value)} />
                 {tools}
@@ -275,7 +276,7 @@ export default function DevisEditor({
 
       {checks.length > 0 && (
         <div aria-label="Points à vérifier" style={{ border: '1px solid var(--orange-line)', background: 'var(--orange-tint)', borderRadius: 10, padding: '8px 12px', marginBottom: 12 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--orange-deep)', marginBottom: 4 }}>Points à vérifier</div>
+          <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--orange-deep)', marginBottom: 4 }}>Points à vérifier</div>
           <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12 }}>
             {checks.map((c, k) => (
               <li key={k} style={{ color: c.level === 'error' ? 'var(--red-text)' : c.level === 'warn' ? 'var(--orange-deep)' : '#48484A' }}>{c.text}</li>
@@ -293,7 +294,7 @@ export default function DevisEditor({
           onChange={e => set('notes', e.target.value)} />
       </FF>
 
-      {error && <div role="alert" style={{ color: 'var(--red-text)', fontSize: 12, marginBottom: 10, fontWeight: 500 }}>⚠ {error}</div>}
+      {error && <div role="alert" style={{ color: 'var(--red-text)', fontSize: 12, marginBottom: 12, fontWeight: 500, display: 'flex', gap: 8, alignItems: 'center' }}><Icon d={I.alert} size={14} stroke={1.75} />{error}</div>}
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
         <button onClick={onCancel} style={btnS}>Annuler</button>
         <button onClick={onPreview} disabled={saving} style={btnS} title="Télécharger le PDF sans enregistrer">Aperçu PDF</button>

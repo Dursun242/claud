@@ -20,7 +20,7 @@ const ReactMarkdown = dynamic(() => import('react-markdown'), { ssr: false })
 // la conversation.
 const MD_COMPONENTS = {
   p:      ({ node: _n, ...props }) => <p style={{ margin: "0 0 6px 0" }} {...props}/>,
-  strong: ({ node: _n, ...props }) => <strong style={{ fontWeight: 700 }} {...props}/>,
+  strong: ({ node: _n, ...props }) => <strong style={{ fontWeight: 600 }} {...props}/>,
   em:     ({ node: _n, ...props }) => <em style={{ fontStyle: "italic" }} {...props}/>,
   ul:     ({ node: _n, ...props }) => <ul style={{ marginLeft: "20px", marginTop: 0, marginBottom: "6px" }} {...props}/>,
   ol:     ({ node: _n, ...props }) => <ol style={{ marginLeft: "20px", marginTop: 0, marginBottom: "6px" }} {...props}/>,
@@ -395,9 +395,9 @@ RÈGLES :
           if (parsed.actions.some(a => !CRM_ACTIONS.has(a.type)) && reload) await reload();
         }
         const lines = [];
-        if (done.length) lines.push(`✅ **${summarizeLabels(done)}.**`);
-        for (const f of failed) lines.push(`❌ **Non enregistré :** ${f}`);
-        if (parsed.invalid) lines.push(`❌ **${parsed.invalid > 1 ? `${parsed.invalid} actions illisibles` : "Une action illisible"}** : rien n'a été enregistré pour ${parsed.invalid > 1 ? "elles" : "elle"}. Redemande en une phrase plus courte.`);
+        if (done.length) lines.push(`**${summarizeLabels(done)}.**`);
+        for (const f of failed) lines.push(`**Non enregistré :** ${f}`);
+        if (parsed.invalid) lines.push(`**${parsed.invalid > 1 ? `${parsed.invalid} actions illisibles` : "Une action illisible"}** : rien n'a été enregistré pour ${parsed.invalid > 1 ? "elles" : "elle"}. Redemande en une phrase plus courte.`);
         text = `${parsed.text}\n\n${lines.join("\n")}`;
         if (done.length) addToast(summarizeLabels(done), failed.length || parsed.invalid ? "warning" : "success");
         else addToast("Rien n'a été enregistré", "error");
@@ -408,7 +408,7 @@ RÈGLES :
     } catch(err) {
       // Unmount pendant une requête IA : on ne pollue pas l'UI avec un toast.
       if (err?.name === 'AbortError') return;
-      setMessages(prev=>[...prev,{role:"assistant",content:`❌ Erreur : ${err.message}`}]);
+      setMessages(prev=>[...prev,{role:"assistant",content:`Erreur : ${err.message}`}]);
     }
     setLoading(false); inputRef.current?.focus();
   };
@@ -423,7 +423,7 @@ RÈGLES :
       <div style={{marginBottom:12,display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8}}>
         <div>
           <div style={{display:"flex",alignItems:"center",gap:8}}>
-            <h1 style={{margin:0,fontSize:m?28:32,fontWeight:700,letterSpacing:"-0.02em",color:"var(--label)"}}>Assistant IA</h1>
+            <h1 style={{margin:0,fontSize:m?28:32,fontWeight:600,letterSpacing:"-0.02em",color:"var(--label)"}}>Assistant IA</h1>
             <ApiBadge/>
           </div>
           <p style={{margin:"2px 0 0",fontSize:12,color:"var(--label-secondary)"}}>
@@ -433,7 +433,7 @@ RÈGLES :
         {messages.length > 1 && (
           <button onClick={resetConversation} title="Effacer la conversation et recommencer" style={{
             background:"var(--grouped-bg)",border:"1px solid var(--separator)",borderRadius:8,
-            padding:"6px 12px",fontSize:11,fontWeight:600,color:"#48484A",
+            padding:"6px 12px",fontSize:12,fontWeight:600,color:"#48484A",
             cursor:"pointer",fontFamily:"inherit",display:"inline-flex",alignItems:"center",gap:4,
           }}>
             Nouvelle conversation
@@ -444,7 +444,7 @@ RÈGLES :
       {/* CHAT */}
       <div style={{
         flex:1,overflow:"auto",background:"#fff",borderRadius:12,
-        padding:m?12:18,boxShadow:"0 1px 3px rgba(0,0,0,0.06)",marginBottom:12
+        padding:m?12:18,marginBottom:12
       }}>
         {messages.map((msg,i)=>(
           <div key={i} style={{
@@ -455,14 +455,14 @@ RÈGLES :
             <div style={{
               maxWidth:m?"88%":"75%",padding:"10px 14px",
               borderRadius:msg.role==="user"?"12px 12px 3px 12px":"12px 12px 12px 3px",
-              background:msg.role==="user"?"linear-gradient(135deg,var(--accent),var(--accent))":"var(--row-fill)",
+              background:msg.role==="user"?"var(--accent)":"var(--row-fill)",
               color:msg.role==="user"?"#fff":"var(--label-2)",
               fontSize:13,lineHeight:1.6,
               border:msg.role==="user"?"none":"1px solid var(--separator)"
             }}>
               {msg.role==="assistant"?renderMd(msg.content):msg.content}
               {msg.role==="assistant" && msg.provider && (
-                <div style={{marginTop:6,fontSize:11,color:"var(--label-secondary)",textAlign:"right"}}>
+                <div style={{marginTop:6,fontSize:12,color:"var(--label-secondary)",textAlign:"right"}}>
                   via {PROVIDER_LABELS[msg.provider] || msg.provider}
                   {msg.fallbackFrom && (
                     <div style={{color:"var(--orange-text)"}}>
@@ -485,7 +485,7 @@ RÈGLES :
                 }}/>
               ))}
             </div>
-            <span style={{fontSize:11,color:"var(--label-secondary)",fontStyle:"italic"}}>L’IA réfléchit…</span>
+            <span style={{fontSize:12,color:"var(--label-secondary)",fontStyle:"italic"}}>L’IA réfléchit…</span>
           </div>
         )}
         <div ref={endRef}/>
@@ -503,14 +503,13 @@ RÈGLES :
           }}
           rows={1}
           placeholder={listening
-            ?"🎙️ Je vous écoute…"
+            ?"Je vous écoute…"
             :"Tape ou appuie sur le micro · Shift+Entrée = nouvelle ligne"
           }
           style={{
             ...inp,flex:1,padding:"12px 16px",fontSize:14,borderRadius:12,
             background:listening?"var(--red-tint)":"#fff",
             borderColor:listening?"var(--red-line)":"var(--separator)",
-            boxShadow:"0 1px 3px rgba(0,0,0,0.06)",
             resize:"none",minHeight:46,maxHeight:140,
             fontFamily:"inherit",lineHeight:1.4,
           }}
@@ -542,7 +541,7 @@ RÈGLES :
               padding:"5px 12px",borderRadius:16,
               border:`1px solid ${q.c}33`,
               background:`${q.c}0A`,
-              color:q.c,fontSize:11,fontWeight:500,
+              color:q.c,fontSize:12,fontWeight:500,
               cursor:"pointer",fontFamily:"inherit",
             }}
           >{q.t}</button>

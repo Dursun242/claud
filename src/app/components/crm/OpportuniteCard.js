@@ -1,3 +1,4 @@
+import { Icon, I } from '../icons'
 import { fmtMoney } from '../../dashboards/shared'
 import { nextEtape } from '../../lib/crm'
 import { todayISO, iconBtn } from './crmUi'
@@ -9,10 +10,10 @@ const TONE = {
   attente: 'var(--label-secondary)', neutre: 'var(--label-secondary)',
 }
 
-function PreviewLine({ emoji, line }) {
+function PreviewLine({ icon, line }) {
   return (
     <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6, marginTop: 4, fontSize: 12, lineHeight: 1.35, color: TONE[line.tone] || TONE.neutre }}>
-      <span aria-hidden="true" style={{ flexShrink: 0 }}>{emoji}</span>
+      <span aria-hidden="true" style={{ flexShrink: 0, display: 'inline-flex', marginTop: 1 }}><Icon d={icon} size={14} stroke={1.5} /></span>
       <span style={{ minWidth: 0, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{line.text}</span>
     </div>
   )
@@ -34,21 +35,21 @@ export default function OpportuniteCard({ o, contact, dormant, preview, draggabl
         border: '1px solid var(--separator)', minWidth: 0,
       }}>
       <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--label)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.titre}</div>
-      <div style={{ fontSize: 11, color: 'var(--label-secondary)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+      <div style={{ fontSize: 12, color: 'var(--label-secondary)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
         {contact ? (contact.societe || contact.nom) : <span style={{ color: 'var(--label-secondary)', fontStyle: 'italic' }}>Sans contact</span>}
         {o.type_projet ? ` · ${o.type_projet}` : ''}
       </div>
-      {preview?.mail && <PreviewLine emoji="📨" line={preview.mail} />}
-      {preview?.rappel && <PreviewLine emoji="🔔" line={preview.rappel} />}
+      {preview?.mail && <PreviewLine icon={I.mail} line={preview.mail} />}
+      {preview?.rappel && <PreviewLine icon={I.bell} line={preview.rappel} />}
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
         {Number(o.montant_estime) > 0
-          ? <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--label)' }}>{fmtMoney(o.montant_estime)}</span>
-          : <span style={{ fontSize: 11, color: 'var(--label-secondary)' }}>Montant ?</span>}
+          ? <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--label)' }}>{fmtMoney(o.montant_estime)}</span>
+          : <span style={{ fontSize: 12, color: 'var(--label-secondary)' }}>Montant ?</span>}
         <span style={{ flex: 1 }} />
-        {late && <span title="Décision attendue dépassée" style={{ fontSize: 11, color: 'var(--red-text)', fontWeight: 700 }}>⚠</span>}
-        {isDormant && <span title={`Aucun échange depuis ${dormant} j`} style={{ fontSize: 11, color: 'var(--orange)', fontWeight: 700 }}>💤 {dormant} j</span>}
+        {late && <span title="Décision attendue dépassée" aria-label="Décision attendue dépassée" style={{ display: 'inline-flex', color: 'var(--red-text)' }}><Icon d={I.alert} size={14} stroke={1.75} /></span>}
+        {isDormant && <span title={`Aucun échange depuis ${dormant} j`} style={{ fontSize: 12, color: 'var(--orange-text)', fontWeight: 500 }}>sans échange {dormant} j</span>}
         {onCall && (
-          <button onClick={stop(onCall)} title="Noter un appel" aria-label={`Noter un appel pour ${o.titre}`} style={iconBtn}>📞</button>
+          <button onClick={stop(onCall)} title="Noter un appel" aria-label={`Noter un appel pour ${o.titre}`} style={{ ...iconBtn, width: 28, height: 28, padding: 0 }}><Icon d={I.phone} size={14} stroke={1.5} /></button>
         )}
         {onAdvance && (
           <button onClick={stop(onAdvance)} title={`Passer à « ${nextEtape(o.etape)} »`}

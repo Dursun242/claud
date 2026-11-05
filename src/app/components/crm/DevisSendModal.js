@@ -16,7 +16,7 @@ export default function DevisSendModal({ sendState, saving, docsApi, onRetry, on
       {sendState?.status === 'error' && (
         <div>
           <div role="alert" style={{ color: 'var(--red-text)', fontSize: 13, marginBottom: 12, fontWeight: 500 }}>
-            ⚠ Devis Qonto indisponible : {sendState.error}
+            Devis Qonto indisponible : {sendState.error}
           </div>
           <div style={{ fontSize: 12, color: 'var(--label-secondary)', marginBottom: 12 }}>
             Seul le devis édité par Qonto peut être envoyé.

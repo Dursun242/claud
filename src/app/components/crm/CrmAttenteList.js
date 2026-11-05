@@ -40,7 +40,7 @@ export default function CrmAttenteList({ list, contactsById, onOpen, today = loc
   return (
     <div style={{ display: 'grid', gap: 6, gridTemplateColumns: 'minmax(0,1fr)' }}>
       <div style={{ background: 'var(--indigo-tint)', borderRadius: 10, padding: '10px 14px', marginBottom: 4, display: 'flex', flexWrap: 'wrap', gap: '4px 16px', alignItems: 'baseline' }}>
-        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--indigo-text)' }}>⏸ Affaires en attente</span>
+        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--indigo-text)' }}>⏸ Affaires en attente</span>
         <span style={{ fontSize: 12, color: 'var(--indigo-text)' }}>
           {list.length} affaire{list.length > 1 ? 's' : ''} · {fmtMoney(total)}
         </span>
@@ -49,7 +49,7 @@ export default function CrmAttenteList({ list, contactsById, onOpen, today = loc
             {dues} à reprendre maintenant
           </span>
         )}
-        <span style={{ fontSize: 11, color: 'var(--label-secondary)', width: '100%' }}>
+        <span style={{ fontSize: 12, color: 'var(--label-secondary)', width: '100%' }}>
           Projets mis en pause par le client : ni gagnés, ni perdus. Reprends contact à la date prévue, ou dès que le client revient.
         </span>
       </div>
@@ -66,13 +66,13 @@ export default function CrmAttenteList({ list, contactsById, onOpen, today = loc
           }}>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--label)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.titre}</div>
-              <div style={{ fontSize: 11, color: 'var(--label-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <div style={{ fontSize: 12, color: 'var(--label-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {c?.nom || '—'}{o.motif_attente ? ` · ${o.motif_attente}` : ''}
               </div>
-              <div style={{ fontSize: 11, fontWeight: 600, color: r.color, marginTop: 2 }}>{r.text}</div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: r.color, marginTop: 2 }}>{r.text}</div>
             </div>
             {Number(o.montant_estime) > 0 && (
-              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--label-2)', whiteSpace: 'nowrap' }}>{fmtMoney(o.montant_estime)}</span>
+              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--label-2)', whiteSpace: 'nowrap' }}>{fmtMoney(o.montant_estime)}</span>
             )}
           </button>
         )

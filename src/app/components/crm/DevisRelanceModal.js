@@ -1,4 +1,5 @@
 'use client'
+import { Icon, I } from '../icons'
 import { useState } from 'react'
 import { FF, inp, btnP, btnS } from '../../dashboards/shared'
 import { Modal } from '../index'
@@ -55,13 +56,13 @@ function RelanceForm({ initial, error, sending, onSubmit, onCancel }) {
         <textarea style={area} aria-label="Début du message" value={form.intro} onChange={e => set('intro', e.target.value)} />
       </FF>
       <div style={{ background: 'var(--row-fill)', border: '1px solid var(--separator)', borderRadius: 8, padding: '10px 12px', marginBottom: 12 }}>
-        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent-text)', marginBottom: 6 }}>
+        <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--accent-text)', marginBottom: 6 }}>
           Choix proposés au client (boutons dans le mail)
         </div>
         <ol style={{ margin: 0, paddingLeft: 20, fontSize: 12, color: 'var(--label-2)', lineHeight: 1.6 }}>
           {RAISONS.map(r => <li key={r.code}>{r.code === 'autre' ? 'Autre (le client précise)' : r.label}</li>)}
         </ol>
-        <div style={{ fontSize: 11, color: 'var(--label-secondary)', marginTop: 6 }}>
+        <div style={{ fontSize: 12, color: 'var(--label-secondary)', marginTop: 6 }}>
           Le client clique sur sa réponse et confirme : elle s’affiche sur le devis et vous êtes prévenu. Il peut aussi répondre au mail avec le numéro.
         </div>
       </div>
@@ -72,7 +73,7 @@ function RelanceForm({ initial, error, sending, onSubmit, onCancel }) {
         <input type="checkbox" checked={form.copyMe} onChange={e => set('copyMe', e.target.checked)} />
         Recevoir une copie dans la boîte ID Maîtrise
       </label>
-      {shownError && <div role="alert" style={{ color: 'var(--red-text)', fontSize: 12, marginBottom: 10, fontWeight: 500 }}>⚠ {shownError}</div>}
+      {shownError && <div role="alert" style={{ color: 'var(--red-text)', fontSize: 12, marginBottom: 12, fontWeight: 500, display: 'flex', gap: 8, alignItems: 'center' }}><Icon d={I.alert} size={14} stroke={1.75} />{shownError}</div>}
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
         <button onClick={onCancel} style={btnS}>Annuler</button>
         <button onClick={submit} disabled={sending} style={{ ...btnP, opacity: sending ? 0.6 : 1 }}>

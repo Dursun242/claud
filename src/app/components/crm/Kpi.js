@@ -8,9 +8,9 @@ export default function Kpi({ label, value, sub, color, onClick }) {
       background: '#fff', borderRadius: 12, padding: '12px 14px', border: '1px solid var(--separator)', textAlign: 'left',
       cursor: onClick ? 'pointer' : 'default', fontFamily: 'inherit', minWidth: 0,
     }}>
-      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--label-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</div>
-      <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--label)', marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value}</div>
-      <div style={{ fontSize: 11, color: 'var(--label-secondary)', marginTop: 2 }}>{sub}</div>
+      <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--label-secondary)'}}>{label}</div>
+      <div style={{ fontSize: 20, fontWeight: 600, color: 'var(--label)', marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value}</div>
+      <div style={{ fontSize: 12, color: 'var(--label-secondary)', marginTop: 2 }}>{sub}</div>
     </Tag>
   )
 }

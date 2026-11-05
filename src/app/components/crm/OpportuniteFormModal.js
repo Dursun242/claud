@@ -1,3 +1,4 @@
+import { Icon, I } from '../icons'
 import { FF, inp, sel, btnP, btnS } from '../../dashboards/shared'
 import { Modal, ContactPicker, AddressPicker } from '../index'
 import { ETAPES, ETAPE_COLORS, ETAPE_PROBA, SOURCES, MOTIFS_ATTENTE, REPRISES, isClosed, isAttente, addMonthsISO } from '../../lib/crm'
@@ -5,7 +6,7 @@ import { localISO } from '../../lib/today'
 import { TYPES_PROJET } from './crmUi'
 
 const chip = (active, color, tint) => ({
-  padding: '4px 9px', borderRadius: 999, fontSize: 11, fontFamily: 'inherit', cursor: 'pointer', minHeight: 28,
+  padding: '4px 9px', borderRadius: 999, fontSize: 12, fontFamily: 'inherit', cursor: 'pointer', minHeight: 28,
   border: `1px solid ${active ? color : 'var(--separator)'}`, background: active ? tint : '#fff', color: 'var(--label-2)',
 })
 
@@ -62,7 +63,7 @@ export default function OpportuniteFormModal({
           <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 6 }}>
             {['Prix', 'Délai', 'Concurrent', 'Projet abandonné', 'Sans réponse'].map(mtf => (
               <button key={mtf} type="button" onClick={() => setForm({ ...form, motif_perte: mtf })} style={{
-                padding: '4px 9px', borderRadius: 999, fontSize: 11, fontFamily: 'inherit', cursor: 'pointer',
+                padding: '4px 9px', borderRadius: 999, fontSize: 12, fontFamily: 'inherit', cursor: 'pointer',
                 border: `1px solid ${form.motif_perte === mtf ? 'var(--red)' : 'var(--separator)'}`, background: form.motif_perte === mtf ? 'var(--red-tint)' : '#fff', color: 'var(--label-2)',
               }}>{mtf}</button>
             ))}
@@ -107,7 +108,7 @@ export default function OpportuniteFormModal({
                 onChange={e => setForm({ ...form, reprise_auto: e.target.checked })} />
               <span>
                 Envoyer automatiquement au client un mail de reprise de contact à cette date
-                <span style={{ display: 'block', fontSize: 11, color: email ? 'var(--label-secondary)' : 'var(--orange-text)' }}>
+                <span style={{ display: 'block', fontSize: 12, color: email ? 'var(--label-secondary)' : 'var(--orange-text)' }}>
                   {email ? `À ${email}, avec des boutons de réponse (le projet redémarre, toujours en pause, abandonné…).`
                     : 'Pas d’email pour ce contact : seul le rappel dans tes relances sera prévu.'}
                 </span>
@@ -119,7 +120,7 @@ export default function OpportuniteFormModal({
 
       <button type="button" onClick={() => setMoreOptions(v => !v)} aria-expanded={moreOptions}
         style={{ background: 'none', border: 'none', padding: '4px 0', marginBottom: 8, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, color: 'var(--accent-text)', fontWeight: 600 }}>
-        {moreOptions ? '▾ Moins d’options' : '▸ Plus d’options (chances, type, source, adresse, date, notes)'}
+        {moreOptions ? 'Moins d’options' : 'Plus d’options (chances, type, source, adresse, date, notes)'}
       </button>
       {moreOptions && (
         <div style={{ display: 'grid', gridTemplateColumns: m ? '1fr' : '1fr 1fr', gap: '0 12px' }}>
@@ -159,7 +160,7 @@ export default function OpportuniteFormModal({
           </div>
         </div>
       )}
-      {error && <div role="alert" style={{ color: 'var(--red-text)', fontSize: 12, marginBottom: 10, fontWeight: 500 }}>⚠ {error}</div>}
+      {error && <div role="alert" style={{ color: 'var(--red-text)', fontSize: 12, marginBottom: 12, fontWeight: 500, display: 'flex', gap: 8, alignItems: 'center' }}><Icon d={I.alert} size={14} stroke={1.75} />{error}</div>}
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
         <button onClick={onClose} style={btnS}>Annuler</button>
         <button onClick={onSave} disabled={saving} style={{ ...btnP, opacity: saving ? 0.6 : 1 }}>
