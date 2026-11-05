@@ -385,7 +385,7 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
         color:"var(--accent-text)",fontSize:17,fontWeight:400,
         marginBottom:4,fontFamily:"inherit",padding:0
       }}>
-        <span aria-hidden="true" style={{fontSize:24,lineHeight:1,marginTop:-2}}>‹</span>Chantiers
+        <Icon d={I.chevronLeft} size={20} stroke={1.75}/>Chantiers
       </button>
 
       {/* Photo de couverture */}
@@ -400,7 +400,7 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
           }}/>
           <div aria-hidden="true" style={{
             position:"absolute",bottom:16,left:20,margin:0,
-            fontSize:m?20:26,fontWeight:700,color:"#fff",
+            fontSize:m?20:26,fontWeight:600,color:"#fff",
             textShadow:"0 2px 8px rgba(0,0,0,0.4)"
           }}>{ch.nom}</div>
         </div>
@@ -410,13 +410,12 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
       <div style={{
         background:"#fff",borderRadius:12,padding:m?16:24,
         border:"1px solid var(--separator)",
-        boxShadow:"0 1px 3px rgba(0,0,0,0.06)",
         marginBottom:16
       }}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:12}}>
           <div>
             <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:6,flexWrap:"wrap"}}>
-              <h1 style={{margin:0,fontSize:m?20:26,fontWeight:700,color:"var(--label)"}}>{ch.nom}</h1>
+              <h1 style={{margin:0,fontSize:m?20:26,fontWeight:600,color:"var(--label)"}}>{ch.nom}</h1>
               <Badge text={ch.phase} color="#6E6E73"/>
               <Badge text={ch.statut} color={status[ch.statut]||"#6E6E73"}/>
             </div>
@@ -471,7 +470,7 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
               }}>
                 <div style={{flex:"1 1 0",minWidth:0}}>
                   <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2,flexWrap:"wrap"}}>
-                    <span style={{fontWeight:700,fontSize:13,color:"var(--label)",whiteSpace:"nowrap"}}>CR n°{cr.numero}</span>
+                    <span style={{fontWeight:600,fontSize:13,color:"var(--label)",whiteSpace:"nowrap"}}>CR n°{cr.numero}</span>
                     <span style={{fontSize:12,color:"var(--label-secondary)"}}>{fmtDate(cr.date)}</span>
                     {cr.statut === 'Brouillon' && <Badge text="Brouillon" color="#FF9500"/>}
                   </div>
@@ -645,7 +644,7 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
               }}>
                 <div style={{flex:"1 1 0",minWidth:0}}>
                   <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2,flexWrap:"wrap"}}>
-                    <span style={{fontWeight:700,fontSize:13,color:"var(--label)",whiteSpace:"nowrap"}}>{os.numero}</span>
+                    <span style={{fontWeight:600,fontSize:13,color:"var(--label)",whiteSpace:"nowrap"}}>{os.numero}</span>
                     <Badge text={os.statut||"Brouillon"} color={{
                       "Brouillon":"#8E8E93","Émis":"#007AFF","Signé":"#AF52DE",
                       "En cours":"#FF9500","Terminé":"#34C759","Annulé":"#FF3B30"
@@ -658,7 +657,7 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
                     {os.artisan_nom} • {(os.prestations||[]).length} prestation(s) • {fmtDate(os.date_emission)}
                   </div>
                   <div style={{
-                    fontSize:16,fontWeight:700,color:"var(--label)",marginTop:4
+                    fontSize:16,fontWeight:600,color:"var(--label)",marginTop:4
                   }}>{fmtMoney(os.montant_ttc||0)}</div>
                 </div>
                 <div style={{display:"flex",gap:4,flexShrink:0,flexWrap:"wrap",justifyContent:m?"flex-start":"flex-end"}}>
@@ -870,7 +869,7 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
       alignItems:"center",marginBottom:12,flexWrap:"wrap",gap:10
     }}>
       <div>
-        <h1 style={{margin:0,fontSize:m?28:32,fontWeight:700,letterSpacing:"-0.02em",color:"var(--label)"}}>Chantiers</h1>
+        <h1 style={{margin:0,fontSize:m?28:32,fontWeight:600,letterSpacing:"-0.02em",color:"var(--label)"}}>Chantiers</h1>
         <div style={{fontSize:13,color:"var(--label-secondary)",marginTop:2}}>
           {data.chantiers.length} au total
           {hasFilters && <>
@@ -881,7 +880,7 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
       </div>
       <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
         {!ranging && <SearchField inputRef={searchInputRef} value={q} onChange={e=>setQ(e.target.value)} m={m} width={260}
-          label="Rechercher un chantier" placeholder={m?"Rechercher nom, client, adresse…":"Rechercher nom, client, adresse… (tape /)"}/>}
+          label="Rechercher un chantier" placeholder={m?"Rechercher":"Rechercher (/)"}/>}
         {!readOnly && data.chantiers.length > 1 && (ranging
           ? <button onClick={()=>setRanging(false)} style={{...btnP,fontSize:12}}>Terminé</button>
           : <button onClick={()=>setRanging(true)} title="Changer l'ordre des chantiers" style={{...btnS,fontSize:12}}>Ranger</button>)}
@@ -911,15 +910,14 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
     <SortableChantierList ranging chantiers={chantiersRanges} m={m} onMove={moveChantier} />
     ) : chantiersFiltered.length === 0 ? (
       <div style={{
-        background:"#fff",borderRadius:12,padding:"40px 24px",
-        textAlign:"center",boxShadow:"0 1px 3px rgba(0,0,0,0.06)"
-      }}>
-        <div style={{fontSize:36,marginBottom:8,opacity:0.5}}>🏗️</div>
+        background:"#fff",borderRadius:12,padding:"40px 24px",border:"1px solid var(--separator)",
+        textAlign:"center"}}>
+        <div style={{display:"flex",justifyContent:"center",marginBottom:8,color:"var(--label-tertiary)"}}><Icon d={I.projects} size={28} stroke={1.5}/></div>
         {hasFilters ? (
           <>
-            <div style={{fontSize:14,fontWeight:700,color:"var(--label-2)",marginBottom:4}}>Aucun résultat</div>
+            <div style={{fontSize:14,fontWeight:600,color:"var(--label-2)",marginBottom:4}}>Aucun résultat</div>
             <div style={{fontSize:12,color:"var(--label-secondary)",marginBottom:14}}>
-              Essaie d'élargir ta recherche ou de changer les filtres.
+              Élargis la recherche ou change les filtres
             </div>
             <button
               onClick={()=>{setQ("");setFilterStatut("");setFilterPhase("");}}
@@ -927,7 +925,7 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
           </>
         ) : (
           <>
-            <div style={{fontSize:14,fontWeight:700,color:"var(--label-2)",marginBottom:4}}>Aucun chantier</div>
+            <div style={{fontSize:14,fontWeight:600,color:"var(--label-2)",marginBottom:4}}>Aucun chantier</div>
             <div style={{fontSize:12,color:"var(--label-secondary)",marginBottom:14}}>Démarre en créant ton premier chantier.</div>
             <button onClick={openNew} style={btnP}>+ Nouveau chantier</button>
           </>

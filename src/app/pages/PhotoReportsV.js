@@ -1,4 +1,5 @@
 'use client'
+import { Icon, I } from '../components/icons'
 import { useState, useMemo, useRef } from 'react'
 import { fmtDate, btnP, btnS, sel } from '../dashboards/shared'
 import { useToast } from '../contexts/ToastContext'
@@ -259,7 +260,7 @@ export default function PhotoReportsV({ data, m }) {
         marginBottom: 16, flexWrap: 'wrap', gap: 8
       }}>
         <div>
-          <h1 style={{margin:0,fontSize:m?28:32,fontWeight:700,letterSpacing:"-0.02em",color:"var(--label)"}}>Reportage Photo</h1>
+          <h1 style={{margin:0,fontSize:m?28:32,fontWeight:600,letterSpacing:"-0.02em",color:"var(--label)"}}>Reportage Photo</h1>
           <div style={{ fontSize: 13, color: 'var(--label-secondary)', marginTop: 2 }}>
             Sélectionne jusqu'à {MAX_PHOTOS} photos puis génère le reportage PDF
           </div>
@@ -268,12 +269,10 @@ export default function PhotoReportsV({ data, m }) {
 
       {/* ── ÉTAPE 1 : Chantier ── */}
       <div style={{
-        background: '#fff', borderRadius: 12, padding: m ? 14 : 18,
-        boxShadow: '0 1px 3px rgba(0,0,0,0.06)', marginBottom: 14,
+        background: '#fff', borderRadius: 12, padding: m ? 14 : 18, marginBottom: 14,
       }}>
         <div style={{
-          fontSize: 11, fontWeight: 700, color: 'var(--label-secondary)',
-          textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8
+          fontSize: 12, fontWeight: 600, color: 'var(--label-secondary)', marginBottom: 8
         }}>
           1. Chantier
         </div>
@@ -287,23 +286,24 @@ export default function PhotoReportsV({ data, m }) {
           ))}
         </select>
         {chantier && (
-          <div style={{ fontSize: 11, color: 'var(--label-secondary)', marginTop: 6 }}>
+          <div style={{ fontSize: 12, color: 'var(--label-secondary)', marginTop: 6 }}>
             {chantier.adresse} · Phase : {chantier.phase} · Statut : {chantier.statut}
           </div>
         )}
         <div style={{ marginTop: 14 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--label-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--label-secondary)', marginBottom: 8 }}>
             Météo (optionnel)
           </div>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             {['', '☀️ Ensoleillé', '🌤 Nuageux', '🌧 Pluvieux', '🌩 Orageux', '❄️ Neigeux', '💨 Venteux'].map(opt => (
               <button key={opt} onClick={() => setMeteo(opt)} style={{
-                background: meteo === opt ? 'var(--accent)' : 'var(--row-fill)',
-                color: meteo === opt ? '#fff' : 'var(--label-2)',
-                border: `1.5px solid ${meteo === opt ? 'var(--accent)' : 'var(--separator)'}`,
-                borderRadius: 20, padding: '5px 12px', fontSize: 12,
-                cursor: 'pointer', fontFamily: 'inherit', transition: 'all .12s',
-              }}>{opt || '— Aucune'}</button>
+                background: meteo === opt ? 'var(--accent)' : '#fff',
+                color: meteo === opt ? '#fff' : 'var(--label)',
+                border: `1px solid ${meteo === opt ? 'var(--accent)' : 'var(--separator)'}`,
+                borderRadius: 8, padding: '0 12px', minHeight: 32, fontSize: 13,
+                cursor: 'pointer', fontFamily: 'inherit',
+                transition: 'background-color var(--motion-fast) var(--ease-emphasized), color var(--motion-fast) var(--ease-emphasized)',
+              }}>{opt ? opt.replace(/^\S+\s+/, '') : 'Aucune'}</button>
             ))}
           </div>
         </div>
@@ -311,22 +311,19 @@ export default function PhotoReportsV({ data, m }) {
 
       {/* ── ÉTAPE 2 : Sélection des photos ── */}
       <div style={{
-        background: '#fff', borderRadius: 12, padding: m ? 14 : 18,
-        boxShadow: '0 1px 3px rgba(0,0,0,0.06)', marginBottom: 14,
+        background: '#fff', borderRadius: 12, padding: m ? 14 : 18, marginBottom: 14,
       }}>
         <div style={{
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
           marginBottom: 10, flexWrap: 'wrap', gap: 8
         }}>
           <div style={{
-            fontSize: 11, fontWeight: 700, color: 'var(--label-secondary)',
-            textTransform: 'uppercase', letterSpacing: '0.05em'
-          }}>
+            fontSize: 12, fontWeight: 600, color: 'var(--label-secondary)'}}>
             2. Photos ({photos.length}/{MAX_PHOTOS})
           </div>
           <div style={{ display: 'flex', gap: 6 }}>
             {photos.length > 0 && (
-              <button onClick={clearAll} style={{ ...btnS, fontSize: 11, padding: '5px 10px' }}>
+              <button onClick={clearAll} style={{ ...btnS, fontSize: 12, padding: '5px 10px' }}>
                 Tout effacer
               </button>
             )}
@@ -375,8 +372,8 @@ export default function PhotoReportsV({ data, m }) {
               e.currentTarget.style.background = 'transparent'
             }}
           >
-            <div style={{ fontSize: 36, marginBottom: 8, opacity: 0.5 }}>📸</div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--label-2)', marginBottom: 4 }}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8, color: 'var(--label-tertiary)' }}><Icon d={I.camera} size={28} stroke={1.5} /></div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--label-2)', marginBottom: 4 }}>
               Sélectionne des photos de ton chantier
             </div>
             <div style={{ fontSize: 12, color: 'var(--label-secondary)' }}>
@@ -409,7 +406,7 @@ export default function PhotoReportsV({ data, m }) {
                     <span style={{
                       background: 'var(--accent)', color: '#fff', borderRadius: 999,
                       width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 11, fontWeight: 700, flexShrink: 0,
+                      fontSize: 12, fontWeight: 600, flexShrink: 0,
                     }}>{idx + 1}</span>
                     <input aria-label={`Légende de la photo ${idx + 1}`}
                       value={photo.description}
@@ -430,9 +427,10 @@ export default function PhotoReportsV({ data, m }) {
                         background: 'var(--grouped-bg)', border: '1px solid var(--separator)',
                         borderRadius: 5, padding: '3px 8px', fontFamily: 'inherit',
                         cursor: idx === 0 ? 'not-allowed' : 'pointer',
-                        fontSize: 11, opacity: idx === 0 ? 0.3 : 1
+                        fontSize: 12, opacity: idx === 0 ? 0.3 : 1
                       }}
-                    >↑</button>
+                      aria-label="Monter"
+                    ><Icon d={I.arrowUp} size={14} stroke={1.75} /></button>
                     <button
                       onClick={() => movePhoto(photo.id, 1)}
                       disabled={idx === photos.length - 1}
@@ -441,16 +439,17 @@ export default function PhotoReportsV({ data, m }) {
                         background: 'var(--grouped-bg)', border: '1px solid var(--separator)',
                         borderRadius: 5, padding: '3px 8px', fontFamily: 'inherit',
                         cursor: idx === photos.length - 1 ? 'not-allowed' : 'pointer',
-                        fontSize: 11, opacity: idx === photos.length - 1 ? 0.3 : 1
+                        fontSize: 12, opacity: idx === photos.length - 1 ? 0.3 : 1
                       }}
-                    >↓</button>
+                      aria-label="Descendre"
+                    ><Icon d={I.arrowDown} size={14} stroke={1.75} /></button>
                     <button
                       onClick={() => removePhoto(photo.id)}
                       title="Retirer"
                       style={{
                         background: '#fff', border: '1px solid var(--red-line)',
                         borderRadius: 5, padding: '3px 8px', cursor: 'pointer',
-                        fontSize: 11, color: 'var(--red-text)', fontFamily: 'inherit',
+                        fontSize: 12, color: 'var(--red-text)', fontFamily: 'inherit',
                         marginLeft: 'auto'
                       }}
                     >Retirer</button>
@@ -466,15 +465,12 @@ export default function PhotoReportsV({ data, m }) {
       {photos.length > 0 && (
         <div style={{
           background: '#fff', borderRadius: 12, padding: m ? 14 : 18,
-          boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
           flexWrap: 'wrap', gap: 10,
         }}>
           <div>
             <div style={{
-            fontSize: 11, fontWeight: 700, color: 'var(--label-secondary)',
-            textTransform: 'uppercase', letterSpacing: '0.05em'
-          }}>
+            fontSize: 12, fontWeight: 600, color: 'var(--label-secondary)'}}>
               3. Générer le reportage
             </div>
             <div style={{ fontSize: 12, color: 'var(--label-2)', marginTop: 4 }}>

@@ -105,7 +105,7 @@ function AttachmentRow({ att, onDelete }) {
           width: 36, height: 36, minWidth: 36, flexShrink: 0,
           borderRadius: 6, background: 'var(--grouped-bg)', color: '#48484A',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 11, fontWeight: 700, letterSpacing: '0.04em',
+          fontSize: 12, fontWeight: 600, letterSpacing: '0.04em',
         }}>{kind.label}</div>
       )}
 
@@ -135,7 +135,7 @@ function AttachmentRow({ att, onDelete }) {
           fontSize: 14, lineHeight: 1,
           flexShrink: 0,
         }}
-      >✕</button>
+      ><Icon d={I.x} size={14} stroke={1.75} /></button>
     </a>
   )
 }

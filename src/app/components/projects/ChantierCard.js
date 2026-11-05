@@ -36,7 +36,6 @@ function ChantierCardImpl({ ch, counts, m, readOnly, onOpen, onEdit, onDelete })
       style={{
         background: '#fff', borderRadius: 12, overflow: 'hidden',
         border: '1px solid var(--separator)',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
       }}
     >
       {ch.photo_couverture && (
@@ -60,7 +59,7 @@ function ChantierCardImpl({ ch, counts, m, readOnly, onOpen, onEdit, onDelete })
       }}>
         <div style={{ flex: 1, minWidth: 200 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: m ? 14 : 16, fontWeight: 700, color: ch.nom ? undefined : 'var(--label-secondary)' }}>{ch.nom || 'Chantier sans nom'}</span>
+            <span style={{ fontSize: m ? 14 : 16, fontWeight: 600, color: ch.nom ? undefined : 'var(--label-secondary)' }}>{ch.nom || 'Chantier sans nom'}</span>
             <Badge text={ch.phase} color="#6E6E73"/>
             <Badge text={ch.statut} color={statusColors[ch.statut] || '#6E6E73'}/>
           </div>

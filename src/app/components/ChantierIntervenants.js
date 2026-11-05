@@ -114,7 +114,7 @@ export default function ChantierIntervenants({
           border: '1px solid var(--separator)',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontWeight: 700, fontSize: 13 }}>{clientContact.nom}</span>
+            <span style={{ fontWeight: 600, fontSize: 13 }}>{clientContact.nom}</span>
             <Badge text="Client" color="#007AFF"/>
           </div>
           <ContactLinks tel={clientContact.tel} email={clientContact.email}/>
@@ -124,7 +124,7 @@ export default function ChantierIntervenants({
       {intervenants.length === 0 && !clientContact
         ? <EmptyState
             compact
-            icon="👷"
+            icon={<Icon d={I.contacts} size={24} stroke={1.5} />}
             title="Aucun intervenant lié"
             description="Ajoutez un intervenant depuis vos contacts, ou il apparaîtra automatiquement dès qu'un OS lui sera rattaché."
           />
@@ -136,7 +136,7 @@ export default function ChantierIntervenants({
           }}>
             <div style={{ minWidth: 0, flex: 1 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                <span style={{ fontWeight: 700, fontSize: 13 }}>{c.nom}</span>
+                <span style={{ fontWeight: 600, fontSize: 13 }}>{c.nom}</span>
                 <Badge text={c.type} color={TYPE_BADGE}/>
                 {c._source === 'os' && <Badge text="Auto (OS)" color="#8E8E93"/>}
                 {conformite?.ready && isSubject(c) && (
@@ -155,10 +155,10 @@ export default function ChantierIntervenants({
                 title="Retirer cet intervenant"
                 style={{
                   background: 'none', border: 'none', color: 'var(--label-secondary)',
-                  fontSize: 16, cursor: 'pointer', padding: 4, lineHeight: 1, flexShrink: 0,
+                  cursor: 'pointer', padding: 4, flexShrink: 0, display: 'inline-flex',
                 }}
               >
-                ✕
+                <Icon d={I.x} size={14} stroke={1.75} />
               </button>
             )}
           </div>
@@ -197,11 +197,11 @@ export default function ChantierIntervenants({
             >
               <div style={{ minWidth: 0 }}>
                 <div style={{ fontWeight: 600, fontSize: 12, color: 'var(--label)' }}>{c.nom}</div>
-                <div style={{ fontSize: 11, color: 'var(--label-secondary)' }}>
+                <div style={{ fontSize: 12, color: 'var(--label-secondary)' }}>
                   {c.type}{c.specialite ? ` • ${c.specialite}` : ''}
                 </div>
               </div>
-              <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--green-text)', flexShrink: 0 }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--green-text)', flexShrink: 0 }}>
                 {adding === c.id ? '…' : '+ Ajouter'}
               </span>
             </button>

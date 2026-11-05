@@ -1,4 +1,5 @@
 'use client'
+import { Icon, I } from './icons'
 import { useState } from 'react'
 import { useToast } from '../contexts/ToastContext'
 import { useConfirm } from '../contexts/ConfirmContext'
@@ -97,7 +98,7 @@ export default function CommentsSection({
         <div style={{ marginBottom: 12 }}>
           <EmptyState
             compact
-            icon="💬"
+            icon={<Icon d={I.reports} size={20} stroke={1.5} />}
             title="Aucun commentaire pour l'instant"
             description="Soyez le premier à laisser une note."
           />
@@ -126,13 +127,13 @@ export default function CommentsSection({
                   width: 28, height: 28, borderRadius: '50%',
                   background: color + '22', color: color,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 11, fontWeight: 700, flexShrink: 0,
+                  fontSize: 12, fontWeight: 600, flexShrink: 0,
                   border: `1px solid ${color}33`,
                 }}>{getInitials(comment.author_name)}</div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2, gap: 8 }}>
                     <strong style={{ color: 'var(--label)', fontSize: 12 }}>{comment.author_name || 'Anonyme'}</strong>
-                    <span style={{ fontSize: 11, color: 'var(--label-secondary)' }}>{formatRelative(comment.created_at)}</span>
+                    <span style={{ fontSize: 12, color: 'var(--label-secondary)' }}>{formatRelative(comment.created_at)}</span>
                   </div>
                   <p style={{ margin: '0 0 0 0', color: '#48484A', lineHeight: 1.5, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
                     {comment.content}
@@ -149,12 +150,12 @@ export default function CommentsSection({
                       borderRadius: 5,
                       color: 'var(--red-text)',
                       cursor: 'pointer',
-                      fontSize: 11,
+                      fontSize: 12,
                       padding: '3px 6px',
                       flexShrink: 0,
                       fontFamily: 'inherit',
                     }}
-                  >✕</button>
+                  ><Icon d={I.x} size={14} stroke={1.75} /></button>
                 )}
               </div>
             )

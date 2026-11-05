@@ -295,7 +295,7 @@ Choix de l'équipe (octobre 2026, confirmé en novembre 2026 lors du passage uns
 
 ### Chips / Badges
 - **Style :** 12 px, graisse 500, coins de 6 px, texte en teinte lisible sur fond dilué (`components/Badge.js`, `lib/tone.js`).
-- **Filtres** (`components/FilterPill.js`) : 32 px, coins de 8 px, blancs au repos, bleus quand choisis ; compteur en gris discret, point de couleur seulement pour un statut.
+- **Filtres** (`components/FilterPill.js`) : 32 px, coins de 8 px, blancs au repos, bleus quand choisis ; compteur en gris discret, point de couleur seulement pour un statut (pas pour « Tous », ni les phases, ni les types).
 - **Compteurs de section :** chiffre gris discret à côté du titre, sans pastille.
 - **Messages (toasts) :** carte blanche à trait fin, icône dessinée de la couleur du sens (vert, orange, rouge, bleu).
 - **Catégories** (phase, type d'intervenant) : badge gris.

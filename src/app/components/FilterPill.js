@@ -1,10 +1,11 @@
 'use client'
 
-// Pastille de filtre (statut, phase) : blanche au repos avec un point de la
-// couleur du statut, bleue quand elle est choisie (une seule couleur
+// Pastille de filtre (statut, phase) : blanche au repos, avec un point de la
+// couleur du statut seulement quand la couleur a un sens (pas pour « Tous »
+// ni les phases), bleue quand elle est choisie (une seule couleur
 // d'action). 32 px de haut, 44 px au doigt (.u-btn).
 
-export default function FilterPill({ active, color = '#8E8E93', label, count, onClick }) {
+export default function FilterPill({ active, color = null, label, count, onClick }) {
   return (
     <button type="button" onClick={onClick} aria-pressed={active} className="u-btn"
       style={{
@@ -15,9 +16,9 @@ export default function FilterPill({ active, color = '#8E8E93', label, count, on
         fontSize: 13, fontWeight: 500, fontFamily: 'inherit',
         cursor: 'pointer', whiteSpace: 'nowrap',
       }}>
-      <span aria-hidden="true" style={{
+      {color && <span aria-hidden="true" style={{
         width: 6, height: 6, borderRadius: '50%', background: active ? '#fff' : color,
-      }} />
+      }} />}
       {label}
       {count !== undefined && (
         <span style={{ fontSize: 13, fontVariantNumeric: 'tabular-nums', color: active ? 'rgba(255,255,255,0.8)' : 'var(--label-tertiary)' }}>{count}</span>

@@ -20,7 +20,7 @@ const ChiffrageEditor = dynamic(() => import('./ChiffrageEditor'), { ssr: false 
 const ChiffrageCreateModal = dynamic(() => import('./ChiffrageCreateModal'), { ssr: false })
 
 const kpi = { background: '#F5F5F7', borderRadius: 8, padding: 10 }
-const kpiLabel = { fontSize: 11, color: '#6E6E73', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }
+const kpiLabel = { fontSize: 12, color: '#6E6E73', fontWeight: 600}
 const kpiSub = { fontSize: 12, color: '#6E6E73' }
 
 const VERIF_META = {
@@ -124,28 +124,28 @@ export default function ChiffrageSection({ chantier, os = [], allOs = [], user, 
           <button onClick={() => setCreating(true)} className="u-btn" style={btnAdd}><Icon d={I.plus} size={16}/>Créer le chiffrage</button>
         </div>
       ) : (
-        <div style={{ background: '#fff', borderRadius: 12, padding: m ? 12 : 16, border: '1px solid var(--separator)', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+        <div style={{ background: '#fff', borderRadius: 12, padding: m ? 12 : 16, border: '1px solid var(--separator)'}}>
           <div style={{ display: 'grid', gridTemplateColumns: m ? 'repeat(2,1fr)' : 'repeat(4,1fr)', gap: 10, marginBottom: 12 }}>
             <div style={kpi}><div style={kpiLabel}>Travaux HT</div>
-              <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--label)' }}>{fmtMoney(totals.htAleas)}</div>
+              <div style={{ fontSize: 17, fontWeight: 600, color: 'var(--label)' }}>{fmtMoney(totals.htAleas)}</div>
               <div style={kpiSub}>{chiffrage.aleas_pct ? `dont aléas ${chiffrage.aleas_pct} %` : `${fmtMoney(totals.travauxTtc)} TTC`}</div></div>
             <div style={kpi}><div style={kpiLabel}>Total TTC</div>
-              <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--label)' }}>{fmtMoney(totals.ttc)}</div>
+              <div style={{ fontSize: 17, fontWeight: 600, color: 'var(--label)' }}>{fmtMoney(totals.ttc)}</div>
               <div style={kpiSub}>{totals.honoraires ? `MOE comprise (${fmtMoney(totals.honoraires)} HT)` : `TVA ${chiffrage.tva_pct} %`}</div></div>
             <div style={kpi}><div style={kpiLabel}>Ratio TTC/m²</div>
-              <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--label)' }}>{totals.ratioTtc ? `${fmtMoney(totals.ratioTtc)}` : '—'}</div>
+              <div style={{ fontSize: 17, fontWeight: 600, color: 'var(--label)' }}>{totals.ratioTtc ? `${fmtMoney(totals.ratioTtc)}` : '—'}</div>
               <div style={kpiSub}>{totals.surfaceRef
                 ? `${totals.honoraires ? 'MOE comprise · ' : ''}${String(totals.surfaceRef).replace('.', ',')} m²${Number(chiffrage.surface_annexes) ? ' (SHAB + ½ garage)' : ''}`
                 : 'surface non renseignée'}</div></div>
             <div style={kpi}><div style={kpiLabel}>Engagé (OS HT)</div>
-              <div style={{ fontSize: 17, fontWeight: 700, color: barColor(cmp.totaux.pct) }}>{fmtMoney(cmp.totaux.engage)}</div>
+              <div style={{ fontSize: 17, fontWeight: 600, color: barColor(cmp.totaux.pct) }}>{fmtMoney(cmp.totaux.engage)}</div>
               <div style={kpiSub}>{cmp.totaux.pct != null ? `${cmp.totaux.pct} % des travaux` : '—'}</div></div>
           </div>
 
           {/* Estimé / engagé par lot */}
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, minWidth: 460 }}>
-              <thead><tr style={{ color: 'var(--label-secondary)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'right' }}>
+              <thead><tr style={{ color: 'var(--label-secondary)', fontSize: 12, textAlign: 'right' }}>
                 <th style={{ textAlign: 'left', padding: '4px 6px' }}>Lot</th><th style={{ padding: '4px 6px' }}>Estimé HT</th>
                 <th style={{ padding: '4px 6px' }}>Engagé (OS)</th><th style={{ padding: '4px 6px' }}>Écart</th><th style={{ padding: '4px 6px', width: 90 }} />
               </tr></thead>
@@ -153,8 +153,8 @@ export default function ChiffrageSection({ chantier, os = [], allOs = [], user, 
                 {cmp.lignes.map(l => (
                   <tr key={l.nom} style={{ borderTop: '1px solid var(--grouped-bg)' }}>
                     <td style={{ padding: '6px', fontWeight: 600, color: 'var(--label)' }}>{l.nom}
-                      {l.horsChiffrage && <span style={{ marginLeft: 6, fontSize: 11, color: 'var(--orange-text)', fontWeight: 600 }}>hors chiffrage</span>}
-                      {l.brouillon > 0 && <div style={{ fontSize: 11, color: 'var(--label-secondary)', fontWeight: 400 }}>+ {fmtMoney(l.brouillon)} en brouillon</div>}
+                      {l.horsChiffrage && <span style={{ marginLeft: 6, fontSize: 12, color: 'var(--orange-text)', fontWeight: 600 }}>hors chiffrage</span>}
+                      {l.brouillon > 0 && <div style={{ fontSize: 12, color: 'var(--label-secondary)', fontWeight: 400 }}>+ {fmtMoney(l.brouillon)} en brouillon</div>}
                     </td>
                     <td style={{ padding: '6px', textAlign: 'right' }}>{fmtMoney(l.estime)}</td>
                     <td style={{ padding: '6px', textAlign: 'right' }}>{l.nbOs ? `${fmtMoney(l.engage)} · ${l.nbOs} OS` : '—'}</td>
@@ -172,7 +172,7 @@ export default function ChiffrageSection({ chantier, os = [], allOs = [], user, 
                     <td style={{ padding: '6px', textAlign: 'right' }}>{fmtMoney(cmp.sansLot.engage)}</td><td colSpan={2} />
                   </tr>
                 )}
-                <tr style={{ borderTop: '2px solid var(--separator)', fontWeight: 700 }}>
+                <tr style={{ borderTop: '2px solid var(--separator)', fontWeight: 600 }}>
                   <td style={{ padding: '6px' }}>Total travaux{chiffrage.aleas_pct ? ` (avec aléas : ${fmtMoney(cmp.totaux.budget)})` : ''}</td>
                   <td style={{ padding: '6px', textAlign: 'right' }}>{fmtMoney(cmp.totaux.estime)}</td>
                   <td style={{ padding: '6px', textAlign: 'right' }}>{fmtMoney(cmp.totaux.engage)}</td>
@@ -186,7 +186,7 @@ export default function ChiffrageSection({ chantier, os = [], allOs = [], user, 
           {checks.length > 0 && (
             <div style={{ marginTop: 10, fontSize: 13, background: 'var(--orange-tint)', border: '1px solid var(--separator)', borderRadius: 8, padding: '8px 10px', color: 'var(--label-2)' }}>
               <button onClick={() => setShowChecks(v => !v)} aria-expanded={showChecks} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, minHeight: 32, background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--orange-text)', fontWeight: 600, fontSize: 13, fontFamily: 'inherit' }}>
-                <span aria-hidden="true">{EMOJI.alerte}</span>{checks.length} point{checks.length > 1 ? 's' : ''} à vérifier {showChecks ? '▴' : '▾'}
+                <span aria-hidden="true">{EMOJI.alerte}</span>{checks.length} point{checks.length > 1 ? 's' : ''} à vérifier <Icon d={showChecks ? I.chevronUp : I.chevronDown} size={14} stroke={1.75} />
               </button>
               {showChecks && <ul style={{ margin: '6px 0 0', paddingLeft: 18 }}>{checks.map(c => <li key={c}>{c}</li>)}</ul>}
             </div>
@@ -196,7 +196,7 @@ export default function ChiffrageSection({ chantier, os = [], allOs = [], user, 
             <div style={{ marginTop: 10, fontSize: 12, border: '1px solid var(--separator)', borderRadius: 8, padding: '10px 12px', background: 'var(--row-fill)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, marginBottom: 6 }}>
                 <b style={{ color: 'var(--label)' }}>Relecture des prix{verif.ia ? <span style={{ fontWeight: 400, color: 'var(--label-secondary)' }}> · {verif.ia === 'mistral' ? 'Mistral' : 'Claude'}</span> : null}</b>
-                <button onClick={() => setVerif(null)} aria-label="Fermer la relecture" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--label-secondary)', fontFamily: 'inherit' }}>✕</button>
+                <button onClick={() => setVerif(null)} aria-label="Fermer la relecture" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--label-secondary)', fontFamily: 'inherit', display: 'inline-flex' }}><Icon d={I.x} size={14} stroke={1.75} /></button>
               </div>
               {verif.synthese && <div style={{ color: 'var(--label-2)', marginBottom: 8 }}>{verif.synthese}</div>}
               {verif.remarques.map((x, k) => {
@@ -205,7 +205,7 @@ export default function ChiffrageSection({ chantier, os = [], allOs = [], user, 
                   <div key={k} style={{ display: 'flex', gap: 8, alignItems: 'baseline', padding: '4px 0', borderTop: k ? '1px solid var(--separator)' : 'none' }}>
                     <span style={{ fontSize: 12, fontWeight: 600, color, minWidth: 70 }}>{lib}{x.poste ? ` · ${x.poste}` : ''}</span>
                     <span style={{ flex: 1, color: 'var(--label-2)' }}>{x.message}</span>
-                    {x.impact_ht !== 0 && <span style={{ fontWeight: 700, color: x.impact_ht > 0 ? 'var(--red-text)' : 'var(--green-text)', whiteSpace: 'nowrap' }}>{x.impact_ht > 0 ? '+' : ''}{fmtMoney(x.impact_ht)}</span>}
+                    {x.impact_ht !== 0 && <span style={{ fontWeight: 600, color: x.impact_ht > 0 ? 'var(--red-text)' : 'var(--green-text)', whiteSpace: 'nowrap' }}>{x.impact_ht > 0 ? '+' : ''}{fmtMoney(x.impact_ht)}</span>}
                   </div>
                 )
               })}

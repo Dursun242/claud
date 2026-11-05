@@ -1,11 +1,11 @@
 'use client'
 import { memo } from 'react'
-import { phase as phaseColors, status as statusColors } from '../../dashboards/shared'
+import { status as statusColors } from '../../dashboards/shared'
 import { PROJECT_STATUSES, PROJECT_PHASES } from './projectsConstants'
 import FilterPill, { pillRow } from '../FilterPill'
 
 const rowLabel = {
-  fontSize: 12, fontWeight: 600, color: '#6E6E73', flexShrink: 0, marginRight: 2,
+  fontSize: 13, fontWeight: 500, color: 'var(--label-secondary)', flexShrink: 0, marginRight: 4,
 }
 
 // Deux rangées de pastilles (statut + phase) pour filtrer la liste des
@@ -30,7 +30,7 @@ function ProjectsFilterPillsImpl({ filterStatut, filterPhase, onStatut, onPhase,
         {PROJECT_PHASES.map(p => {
           const active = filterPhase === p
           return (
-            <FilterPill key={p} active={active} color={phaseColors[p]} label={p}
+            <FilterPill key={p} active={active} label={p}
               onClick={() => onPhase(active ? '' : p)} />
           )
         })}
