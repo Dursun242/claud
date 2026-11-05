@@ -5,11 +5,10 @@ import { EMOJI } from '../../lib/emoji'
 
 const card = (m) => ({
   background: '#fff', borderRadius: 12, padding: m ? 14 : 18,
-  border: '1px solid #E5E5EA',
-  boxShadow: '0 1px 3px rgba(0,0,0,0.06)', marginBottom: 18,
+  border: '1px solid #E5E5EA', marginBottom: 18,
 })
 const h2 = { margin: '0 0 12px', fontSize: 17, fontWeight: 600, color: '#1C1C1E' }
-const label = { fontSize: 11, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', color: '#6E6E73', marginBottom: 6 }
+const label = { fontSize: 12, fontWeight: 600, color: '#6E6E73', marginBottom: 6 }
 const ellipsis = { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }
 
 /**
@@ -33,14 +32,14 @@ export default function ClientOverview({ overview, onOpen, m }) {
           display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
         }}><Icon d={I.os} size={18}/></span>
         <span style={{ flex: 1, minWidth: 0 }}>
-          <span style={{ display: 'block', fontSize: 14, fontWeight: 700, color: 'var(--label)' }}>
+          <span style={{ display: 'block', fontSize: 14, fontWeight: 600, color: 'var(--label)' }}>
             {osToSign.length} ordre{osToSign.length > 1 ? 's' : ''} de service en cours de signature
           </span>
           <span style={{ display: 'block', fontSize: 13, color: 'var(--label-secondary)', ...ellipsis }}>
             Voir le détail et l&apos;état des signatures
           </span>
         </span>
-        <span aria-hidden style={{ color: 'var(--label-secondary)', fontSize: 16 }}>›</span>
+        <Icon d={I.chevronRight} size={16} stroke={1.5} color="var(--label-tertiary)" />
       </button>
     )}
 
@@ -84,7 +83,7 @@ export default function ClientOverview({ overview, onOpen, m }) {
             ))}
           </div>
         )}
-        <button onClick={() => onOpen('planning')} style={linkBtn}>Voir le planning complet →</button>
+        <button onClick={() => onOpen('planning')} style={linkBtn}>Voir le planning complet</button>
       </>)}
     </section>
 
@@ -99,7 +98,7 @@ export default function ClientOverview({ overview, onOpen, m }) {
           margin: 0, fontSize: 13, color: 'var(--label-2)', lineHeight: 1.55,
           display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden',
         }}>{dernierCR.resume || 'Pas de résumé.'}</p>
-        <button onClick={() => onOpen('reports', dernierCR.id)} style={linkBtn}>Lire le compte rendu →</button>
+        <button onClick={() => onOpen('reports', dernierCR.id)} style={linkBtn}>Lire le compte rendu</button>
       </section>
     )}
   </>)

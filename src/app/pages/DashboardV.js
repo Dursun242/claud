@@ -23,6 +23,12 @@ const getGreeting = () => {
   return "Bonsoir"
 }
 
+// Titre de l'accueil : la journée (« Jeudi 5 novembre »)
+const todayTitle = () => {
+  const d = new Date().toLocaleDateString("fr-FR", { weekday:"long", day:"numeric", month:"long" })
+  return d.charAt(0).toUpperCase() + d.slice(1)
+}
+
 // clientMode : vue maître d'ouvrage (lecture seule) — pas d'actions de
 // création, pas de CRM ni de tâches internes, mais le suivi des travaux.
 export default function DashboardV({data,crm=null,ready=true,setTab,m,user,clientMode=false}) {
@@ -89,19 +95,16 @@ export default function DashboardV({data,crm=null,ready=true,setTab,m,user,clien
 
   return (<div>
     {/* HEADER */}
-    <div style={{marginBottom:22}}>
+    <div style={{marginBottom:24}}>
+      {/* Titre : la journée ; la salutation reste discrète en dessous */}
       <h1 style={{
-        margin:0, fontSize:m?28:32, fontWeight:700, color:"var(--label)", letterSpacing:"-0.02em",
-        // Force le wrapping pour les prénoms longs (ex: noms composés, adresse
-        // email utilisée en fallback) — évite tout débordement horizontal.
-        wordBreak:"break-word", overflowWrap:"anywhere"
-      }}>{getGreeting()} {firstName}</h1>
+        margin:0, fontSize:m?28:32, fontWeight:600, color:"var(--label)", letterSpacing:"-0.01em",
+      }}>{todayTitle()}</h1>
       <p style={{
-        margin:"6px 0 0", color:"var(--label-secondary)",
-        fontSize:13, textTransform:"capitalize"
-      }}>{new Date().toLocaleDateString("fr-FR", {
-        weekday:"long", day:"numeric", month:"long"
-      })}</p>
+        margin:"4px 0 0", color:"var(--label-secondary)", fontSize:13,
+        // Prénoms longs ou adresse email en secours : retour à la ligne
+        wordBreak:"break-word", overflowWrap:"anywhere"
+      }}>{getGreeting()} {firstName}</p>
     </div>
 
     {/* SUIVI MAÎTRE D'OUVRAGE */}
@@ -117,7 +120,7 @@ export default function DashboardV({data,crm=null,ready=true,setTab,m,user,clien
     {!clientMode && <div style={{
       display:"grid",
       gridTemplateColumns:m?"repeat(2,1fr)":"repeat(4,1fr)",
-      gap:10, marginBottom:22
+      gap:12, marginBottom:24
     }}>
       {[
         {label:"Nouvel OS",        icon:I.os,       tab:"os"},
@@ -127,15 +130,11 @@ export default function DashboardV({data,crm=null,ready=true,setTab,m,user,clien
       ].map((a,i)=>(
         <button key={i} onClick={()=>setTab(a.tab, newIntent())} className="u-press" style={{
           background:"#fff", border:"1px solid var(--separator)", borderRadius:10,
-          padding:"12px", minHeight:48, cursor:"pointer",
-          textAlign:"left", fontWeight:600, fontSize:13, color:"var(--label)",
-          display:"flex", alignItems:"center", gap:10, fontFamily:"inherit",
+          padding:"0 12px", minHeight:48, cursor:"pointer",
+          textAlign:"left", fontWeight:500, fontSize:14, color:"var(--label)",
+          display:"flex", alignItems:"center", gap:12, fontFamily:"inherit",
         }}>
-          <span style={{
-            width:32, height:32, borderRadius:8, flexShrink:0,
-            background:"var(--grouped-bg)", color:"var(--accent)", display:"inline-flex",
-            alignItems:"center", justifyContent:"center"
-          }}><Icon d={a.icon} size={18}/></span>
+          <Icon d={a.icon} size={18} stroke={1.5} color="var(--accent)"/>
           {a.label}
         </button>
       ))}
@@ -164,16 +163,15 @@ export default function DashboardV({data,crm=null,ready=true,setTab,m,user,clien
       ]).map((k,i)=>(
         <button key={i} onClick={()=>setTab(k.tab)} className="u-press" style={{
           background:"#fff", border:"1px solid var(--separator)", borderRadius:10,
-          padding:"12px 14px", cursor:"pointer", textAlign:"left",
+          padding:"12px 16px", cursor:"pointer", textAlign:"left",
           fontFamily:"inherit",
         }}>
           <div style={{
-            fontSize:11, fontWeight:600, color:"var(--label-secondary)",
-            textTransform:"uppercase", letterSpacing:"0.05em", marginBottom:4
+            fontSize:12, fontWeight:600, color:"var(--label-secondary)", marginBottom:4
           }}>{k.label}</div>
           <div style={{display:"flex",alignItems:"baseline",gap:6}}>
             <span style={{
-              fontSize:m?22:24, fontWeight:700, lineHeight:1,
+              fontSize:m?24:28, fontWeight:600, lineHeight:1, fontVariantNumeric:"tabular-nums",
               // Couleur seulement si le chiffre signale un problème
               color:k.alert && k.value>0 ? k.alert : "var(--label)",
             }}>{k.value}</span>
@@ -189,8 +187,7 @@ export default function DashboardV({data,crm=null,ready=true,setTab,m,user,clien
     {chantiersEnCours.length>0&&(
       <div style={{
         background:"#fff", borderRadius:12, padding:m?14:18,
-        border:"1px solid var(--separator)",
-        boxShadow:"0 1px 3px rgba(0,0,0,0.06)", marginBottom:18
+        border:"1px solid var(--separator)", marginBottom:18
       }}>
         <div style={{
           display:"flex", justifyContent:"space-between",
@@ -203,7 +200,7 @@ export default function DashboardV({data,crm=null,ready=true,setTab,m,user,clien
             onClick={()=>setTab("projects")} className="u-hit"
             style={{
               fontSize:15, color:"var(--accent-text)", background:"none", minHeight:36,
-              border:"none", cursor:"pointer", fontWeight:600, fontFamily:"inherit"
+              border:"none", cursor:"pointer", fontWeight:500, fontFamily:"inherit"
             }}
           >Voir tout</button>
         </div>
@@ -229,7 +226,7 @@ export default function DashboardV({data,crm=null,ready=true,setTab,m,user,clien
                 }}>
                 <div style={{marginBottom:8}}>
                   <div style={{
-                    fontWeight:700, fontSize:13, color:"var(--label)", marginBottom:2,
+                    fontWeight:600, fontSize:13, color:"var(--label)", marginBottom:2,
                     overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"
                   }}>{ch.nom}</div>
                   <div style={{
@@ -283,9 +280,7 @@ export default function DashboardV({data,crm=null,ready=true,setTab,m,user,clien
     {clientMode && (
     <div style={{
       background:"#fff", borderRadius:12, padding:m?14:18,
-      border:"1px solid var(--separator)",
-      boxShadow:"0 1px 3px rgba(0,0,0,0.06)"
-    }}>
+      border:"1px solid var(--separator)"}}>
       <h3 style={{margin:"0 0 14px",fontSize:17,fontWeight:600,color:"var(--label)",display:"flex",alignItems:"center",gap:8}}>
         <Emoji e={EMOJI.budget} />Budget global
       </h3>
@@ -296,29 +291,23 @@ export default function DashboardV({data,crm=null,ready=true,setTab,m,user,clien
       }}>
         <div>
           <div style={{
-            fontSize:11, color:"var(--label-secondary)", fontWeight:600, marginBottom:4,
-            textTransform:"uppercase", letterSpacing:"0.05em"
-          }}>Alloué</div>
-          <div style={{fontSize:m?20:22,fontWeight:700,color:"var(--label)"}}>
+            fontSize:12, color:"var(--label-secondary)", fontWeight:600, marginBottom:4}}>Alloué</div>
+          <div style={{fontSize:m?20:22,fontWeight:600,color:"var(--label)"}}>
             {fmtMoney(totalB)}
           </div>
         </div>
         <div>
           <div style={{
-            fontSize:11, color:"var(--label-secondary)", fontWeight:600, marginBottom:4,
-            textTransform:"uppercase", letterSpacing:"0.05em"
-          }}>Dépensé</div>
+            fontSize:12, color:"var(--label-secondary)", fontWeight:600, marginBottom:4}}>Dépensé</div>
           <div style={{
-            fontSize:m?20:22, fontWeight:700,
+            fontSize:m?20:22, fontWeight:600,
             color: pct(totalD,totalB)>100 ? "var(--red-text)" : "var(--label)"
           }}>{fmtMoney(totalD)}</div>
         </div>
         <div>
           <div style={{
-            fontSize:11, color:"var(--label-secondary)", fontWeight:600, marginBottom:4,
-            textTransform:"uppercase", letterSpacing:"0.05em"
-          }}>Reste</div>
-          <div style={{fontSize:m?20:22,fontWeight:700,color:"var(--label)"}}>
+            fontSize:12, color:"var(--label-secondary)", fontWeight:600, marginBottom:4}}>Reste</div>
+          <div style={{fontSize:m?20:22,fontWeight:600,color:"var(--label)"}}>
             {fmtMoney(Math.max(0,totalB-totalD))}
           </div>
         </div>

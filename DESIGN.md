@@ -228,7 +228,7 @@ Les couleurs de la charte sont déclarées une seule fois dans `styles/global.cs
 **Character:** Celle de l'appareil : sur iPhone et Mac, c'est exactement San Francisco ; l'application paraît native et ne télécharge aucune police.
 
 ### Hierarchy
-- **Large title** (600, 32 px ; 28 px au téléphone, `-0.01em`) : titre de page (« Bonjour … », « Chantiers »).
+- **Large title** (600, 32 px ; 28 px au téléphone, `-0.01em`) : titre de page (la date sur l'accueil, « Jeudi 5 novembre », avec la salutation en sous-titre ; « Chantiers »).
 - **Title** (600, 20 px) : bloc principal d'un écran (« Mes priorités du jour »), marque dans la barre latérale.
 - **Headline** (600, 17 px) : titres de section et de carte, titre des fenêtres, titre de la barre mobile.
 - **Body** (400-600, 14 px) : boutons, lignes de liste, texte courant.
