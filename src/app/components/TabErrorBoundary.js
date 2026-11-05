@@ -1,4 +1,5 @@
 'use client'
+import { Icon, I } from './icons'
 import { Component } from 'react'
 
 /**
@@ -39,8 +40,8 @@ export default class TabErrorBoundary extends Component {
         background: '#fff', border: '1px solid var(--red-line)', borderRadius: 12, padding: '24px 20px',
         maxWidth: 520, margin: '24px auto', textAlign: 'center', fontFamily: 'inherit',
       }}>
-        <div style={{ fontSize: 28, marginBottom: 8 }} aria-hidden="true">⚠️</div>
-        <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--label)', marginBottom: 6 }}>
+        <div style={{ display: 'flex', justifyContent: 'center', color: 'var(--red-text)', marginBottom: 8 }}><Icon d={I.alert} size={24} stroke={1.5} /></div>
+        <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--label)', marginBottom: 6 }}>
           Cet onglet a rencontré un problème
         </div>
         <div style={{ fontSize: 13, color: '#48484A', marginBottom: 16 }}>
@@ -48,16 +49,16 @@ export default class TabErrorBoundary extends Component {
         </div>
         <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
           <button onClick={this.retry} style={{
-            padding: '8px 18px', background: 'var(--accent)', color: '#fff', border: 'none',
-            borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+            padding: '0 16px', minHeight: 36, background: 'var(--accent)', color: '#fff', border: 'none',
+            borderRadius: 8, fontSize: 14, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
           }}>Réessayer</button>
           <button onClick={() => window.location.reload()} style={{
-            padding: '8px 18px', background: 'var(--grouped-bg)', color: 'var(--label-2)', border: '1px solid var(--separator)',
-            borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+            padding: '0 16px', minHeight: 36, background: '#fff', color: 'var(--label)', border: '1px solid var(--separator)',
+            borderRadius: 8, fontSize: 14, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
           }}>Recharger la page</button>
         </div>
         <details style={{ marginTop: 14, textAlign: 'left' }}>
-          <summary style={{ cursor: 'pointer', fontSize: 11, color: 'var(--label-secondary)' }}>Détails techniques</summary>
+          <summary style={{ cursor: 'pointer', fontSize: 12, color: 'var(--label-secondary)' }}>Détails techniques</summary>
           <pre style={{ marginTop: 6, padding: 10, background: 'var(--row-fill)', borderRadius: 8, fontSize: 11, color: '#48484A', whiteSpace: 'pre-wrap' }}>
             {String(this.state.error?.message || this.state.error)}
           </pre>

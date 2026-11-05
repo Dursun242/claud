@@ -53,7 +53,7 @@ export default function DashboardLoadState({ role = 'admin', error, paused, onRe
           background: '#fff', border: '1px solid var(--separator)', borderRadius: 12,
           boxShadow: '0 1px 3px rgba(0,0,0,0.06)', padding: 20, maxWidth: 400, width: '100%',
         }}>
-          <h1 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: 'var(--label)' }}>
+          <h1 style={{ margin: 0, fontSize: 17, fontWeight: 600, color: 'var(--label)' }}>
             Impossible de charger les chantiers
           </h1>
           <p style={{ margin: '8px 0 16px', fontSize: 13, lineHeight: 1.5, color: 'var(--label-2)' }}>

@@ -1,6 +1,9 @@
 'use client'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNotifications, groupNotifications, badgeLabel } from '../hooks/useNotifications'
+import Emoji from './Emoji'
+import { EMOJI } from '../lib/emoji'
+import { Icon, I } from './icons'
 
 function relativeTime(iso) {
   if (!iso) return ''
@@ -18,28 +21,18 @@ function relativeTime(iso) {
   return new Date(iso).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })
 }
 
+// Repère de chaque type d'activité : emoji de la liste fixe (lib/emoji.js),
+// dans sa tuile grise ; pas de couleur par type (DESIGN.md)
 const ICONS = {
-  chantier:   '🏗️',
-  os:         '📋',
-  cr:         '📝',
-  task:       '✓',
-  attachment: '📎',
-  comment:    '💬',
-  signature:  '✍️',
-  devis:      '📄',
-  contact:    '👷',
-}
-
-const ACCENT = {
-  chantier:   '#34C759',
-  os:         '#AF52DE',
-  cr:         '#007AFF',
-  task:       '#FF9500',
-  attachment: '#32ADE6',
-  comment:    '#FF2D55',
-  signature:  '#8944AB',
-  devis:      '#007AFF',
-  contact:    '#FF9500',
+  chantier:   EMOJI.chantiers,
+  os:         EMOJI.os,
+  cr:         EMOJI.cr,
+  task:       EMOJI.taches,
+  attachment: EMOJI.piecesJointes,
+  comment:    EMOJI.commentaires,
+  signature:  EMOJI.signature,
+  devis:      EMOJI.commercial,
+  contact:    EMOJI.intervenants,
 }
 
 const TOAST_DURATION_MS = 4500
@@ -49,8 +42,7 @@ const MAX_TOASTS = 3
  * Toast individuel en bas droite (slide-in + auto-dismiss + hover pause).
  */
 function Toast({ notif, index, total, onDismiss, onClick, isMobile }) {
-  const accent = ACCENT[notif.entity_type] || '#007AFF'
-  const icon = ICONS[notif.entity_type] || '•'
+  const icon = ICONS[notif.entity_type]
   const [hover, setHover] = useState(false)
   const [closing, setClosing] = useState(false)
   const timerRef = useRef(null)
@@ -111,21 +103,16 @@ function Toast({ notif, index, total, onDismiss, onClick, isMobile }) {
         overflow: 'hidden',
       }}
     >
-      <span style={{
-        fontSize: 14, lineHeight: 1, flexShrink: 0,
-        width: 26, height: 26, borderRadius: 7,
-        background: accent + '22', color: accent,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-      }}>{icon}</span>
+      {icon ? <Emoji e={icon} size={28} /> : <span aria-hidden="true" style={{ width: 28, flexShrink: 0 }} />}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{
-          fontSize: 12, fontWeight: 600, color: 'var(--label)',
+          fontSize: 13, fontWeight: 600, color: 'var(--label)',
           lineHeight: 1.35,
           display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
         }}>{notif.title}</div>
         {notif.body && (
           <div style={{
-            fontSize: 11, color: 'var(--label-secondary)', marginTop: 3, lineHeight: 1.4,
+            fontSize: 12, color: 'var(--label-secondary)', marginTop: 4, lineHeight: 1.4,
             display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden',
           }}>{notif.body}</div>
         )}
@@ -133,16 +120,13 @@ function Toast({ notif, index, total, onDismiss, onClick, isMobile }) {
       <button
         onClick={(e) => { e.stopPropagation(); setClosing(true); setTimeout(() => onDismiss(notif.id), 180) }}
         aria-label="Fermer"
-        style={{
-          background: 'transparent', border: 'none', color: 'var(--label-secondary)',
-          cursor: 'pointer', padding: 2, fontSize: 14, lineHeight: 1, fontFamily: 'inherit',
-          flexShrink: 0,
-        }}
-      >×</button>
+        className="u-icon-btn"
+        style={{ color: 'var(--label-tertiary)', width: 24, height: 24, borderRadius: 6, padding: 0, flexShrink: 0 }}
+      ><Icon d={I.x} size={14} stroke={1.75} /></button>
       {!hover && (
         <div style={{
           position: 'absolute', bottom: 0, left: 0, right: 0, height: 2,
-          background: `linear-gradient(90deg, ${accent}, ${accent}88)`,
+          background: 'var(--accent)', opacity: 0.6,
           animation: `toastShrink ${TOAST_DURATION_MS}ms linear forwards`,
           transformOrigin: 'left',
         }}/>
@@ -250,7 +234,7 @@ export default function NotificationBell({ userEmail, onNavigate, isMobile = fal
               background: 'var(--red)', color: '#fff',
               borderRadius: 999,
               minWidth: 16, height: 16,
-              padding: '0 4px', fontSize: 11, fontWeight: 700,
+              padding: '0 4px', fontSize: 11, fontWeight: 600, fontVariantNumeric: 'tabular-nums',
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
               border: '2px solid #fff', boxSizing: 'content-box', lineHeight: 1,
             }}>{badge}</span>
@@ -280,9 +264,7 @@ export default function NotificationBell({ userEmail, onNavigate, isMobile = fal
                 </span>
                 {unreadCount > 0 && (
                   <span style={{
-                    fontSize: 11, fontWeight: 700, color: 'var(--accent-text)',
-                    background: 'rgba(0,122,255,0.12)',
-                    padding: '2px 7px', borderRadius: 999, lineHeight: 1.4, whiteSpace: 'nowrap',
+                    fontSize: 13, color: 'var(--label-secondary)', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums',
                   }}>{unreadCount} nouveau{unreadCount > 1 ? 'x' : ''}</span>
                 )}
               </div>
@@ -303,14 +285,13 @@ export default function NotificationBell({ userEmail, onNavigate, isMobile = fal
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#D1D1D6" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 6, opacity: 0.7 }} aria-hidden="true">
                   <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
                 </svg>
-                <div style={{ fontWeight: 600, color: 'var(--label-secondary)', fontSize: 12 }}>Tout est calme</div>
+                <div style={{ fontWeight: 500, color: 'var(--label-secondary)', fontSize: 13 }}>Tout est calme</div>
               </div>
             ) : (
               <ul style={{ listStyle: 'none', margin: 0, padding: '2px 6px 8px', maxHeight: 'min(70vh, 520px)', overflowY: 'auto', overscrollBehavior: 'contain' }}>
                 {groups.map((g) => {
                   const n = g.latest
                   const unread = g.unreadIds.length > 0
-                  const accent = ACCENT[n.entity_type] || '#007AFF'
                   return (
                     <li key={g.key} style={{ marginBottom: 2 }}>
                       <button
@@ -324,12 +305,7 @@ export default function NotificationBell({ userEmail, onNavigate, isMobile = fal
                           fontFamily: 'inherit', transition: 'background .12s',
                         }}
                       >
-                        <span style={{
-                          fontSize: 14, lineHeight: 1, flexShrink: 0,
-                          width: 30, height: 30, borderRadius: 8,
-                          background: accent + '22', color: accent,
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        }}>{ICONS[n.entity_type] || '•'}</span>
+                        {ICONS[n.entity_type] ? <Emoji e={ICONS[n.entity_type]} size={28} /> : <span aria-hidden="true" style={{ width: 28, flexShrink: 0 }} />}
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{
                             fontSize: 15, fontWeight: unread ? 600 : 400,
@@ -345,7 +321,7 @@ export default function NotificationBell({ userEmail, onNavigate, isMobile = fal
                           <div style={{ fontSize: 12, color: 'var(--label-secondary)', marginTop: 4 }}>
                             {relativeTime(n.created_at)}
                             {g.count > 1 && (
-                              <span style={{ marginLeft: 6, fontWeight: 700, color: accent }}>
+                              <span style={{ marginLeft: 4 }}>
                                 · {g.count} modifications
                               </span>
                             )}
@@ -354,8 +330,7 @@ export default function NotificationBell({ userEmail, onNavigate, isMobile = fal
                         {unread && (
                           <span style={{
                             width: 6, height: 6, borderRadius: '50%',
-                            background: accent, flexShrink: 0, marginTop: 12,
-                            boxShadow: `0 0 0 3px ${accent}33`,
+                            background: 'var(--accent)', flexShrink: 0, marginTop: 12,
                           }}/>
                         )}
                       </button>

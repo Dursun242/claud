@@ -1,6 +1,7 @@
 'use client'
 import { useToast, useToastList } from '../contexts/ToastContext'
 import { ANIMATION } from '../lib/motion'
+import { Icon, I } from './icons'
 
 /**
  * Composant ToastContainer
@@ -46,10 +47,10 @@ export default function ToastContainer() {
   }
 
   const icons = {
-    success: '✓',
-    error: '✕',
-    warning: '!',
-    info: 'ℹ',
+    success: I.check,
+    error: I.alert,
+    warning: I.alert,
+    info: I.info,
   }
 
   return (
@@ -66,7 +67,7 @@ export default function ToastContainer() {
         zIndex: 9999,
         display: 'flex',
         flexDirection: 'column',
-        gap: 10,
+        gap: 8,
         maxWidth: 420,
       }}
     >
@@ -77,30 +78,25 @@ export default function ToastContainer() {
             key={toast.id}
             role={toast.type === 'error' ? 'alert' : undefined}
             style={{
-              background: style.background,
-              border: `1px solid ${style.borderColor}`,
-              borderRadius: 10,
-              padding: '12px 14px',
-              color: style.textColor,
+              background: '#fff',
+              border: '1px solid var(--separator)',
+              borderRadius: 12,
+              padding: '12px 16px',
+              color: 'var(--label)',
               fontSize: 13,
               display: 'flex',
               alignItems: 'center',
-              gap: 10,
-              boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
+              gap: 12,
+              boxShadow: '0 8px 24px rgba(0,0,0,0.10)',
               animation: ANIMATION.toastIn,
               fontFamily: "var(--font-dm-sans), sans-serif",
             }}
           >
             <span
               aria-hidden="true"
-              style={{
-                color: style.iconColor,
-                fontWeight: 700,
-                fontSize: 16,
-                flexShrink: 0,
-              }}
+              style={{ color: style.textColor, display: 'inline-flex', flexShrink: 0 }}
             >
-              {icons[toast.type]}
+              <Icon d={icons[toast.type] || I.info} size={18} stroke={1.75} />
             </span>
             <span style={{ flex: 1, lineHeight: 1.4 }}>{toast.message}</span>
             {toast.action && (
@@ -133,9 +129,7 @@ export default function ToastContainer() {
               aria-label="Fermer la notification"
               className="u-icon-btn"
               style={{
-                color: style.textColor,
-                opacity: 0.6,
-                fontSize: 14,
+                color: 'var(--label-tertiary)',
                 padding: 0,
                 width: 28,
                 height: 28,
@@ -143,7 +137,7 @@ export default function ToastContainer() {
                 flexShrink: 0,
               }}
             >
-              ✕
+              <Icon d={I.x} size={14} stroke={1.75} />
             </button>
           </div>
         )

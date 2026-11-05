@@ -17,7 +17,7 @@ export default function Section({ title, count, color, emoji, action, children }
           display: 'flex',
           alignItems: 'center',
           gap: 8,
-          marginBottom: 10,
+          marginBottom: 12,
           minHeight: 32,
         }}
       >
@@ -28,13 +28,9 @@ export default function Section({ title, count, color, emoji, action, children }
         {count !== undefined && (
           <span
             style={{
-              background: 'var(--separator)',
-              color: '#48484A',
-              fontSize: 12,
-              fontWeight: 600,
-              borderRadius: 999,
-              padding: '1px 8px',
-              lineHeight: 1.5,
+              color: 'var(--label-tertiary)',
+              fontSize: 13,
+              fontVariantNumeric: 'tabular-nums',
             }}
           >
             {count}

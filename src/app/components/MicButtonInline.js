@@ -1,48 +1,35 @@
 'use client'
+import { Icon, I } from './icons'
 
 /**
  * Composant MicButtonInline
  * Petit bouton microphone pour intégration en ligne (dans champs d'entrée)
- * Version compacte de FloatingMic
+ * Version compacte de FloatingMic : aplat bleu au repos, rouge pendant
+ * l'écoute, sans dégradé ni lueur.
  */
 export default function MicButtonInline({ listening, onClick }) {
   return (
     <button
+      type="button"
       onClick={onClick}
+      aria-label={listening ? "Arrêter la dictée" : "Dicter à l'assistant"}
+      aria-pressed={!!listening}
+      className="u-btn"
       style={{
-        position: 'relative',
         width: 44,
         height: 44,
-        borderRadius: '50%',
-        background: listening
-          ? 'linear-gradient(135deg, var(--red), var(--red-text))'
-          : 'linear-gradient(135deg, var(--accent), var(--system-blue))',
-        border: listening
-          ? '2px solid rgba(255,80,80,0.4)'
-          : '2px solid rgba(0,255,136,0.2)',
+        borderRadius: 12,
+        background: listening ? 'var(--red-text)' : 'var(--accent)',
+        border: 'none',
         cursor: 'pointer',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        boxShadow: listening
-          ? '0 0 12px rgba(255,59,48,0.5)'
-          : '0 0 8px rgba(0,255,136,0.2)',
-        transition: 'all .3s',
+        transition: 'background-color var(--motion-fast) var(--ease-emphasized)',
         flexShrink: 0,
       }}
     >
-      <span
-        style={{
-          fontSize: 16,
-          fontWeight: 900,
-          color: '#fff',
-          fontFamily: "var(--font-dm-sans), sans-serif",
-          animation: listening ? 'heartbeat 0.8s ease-in-out infinite' : 'none',
-          userSelect: 'none',
-        }}
-      >
-        IA
-      </span>
+      <Icon d={I.mic} size={18} stroke={1.75} color="#fff" />
     </button>
   )
 }

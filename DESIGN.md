@@ -43,13 +43,13 @@ typography:
   large-title:
     fontFamily: "-apple-system, BlinkMacSystemFont, SF Pro Text, Segoe UI, Roboto, sans-serif"
     fontSize: "32px"
-    fontWeight: 700
+    fontWeight: 600
     lineHeight: 1.15
     letterSpacing: "-0.02em"
   title:
     fontFamily: "-apple-system, BlinkMacSystemFont, SF Pro Text, Segoe UI, Roboto, sans-serif"
     fontSize: "20px"
-    fontWeight: 700
+    fontWeight: 600
     lineHeight: 1.25
   headline:
     fontFamily: "-apple-system, BlinkMacSystemFont, SF Pro Text, Segoe UI, Roboto, sans-serif"
@@ -228,17 +228,19 @@ Les couleurs de la charte sont déclarées une seule fois dans `styles/global.cs
 **Character:** Celle de l'appareil : sur iPhone et Mac, c'est exactement San Francisco ; l'application paraît native et ne télécharge aucune police.
 
 ### Hierarchy
-- **Large title** (700, 32 px ; 28 px au téléphone, `-0.02em`) : titre de page (« Bonjour … », « Chantiers »).
-- **Title** (700, 20 px) : bloc principal d'un écran (« Mes priorités du jour »), marque dans la barre latérale.
+- **Large title** (600, 32 px ; 28 px au téléphone, `-0.01em`) : titre de page (« Bonjour … », « Chantiers »).
+- **Title** (600, 20 px) : bloc principal d'un écran (« Mes priorités du jour »), marque dans la barre latérale.
 - **Headline** (600, 17 px) : titres de section et de carte, titre des fenêtres, titre de la barre mobile.
 - **Body** (400-600, 14 px) : boutons, lignes de liste, texte courant.
 - **Subhead** (400-600, 13 px) : texte des cartes, descriptions.
 - **Footnote** (400, 12 px) : dates, sous-lignes, compteurs.
-- **Caption** (600, 11 px, capitales, `0.05em`) : intitulés de chiffres clés et de groupes (« EN RETARD »), badges.
+- **Caption** (500, 12 px, casse normale) : intitulés de chiffres clés et de groupes (« En retard »), badges. Pas de capitales espacées.
 - **Input** (16 px) : tous les champs (pas de zoom automatique d'iOS).
 
 ### Named Rules
 **The Readable Floor Rule.** Rien sous 11 px ; le texte courant reste à 12 px ou plus.
+
+**The Weight Rule.** Graisses 400, 500 et 600 seulement (unslop, novembre 2026) : la hiérarchie vient de la taille et de la couleur, jamais d'un gras 700 à 900.
 
 **The 16px Field Rule.** Un champ de saisie n'est jamais sous 16 px sur téléphone.
 
@@ -268,7 +270,8 @@ Presque plat, comme iOS : la profondeur vient du contraste entre le fond gris et
 - 10 px : boutons, champs, onglets de la barre latérale, champ de recherche.
 - 12 px : cartes, lignes de liste détachées, options du menu « Créer ».
 - 14 px : fenêtres et feuilles.
-- Pastille (999 px) et cercle : badges, compteurs, bouton +, micro, avatars.
+- 6 px : badges d'état ; 8 px : filtres.
+- Cercle : compteur de la cloche, bouton +, micro flottant, avatars.
 
 ## Components
 
@@ -279,7 +282,7 @@ Les quatre styles de bouton d'iOS.
 - **Teinté** (`btnAdd`) : fond `accent-tint`, texte `accent-text`, icône + — « Nouvel OS », « Nouveau CR »…
 - **De ligne** (`btnChip`) : fond `grouped-background`, texte `accent-text`, icône dessinée, 32 px — PDF, Excel, Envoyer, Modifier.
 - **Survol / appui :** classe `.u-btn` (léger assombrissement, enfoncement à l'appui) ; anneau de focus `system-blue` au clavier.
-- **Icônes :** toujours dessinées (`I.*` de `shared.js`) dans les boutons et la navigation ; pas d'emoji dans un bouton.
+- **Icônes :** toujours dessinées (`I.*` de `components/icons.js`, réexporté par `shared.js`), 16 ou 18 px, trait 1,5, couleur du texte (secondaire ou discret) ; dans les boutons, la navigation, les notifications, les messages et les états vides. Pas d'emoji ni de caractère ✓ ✕ ⚠ ← à la place d'une icône.
 
 ### Repères emoji
 Choix de l'équipe (octobre 2026) : quelques emoji pour repérer d'un coup d'œil ce qui compte.
@@ -291,7 +294,10 @@ Choix de l'équipe (octobre 2026) : quelques emoji pour repérer d'un coup d'œi
 **The Emoji Marker Rule.** Un emoji = un type de chose, toujours le même, pris dans `lib/emoji.js`, posé dans sa tuile. Jamais dans un bouton, un badge, la navigation ni un état vide ; jamais deux repères sur la même ligne.
 
 ### Chips / Badges
-- **Style :** pastille, 11 px semi-gras, texte en teinte lisible sur fond dilué (`components/Badge.js`, `lib/tone.js`).
+- **Style :** 12 px, graisse 500, coins de 6 px, texte en teinte lisible sur fond dilué (`components/Badge.js`, `lib/tone.js`).
+- **Filtres** (`components/FilterPill.js`) : 32 px, coins de 8 px, blancs au repos, bleus quand choisis ; compteur en gris discret, point de couleur seulement pour un statut.
+- **Compteurs de section :** chiffre gris discret à côté du titre, sans pastille.
+- **Messages (toasts) :** carte blanche à trait fin, icône dessinée de la couleur du sens (vert, orange, rouge, bleu).
 - **Catégories** (phase, type d'intervenant) : badge gris.
 
 ### Cards / Lists

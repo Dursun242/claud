@@ -1,4 +1,5 @@
 'use client'
+import { Icon, I } from './icons'
 import { Component } from 'react'
 
 /**
@@ -34,10 +35,10 @@ export default class ErrorBoundary extends Component {
         }}>
           <div style={{
             background: '#fff', borderRadius: 16, padding: '40px 32px', maxWidth: 480,
-            textAlign: 'center', boxShadow: '0 4px 24px rgba(0,0,0,0.08)',
+            textAlign: 'center', border: '1px solid var(--separator)',
           }}>
-            <div style={{ fontSize: 40, marginBottom: 16 }}>⚠️</div>
-            <h2 style={{ margin: '0 0 8px', color: 'var(--label)', fontSize: 20, fontWeight: 700 }}>
+            <div aria-hidden="true" style={{ display: 'flex', justifyContent: 'center', color: 'var(--red-text)', marginBottom: 16 }}><Icon d={I.alert} size={32} stroke={1.5} /></div>
+            <h2 style={{ margin: '0 0 8px', color: 'var(--label)', fontSize: 20, fontWeight: 600 }}>
               Une erreur est survenue
             </h2>
             <p style={{ margin: '0 0 24px', color: 'var(--label-secondary)', fontSize: 14, lineHeight: 1.6 }}>
@@ -60,8 +61,8 @@ export default class ErrorBoundary extends Component {
             <button
               onClick={() => window.location.reload()}
               style={{
-                padding: '10px 24px', background: 'var(--accent)', color: '#fff',
-                border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600,
+                padding: '0 20px', minHeight: 44, background: 'var(--accent)', color: '#fff',
+                border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 500,
                 cursor: 'pointer', fontFamily: 'inherit',
               }}
             >

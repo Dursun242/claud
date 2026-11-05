@@ -1,4 +1,5 @@
 'use client'
+import { Icon, I } from './icons'
 import { useState, useCallback, useRef } from 'react'
 import { supabase } from '../supabaseClient'
 import { useSafeAction } from '../hooks/useSafeAction'
@@ -13,12 +14,12 @@ function formatSize(bytes) {
 
 function typeIcon(type) {
   switch (type) {
-    case 'PDF': return '📄'
-    case 'Image': return '🖼️'
-    case 'Tableau': return '📊'
-    case 'Document': return '📝'
-    case 'Archive': return '🗜️'
-    default: return '📎'
+    case 'PDF': return I.file
+    case 'Image': return I.image
+    case 'Tableau': return I.sheet
+    case 'Document': return I.reports
+    case 'Archive': return I.archive
+    default: return I.paperclip
   }
 }
 
@@ -73,15 +74,16 @@ export default function DocumentSearch({ chantierId = null }) {
       <div style={{ display: 'flex', gap: 8 }}>
         <input aria-label="Chercher dans les documents"
           type="text"
-          placeholder="🔍 Chercher dans les documents..."
+          placeholder="Chercher dans les documents"
           value={searchQuery}
           onChange={(e) => handleSearch(e.target.value)}
           style={{
             flex: 1,
-            padding: '8px 12px',
+            padding: '0 12px',
+            minHeight: 36,
             border: '1px solid var(--separator)',
             borderRadius: 8,
-            fontSize: 13,
+            fontSize: 14,
             fontFamily: 'inherit',
             outline: 'none',
             transition: 'border-color .2s',
@@ -108,15 +110,15 @@ export default function DocumentSearch({ chantierId = null }) {
         }}>
           {loading ? (
             <div style={{ padding: 16, textAlign: 'center', color: 'var(--label-secondary)', fontSize: 12 }}>
-              Recherche en cours...
+              Recherche…
             </div>
           ) : results.length === 0 ? (
             <div style={{ padding: 12 }}>
               <EmptyState
                 compact
-                icon="🔍"
+                icon={<Icon d={I.search} size={20} stroke={1.5} />}
                 title="Aucun document trouvé"
-                description={`Aucune correspondance pour « ${searchQuery} ».`}
+                description={`Aucune correspondance pour « ${searchQuery} »`}
               />
             </div>
           ) : (
@@ -130,8 +132,8 @@ export default function DocumentSearch({ chantierId = null }) {
                     width: '100%',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 10,
-                    padding: '10px 12px',
+                    gap: 12,
+                    padding: '8px 12px',
                     minHeight: 44,
                     borderTop: idx > 0 ? '1px solid var(--grouped-bg)' : 'none',
                     border: 'none',
@@ -139,11 +141,11 @@ export default function DocumentSearch({ chantierId = null }) {
                     textAlign: 'left',
                   }}
                 >
-                  <span style={{ fontSize: 18, minWidth: 24 }}>{typeIcon(doc.type)}</span>
+                  <span aria-hidden="true" style={{ display: 'inline-flex', width: 16, flexShrink: 0, color: 'var(--label-tertiary)' }}><Icon d={typeIcon(doc.type)} size={16} stroke={1.5} /></span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{
-                      fontSize: 12,
-                      fontWeight: 600,
+                      fontSize: 14,
+                      fontWeight: 500,
                       color: 'var(--label)',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
@@ -151,11 +153,11 @@ export default function DocumentSearch({ chantierId = null }) {
                     }}>
                       {doc.file_name}
                     </div>
-                    <div style={{ fontSize: 11, color: 'var(--label-secondary)', marginTop: 2 }}>
-                      {doc.chantier_nom} • {formatSize(doc.file_size)}
+                    <div style={{ fontSize: 12, color: 'var(--label-secondary)', marginTop: 2, fontVariantNumeric: 'tabular-nums' }}>
+                      {doc.chantier_nom} · {formatSize(doc.file_size)}
                     </div>
                   </div>
-                  <span style={{ fontSize: 11, color: 'var(--label-secondary)', whiteSpace: 'nowrap' }}>
+                  <span style={{ fontSize: 12, color: 'var(--label-tertiary)', whiteSpace: 'nowrap' }}>
                     {doc.type}
                   </span>
                 </button>
