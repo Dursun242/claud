@@ -8,10 +8,10 @@ import { LEGAL_META } from '../../lib/legalCheck'
 export default function LegalBadge({ check, always = false, onClick }) {
   if (!check || (!always && !['alerte', 'critique'].includes(check.statut))) return null
   const meta = LEGAL_META[check.statut] || LEGAL_META.inconnu
-  const text = check.statut === 'critique' ? '⚠ Fermée / liquidation' : check.statut === 'alerte' ? '⚠ Procédure collective' : meta.label
+  const text = check.statut === 'critique' ? 'Fermée / liquidation' : check.statut === 'alerte' ? 'Procédure collective' : meta.label
   const style = {
     display: 'inline-flex', alignItems: 'center', gap: 4, background: meta.bg, color: meta.color,
-    border: `1px solid ${meta.border}`, borderRadius: 999, padding: '2px 9px', fontSize: 11, fontWeight: 800,
+    border: `1px solid ${meta.border}`, borderRadius: 6, padding: '2px 8px', fontSize: 12, fontWeight: 600,
     fontFamily: 'inherit', whiteSpace: 'nowrap',
   }
   return onClick
