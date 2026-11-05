@@ -144,7 +144,7 @@ export default function TasksV({ data, save: _save, m, reload, focusId, focusTs,
     try {
       const r = await saveTask({ ...t, statut: next }, reload)
       if (r === "queued") addToast("Hors ligne : enregistré sur l'appareil, envoi au retour du réseau", "info")
-      else if (next === "Terminé") addToast("Tâche terminée ✓", "success")
+      else if (next === "Terminé") addToast("Tâche terminée", "success")
     } catch (err) {
       addToast("Erreur : " + (err?.message || "mise à jour impossible"), "error")
     }
@@ -169,7 +169,7 @@ export default function TasksV({ data, save: _save, m, reload, focusId, focusTs,
       marginBottom:12,flexWrap:"wrap",gap:8
     }}>
       <div>
-        <h1 style={{margin:0,fontSize:m?28:32,fontWeight:700,letterSpacing:"-0.02em",color:"var(--label)"}}>Tâches</h1>
+        <h1 style={{margin:0,fontSize:m?28:32,fontWeight:600,letterSpacing:"-0.01em",color:"var(--label)"}}>Tâches</h1>
         <div style={{fontSize:13,color:"var(--label-secondary)",marginTop:2}}>
           {countByStatus.all} au total
           {hasFilters && <> · <strong>{filteredTasks.length}</strong> affichée{filteredTasks.length>1?"s":""}</>}
@@ -177,7 +177,7 @@ export default function TasksV({ data, save: _save, m, reload, focusId, focusTs,
       </div>
       <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
         <SearchField inputRef={searchInputRef} value={q} onChange={e=>setQ(e.target.value)} m={m} width={240}
-          label="Rechercher une tâche" placeholder={m?"Rechercher titre, lot, chantier…":"Rechercher titre, lot, chantier… (tape /)"}/>
+          label="Rechercher une tâche" placeholder={m?"Rechercher":"Rechercher (/)"}/>
         <button onClick={openNew} title="Nouvelle tâche (raccourci : n)"
           style={{...btnP,display:"inline-flex",alignItems:"center",gap:4}}><Icon d={I.plus} size={16} color="#fff"/>Nouvelle tâche</button>
       </div>
@@ -196,26 +196,25 @@ export default function TasksV({ data, save: _save, m, reload, focusId, focusTs,
 
     {filteredTasks.length === 0 ? (
       <div style={{
-        background:"#fff",borderRadius:12,padding:"40px 24px",
-        textAlign:"center",boxShadow:"0 1px 3px rgba(0,0,0,0.04)"
-      }}>
-        <div style={{fontSize:36,marginBottom:8,opacity:0.5}}>✓</div>
+        background:"#fff",borderRadius:12,padding:"40px 24px",border:"1px solid var(--separator)",
+        textAlign:"center"}}>
+        <div style={{display:"flex",justifyContent:"center",marginBottom:8,color:"var(--label-tertiary)"}}><Icon d={I.tasks} size={28} stroke={1.5}/></div>
         {hasFilters ? (
           <>
-            <div style={{fontSize:14,fontWeight:700,color:"var(--label-2)",marginBottom:4}}>Aucun résultat</div>
-            <div style={{fontSize:12,color:"var(--label-secondary)",marginBottom:14}}>
-              Essaie d&apos;élargir ta recherche ou de changer de filtre.
+            <div style={{fontSize:15,fontWeight:600,color:"var(--label)",marginBottom:4}}>Aucun résultat</div>
+            <div style={{fontSize:13,color:"var(--label-secondary)",marginBottom:16}}>
+              Élargis la recherche ou change de filtre
             </div>
             <button onClick={()=>{setQ("");setFilter("all")}}
               style={btnS}>Réinitialiser les filtres</button>
           </>
         ) : (
           <>
-            <div style={{fontSize:14,fontWeight:700,color:"var(--label-2)",marginBottom:4}}>Aucune tâche 🎉</div>
-            <div style={{fontSize:12,color:"var(--label-secondary)",marginBottom:14}}>
-              Crée ta première tâche pour commencer à suivre le travail.
+            <div style={{fontSize:15,fontWeight:600,color:"var(--label)",marginBottom:4}}>Aucune tâche</div>
+            <div style={{fontSize:13,color:"var(--label-secondary)",marginBottom:16}}>
+              Crée ta première tâche pour suivre le travail
             </div>
-            <button onClick={openNew} style={btnP}>+ Nouvelle tâche</button>
+            <button onClick={openNew} style={btnP}>Nouvelle tâche</button>
           </>
         )}
       </div>
@@ -267,14 +266,14 @@ export default function TasksV({ data, save: _save, m, reload, focusId, focusTs,
             {overdue && (
               <span style={{
                 fontSize:12,fontWeight:600,color:"var(--red-text)",
-                background:"var(--red-tint)",borderRadius:999,
+                background:"var(--red-tint)",borderRadius:6,
                 padding:"2px 8px",whiteSpace:"nowrap",flexShrink:0
               }}>Retard</span>
             )}
             {!m && <Badge text={t.priorite} color={status[t.priorite]||"#6E6E73"}/>}
             {!m && (
               <span style={{
-                fontSize:11,color:overdue?"var(--red-text)":"var(--label-tertiary)",
+                fontSize:12,color:overdue?"var(--red-text)":"var(--label-tertiary)",
                 fontWeight:overdue?600:400,whiteSpace:"nowrap"
               }}>{fmtDate(t.echeance)}</span>
             )}
@@ -337,12 +336,12 @@ export default function TasksV({ data, save: _save, m, reload, focusId, focusTs,
           padding:"8px 12px",marginTop:10,fontSize:12,color:"var(--red-text)",
           display:"flex",alignItems:"center",gap:8,
         }}>
-          <span style={{fontSize:14}}>⚠</span>
+          <Icon d={I.alert} size={16} stroke={1.75}/>
           <span style={{flex:1}}>{formError}</span>
           <button onClick={()=>setFormError("")} aria-label="Fermer" style={{
             background:"none",border:"none",cursor:"pointer",
-            color:"var(--red-text)",fontSize:14,padding:0,lineHeight:1
-          }}>✕</button>
+            color:"var(--red-text)",padding:0,display:"inline-flex"
+          }}><Icon d={I.x} size={14} stroke={1.75}/></button>
         </div>
       )}
       <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginTop:12}}>

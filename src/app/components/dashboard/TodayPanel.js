@@ -1,4 +1,5 @@
 'use client'
+import { Icon, I } from '../icons'
 import { useState } from 'react'
 import { fmtDate } from '../../dashboards/shared'
 import Emoji from '../Emoji'
@@ -39,8 +40,7 @@ export default function TodayPanel({ agenda, onOpen, m }) {
   return (
     <section aria-labelledby="today-title" style={{
       background: '#fff', borderRadius: 12, padding: m ? 14 : 18,
-      border: '1px solid var(--separator)',
-      boxShadow: '0 1px 3px rgba(0,0,0,0.06)', marginBottom: 18,
+      border: '1px solid var(--separator)', marginBottom: 18,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: total ? 12 : 4 }}>
         <Emoji e={EMOJI.journee} />
@@ -63,7 +63,7 @@ export default function TodayPanel({ agenda, onOpen, m }) {
         return (
           <div key={sec.key} style={{ marginBottom: 10 }}>
             <div style={{
-              fontSize: 11, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase',
+              fontSize: 12, fontWeight: 600,
               color: sec.key === 'late' ? LATE : 'var(--label-secondary)', marginBottom: 6,
             }}>{sec.title} · {sec.items.length}</div>
             <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 6, gridTemplateColumns: 'minmax(0,1fr)' }}>
@@ -85,7 +85,7 @@ export default function TodayPanel({ agenda, onOpen, m }) {
                       {it.late && it.date && (
                         <span style={{ fontSize: 12, fontWeight: 600, color: LATE, whiteSpace: 'nowrap' }}>{fmtDate(it.date)}</span>
                       )}
-                      <span aria-hidden style={{ fontSize: 14, color: 'var(--separator-opaque)' }}>›</span>
+                      <Icon d={I.chevronRight} size={16} stroke={1.5} color="var(--label-tertiary)" />
                     </button>
                   </li>
                 )
@@ -104,7 +104,7 @@ export default function TodayPanel({ agenda, onOpen, m }) {
 
       {agenda.rdvUpcoming.length > 0 && (
         <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--grouped-bg)' }}>
-          <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--label-secondary)', marginBottom: 6 }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--label-secondary)', marginBottom: 6 }}>
             Rendez-vous à venir
           </div>
           {agenda.rdvUpcoming.slice(0, 3).map(r => (
