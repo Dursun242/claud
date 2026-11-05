@@ -122,6 +122,8 @@ Stage 3 = **CRM** (`crm_opportunites`, `crm_interactions`, `crm_devis`, `crm_dev
 
 Skill **impeccable** (`.claude/skills/impeccable`, repris du dépôt `idm`) : conception, critique et finition d'interface (`/impeccable audit|critique|polish|…`). Son moteur se télécharge au premier lancement dans `~/.impeccable` (hors dépôt). Pas encore de `PRODUCT.md` / `DESIGN.md` : `/impeccable init` les crée.
 
+Skill **unslop** (`.claude/skills/unslop`, copie de `skills/unslop` du dépôt `heydamir/unslop`, commit a6f121e, licence CC BY 4.0 : garder la mention de l'auteur Damir Sokolovsky) : rend une interface « générée par IA » plus soignée (audit des signes — dégradés violets, lueurs, emojis dans les libellés, espacements irréguliers —, direction tirée du produit, passes espacement / couleur / icônes / textes / typo / mise en page / détails / visuels / animation). `/unslop <écran>`. Les vidéos « story » (`scripts/story.mjs`) demandent Playwright et ffmpeg ; la génération d'images passe par un service payant, toujours après accord.
+
 ## Commandes
 
 ```bash
