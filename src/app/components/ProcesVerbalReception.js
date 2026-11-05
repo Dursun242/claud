@@ -84,7 +84,7 @@ export default function ProcesVerbalReception({ chantierId, chantier, ordresServ
         ) : pvs.length === 0 ? (
           <EmptyState
             compact
-            icon="📋"
+            icon={<Icon d={I.pv} size={24} stroke={1.5} />}
             title="Aucun PV pour ce chantier"
             description="Les procès-verbaux de réception apparaîtront ici une fois créés."
           />

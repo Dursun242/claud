@@ -7,7 +7,7 @@ import CRPhotoStrip from './CRPhotoStrip'
 import MicButton from './MicButton'
 
 const lbl = { display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--label-secondary)', marginBottom: 3 }
-const linkBtn = { background: 'none', border: 'none', padding: '6px 0', cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: 700, color: 'var(--accent-text)' }
+const linkBtn = { background: 'none', border: 'none', padding: '6px 0', cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: 600, color: 'var(--accent-text)' }
 
 /**
  * Un lot du CR (tablette et ordinateur), replié sur une ligne : nom,
@@ -46,7 +46,7 @@ export default function CRLotPanel({
         style={{ display: 'flex', width: '100%', alignItems: 'center', gap: 12, padding: '14px 16px', minHeight: 60, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}>
         <span aria-hidden="true" style={{ fontSize: 13, color: 'var(--label-secondary)', transform: open ? 'rotate(90deg)' : 'none', transition: 'transform .15s' }}>▶</span>
         <span style={{ flex: 1, minWidth: 0 }}>
-          <span style={{ display: 'block', fontSize: 16, fontWeight: 700, color: 'var(--label)' }}>
+          <span style={{ display: 'block', fontSize: 16, fontWeight: 600, color: 'var(--label)' }}>
             {section.lot}
             {!isGeneral && section.entreprise ? <span style={{ fontWeight: 400, color: 'var(--label-secondary)' }}> · {section.entreprise}</span> : null}
           </span>

@@ -16,7 +16,7 @@ const TONE = {
 export default function CRAgenda({ groups = [], onGo, collapsible = false }) {
   const list = groups.map(g => (
     <div key={g.key} style={{ marginBottom: 10 }}>
-      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--label)', marginBottom: 2 }}>{g.title} ({g.items.length})</div>
+      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--label)', marginBottom: 2 }}>{g.title} ({g.items.length})</div>
       <ol style={{ margin: 0, paddingLeft: 20 }}>
         {g.items.map(it => (
           <li key={it.key}>
@@ -35,7 +35,7 @@ export default function CRAgenda({ groups = [], onGo, collapsible = false }) {
     return (
       <section id="cr-section-agenda" aria-label="Ordre du jour" style={{ ...card, padding: '12px 16px', scrollMarginTop: 130 }}>
         <details>
-          <summary style={{ cursor: 'pointer', fontSize: 14, fontWeight: 700, color: 'var(--label)' }}>
+          <summary style={{ cursor: 'pointer', fontSize: 14, fontWeight: 600, color: 'var(--label)' }}>
             À aborder pendant la réunion ({n})
             <span style={{ fontWeight: 400, color: 'var(--label-secondary)' }}> · {groups.map(g => g.title.toLowerCase()).join(', ')}</span>
           </summary>

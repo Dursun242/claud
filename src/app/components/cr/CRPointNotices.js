@@ -38,7 +38,7 @@ export default function CRPointNotices({ row, crId, disabled, onChange, onMiseEn
               : `Relancé ${rappels} fois sans effet : place à la mise en demeure.`}
           </span>
           <button type="button" onClick={() => onMiseEnDemeure(row.entreprise)}
-            style={{ ...smallBtn, border: '1px solid var(--red-line)', color: 'var(--red-text)', fontWeight: 700 }}>
+            style={{ ...smallBtn, border: '1px solid var(--red-line)', color: 'var(--red-text)', fontWeight: 600 }}>
             {row.orig?.mise_en_demeure_le ? 'Refaire le courrier' : 'Préparer la mise en demeure'}
           </button>
         </div>

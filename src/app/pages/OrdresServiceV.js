@@ -612,7 +612,7 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly,a
       marginBottom:14,flexWrap:"wrap",gap:8
     }}>
       <div>
-        <h1 style={{margin:0,fontSize:m?28:32,fontWeight:700,letterSpacing:"-0.02em",color:"var(--label)"}}>Ordres de service</h1>
+        <h1 style={{margin:0,fontSize:m?28:32,fontWeight:600,letterSpacing:"-0.02em",color:"var(--label)"}}>Ordres de service</h1>
         <div style={{fontSize:13,color:"var(--label-secondary)",marginTop:2}}>
           {countByStatus.all} au total
           {statusFilter !== "all" && (
@@ -695,7 +695,7 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly,a
         <span>{importError}</span>
         <button onClick={()=>setImportError("")} aria-label="Fermer le message"
           style={{background:"none",border:"none",cursor:"pointer",
-            color:"var(--red-text)",fontSize:16,padding:0}}>✕</button>
+            color:"var(--red-text)",fontSize:16,padding:0}}><Icon d={I.x} size={14} stroke={1.75} /></button>
       </div>
     )}
 
@@ -704,12 +704,11 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly,a
       {filteredSortedOS.length===0 ? (
         <div style={{
           background:"#fff",borderRadius:12,padding:"40px 24px",
-          textAlign:"center",boxShadow:"0 1px 3px rgba(0,0,0,0.04)"
-        }}>
-          <div style={{fontSize:36,marginBottom:8,opacity:0.5}}>📋</div>
+          textAlign:"center"}}>
+          <div style={{display:"flex",justifyContent:"center",marginBottom:8,color:"var(--label-tertiary)"}}><Icon d={I.os} size={28} stroke={1.5}/></div>
           {searchOS || statusFilter !== "all" ? (
             <>
-              <div style={{fontSize:14,fontWeight:700,color:"var(--label-2)",marginBottom:4}}>Aucun résultat</div>
+              <div style={{fontSize:14,fontWeight:600,color:"var(--label-2)",marginBottom:4}}>Aucun résultat</div>
               <div style={{fontSize:12,color:"var(--label-secondary)",marginBottom:14}}>
                 Essaie d&apos;élargir ta recherche ou de changer de statut.
               </div>
@@ -718,7 +717,7 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly,a
             </>
           ) : (
             <>
-              <div style={{fontSize:14,fontWeight:700,color:"var(--label-2)",marginBottom:4}}>Aucun ordre de service</div>
+              <div style={{fontSize:14,fontWeight:600,color:"var(--label-2)",marginBottom:4}}>Aucun ordre de service</div>
               <div style={{fontSize:12,color:"var(--label-secondary)",marginBottom:14}}>
                 Crée-en un ou importe un devis par photo pour démarrer.
               </div>

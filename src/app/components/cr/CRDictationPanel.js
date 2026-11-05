@@ -125,7 +125,7 @@ const CRDictationPanel = forwardRef(function CRDictationPanel({ notes, notesRang
 
       {proposal && (
         <div role="region" aria-label="Proposition de l'IA" style={{ marginTop: 14, borderTop: '1px solid var(--separator)', paddingTop: 12 }}>
-          <div style={{ fontSize: 14, fontWeight: 800, color: NAVY, marginBottom: 8 }}>Proposition de l&apos;IA — décoche ce que tu ne veux pas garder</div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: NAVY, marginBottom: 8 }}>Proposition de l&apos;IA — décoche ce que tu ne veux pas garder</div>
           {group('Résumé', proposal.resume ? [item("resume", <>{proposal.resume}</>)] : [])}
           {group('Par lot', proposal.lots.map((l, i) => (
             item(`lot${i}`, <><b>{l.lot}</b>{l.avancement != null ? ` · avancement ${l.avancement} %` : ''}{l.observations ? ` — ${l.observations}` : ''}</>)

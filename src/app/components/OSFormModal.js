@@ -85,9 +85,9 @@ export default function OSFormModal({
           borderRadius: 10, padding: '12px 14px', marginBottom: 12
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 15 }}>📸</span>
-            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--purple-text)' }}>Import devis par photo ou capture</span>
-            <span style={{ fontSize: 11, color: 'var(--purple-text)', width: '100%' }}>
+            <Icon d={I.camera} size={16} stroke={1.5} />
+            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--purple-text)' }}>Import devis par photo ou capture</span>
+            <span style={{ fontSize: 12, color: 'var(--purple-text)', width: '100%' }}>
               Photo d&apos;un devis, facture, bon de commande ou screenshot PDF
             </span>
           </div>
@@ -126,7 +126,7 @@ export default function OSFormModal({
             )}
           </button>
           {importError && (
-            <div style={{ marginTop: 8, fontSize: 11, color: 'var(--red-text)' }}>{importError}</div>
+            <div style={{ marginTop: 8, fontSize: 12, color: 'var(--red-text)' }}>{importError}</div>
           )}
         </div>
       )}
@@ -229,7 +229,7 @@ export default function OSFormModal({
           <span style={{ fontWeight: 600, color: 'var(--label)' }}>TVA non applicable</span>
           <span style={{ color: 'var(--label-secondary)' }}> — auto-entrepreneur en franchise de base (art. 293 B du CGI)</span>
           {tvaNA && (
-            <span style={{ display: 'block', marginTop: 2, fontSize: 11, color: 'var(--orange-deep)' }}>
+            <span style={{ display: 'block', marginTop: 2, fontSize: 12, color: 'var(--orange-deep)' }}>
               Toutes les lignes seront facturées à 0 % et la mention légale apparaîtra sur le PDF.
             </span>
           )}
@@ -239,9 +239,9 @@ export default function OSFormModal({
       {/* PRESTATIONS */}
       <div style={{ marginTop: 4, marginBottom: 8 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-          <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--label-secondary)', textTransform: 'uppercase' }}>Prestations</span>
+          <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--label-secondary)'}}>Prestations</span>
           <button onClick={addPrestation} style={{
-            fontSize: 11, color: 'var(--accent-text)', background: 'none',
+            fontSize: 12, color: 'var(--accent-text)', background: 'none',
             border: 'none', cursor: 'pointer', fontWeight: 600
           }}>+ Ajouter une ligne</button>
         </div>
@@ -288,16 +288,16 @@ export default function OSFormModal({
         display: 'flex', justifyContent: 'flex-end', gap: 20, marginBottom: 12
       }}>
         <div>
-          <span style={{ fontSize: 11, color: 'var(--label-secondary)' }}>Total HT : </span>
-          <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--label)' }}>{fmtMoney(totals.ht)}</span>
+          <span style={{ fontSize: 12, color: 'var(--label-secondary)' }}>Total HT : </span>
+          <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--label)' }}>{fmtMoney(totals.ht)}</span>
         </div>
         <div>
-          <span style={{ fontSize: 11, color: 'var(--label-secondary)' }}>TVA : </span>
-          <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--orange)' }}>{fmtMoney(totals.tva)}</span>
+          <span style={{ fontSize: 12, color: 'var(--label-secondary)' }}>TVA : </span>
+          <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--orange)' }}>{fmtMoney(totals.tva)}</span>
         </div>
         <div>
-          <span style={{ fontSize: 11, color: 'var(--label-secondary)' }}>TTC : </span>
-          <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--label)' }}>{fmtMoney(totals.ttc)}</span>
+          <span style={{ fontSize: 12, color: 'var(--label-secondary)' }}>TTC : </span>
+          <span style={{ fontSize: 16, fontWeight: 600, color: 'var(--label)' }}>{fmtMoney(totals.ttc)}</span>
         </div>
       </div>
 
@@ -318,12 +318,12 @@ export default function OSFormModal({
           padding: '8px 12px', marginTop: 10, marginBottom: 4, fontSize: 12, color: 'var(--red-text)',
           display: 'flex', alignItems: 'center', gap: 8,
         }}>
-          <span style={{ fontSize: 14 }}>⚠</span>
+          <Icon d={I.alert} size={16} stroke={1.75} />
           <span style={{ flex: 1 }}>{formError}</span>
           <button onClick={() => setFormError('')} aria-label="Fermer" style={{
             background: 'none', border: 'none', cursor: 'pointer',
             color: 'var(--red-text)', fontSize: 14, padding: 0, lineHeight: 1
-          }}>✕</button>
+          }}><Icon d={I.x} size={14} stroke={1.75} /></button>
         </div>
       )}
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 12 }}>

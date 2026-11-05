@@ -17,15 +17,13 @@ export const field = {
 
 export const card = {
   background: '#fff', borderRadius: 12, padding: 14, border: '1px solid #E5E5EA',
-  boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
 }
 
 export const label = {
-  display: 'block', fontSize: 11, fontWeight: 700, color: '#6E6E73', textTransform: 'uppercase',
-  letterSpacing: '0.05em', marginBottom: 4,
+  display: 'block', fontSize: 12, fontWeight: 600, color: '#6E6E73', marginBottom: 4,
 }
 
 export const ghostBtn = (color = NAVY) => ({
   background: '#fff', border: `1.5px solid ${color}33`, color, borderRadius: 8, padding: '7px 12px',
-  minHeight: 36, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+  minHeight: 36, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
 })

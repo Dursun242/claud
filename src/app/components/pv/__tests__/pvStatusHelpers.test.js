@@ -19,14 +19,11 @@ describe('formatDate', () => {
 
 describe('statusColor', () => {
   it('renvoie un vert pour "Signé"', () => {
-    expect(statusColor('Signé')).toEqual({
-      bg: '#EAF8EE', color: '#1E7B34', icon: '✓',
-    })
+    expect(statusColor('Signé')).toEqual({ bg: '#EAF8EE', color: '#1E7B34' })
   })
 
   it('renvoie le fallback neutre pour un statut inconnu', () => {
-    const { icon } = statusColor('InexistantÉtat')
-    expect(icon).toBe('?')
+    expect(statusColor('InexistantÉtat')).toEqual({ bg: '#F2F2F7', color: '#6E6E73' })
   })
 
   it('couvre tous les statuts documentés', () => {
@@ -34,7 +31,6 @@ describe('statusColor', () => {
       const c = statusColor(s)
       expect(c.bg).toMatch(/^#[0-9A-F]{6}$/i)
       expect(c.color).toMatch(/^#[0-9A-F]{6}$/i)
-      expect(typeof c.icon).toBe('string')
     }
   })
 })
@@ -44,11 +40,9 @@ describe('decisionColor', () => {
     const ok = decisionColor('Accepté')
     const warn = decisionColor('Accepté avec réserve')
     expect(ok.color).not.toBe(warn.color)
-    expect(ok.icon).toBe('✓')
-    expect(warn.icon).toBe('⚠️')
   })
 
   it('renvoie le rouge pour "Refusé"', () => {
-    expect(decisionColor('Refusé')).toMatchObject({ color: '#D70015', icon: '✕' })
+    expect(decisionColor('Refusé')).toMatchObject({ color: '#D70015' })
   })
 })

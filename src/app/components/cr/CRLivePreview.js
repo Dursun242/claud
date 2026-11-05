@@ -1,4 +1,5 @@
 'use client'
+import { Icon, I } from '../icons'
 import { useEffect, useRef, useState } from 'react'
 import { loadCrImages } from '../../lib/crPhotos'
 import { ghostBtn } from './crStyles'
@@ -60,11 +61,11 @@ export default function CRLivePreview({ getPreview, chantier, onOpenFull, onClos
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderBottom: '1px solid var(--separator)' }}>
         <strong style={{ fontSize: 13, color: 'var(--label)' }}>Aperçu du PDF</strong>
-        <span role="status" style={{ fontSize: 11, color: error ? 'var(--red-text)' : 'var(--label-secondary)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <span role="status" style={{ fontSize: 12, color: error ? 'var(--red-text)' : 'var(--label-secondary)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {error ? `Aperçu impossible : ${error}` : pending ? 'Mise à jour…' : 'À jour'}
         </span>
         {onOpenFull && <button type="button" onClick={onOpenFull} style={{ ...ghostBtn(), padding: '5px 10px', fontSize: 12 }}>Ouvrir en grand</button>}
-        {onClose && <button type="button" onClick={onClose} aria-label="Fermer l'aperçu" style={{ ...ghostBtn(), padding: '5px 10px', fontSize: 12 }}>✕</button>}
+        {onClose && <button type="button" onClick={onClose} aria-label="Fermer l'aperçu" style={{ ...ghostBtn(), padding: '5px 10px', fontSize: 12 }}><Icon d={I.x} size={14} stroke={1.75} /></button>}
       </div>
       {url ? (
         <iframe title="Aperçu du compte rendu" src={`${url}#view=FitH`} style={{ flex: 1, width: '100%', border: 'none', background: '#525659' }} />

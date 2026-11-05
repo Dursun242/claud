@@ -61,7 +61,7 @@ describe('OsCard', () => {
     expect(screen.getByText(/1\s*200/)).toBeInTheDocument()
   })
 
-  it("affiche le badge '⚠ En retard' quand overdue=true", () => {
+  it("affiche le badge 'En retard' quand overdue=true", () => {
     renderCard({ overdue: true })
     expect(screen.getByText(/En retard/)).toBeInTheDocument()
   })

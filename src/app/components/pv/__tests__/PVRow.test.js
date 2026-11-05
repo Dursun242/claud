@@ -25,8 +25,8 @@ describe('PVRow', () => {
     render(<PVRow pv={basePv} onDetail={() => {}} />)
 
     // Les badges incluent l'icône + le texte — on cherche un match partiel.
-    expect(screen.getByText(/✓ Signé/)).toBeInTheDocument()
-    expect(screen.getByText(/✓ Accepté/)).toBeInTheDocument()
+    expect(screen.getByText('Signé')).toBeInTheDocument()
+    expect(screen.getByText('Accepté')).toBeInTheDocument()
   })
 
   it("invoque onDetail(pv) quand on clique sur la ligne", async () => {
@@ -43,7 +43,7 @@ describe('PVRow', () => {
     const pvRefuse = { ...basePv, statut_signature: 'Refusé', statut_reception: 'En attente' }
     render(<PVRow pv={pvRefuse} onDetail={() => {}} />)
 
-    expect(screen.getByText(/✕ Refusé/)).toBeInTheDocument()
-    expect(screen.getByText(/⏳ En attente/)).toBeInTheDocument()
+    expect(screen.getByText('Refusé')).toBeInTheDocument()
+    expect(screen.getByText('En attente')).toBeInTheDocument()
   })
 })

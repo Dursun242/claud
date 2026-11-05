@@ -113,12 +113,12 @@ export default function CRSendModal({ cr, chantier, onClose, onSent }) {
                         onChange={e => setChecked(c => ({ ...c, [it.email]: e.target.checked }))}
                         style={{ width: 17, height: 17, accentColor: 'var(--system-blue)' }} />
                       <span style={{ fontSize: 13, fontWeight: 600 }}>{it.nom}</span>
-                      <span style={{ fontSize: 11, color: 'var(--label-secondary)', overflow: 'hidden', textOverflow: 'ellipsis' }}>{it.email}</span>
+                      <span style={{ fontSize: 12, color: 'var(--label-secondary)', overflow: 'hidden', textOverflow: 'ellipsis' }}>{it.email}</span>
                     </label>
-                    {it.convoque !== false && cr.prochaine_reunion?.date && <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent-text)' }}>convoqué</span>}
-                    {acts.length > 0 && <span style={{ fontSize: 11, fontWeight: 700, color: late ? 'var(--red-text)' : 'var(--purple-text)' }}>{acts.length} action{acts.length > 1 ? 's' : ''}{late ? ` · ${late} relance${late > 1 ? 's' : ''}` : ''}</span>}
+                    {it.convoque !== false && cr.prochaine_reunion?.date && <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--accent-text)' }}>convoqué</span>}
+                    {acts.length > 0 && <span style={{ fontSize: 12, fontWeight: 600, color: late ? 'var(--red-text)' : 'var(--purple-text)' }}>{acts.length} action{acts.length > 1 ? 's' : ''}{late ? ` · ${late} relance${late > 1 ? 's' : ''}` : ''}</span>}
                     <button type="button" onClick={() => setPreview(preview === it.email ? null : it.email)}
-                      style={{ background: 'none', border: 'none', color: 'var(--accent-text)', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                      style={{ background: 'none', border: 'none', color: 'var(--accent-text)', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
                       {preview === it.email ? 'Masquer' : 'Aperçu'}
                     </button>
                     {preview === it.email && (
@@ -132,7 +132,7 @@ export default function CRSendModal({ cr, chantier, onClose, onSent }) {
             </div>
           )}
           {noEmail.length > 0 && (
-            <div style={{ fontSize: 11, color: 'var(--orange-text)', marginTop: 6 }}>
+            <div style={{ fontSize: 12, color: 'var(--orange-text)', marginTop: 6 }}>
               Sans email : {noEmail.map(it => it.nom).join(', ')}
             </div>
           )}

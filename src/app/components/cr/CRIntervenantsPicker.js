@@ -1,4 +1,5 @@
 'use client'
+import { Icon, I } from '../icons'
 import { useRef, useState } from 'react'
 import { toCrIntervenant } from '../../lib/crSuivi'
 
@@ -15,7 +16,7 @@ const arrowBtn = {
 }
 
 const linkBtn = (color) => ({
-  background: 'none', border: 'none', color, fontSize: 11, fontWeight: 700,
+  background: 'none', border: 'none', color, fontSize: 12, fontWeight: 600,
   cursor: 'pointer', padding: 0, fontFamily: 'inherit',
 })
 
@@ -105,7 +106,7 @@ export default function CRIntervenantsPicker({ available = [], value = [], onCha
   return (
     <div style={{ background: 'var(--row-fill)', border: '1px solid var(--separator)', borderRadius: 8, padding: 10 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, gap: 8, flexWrap: 'wrap' }}>
-        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--label)' }}>
+        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--label)' }}>
           {value.length === 0 ? 'Aucun sélectionné' : `${value.length} intervenant${value.length > 1 ? 's' : ''} · ${convoques} convoqué${convoques > 1 ? 's' : ''}`}
         </span>
         <div style={{ display: 'flex', gap: 12 }}>
@@ -143,17 +144,17 @@ export default function CRIntervenantsPicker({ available = [], value = [], onCha
                 <span style={{ minWidth: 0 }}>
                   <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--label)' }}>{it.nom}</span>
                   {(it.societe && it.societe !== it.nom) || it.role ? (
-                    <span style={{ fontSize: 11, color: 'var(--label-secondary)' }}>
+                    <span style={{ fontSize: 12, color: 'var(--label-secondary)' }}>
                       {' '}· {[it.societe && it.societe !== it.nom ? it.societe : '', it.role].filter(Boolean).join(' · ')}
                     </span>
                   ) : null}
-                  {!it.email && <span style={{ fontSize: 11, color: 'var(--orange-text)' }}> · sans email</span>}
+                  {!it.email && <span style={{ fontSize: 12, color: 'var(--orange-text)' }}> · sans email</span>}
                 </span>
               </label>
               {m && (
                 <span style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
-                  <button type="button" aria-label={`Monter ${it.nom}`} disabled={idx === 0} onClick={() => move(idx, idx - 1)} style={{ ...arrowBtn, opacity: idx === 0 ? 0.4 : 1 }}>↑</button>
-                  <button type="button" aria-label={`Descendre ${it.nom}`} disabled={idx === list.length - 1} onClick={() => move(idx, idx + 1)} style={{ ...arrowBtn, opacity: idx === list.length - 1 ? 0.4 : 1 }}>↓</button>
+                  <button type="button" aria-label={`Monter ${it.nom}`} disabled={idx === 0} onClick={() => move(idx, idx - 1)} style={{ ...arrowBtn, opacity: idx === 0 ? 0.4 : 1 }}><Icon d={I.arrowUp} size={16} stroke={1.75} /></button>
+                  <button type="button" aria-label={`Descendre ${it.nom}`} disabled={idx === list.length - 1} onClick={() => move(idx, idx + 1)} style={{ ...arrowBtn, opacity: idx === list.length - 1 ? 0.4 : 1 }}><Icon d={I.arrowDown} size={16} stroke={1.75} /></button>
                 </span>
               )}
               </div>
@@ -166,14 +167,14 @@ export default function CRIntervenantsPicker({ available = [], value = [], onCha
                         <button key={p.v} type="button" role="radio" aria-checked={on} title={p.v}
                           onClick={() => patch(it, { presence: p.v })}
                           style={{
-                            minWidth: 30, height: 30, borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                            minWidth: 30, height: 30, borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer',
                             fontFamily: 'inherit', border: `1.5px solid ${on ? p.color : 'var(--separator)'}`,
                             background: on ? p.bg : '#fff', color: on ? p.color : 'var(--label-secondary)',
                           }}>{m ? p.short : p.v}</button>
                       )
                     })}
                   </div>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 600, color: 'var(--accent-text)', cursor: 'pointer' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: 'var(--accent-text)', cursor: 'pointer' }}>
                     <input type="checkbox" checked={cur.convoque !== false}
                       onChange={e => patch(it, { convoque: e.target.checked })}
                       style={{ width: 16, height: 16, accentColor: 'var(--accent)' }} />
