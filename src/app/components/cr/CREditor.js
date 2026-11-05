@@ -1,4 +1,5 @@
 'use client'
+import { Icon, I } from '../icons'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useToast } from '../../contexts/ToastContext'
 import { useOptionalConfirm } from '../../contexts/ConfirmContext'
@@ -310,7 +311,7 @@ export default function CREditor({ open, initial, data, onClose, onSaved, lockCh
   )
   const manageToggle = (
     <button type="button" onClick={() => setManageLots(v => !v)} aria-pressed={manageLots}
-      style={{ border: 'none', background: 'none', padding: '4px 0', cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, fontWeight: 700, color: 'var(--accent-text)' }}>
+      style={{ border: 'none', background: 'none', padding: '4px 0', cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, fontWeight: 600, color: 'var(--accent-text)' }}>
       {manageLots ? 'Terminé' : 'Modifier les lots'}
     </button>
   )
@@ -318,7 +319,7 @@ export default function CREditor({ open, initial, data, onClose, onSaved, lockCh
   const lotsCard = (
     <section aria-label="Lots du compte rendu" style={card}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--label)' }}>Gérer les lots</span>
+        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--label)' }}>Gérer les lots</span>
         {editableLots.length > 0 && manageToggle}
       </div>
       {manageLots && <div style={{ marginTop: 8 }}>{lotsManager}</div>}
@@ -405,7 +406,7 @@ export default function CREditor({ open, initial, data, onClose, onSaved, lockCh
   const allOpen = sections.length > 0 && sections.every(sc => openLots[sc.key])
   const nextStep = (k, text) => (
     <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-      <button type="button" onClick={() => showStep(k)} style={primaryBtn}>Continuer : {text} →</button>
+      <button type="button" onClick={() => showStep(k)} style={{ ...primaryBtn, display: 'inline-flex', alignItems: 'center', gap: 4 }}>Continuer : {text}<Icon d={I.chevronRight} size={16} stroke={1.75} /></button>
     </div>
   )
 
@@ -431,7 +432,7 @@ export default function CREditor({ open, initial, data, onClose, onSaved, lockCh
           Lots{progress != null ? <span style={{ fontSize: 13, fontWeight: 400, color: 'var(--label-secondary)' }}> · avancement global {progress} %</span> : null}
         </h3>
         <button type="button" onClick={() => setOpenLots(allOpen ? {} : Object.fromEntries(sections.map(sc => [sc.key, true])))}
-          style={{ border: 'none', background: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: 700, color: 'var(--accent-text)' }}>
+          style={{ border: 'none', background: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: 600, color: 'var(--accent-text)' }}>
           {allOpen ? 'Tout replier' : 'Tout déplier'}
         </button>
       </div>
@@ -446,7 +447,7 @@ export default function CREditor({ open, initial, data, onClose, onSaved, lockCh
       <div style={{ position: 'sticky', bottom: 12, zIndex: 1, marginTop: 4, display: 'flex', gap: 10, alignItems: 'center', padding: '10px 12px',
         background: 'rgba(255,255,255,0.96)', border: '1px solid var(--separator)', borderRadius: 14, boxShadow: '0 6px 20px rgba(0,0,0,.10)' }}>
         <button type="button" onClick={toggleMic} aria-pressed={dictating}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 8, minHeight: 44, padding: '0 16px', borderRadius: 999, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 8, minHeight: 44, padding: '0 16px', borderRadius: 999, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
             border: 'none', background: dictating ? 'var(--red-text)' : NAVY, color: '#fff' }}>
           <span aria-hidden="true" style={{ width: 9, height: 9, borderRadius: '50%', background: '#fff', animation: dictating ? 'heartbeat 0.8s ease-in-out infinite' : 'none' }} />
           {dictating ? 'Arrêter la dictée' : 'Dicter la réunion'}
@@ -457,7 +458,7 @@ export default function CREditor({ open, initial, data, onClose, onSaved, lockCh
         {nouvelles.length >= 10 && (
           <button type="button" onClick={ranger} style={{ ...ghostBtn(), minHeight: 44, flexShrink: 0 }}>Ranger avec l’IA</button>
         )}
-        <button type="button" onClick={() => showStep('cloture')} style={{ ...ghostBtn(), minHeight: 44, flexShrink: 0 }}>Clôture →</button>
+        <button type="button" onClick={() => showStep('cloture')} style={{ ...ghostBtn(), minHeight: 44, flexShrink: 0 }}>Clôture</button>
       </div>
     </div>
   ) : (
@@ -494,9 +495,9 @@ export default function CREditor({ open, initial, data, onClose, onSaved, lockCh
           const on = s.id === current.id
           return (
             <button key={s.id} type="button" role="tab" aria-selected={on} onClick={() => goTo(i)}
-              style={{ flexShrink: 0, borderRadius: 999, padding: '7px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+              style={{ flexShrink: 0, borderRadius: 999, padding: '7px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
                 border: on ? `1.5px solid ${NAVY}` : '1px solid var(--separator-opaque)', background: on ? NAVY : '#fff', color: on ? '#fff' : 'var(--label-2)' }}>
-              {s.label}{c?.relance ? ` · ${c.relance}🔔` : c?.total ? ` · ${c.total}` : ''}
+              {s.label}{c?.relance ? ` · ${c.relance} à relancer` : c?.total ? ` · ${c.total}` : ''}
             </button>
           )
         })}
@@ -509,7 +510,7 @@ export default function CREditor({ open, initial, data, onClose, onSaved, lockCh
         {step < steps.length - 1 ? (
           <button type="button" onClick={() => goTo(step + 1)}
             style={{ ...ghostBtn('#fff'), flex: 2, minHeight: 48, background: NAVY, border: 'none', color: '#fff' }}>
-            {steps[step + 1].label} →
+            {steps[step + 1].label}<Icon d={I.chevronRight} size={16} stroke={1.75} />
           </button>
         ) : (
           <button type="button" onClick={() => submit(true)} disabled={saving}
@@ -537,13 +538,13 @@ export default function CREditor({ open, initial, data, onClose, onSaved, lockCh
       <header ref={headerRef} style={{ position: 'sticky', top: 0, zIndex: 2, background: '#fff', borderBottom: '1px solid var(--separator)', padding: m ? '8px 12px' : '10px 20px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           <button type="button" onClick={close} aria-label="Fermer" disabled={saving}
-            style={{ border: 'none', background: 'var(--grouped-bg)', borderRadius: 8, width: 38, height: 38, cursor: 'pointer', fontSize: 16 }}>✕</button>
+            style={{ border: 'none', background: 'var(--grouped-bg)', borderRadius: 8, width: 38, height: 38, cursor: 'pointer', fontSize: 16 }}><Icon d={I.x} size={14} stroke={1.75} /></button>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ fontSize: m ? 15 : 17, fontWeight: 800, color: 'var(--label)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <div style={{ fontSize: m ? 15 : 17, fontWeight: 600, color: 'var(--label)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               CR n°{form.numero || '—'} · {chantier?.nom || 'Choisis un chantier'}
             </div>
-            <div style={{ fontSize: 11, color: 'var(--label-secondary)', display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-              <span style={{ fontWeight: 700, color: statusBadge.color, background: statusBadge.bg, borderRadius: 4, padding: '0 6px' }}>{statusBadge.text}</span>
+            <div style={{ fontSize: 12, color: 'var(--label-secondary)', display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+              <span style={{ fontWeight: 600, color: statusBadge.color, background: statusBadge.bg, borderRadius: 4, padding: '0 6px' }}>{statusBadge.text}</span>
               {desk ? (
                 form.date ? <span>Réunion du {fmtDate(form.date)}</span> : null
               ) : (
@@ -551,21 +552,21 @@ export default function CREditor({ open, initial, data, onClose, onSaved, lockCh
                   {stats.total > 0 && <span>{stats.total} points · {stats.relance} à relancer · {stats.fait} faits</span>}
                   {questions > 0 && (
                     <button type="button" onClick={() => goToAnchor('cloture')}
-                      style={{ border: 'none', background: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 11, fontWeight: 700, color: 'var(--orange-deep)' }}>
+                      style={{ border: 'none', background: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, fontWeight: 600, color: 'var(--orange-deep)' }}>
                       {questions} à vérifier
                     </button>
                   )}
                   {progress != null && <span>avancement global {progress} %</span>}
                 </>
               )}
-              {ed.localSavedAt && <span title="Brouillon enregistré sur cet appareil (utilisable hors ligne)">✓ sur l&apos;appareil à {fmtTime(ed.localSavedAt)}</span>}
+              {ed.localSavedAt && <span title="Brouillon enregistré sur cet appareil (utilisable hors ligne)">Enregistré sur l&apos;appareil à {fmtTime(ed.localSavedAt)}</span>}
             </div>
           </div>
           {m && (
             <div role="radiogroup" aria-label="Mode de saisie" style={{ display: 'flex', background: 'var(--grouped-bg)', borderRadius: 8, padding: 3 }}>
               {[['reunion', 'Réunion'], ['redaction', 'Rédaction']].map(([k, l]) => (
                 <button key={k} type="button" role="radio" aria-checked={mode === k} onClick={() => setMode(k)}
-                  style={{ border: 'none', borderRadius: 6, padding: '6px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+                  style={{ border: 'none', borderRadius: 6, padding: '6px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
                     background: mode === k ? '#fff' : 'transparent', color: mode === k ? NAVY : 'var(--label-secondary)', boxShadow: mode === k ? '0 1px 2px rgba(0,0,0,.08)' : 'none' }}>{l}</button>
               ))}
             </div>
@@ -591,7 +592,7 @@ export default function CREditor({ open, initial, data, onClose, onSaved, lockCh
               const on = deskStep === s.k
               return (
                 <button key={s.k} type="button" role="tab" aria-selected={on} onClick={() => showStep(s.k)}
-                  style={{ flex: 1, minHeight: 40, border: 'none', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit', fontSize: 14, fontWeight: 700,
+                  style={{ flex: 1, minHeight: 40, border: 'none', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit', fontSize: 14, fontWeight: 600,
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                     background: on ? '#fff' : 'transparent', color: on ? NAVY : 'var(--label-2)', boxShadow: on ? '0 1px 3px rgba(0,0,0,.10)' : 'none' }}>
                   <span aria-hidden="true" style={{ width: 22, height: 22, borderRadius: '50%', display: 'inline-grid', placeItems: 'center', fontSize: 12,
@@ -604,7 +605,7 @@ export default function CREditor({ open, initial, data, onClose, onSaved, lockCh
           </div>
         )}
         {error && (
-          <div role="alert" style={{ marginTop: 8, background: 'var(--red-tint)', border: '1px solid var(--red-line)', borderRadius: 8, padding: '6px 10px', fontSize: 12, color: 'var(--red-text)' }}>⚠ {error}</div>
+          <div role="alert" style={{ marginTop: 8, background: 'var(--red-tint)', border: '1px solid var(--red-line)', borderRadius: 8, padding: '6px 10px', fontSize: 12, color: 'var(--red-text)', display: 'flex', gap: 8, alignItems: 'center' }}><Icon d={I.alert} size={14} stroke={1.75} />{error}</div>
         )}
       </header>
 

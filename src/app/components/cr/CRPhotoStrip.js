@@ -1,4 +1,5 @@
 'use client'
+import { Icon, I } from '../icons'
 import { useEffect, useRef, useState } from 'react'
 import { photoFromFile, signedUrls } from '../../lib/crPhotos'
 import { useToast } from '../../contexts/ToastContext'
@@ -47,22 +48,22 @@ export default function CRPhotoStrip({ photos = [], onChange, label = 'Photo' })
             <div style={{ position: 'relative', width: 108, height: 80, borderRadius: 8, overflow: 'hidden', background: 'var(--separator)' }}>
               {/* eslint-disable-next-line @next/next/no-img-element -- dataUrl locale ou URL signée à durée courte */}
               {src && <img src={src} alt={p.legende || `Photo ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
-              {!p.path && <span title="Pas encore envoyée" style={{ position: 'absolute', left: 4, top: 4, fontSize: 11, fontWeight: 700, background: 'var(--orange-tint)', color: 'var(--orange-deep)', borderRadius: 4, padding: '1px 4px' }}>local</span>}
+              {!p.path && <span title="Pas encore envoyée" style={{ position: 'absolute', left: 4, top: 4, fontSize: 12, fontWeight: 600, background: 'var(--orange-tint)', color: 'var(--orange-deep)', borderRadius: 4, padding: '1px 4px' }}>local</span>}
               <button type="button" aria-label={`Retirer la photo ${i + 1}`}
                 onClick={() => onChange(photos.filter((_, j) => j !== i))}
-                style={{ position: 'absolute', right: 3, top: 3, width: 24, height: 24, borderRadius: '50%', border: 'none', background: 'rgba(0,0,0,.65)', color: '#fff', cursor: 'pointer', fontSize: 13, lineHeight: 1 }}>✕</button>
+                style={{ position: 'absolute', right: 3, top: 3, width: 24, height: 24, borderRadius: '50%', border: 'none', background: 'rgba(0,0,0,.65)', color: '#fff', cursor: 'pointer', fontSize: 13, lineHeight: 1 }}><Icon d={I.x} size={14} stroke={1.75} /></button>
             </div>
             <input aria-label={`Légende de la photo ${i + 1}`} value={p.legende || ''} placeholder="Légende"
               onChange={e => onChange(photos.map((x, j) => (j === i ? { ...x, legende: e.target.value } : x)))}
-              style={{ width: '100%', marginTop: 3, fontSize: 11, padding: '3px 5px', border: '1px solid var(--separator)', borderRadius: 5, fontFamily: 'inherit', boxSizing: 'border-box' }} />
+              style={{ width: '100%', marginTop: 3, fontSize: 12, padding: '3px 5px', border: '1px solid var(--separator)', borderRadius: 5, fontFamily: 'inherit', boxSizing: 'border-box' }} />
           </figure>
         )
       })}
       <label style={{
         width: 80, height: 80, borderRadius: 8, border: '1.5px dashed var(--label-tertiary)', display: 'flex', flexDirection: 'column',
-        alignItems: 'center', justifyContent: 'center', cursor: busy ? 'wait' : 'pointer', color: '#48484A', fontSize: 11, fontWeight: 700, gap: 2,
+        alignItems: 'center', justifyContent: 'center', cursor: busy ? 'wait' : 'pointer', color: '#48484A', fontSize: 12, fontWeight: 600, gap: 2,
       }}>
-        <span aria-hidden="true" style={{ fontSize: 20 }}>📷</span>
+        <Icon d={I.camera} size={20} stroke={1.5} />
         {busy ? '…' : `+ ${label}`}
         <input ref={inputRef} type="file" accept="image/*" capture="environment" multiple hidden
           onChange={e => onFiles([...(e.target.files || [])])} />

@@ -1,4 +1,5 @@
 'use client'
+import { Icon, I } from '../icons'
 import { useState, useEffect } from 'react'
 import { supabase } from '../../supabaseClient'
 import { useToast } from '../../contexts/ToastContext'
@@ -207,8 +208,8 @@ export default function PVNewForm({ chantierId, chantier, clientContact, ordresS
       ].filter(Boolean)
       const recipientCount = recipients.length
       const msg = data.signUrl
-        ? `✅ PV ${data.numero} envoyé en signature à ${recipientCount} signataire${recipientCount > 1 ? 's' : ''}`
-        : `✅ PV ${data.numero} créé`
+        ? `PV ${data.numero} envoyé en signature à ${recipientCount} signataire${recipientCount > 1 ? 's' : ''}`
+        : `PV ${data.numero} créé`
       addToast(msg, 'success', {
         duration: 7000,
         ...(data.signUrl ? {
@@ -246,7 +247,7 @@ export default function PVNewForm({ chantierId, chantier, clientContact, ordresS
         maxHeight: '90vh',
         overflowY: 'auto'
       }}>
-        <h2 style={{ margin: '0 0 20px 0', fontSize: 16, fontWeight: 700, color: 'var(--label)' }}>
+        <h2 style={{ margin: '0 0 20px 0', fontSize: 16, fontWeight: 600, color: 'var(--label)' }}>
           Nouveau PV de réception
         </h2>
 
@@ -273,9 +274,9 @@ export default function PVNewForm({ chantierId, chantier, clientContact, ordresS
           />
 
           <div style={{ borderTop: '1px solid var(--separator)', paddingTop: 12, marginTop: 12 }}>
-            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--label-secondary)', marginBottom: 12 }}>SIGNATAIRES</div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--label-secondary)', marginBottom: 12 }}>SIGNATAIRES</div>
 
-            <label style={{ display: 'block', fontSize: 11, color: 'var(--label-secondary)', marginBottom: 8, fontWeight: 600 }}>
+            <label style={{ display: 'block', fontSize: 12, color: 'var(--label-secondary)', marginBottom: 8, fontWeight: 600 }}>
               Sélectionner les intervenants/entreprises
             </label>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
@@ -303,7 +304,7 @@ export default function PVNewForm({ chantierId, chantier, clientContact, ordresS
                       style={{ cursor: 'pointer' }}
                     />
                     <span style={{ fontWeight: 500, color: 'var(--label)' }}>{int.nom}</span>
-                    {int.type && <span style={{ fontSize: 11, color: 'var(--label-secondary)' }}>({int.type})</span>}
+                    {int.type && <span style={{ fontSize: 12, color: 'var(--label-secondary)' }}>({int.type})</span>}
                   </label>
                 )
               })}
@@ -311,11 +312,11 @@ export default function PVNewForm({ chantierId, chantier, clientContact, ordresS
 
             {form.selectedIntervenants.length > 0 && (
               <div style={{ background: 'var(--row-fill)', border: '1px solid var(--separator)', borderRadius: 6, padding: 12, marginBottom: 12 }}>
-                <div style={{ fontWeight: 600, color: 'var(--label)', marginBottom: 8, fontSize: 11 }}>
+                <div style={{ fontWeight: 600, color: 'var(--label)', marginBottom: 8, fontSize: 12 }}>
                   Intervenants sélectionnés ({form.selectedIntervenants.length})
                 </div>
                 {form.selectedIntervenants.map((intervenant, idx) => (
-                  <div key={intervenant.nom} style={{ marginBottom: idx < form.selectedIntervenants.length - 1 ? 12 : 0, fontSize: 11 }}>
+                  <div key={intervenant.nom} style={{ marginBottom: idx < form.selectedIntervenants.length - 1 ? 12 : 0, fontSize: 12 }}>
                     <div style={{ fontWeight: 600, color: 'var(--label)', marginBottom: 4 }}>{intervenant.nom}</div>
                     {intervenant.societe && <div style={{ color: 'var(--label-secondary)' }}>{intervenant.societe}</div>}
                     {intervenant.adresse && <div style={{ color: 'var(--label-secondary)' }}>{intervenant.adresse}</div>}
@@ -328,8 +329,8 @@ export default function PVNewForm({ chantierId, chantier, clientContact, ordresS
               </div>
             )}
 
-            <label style={{ display: 'block', fontSize: 11, color: 'var(--label-secondary)', marginBottom: 4, fontWeight: 600 }}>
-              Email MOE (Maître d&apos;œuvre) {form.signataireMoeEmail ? '✓' : ''}
+            <label style={{ display: 'block', fontSize: 12, color: 'var(--label-secondary)', marginBottom: 4, fontWeight: 600 }}>
+              Email MOE (maître d&apos;œuvre)
             </label>
             <input aria-label="Email MOE (maître d’œuvre)"
               type="email"
@@ -340,8 +341,8 @@ export default function PVNewForm({ chantierId, chantier, clientContact, ordresS
               disabled
             />
 
-            <label style={{ display: 'block', fontSize: 11, color: 'var(--label-secondary)', marginBottom: 4, fontWeight: 600 }}>
-              Email(s) MOA (Maître{form.signataireMotEmails.length > 1 ? 's' : ''} d&apos;ouvrage) — jusqu&apos;à 3 {form.signataireMotEmails.some(e => e?.trim()) ? '✓' : ''}
+            <label style={{ display: 'block', fontSize: 12, color: 'var(--label-secondary)', marginBottom: 4, fontWeight: 600 }}>
+              Email(s) MOA (Maître{form.signataireMotEmails.length > 1 ? 's' : ''} d&apos;ouvrage) — jusqu&apos;à 3
             </label>
             {form.signataireMotEmails.map((email, idx) => (
               <div key={idx} style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'center' }}>
@@ -395,9 +396,9 @@ export default function PVNewForm({ chantierId, chantier, clientContact, ordresS
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {[
-                { value: 'Accepté', label: '✓ Accepté sans réserve', color: '#1E7B34' },
-                { value: 'Accepté avec réserve', label: '⚠️ Accepté avec réserve', color: '#C93400' },
-                { value: 'Refusé', label: '✕ Refusé', color: '#D70015' }
+                { value: 'Accepté', label: 'Accepté sans réserve', color: '#1E7B34' },
+                { value: 'Accepté avec réserve', label: 'Accepté avec réserve', color: '#C93400' },
+                { value: 'Refusé', label: 'Refusé', color: '#D70015' }
               ].map(opt => (
                 <label key={opt.value} style={{
                   display: 'flex',
@@ -448,12 +449,12 @@ export default function PVNewForm({ chantierId, chantier, clientContact, ordresS
             {/* Réserves acceptation */}
             {form.decision === 'Accepté avec réserve' && (
               <div style={{ marginTop: 12 }}>
-                <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--label)', marginBottom: 8 }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--label)', marginBottom: 8 }}>
                   Réserves mentionnées
                 </div>
                 {(Array.isArray(form.reservesAcceptation) ? form.reservesAcceptation : [form.reservesAcceptation || '']).map((reserve, idx) => (
                   <div key={idx} style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'flex-start' }}>
-                    <div style={{ minWidth: 50, fontSize: 11, fontWeight: 600, color: 'var(--label-secondary)', paddingTop: 9 }}>
+                    <div style={{ minWidth: 50, fontSize: 12, fontWeight: 600, color: 'var(--label-secondary)', paddingTop: 9 }}>
                       Ligne {idx + 1}:
                     </div>
                     <textarea aria-label={`Réserve, ligne ${idx + 1}`}
@@ -605,8 +606,8 @@ export default function PVNewForm({ chantierId, chantier, clientContact, ordresS
             boxShadow: '0 20px 25px rgba(0,0,0,0.2)'
           }} onClick={(e) => e.stopPropagation()}>
             <div style={{ padding: 16, borderBottom: '1px solid var(--separator)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>Aperçu du PV</h3>
-              <button autoFocus onClick={() => setShowPreview(false)} aria-label="Fermer l'aperçu" style={{ background: 'none', border: 'none', fontSize: 24, cursor: 'pointer', color: 'var(--label-secondary)' }}>×</button>
+              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>Aperçu du PV</h3>
+              <button autoFocus onClick={() => setShowPreview(false)} aria-label="Fermer l'aperçu" style={{ background: 'none', border: 'none', fontSize: 24, cursor: 'pointer', color: 'var(--label-secondary)' }}><Icon d={I.x} size={14} stroke={1.75} /></button>
             </div>
             <iframe
               title="Aperçu PV"

@@ -34,7 +34,7 @@ function OsCardImpl({
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 8 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 4, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--label)' }}>{os.numero}</span>
+            <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--label)' }}>{os.numero}</span>
             <Badge text={os.statut} color={osStatusColor[os.statut] || '#8E8E93'}/>
             {overdue && (
               <span title={`Échéance dépassée : ${fmtDate(os.date_fin_prevue)}`} style={{
@@ -42,7 +42,7 @@ function OsCardImpl({
                 background: 'var(--red-tint)', color: 'var(--red-text)',
                 borderRadius: 999,
                 padding: '2px 8px', fontSize: 12, fontWeight: 600,
-              }}>⚠ En retard</span>
+              }}>En retard</span>
             )}
             <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--label)' }}>{ch?.nom || '—'}</span>
           </div>
@@ -56,7 +56,7 @@ function OsCardImpl({
           </div>
         </div>
         <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--label)' }}>{fmtMoney(os.montant_ttc || 0)}</div>
+          <div style={{ fontSize: 18, fontWeight: 600, color: 'var(--label)' }}>{fmtMoney(os.montant_ttc || 0)}</div>
           <div style={{ fontSize: 12, color: 'var(--label-secondary)' }}>HT : {fmtMoney(os.montant_ht || 0)}</div>
         </div>
       </div>
@@ -95,7 +95,7 @@ function OsCardImpl({
               title="Réinitialiser la signature (efface le lien Odoo)"
               aria-label="Réinitialiser la signature"
               className="u-btn" style={{ ...btnChip, color: '#48484A' }}
-            >↺</button>
+            ><Icon d={I.refresh} size={16} stroke={1.75} /></button>
           </>
         ) : (
           <button onClick={() => onSignOpen(os)} title="Envoyer pour signature Odoo"

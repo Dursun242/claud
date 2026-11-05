@@ -1,4 +1,5 @@
 'use client'
+import { Icon, I } from '../icons'
 import { useState } from 'react'
 import { field } from './crStyles'
 
@@ -30,10 +31,10 @@ export default function CRLotsManager({ lots = [], counts = {}, onMove, onRename
                 <input autoFocus value={editing.value} aria-label={`Nouveau nom du lot ${l.lot}`}
                   onChange={e => setEditing({ ...editing, value: e.target.value, error: null })}
                   style={{ ...field, minHeight: 32, fontSize: 13, padding: '4px 8px' }} />
-                <button type="submit" aria-label="Valider le nom" style={{ ...iconBtn, color: 'var(--green-text)' }}>✓</button>
-                <button type="button" aria-label="Annuler" onClick={() => setEditing(null)} style={iconBtn}>✕</button>
+                <button type="submit" aria-label="Valider le nom" style={{ ...iconBtn, color: 'var(--green-text)' }}><Icon d={I.check} size={14} stroke={1.75} /></button>
+                <button type="button" aria-label="Annuler" onClick={() => setEditing(null)} style={iconBtn}><Icon d={I.x} size={14} stroke={1.75} /></button>
               </form>
-              {editing.error && <div role="alert" style={{ fontSize: 11, color: 'var(--red-text)', marginTop: 2 }}>{editing.error}</div>}
+              {editing.error && <div role="alert" style={{ fontSize: 12, color: 'var(--red-text)', marginTop: 2 }}>{editing.error}</div>}
             </li>
           )
         }
@@ -42,10 +43,10 @@ export default function CRLotsManager({ lots = [], counts = {}, onMove, onRename
             <span style={{ flex: 1, minWidth: 0, fontSize: 13, color: 'var(--label)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {l.lot}{n ? <span style={{ color: 'var(--label-secondary)' }}> · {n}</span> : null}
             </span>
-            <button type="button" aria-label={`Monter ${l.lot}`} disabled={i === 0} onClick={() => onMove(l.key, -1)} style={{ ...iconBtn, opacity: i === 0 ? 0.35 : 1 }}>↑</button>
-            <button type="button" aria-label={`Descendre ${l.lot}`} disabled={i === lots.length - 1} onClick={() => onMove(l.key, 1)} style={{ ...iconBtn, opacity: i === lots.length - 1 ? 0.35 : 1 }}>↓</button>
-            <button type="button" aria-label={`Renommer ${l.lot}`} onClick={() => setEditing({ key: l.key, value: l.lot, error: null })} style={iconBtn}>✎</button>
-            <button type="button" aria-label={`Supprimer ${l.lot}`} onClick={() => onRemove(l)} style={{ ...iconBtn, color: 'var(--red-text)' }}>🗑</button>
+            <button type="button" aria-label={`Monter ${l.lot}`} disabled={i === 0} onClick={() => onMove(l.key, -1)} style={{ ...iconBtn, opacity: i === 0 ? 0.35 : 1 }}><Icon d={I.arrowUp} size={16} stroke={1.75} /></button>
+            <button type="button" aria-label={`Descendre ${l.lot}`} disabled={i === lots.length - 1} onClick={() => onMove(l.key, 1)} style={{ ...iconBtn, opacity: i === lots.length - 1 ? 0.35 : 1 }}><Icon d={I.arrowDown} size={16} stroke={1.75} /></button>
+            <button type="button" aria-label={`Renommer ${l.lot}`} onClick={() => setEditing({ key: l.key, value: l.lot, error: null })} style={iconBtn}><Icon d={I.edit} size={16} stroke={1.75} /></button>
+            <button type="button" aria-label={`Supprimer ${l.lot}`} onClick={() => onRemove(l)} style={{ ...iconBtn, color: 'var(--red-text)' }}><Icon d={I.trash} size={16} stroke={1.75} /></button>
           </li>
         )
       })}

@@ -149,7 +149,7 @@ export default function ReportsV({ data, save: _save, m, reload, focusId, focusT
       alignItems:"center",marginBottom:14,flexWrap:"wrap",gap:8
     }}>
       <div>
-        <h1 style={{margin:0,fontSize:m?28:32,fontWeight:700,letterSpacing:"-0.02em",color:"var(--label)"}}>Comptes rendus</h1>
+        <h1 style={{margin:0,fontSize:m?28:32,fontWeight:600,letterSpacing:"-0.02em",color:"var(--label)"}}>Comptes rendus</h1>
         <div style={{fontSize:13,color:"var(--label-secondary)",marginTop:2}}>
           {total} au total
           {hasFilters && <>
@@ -178,7 +178,7 @@ export default function ReportsV({ data, save: _save, m, reload, focusId, focusT
     {filteredSortedCRs.length === 0 ? (
       hasFilters ? (
         <EmptyState
-          icon="📝"
+          icon={<Icon d={I.reports} size={24} stroke={1.5} />}
           title="Aucun résultat"
           description="Essaie d'élargir ta recherche ou de changer de chantier."
           action={{
@@ -188,7 +188,7 @@ export default function ReportsV({ data, save: _save, m, reload, focusId, focusT
         />
       ) : (
         <EmptyState
-          icon="📝"
+          icon={<Icon d={I.reports} size={24} stroke={1.5} />}
           title="Aucun compte rendu"
           description="Crée ton premier CR de chantier pour commencer."
           action={{ label: '+ Nouveau CR', onClick: openNew }}
@@ -207,7 +207,7 @@ export default function ReportsV({ data, save: _save, m, reload, focusId, focusT
               alignItems:"center",marginBottom:10,flexWrap:"wrap",gap:6
             }}>
               <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
-                <span style={{fontWeight:700,fontSize:15,color:"var(--label)"}}>CR n°{cr.numero}</span>
+                <span style={{fontWeight:600,fontSize:15,color:"var(--label)"}}>CR n°{cr.numero}</span>
                 <span style={{fontWeight:600,fontSize:15,color:"var(--label)"}}>{ch?.nom || "—"}</span>
                 <span style={{fontSize:13,color:"var(--label-secondary)"}}>{fmtDate(cr.date)}</span>
                 {cr.statut === 'Brouillon' && (
@@ -284,7 +284,7 @@ function CRCardSummary({ cr }) {
       {st.nouveau > 0 && chip(`${st.nouveau} nouveau${st.nouveau > 1 ? "x" : ""}`, "#8944AB", "#F7F0FC")}
       {st.fait > 0 && chip(`${st.fait} soldé${st.fait > 1 ? "s" : ""}`, "#1E7B34", "#EAF8EE")}
       {st.en_cours > 0 && chip(`${st.en_cours} en cours`, "#0066CC", "#EAF3FF")}
-      {st.relance > 0 && chip(`🔔 ${st.relance} relancé${st.relance > 1 ? "s" : ""}`, "#D70015", "#FFF0EF")}
+      {st.relance > 0 && chip(`${st.relance} relancé${st.relance > 1 ? "s" : ""}`, "#D70015", "#FFF0EF")}
       {progress != null && chip(`Avancement ${progress} %`, "#1C1C1E", "#F2F2F7")}
       {next?.date && chip(`Prochaine réunion : ${fmtDate(next.date)}${next.heure ? ` ${String(next.heure).slice(0, 5)}` : ""}`, "#0071E3", "#F2F2F7")}
     </div>

@@ -22,7 +22,6 @@ function PVRowImpl({ pv, onDetail }) {
         background: '#fff',
         border: 'none',
         borderRadius: 10,
-        boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
         cursor: 'pointer',
         textAlign: 'left',
         flexWrap: 'wrap',
@@ -30,24 +29,24 @@ function PVRowImpl({ pv, onDetail }) {
     >
       <div style={{ flex: '1 1 0', minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2, flexWrap: 'wrap' }}>
-          <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--label)', whiteSpace: 'nowrap' }}>
+          <span style={{ fontWeight: 600, fontSize: 13, color: 'var(--label)', whiteSpace: 'nowrap' }}>
             {pv.numero}
           </span>
           <span style={{
             padding: '3px 7px', background: sigStatus.bg, color: sigStatus.color,
-            borderRadius: 6, fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap',
+            borderRadius: 6, fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap',
           }}>
-            {sigStatus.icon} {pv.statut_signature}
+            {pv.statut_signature}
           </span>
           <span style={{
             padding: '3px 7px', background: decStatus.bg, color: decStatus.color,
-            borderRadius: 6, fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap',
+            borderRadius: 6, fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap',
           }}>
-            {decStatus.icon} {pv.statut_reception}
+            {pv.statut_reception}
           </span>
         </div>
         <div style={{
-          fontSize: 11, color: 'var(--label-secondary)',
+          fontSize: 12, color: 'var(--label-secondary)',
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>
           {pv.titre} • {formatDate(pv.date_reception)}

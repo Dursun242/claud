@@ -1,4 +1,5 @@
 'use client'
+import { Icon, I } from '../icons'
 import { useState } from 'react'
 import { SUIVI, PRIORITY_LADDER, daysLate, effectivePriority, lotKey } from '../../lib/crSuivi'
 import { SUIVI_STYLE, PRIO_COLOR, field } from './crStyles'
@@ -27,9 +28,9 @@ export default function CRPointCard({ row, crId, crDate, lots = [], entreprisesL
   return (
     <div data-testid="cr-point" style={{ border: `1.5px solid ${st.border}`, background: st.bg, borderRadius: 10, padding: 10, opacity: disabled ? 0.6 : 1 }}>
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-        {row.num ? <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--label-secondary)', minWidth: 28 }}>n°{row.num}</span> : null}
+        {row.num ? <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--label-secondary)', minWidth: 28 }}>n°{row.num}</span> : null}
         {row.isNew ? (
-          <span style={{ fontSize: 11, fontWeight: 800, color: st.color, background: '#fff', border: `1px solid ${st.border}`, borderRadius: 5, padding: '3px 7px' }}>NOUVEAU</span>
+          <span style={{ fontSize: 12, fontWeight: 600, color: st.color, background: '#fff', border: `1px solid ${st.border}`, borderRadius: 5, padding: '3px 7px' }}>NOUVEAU</span>
         ) : (
           <div role="radiogroup" aria-label={`État de « ${row.titre} »`} style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
             {['fait', 'en_cours', 'relance'].map(k => {
@@ -39,27 +40,27 @@ export default function CRPointCard({ row, crId, crDate, lots = [], entreprisesL
                 <button key={k} type="button" role="radio" aria-checked={on} disabled={disabled}
                   onClick={() => onChange({ suivi: k })}
                   style={{
-                    padding: m ? '8px 10px' : '6px 10px', minHeight: m ? 40 : 32, borderRadius: 8, fontSize: 12, fontWeight: 700,
+                    padding: m ? '8px 10px' : '6px 10px', minHeight: m ? 40 : 32, borderRadius: 8, fontSize: 12, fontWeight: 600,
                     fontFamily: 'inherit', cursor: disabled ? 'default' : 'pointer',
                     border: `1.5px solid ${on ? s.color : 'var(--separator)'}`,
                     background: on ? '#fff' : 'rgba(255,255,255,0.6)', color: on ? s.color : 'var(--label-secondary)',
-                  }}>{k === 'fait' ? '✓ ' : k === 'relance' ? '🔔 ' : ''}{SUIVI[k]}</button>
+                  }}>{SUIVI[k]}</button>
               )
             })}
           </div>
         )}
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-          {row.origineNumero ? <span style={{ fontSize: 11, color: 'var(--label-secondary)' }}>depuis CR n°{row.origineNumero}</span> : null}
-          {late > 0 && row.suivi !== 'fait' && <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--red-text)' }}>retard {late} j</span>}
-          {nbRappels > 0 && row.suivi !== 'fait' && <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--red-text)' }}>rappel n°{nbRappels}</span>}
-          {disabled && <span style={{ fontSize: 11, color: 'var(--label-secondary)' }}>tâche supprimée</span>}
+          {row.origineNumero ? <span style={{ fontSize: 12, color: 'var(--label-secondary)' }}>depuis CR n°{row.origineNumero}</span> : null}
+          {late > 0 && row.suivi !== 'fait' && <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--red-text)' }}>retard {late} j</span>}
+          {nbRappels > 0 && row.suivi !== 'fait' && <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--red-text)' }}>rappel n°{nbRappels}</span>}
+          {disabled && <span style={{ fontSize: 12, color: 'var(--label-secondary)' }}>tâche supprimée</span>}
           <button aria-label={showPhotos ? 'Masquer les photos' : `Photos du point${photos.length ? ` (${photos.length})` : ''}`} type="button" onClick={() => setShowPhotos(v => !v)} aria-expanded={showPhotos}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700, color: 'var(--accent-text)', fontFamily: 'inherit', padding: '2px 4px' }}>
-            📷 {photos.length || ''}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: 'var(--accent-text)', fontFamily: 'inherit', padding: '2px 4px' }}>
+            <Icon d={I.camera} size={14} stroke={1.5} /> {photos.length || ''}
           </button>
           {row.isNew && (
             <button type="button" onClick={onRemove} aria-label="Retirer ce point"
-              style={{ background: 'none', border: 'none', color: 'var(--red-text)', cursor: 'pointer', fontSize: 16, padding: '0 4px' }}>✕</button>
+              style={{ background: 'none', border: 'none', color: 'var(--red-text)', cursor: 'pointer', fontSize: 16, padding: '0 4px' }}><Icon d={I.x} size={14} stroke={1.75} /></button>
           )}
         </div>
       </div>
@@ -85,7 +86,7 @@ export default function CRPointCard({ row, crId, crDate, lots = [], entreprisesL
       </div>
       <CRPointNotices row={row} crId={crId} disabled={disabled} onChange={onChange} onMiseEnDemeure={onMiseEnDemeure} />
       {willRemind && nextPrio !== row.priorite && (
-        <div style={{ fontSize: 11, color: 'var(--red-text)', marginTop: 6 }}>
+        <div style={{ fontSize: 12, color: 'var(--red-text)', marginTop: 6 }}>
           Relance : priorité relevée à « {PRIO_LABEL[nextPrio]} » à l&apos;enregistrement.
         </div>
       )}

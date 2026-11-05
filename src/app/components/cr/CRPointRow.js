@@ -48,7 +48,7 @@ export default function CRPointRow({ row, crId, crDate, lots = [], entreprisesLi
   return (
     <div data-testid="cr-point" style={{ borderTop: '1px solid var(--separator)', padding: '10px 0', opacity: disabled ? 0.6 : 1 }}>
       <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--label-secondary)', minWidth: 30, paddingTop: row.isNew ? 9 : 2 }}>
+        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--label-secondary)', minWidth: 30, paddingTop: row.isNew ? 9 : 2 }}>
           {row.num ? `n°${row.num}` : ''}
         </span>
         <div style={{ flex: '1 1 220px', minWidth: 0 }}>
@@ -68,7 +68,7 @@ export default function CRPointRow({ row, crId, crDate, lots = [], entreprisesLi
           )}
         </div>
         {row.isNew ? (
-          <span style={{ fontSize: 12, fontWeight: 700, color: SUIVI_STYLE.nouveau.color, paddingTop: 9 }}>Nouveau</span>
+          <span style={{ fontSize: 12, fontWeight: 600, color: SUIVI_STYLE.nouveau.color, paddingTop: 9 }}>Nouveau</span>
         ) : (
           <div role="radiogroup" aria-label={`État de « ${row.titre} »`}
             style={{ display: 'flex', flexShrink: 0, marginLeft: 'auto', border: '1px solid var(--separator-opaque)', borderRadius: 9, overflow: 'hidden' }}>
@@ -77,7 +77,7 @@ export default function CRPointRow({ row, crId, crDate, lots = [], entreprisesLi
               const s = SUIVI_STYLE[k]
               return (
                 <button key={k} type="button" role="radio" aria-checked={on} disabled={disabled} onClick={() => onChange({ suivi: k })}
-                  style={{ minHeight: 40, padding: '0 12px', fontSize: 13, fontWeight: 700, fontFamily: 'inherit', cursor: disabled ? 'default' : 'pointer', border: 'none',
+                  style={{ minHeight: 40, padding: '0 12px', fontSize: 13, fontWeight: 600, fontFamily: 'inherit', cursor: disabled ? 'default' : 'pointer', border: 'none',
                     borderLeft: i ? '1px solid var(--separator-opaque)' : 'none', background: on ? s.color : '#fff', color: on ? '#fff' : 'var(--label-2)' }}>
                   {SUIVI[k]}
                 </button>
@@ -130,7 +130,7 @@ export default function CRPointRow({ row, crId, crDate, lots = [], entreprisesLi
                   style={{ background: 'none', border: 'none', color: 'var(--red-text)', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'inherit' }}>Retirer</button>
               )}
               <button type="button" onClick={() => setOpen(false)}
-                style={{ background: 'none', border: 'none', color: 'var(--accent-text)', cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'inherit' }}>OK</button>
+                style={{ background: 'none', border: 'none', color: 'var(--accent-text)', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'inherit' }}>OK</button>
             </div>
           </div>
         )}

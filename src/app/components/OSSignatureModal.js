@@ -46,10 +46,10 @@ export default function OSSignatureModal({
       {signModal && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div style={{ background: 'var(--purple-tint)', borderRadius: 8, padding: 12 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--accent-text)', marginBottom: 2 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--accent-text)', marginBottom: 2 }}>
               OS {signModal.numero}
             </div>
-            <div style={{ fontSize: 11, color: 'var(--label-secondary)' }}>
+            <div style={{ fontSize: 12, color: 'var(--label-secondary)' }}>
               Expéditeur : <strong>Id Maîtrise</strong> — Objet :{' '}
               <em>
                 Signature requise – OS {signModal.numero}
@@ -72,11 +72,10 @@ export default function OSSignatureModal({
               >
                 <div
                   style={{
-                    fontSize: 11,
-                    fontWeight: 700,
+                    fontSize: 12,
+                    fontWeight: 600,
                     color,
                     marginBottom: 6,
-                    textTransform: 'uppercase',
                     display: 'flex',
                     justifyContent: 'space-between',
                   }}
@@ -120,7 +119,7 @@ export default function OSSignatureModal({
               border: '1px solid var(--green-line)',
               borderRadius: 8,
               padding: 10,
-              fontSize: 11,
+              fontSize: 12,
               color: 'var(--green-text)',
             }}
           >

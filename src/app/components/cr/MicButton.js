@@ -5,7 +5,7 @@ export default function MicButton({ active, onClick, label = 'Dicter' }) {
     <button type="button" onClick={onClick} aria-pressed={active} title={active ? 'Arrêter la dictée' : label}
       style={{
         display: 'inline-flex', alignItems: 'center', gap: 6, borderRadius: 999, padding: '6px 12px', minHeight: 34,
-        fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+        fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
         border: active ? '1.5px solid var(--red-text)' : '1.5px solid var(--separator-opaque)',
         background: active ? 'var(--red-tint)' : '#fff', color: active ? 'var(--red-text)' : 'var(--accent)',
       }}>

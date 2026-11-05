@@ -1,4 +1,5 @@
 'use client'
+import { Icon, I } from '../icons'
 import { useState } from 'react'
 import { supabase } from '../../supabaseClient'
 import { useToast } from '../../contexts/ToastContext'
@@ -109,7 +110,7 @@ export default function PVDetail({ pv, onClose, onDecision }) {
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: 20 }}>
           <div>
-            <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--label)' }}>
+            <h2 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: 'var(--label)' }}>
               {pv.numero}
             </h2>
             <p style={{ margin: '4px 0 0 0', fontSize: 12, color: 'var(--label-secondary)' }}>
@@ -122,20 +123,20 @@ export default function PVDetail({ pv, onClose, onDecision }) {
             fontSize: 20,
             cursor: 'pointer',
             color: 'var(--label-secondary)'
-          }}>×</button>
+          }}><Icon d={I.x} size={14} stroke={1.75} /></button>
         </div>
 
         {/* Infos */}
         <div style={{ background: 'var(--row-fill)', borderRadius: 8, padding: 12, marginBottom: 12, fontSize: 12 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
-              <div style={{ color: 'var(--label-secondary)', fontSize: 11, fontWeight: 600 }}>DATE RÉCEPTION</div>
+              <div style={{ color: 'var(--label-secondary)', fontSize: 12, fontWeight: 600 }}>DATE RÉCEPTION</div>
               <div style={{ color: 'var(--label)', fontWeight: 600, marginTop: 2 }}>
                 {formatDate(pv.date_reception)}
               </div>
             </div>
             <div>
-              <div style={{ color: 'var(--label-secondary)', fontSize: 11, fontWeight: 600 }}>STATUT SIGNATURE</div>
+              <div style={{ color: 'var(--label-secondary)', fontSize: 12, fontWeight: 600 }}>STATUT SIGNATURE</div>
               <div style={{ color: 'var(--label)', fontWeight: 600, marginTop: 2 }}>
                 {pv.statut_signature}
               </div>
@@ -162,7 +163,7 @@ export default function PVDetail({ pv, onClose, onDecision }) {
                   textDecoration: 'none',
                 }}
               >
-                📎 Voir sur Odoo
+                Voir sur Odoo
               </a>
             )}
             {pv.statut_signature === 'Signé' && (
@@ -195,24 +196,24 @@ export default function PVDetail({ pv, onClose, onDecision }) {
         )}
 
         {/* Signataires */}
-        <div style={{ background: 'var(--row-fill)', borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 11 }}>
+        <div style={{ background: 'var(--row-fill)', borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 12 }}>
           <div style={{ fontWeight: 600, color: 'var(--label-secondary)', marginBottom: 8 }}>SIGNATAIRES</div>
           {pv.signataire_moe_email && (
             <div style={{ color: 'var(--label)', marginBottom: 4 }}>
               <strong>MOE:</strong> {pv.signataire_moe_email}
-              {pv.date_signature_moe && <span style={{ color: 'var(--label-secondary)', marginLeft: 8 }}>✓ {formatDate(pv.date_signature_moe)}</span>}
+              {pv.date_signature_moe && <span style={{ color: 'var(--label-secondary)', marginLeft: 8 }}>signé le {formatDate(pv.date_signature_moe)}</span>}
             </div>
           )}
           {(pv.signataire_moa_emails?.length ? pv.signataire_moa_emails : (pv.signataire_moa_email ? [pv.signataire_moa_email] : [])).map((email, idx) => (
             <div key={`moa-${idx}`} style={{ color: 'var(--label)', marginBottom: 4 }}>
               <strong>MOA{idx > 0 ? ` ${idx + 1}` : ''}:</strong> {email}
-              {idx === 0 && pv.date_signature_moa && <span style={{ color: 'var(--label-secondary)', marginLeft: 8 }}>✓ {formatDate(pv.date_signature_moa)}</span>}
+              {idx === 0 && pv.date_signature_moa && <span style={{ color: 'var(--label-secondary)', marginLeft: 8 }}>signé le {formatDate(pv.date_signature_moa)}</span>}
             </div>
           ))}
           {(pv.signataire_entreprise_emails?.length ? pv.signataire_entreprise_emails : (pv.signataire_entreprise_email ? [pv.signataire_entreprise_email] : [])).map((email, idx) => (
             <div key={`ent-${idx}`} style={{ color: 'var(--label)', marginBottom: 4 }}>
               <strong>Entreprise{idx > 0 ? ` ${idx + 1}` : ''}:</strong> {email}
-              {idx === 0 && pv.date_signature_entreprise && <span style={{ color: 'var(--label-secondary)', marginLeft: 8 }}>✓ {formatDate(pv.date_signature_entreprise)}</span>}
+              {idx === 0 && pv.date_signature_entreprise && <span style={{ color: 'var(--label-secondary)', marginLeft: 8 }}>signé le {formatDate(pv.date_signature_entreprise)}</span>}
             </div>
           ))}
         </div>
@@ -283,7 +284,7 @@ export default function PVDetail({ pv, onClose, onDecision }) {
         {pv.statut_reception !== 'En attente' && (
           <div style={{ background: decisionColor(pv.statut_reception).bg, borderRadius: 8, padding: 12, color: decisionColor(pv.statut_reception).color, fontSize: 12, fontWeight: 600 }}>
             Décision enregistrée: {pv.statut_reception}
-            {pv.motif_refus && <div style={{ marginTop: 8, fontSize: 11, fontWeight: 400 }}>Motif: {pv.motif_refus}</div>}
+            {pv.motif_refus && <div style={{ marginTop: 8, fontSize: 12, fontWeight: 400 }}>Motif: {pv.motif_refus}</div>}
           </div>
         )}
       </div>

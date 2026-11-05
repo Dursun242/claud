@@ -20,7 +20,7 @@ export default function CRChecksPanel({ checks = [], onGo, onRow, onMiseEnDemeur
       </button>
       {c.med && onMiseEnDemeure && (
         <button type="button" onClick={() => onMiseEnDemeure(c.med)}
-          style={{ marginLeft: 6, border: '1px solid var(--red-line)', background: '#fff', color: 'var(--red-text)', borderRadius: 6, padding: '2px 8px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+          style={{ marginLeft: 6, border: '1px solid var(--red-line)', background: '#fff', color: 'var(--red-text)', borderRadius: 6, padding: '2px 8px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
           Préparer le courrier
         </button>
       )}

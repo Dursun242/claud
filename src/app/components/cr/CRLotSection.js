@@ -46,7 +46,7 @@ export default function CRLotSection({
                 value={av ?? ''} onChange={e => onSection({ avancement: e.target.value === '' ? null : Math.max(0, Math.min(100, Number(e.target.value))) })}
                 style={{ ...field, width: 72, minHeight: 36 }} />
             </div>
-            <div style={{ fontSize: 11, color: 'var(--label-secondary)', marginTop: 3, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <div style={{ fontSize: 12, color: 'var(--label-secondary)', marginTop: 3, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
               {section.avancement_prec != null && <span>CR précédent : {section.avancement_prec} %</span>}
               {section.prevu != null && <span>Prévu au planning : {section.prevu} %</span>}
               {ecart != null && ecart !== 0 && (
