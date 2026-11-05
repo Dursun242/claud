@@ -285,7 +285,7 @@ Les quatre styles de bouton d'iOS.
 - **Icônes :** toujours dessinées (`I.*` de `components/icons.js`, réexporté par `shared.js`), 16 ou 18 px, trait 1,5, couleur du texte (secondaire ou discret) ; dans les boutons, la navigation, les notifications, les messages et les états vides. Pas d'emoji ni de caractère ✓ ✕ ⚠ ← à la place d'une icône.
 
 ### Repères emoji
-Choix de l'équipe (octobre 2026) : quelques emoji pour repérer d'un coup d'œil ce qui compte.
+Choix de l'équipe (octobre 2026, confirmé en novembre 2026 lors du passage unslop) : quelques emoji pour repérer d'un coup d'œil ce qui compte.
 - **Composant :** `components/Emoji.js`, emoji dans une tuile arrondie gris iOS (28 px ; 26 px dans une ligne ; tuile grise dans une carte blanche, blanche sur le fond gris de la page ; 32 px pour « Mes priorités du jour »), caché aux lecteurs d'écran.
 - **Liste fixe** (`lib/emoji.js`) : 🎯 priorités, ☀️ ma journée, 💼 commercial, ⚡ à faire, 🏗️ chantiers, 💶 budget, 🧮 chiffrage, 📎 pièces jointes, 📋 OS, 📝 CR, 🤝 PV, ✅ tâches, 👷 intervenants, 📅 planning / rendez-vous, 🔒 notes internes, 💬 commentaires, 🚧 travaux ; agenda : ✍️ signature, 📞 relance ; signaux : 🔥 client intéressé, ⏳ expiration, 📭 sans réponse, 📄 brouillon, 💤 dormante ; alertes : ⚠️ alerte, 🔔 rappel.
 - **Où :** devant un titre de section, devant une ligne dont le type compte (agenda, signaux commerciaux), dans une alerte.
@@ -319,9 +319,9 @@ Choix de l'équipe (octobre 2026) : quelques emoji pour repérer d'un coup d'œi
 - **Focus :** bordure et halo `system-blue`. **Erreur :** bordure et fond rouges dilués.
 
 ### Navigation
-- **Barre latérale (ordinateur) :** fond `sidebar`, trait à droite ; marque « ID Maîtrise » en titre 20 px ; recherche ; bouton « Créer… » plein ; onglets 15 px avec icône bleue 18 px ; onglet actif en pastille `accent` texte et icône blancs ; Qonto en violet ; compte et « Déconnexion » (bouton gris, texte rouge) en bas.
-- **Téléphone :** en-tête translucide (bouton menu bleu, nom de la page en headline), barre d'onglets translucide : Accueil · Chantiers · + · Tâches · Plus (deux de chaque côté du bouton +) (icône active bleue, inactives grises), bouton + rond bleu.
-- **Retour :** lien bleu « ‹ Page » en haut à gauche.
+- **Barre latérale (ordinateur) :** fond `sidebar`, trait à droite ; marque « ID Maîtrise » 18 px semi-gras ; recherche ; bouton « Créer » plein (seul bleu plein du menu) ; onglets de 36 px, 15 px, icône grise 18 px au trait 1,5 ; onglet actif en bleu très léger (`accent-tint`, texte et icône bleus) ; Qonto comme les autres (« API » en gris discret) ; compte et « Déconnexion » (bouton blanc à trait fin, texte rouge) en bas.
+- **Téléphone :** en-tête translucide (bouton menu gris foncé, nom de la page en headline), barre d'onglets translucide : Accueil · Chantiers · + · Tâches · Plus (deux de chaque côté du bouton +) (icône active bleue, inactives grises), bouton + rond bleu.
+- **Retour :** lien bleu avec chevron dessiné et nom de la page d'origine, en haut à gauche.
 
 ### Pages de liste (toutes)
 - Grand titre 28 / 32 px, sous-titre 13 px gris ; recherche `SearchField` ; filtres `FilterPill` ; tri / filtre `toolbarSelect`.

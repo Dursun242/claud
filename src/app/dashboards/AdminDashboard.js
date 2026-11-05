@@ -333,8 +333,8 @@ export default function AdminDashboard({ user, profile = null }) {
         }} onClick={()=>setSidebarOpen(false)} />
       )}
 
-      {/* SIDEBAR — claire, façon barre latérale iPad : icônes bleues,
-          onglet actif en pastille bleue */}
+      {/* SIDEBAR — claire : icônes grises, onglet actif en bleu très léger
+          (sélection), le bleu plein reste à « Créer » */}
       <nav aria-label="Navigation principale" style={{
         width:280,position:isMobile?"fixed":"relative",
         left:isMobile?(sidebarOpen?0:-300):0,top:0,bottom:0,
@@ -343,27 +343,26 @@ export default function AdminDashboard({ user, profile = null }) {
         zIndex:999,transition:"left .25s ease",
         boxShadow:isMobile&&sidebarOpen?"4px 0 24px rgba(0,0,0,0.15)":"none"
       }}>
-        <div style={{padding:"18px 16px 10px"}}>
-          <div style={{fontSize:20,fontWeight:700,letterSpacing:"-0.01em"}}>ID Maîtrise</div>
-          <div style={{fontSize:12,color:"var(--label-secondary)",marginTop:2}}>Maîtrise d&apos;œuvre · Le Havre</div>
+        <div style={{padding:"20px 16px 12px"}}>
+          <div style={{fontSize:18,fontWeight:600}}>ID Maîtrise</div>
+          <div style={{fontSize:13,color:"var(--label-secondary)",marginTop:2}}>Maîtrise d&apos;œuvre · Le Havre</div>
         </div>
         <GlobalSearch data={data} crm={crm} onNavigate={jumpTo} />
         {/* Sur téléphone, « Créer » est le + de la barre du bas : pas de doublon dans le menu */}
         {!isMobile && <div style={{padding:"4px 8px 8px"}}>
           <button onClick={()=>setCreateOpen(true)} title="Créer (raccourci : c)" className="u-btn" style={{
-            width:"100%",display:"flex",alignItems:"center",justifyContent:"center",gap:6,
-            padding:"9px 10px",minHeight:38,borderRadius:10,border:"none",cursor:"pointer",
-            background:"var(--accent)",color:"#fff",fontFamily:"inherit",fontSize:14,fontWeight:600,
+            width:"100%",display:"flex",alignItems:"center",justifyContent:"center",gap:8,
+            padding:"0 12px",minHeight:36,borderRadius:10,border:"none",cursor:"pointer",
+            background:"var(--accent)",color:"#fff",fontFamily:"inherit",fontSize:14,fontWeight:500,
           }}>
-            <Icon d={I.plus} size={16} color="#fff"/> Créer…
+            <Icon d={I.plus} size={16} stroke={2} color="#fff"/> Créer
           </button>
         </div>}
         <div style={{flex:1,padding:"4px 8px",display:"flex",flexDirection:"column",gap:2,overflow:"auto"}}>
           {tabs.map(t=>{
             const active = tab===t.key;
-            // Icônes bleues ; Qonto en violet (données venues de l'API bancaire)
-            const tint = t.isQonto ? "#AF52DE" : "#0071E3";
-            const iconColor = active ? "#fff" : tint;
+            // Icônes grises, bleues sur l'onglet choisi (Qonto compris)
+            const iconColor = active ? "var(--accent)" : "var(--label-tertiary)";
             return (
               <button
                 key={t.key}
@@ -377,33 +376,28 @@ export default function AdminDashboard({ user, profile = null }) {
                 aria-label={`${t.label}, raccourci g puis ${t.sc}`}
                 className="sidebar-tab"
                 style={{
-                display:"flex",alignItems:"center",gap:10,
-                padding:"8px 10px",minHeight:38,border:"none",
-                borderRadius:10,cursor:"pointer",
+                display:"flex",alignItems:"center",gap:12,
+                padding:"0 12px",minHeight:36,border:"none",
+                borderRadius:8,cursor:"pointer",
                 fontFamily:"inherit",fontSize:15,
-                fontWeight:active?600:400,
-                color:active?"#fff":"var(--label)",
-                background:active?"var(--accent)":"transparent",
+                fontWeight:500,
+                color:active?"var(--accent-text)":"var(--label-2)",
+                background:active?"var(--accent-tint)":"transparent",
                 textAlign:"left",width:"100%",
               }}>
                 {t.isQonto ? (
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                    <circle cx="12" cy="12" r="9" stroke={iconColor} strokeWidth="2"/>
-                    <path d="M15 15l3 3" stroke={iconColor} strokeWidth="2" strokeLinecap="round"/>
-                    <path d="M9 12l2 2 4-4" stroke={iconColor} strokeWidth="2"
+                    <circle cx="12" cy="12" r="9" stroke={iconColor} strokeWidth="1.5"/>
+                    <path d="M15 15l3 3" stroke={iconColor} strokeWidth="1.5" strokeLinecap="round"/>
+                    <path d="M9 12l2 2 4-4" stroke={iconColor} strokeWidth="1.5"
                       strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                 ) : (
-                  <Icon d={t.icon} size={18} color={iconColor}/>
+                  <Icon d={t.icon} size={18} stroke={1.5} color={iconColor}/>
                 )}
                 <span style={{flex:1}}>{t.label}</span>
                 {t.isQonto && (
-                  <span style={{
-                    display:"inline-flex",alignItems:"center",
-                    padding:"1px 6px",borderRadius:999,
-                    background:active?"rgba(255,255,255,0.2)":"#AF52DE18",
-                    color:active?"#fff":"var(--purple-text)",fontSize:11,fontWeight:600,
-                  }}>API</span>
+                  <span style={{ fontSize:12, color:"var(--label-tertiary)" }}>API</span>
                 )}
               </button>
             );
@@ -420,7 +414,7 @@ export default function AdminDashboard({ user, profile = null }) {
               )}
               <div style={{flex:1,minWidth:0}}>
                 <div style={{
-                  fontSize:14,fontWeight:600,color:"var(--label)",
+                  fontSize:14,fontWeight:500,color:"var(--label)",
                   overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"
                 }}>{user.user_metadata?.full_name || user.email}</div>
                 <div style={{
@@ -431,15 +425,15 @@ export default function AdminDashboard({ user, profile = null }) {
             </div>
           )}
           <button onClick={logout} className="u-btn" style={{
-            width:"100%",padding:"8px 10px",minHeight:36,borderRadius:10,
-            border:"none",background:"var(--fill-gray)",
+            width:"100%",padding:"0 12px",minHeight:36,borderRadius:10,
+            border:"1px solid var(--separator)",background:"#fff",
             color:"var(--red-text)",fontSize:14,cursor:"pointer",
             fontFamily:"inherit",fontWeight:500
           }}>
             Déconnexion
           </button>
-          <div style={{fontSize:11,color:"var(--label-secondary)",marginTop:10,lineHeight:1.4}}>
-            SARL ID MAITRISE<br/>9 Rue Henry Genestal, 76600 Le Havre
+          <div style={{fontSize:12,color:"var(--label-tertiary)",marginTop:12,lineHeight:1.5}}>
+            SARL ID Maîtrise<br/>9 rue Henry Genestal, 76600 Le Havre
           </div>
         </div>
       </nav>
@@ -467,12 +461,12 @@ export default function AdminDashboard({ user, profile = null }) {
           }}>
             <button onClick={()=>setSidebarOpen(s=>!s)} aria-label="Ouvrir le menu"
               className="u-icon-btn"
-              style={{ width:40,height:40,borderRadius:10,color:"var(--accent)" }}>
-              <Icon d={I.menu} size={22} color="#0071E3"/>
+              style={{ width:40,height:40,borderRadius:10,color:"var(--label)" }}>
+              <Icon d={I.menu} size={22} stroke={1.75}/>
             </button>
             <div style={{flex:1,minWidth:0,display:"flex",flexDirection:"column",lineHeight:1.15}}>
               <span style={{
-                fontSize:11,fontWeight:500,color:"var(--label-secondary)",
+                fontSize:12,color:"var(--label-secondary)",
               }}>ID Maîtrise</span>
               <span style={{
                 fontSize:17,fontWeight:600,color:"var(--label)",
@@ -493,10 +487,10 @@ export default function AdminDashboard({ user, profile = null }) {
           {back && (
             <button type="button" onClick={back.go} style={{
               background:"none",border:"none",cursor:"pointer",padding:0,marginBottom:12,
-              display:"flex",alignItems:"center",gap:6,fontFamily:"inherit",
+              display:"flex",alignItems:"center",gap:4,fontFamily:"inherit",
               color:"var(--accent-text)",fontSize:15,fontWeight:500,minHeight:36,
             }}>
-              ‹ {back.label}
+              <Icon d={I.chevronLeft} size={18} stroke={1.75}/>{back.label}
             </button>
           )}
           {/* Chaque onglet n'est RENDU que s'il a déjà été visité (visitedTabs),

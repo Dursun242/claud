@@ -13,16 +13,15 @@ function ProtectedApp() {
     return (
       <div style={{
         height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: 'linear-gradient(135deg, var(--row-fill) 0%, var(--accent-tint) 100%)',
-        fontFamily: "var(--font-dm-sans), sans-serif"
+        background: 'var(--grouped-bg)', fontFamily: 'inherit'
       }}>
-        <div style={{ textAlign: 'center' }}>
+        <div role="status" style={{ textAlign: 'center' }}>
           <div style={{
-            width: 52, height: 52, border: '4px solid var(--separator)', borderTopColor: 'var(--accent)',
-            borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 18px'
+            width: 24, height: 24, border: '2px solid var(--separator)', borderTopColor: 'var(--label-secondary)',
+            borderRadius: '50%', animation: 'spin .8s linear infinite', margin: '0 auto 16px'
           }} aria-hidden="true"/>
-          <p style={{ margin: 0, color: 'var(--accent)', fontSize: 15, fontWeight: 600 }}>ID Maîtrise</p>
-          <p style={{ margin: '4px 0 0', color: 'var(--label-secondary)', fontSize: 12 }}>Vérification de votre accès…</p>
+          <p style={{ margin: 0, color: 'var(--label)', fontSize: 15, fontWeight: 600 }}>ID Maîtrise</p>
+          <p style={{ margin: '4px 0 0', color: 'var(--label-secondary)', fontSize: 13 }}>Vérification de votre accès…</p>
         </div>
       </div>
     )

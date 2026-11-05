@@ -205,9 +205,9 @@ export default function ClientDashboard({ user, profile = null }) {
         flexShrink:0,
       }}>
         {/* Logo */}
-        <div style={{ padding:'18px 16px 10px' }}>
-          <div style={{ fontSize:20, fontWeight:700, color:'var(--label)', letterSpacing:'-0.01em', marginBottom:2 }}>ID Maîtrise</div>
-          <div style={{ fontSize:12, color:'var(--label-secondary)' }}>Espace client</div>
+        <div style={{ padding:'20px 16px 12px' }}>
+          <div style={{ fontSize:18, fontWeight:600, color:'var(--label)', marginBottom:2 }}>ID Maîtrise</div>
+          <div style={{ fontSize:13, color:'var(--label-secondary)' }}>Espace client</div>
         </div>
 
         {/* Navigation */}
@@ -227,15 +227,15 @@ export default function ClientDashboard({ user, profile = null }) {
                 aria-label={`${t.label}, raccourci g puis ${t.sc}`}
                 className="sidebar-tab"
                 style={{
-                width:'100%', textAlign:'left', display:'flex', alignItems:'center', gap:10,
-                padding:'8px 10px', minHeight:38, marginBottom:2,
-                border:'none', borderRadius:10, cursor:'pointer',
+                width:'100%', textAlign:'left', display:'flex', alignItems:'center', gap:12,
+                padding:'0 12px', minHeight:36, marginBottom:2,
+                border:'none', borderRadius:8, cursor:'pointer',
                 fontFamily:'inherit',
-                background:active?'var(--accent)':'transparent',
-                color:active?'#fff':'var(--label)',
-                fontWeight:active?600:400, fontSize:15,
+                background:active?'var(--accent-tint)':'transparent',
+                color:active?'var(--accent-text)':'var(--label-2)',
+                fontWeight:500, fontSize:15,
               }}>
-                {t.icon && <Icon d={t.icon} size={18} color={active?'#fff':'#0071E3'} />}
+                {t.icon && <Icon d={t.icon} size={18} stroke={1.5} color={active?'var(--accent)':'var(--label-tertiary)'} />}
                 <span style={{ flex:1 }}>{t.label}</span>
               </button>
             )
@@ -252,16 +252,16 @@ export default function ClientDashboard({ user, profile = null }) {
                     style={{ borderRadius:'50%' }}/>
                 : <div style={{
                     width:32, height:32, borderRadius:'50%',
-                    background:'var(--accent)', display:'flex',
+                    background:'var(--grouped-bg)', display:'flex',
                     alignItems:'center', justifyContent:'center',
-                    fontSize:13, fontWeight:600, color:'#fff'
+                    fontSize:13, fontWeight:600, color:'var(--label-secondary)'
                   }}>
                     {(user.user_metadata?.full_name || user.email || '?')[0].toUpperCase()}
                   </div>
               }
               <div style={{ minWidth:0 }}>
                 <div style={{
-                  fontSize:14, fontWeight:600, color:'var(--label)',
+                  fontSize:14, fontWeight:500, color:'var(--label)',
                   overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'
                 }}>
                   {user.user_metadata?.full_name || user.email}
@@ -276,14 +276,14 @@ export default function ClientDashboard({ user, profile = null }) {
             </div>
           )}
           <button onClick={() => logout()} className="u-btn" style={{
-            width:'100%', padding:'8px', minHeight:36, background:'var(--fill-gray)',
-            color:'var(--red-text)', border:'none',
+            width:'100%', padding:'0 12px', minHeight:36, background:'#fff',
+            color:'var(--red-text)', border:'1px solid var(--separator)',
             borderRadius:10, cursor:'pointer', fontFamily:'inherit', fontSize:14, fontWeight:500,
           }}>
             Déconnexion
           </button>
-          <div style={{ fontSize:11, color:'var(--label-secondary)', textAlign:'center', marginTop:10 }}>
-            SARL ID MAÎTRISE · Le Havre
+          <div style={{ fontSize:12, color:'var(--label-tertiary)', textAlign:'center', marginTop:12 }}>
+            SARL ID Maîtrise · Le Havre
           </div>
         </div>
       </aside>
@@ -308,11 +308,11 @@ export default function ClientDashboard({ user, profile = null }) {
               aria-label="Ouvrir le menu"
               className="u-icon-btn"
               style={{ width:40, height:40, borderRadius:10 }}>
-              <Icon d={I.menu} size={22} color="#0071E3" />
+              <Icon d={I.menu} size={22} stroke={1.75} color="var(--label)" />
             </button>
             <div style={{ flex:1, minWidth:0, display:'flex', flexDirection:'column', lineHeight:1.15 }}>
               <span style={{
-                fontSize:11, fontWeight:500, color:'var(--label-secondary)',
+                fontSize:12, color:'var(--label-secondary)',
               }}>Espace client</span>
               <span style={{
                 fontSize:17, fontWeight:600, color:'var(--label)',
@@ -334,14 +334,14 @@ export default function ClientDashboard({ user, profile = null }) {
           {/* Aucun chantier associé */}
           {!data?.chantiers?.length && (
             <div style={{
-              background:'var(--orange-tint)', border:'1px solid var(--orange-line)',
-              borderRadius:14, padding:28, marginBottom:20, textAlign:'center'
+              background:'#fff', border:'1px solid var(--separator)',
+              borderRadius:12, padding:'32px 24px', marginBottom:20, textAlign:'center'
             }}>
-              <div style={{ fontSize:32, marginBottom:8 }}>🔗</div>
-              <div style={{ fontWeight:700, fontSize:15, color:'var(--orange-deep)', marginBottom:6 }}>
+              <div style={{ display:'flex', justifyContent:'center', color:'var(--label-tertiary)', marginBottom:8 }}><Icon d={I.link} size={24} stroke={1.5} /></div>
+              <div style={{ fontWeight:600, fontSize:15, color:'var(--label)', marginBottom:4 }}>
                 Aucun chantier associé
               </div>
-              <div style={{ fontSize:13, color:'var(--orange-text)', lineHeight:1.7 }}>
+              <div style={{ fontSize:13, color:'var(--label-secondary)', lineHeight:1.6 }}>
                 Votre compte n&apos;est pas encore lié à un chantier.<br/>
                 L&apos;administrateur doit rattacher le chantier concerné{" "}
                 à votre compte (<strong>{user?.email}</strong>).
@@ -444,18 +444,18 @@ export default function ClientDashboard({ user, profile = null }) {
           }}>
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14 }}>
               <div>
-                <div id="aide-clavier-client" style={{ fontSize:16, fontWeight:700, color:'var(--label)' }}>Raccourcis clavier</div>
-                <div style={{ fontSize:11, color:'var(--label-secondary)', marginTop:2 }}>Naviguer plus vite dans l&apos;app</div>
+                <div id="aide-clavier-client" style={{ fontSize:17, fontWeight:600, color:'var(--label)' }}>Raccourcis clavier</div>
+                <div style={{ fontSize:13, color:'var(--label-secondary)', marginTop:4 }}>Naviguer plus vite dans l&apos;app</div>
               </div>
               <button autoFocus onClick={() => setHelpOpen(false)} aria-label="Fermer"
                 style={{
                   background:'var(--grouped-bg)', border:'none', width:28, height:28,
-                  borderRadius:6, cursor:'pointer', color:'var(--label-secondary)', fontSize:16
-                }}>×</button>
+                  borderRadius:6, cursor:'pointer', color:'var(--label-secondary)',
+                  display:'flex', alignItems:'center', justifyContent:'center'
+                }}><Icon d={I.x} size={16} stroke={1.75} /></button>
             </div>
             <div style={{
-              fontSize:11, fontWeight:700, color:'var(--label-secondary)',
-              letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:6
+              fontSize:13, fontWeight:500, color:'var(--label-secondary)', marginBottom:8
             }}>
               Aller à (appuie sur <kbd style={kbdStyleC}>g</kbd> puis…)
             </div>
@@ -468,7 +468,7 @@ export default function ClientDashboard({ user, profile = null }) {
                 <kbd style={kbdStyleC}>{t.sc}</kbd>
               </div>
             ))}
-            <div style={{ fontSize:11, color:'var(--label-secondary)', marginTop:10, borderTop:'1px solid var(--separator)', paddingTop:10 }}>
+            <div style={{ fontSize:12, color:'var(--label-secondary)', marginTop:12, borderTop:'1px solid var(--separator)', paddingTop:12 }}>
               Appuie sur <kbd style={kbdStyleC}>?</kbd> à tout moment pour réouvrir
               cette aide · <kbd style={kbdStyleC}>Esc</kbd> pour fermer
             </div>

@@ -13,6 +13,7 @@
 //   error.js (ici)    → crash dans l'arbre de la route
 //   ErrorBoundary.js  → boundary posé manuellement autour d'un composant
 
+import { Icon, I } from './components/icons'
 import { useEffect } from 'react';
 
 export default function Error({ error, reset }) {
@@ -40,14 +41,13 @@ export default function Error({ error, reset }) {
           padding: '32px 28px',
           maxWidth: 440,
           textAlign: 'center',
-          boxShadow: '0 4px 24px rgba(0,0,0,0.08)',
           border: '1px solid var(--separator)',
         }}
       >
-        <div style={{ fontSize: 36, marginBottom: 12 }} aria-hidden="true">
-          ⚠️
+        <div style={{ display: 'flex', justifyContent: 'center', color: 'var(--red-text)', marginBottom: 12 }}>
+          <Icon d={I.alert} size={28} stroke={1.5} />
         </div>
-        <h2 style={{ margin: '0 0 8px', color: 'var(--label)', fontSize: 18, fontWeight: 700 }}>
+        <h2 style={{ margin: '0 0 8px', color: 'var(--label)', fontSize: 18, fontWeight: 600 }}>
           Cette section a rencontré un problème
         </h2>
         <p style={{ margin: '0 0 20px', color: 'var(--label-secondary)', fontSize: 14, lineHeight: 1.6 }}>
