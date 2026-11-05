@@ -24,7 +24,7 @@ export default function ChantierBudgetCard({ finances, m }) {
       : null
   const budgetColor = alertColor || '#1C1C1E'
   const barColor = finances.depassement > 0 ? '#D70015' : ratio >= 95 ? '#FF9500' : '#0071E3'
-  const label = { fontSize: 11, color: '#6E6E73', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }
+  const label = { fontSize: 12, color: '#6E6E73', fontWeight: 600}
 
   return (
     <div style={{ marginTop: 16 }}>
@@ -35,7 +35,7 @@ export default function ChantierBudgetCard({ finances, m }) {
       }}>
         <div style={{ background: 'var(--row-fill)', borderRadius: 8, padding: 10 }}>
           <div style={label}>Budget</div>
-          <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--label)' }}>
+          <div style={{ fontSize: 18, fontWeight: 600, color: 'var(--label)' }}>
             {fmtMoney(finances.budget)}
           </div>
         </div>
@@ -44,7 +44,7 @@ export default function ChantierBudgetCard({ finances, m }) {
           title={`${finances.engageCount} OS engagés (hors brouillon/annulé)`}
         >
           <div style={label}>Engagé (OS)</div>
-          <div style={{ fontSize: 18, fontWeight: 700, color: budgetColor }}>
+          <div style={{ fontSize: 18, fontWeight: 600, color: budgetColor }}>
             {fmtMoney(finances.engageMontant)}
           </div>
           <div style={{ fontSize: 12, color: 'var(--label-secondary)', marginTop: 2 }}>
@@ -56,7 +56,7 @@ export default function ChantierBudgetCard({ finances, m }) {
             {finances.depassement > 0 ? 'Dépassement' : 'Reste à engager'}
           </div>
           <div style={{
-            fontSize: 18, fontWeight: 700,
+            fontSize: 18, fontWeight: 600,
             color: finances.depassement > 0 ? 'var(--red-text)' : 'var(--label)',
           }}>
             {finances.depassement > 0
@@ -66,7 +66,7 @@ export default function ChantierBudgetCard({ finances, m }) {
         </div>
         <div style={{ background: 'var(--row-fill)', borderRadius: 8, padding: 10 }}>
           <div style={label} title="Part du budget engagée dans les OS">Budget engagé</div>
-          <div style={{ fontSize: 18, fontWeight: 700, color: budgetColor }}>{ratio}%</div>
+          <div style={{ fontSize: 18, fontWeight: 600, color: budgetColor }}>{ratio}%</div>
         </div>
       </div>
       <PBar

@@ -1,4 +1,5 @@
 'use client'
+import { Icon, I } from './icons'
 import { useState, useRef, useEffect } from 'react'
 import { inp } from '../dashboards/shared'
 
@@ -119,8 +120,8 @@ export default function AddressPicker({
         onChange={e => onChange?.(e.target.value)}
         onFocus={() => { if (items.length) setOpen(true) }} onKeyDown={onKey}
         placeholder={placeholder} style={{ ...inp, paddingRight: 30, ...style }} {...inputProps} />
-      <span aria-hidden="true" style={{ position: 'absolute', right: 10, top: 12, fontSize: 14, opacity: 0.5 }}>
-        {loading ? '…' : '📍'}
+      <span aria-hidden="true" style={{ position: 'absolute', right: 12, top: 14, color: 'var(--label-tertiary)', display: 'inline-flex' }}>
+        {loading ? '…' : <Icon d={I.mappin} size={16} stroke={1.5} />}
       </span>
       {open && items.length > 0 && (
         <div role="listbox" id={listId.current} style={{
@@ -137,14 +138,14 @@ export default function AddressPicker({
                 background: active === i ? 'var(--grouped-bg)' : '#fff',
               }}>
               <div style={{ fontWeight: 600, color: 'var(--label)' }}>{a.rue || a.ville}</div>
-              <div style={{ fontSize: 11, color: 'var(--label-secondary)' }}>{a.code_postal} {a.ville}{a.contexte ? ` · ${a.contexte}` : ''}</div>
+              <div style={{ fontSize: 12, color: 'var(--label-secondary)' }}>{a.code_postal} {a.ville}{a.contexte ? ` · ${a.contexte}` : ''}</div>
             </button>
           ))}
-          <div style={{ padding: '4px 12px', fontSize: 11, color: 'var(--label-secondary)', borderTop: '1px solid var(--grouped-bg)' }}>Base Adresse Nationale</div>
+          <div style={{ padding: '4px 12px', fontSize: 12, color: 'var(--label-secondary)', borderTop: '1px solid var(--grouped-bg)' }}>Base Adresse Nationale</div>
         </div>
       )}
       {failed && (value || '').trim().length >= MIN_CHARS && (
-        <div style={{ fontSize: 11, color: 'var(--label-secondary)', marginTop: 3 }}>Suggestions indisponibles — tu peux saisir l&apos;adresse librement.</div>
+        <div style={{ fontSize: 12, color: 'var(--label-secondary)', marginTop: 3 }}>Suggestions indisponibles — tu peux saisir l&apos;adresse librement.</div>
       )}
     </div>
   )
