@@ -1,7 +1,7 @@
 'use client'
 import { useState, useRef, useEffect, useMemo } from 'react'
 import { SB, Icon, I, FF, inp, sel, btnP, btnS } from '../dashboards/shared'
-import { Badge, ContactInfoLink, CopyIconBtn, ContactFormModal } from '../components'
+import { ContactFormModal } from '../components'
 import { useToast } from '../contexts/ToastContext'
 import { useConfirm } from '../contexts/ConfirmContext'
 import { useUndoableDelete } from '../hooks/useUndoableDelete'
@@ -18,15 +18,13 @@ import { resizeImageForAI } from '../lib/imageForAI'
 import { findDuplicateGroups, duplicateReasons, pairKey } from '../lib/contactDuplicates'
 import { mergeContacts } from '../lib/contactsMerge'
 import DuplicatesModal from '../components/contacts/DuplicatesModal'
-import ConformiteBadge from '../components/conformite/ConformiteBadge'
 import ConformiteModal from '../components/conformite/ConformiteModal'
 import ConformiteSuiviModal from '../components/conformite/ConformiteSuiviModal'
-import LegalBadge from '../components/conformite/LegalBadge'
 import { useConformite } from '../hooks/useConformite'
 import { shareContactCard } from '../lib/shareVCard'
 import { isSubject, complianceOf, activeCompanyIds, buildSuivi, trackedReason } from '../lib/conformite'
 import SearchField from '../components/SearchField'
-import ScoreBadge from '../components/contacts/ScoreBadge'
+import ContactCard from '../components/contacts/ContactCard'
 import EntrepriseScoreModal from '../components/contacts/EntrepriseScoreModal'
 import { scoreCompanies } from '../lib/entrepriseScore'
 
@@ -36,12 +34,29 @@ const readIgnored = () => {
   try { return new Set(JSON.parse(localStorage.getItem(IGNORED_KEY) || '[]')) } catch { return new Set() }
 }
 
-const TYPE_COLORS = {
-  Artisan:"#FF9500",Client:"#007AFF",Fournisseur:"#34C759",
-  "Sous-traitant":"#AF52DE",Prestataire:"#FF2D55",
-  MOA:"#32ADE6",Architecte:"#8944AB",BET:"#30B0C7"
-}
 const TYPES = ["Artisan","Sous-traitant","Prestataire","Client","Fournisseur","MOA","Architecte","BET"]
+
+// Boutons de l'en-tête et de la barre d'outils, filtres : chrome neutre,
+// le bleu de l'app est réservé à « Nouveau contact »
+const headBtn = {
+  display:"inline-flex",alignItems:"center",gap:8,height:36,padding:"0 14px",borderRadius:10,
+  border:"1px solid var(--separator)",background:"#fff",color:"var(--label)",
+  fontSize:14,fontWeight:500,fontFamily:"inherit",cursor:"pointer",whiteSpace:"nowrap",
+}
+const toolBtn = {
+  display:"inline-flex",alignItems:"center",gap:8,height:32,padding:"0 10px",borderRadius:8,
+  color:"var(--label-secondary)",fontSize:13,fontWeight:500,whiteSpace:"nowrap",
+}
+const chip = (active) => ({
+  display:"inline-flex",alignItems:"center",gap:8,height:32,padding:"0 12px",borderRadius:8,
+  border:`1px solid ${active?"var(--label)":"var(--separator)"}`,
+  background:active?"var(--label)":"#fff",color:active?"#fff":"var(--label-2)",
+  fontSize:13,fontWeight:500,fontFamily:"inherit",cursor:"pointer",whiteSpace:"nowrap",flexShrink:0,
+  transition:"background-color var(--motion-fast) var(--ease-emphasized), color var(--motion-fast) var(--ease-emphasized), border-color var(--motion-fast) var(--ease-emphasized)",
+})
+const chipCount = (active) => ({
+  fontVariantNumeric:"tabular-nums",color:active?"rgba(255,255,255,0.7)":"var(--label-tertiary)",
+})
 
 export default function ContactsV({ data, save: _save, m, reload, focusId, focusTs, crm = null, reloadCrm = null, setTab = null, active }) {
   const { addToast } = useToast();
@@ -95,7 +110,6 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
   // page ou lance un nouvel import (évite requête orpheline + fuite setState).
   const extractAbortRef = useRef(null);
   useEffect(() => () => { extractAbortRef.current?.abort() }, []);
-  const tc = TYPE_COLORS;
   const types = TYPES;
 
   // Delete avec undo (5s pour annuler)
@@ -481,30 +495,24 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
       style={{display:"none"}}
     />
 
+    {/* En-tête : titre, une action principale, une secondaire */}
     <div style={{
-      display:"flex",justifyContent:"space-between",alignItems:"center",
-      marginBottom:14,flexWrap:"wrap",gap:8
+      display:"flex",justifyContent:"space-between",alignItems:"flex-end",
+      marginBottom:16,flexWrap:"wrap",gap:12
     }}>
       <div>
-        <h1 style={{margin:0,fontSize:m?28:32,fontWeight:700,letterSpacing:"-0.02em",color:"var(--label)"}}>Contacts</h1>
-        <p style={{margin:"2px 0 0",fontSize:12,color:"var(--label-secondary)"}}>
+        <h1 style={{margin:0,fontSize:m?28:32,fontWeight:600,letterSpacing:"-0.01em",lineHeight:1.15,color:"var(--label)"}}>Contacts</h1>
+        <p style={{margin:"4px 0 0",fontSize:13,color:"var(--label-secondary)",fontVariantNumeric:"tabular-nums"}}>
           {data.contacts.length} contact{data.contacts.length>1?"s":""}
-          {(q || tf !== "all") && <> · <strong>{list.length}</strong> affiché{list.length>1?"s":""}</>}
+          {(q || tf !== "all") && <> · {list.length} affiché{list.length>1?"s":""}</>}
         </p>
       </div>
-      <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+      <div style={{display:"flex",gap:8}}>
         <button
           onClick={() => fileInputRef.current?.click()}
           disabled={importing}
-          style={{
-            ...btnS,
-            
-            cursor:importing?"wait":"pointer",
-            opacity:importing?0.7:1,
-            display:"flex",
-            alignItems:"center",
-            gap:6,
-          }}
+          className="u-press"
+          style={{...headBtn, cursor:importing?"wait":"pointer", opacity:importing?0.7:1}}
           title={
             "Importer un contact depuis une photo ou une capture d'écran" +
             " (carte de visite, signature email, iOS Contacts, SMS, WhatsApp…)"
@@ -512,59 +520,33 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
         >
           {importing ? (
             <>
-              <span style={{
+              <span aria-hidden="true" style={{
                 display:"inline-block",width:12,height:12,
-                border:"2px solid var(--purple-line)",borderTopColor:"var(--purple-text)",
+                border:"2px solid var(--separator-opaque)",borderTopColor:"var(--label-secondary)",
                 borderRadius:"50%",animation:"spin 0.8s linear infinite"
               }}/>
-              Extraction…
+              Lecture…
             </>
           ) : (
-            <>Importer photo / capture</>
+            <><Icon d={I.camera} size={16} stroke={1.5} color="var(--label-secondary)"/>{m ? "Photo" : "Importer une photo"}</>
           )}
         </button>
-        {dupGroups.length > 0 && (
-          <button
-            onClick={() => setDupOpen(true)}
-            title="Contacts qui semblent en double : vérifier et fusionner"
-            style={{
-              ...btnS, fontSize: 12, background: "var(--orange-tint)", color: "var(--orange-deep)",
-              border: "1.5px solid var(--orange-line)", display: "flex", alignItems: "center", gap: 6,
-            }}
-          >
-            Doublons ({dupGroups.length})
-          </button>
-        )}
-        {scores.size > 0 && (
-          <button onClick={() => setScoreFor("all")}
-            title="Classement des entreprises par score (documents, actions de chantier, réunions, avis)"
-            style={{ ...btnS, fontSize: 12 }}>Classement</button>
-        )}
-        <button
-          onClick={handleExportCSV}
-          title="Exporter la liste filtrée au format CSV (Excel)"
-          disabled={list.length === 0}
-          style={{
-            ...btnS,
-            
-            cursor: list.length === 0 ? "not-allowed" : "pointer",
-            opacity: list.length === 0 ? 0.5 : 1,
-          }}
-        >CSV</button>
-        <button onClick={openNew}
+        <button onClick={openNew} className="u-btn"
           title="Nouveau contact (raccourci : n)"
-          style={{...btnP,fontSize:12}}>+ Nouveau contact</button>
+          style={{...btnP,minHeight:m?44:36,height:m?44:36,padding:"0 16px",fontSize:14,fontWeight:500,display:"inline-flex",alignItems:"center",gap:8}}>
+          <Icon d={I.plus} size={16} stroke={2} color="#fff"/>Nouveau contact
+        </button>
       </div>
     </div>
 
     {importError && (
-      <div style={{
+      <div role="alert" style={{
         background:"var(--red-tint)",
         border:"1px solid var(--red-line)",
         borderRadius:8,
         padding:"8px 12px",
         marginBottom:12,
-        fontSize:12,
+        fontSize:13,
         color:"var(--red-text)",
         display:"flex",
         justifyContent:"space-between",
@@ -572,32 +554,54 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
         gap:8,
       }}>
         <span>{importError}</span>
-        <button onClick={()=>setImportError("")} aria-label="Fermer le message" style={{
-          background:"none",border:"none",cursor:"pointer",
-          color:"var(--red-text)",fontSize:16,padding:0
-        }}>✕</button>
+        <button onClick={()=>setImportError("")} aria-label="Fermer le message" className="u-icon-btn"
+          style={{width:24,height:24,borderRadius:6,color:"var(--red-text)"}}>
+          <Icon d={I.x} size={14} stroke={1.5}/>
+        </button>
       </div>
     )}
 
-    {/* Search + Filters */}
-    <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap"}}>
-      <div style={{flex:1,minWidth:200}}>
+    {/* Recherche + outils de la liste */}
+    <div style={{display:"flex",gap:12,marginBottom:16,flexWrap:"wrap",alignItems:"center"}}>
+      <div style={{flex:"1 1 240px",minWidth:0}}>
         <SearchField inputRef={searchInputRef} value={q} onChange={e=>setQ(e.target.value)} m={m} width="100%"
-          label="Rechercher un contact" placeholder={m?"Rechercher nom, société, ville…":"Rechercher nom, société, ville, email… (tape /)"}/>
+          label="Rechercher un contact" placeholder={m?"Rechercher":"Rechercher (/)"}/>
+      </div>
+      <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+        {scores.size > 0 && (
+          <button onClick={() => setScoreFor("all")} className="u-icon-btn" style={toolBtn}
+            title="Classement des entreprises par score (documents, actions de chantier, réunions, avis)">
+            <Icon d={I.ranking} size={16} stroke={1.5} color="var(--label-tertiary)"/>Classement
+          </button>
+        )}
+        {dupGroups.length > 0 && (
+          <button onClick={() => setDupOpen(true)} className="u-icon-btn" style={toolBtn}
+            title="Contacts qui semblent en double : vérifier et fusionner">
+            <span aria-hidden="true" style={{width:6,height:6,borderRadius:3,background:"var(--orange)"}}/>
+            Doublons <span style={{color:"var(--label-tertiary)",fontVariantNumeric:"tabular-nums"}}>{dupGroups.length}</span>
+          </button>
+        )}
+        <button onClick={handleExportCSV} className="u-icon-btn" disabled={list.length === 0}
+          title="Exporter la liste filtrée au format CSV (Excel)"
+          style={{...toolBtn, cursor: list.length === 0 ? "not-allowed" : "pointer", opacity: list.length === 0 ? 0.5 : 1}}>
+          <Icon d={I.sheet} size={16} stroke={1.5} color="var(--label-tertiary)"/>CSV
+        </button>
       </div>
     </div>
-    {/* Bandeau « Suivi des documents » : bien visible, aussi sur téléphone */}
+
+    {/* Suivi des documents des entreprises : une ligne neutre */}
     {conf.ready && (
-      <button onClick={()=>setSuiviOpen(true)}
+      <button onClick={()=>setSuiviOpen(true)} className="u-press"
         title="Avancement des documents des entreprises et aperçu des relances automatiques"
         style={{
-          display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,width:"100%",
-          background:"#F0F8FC",border:"1.5px solid var(--blue-line)",borderRadius:12,padding:m?"10px 12px":"12px 14px",
-          marginBottom:12,cursor:"pointer",fontFamily:"inherit",textAlign:"left",
+          display:"flex",alignItems:"center",gap:12,width:"100%",
+          background:"#fff",border:"1px solid var(--separator)",borderRadius:12,padding:m?"12px":"12px 16px",
+          marginBottom:16,fontFamily:"inherit",textAlign:"left",color:"var(--label)",
         }}>
-        <span style={{minWidth:0}}>
-          <span style={{display:"block",fontSize:14,fontWeight:700,color:"var(--accent-text)"}}>Suivi des documents des entreprises</span>
-          <span style={{display:"block",fontSize:11,color:"var(--accent-text)",marginTop:2}}>
+        <Icon d={I.reports} size={18} stroke={1.5} color="var(--label-tertiary)"/>
+        <span style={{flex:1,minWidth:0}}>
+          <span style={{display:"block",fontSize:14,fontWeight:500}}>Suivi des documents des entreprises</span>
+          <span style={{display:"block",fontSize:13,color:"var(--label-secondary)",marginTop:2,fontVariantNumeric:"tabular-nums"}}>
             {conf.missingMigration ? "À activer : migrations 036 à 038 dans Supabase"
               : suiviStats ? [
                 `${suiviStats.aJour}/${suiviStats.actives} entreprise${suiviStats.actives>1?"s":""} suivie${suiviStats.actives>1?"s":""} à jour`,
@@ -606,239 +610,78 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
               ].join(" · ") : ""}
           </span>
         </span>
-        <span style={{fontSize:12,fontWeight:700,color:"var(--accent-text)",flexShrink:0}}>Ouvrir →</span>
+        <Icon d={I.chevronRight} size={16} stroke={1.5} color="var(--label-tertiary)"/>
       </button>
     )}
-    <div style={{
-      display:"flex",gap:6,marginBottom:14,flexWrap:"wrap",
+
+    {/* Filtres par type */}
+    <div role="group" aria-label="Filtrer par type" style={{
+      display:"flex",gap:8,marginBottom:16,flexWrap:m?"nowrap":"wrap",
       overflowX:m?"auto":"visible",paddingBottom:m?4:0
     }}>
-      <button onClick={()=>setTf("all")} style={{
-        display:"inline-flex",alignItems:"center",gap:6,
-        padding:"5px 11px",borderRadius:999,fontSize:11,fontWeight:600,
-        border:`1px solid ${tf==="all"?"var(--accent)":"var(--separator)"}`,
-        background:tf==="all"?"var(--accent)":"#fff",
-        color:tf==="all"?"#fff":"var(--label-2)",cursor:"pointer",fontFamily:"inherit",
-        transition:"background .15s, color .15s, border-color .15s",whiteSpace:"nowrap",
-      }}>
-        <span style={{
-          width:7,height:7,borderRadius:"50%",
-          background:tf==="all"?"#fff":"var(--label-secondary)",opacity:tf==="all"?0.8:1
-        }}/>
-        Tous <span style={{fontSize:11,opacity:0.75,fontWeight:500}}>{data.contacts.length}</span>
+      <button onClick={()=>setTf("all")} aria-pressed={tf==="all"} style={chip(tf==="all")}>
+        Tous <span style={chipCount(tf==="all")}>{data.contacts.length}</span>
       </button>
-      {Object.entries(stats).map(([type,count])=>{
-        const active = tf === type;
-        const color = tc[type] || "#0071E3";
-        return (
-          <button key={type} onClick={()=>setTf(type)} style={{
-            display:"inline-flex",alignItems:"center",gap:6,
-            padding:"5px 11px",borderRadius:999,fontSize:11,fontWeight:600,
-            border:`1px solid ${active?color:"var(--separator)"}`,
-            background:active?color:"#fff",
-            color:active?"#fff":"var(--label-2)",cursor:"pointer",fontFamily:"inherit",
-            transition:"background .15s, color .15s, border-color .15s",whiteSpace:"nowrap",
-          }}>
-            <span style={{width:7,height:7,borderRadius:"50%",background:active?"#fff":color,opacity:active?0.8:1}}/>
-            {type} <span style={{fontSize:11,opacity:0.75,fontWeight:500}}>{count}</span>
-          </button>
-        );
-      })}
+      {Object.entries(stats).map(([type,count])=>(
+        <button key={type} onClick={()=>setTf(type)} aria-pressed={tf===type} style={chip(tf===type)}>
+          {type} <span style={chipCount(tf===type)}>{count}</span>
+        </button>
+      ))}
       {docsToReview.size > 0 && (
-        <button onClick={()=>setTf(tf==="__docs"?"all":"__docs")}
+        <button onClick={()=>setTf(tf==="__docs"?"all":"__docs")} aria-pressed={tf==="__docs"}
           title="Entreprises suivies (chantier en cours ou demande envoyée) dont un document est manquant, erroné, expiré ou expire bientôt"
-          style={{
-            display:"inline-flex",alignItems:"center",gap:6,
-            padding:"5px 11px",borderRadius:999,fontSize:11,fontWeight:700,
-            border:`1px solid ${tf==="__docs"?"var(--red-text)":"var(--red-line)"}`,
-            background:tf==="__docs"?"var(--red-text)":"var(--red-tint)",
-            color:tf==="__docs"?"#fff":"var(--red-text)",cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap",
-          }}>
-          Documents à revoir <span style={{fontSize:11,opacity:0.85,fontWeight:600}}>{docsToReview.size}</span>
+          style={chip(tf==="__docs")}>
+          <span aria-hidden="true" style={{width:6,height:6,borderRadius:3,background:"var(--red)"}}/>
+          Documents à revoir <span style={chipCount(tf==="__docs")}>{docsToReview.size}</span>
         </button>
       )}
     </div>
 
-    {/* Contact Cards */}
+    {/* Fiches */}
     {list.length === 0 ? (
       <div style={{
-        background:"#fff",borderRadius:12,padding:"40px 24px",
-        textAlign:"center",boxShadow:"0 1px 3px rgba(0,0,0,0.04)"
+        background:"#fff",border:"1px solid var(--separator)",borderRadius:12,padding:"40px 24px",
+        textAlign:"center",display:"flex",flexDirection:"column",alignItems:"center",gap:8
       }}>
-        <div style={{fontSize:36,marginBottom:8,opacity:0.5}}>👤</div>
+        <Icon d={I.contacts} size={32} stroke={1.5} color="var(--label-tertiary)"/>
         {data.contacts.length === 0 ? (
           <>
-            <div style={{fontSize:14,fontWeight:700,color:"var(--label-2)",marginBottom:4}}>Aucun contact pour l'instant</div>
-            <div style={{fontSize:12,color:"var(--label-secondary)",marginBottom:14}}>
-              Crée ton premier contact ou importe-en un depuis une photo/capture.
+            <div style={{fontSize:15,fontWeight:600,color:"var(--label)"}}>Aucun contact pour l&apos;instant</div>
+            <div style={{fontSize:13,color:"var(--label-secondary)",marginBottom:8}}>
+              Crée ton premier contact ou importe-le depuis une photo de carte de visite
             </div>
             <div style={{display:"flex",gap:8,justifyContent:"center",flexWrap:"wrap"}}>
-              <button onClick={openNew} style={{...btnP,fontSize:12}}>+ Nouveau contact</button>
-              <button onClick={()=>fileInputRef.current?.click()}
-                style={{...btnS,fontSize:12}}>Importer une photo</button>
+              <button onClick={openNew} className="u-btn" style={{...btnP,fontSize:14,fontWeight:500}}>Nouveau contact</button>
+              <button onClick={()=>fileInputRef.current?.click()} className="u-press" style={headBtn}>Importer une photo</button>
             </div>
           </>
         ) : (
           <>
-            <div style={{fontSize:14,fontWeight:700,color:"var(--label-2)",marginBottom:4}}>Aucun résultat</div>
-            <div style={{fontSize:12,color:"var(--label-secondary)",marginBottom:14}}>
-              Essaie d&apos;élargir ta recherche ou de changer de filtre.
+            <div style={{fontSize:15,fontWeight:600,color:"var(--label)"}}>Aucun résultat</div>
+            <div style={{fontSize:13,color:"var(--label-secondary)",marginBottom:8}}>
+              Élargis la recherche ou change de filtre
             </div>
-            <button onClick={()=>{setQ("");setTf("all");}}
-              style={{...btnS,fontSize:12}}>Réinitialiser les filtres</button>
+            <button onClick={()=>{setQ("");setTf("all");}} className="u-press" style={headBtn}>Réinitialiser les filtres</button>
           </>
         )}
       </div>
     ) : (
-    <div style={{display:"grid",gridTemplateColumns:m?"1fr":"1fr 1fr",gap:10}}>
+    <div style={{display:"grid",gridTemplateColumns:m?"1fr":"repeat(auto-fill, minmax(340px, 1fr))",gap:12}}>
       {list.map(c=>(
-        <div key={c.id} style={{
-          background:"#fff",borderRadius:12,padding:m?14:16,
-          border:"1px solid var(--separator)",
-          opacity:c.actif===false?0.55:1
-        }}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8}}>
-            <div style={{flex:1,minWidth:0}}>
-              <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:3,flexWrap:"wrap"}}>
-                <span style={{fontSize:15,fontWeight:700,color:"var(--label)"}}>{c.nom}</span>
-                <Badge text={c.type} color={tc[c.type]||"#8E8E93"}/>
-                {c.actif===false && <Badge text="Inactif" color="#8E8E93"/>}
-                {c.note>0 && (
-                  <span title={`${c.note}/5`} style={{fontSize:11,color:"var(--orange)"}}>
-                    {"★".repeat(c.note)}{"☆".repeat(5-c.note)}
-                  </span>
-                )}
-              </div>
-              {c.societe && <div style={{fontSize:12,fontWeight:600,color:"var(--label-2)",marginBottom:2}}>{c.societe}</div>}
-              {c.specialite && (
-                <div style={{fontSize:11,color:"var(--label-secondary)",marginBottom:4}}>
-                  {c.specialite}{c.fonction?` — ${c.fonction}`:""}
-                </div>
-              )}
-              {/* Coordonnées : cliquer sur le lien appelle/envoie, cliquer sur
-                  l'icône 📋 à droite copie la valeur dans le presse-papier. */}
-              <div style={{display:"flex",flexWrap:"wrap",gap:"4px 10px",fontSize:11,marginTop:4}}>
-                {c.tel && (
-                  <ContactInfoLink href={`tel:${c.tel.replace(/\s/g,"")}`}
-                    onTap={()=>{ try {
-                      SB.log('contact_tap', 'contact', c.id, `Appel → ${c.nom}`, { field: 'tel', value: c.tel })
-                    } catch(_) {} }}
-                    onCopy={() => copyToClipboard(c.tel, "Téléphone", c)}
-                    label={`📱 ${c.tel}`}/>
-                )}
-                {c.tel_fixe && (
-                  <ContactInfoLink href={`tel:${c.tel_fixe.replace(/\s/g,"")}`}
-                    onTap={()=>{ try {
-                      SB.log('contact_tap', 'contact', c.id,
-                        `Appel fixe → ${c.nom}`,
-                        { field: 'tel_fixe', value: c.tel_fixe })
-                    } catch(_) {} }}
-                    onCopy={() => copyToClipboard(c.tel_fixe, "Téléphone fixe", c)}
-                    label={`☎ ${c.tel_fixe}`}/>
-                )}
-                {c.email && (
-                  <ContactInfoLink href={`mailto:${c.email}`}
-                    onTap={()=>{ try {
-                      SB.log('contact_tap', 'contact', c.id, `Email → ${c.nom}`, { field: 'email', value: c.email })
-                    } catch(_) {} }}
-                    onCopy={() => copyToClipboard(c.email, "Email", c)}
-                    label={`✉ ${c.email}`} maxWidth={220}/>
-                )}
-                {c.email_travaux && c.email_travaux !== c.email && (
-                  <ContactInfoLink href={`mailto:${c.email_travaux}`}
-                    onTap={()=>{ try {
-                      SB.log('contact_tap', 'contact', c.id, `Email travaux → ${c.nom}`, { field: 'email_travaux', value: c.email_travaux })
-                    } catch(_) {} }}
-                    onCopy={() => copyToClipboard(c.email_travaux, "Email travaux", c)}
-                    label={`🦺 ${c.email_travaux}`} maxWidth={220}/>
-                )}
-              </div>
-              {(c.ville||c.adresse) && (
-                <div style={{fontSize:11,color:"var(--label-secondary)",marginTop:3,display:"inline-flex",alignItems:"center",gap:5}}>
-                  📍 {[c.adresse,c.code_postal,c.ville].filter(Boolean).join(", ")}
-                  <CopyIconBtn onClick={() =>
-                    copyToClipboard([c.adresse,c.code_postal,c.ville].filter(Boolean).join(", "), "Adresse")
-                  }/>
-                </div>
-              )}
-              {c.siret && (
-                <div style={{fontSize:11,color:"var(--label-secondary)",marginTop:2,display:"inline-flex",alignItems:"center",gap:5}}>
-                  SIRET : {c.siret}
-                  <CopyIconBtn onClick={() => copyToClipboard(c.siret, "SIRET", c)}/>
-                </div>
-              )}
-              {c.qualifications && (
-                <div style={{fontSize:11,color:"var(--accent-text)",marginTop:2,fontWeight:600}}>
-                  🏅 {c.qualifications}
-                </div>
-              )}
-              {(() => {
-                const docs = (isSubject(c) || conf.lastRequest.has(c.id)) && conf.ready && !conf.missingMigration;
-                const sc = scores.get(c.id);
-                if (!docs && sc?.score == null) return null;
-                return (
-                  <div style={{marginTop:6,display:"flex",gap:6,flexWrap:"wrap"}}>
-                    <ScoreBadge score={sc} onClick={()=>setScoreFor(c.id)}/>
-                    {docs && <>
-                      <LegalBadge check={conf.legalByContact?.get(c.id)} onClick={()=>setDocsFor(c.id)}/>
-                      <ConformiteBadge compliance={complianceOf(conf.byContact, c.id, conf.today)} onClick={()=>setDocsFor(c.id)}/>
-                    </>}
-                  </div>
-                );
-              })()}
-              {setTab && (() => {
-                const k = crmByContact.get(c.id);
-                return (
-                  <div style={{display:"flex",gap:6,marginTop:6,flexWrap:"wrap"}}>
-                    {k && (
-                      <button onClick={()=>setTab("crm", `contact:${c.id}`)}
-                        title="Voir les affaires de ce contact dans le CRM"
-                        style={{
-                          background:"#F0F8FC",border:"1px solid var(--blue-line)",borderRadius:999,
-                          padding:"2px 9px",fontSize:11,fontWeight:700,color:"var(--accent-text)",
-                          cursor:"pointer",fontFamily:"inherit",
-                        }}>
-                        🎯 {k.actives} affaire{k.actives>1?"s":""} en cours{k.gagnees?` · ${k.gagnees} gagnée${k.gagnees>1?"s":""}`:""}
-                      </button>
-                    )}
-                    <button onClick={()=>setTab("crm", `new:${c.id}`)}
-                      title="Créer une opportunité CRM pour ce contact"
-                      style={{
-                        background:"#fff",border:"1px dashed var(--separator-opaque)",borderRadius:999,
-                        padding:"2px 9px",fontSize:11,fontWeight:600,color:"var(--label-secondary)",
-                        cursor:"pointer",fontFamily:"inherit",
-                      }}>+ Affaire</button>
-                  </div>
-                );
-              })()}
-            </div>
-            <div style={{display:"flex",flexDirection:"column",gap:4,flexShrink:0}}>
-              <button onClick={()=>openEdit(c)} title="Modifier" style={{
-                background:"var(--grouped-bg)",border:"1px solid var(--separator)",borderRadius:6,
-                cursor:"pointer",padding:"5px 7px",
-                display:"flex",alignItems:"center",justifyContent:"center"
-              }}>
-                <Icon d={I.edit} size={13} color="#48484A"/>
-              </button>
-              <button onClick={()=>handleDelete(c)} title="Supprimer" style={{
-                background:"#fff",border:"1px solid var(--red-line)",borderRadius:6,
-                cursor:"pointer",padding:"5px 7px",
-                display:"flex",alignItems:"center",justifyContent:"center"
-              }}>
-                <Icon d={I.trash} size={13} color="#D70015"/>
-              </button>
-              <button type="button" onClick={()=>saveToPhone(c)}
-                title="Enregistrer dans les contacts du téléphone"
-                aria-label={`Enregistrer ${c.nom} dans les contacts du téléphone`} style={{
-                background:"#F0F8FC",border:"1px solid var(--blue-line)",borderRadius:6,
-                cursor:"pointer",padding:"5px 7px",
-                display:"flex",alignItems:"center",justifyContent:"center"
-              }}>
-                <Icon d={I.userPlus} size={13} color="var(--accent-text)"/>
-              </button>
-            </div>
-          </div>
-        </div>
+        <ContactCard key={c.id} c={c} m={m}
+          score={scores.get(c.id)}
+          showDocs={(isSubject(c) || conf.lastRequest.has(c.id)) && conf.ready && !conf.missingMigration}
+          legal={conf.legalByContact?.get(c.id)}
+          compliance={complianceOf(conf.byContact, c.id, conf.today)}
+          deals={crmByContact.get(c.id)}
+          onDeals={setTab ? ()=>setTab("crm", `contact:${c.id}`) : null}
+          onNewDeal={setTab ? ()=>setTab("crm", `new:${c.id}`) : null}
+          onScore={()=>setScoreFor(c.id)}
+          onDocs={()=>setDocsFor(c.id)}
+          onEdit={()=>openEdit(c)}
+          onDelete={()=>handleDelete(c)}
+          onSaveToPhone={()=>saveToPhone(c)}
+          onCopy={(value,label)=>copyToClipboard(value,label,c)}/>
       ))}
     </div>
     )}
@@ -895,5 +738,3 @@ export default function ContactsV({ data, save: _save, m, reload, focusId, focus
   </div>);
 }
 
-// ContactInfoLink + CopyIconBtn vivent désormais dans
-// components/ContactInfoLink.js (réutilisables hors annuaire).

@@ -18,10 +18,10 @@ export default function ConformiteBadge({ compliance, onClick, compact = false }
   const style = {
     display: 'inline-flex', alignItems: 'center', gap: 4,
     background: meta.bg, color: meta.color, border: `1px solid ${meta.border}`,
-    borderRadius: 999, padding: '2px 9px', fontSize: 11, fontWeight: 700,
+    borderRadius: 6, padding: '2px 8px', fontSize: 12, fontWeight: 500,
     fontFamily: 'inherit', whiteSpace: 'nowrap',
   }
-  const content = <>📄 {text}</>
+  const content = text
   return onClick
     ? <button type="button" onClick={onClick} title={title} style={{ ...style, cursor: 'pointer' }}>{content}</button>
     : <span title={title} style={style}>{content}</span>

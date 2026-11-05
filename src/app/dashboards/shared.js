@@ -627,10 +627,10 @@ export const SB = {
 };
 
 // ─── ICONS ───
-export const Icon = ({ d, size = 18, color = "currentColor" }) => (
+export const Icon = ({ d, size = 18, color = "currentColor", stroke = 2 }) => (
   <svg
-    width={size} height={size} viewBox="0 0 24 24"
-    fill="none" stroke={color} strokeWidth="2"
+    width={size} height={size} viewBox="0 0 24 24" aria-hidden="true"
+    fill="none" stroke={color} strokeWidth={stroke}
     strokeLinecap="round" strokeLinejoin="round"
   ><path d={d} /></svg>
 );
@@ -663,6 +663,11 @@ export const I = {
   crm: "M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z M12 6a6 6 0 1 0 0 12 6 6 0 0 0 0-12z M12 10a2 2 0 1 0 0 4 2 2 0 0 0 0-4z",
   camera: "M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z M12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8z",
   // Fichiers : PDF (document + flèche), tableur, modèle (copie)
+  phone: "M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z",
+  mail: "M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z M22 6l-10 7L2 6",
+  star: "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z",
+  chevronRight: "M9 18l6-6-6-6",
+  ranking: "M18 20V10 M12 20V4 M6 20v-6",
   userPlus: "M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2 M12.5 7a4 4 0 1 1-8 0a4 4 0 1 1 8 0 M20 8v6 M23 11h-6",
   download: "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6 M12 18v-6 M9 15l3 3 3-3",
   sheet: "M4 3h16a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z M3 9h18 M3 15h18 M9 9v12",
