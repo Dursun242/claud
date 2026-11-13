@@ -33,6 +33,10 @@
 //   FF, inp, sel, btnP, btnS, Icon, I, fmtMoney : helpers partagés
 //   lotOptions              : string[] — lots du chiffrage (sinon du chantier)
 //   suggestedLot            : string|null — lot probable d'après la spécialité
+//   lockReason              : string|null — OS figé (signé / en signature) :
+//                             seul le statut reste modifiable
+//   lockChantier            : boolean — chantier imposé (fiche chantier)
+//   statutOptions           : string[] — statuts proposés (lib/osRules.statutsPossibles)
 
 import Modal from './Modal'
 import AddressPicker from './AddressPicker'
@@ -70,16 +74,36 @@ export default function OSFormModal({
   fmtMoney,
   lotOptions = [],
   suggestedLot = null,
+  lockReason = null,
+  lockChantier = false,
+  statutOptions = ['Brouillon', 'Émis', 'Signé', 'En cours', 'Terminé', 'Annulé'],
 }) {
   const tvaNA = !!form.tva_non_applicable
+  const locked = !!lockReason
   const lots = form.lot && !lotOptions.includes(form.lot) ? [form.lot, ...lotOptions] : lotOptions
+  // Entreprise absente de l'annuaire (import d'un devis, OS ancien) : elle
+  // reste affichée dans la liste au lieu de « — Sélectionner — ».
+  const knownNames = new Set(Object.values(contactsParType).flat().map(c => c.nom))
+  const unknownArtisan = form.artisan_nom && !knownNames.has(form.artisan_nom) ? form.artisan_nom : null
+  const statuts = form.statut && !statutOptions.includes(form.statut) ? [form.statut, ...statutOptions] : statutOptions
   return (
     <Modal open={!!modal} onClose={onClose}
       title={modal === 'edit' ? "Modifier l'Ordre de Service" : "Nouvel Ordre de Service"}
       wide>
 
+      {locked && (
+        <div role="status" style={{
+          display: 'flex', alignItems: 'flex-start', gap: 8,
+          background: 'var(--row-fill)', border: '1px solid var(--separator)',
+          borderRadius: 8, padding: '10px 12px', marginBottom: 12, fontSize: 13, color: 'var(--label)',
+        }}>
+          <Icon d={I.lock} size={16} stroke={1.75} />
+          <span style={{ flex: 1, lineHeight: 1.4 }}>{lockReason}</span>
+        </div>
+      )}
+
       {/* ── IMPORT DEVIS PAR PHOTO (visible uniquement en création) ── */}
-      {modal === 'new' && (
+      {modal === 'new' && onImportClick && (
         <div style={{
           background: 'var(--purple-tint)', border: '1.5px solid var(--purple-line)',
           borderRadius: 10, padding: '12px 14px', marginBottom: 12
@@ -133,23 +157,24 @@ export default function OSFormModal({
 
       <div style={{ display: 'grid', gridTemplateColumns: m ? '1fr' : '1fr 1fr 1fr', gap: '0 12px' }}>
         <FF label="N° OS">
-          <input style={inp} value={form.numero || ''}
+          <input style={inp} value={form.numero || ''} disabled={locked}
             onChange={(e) => setForm({ ...form, numero: e.target.value })}/>
         </FF>
         <FF label="Chantier">
-          <select style={sel} value={form.chantier_id || ''}
+          <select style={sel} value={form.chantier_id || ''} disabled={locked || lockChantier}
             onChange={(e) => updateChantier(e.target.value)}>
+            {!form.chantier_id && <option value="">— Choisir —</option>}
             {chantiers.map((c) => <option key={c.id} value={c.id}>{c.nom}</option>)}
           </select>
         </FF>
         <FF label="Statut">
-          <select style={sel} value={form.statut || ''}
+          <select style={sel} value={form.statut || 'Brouillon'}
             onChange={(e) => setForm({ ...form, statut: e.target.value })}>
-            <option>Brouillon</option><option>Émis</option><option>Signé</option>
-            <option>En cours</option><option>Terminé</option><option>Annulé</option>
+            {statuts.map((s) => <option key={s} value={s}>{s}</option>)}
           </select>
         </FF>
       </div>
+      <fieldset disabled={locked} style={{ border: 'none', margin: 0, padding: 0, minWidth: 0 }}>
       <div style={{ display: 'grid', gridTemplateColumns: m ? '1fr' : '1fr 1fr', gap: '0 12px' }}>
         <FF label="Client">
           {form.client_nom && (
@@ -162,6 +187,7 @@ export default function OSFormModal({
           <select style={sel} value={form.artisan_nom || ''}
             onChange={(e) => updateDestinataire(e.target.value)}>
             <option value="">— Sélectionner —</option>
+            {unknownArtisan && <option value={unknownArtisan}>{unknownArtisan} (hors annuaire)</option>}
             {Object.entries(contactsParType).map(([type, contacts]) => (
               <optgroup key={type} label={type}>
                 {contacts.map((c) => (
@@ -201,7 +227,7 @@ export default function OSFormModal({
           <input type="date" style={inp} value={form.date_emission || ''}
             onChange={(e) => setForm({ ...form, date_emission: e.target.value })}/>
         </FF>
-        <FF label="Date intervention">
+        <FF label="Début des travaux">
           <input type="date" style={inp} value={form.date_intervention || ''}
             onChange={(e) => setForm({ ...form, date_intervention: e.target.value })}/>
         </FF>
@@ -240,10 +266,10 @@ export default function OSFormModal({
       <div style={{ marginTop: 4, marginBottom: 8 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
           <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--label-secondary)'}}>Prestations</span>
-          <button onClick={addPrestation} style={{
+          {!locked && <button onClick={addPrestation} style={{
             fontSize: 12, color: 'var(--accent-text)', background: 'none',
             border: 'none', cursor: 'pointer', fontWeight: 600
-          }}>+ Ajouter une ligne</button>
+          }}>+ Ajouter une ligne</button>}
         </div>
         {prestations.map((p, i) => (
           <div key={i} style={{
@@ -275,7 +301,8 @@ export default function OSFormModal({
               <option value="5.5">5.5%</option><option value="0">0%</option>
             </select>
             <button type="button" aria-label={`Supprimer la prestation ${i + 1}`} onClick={() => removePrestation(i)}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
+              disabled={prestations.length <= 1}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, opacity: prestations.length <= 1 ? 0.3 : 1 }}>
               <Icon d={I.trash} size={14} color="#FF3B30"/>
             </button>
           </div>
@@ -311,6 +338,7 @@ export default function OSFormModal({
           value={form.conditions || ''}
           onChange={(e) => setForm({ ...form, conditions: e.target.value })}/>
       </FF>
+      </fieldset>
 
       {formError && (
         <div style={{
@@ -330,7 +358,7 @@ export default function OSFormModal({
         <button onClick={onClose} style={btnS}>Annuler</button>
         <button onClick={handleSave} disabled={saving}
           style={{ ...btnP, opacity: saving ? 0.6 : 1 }}>
-          {saving ? 'Enregistrement…' : "Enregistrer l'OS"}
+          {saving ? 'Enregistrement…' : locked ? 'Enregistrer le statut' : "Enregistrer l'OS"}
         </button>
       </div>
     </Modal>

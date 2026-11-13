@@ -32,9 +32,9 @@ import { markDiffused } from '../lib/crDb'
 import { loadCrImages } from '../lib/crPhotos'
 import { useConformite } from '../hooks/useConformite'
 import ChiffrageSection from '../components/chiffrage/ChiffrageSection'
-import { useChiffrage } from '../hooks/useChiffrage'
-import { lotOptions, suggestLot } from '../lib/chiffrage'
-import { nextOsNumero } from '../lib/osNumero'
+import OsEditor from '../components/os/OsEditor'
+import { osStatusColor } from '../components/os/osConstants'
+import { newOsDraft, draftFromOs } from '../lib/osRules'
 import { localISO } from '../lib/today'
 import { chantierGlance } from '../lib/chantierGlance'
 import { isNetworkError } from '../lib/offlineStore'
@@ -76,8 +76,12 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
   const [duplicating,setDuplicating]=useState(false);
   const [crModal,setCrModal]=useState(null);
   const [sendCr,setSendCr]=useState(null);
-  // Chiffrage du chantier ouvert : lots proposés pour un OS
-  const { chiffrage: selChiffrage } = useChiffrage(selected, { enabled: !readOnly && !!selected });
+  // Formulaire d'OS (le même que la page Ordres de service) : { key, os } ou { key, draft }
+  const [osEditor,setOsEditor]=useState(null);
+  const osEditorSeq=useRef(0);
+  const openOsEditor=useCallback((e)=>{osEditorSeq.current+=1;setOsEditor({...e,key:osEditorSeq.current});},[]);
+  // Modèles d'OS (table templates) proposés à la création
+  const [osTemplates,setOsTemplates]=useState(null);
 
   const toggleTask = async (t) => {
     if (taskBusy) return;
@@ -620,14 +624,13 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
         {/* ORDRES DE SERVICE */}
         <Section title="Ordres de service" count={chOS.length} emoji={EMOJI.os}>
           {!readOnly && <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap"}}>
-            <button onClick={()=>{
-              setDetailForm({
-                numero:nextOsNumero(data.ordresService),chantier_id:ch.id,
-                date_emission:localISO(),
-                statut:"Brouillon",montant_ttc:0
-              });setDetailModal("newOS");
-            }} className="u-btn" style={btnAdd}><Icon d={I.plus} size={16}/>Nouvel OS</button>
-            <button onClick={()=>setDetailModal("useTemplate")} className="u-btn" style={btnAdd}>
+            <button onClick={()=>openOsEditor({draft:{form:newOsDraft({chantier:ch,allOs:data.ordresService})}})}
+              className="u-btn" style={btnAdd}><Icon d={I.plus} size={16}/>Nouvel OS</button>
+            <button onClick={async()=>{
+              setOsTemplates(null);setDetailModal("useTemplate");
+              try{setOsTemplates(await SB.getTemplates('os'));}
+              catch(err){setOsTemplates([]);addToast("Modèles non chargés : "+(err?.message||"erreur"),"error");}
+            }} className="u-btn" style={btnAdd}>
               <Icon d={I.copy} size={16}/>Depuis un modèle</button>
           </div>}
           {chOS.length===0 ? <p style={{color:"var(--label-secondary)",fontSize:12}}>Aucun OS pour ce chantier</p> :
@@ -645,16 +648,13 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
                 <div style={{flex:"1 1 0",minWidth:0}}>
                   <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2,flexWrap:"wrap"}}>
                     <span style={{fontWeight:600,fontSize:13,color:"var(--label)",whiteSpace:"nowrap"}}>{os.numero}</span>
-                    <Badge text={os.statut||"Brouillon"} color={{
-                      "Brouillon":"#8E8E93","Émis":"#007AFF","Signé":"#AF52DE",
-                      "En cours":"#FF9500","Terminé":"#34C759","Annulé":"#FF3B30"
-                    }[os.statut]||"#8E8E93"}/>
+                    <Badge text={os.statut||"Brouillon"} color={osStatusColor[os.statut]||"#8E8E93"}/>
                   </div>
                   <div style={{
                     fontSize:12,color:"var(--label-secondary)",overflow:"hidden",
                     textOverflow:"ellipsis",whiteSpace:"nowrap"
                   }}>
-                    {os.artisan_nom} • {(os.prestations||[]).length} prestation(s) • {fmtDate(os.date_emission)}
+                    {os.artisan_nom}{os.lot?` • ${os.lot}`:""} • {(os.prestations||[]).length} prestation(s) • {fmtDate(os.date_emission)}
                   </div>
                   <div style={{
                     fontSize:16,fontWeight:600,color:"var(--label)",marginTop:4
@@ -677,7 +677,7 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
                       }
                     }} title="Créer un modèle d'OS à partir de celui-ci"
                     className="u-btn" style={btnChip}><ChipLabel icon={I.copy}>Modèle</ChipLabel></button>
-                    <button onClick={()=>{setDetailForm(os);setDetailModal("editOS");}}
+                    <button onClick={()=>openOsEditor({os})}
                       title="Modifier l'OS"
                       className="u-btn" style={btnChip}><ChipLabel icon={I.edit}>Modifier</ChipLabel></button>
                   </>}
@@ -722,73 +722,10 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
       </div>}
 
       {/* MODALES POUR OS/CR/TÂCHES */}
-      <Modal
-        open={detailModal==="newOS"||detailModal==="editOS"}
-        onClose={()=>setDetailModal(null)}
-        title={detailModal==="newOS"?"Nouvel Ordre de Service":"Modifier l'OS"}
-      >
-        <div style={{display:"grid",gridTemplateColumns:m?"1fr":"1fr 1fr",gap:"0 12px"}}>
-          <FF label="N° OS">
-            <input style={inp} value={detailForm.numero||""}
-              onChange={e=>setDetailForm({...detailForm,numero:e.target.value})}/>
-          </FF>
-          <FF label="Artisan">
-            <select style={sel} value={detailForm.artisan_nom||""}
-              onChange={e=>{
-                const a=data.contacts.find(c=>c.nom===e.target.value);
-                const lot=!detailForm.lot&&a?suggestLot(a.specialite,lotOptions(selChiffrage,ch)):null;
-                setDetailForm({...detailForm,artisan_nom:e.target.value,
-                  ...(a?{artisan_specialite:a.specialite||detailForm.artisan_specialite||""}:{}),
-                  ...(lot?{lot}:{})});
-              }}>
-              <option value="">— Sélectionner —</option>
-              {data.contacts.filter(c=>c.type==="Artisan").map(a=>(
-                <option key={a.id} value={a.nom}>{a.nom}</option>
-              ))}
-            </select>
-          </FF>
-          {lotOptions(selChiffrage,ch).length>0 && <FF label="Lot">
-            <select style={sel} value={detailForm.lot||""}
-              onChange={e=>setDetailForm({...detailForm,lot:e.target.value})}>
-              <option value="">— Aucun —</option>
-              {[...new Set([detailForm.lot,...lotOptions(selChiffrage,ch)].filter(Boolean))].map(l=>(
-                <option key={l} value={l}>{l}</option>
-              ))}
-            </select>
-          </FF>}
-          <FF label="Date émission">
-            <input type="date" style={inp} value={detailForm.date_emission||""}
-              onChange={e=>setDetailForm({...detailForm,date_emission:e.target.value})}/>
-          </FF>
-          <FF label="Montant TTC €">
-            <input type="number" style={inp} value={detailForm.montant_ttc||""}
-              onChange={e=>setDetailForm({...detailForm,montant_ttc:Number(e.target.value)})}/>
-          </FF>
-          <FF label="Statut">
-            <select style={sel} value={detailForm.statut||"Brouillon"}
-              onChange={e=>setDetailForm({...detailForm,statut:e.target.value})}>
-              <option>Brouillon</option><option>Émis</option>
-              <option>Signé</option><option>En cours</option><option>Terminé</option>
-            </select>
-          </FF>
-        </div>
-        <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginTop:12}}>
-          <button onClick={()=>setDetailModal(null)} style={btnS}>Annuler</button>
-          <button disabled={detailSaving} onClick={async()=>{
-            if (detailSaving) return;
-            setDetailSaving(true);
-            try {
-              await SB.upsertOS({...detailForm,chantier_id:ch.id});
-              setDetailModal(null);reload();
-              addToast(detailModal==="newOS"?"OS créé":"OS enregistré","success");
-            } catch (err) {
-              addToast(isNetworkError(err)
-                ? "Pas de réseau : l'OS n'a pas été enregistré. Réessayez au retour de la connexion."
-                : "OS non enregistré : "+(err?.message||"erreur inconnue"),"error");
-            } finally { setDetailSaving(false); }
-          }} style={{...btnP,opacity:detailSaving?0.6:1}}>{detailSaving?"Enregistrement…":"Enregistrer"}</button>
-        </div>
-      </Modal>
+      {osEditor && <OsEditor key={osEditor.key} os={osEditor.os||null} draft={osEditor.draft||null}
+        data={data} m={m} lockChantier
+        onClose={()=>setOsEditor(null)}
+        onSaved={()=>{setOsEditor(null);reload();}}/>}
 
       {crModal && <CREditor open={!!crModal} initial={crModal?.initial} data={data} m={m} lockChantier conformite={conformite}
         onClose={()=>setCrModal(null)}
@@ -853,8 +790,14 @@ export default function ProjectsV({ data, save: _save, m, reload, user, profile,
         </div>
       </Modal>
 
-      <Modal open={detailModal==="useTemplate"} onClose={()=>setDetailModal(null)} title="Utiliser un template d'OS">
-        <TemplateSelector chOS={chOS} setDetailForm={setDetailForm} setDetailModal={setDetailModal} ch={ch} />
+      <Modal open={detailModal==="useTemplate"} onClose={()=>setDetailModal(null)} title="Nouvel OS depuis un modèle">
+        {osTemplates===null
+          ? <p style={{color:"var(--label-secondary)",fontSize:13}}>Chargement des modèles…</p>
+          : <TemplateSelector templateType="OS" templates={osTemplates}
+              onSelectTemplate={(tpl)=>{
+                setDetailModal(null);
+                openOsEditor({draft:draftFromOs(tpl.data||{},{chantier:ch,allOs:data.ordresService})});
+              }}/>}
       </Modal>
     </div>);
   }

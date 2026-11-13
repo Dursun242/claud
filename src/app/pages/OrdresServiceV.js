@@ -1,8 +1,9 @@
 'use client'
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
-import { SB, Icon, I, fmtMoney, FF, inp, sel, btnP, btnS } from '../dashboards/shared'
-import { OSSignatureModal, OSFormModal } from '../components'
+import { SB, Icon, I, inp, btnP, btnS } from '../dashboards/shared'
+import { OSSignatureModal } from '../components'
 import OsCard from '../components/os/OsCard'
+import OsEditor from '../components/os/OsEditor'
 import OsStatusPills from '../components/os/OsStatusPills'
 import { OS_STATUSES } from '../components/os/osConstants'
 import { useToast } from '../contexts/ToastContext'
@@ -11,12 +12,10 @@ import { useUndoableDelete } from '../hooks/useUndoableDelete'
 import { buildCSV, downloadCSV, formatDateFR, formatMoneyFR } from '../lib/csv'
 import { supabase } from '../supabaseClient'
 import { useImportDevis } from '../hooks/useImportDevis'
-import { usePrestationManager } from '../hooks/usePrestationManager'
 import { useSignaturesSync } from '../hooks/useSignaturesSync'
 import { parseNewIntent } from '../lib/navIntent'
-import { useChiffrage } from '../hooks/useChiffrage'
-import { lotOptions as getLotOptions, suggestLot } from '../lib/chiffrage'
 import { nextOsNumero } from '../lib/osNumero'
+import { newOsDraft, draftFromOs, deleteBlockReason, validateOs } from '../lib/osRules'
 import SearchField, { toolbarSelect } from '../components/SearchField'
 
 // Indicateur d'attente dans un bouton de la barre d'outils
@@ -30,22 +29,14 @@ const HeaderSpinner = () => (
 export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly,active}) {
   const { addToast } = useToast();
   const confirm = useConfirm();
-  const [modal,setModal]=useState(null);
-  const [form,setForm]=useState({});
-  // Prestations + calcul HT/TVA/TTC — voir hooks/usePrestationManager.js
-  const {
-    prestations,
-    setPrestations,
-    addPrestation,
-    removePrestation,
-    updatePrestation,
-    totals,
-  } = usePrestationManager([]);
+  // Formulaire ouvert : { key, os } (modification) ou { key, draft } (création).
+  // La clé remonte OsEditor à chaque ouverture.
+  const [editor,setEditor]=useState(null);
+  const editorSeq = useRef(0);
+  const openEditor = useCallback((e) => { editorSeq.current += 1; setEditor({ ...e, key: editorSeq.current }); }, []);
   const [searchOS,setSearchOS]=useState("");
   const [statusFilter,setStatusFilter]=useState("all"); // "all" | un des OS_STATUSES
   const [sortBy,setSortBy]=useState("date_desc");       // date_desc | date_asc | amount_desc | amount_asc
-  const [formError,setFormError]=useState("");          // erreur de validation affichée dans la modale
-  const [saving,setSaving]=useState(false);
   const [signModal,setSignModal]=useState(null);
   const [signSigners,setSignSigners]=useState({
     moe:{name:'',email:''},
@@ -67,11 +58,7 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly,a
     chantiers: data.chantiers,
     contacts: data.contacts,
     nextNum: () => nextNum(),
-    onReady: ({ form: f, prestations: p }) => {
-      setForm(f)
-      setPrestations(p)
-      setModal("new")
-    },
+    onReady: ({ form: f, prestations: p }) => openEditor({ draft: { form: f, prestations: p } }),
   });
   // Sync signatures Odoo → Supabase, partagé avec ProjectsV via le hook
   // useSignaturesSync (throttle 2 min + coalescence in-flight).
@@ -152,56 +139,19 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly,a
 
   const nextNum = useCallback(() => nextOsNumero(data.ordresService), [data.ordresService]);
 
-  // chId optionnel (string) : pré-sélectionne le chantier. Ignoré si
-  // openNew est branché directement sur un onClick (reçoit l'event).
+  // chId optionnel (string) : pré-sélectionne le chantier. Sans chantier
+  // donné, le choix est laissé à la personne (pas de chantier par défaut).
+  // Ignoré si openNew est branché directement sur un onClick (reçoit l'event).
   const openNew = (chId) => {
-    const ch = (typeof chId === 'string' && data.chantiers.find(c => c.id === chId)) || data.chantiers[0];
-    setForm({
-      numero: nextNum(), chantier_id: ch?.id||"", chantier: ch?.nom||"", adresse_chantier: ch?.adresse||"",
-      client_nom: ch?.client||"", client_adresse: "",
-      artisan_nom: "", artisan_specialite: "", artisan_adresse: "",
-      artisan_tel: "", artisan_email: "", artisan_siret: "",
-      date_emission: new Date().toISOString().split("T")[0], date_intervention: "", date_fin_prevue: "",
-      observations: "", conditions: "Paiement à 30 jours à compter de la réception de la facture.",
-      statut: "Brouillon",
-      tva_non_applicable: false,
-    });
-    setPrestations([{ description:"", unite:"m²", quantite:"", prix_unitaire:"", tva_taux:"20" }]);
-    setFormError("");
-    setModal("new");
+    const ch = typeof chId === 'string' ? data.chantiers.find(c => c.id === chId) : null;
+    openEditor({ draft: { form: newOsDraft({ chantier: ch || (data.chantiers.length === 1 ? data.chantiers[0] : null), allOs: data.ordresService }) } });
   };
 
-  const openEdit = useCallback((os) => {
-    const ch = (data.chantiers || []).find(c=>c.id===os.chantier_id);
-    setForm({
-      ...os,
-      chantier: ch?.nom||"",
-      adresse_chantier: ch?.adresse||"",
-      tva_non_applicable: !!os.tva_non_applicable,
-    });
-    setPrestations((os.prestations||[]).length > 0
-      ? os.prestations.map(p=>({
-          ...p,
-          quantite:String(p.quantite||""),
-          prix_unitaire:String(p.prix_unitaire||""),
-          tva_taux:String(p.tva_taux||"20")
-        }))
-      : [{ description:"", unite:"m²", quantite:"", prix_unitaire:"", tva_taux:"20" }]
-    );
-    setFormError("");
-    setModal("edit");
-  }, [data.chantiers, setPrestations]);
+  const openEdit = useCallback((os) => openEditor({ os }), [openEditor]);
 
-  // Bascule TVA non applicable : force toutes les lignes à 0 % et inversement
-  // restitue 20 % par défaut si on décoche (l'utilisateur peut ajuster ensuite).
-  const setTvaNonApplicable = useCallback((checked) => {
-    setForm(f => ({ ...f, tva_non_applicable: checked }));
-    if (checked) {
-      setPrestations(p => p.map(x => ({ ...x, tva_taux: "0" })));
-    }
-  }, [setPrestations]);
+  const closeModal = useCallback(() => setEditor(null), []);
 
-  const closeModal = useCallback(() => { setModal(null); setFormError(""); }, []);
+  const handleSaved = useCallback(() => { setEditor(null); reload(); }, [reload]);
 
   // Focus depuis la recherche globale : pré-remplit la recherche locale
   // avec le numéro de l'OS pour filtrer la liste et afficher la carte
@@ -228,87 +178,13 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly,a
       const t = e.target;
       const tag = (t?.tagName || '').toLowerCase();
       if (tag === 'input' || tag === 'textarea' || tag === 'select' || t?.isContentEditable) return;
-      if (modal || signModal) return;
+      if (editor || signModal) return;
       if (e.key === 'n' || e.key === 'N') { e.preventDefault(); openNewRef.current?.(); }
     };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [modal, signModal, readOnly, active]);
-
-  // Lots du chantier de l'OS (chiffrage estimatif, sinon lots du chantier)
-  const { chiffrage: formChiffrage } = useChiffrage(form.chantier_id, { enabled: !!modal && !readOnly });
-  const formChantier = (data.chantiers || []).find(c => c.id === form.chantier_id);
-  const lotOpts = useMemo(() => getLotOptions(formChiffrage, formChantier), [formChiffrage, formChantier]);
-  const suggestedLot = useMemo(() => suggestLot(form.artisan_specialite, lotOpts), [form.artisan_specialite, lotOpts]);
-
-  const updateChantier = (chId) => {
-    const ch = data.chantiers.find(c=>c.id===chId);
-    setForm(f=>({
-      ...f, chantier_id: chId, chantier: ch?.nom||"",
-      adresse_chantier: ch?.adresse||"", client_nom: ch?.client||""
-    }));
-  };
-
-  const updateDestinataire = (name) => {
-    const co = data.contacts.find(c=>c.nom===name);
-    if (co) setForm(f=>({
-      ...f,
-      artisan_nom:co.nom,
-      artisan_specialite:co.specialite||co.type||"",
-      artisan_adresse:co.adresse||"",
-      artisan_tel:co.tel||"", artisan_email:co.email||"", artisan_siret:co.siret||"",
-      // Lot proposé d'après le métier de l'artisan (modifiable)
-      ...(!f.lot && suggestLot(co.specialite, lotOpts) ? { lot: suggestLot(co.specialite, lotOpts) } : {}),
-    }));
-    else setForm(f=>({...f, artisan_nom:name}));
-  };
-
-  // addPrestation / removePrestation / updatePrestation / totals sont
-  // fournis par le hook usePrestationManager (voir l'import + destructuring
-  // en haut du composant).
-
-  const handleSave = async () => {
-    if (saving) return;
-    // Validation basique des prestations — affichée dans la modale, pas en alert()
-    setFormError("");
-    if (!form.numero) { setFormError("Le numéro d'OS est requis."); return; }
-    if (!form.chantier_id) { setFormError("Sélectionne un chantier."); return; }
-    if (!form.artisan_nom) { setFormError("Sélectionne un destinataire (artisan)."); return; }
-    for (const p of prestations) {
-      const q = parseFloat(p.quantite);
-      const pu = parseFloat(p.prix_unitaire);
-      if (p.description && (isNaN(q) || q < 0 || isNaN(pu) || pu < 0)) {
-        setFormError("Vérifie les quantités et prix unitaires — aucune valeur négative ou invalide.");
-        return;
-      }
-    }
-    setSaving(true);
-    try {
-      // En mode TVA non applicable, on force les taux à 0 dans les prestations
-      // sauvegardées (sécurité côté DB) et on annule le montant_tva calculé.
-      const tvaNA = !!form.tva_non_applicable;
-      const prestationsToSave = tvaNA
-        ? prestations.map(p => ({ ...p, tva_taux: "0" }))
-        : prestations;
-      const osData = {
-        ...form,
-        prestations: prestationsToSave,
-        montant_ht: totals.ht,
-        montant_tva: tvaNA ? 0 : totals.tva,
-        montant_ttc: tvaNA ? totals.ht : totals.ttc,
-      };
-      await SB.upsertOS(osData);
-      setModal(null);
-      setFormError("");
-      reload();
-      addToast(modal === "edit" ? "OS mis à jour" : "OS créé", "success");
-    } catch (err) {
-      setFormError(err?.message || "Erreur lors de l'enregistrement.");
-    } finally {
-      setSaving(false);
-    }
-  };
+  }, [editor, signModal, readOnly, active]);
 
   // Enrichissement au moment de la génération PDF/Excel :
   // l'OS en base ne stocke que artisan_nom (qui peut être la société OU
@@ -370,6 +246,8 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly,a
   }, [generating, enrichOsForPdf, addToast]);
 
   const handleDelete = useCallback(async (os) => {
+    const blocked = deleteBlockReason(os);
+    if (blocked) { addToast(blocked, "warning"); return; }
     const ok = await confirm({
       title: `Supprimer l'OS ${os.numero} ?`,
       message: "Tu pourras annuler cette suppression pendant 5 secondes.",
@@ -378,46 +256,22 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly,a
     });
     if (!ok) return;
     scheduleDelete(os, { itemLabel: `OS ${os.numero}` });
-  }, [confirm, scheduleDelete]);
+  }, [confirm, scheduleDelete, addToast]);
 
-  const handleDuplicate = useCallback(async (os) => {
-    try {
-      const {
-        id: _id,
-        created_at: _created_at,
-        odoo_sign_id: _odoo_sign_id,
-        odoo_sign_url: _odoo_sign_url,
-        statut_signature: _statut_signature,
-        ...rest
-      } = os;
-      const newNumero = nextNum();
-      SB.setLogContext({ source: 'duplicate', source_id: os.id, source_numero: os.numero });
-      try {
-        await SB.upsertOS({
-          ...rest,
-          numero: newNumero,
-          statut: "Brouillon",
-          date_emission: new Date().toISOString().split("T")[0],
-          odoo_sign_id: null,
-          odoo_sign_url: null,
-          statut_signature: null,
-        });
-      } finally {
-        SB.clearLogContext();
-      }
-      try {
-        SB.log('duplicate', 'os', os.id,
-          `OS ${os.numero} dupliqué → ${newNumero}`,
-          { from_numero: os.numero, new_numero: newNumero });
-      } catch (_) {}
-      reload();
-      addToast("OS dupliqué en brouillon", "success");
-    } catch (err) {
-      addToast("Erreur : " + (err?.message || "duplication impossible"), "error");
-    }
-  }, [addToast, reload, nextNum]);
+  // Dupliquer = nouvel OS repris de celui-ci (avenant, même entreprise) :
+  // le formulaire s'ouvre pour relire les lignes et les dates avant
+  // d'enregistrer, rien n'est créé en silence.
+  const handleDuplicate = useCallback((os) => {
+    const ch = (data.chantiers || []).find(c => c.id === os.chantier_id) || null;
+    const d = draftFromOs(os, { chantier: ch, allOs: data.ordresService });
+    d.form.observations = d.form.observations || `Suite à l'OS ${os.numero}.`;
+    openEditor({ draft: d });
+  }, [data.chantiers, data.ordresService, openEditor]);
 
   const openSignModal = useCallback((os) => {
+    // Un OS incomplet (sans ligne, sans montant…) ne part pas en signature
+    const err = validateOs(os, os.prestations || [], { allOs: data.ordresService });
+    if (err) { addToast(`OS ${os.numero} incomplet : ${err} Ouvrez-le pour le compléter.`, "warning"); return; }
     setSignError("");
     const ch = (data.chantiers || []).find(c => c.id === os.chantier_id);
     // Entreprise (artisan)
@@ -436,7 +290,7 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly,a
       entreprise: { name: os.artisan_nom || "", email: entrepriseEmail },
     });
     setSignModal({ ...os, ch });
-  }, [data.chantiers, data.contacts]);
+  }, [data.chantiers, data.contacts, data.ordresService, addToast]);
 
   const handleSendSign = async () => {
     if (!signModal) return;
@@ -478,6 +332,10 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly,a
         chantier_nom: ch?.nom || null,
         signers: signers.map(s => ({ role: s.role, email: s.email })),
       });
+      // Envoyer en signature, c'est émettre l'OS
+      if (signModal.statut === 'Brouillon') {
+        try { await SB.updateOsStatut(signModal.id, 'Émis', signModal.numero); } catch (_) {}
+      }
       setSignModal(null);
       reload();
       addToast('Demande de signature envoyée aux 3 signataires via Odoo Sign', 'success');
@@ -508,25 +366,38 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly,a
     }
   }, [confirm, reload, addToast]);
 
-  const handleEmail = useCallback((os) => {
+  // Le lien mailto ne peut pas joindre de fichier : le PDF est téléchargé
+  // d'abord, le mail préparé dit qu'il est joint, la personne l'ajoute.
+  const handleEmail = useCallback(async (os) => {
     const ch = (data.chantiers || []).find(c=>c.id===os.chantier_id);
+    try {
+      const { generateOSPdf } = await import('../generators');
+      await generateOSPdf(enrichOsForPdf(os));
+    } catch (err) {
+      addToast('PDF non généré : ' + (err?.message || 'erreur'), 'error');
+      return;
+    }
     const subject = encodeURIComponent(`Ordre de Service ${os.numero} — ${ch?.nom || ""}`);
     const body = encodeURIComponent(
-      `Bonjour,\n\nVeuillez trouver ci-joint l'Ordre de Service ${os.numero} pour le chantier "${ch?.nom || ""}".\n\n` +
-      `Destinataire : ${os.artisan_nom || ""}\n` +
-      `Date d'émission : ${os.date_emission || ""}\n` +
-      `Montant TTC : ${Number(os.montant_ttc||0).toLocaleString("fr-FR")} €\n\n` +
+      `Bonjour,\n\nVeuillez trouver ci-joint l'ordre de service ${os.numero} pour le chantier « ${ch?.nom || ""} ».\n\n` +
+      `Entreprise : ${os.artisan_nom || ""}\n` +
+      `Date d'émission : ${formatDateFR(os.date_emission) || ""}\n` +
+      (os.date_intervention ? `Début des travaux : ${formatDateFR(os.date_intervention)}\n` : '') +
+      `Montant HT : ${formatMoneyFR(os.montant_ht)} €\n` +
+      `Montant TTC : ${formatMoneyFR(os.montant_ttc)} €\n\n` +
+      `Merci de nous le retourner signé.\n\n` +
       `Cordialement,\nID Maîtrise`
     );
     const to = encodeURIComponent(os.artisan_email || "");
     window.open(`mailto:${to}?subject=${subject}&body=${body}`);
+    addToast(`PDF ${os.numero} téléchargé : joignez-le au mail`, 'info');
     try {
       SB.log('send_email', 'os', os.id, `OS ${os.numero} — email → ${os.artisan_email || 'destinataire'}`, {
         to: os.artisan_email || null,
         chantier_nom: ch?.nom || null,
       });
     } catch (_) {}
-  }, [data.chantiers]);
+  }, [data.chantiers, enrichOsForPdf, addToast]);
 
   // Handler stable pour la pill de filtre statut : permet à OsStatusPills
   // de bénéficier de son memo() (ne re-render que si filtre/compteurs changent).
@@ -560,11 +431,15 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly,a
       filtered = filtered.filter(os => os.statut === statusFilter);
     }
     const sorted = [...filtered];
+    // Date : date d'émission, puis numéro (deux OS du même jour restent dans l'ordre)
+    const byDate = (a,b) =>
+      String(a.date_emission||a.created_at||"").localeCompare(String(b.date_emission||b.created_at||"")) ||
+      String(a.numero||"").localeCompare(String(b.numero||""), 'fr', { numeric: true });
     switch (sortBy) {
-      case "date_asc":   sorted.sort((a,b) => new Date(a.created_at||0) - new Date(b.created_at||0)); break;
+      case "date_asc":   sorted.sort(byDate); break;
       case "amount_desc":sorted.sort((a,b) => (Number(b.montant_ttc)||0) - (Number(a.montant_ttc)||0)); break;
       case "amount_asc": sorted.sort((a,b) => (Number(a.montant_ttc)||0) - (Number(b.montant_ttc)||0)); break;
-      default:           sorted.sort((a,b) => new Date(b.created_at||0) - new Date(a.created_at||0)); // date_desc
+      default:           sorted.sort((a,b) => byDate(b,a)); // date_desc
     }
     return sorted;
   }, [searchOS, statusFilter, sortBy, data.ordresService, chantierById, pendingDeleteIds]);
@@ -585,16 +460,6 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly,a
   const todayISO = new Date().toISOString().split("T")[0];
   const isOverdue = (os) =>
     os.date_fin_prevue && os.date_fin_prevue < todayISO && !["Terminé","Annulé"].includes(os.statut);
-
-  // Tous les contacts regroupés par type (pour les dropdowns du formulaire)
-  const contactsParType = useMemo(() => {
-    return (data.contacts || []).reduce((acc, c) => {
-      const type = c.type || "Autre";
-      if (!acc[type]) acc[type] = [];
-      acc[type].push(c);
-      return acc;
-    }, {});
-  }, [data.contacts]);
 
   return (<div>
     {/* Input file caché pour l'import de devis par photo.
@@ -750,41 +615,21 @@ export default function OrdresServiceV({data,m,reload,focusId,focusTs,readOnly,a
       ))}
     </div>
 
-    {/* MODAL CRÉATION / ÉDITION OS — composant OSFormModal */}
-    <OSFormModal
-      modal={modal}
-      onClose={closeModal}
-      form={form}
-      setForm={setForm}
-      updateChantier={updateChantier}
-      updateDestinataire={updateDestinataire}
-      setTvaNonApplicable={setTvaNonApplicable}
-      prestations={prestations}
-      addPrestation={addPrestation}
-      removePrestation={removePrestation}
-      updatePrestation={updatePrestation}
-      totals={totals}
-      formError={formError}
-      setFormError={setFormError}
-      saving={saving}
-      handleSave={handleSave}
-      chantiers={data.chantiers}
-      contactsParType={contactsParType}
-      importing={importing}
-      importError={importError}
-      onImportClick={() => devisInputRef.current?.click()}
-      m={m}
-      FF={FF}
-      inp={inp}
-      sel={sel}
-      btnP={btnP}
-      btnS={btnS}
-      Icon={Icon}
-      I={I}
-      fmtMoney={fmtMoney}
-      lotOptions={lotOpts}
-      suggestedLot={suggestedLot}
-    />
+    {/* FORMULAIRE CRÉATION / MODIFICATION — composants/os/OsEditor */}
+    {editor && (
+      <OsEditor
+        key={editor.key}
+        os={editor.os || null}
+        draft={editor.draft || null}
+        data={data}
+        m={m}
+        onClose={closeModal}
+        onSaved={handleSaved}
+        importing={importing}
+        importError={importError}
+        onImportClick={() => devisInputRef.current?.click()}
+      />
+    )}
 
     {/* MODAL SIGNATURE ODOO — 3 SIGNATAIRES OBLIGATOIRES */}
     <OSSignatureModal

@@ -1,6 +1,7 @@
 'use client'
 import { LOGO_B64 } from './logo'
 import { COMPANY as ENT, SB } from './dashboards/shared'
+import { computeOsTotals, tvaRate as osTvaRate, lineHT as osLineHT } from './lib/osRules'
 import { chiffrageTotals, posteTotal, lotTotal, lotNumero, posteNumero } from './lib/chiffrage'
 import { crTaskStats, daysLate, fmtLongDate, isoWeek, priorityLabel, globalProgress, lotOf, lotKey, GENERAL, formalTitle, absences, absenceText } from './lib/crSuivi'
 
@@ -442,16 +443,13 @@ export async function generateOSPdf(data) {
 
   const prestations = data.prestations || []
   const tvaNA = !!data.tva_non_applicable
-  let totalHT = 0; const tvaMap = {}
+  // Montants : même calcul que le formulaire (lib/osRules), 0 % reste 0 %
   const tbody = prestations.map(p => {
     const q = parseFloat(p.quantite)||0, pu = parseFloat(p.prix_unitaire)||0
-    const tva = tvaNA ? 0 : (parseFloat(p.tva_taux)||20)
-    const lht = q * pu; totalHT += lht
-    tvaMap[tva] = (tvaMap[tva]||0) + lht * tva / 100
-    return [sanitize(p.description)||"", p.unite||"", q.toString(), fmtM(pu), `${tva}%`, fmtM(lht)]
+    const tva = osTvaRate(p, tvaNA)
+    return [sanitize(p.description)||"", p.unite||"", q.toString(), fmtM(pu), `${tva}%`, fmtM(osLineHT(p))]
   })
-  const totalTVA = Object.values(tvaMap).reduce((s, v) => s + v, 0)
-  const totalTTC = totalHT + totalTVA
+  const { ht: totalHT, ttc: totalTTC, parTaux: tvaMap } = computeOsTotals(prestations, tvaNA)
 
   autoTable(doc, {
     startY: y, head: [["Description", "Unité", "Qté", "PU HT", "TVA", "Total HT"]], body: tbody,
@@ -1235,14 +1233,13 @@ export function generateOSExcel(data) {
   // Build CSV content (universally compatible, opens in Excel)
   const prestations = data.prestations || []
   const tvaNA = !!data.tva_non_applicable
-  let totalHT = 0
   const rows = prestations.map(p => {
     const q = parseFloat(p.quantite)||0, pu = parseFloat(p.prix_unitaire)||0
-    const tva = tvaNA ? 0 : (parseFloat(p.tva_taux)||20)
-    const lht = q * pu; totalHT += lht
-    return [p.description||"", p.unite||"", q, pu, `${tva}%`, lht, lht * tva / 100]
+    const tva = osTvaRate(p, tvaNA)
+    const lht = osLineHT(p)
+    return [p.description||"", p.unite||"", q, pu, `${tva}%`, lht, Math.round(lht * tva) / 100]
   })
-  const totalTVA = rows.reduce((s, r) => s + r[6], 0)
+  const { ht: totalHT, tva: totalTVA } = computeOsTotals(prestations, tvaNA)
 
   let csv = "\uFEFF" // BOM for Excel UTF-8
   csv += `ORDRE DE SERVICE;${data.numero||""}\n`

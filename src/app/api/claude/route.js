@@ -7,8 +7,8 @@
 //   Anthropic (= coût direct sur la carte bancaire).
 // - Rate limit en mémoire par IP en plus : 20 req/min, même pattern que
 //   /api/extract-*. Double filet de sécurité.
-// - Modèle imposé côté serveur (lib/ai.js : Claude Haiku 4.5 ou Mistral selon
-//   AI_PROVIDER) et max_tokens plafonné : le client ne peut ni choisir un
+// - Modèle imposé côté serveur (lib/ai.js : Claude Haiku 4.5, ou Mistral Large
+//   pour l'assistant, selon AI_PROVIDER) et max_tokens plafonné : le client ne peut ni choisir un
 //   modèle plus cher ni demander une sortie illimitée.
 
 import { verifyAuth } from '@/app/lib/auth'
@@ -17,7 +17,11 @@ import { generate } from '@/app/lib/ai'
 
 const log = createLogger('claude')
 
+// Réponse de l'assistant : jusqu'à 60 s (Mistral Large sur un long prompt)
+export const maxDuration = 60
+
 const DEFAULT_MAX_TOKENS = 1000
+const ASSISTANT_MISTRAL_DEFAULT = 'mistral-large-latest'
 const MAX_TOKENS_CAP = 4000
 
 function clampMaxTokens(value) {
@@ -92,9 +96,19 @@ export async function POST(request) {
       system: typeof body.system === 'string' ? body.system : '',
       messages,
       maxTokens: clampMaxTokens(body.max_tokens),
-      // Claude peut prendre ~20s sur une vision ou un long prompt ; on laisse 30s
-      timeoutMs: 30000,
+      // Long prompt (données des chantiers) + Mistral Large : jusqu'à ~30 s.
+      // 40 s sans nouvel essai, pour rester sous la limite de 60 s (maxDuration).
+      timeoutMs: 40000,
+      maxRetries: 0,
       log,
+      // Assistant : modèles propres. Côté Mistral, Mistral Large par défaut
+      // (comme le chiffrage) : Small comprend mal les demandes dictées et
+      // rate les blocs d'action. ASSISTANT_MISTRAL_MODEL / ASSISTANT_ANTHROPIC_MODEL
+      // pour en changer (ex. mistral-small-latest pour revenir au moins cher).
+      anthropicModel: process.env.ASSISTANT_ANTHROPIC_MODEL || undefined,
+      mistralModel: process.env.ASSISTANT_MISTRAL_MODEL || ASSISTANT_MISTRAL_DEFAULT,
+      // Basse : l'assistant suit mieux le format des actions
+      temperature: 0.2,
     });
     if (!ai.ok) {
       return Response.json({ error: ai.message }, { status: ai.status });

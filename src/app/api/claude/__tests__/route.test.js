@@ -179,4 +179,26 @@ describe('POST /api/claude', () => {
       expect(blocked.status).toBe(429)
     })
   })
+
+  it("assistant sur Mistral : Mistral Large et température basse par défaut", async () => {
+    const prev = { p: process.env.AI_PROVIDER, k: process.env.MISTRAL_API_KEY, m: process.env.ASSISTANT_MISTRAL_MODEL }
+    process.env.AI_PROVIDER = 'mistral'
+    process.env.MISTRAL_API_KEY = 'mk-test'
+    delete process.env.ASSISTANT_MISTRAL_MODEL
+    try {
+      verifyAuth.mockResolvedValue({ id: 'u1' })
+      fetchWithRetry.mockResolvedValue(fakeOk({ choices: [{ message: { content: 'ok' }, finish_reason: 'stop' }] }))
+      const res = await POST(makeRequest({ token: 't', body: { system: 's', messages: [{ role: 'user', content: 'bonjour' }] }, ip: '10.9.9.9' }))
+      expect(res.status).toBe(200)
+      const [url, opts] = fetchWithRetry.mock.calls[0]
+      expect(url).toMatch(/mistral/)
+      const sent = JSON.parse(opts.body)
+      expect(sent.model).toBe('mistral-large-latest')
+      expect(sent.temperature).toBe(0.2)
+    } finally {
+      if (prev.p === undefined) delete process.env.AI_PROVIDER; else process.env.AI_PROVIDER = prev.p
+      if (prev.k === undefined) delete process.env.MISTRAL_API_KEY; else process.env.MISTRAL_API_KEY = prev.k
+      if (prev.m !== undefined) process.env.ASSISTANT_MISTRAL_MODEL = prev.m
+    }
+  })
 })

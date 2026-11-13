@@ -1,4 +1,4 @@
-import { parseAiActions, summarizeLabels, executeAiAction, computeOsTotals } from '../aiActions'
+import { parseAiActions, summarizeLabels, executeAiAction, computeOsTotals, osDraftFromAi } from '../aiActions'
 
 const mk = () => ({
   SB: {
@@ -95,3 +95,38 @@ describe('tâches : modifier, supprimer', () => {
     expect(summarizeLabels(['Tâche supprimée', 'Tâche supprimée'])).toBe('2 tâches supprimées')
   })
 })
+
+describe('osDraftFromAi', () => {
+  const data = {
+    chantiers: [{ id: 'c1', nom: 'Friboulet', client: 'M. Friboulet' }, { id: 'c2', nom: 'Les Voiles', client: 'SCI V' }],
+    contacts: [{ id: 'k1', nom: 'Lefèvre Carrelage', specialite: 'Carrelage', adresse: '3 rue B, Le Havre', email: 'l@ex.fr', siret: '12345678900011' }],
+    ordresService: [{ id: 'o1', numero: 'OS-2026-014', chantier_id: 'c1', statut: 'Brouillon', artisan_nom: 'X', prestations: [] }],
+  }
+
+  it("prépare un brouillon : numéro calculé, coordonnées de l'annuaire, prix non inventés", () => {
+    const { draft } = osDraftFromAi({ type: 'add_os', data: {
+      numero: 'OS-2026-001', chantier_nom: 'fri boulet', artisan_contact_id: 'k1', statut: 'Émis',
+      date_intervention: 'lundi prochain',
+      prestations: [
+        { description: 'Carrelage séjour', unite: 'm²', quantite: 40, prix_unitaire: 45, tva_taux: 10 },
+        { description: 'Plinthes', unite: 'ml', quantite: 30, prix_unitaire: '' },
+      ],
+    } }, data)
+    expect(draft.form).toMatchObject({
+      numero: 'OS-2026-015', chantier_id: 'c1', client_nom: 'M. Friboulet', statut: 'Brouillon',
+      artisan_nom: 'Lefèvre Carrelage', artisan_adresse: '3 rue B, Le Havre', artisan_siret: '12345678900011',
+      date_intervention: '',
+    })
+    expect(draft.prestations).toEqual([
+      { description: 'Carrelage séjour', unite: 'm²', quantite: '40', prix_unitaire: '45', tva_taux: '10' },
+      { description: 'Plinthes', unite: 'ml', quantite: '30', prix_unitaire: '', tva_taux: '20' },
+    ])
+  })
+
+  it("modifie un OS existant sans toucher à son numéro ni à son statut", () => {
+    const { os } = osDraftFromAi({ type: 'update_os', data: { id: 'o1', numero: 'OS-9', statut: 'Terminé', date_fin_prevue: '2026-12-01' } }, data)
+    expect(os).toMatchObject({ id: 'o1', numero: 'OS-2026-014', statut: 'Brouillon', date_fin_prevue: '2026-12-01' })
+    expect(osDraftFromAi({ type: 'update_os', data: { id: 'nope' } }, data).error).toMatch(/introuvable/)
+  })
+})
+

@@ -63,10 +63,11 @@ function toAnthropicContent(content) {
       : { type: 'text', text: p.text }))
 }
 
-async function callAnthropic({ system, messages, maxTokens, json, timeoutMs, maxRetries, anthropicModel }) {
+async function callAnthropic({ system, messages, maxTokens, json, timeoutMs, maxRetries, anthropicModel, temperature }) {
   const body = {
     model: anthropicModel || process.env.ANTHROPIC_MODEL || DEFAULT_ANTHROPIC_MODEL,
     max_tokens: maxTokens,
+    ...(temperature != null ? { temperature } : {}),
     ...(system ? { system } : {}),
     messages: messages.map(m => ({ role: m.role, content: toAnthropicContent(m.content) })),
   }
@@ -122,10 +123,11 @@ function mistralText(content) {
   return ''
 }
 
-async function callMistral({ system, messages, maxTokens, json, timeoutMs, maxRetries, vision, mistralModel }) {
+async function callMistral({ system, messages, maxTokens, json, timeoutMs, maxRetries, vision, mistralModel, temperature }) {
   const body = {
     model: mistralModel || (vision && process.env.MISTRAL_VISION_MODEL) || process.env.MISTRAL_MODEL || DEFAULT_MISTRAL_MODEL,
     max_tokens: maxTokens,
+    ...(temperature != null ? { temperature } : {}),
     messages: [
       ...(system ? [{ role: 'system', content: system }] : []),
       ...messages.map(m => ({ role: m.role, content: toMistralContent(m.content) })),
@@ -171,8 +173,9 @@ function isProviderSide(status, bodyText) {
  */
 // `prefer` : fournisseur de cette demande ('anthropic' | 'mistral', sinon les
 // réglages AI_PROVIDER*) ; `anthropicModel` / `mistralModel` : modèle propre à
-// cette demande (sinon ANTHROPIC_MODEL / MISTRAL_MODEL).
-export async function generate({ system, messages, maxTokens = 1024, json = false, timeoutMs = 30_000, maxRetries = 1, log, prefer, anthropicModel, mistralModel } = {}) {
+// cette demande (sinon ANTHROPIC_MODEL / MISTRAL_MODEL) ; `temperature` :
+// facultative (basse = réponses plus régulières, utile aux blocs d'action).
+export async function generate({ system, messages, maxTokens = 1024, json = false, timeoutMs = 30_000, maxRetries = 1, log, prefer, anthropicModel, mistralModel, temperature } = {}) {
   const vision = hasImage(messages)
   // Les PDF ne sont lus que par Claude (pas d'envoi de PDF à Mistral)
   const order = providerOrder({ vision, prefer }).filter(p => !hasPart(messages, 'document') || p === 'anthropic')
@@ -187,7 +190,7 @@ export async function generate({ system, messages, maxTokens = 1024, json = fals
   for (const provider of order) {
     let r
     try {
-      r = await (provider === 'mistral' ? callMistral : callAnthropic)({ system, messages, maxTokens, json, timeoutMs, maxRetries, vision, anthropicModel, mistralModel })
+      r = await (provider === 'mistral' ? callMistral : callAnthropic)({ system, messages, maxTokens, json, timeoutMs, maxRetries, vision, anthropicModel, mistralModel, temperature })
     } catch (e) {
       r = { ok: false, status: 503, message: 'Service IA injoignable : réessayez dans quelques instants.', raw: e?.message, retryable: true }
     }
