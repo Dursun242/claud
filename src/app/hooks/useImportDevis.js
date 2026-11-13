@@ -105,7 +105,8 @@ export function useImportDevis({ chantiers = [], contacts = [], nextNum, onReady
       }
 
       const existing = findExistingContact(contacts, extracted)
-      const ch = chantiers[0]
+      // Pas de chantier deviné : à choisir dans le formulaire (sauf s'il n'y en a qu'un)
+      const ch = chantiers.length === 1 ? chantiers[0] : null
 
       // Si un contact existe déjà → on utilise son nom (l'enrichOsForPdf
       // trouvera sa société au moment de générer le PDF).
@@ -130,6 +131,8 @@ export function useImportDevis({ chantiers = [], contacts = [], nextNum, onReady
         observations: extracted.observations || '',
         conditions: 'Paiement à 30 jours à compter de la réception de la facture.',
         statut: 'Brouillon',
+        tva_non_applicable: false,
+        lot: '',
       }
 
       const newPrestations = Array.isArray(extracted.prestations) && extracted.prestations.length > 0
@@ -138,9 +141,10 @@ export function useImportDevis({ chantiers = [], contacts = [], nextNum, onReady
             unite: String(p.unite || 'u'),
             quantite: String(p.quantite || ''),
             prix_unitaire: String(p.prix_unitaire || ''),
-            tva_taux: String(p.tva_taux || '20'),
+            // 0 % lu sur le devis reste 0 %
+            tva_taux: p.tva_taux === 0 || p.tva_taux ? String(p.tva_taux) : '20',
           }))
-        : [{ description: '', unite: 'm²', quantite: '', prix_unitaire: '', tva_taux: '20' }]
+        : [{ description: '', unite: 'u', quantite: '', prix_unitaire: '', tva_taux: '20' }]
 
       onReady?.({ form: newForm, prestations: newPrestations })
     } catch (err) {

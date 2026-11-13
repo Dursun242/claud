@@ -108,4 +108,20 @@ describe('usePrestationManager', () => {
     expect(result.current.totals.ht).toBe(500)
     expect(result.current.totals.ttc).toBe(600)
   })
+
+  it('totals garde une ligne à 0 % sans TVA', () => {
+    const initial = [
+      { description: 'x', unite: 'u', quantite: '1', prix_unitaire: '100', tva_taux: '0' },
+    ]
+    const { result } = renderHook(() => usePrestationManager(initial))
+    expect(result.current.totals).toEqual({ ht: 100, tva: 0, ttc: 100 })
+  })
+
+  it('totals à 0 % sur toutes les lignes si TVA non applicable', () => {
+    const initial = [
+      { description: 'x', unite: 'u', quantite: '1', prix_unitaire: '100', tva_taux: '20' },
+    ]
+    const { result } = renderHook(() => usePrestationManager(initial, { tvaNonApplicable: true }))
+    expect(result.current.totals).toEqual({ ht: 100, tva: 0, ttc: 100 })
+  })
 })

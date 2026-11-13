@@ -15,9 +15,12 @@
 // Notes :
 //   - Les montants sont parseFloat au calcul — les prestations restent
 //     des strings (inputs controlled).
-//   - TVA par défaut 20 % si champ vide ou invalide.
+//   - Calcul délégué à lib/osRules (computeOsTotals) : mêmes montants que
+//     le PDF et l'enregistrement. 0 % reste 0 % ; 20 % si le taux est vide.
+//   - options.tvaNonApplicable : toutes les lignes à 0 % (art. 293 B du CGI).
 
 import { useState, useMemo, useCallback } from 'react'
+import { computeOsTotals } from '../lib/osRules'
 
 const BLANK_PRESTATION = {
   description: '',
@@ -27,7 +30,7 @@ const BLANK_PRESTATION = {
   tva_taux: '20',
 }
 
-export function usePrestationManager(initial = []) {
+export function usePrestationManager(initial = [], { tvaNonApplicable = false } = {}) {
   const [prestations, setPrestations] = useState(initial)
 
   const addPrestation = useCallback(() => {
@@ -43,15 +46,9 @@ export function usePrestationManager(initial = []) {
   }, [])
 
   const totals = useMemo(() => {
-    let ht = 0
-    let tva = 0
-    prestations.forEach((p) => {
-      const line = (parseFloat(p.quantite) || 0) * (parseFloat(p.prix_unitaire) || 0)
-      ht += line
-      tva += (line * (parseFloat(p.tva_taux) || 20)) / 100
-    })
-    return { ht, tva, ttc: ht + tva }
-  }, [prestations])
+    const { ht, tva, ttc } = computeOsTotals(prestations, tvaNonApplicable)
+    return { ht, tva, ttc }
+  }, [prestations, tvaNonApplicable])
 
   return {
     prestations,

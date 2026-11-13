@@ -433,6 +433,15 @@ export const SB = {
     await this.linkOsArtisan(data);
     return data;
   },
+  // Changement de statut seul (OS figé, envoi en signature) : ne réécrit
+  // ni les lignes ni les champs de signature mis à jour côté serveur.
+  async updateOsStatut(id, statut, numero = null) {
+    const { data, error } = await supabase.from('ordres_service')
+      .update({ statut }).eq('id', id).select().single();
+    if (error) throw new Error("Erreur mise à jour OS : " + error.message);
+    this.log('update', 'os', id, data?.numero || numero, { statut });
+    return data;
+  },
   async deleteOS(id) {
     const { data: prev } = await supabase.from('ordres_service')
       .select('numero').eq('id', id).maybeSingle();
