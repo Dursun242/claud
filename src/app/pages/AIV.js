@@ -6,9 +6,34 @@ import { MicButtonInline } from '../components'
 import { useToast } from '../contexts/ToastContext'
 import { supabase } from '../supabaseClient'
 import * as crmDb from '../lib/crmDb'
-import { executeAiAction, parseAiActions, summarizeLabels, CRM_PROMPT, CRM_ACTIONS, DELETE_ACTIONS } from '../lib/aiActions'
+import { executeAiAction, parseAiActions, summarizeLabels, CRM_PROMPT, CRM_ACTIONS, DELETE_ACTIONS, OS_ACTIONS, osDraftFromAi } from '../lib/aiActions'
+import { nextOsNumero } from '../lib/osNumero'
 import { useOptionalConfirm } from '../contexts/ConfirmContext'
 import { prepareCrmForAI } from '../lib/crm'
+
+// Formulaire d'OS ouvert depuis une demande à l'assistant (chargé à la demande)
+const OsEditor = dynamic(() => import('../components/os/OsEditor'), { ssr: false })
+
+const JOURS = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi']
+// « vendredi 13 novembre 2026 (2026-11-13) » : l'IA calcule mieux « vendredi prochain »
+// avec le jour de la semaine qu'avec la seule date ISO.
+function todayForAI(now = new Date()) {
+  const iso = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10)
+  const long = now.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
+  return `${JOURS[now.getDay()]} ${long} (${iso})`
+}
+
+// Règles communes : les demandes arrivent souvent dictées au micro
+const DICTATION_RULES = `
+LES DEMANDES SONT SOUVENT DICTÉES AU MICRO (reconnaissance vocale du téléphone) :
+- Le texte peut contenir des fautes de transcription : noms coupés ou déformés
+  (« fri boulet » = Friboulet, « le fèvre » = Lefèvre), homophones (« sept » / « cet »,
+  « mètre carré » = m², « HT » prononcé « hache-té »), ponctuation absente, hésitations.
+- Comprends l'intention, pas les mots exacts. Rapproche chaque nom entendu du chantier ou du
+  contact existant le plus proche à l'oreille, et utilise SON id et SON nom exact.
+- Ne demande une précision que si l'information manque vraiment et ne peut pas être déduite
+  (ex. deux chantiers possibles). Dans ce cas pose UNE question courte, sans bloc action.
+- Ne recopie pas la demande ; réponds en une ou deux phrases.`
 
 // react-markdown (~25 kB gz) n'est utilisé que pour afficher les réponses IA :
 // on le charge à la demande pour alléger le bundle initial de la page.
@@ -77,7 +102,7 @@ function prepareDataForAI(data) {
       dateDebut: c.date_debut, dateFin: c.date_fin, lots: c.lots,
     })),
     contacts: (data.contacts || []).map(c => ({
-      id: c.id, nom: c.nom, type: c.type, specialite: c.specialite,
+      id: c.id, nom: c.nom, societe: c.societe || undefined, type: c.type, specialite: c.specialite,
       tel: c.tel, email: c.email, siret: c.siret,
     })),
     // Tâches ouvertes d'abord (doublons, relances…), puis les terminées récentes
@@ -91,10 +116,14 @@ function prepareDataForAI(data) {
       id: cr.id, chantier_id: cr.chantier_id, date: cr.date, numero: cr.numero,
       resume: cr.resume?.slice(0, 200),
     })),
-    ordresService: (data.ordresService || []).slice(0, 20).map(os => ({
-      id: os.id, numero: os.numero, chantier_id: os.chantier_id,
-      artisan_nom: os.artisan_nom, statut: os.statut, date_emission: os.date_emission,
-    })),
+    // Les plus récents d'abord (avant : les 20 premiers chargés, pas forcément récents)
+    ordresService: [...(data.ordresService || [])]
+      .sort((a, b) => String(b.date_emission || b.created_at || '').localeCompare(String(a.date_emission || a.created_at || '')))
+      .slice(0, 40).map(os => ({
+        id: os.id, numero: os.numero, chantier_id: os.chantier_id, lot: os.lot || undefined,
+        artisan_nom: os.artisan_nom, statut: os.statut, date_emission: os.date_emission,
+        montant_ht: os.montant_ht,
+      })),
   }
 }
 
@@ -110,6 +139,9 @@ export default function AIV({ data, save: _save, m, externalTranscript, clearExt
   const [messages,setMessages]=useState([WELCOME_MESSAGE]);
   const [input,setInput]=useState("");
   const [loading,setLoading]=useState(false);
+  // OS proposés par l'assistant : ouverts un par un dans le formulaire d'OS
+  const [osQueue,setOsQueue]=useState([]);
+  const osSeq=useRef(0);
   const [listening,setListening]=useState(false);
   const recognRef = useRef(null);
   const endRef=useRef(null);
@@ -205,7 +237,9 @@ export default function AIV({ data, save: _save, m, externalTranscript, clearExt
 (9 Rue Henry Genestal, 76600). Le gérant est Dursun. Tu gères le quotidien des chantiers.
 
 DONNÉES ACTUELLES (Supabase): ${JSON.stringify({ ...prepareDataForAI(data), crm: prepareCrmForAI(crm || {}) },null,0)}
-DATE DU JOUR : ${new Date().toISOString().slice(0,10)}
+DATE DU JOUR : ${todayForAI()}
+PROCHAIN NUMÉRO D'OS : ${nextOsNumero(data?.ordresService || [])} (attribué automatiquement)
+${DICTATION_RULES}
 
 TU PEUX TOUT FAIRE :
 1. Créer des chantiers, tâches, contacts, comptes rendus (CR), ordres de service (OS)
@@ -257,20 +291,28 @@ update_cr: {"type":"update_cr","data":{
   "date":"YYYY-MM-DD","numero":1,"resume":"...","participants":"...","decisions":"..."}}
 
 add_os: {"type":"add_os","data":{
-  "numero":"OS-2026-001","chantier_id":"UUID-DU-CHANTIER",
-  "client_nom":"...","client_adresse":"...","artisan_nom":"...",
-  "artisan_specialite":"...","artisan_tel":"...","artisan_email":"...","artisan_siret":"...",
-  "date_emission":"YYYY-MM-DD","date_intervention":"YYYY-MM-DD","date_fin_prevue":"YYYY-MM-DD",
+  "chantier_id":"UUID-DU-CHANTIER","artisan_contact_id":"UUID-DU-CONTACT","artisan_nom":"nom exact du contact",
+  "lot":"...","date_intervention":"YYYY-MM-DD","date_fin_prevue":"YYYY-MM-DD",
   "prestations":[{"description":"...","unite":"m²","quantite":10,"prix_unitaire":45.00,"tva_taux":20}],
-  "observations":"...","conditions":"Paiement à 30 jours.","statut":"Émis"}}
+  "observations":"..."}}
 
 update_os: {"type":"update_os","data":{
-  "id":"UUID-EXISTANT","numero":"OS-2026-001","chantier_id":"UUID-DU-CHANTIER",
-  "client_nom":"...","artisan_nom":"...","artisan_specialite":"...",
-  "artisan_tel":"...","artisan_email":"...","artisan_siret":"...",
-  "date_emission":"YYYY-MM-DD","date_intervention":"YYYY-MM-DD","date_fin_prevue":"YYYY-MM-DD",
-  "prestations":[{"description":"...","unite":"m²","quantite":10,"prix_unitaire":45.00,"tva_taux":20}],
-  "observations":"...","conditions":"...","statut":"..."}}
+  "id":"UUID-OS-EXISTANT", ...seulement les champs à changer..., "prestations":[...liste complète si elle change...]}}
+
+ORDRES DE SERVICE (OS) :
+- L'OS n'est pas enregistré tout de suite : l'application ouvre le formulaire d'OS pré-rempli,
+  l'utilisateur relit et enregistre. Dis-le simplement (« Je prépare l'OS, relisez-le »).
+- Le numéro, le client, les coordonnées de l'entreprise (adresse, SIRET, email) et les montants
+  sont remplis par l'application : ne les écris pas.
+- Une ligne de prestation par ouvrage cité : description claire et professionnelle (ex. « Fourniture
+  et pose de carrelage grès cérame 60×60, sol séjour »), unité (u, m², ml, m³, kg, h, forfait, ens),
+  quantité, prix unitaire HT. TVA : 20 % par défaut, 10 % en rénovation de logement de plus de 2 ans
+  si l'utilisateur le dit, 5,5 % pour la rénovation énergétique.
+- N'invente JAMAIS un prix ou une quantité non donnés : laisse "prix_unitaire" ou "quantite" vide ("").
+  Un montant global (« 3 500 € HT pour la plomberie ») = 1 ligne, unité "forfait", quantité 1.
+- « Tout compris », « TTC » : convertis en HT (TTC / 1,2 à 20 %) et dis-le.
+- Le lot : celui du chantier qui correspond au métier de l'entreprise.
+- Dates relatives (« lundi prochain », « dans quinze jours ») : calcule-les depuis la date du jour.
 
 ${CRM_PROMPT}
 RÈGLES :
@@ -327,7 +369,7 @@ RÈGLES :
 - Le bloc <<<ACTION>>> doit contenir un JSON valide — pas de commentaires
 - Plusieurs tâches : UN bloc <<<ACTION>>> par tâche, chacun fermé par <<<END_ACTION>>>`;
 
-      const sys = clientMode ? sysClient : sysAdmin;
+      const sys = clientMode ? `${sysClient}\n${DICTATION_RULES}` : sysAdmin;
 
 
       // JWT Supabase requis par /api/claude pour éviter que n'importe qui
@@ -360,7 +402,7 @@ RÈGLES :
       // par bloc) : exécutées une à une, chaque échec signalé à part
       const parsed = parseAiActions(text);
       if (parsed.actions.length || parsed.invalid) {
-        const done = [], failed = [];
+        const done = [], failed = [], lines0 = [];
         // Suppressions : jamais sans ta confirmation (liste des tâches visées)
         const deletes = parsed.actions.filter(a => DELETE_ACTIONS.has(a.type));
         if (deletes.length) {
@@ -373,6 +415,24 @@ RÈGLES :
           if (!ok) {
             parsed.actions = parsed.actions.filter(a => !DELETE_ACTIONS.has(a.type));
             failed.push("suppression annulée, aucune tâche supprimée");
+          }
+        }
+        // OS : formulaire pré-rempli à relire, jamais d'enregistrement direct
+        if (!clientMode) {
+          const osActions = parsed.actions.filter(a => OS_ACTIONS.has(a.type));
+          parsed.actions = parsed.actions.filter(a => !OS_ACTIONS.has(a.type));
+          const opened = [];
+          for (const a of osActions) {
+            const r = osDraftFromAi(a, data || {});
+            if (r.error) { failed.push(r.error); continue; }
+            osSeq.current += 1;
+            opened.push({ ...r, key: osSeq.current });
+          }
+          if (opened.length) {
+            setOsQueue(q => [...q, ...opened]);
+            lines0.push(opened.length > 1
+              ? `**${opened.length} OS préparés** : relisez chaque formulaire puis enregistrez.`
+              : "**OS préparé** : relisez le formulaire puis enregistrez.");
           }
         }
         SB.setLogContext({ source: 'ai' });
@@ -394,13 +454,13 @@ RÈGLES :
           if (parsed.actions.some(a => CRM_ACTIONS.has(a.type)) && reloadCrm) await reloadCrm();
           if (parsed.actions.some(a => !CRM_ACTIONS.has(a.type)) && reload) await reload();
         }
-        const lines = [];
+        const lines = [...lines0];
         if (done.length) lines.push(`**${summarizeLabels(done)}.**`);
         for (const f of failed) lines.push(`**Non enregistré :** ${f}`);
         if (parsed.invalid) lines.push(`**${parsed.invalid > 1 ? `${parsed.invalid} actions illisibles` : "Une action illisible"}** : rien n'a été enregistré pour ${parsed.invalid > 1 ? "elles" : "elle"}. Redemande en une phrase plus courte.`);
         text = `${parsed.text}\n\n${lines.join("\n")}`;
         if (done.length) addToast(summarizeLabels(done), failed.length || parsed.invalid ? "warning" : "success");
-        else addToast("Rien n'a été enregistré", "error");
+        else if (!lines0.length) addToast("Rien n'a été enregistré", "error");
       }
       // provider : fournisseur qui a réellement répondu (renvoyé par le serveur)
       setMessages(prev=>[...prev,{role:"assistant",content:text,provider:result.provider,
@@ -522,6 +582,13 @@ RÈGLES :
           <Icon d={I.send} size={16} color="#fff"/>{!m&&"Envoyer"}
         </button>
       </div>
+
+      {osQueue[0] && (
+        <OsEditor key={osQueue[0].key} os={osQueue[0].os || null} draft={osQueue[0].draft || null}
+          data={data || {}} m={m}
+          onClose={() => setOsQueue(q => q.slice(1))}
+          onSaved={() => { setOsQueue(q => q.slice(1)); reload?.(); }} />
+      )}
 
       {/* QUICK ACTIONS — suggestions cliquables */}
       <div style={{display:"flex",gap:6,marginTop:10,flexWrap:"wrap"}}>

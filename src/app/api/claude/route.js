@@ -95,6 +95,10 @@ export async function POST(request) {
       // Claude peut prendre ~20s sur une vision ou un long prompt ; on laisse 30s
       timeoutMs: 30000,
       log,
+      // Assistant : modèles propres, facultatifs (ASSISTANT_ANTHROPIC_MODEL /
+      // ASSISTANT_MISTRAL_MODEL) ; sinon ceux de toute l'application.
+      anthropicModel: process.env.ASSISTANT_ANTHROPIC_MODEL || undefined,
+      mistralModel: process.env.ASSISTANT_MISTRAL_MODEL || undefined,
     });
     if (!ai.ok) {
       return Response.json({ error: ai.message }, { status: ai.status });

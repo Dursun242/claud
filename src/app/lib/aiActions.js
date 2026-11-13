@@ -8,6 +8,9 @@
  * erreur si l'action est inconnue / refusée.
  */
 
+import { computeOsTotals as osTotals, tvaRate, newOsDraft, BLANK_LINE } from './osRules'
+import { findArtisanContact, normName } from './osArtisan'
+
 const CLIENT_ALLOWED = new Set(['add_task'])
 
 // Actions CRM : réservées au staff, jamais disponibles en mode client.
@@ -15,14 +18,92 @@ export const CRM_ACTIONS = new Set([
   'add_opportunite', 'update_opportunite', 'add_interaction', 'action_faite',
 ])
 
+// Montants d'un OS : même calcul que le formulaire et le PDF (lib/osRules)
 export function computeOsTotals(prestations = []) {
-  let ht = 0, tva = 0
-  for (const p of prestations) {
-    const l = (parseFloat(p.quantite) || 0) * (parseFloat(p.prix_unitaire) || 0)
-    ht += l
-    tva += l * (parseFloat(p.tva_taux) || 20) / 100
+  const t = osTotals(prestations)
+  return { montant_ht: t.ht, montant_tva: t.tva, montant_ttc: t.ttc }
+}
+
+/** Actions d'OS : jamais enregistrées directement, elles ouvrent le formulaire pré-rempli. */
+export const OS_ACTIONS = new Set(['add_os', 'update_os'])
+
+const OS_EDITABLE = [
+  'artisan_nom', 'artisan_specialite', 'artisan_adresse', 'artisan_tel', 'artisan_email', 'artisan_siret',
+  'client_nom', 'client_adresse', 'date_emission', 'date_intervention', 'date_fin_prevue',
+  'observations', 'conditions', 'lot', 'tva_non_applicable',
+]
+const isoDate = (v) => (/^\d{4}-\d{2}-\d{2}$/.test(String(v || '')) ? String(v) : '')
+
+// Chantier visé : par id, sinon par nom ou client (la dictée déforme souvent les noms)
+function findChantier(d, chantiers = []) {
+  if (d.chantier_id) {
+    const c = chantiers.find(x => x.id === d.chantier_id)
+    if (c) return c
   }
-  return { montant_ht: ht, montant_tva: tva, montant_ttc: ht + tva }
+  // Sans espaces : « fri boulet » dicté = « Friboulet »
+  const squash = (v) => normName(v).replace(/ /g, '')
+  const wanted = squash(d.chantier_nom || d.chantier)
+  if (!wanted) return null
+  return chantiers.find(x => squash(x.nom) === wanted)
+    || chantiers.find(x => squash(x.nom) && (squash(x.nom).includes(wanted) || wanted.includes(squash(x.nom))))
+    || chantiers.find(x => squash(x.client) === wanted)
+    || null
+}
+
+function linesFromAi(prestations) {
+  return (Array.isArray(prestations) ? prestations : []).map(p => ({
+    description: String(p?.description || ''),
+    unite: String(p?.unite || 'u'),
+    quantite: p?.quantite == null ? '' : String(p.quantite),
+    prix_unitaire: p?.prix_unitaire == null ? '' : String(p.prix_unitaire),
+    tva_taux: String(tvaRate(p)),
+  }))
+}
+
+/**
+ * OS proposé par l'assistant → contenu du formulaire d'OS (OsEditor), que
+ * la personne relit avant d'enregistrer. Le numéro est toujours calculé ici
+ * (l'IA ne voit pas tous les OS), l'entreprise reprend ses coordonnées de
+ * l'annuaire, le chantier est retrouvé par son nom si l'id manque.
+ * @returns {{ draft?: {form, prestations}, os?: object, error?: string }}
+ */
+export function osDraftFromAi(action, { chantiers = [], contacts = [], ordresService = [] } = {}) {
+  const d = action?.data || {}
+  if (action?.type === 'update_os') {
+    const cur = ordresService.find(o => o.id === d.id) || ordresService.find(o => d.numero && o.numero === d.numero)
+    if (!cur) return { error: "OS à modifier introuvable." }
+    const changes = {}
+    for (const k of OS_EDITABLE) if (d[k] != null && d[k] !== '') changes[k] = d[k]
+    for (const k of ['date_emission', 'date_intervention', 'date_fin_prevue']) if (k in changes) changes[k] = isoDate(changes[k])
+    const lines = linesFromAi(d.prestations)
+    return { os: { ...cur, ...changes, ...(lines.length ? { prestations: lines } : {}) } }
+  }
+
+  const chantier = findChantier(d, chantiers)
+  const form = newOsDraft({ chantier, allOs: ordresService })
+  const contact = (d.artisan_contact_id && contacts.find(c => c.id === d.artisan_contact_id))
+    || findArtisanContact(d, contacts)
+  const today = form.date_emission
+  for (const k of OS_EDITABLE) if (d[k] != null && d[k] !== '') form[k] = d[k]
+  form.date_emission = isoDate(form.date_emission) || today
+  form.date_intervention = isoDate(form.date_intervention)
+  form.date_fin_prevue = isoDate(form.date_fin_prevue)
+  if (contact) {
+    Object.assign(form, {
+      artisan_nom: contact.nom,
+      artisan_specialite: contact.specialite || form.artisan_specialite || '',
+      artisan_adresse: contact.adresse || form.artisan_adresse || '',
+      artisan_tel: contact.tel || form.artisan_tel || '',
+      artisan_email: contact.email_travaux || contact.email || form.artisan_email || '',
+      artisan_siret: contact.siret || form.artisan_siret || '',
+    })
+  }
+  if (chantier) form.client_nom = form.client_nom || chantier.client || ''
+  form.statut = 'Brouillon'
+  form.tva_non_applicable = !!form.tva_non_applicable
+  const lines = linesFromAi(d.prestations)
+  if (form.tva_non_applicable) lines.forEach(l => { l.tva_taux = '0' })
+  return { draft: { form, prestations: lines.length ? lines : [{ ...BLANK_LINE }] } }
 }
 
 /** Actions qui suppriment : exécutées seulement après confirmation de l'utilisateur. */

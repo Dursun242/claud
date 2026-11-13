@@ -58,7 +58,7 @@ src/app/
 │
 └─ api/                       → 35 routes. Pattern unique : verifyAuth() / verifyStaff() + createLogger() + mock-friendly.
     ├─ admin/*                → service role uniquement (users, demo-mode, reset-demo-data)
-    ├─ claude/                → assistant IA (Claude ou Mistral via lib/ai.js, réponse au format Anthropic, rate limit 20/min/IP)
+    ├─ claude/                → assistant IA (Claude ou Mistral via lib/ai.js, réponse au format Anthropic, rate limit 20/min/IP ; modèle propre facultatif ASSISTANT_ANTHROPIC_MODEL / ASSISTANT_MISTRAL_MODEL). Consignes adaptées à la dictée (noms déformés rapprochés de l'annuaire). Un OS demandé à l'assistant n'est jamais enregistré directement : lib/aiActions.osDraftFromAi ouvre le formulaire OsEditor pré-rempli (numéro calculé, coordonnées de l'annuaire, prix non inventés)
     ├─ devis-ia, devis/send   → CRM : IA de chiffrage + envoi SMTP du devis (staff only, verifyStaff)
     ├─ devis/qonto            → CRM : devis créé dans Qonto (numéro + PDF Qonto), import des devis Qonto, suivi des statuts (staff only)
     ├─ devis/documents        → CRM : pièces jointes des mails de devis (documents permanents Kbis/décennale + fichiers ponctuels, dépôt direct dans Storage par URL signée, 10 Mo, staff only)
