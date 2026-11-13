@@ -449,7 +449,7 @@ export async function generateOSPdf(data) {
     const tva = osTvaRate(p, tvaNA)
     return [sanitize(p.description)||"", p.unite||"", q.toString(), fmtM(pu), `${tva}%`, fmtM(osLineHT(p))]
   })
-  const { ht: totalHT, ttc: totalTTC, parTaux: tvaMap } = computeOsTotals(prestations, tvaNA)
+  const { ht: totalHT, tva: totalTVA, ttc: totalTTC, parTaux: tvaMap } = computeOsTotals(prestations, tvaNA)
 
   autoTable(doc, {
     startY: y, head: [["Description", "Unité", "Qté", "PU HT", "TVA", "Total HT"]], body: tbody,
